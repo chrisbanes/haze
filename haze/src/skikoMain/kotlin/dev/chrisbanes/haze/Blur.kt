@@ -85,24 +85,28 @@ actual fun Modifier.haze(
 
   graphicsLayer(
     renderEffect = remember(areas, color, blur) {
-      val filters = areas.asSequence().filterNot { it.isEmpty }.map { area ->
-        val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-          uniform("rectangle", area.left, area.top, area.right, area.bottom)
-          uniform("color", color.red, color.green, color.blue, color.alpha)
-          child("noise", NOISE_SHADER)
+      val filters = areas.asSequence()
+        .filterNot { it.isEmpty }
+        .map { area ->
+          val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
+            uniform("rectangle", area.left, area.top, area.right, area.bottom)
+            uniform("color", color.red, color.green, color.blue, color.alpha)
+            child("noise", NOISE_SHADER)
+          }
+
+          ImageFilter.makeRuntimeShader(
+            runtimeShaderBuilder = compositeShaderBuilder,
+            shaderNames = arrayOf("content", "blur"),
+            inputs = arrayOf(null, blur),
+          )
         }
+        .toList()
 
-        ImageFilter.makeRuntimeShader(
-          runtimeShaderBuilder = compositeShaderBuilder,
-          shaderNames = arrayOf("content", "blur"),
-          inputs = arrayOf(null, blur),
-        )
-      }.toList()
-
-      ImageFilter.makeMerge(
-        filters = filters.toTypedArray(),
-        crop = null,
-      ).asComposeRenderEffect()
+      when {
+        filters.isEmpty() -> null
+        filters.size == 1 -> filters.first().asComposeRenderEffect()
+        else -> ImageFilter.makeMerge(filters.toTypedArray(), null).asComposeRenderEffect()
+      }
     },
   )
 }
