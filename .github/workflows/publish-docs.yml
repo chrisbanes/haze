@@ -1,0 +1,46 @@
+name: Publish docs
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  deploy_docs:
+    runs-on: ubuntu-latest
+    env:
+      TERM: dumb
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install mkdocs
+          python3 -m pip install mkdocs-material
+
+      - uses: burrunan/gradle-cache-action@v1
+        name: Build
+        with:
+          job-id: linux
+          arguments: dokkaHtmlMultiModule
+
+      - name: Build site
+        run: mkdocs build
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
