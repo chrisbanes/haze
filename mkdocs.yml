@@ -1,0 +1,45 @@
+# Project information
+site_name: 'Snapper'
+site_description: 'A snapping fling behavior for Jetpack Compose'
+site_author: 'Chris Banes'
+site_url: 'https://chribanes.github.io/snapper/'
+edit_uri: 'tree/main/docs/'
+remote_branch: gh-pages
+
+docs_dir: docs
+
+repo_name: 'Snapper'
+repo_url: 'https://github.com/chrisbanes/snapper'
+
+# Navigation
+nav:
+  - 'Overview': index.md
+  - 'Usage': usage.md
+  - 'API reference': api/lib/dev.chrisbanes.snapper/
+  - 'Sample code': https://github.com/chrisbanes/snapper/tree/main/sample/src/main/java/dev/chrisbanes/snapper/sample
+
+# Configuration
+theme:
+  name: 'material'
+  language: 'en'
+  logo: assets/croc.svg
+  palette:
+    primary: 'teal'
+    accent: 'teal'
+  font:
+    text: 'Roboto'
+    code: 'JetBrains Mono'
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - attr_list
+  - codehilite:
+      guess_lang: false
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.betterem
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.details

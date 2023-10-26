@@ -1,0 +1,96 @@
+# Gradle
+.gradle
+build/
+
+captures
+
+/local.properties
+
+# IntelliJ .idea folder
+.idea/workspace.xml
+.idea/misc.xml
+.idea/libraries
+.idea/caches
+.idea/navEditor.xml
+.idea/tasks.xml
+.idea/modules.xml
+.idea/compiler.xml
+.idea/jarRepositories.xml
+.idea/deploymentTargetDropDown.xml
+.idea/androidTestResultsUserPreferences.xml
+.idea/appInsightsSettings.xml
+.idea/artifacts
+gradle.xml
+*.iml
+ios-app/Tivi/.idea/*
+.fleet
+
+# General
+.DS_Store
+.externalNativeBuild
+
+# Do not commit plain-text release keys
+app-release.jks
+play-account.p12
+play-account.json
+
+# Do not commit firebase config
+google-services.json
+
+# VS Code config
+org.eclipse.buildship.core.prefs
+.classpath
+.project
+bin/
+
+
+##########################################################################################
+# Imported from https://github.com/github/gitignore/blob/main/Swift.gitignore
+##########################################################################################
+
+# Xcode
+#
+# gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
+
+## User settings
+xcuserdata/
+
+## Obj-C/Swift specific
+*.hmap
+
+## App packaging
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+#
+# Add this line if you want to avoid checking in source code from Swift Package Manager dependencies.
+# Packages/
+# Package.pins
+# Package.resolved
+# *.xcodeproj
+#
+# Xcode automatically generates this directory with a .xcworkspacedata file and xcuserdata
+# hence it is not needed unless you have added a package configuration file to your project
+# .swiftpm
+
+.build/
+
+# fastlane
+#
+# It is recommended to not store the screenshots in the git repo.
+# Instead, use fastlane to re-generate the screenshots whenever they are needed.
+# For more information about the recommended setup visit:
+# https://docs.fastlane.tools/best-practices/source-control/#source-control
+
+report.xml
+Preview.html
+screenshots/**/*.png
+test_output
+
+*.env*
