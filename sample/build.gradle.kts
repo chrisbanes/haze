@@ -43,7 +43,7 @@ android {
 }
 
 dependencies {
-  implementation(projects.lib)
+  implementation(projects.haze)
 
   implementation(libs.compose.ui.tooling) // TODO: Try and move this to debug only
   implementation(libs.compose.material3.material3)
