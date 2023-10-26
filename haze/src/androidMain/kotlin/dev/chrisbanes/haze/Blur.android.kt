@@ -1,4 +1,4 @@
-// Copyright 2023, Christopher Banes and the Tivi project contributors
+// Copyright 2023, Christopher Banes and the project contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package dev.chrisbanes.haze
@@ -21,7 +21,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 
-actual fun Modifier.glassBlur(
+actual fun Modifier.haze(
   areas: List<Rect>,
   color: Color,
   blurRadius: Float,
