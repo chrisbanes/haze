@@ -16,8 +16,26 @@ kotlin {
   sourceSets {
     val commonMain by getting {
       dependencies {
-        api(compose.foundation)
+        api(compose.ui)
       }
+    }
+
+    val skikoMain by creating {
+      dependsOn(commonMain)
+    }
+
+    val androidMain by getting {
+      dependencies {
+        api("androidx.compose.ui:ui:1.6.0-alpha08")
+      }
+    }
+
+    val iosMain by getting {
+      dependsOn(skikoMain)
+    }
+
+    val jvmMain by getting {
+      dependsOn(skikoMain)
     }
   }
 }

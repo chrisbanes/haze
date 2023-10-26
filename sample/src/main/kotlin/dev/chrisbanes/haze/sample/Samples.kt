@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 
 val Samples = buildList {
@@ -11,5 +12,5 @@ val Samples = buildList {
 
 data class Sample(
   val title: String,
-  val content: @Composable () -> Unit,
+  val content: @Composable (PaddingValues) -> Unit,
 )

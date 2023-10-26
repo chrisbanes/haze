@@ -14,14 +14,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 internal val LazyColumnSamples = listOf(
-  Sample(title = "LazyColumn sample") { LazyColumnSample() },
+  Sample(title = "LazyColumn sample") { LazyColumnSample(it) },
 )
 
 @Composable
-private fun LazyColumnSample() {
+private fun LazyColumnSample(
+  contentPadding: PaddingValues,
+) {
   LazyColumn(
-    contentPadding = PaddingValues(top = 200.dp),
     verticalArrangement = Arrangement.spacedBy(4.dp),
+    contentPadding = contentPadding,
     modifier = Modifier.fillMaxSize(),
   ) {
     items(20) { index ->
