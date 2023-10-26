@@ -1,7 +1,7 @@
 // Copyright 2023, Christopher Banes and the project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.snapper.sample
+package dev.chrisbanes.haze.sample
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,15 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.ListItem
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,7 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import dev.chrisbanes.snapper.sample.ui.theme.SnapperTheme
+import dev.chrisbanes.haze.sample.ui.theme.SampleTheme
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,10 +42,10 @@ class MainActivity : ComponentActivity() {
   }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Samples(appTitle: String) {
-  SnapperTheme {
+  SampleTheme {
     var currentSample by remember { mutableStateOf<Sample?>(null) }
 
     Scaffold(
@@ -56,7 +56,7 @@ private fun Samples(appTitle: String) {
             if (currentSample != null) {
               IconButton(onClick = { currentSample = null }) {
                 Icon(
-                  imageVector = Icons.Default.ArrowBack,
+                  imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                   contentDescription = "Navigate back",
                 )
               }
@@ -73,6 +73,7 @@ private fun Samples(appTitle: String) {
 
       Crossfade(
         targetState = currentSample,
+        label = "Samples Crossfade",
         modifier = Modifier.padding(contentPadding),
       ) { sample ->
         if (sample != null) {
@@ -81,7 +82,7 @@ private fun Samples(appTitle: String) {
           LazyColumn(Modifier.fillMaxSize()) {
             items(Samples) { sample ->
               ListItem(
-                text = { Text(text = sample.title) },
+                headlineContent = { Text(text = sample.title) },
                 modifier = Modifier
                   .fillMaxWidth()
                   .clickable { currentSample = sample },
@@ -97,5 +98,5 @@ private fun Samples(appTitle: String) {
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
-  Samples(appTitle = "Snapper Sample")
+  Samples(appTitle = "Haze Sample")
 }

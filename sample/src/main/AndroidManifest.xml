@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="dev.chrisbanes.snapper.sample">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Used for loading images from the network -->
     <uses-permission android:name="android.permission.INTERNET" />

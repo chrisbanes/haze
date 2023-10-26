@@ -1,22 +1,22 @@
 # Project information
-site_name: 'Snapper'
+site_name: 'Haze'
 site_description: 'A snapping fling behavior for Jetpack Compose'
 site_author: 'Chris Banes'
-site_url: 'https://chribanes.github.io/snapper/'
+site_url: 'https://chribanes.github.io/haze/'
 edit_uri: 'tree/main/docs/'
 remote_branch: gh-pages
 
 docs_dir: docs
 
 repo_name: 'Snapper'
-repo_url: 'https://github.com/chrisbanes/snapper'
+repo_url: 'https://github.com/chrisbanes/haze'
 
 # Navigation
 nav:
   - 'Overview': index.md
   - 'Usage': usage.md
-  - 'API reference': api/lib/dev.chrisbanes.snapper/
-  - 'Sample code': https://github.com/chrisbanes/snapper/tree/main/sample/src/main/java/dev/chrisbanes/snapper/sample
+  - 'API reference': api/lib/dev.chrisbanes.haze/
+  - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/src/main/java/dev/chrisbanes/snapper/sample
 
 # Configuration
 theme:
