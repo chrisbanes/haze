@@ -8,7 +8,7 @@ remote_branch: gh-pages
 
 docs_dir: docs
 
-repo_name: 'Snapper'
+repo_name: 'Haze'
 repo_url: 'https://github.com/chrisbanes/haze'
 
 # Navigation
