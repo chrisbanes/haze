@@ -41,5 +41,9 @@ enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
 
 rootProject.name = "haze-root"
 
-include(":haze")
-include(":sample")
+include(
+  ":haze",
+  ":sample:shared",
+  ":sample:android",
+  ":sample:desktop"
+)

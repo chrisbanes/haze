@@ -41,10 +41,7 @@ actual fun Modifier.haze(
     // This is our RenderEffect. It first applies a blur effect, and then a color filter effect
     // to allow content to be visible on top
     val effect = RenderEffect.createColorFilterEffect(
-      BlendModeColorFilter(
-        color.copy(alpha = 0.7f).toArgb(),
-        BlendMode.SRC_OVER,
-      ),
+      BlendModeColorFilter(color.toArgb(), BlendMode.SRC_OVER),
       RenderEffect.createBlurEffect(
         blurRadius,
         blurRadius,

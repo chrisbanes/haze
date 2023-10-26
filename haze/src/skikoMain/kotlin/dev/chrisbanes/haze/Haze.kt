@@ -28,6 +28,7 @@ private const val SHADER_SKSL = """
 
   uniform vec4 rectangle;
   uniform vec4 color;
+  uniform float colorShift;
 
   // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
   float boxSDF(vec2 position, vec2 box) {
@@ -53,8 +54,8 @@ private const val SHADER_SKSL = """
     // We apply the noise, toned down to 10%
     float noiseFactor = min(1.0, noiseLuminance) * 0.1;
 
-    // Apply the noise, and shift towards `color` by 70%
-    return b + noiseFactor + ((color - b) * 0.7);
+    // Apply the noise, and shift towards `color` by `colorShift`
+    return b + noiseFactor + ((color - b) * colorShift);
   }
 """
 
@@ -90,7 +91,9 @@ actual fun Modifier.haze(
         .map { area ->
           val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
             uniform("rectangle", area.left, area.top, area.right, area.bottom)
-            uniform("color", color.red, color.green, color.blue, color.alpha)
+            uniform("color", color.red, color.green, color.blue, 1f)
+            uniform("colorShift", color.alpha)
+
             child("noise", NOISE_SHADER)
           }
 

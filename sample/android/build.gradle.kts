@@ -9,10 +9,9 @@ plugins {
 }
 
 android {
-  namespace = "dev.chrisbanes.haze.sample"
+  namespace = "dev.chrisbanes.haze.sample.android"
 
   defaultConfig {
-    applicationId = "dev.chrisbanes.haze.sample"
     versionCode = 1
     versionName = "1.0"
   }
@@ -43,11 +42,7 @@ android {
 }
 
 dependencies {
-  implementation(projects.haze)
-
-  implementation(libs.compose.ui.tooling) // TODO: Try and move this to debug only
-  implementation(libs.compose.material3.material3)
+  implementation(projects.sample.shared)
   implementation(libs.androidx.core)
   implementation(libs.androidx.activity.compose)
-  implementation(libs.coil)
 }
