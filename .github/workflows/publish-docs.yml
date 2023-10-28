@@ -2,6 +2,9 @@ name: Publish docs
 
 on:
   push:
+    # Want to remove it running on every commit eventually
+    branches:
+      - main
     tags:
       - v*
 
