@@ -10,9 +10,7 @@ on:
 
 jobs:
   deploy_docs:
-    runs-on: ubuntu-latest
-    env:
-      TERM: dumb
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
