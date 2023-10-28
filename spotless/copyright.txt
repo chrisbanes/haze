@@ -1,3 +1,3 @@
-// Copyright $YEAR, Christopher Banes and the project contributors
+// Copyright $YEAR, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 

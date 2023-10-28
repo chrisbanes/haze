@@ -1,4 +1,4 @@
-// Copyright 2023, Christopher Banes and the project contributors
+// Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
 
