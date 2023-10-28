@@ -15,9 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: set up JDK
+      - name: Setup JDK
         uses: actions/setup-java@v3
         with:
+          distribution: 'zulu'
           java-version: 17
 
       - name: Setup Python
