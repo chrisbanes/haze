@@ -7,7 +7,7 @@ plugins {
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
   id("org.jetbrains.dokka")
-  // apply plugin: "com.vanniktech.maven.publish"
+  id("com.vanniktech.maven.publish")
 }
 
 android {
