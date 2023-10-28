@@ -1,0 +1,45 @@
+# Project information
+site_name: 'Haze'
+site_description: 'A blurring modifier for Compose'
+site_author: 'Chris Banes'
+site_url: 'https://chribanes.github.io/haze/'
+edit_uri: 'tree/main/docs/'
+remote_branch: gh-pages
+
+docs_dir: docs
+
+repo_name: 'Haze'
+repo_url: 'https://github.com/chrisbanes/haze'
+
+# Navigation
+nav:
+  - 'Overview': index.md
+  - 'Usage': usage.md
+  - 'API reference': api/lib/dev.chrisbanes.haze/
+  - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
+
+# Configuration
+theme:
+  name: 'material'
+  language: 'en'
+  logo: assets/croc.svg
+  palette:
+    primary: 'teal'
+    accent: 'teal'
+  font:
+    text: 'Roboto'
+    code: 'JetBrains Mono'
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - attr_list
+  - codehilite:
+      guess_lang: false
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.betterem
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.details

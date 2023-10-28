@@ -1,0 +1,30 @@
+[versions]
+agp = "8.1.2"
+composecompiler = "1.5.3"
+compose-multiplatform = "1.5.10-rc02"
+ktlint = "1.0.1"
+kotlin = "1.9.10"
+spotless = "6.22.0"
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+android-lint = { id = "com.android.lint", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+cacheFixPlugin = { id = "org.gradle.android.cache-fix", version = "3.0" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+dokka = { id = "org.jetbrains.dokka", version = "1.9.10" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.25.3" }
+
+[libraries]
+imageloader = "io.github.qdsfdhvh:image-loader:1.6.8"
+androidx-core = "androidx.core:core-ktx:1.12.0"
+androidx-activity-compose = "androidx.activity:activity-compose:1.8.0"
+
+# Build logic dependencies
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+spotless-gradlePlugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose-multiplatform" }
