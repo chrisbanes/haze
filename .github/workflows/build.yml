@@ -18,7 +18,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     runs-on: macos-13
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - uses: actions/checkout@v3
@@ -32,16 +32,7 @@ jobs:
       - uses: gradle/gradle-build-action@v2
 
       - name: Build
-        run: ./gradlew spotlessCheck assemble
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-results-robolectric
-          path: |
-            **/build/test-results/*
-            **/build/reports/*
+        run: ./gradlew build
 
   deploy:
     if: github.ref == 'refs/heads/main'
@@ -62,7 +53,7 @@ jobs:
       - uses: gradle/gradle-build-action@v2
 
       - name: Deploy to Sonatype
-        run: ./gradlew publish --no-parallel
+        run: ./gradlew publish
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}

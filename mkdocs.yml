@@ -1,6 +1,6 @@
 # Project information
 site_name: 'Haze'
-site_description: 'A snapping fling behavior for Jetpack Compose'
+site_description: 'A blurring modifier for Compose'
 site_author: 'Chris Banes'
 site_url: 'https://chribanes.github.io/haze/'
 edit_uri: 'tree/main/docs/'
@@ -16,7 +16,7 @@ nav:
   - 'Overview': index.md
   - 'Usage': usage.md
   - 'API reference': api/lib/dev.chrisbanes.haze/
-  - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/src/main/java/dev/chrisbanes/snapper/sample
+  - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
 
 # Configuration
 theme:

@@ -30,14 +30,14 @@ jobs:
           python3 -m pip install mkdocs
           python3 -m pip install mkdocs-material
 
-      - uses: burrunan/gradle-cache-action@v1
-        name: Build
-        with:
-          job-id: linux
-          arguments: dokkaHtmlMultiModule
+      - uses: gradle/gradle-build-action@v2
+
+      - run: ./gradlew :dokkaHtmlMultiModule
 
       - name: Build site
         run: mkdocs build
+
+      # TODO: Copy over Dokka API build to ./site
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3

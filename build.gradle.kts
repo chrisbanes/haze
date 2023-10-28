@@ -13,4 +13,6 @@ plugins {
   alias(libs.plugins.kotlin.android) apply false
   alias(libs.plugins.spotless) apply false
   alias(libs.plugins.composeMultiplatform) apply false
+
+  id("org.jetbrains.dokka") version "1.9.10"
 }

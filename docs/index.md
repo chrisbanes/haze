@@ -1,4 +1,4 @@
-[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.snapper/snapper)](https://search.maven.org/search?q=g:dev.chrisbanes.snapper)
+[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/snapper)](https://search.maven.org/search?q=g:dev.chrisbanes.haze)
 
 ![](assets/header.png)
 
@@ -45,16 +45,16 @@ LazyRow(
 
 The API is generally split into a few things:
 
-- [SnapperFlingBehavior](api/lib/dev.chrisbanes.snapper/-snapper-layout-info/), which is what apps provide to scrollable containers.
-- A number of [remember functions](api/lib/dev.chrisbanes.snapper/remember-snapper-fling-behavior.html) allowing easy use of `SnapperFlingBehavior` from composables.
-- [SnapperFlingLayoutInfo](api/lib/dev.chrisbanes.snapper/-snapper-layout-info/), which is an facade class allowing `SnapperFlingBehavior` to interact with different scrollable container state in a generic way.
-- Implementations of `SnapperFlingLayoutInfo` for easy integration, such as [LazyListFlingLayoutInfo](api/lib/dev.chrisbanes.snapper/-lazy-list-snapper-layout-info/).
+- [SnapperFlingBehavior](api/lib/dev.chrisbanes.haze/-snapper-layout-info/), which is what apps provide to scrollable containers.
+- A number of [remember functions](api/lib/dev.chrisbanes.haze/remember-snapper-fling-behavior.html) allowing easy use of `SnapperFlingBehavior` from composables.
+- [SnapperFlingLayoutInfo](api/lib/dev.chrisbanes.haze/-snapper-layout-info/), which is an facade class allowing `SnapperFlingBehavior` to interact with different scrollable container state in a generic way.
+- Implementations of `SnapperFlingLayoutInfo` for easy integration, such as [LazyListFlingLayoutInfo](api/lib/dev.chrisbanes.haze/-lazy-list-snapper-layout-info/).
 
 For examples, refer to the [samples](https://github.com/chrisbanes/snapper/tree/main/sample/src/main/java/dev/chrisbanes/snapper/sample).
 
 ## Download
 
-[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.snapper/snapper)](https://search.maven.org/search?q=g:dev.chrisbanes.snapper)
+[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/snapper)](https://search.maven.org/search?q=g:dev.chrisbanes.haze)
 
 ```groovy
 repositories {
@@ -62,7 +62,7 @@ repositories {
 }
 
 dependencies {
-    implementation "dev.chrisbanes.snapper:snapper:<version>"
+    implementation "dev.chrisbanes.haze:haze:<version>"
 }
 ```
 
@@ -71,8 +71,8 @@ Snapshots of the development version are available in Sonatype's [snapshots repo
 ## License
 
 ```
-Copyright 2021 Chris Banes
- 
+Copyright 2023 Chris Banes
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -87,4 +87,4 @@ limitations under the License.
 ```
 
 [compose]: https://developer.android.com/jetpack/compose
-[snap]: https://oss.sonatype.org/content/repositories/snapshots/dev/chrisbanes/snapper/snapper/
+[snap]: https://oss.sonatype.org/content/repositories/snapshots/dev/chrisbanes/haze/haze/

@@ -8,7 +8,7 @@ the `snapOffsetForItem` parameters.
 `snapOffsetForItem` is a parameter which takes a block in the form of `(layoutInfo: SnapperLayoutInfo, item: SnapperLayoutItemInfo) -> Int`,
 and allows apps to supply custom logic of where to snap each individual item.
 
-A number of predefined values are supplied in the [SnapOffsets](../api/lib/dev.chrisbanes.snapper/-snap-offsets/) class,
+A number of predefined values are supplied in the [SnapOffsets](../api/lib/dev.chrisbanes.haze/-snap-offsets/) class,
 for snapping items to the start, center and end.
 
 ``` kotlin
@@ -25,11 +25,11 @@ LazyRow(
 
 ## Finding the 'current' item
 
-Most of the time apps will probably use the short-hand convenience function: 
+Most of the time apps will probably use the short-hand convenience function:
 `rememberSnapperFlingBehavior(LazyListState)`, but there are times when
 it is useful to get access to the `SnapperLayoutInfo`.
 
-SnapperLayoutInfo provides lots of information about the 'snapping state' of 
+SnapperLayoutInfo provides lots of information about the 'snapping state' of
 the scrollable container, and provides access to the 'current item'.
 
 For example, if you wish to invoke some action when a fling + snap has finished
@@ -62,7 +62,7 @@ The `snapIndex` parameter allows customization of the index which Snapper which 
 after a user has started a fling.
 
 The block is given the [SnapperLayoutInfo][snapperlayoutinfo], the index where the fling started, and
-with the index which Snapper has determined is the correct index to fling, without the layout limits. 
+with the index which Snapper has determined is the correct index to fling, without the layout limits.
 The block should return the index which Snapper should fling and snap to.
 
 The following are some examples of what you can achieve with `snapIndex`.
@@ -126,5 +126,5 @@ to the current item.
 
 Both of the specs can be customized to apps wishes.
 
-  [snapperlayoutinfo]: ../api/lib/dev.chrisbanes.snapper/-snapper-layout-info/
-  [rememberlazylistsnapperlayoutinfo]: ../api/lib/dev.chrisbanes.snapper/remember-lazy-list-snapper-layout-info.html
+  [snapperlayoutinfo]: ../api/lib/dev.chrisbanes.haze/-snapper-layout-info/
+  [rememberlazylistsnapperlayoutinfo]: ../api/lib/dev.chrisbanes.haze/remember-lazy-list-snapper-layout-info.html
