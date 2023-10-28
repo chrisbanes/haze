@@ -45,5 +45,5 @@ include(
   ":haze",
   ":sample:shared",
   ":sample:android",
-  ":sample:desktop"
+  ":sample:desktop",
 )
