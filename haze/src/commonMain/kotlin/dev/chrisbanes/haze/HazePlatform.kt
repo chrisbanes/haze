@@ -6,13 +6,11 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 
-inline fun Modifier.haze(
-  vararg area: Rect,
-  color: Color,
-  blurRadius: Float = 56f,
-): Modifier = haze(
-  areas = area.toList(),
-  color = color,
-  blurRadius = blurRadius,
-)
+internal expect fun Modifier.haze(
+  areas: List<Rect>,
+  backgroundColor: Color,
+  tint: Color,
+  blurRadius: Dp,
+): Modifier

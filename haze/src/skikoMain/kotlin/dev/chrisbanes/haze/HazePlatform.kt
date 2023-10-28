@@ -11,6 +11,8 @@ import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import org.jetbrains.skia.FilterTileMode
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
@@ -70,13 +72,15 @@ private val NOISE_SHADER by lazy {
   )
 }
 
-actual fun Modifier.haze(
+internal actual fun Modifier.haze(
   areas: List<Rect>,
-  color: Color,
-  blurRadius: Float,
+  backgroundColor: Color,
+  tint: Color,
+  blurRadius: Dp,
 ): Modifier = composed {
+  val blurRadiusPx = with(LocalDensity.current) { blurRadius.toPx() }
   val blur = remember(blurRadius) {
-    val sigma = BlurEffect.convertRadiusToSigma(blurRadius)
+    val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
     ImageFilter.makeBlur(
       sigmaX = sigma,
       sigmaY = sigma,
@@ -85,14 +89,14 @@ actual fun Modifier.haze(
   }
 
   graphicsLayer(
-    renderEffect = remember(areas, color, blur) {
-      val filters = areas.asSequence()
+    renderEffect = remember(areas, tint, blur) {
+      areas.asSequence()
         .filterNot { it.isEmpty }
         .map { area ->
           val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
             uniform("rectangle", area.left, area.top, area.right, area.bottom)
-            uniform("color", color.red, color.green, color.blue, 1f)
-            uniform("colorShift", color.alpha)
+            uniform("color", tint.red, tint.green, tint.blue, 1f)
+            uniform("colorShift", tint.alpha)
 
             child("noise", NOISE_SHADER)
           }
@@ -104,12 +108,13 @@ actual fun Modifier.haze(
           )
         }
         .toList()
-
-      when {
-        filters.isEmpty() -> null
-        filters.size == 1 -> filters.first().asComposeRenderEffect()
-        else -> ImageFilter.makeMerge(filters.toTypedArray(), null).asComposeRenderEffect()
-      }
+        .flatten()?.asComposeRenderEffect()
     },
   )
+}
+
+private fun Collection<ImageFilter>.flatten(): ImageFilter? = when {
+  isEmpty() -> null
+  size == 1 -> first()
+  else -> ImageFilter.makeMerge(toTypedArray(), null)
 }

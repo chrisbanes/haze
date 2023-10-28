@@ -53,7 +53,7 @@ fun HazeSample(appTitle: String) {
                 constraints.maxWidth.toFloat(),
                 with(LocalDensity.current) { contentPadding.calculateTopPadding().toPx() },
               ),
-              color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+              backgroundColor = MaterialTheme.colorScheme.surface,
             ),
         ) {
           items(50) { index ->

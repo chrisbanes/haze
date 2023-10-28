@@ -20,11 +20,13 @@ import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.Dp
 
-actual fun Modifier.haze(
+internal actual fun Modifier.haze(
   areas: List<Rect>,
-  color: Color,
-  blurRadius: Float,
+  backgroundColor: Color,
+  tint: Color,
+  blurRadius: Dp,
 ): Modifier {
   if (Build.VERSION.SDK_INT < 31) {
     // On older platforms we just display a translucent scrim
@@ -32,7 +34,7 @@ actual fun Modifier.haze(
       drawContent()
 
       for (area in areas) {
-        drawRect(color = color, topLeft = area.topLeft, size = area.size, alpha = 0.9f)
+        drawRect(color = tint, topLeft = area.topLeft, size = area.size, alpha = 0.9f)
       }
     }
   }
@@ -40,13 +42,10 @@ actual fun Modifier.haze(
   return drawWithCache {
     // This is our RenderEffect. It first applies a blur effect, and then a color filter effect
     // to allow content to be visible on top
+    val blurRadiusPx = blurRadius.toPx()
     val effect = RenderEffect.createColorFilterEffect(
-      BlendModeColorFilter(color.toArgb(), BlendMode.SRC_OVER),
-      RenderEffect.createBlurEffect(
-        blurRadius,
-        blurRadius,
-        Shader.TileMode.DECAL,
-      ),
+      BlendModeColorFilter(tint.toArgb(), BlendMode.SRC_OVER),
+      RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.DECAL),
     )
 
     val contentNode = RenderNode("content").apply {
@@ -58,7 +57,7 @@ actual fun Modifier.haze(
       // We expand the area where our effect is applied to. This is necessary so that the blur
       // effect is applied evenly to allow edges. If we don't do this, the blur effect is much less
       // visible on the edges of the area.
-      val expandedRect = area.inflate(blurRadius)
+      val expandedRect = area.inflate(blurRadiusPx)
 
       val node = RenderNode("blur").apply {
         setRenderEffect(effect)
@@ -90,7 +89,7 @@ actual fun Modifier.haze(
           // We need to draw our background color first, as the `contentNode` may not draw
           // a background. This then makes the blur effect much less pronounced, as blurring with
           // transparent negates the effect.
-          canvas.drawColor(color.toArgb())
+          canvas.drawColor(backgroundColor.toArgb())
           canvas.translate(-effect.renderNodeDrawArea.left, -effect.renderNodeDrawArea.top)
           canvas.drawRenderNode(contentNode)
           effect.renderNode.endRecording()
