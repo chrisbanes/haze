@@ -21,10 +21,22 @@ fun Modifier.haze(
   blurRadius = blurRadius,
 )
 
+/**
+ * Defaults for the [haze] modifiers.
+ */
 object HazeDefaults {
+  /**
+   * Default blur radius. Larger values produce a stronger blur effect.
+   */
   val blurRadius: Dp = 20.dp
 
+  /**
+   * Default alpha used for the tint color. Used by the [tint] function.
+   */
   val tintAlpha: Float = 0.7f
 
-  fun tint(backgroundColor: Color): Color = backgroundColor.copy(alpha = tintAlpha)
+  /**
+   * Default builder for the 'tint' color. Transforms the provided [color].
+   */
+  fun tint(color: Color): Color = color.copy(alpha = tintAlpha)
 }
