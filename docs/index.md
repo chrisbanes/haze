@@ -1,5 +1,12 @@
-[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze)](https://search.maven.org/search?q=g:dev.chrisbanes.haze)
+Haze is a library providing a 'glassmorpism' style blur for Compose. 
 
+It is built with Compose Multiplatform, meaning that we support multiple platforms:
+
+| Platform      | Supported        |
+|---------------|------------------|
+| Android       | ✅ (read below)   |
+| iOS           | ✅                |
+| Desktop (JVM) | ✅                |
 
 ### Android
 
