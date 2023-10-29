@@ -2,16 +2,6 @@
 
 ## Haze
 
-Snapper is now deprecated, due to it's functionality being replaced by [`SnapFlingBehavior`](https://developer.android.com/reference/kotlin/androidx/compose/foundation/gestures/snapping/SnapFlingBehavior) which is available in Jetpack Compose 1.3.0.
-
-The `SnapFlingBehavior` API is very similar to Snapper, so migration should be very easy. I haven't provided an automatic migration path, as I feel that it's important to learn the new API by performing the migration yourself.
-
-## Library
-
-![](docs/assets/header.png)
-
-Snapper is a library which brings snapping to the Compose scrolling layouts (currently only LazyColumn and LazyRow).
-
 Check out the website for more information: https://chrisbanes.github.io/haze
 
 ## License
