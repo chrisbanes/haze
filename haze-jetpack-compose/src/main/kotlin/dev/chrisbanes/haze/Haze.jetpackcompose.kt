@@ -71,7 +71,7 @@ internal fun Modifier.haze(
         drawRect(
           color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
           topLeft = area.topLeft,
-          size = area.size
+          size = area.size,
         )
       }
     }
