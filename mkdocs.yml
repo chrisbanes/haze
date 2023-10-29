@@ -14,8 +14,7 @@ repo_url: 'https://github.com/chrisbanes/haze'
 # Navigation
 nav:
   - 'Overview': index.md
-  - 'Usage': usage.md
-  - 'API reference': api/lib/dev.chrisbanes.haze/
+  - 'API reference': api/
   - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
 
 # Configuration
@@ -24,11 +23,11 @@ theme:
   language: 'en'
   logo: assets/croc.svg
   palette:
-    primary: 'teal'
+    primary: 'white'
     accent: 'teal'
   font:
-    text: 'Roboto'
-    code: 'JetBrains Mono'
+    text: 'DM Sans'
+    code: 'Space Mono'
 
 # Extensions
 markdown_extensions:

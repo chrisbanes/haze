@@ -43,6 +43,9 @@ org.eclipse.buildship.core.prefs
 .project
 bin/
 
+# Docs
+site/
+
 
 ##########################################################################################
 # Imported from https://github.com/github/gitignore/blob/main/Swift.gitignore
