@@ -21,7 +21,9 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
 
       jvm()
       if (pluginManager.hasPlugin("com.android.library")) {
-        androidTarget()
+        androidTarget {
+          publishLibraryVariants("release")
+        }
       }
 
       listOf(
