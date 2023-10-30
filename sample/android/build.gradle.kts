@@ -16,6 +16,14 @@ android {
     versionName = "1.0"
   }
 
+  buildFeatures {
+    compose = true
+  }
+
+  composeOptions {
+    kotlinCompilerExtensionVersion = libs.versions.jetpackcompose.compiler.get()
+  }
+
   buildTypes {
     release {
       isMinifyEnabled = true
@@ -45,7 +53,11 @@ android {
 }
 
 dependencies {
-  implementation(projects.sample.shared)
+  implementation(projects.hazeJetpackCompose)
+
+  implementation(libs.imageloader)
+
   implementation(libs.androidx.core)
   implementation(libs.androidx.activity.compose)
+  implementation(libs.androidx.compose.material3)
 }
