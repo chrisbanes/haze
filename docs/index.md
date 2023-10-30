@@ -1,36 +1,25 @@
-Haze is a library providing a 'glassmorpism' style blur for Compose. 
+Haze is a library providing a 'glassmorpism' style blur for Compose.
 
-It is built with Compose Multiplatform, meaning that we support multiple platforms:
+![type:video](./media/desktop-small.mp4)
+
+Haze is built with [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/), meaning that it supports different platforms:
 
 | Platform      | Supported        |
 |---------------|------------------|
-| Android       | ✅ (read below)   |
-| iOS           | ✅                |
+| Android       | ✅ (see [Android](android.md))   |
 | Desktop (JVM) | ✅                |
+| iOS           | ✅                |
 
-### Android
+You can also see it in action in the [Tivi app](https://github.com/chrisbanes/tivi):
 
-The situation on Android is slighty tricky right now. The main Haze library is built with Compose Multiplatform, which currently uses Compose UI 1.5.x. 
+![type:video](./media/tivi.mp4)
 
-The Android implementation of `Modifier.haze` we have requires some drawing APIs which were recently added in the Compose UI 1.6.0 (alphas). Since we do not have access to those APIs when building with Compose Multiplatform, the Android target in the main library currently displays a translucent scrim, without a blur.
-
-#### Jetpack Compose
-
-If you are **not** building with Compose Multiplatform (i.e. Android only), and can use the latest Jetpack Compose 1.6.0 alphas, we've also published a version of the library specifically targetting Jetpack Compose. This version contains the 'real' blur implementation:
-
-```kotlin
-dependencies {
-    implementation("dev.chrisbanes.haze:haze-jetpack-compose:<version>")
-}
-```
-
-The API is exactly the same as it's basically a copy. Once Compose Multiplatform is updated to use Jetpack Compose UI 1.6.0 in the future, this extension library will no longer be required, and eventually removed.
 
 ## Download
 
 [![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze)](https://search.maven.org/search?q=g:dev.chrisbanes.haze)
 
-```groovy
+``` kotlin
 repositories {
     mavenCentral()
 }
@@ -39,12 +28,20 @@ dependencies {
     // For Compose Multiplatform
     implementation("dev.chrisbanes.haze:haze:<version>")
 
-    // Or if you're Android only
+    // Or if you're using Jetpack Compose 1.6.0 alphas
     implementation("dev.chrisbanes.haze:haze-jetpack-compose:<version>")
 }
 ```
 
 Snapshots of the development version are available in Sonatype's [snapshots repository][snap]. These are updated on every commit.
+
+## Acknowledgements
+
+The Skia-backed implementation, used on iOS and Desktop, is heavily influenced by [Kirill Grouchnikov](https://www.pushing-pixels.org)'s explorations on Compose Desktop. He wrote about it in his [Shader based render effects in Compose Desktop with Skia](https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html) blog post.
+
+The Android implementation is inspired by the techniques documented by [Chet Haase](https://twitter.com/chethaase) and [Nader Jawad](https://twitter.com/nadewad) in the [RenderNode for Bigger, Better Blurs](https://medium.com/androiddevelopers/rendernode-for-bigger-better-blurs-ced9f108c7e2) blog post.
+
+Thank you all.
 
 ## License
 

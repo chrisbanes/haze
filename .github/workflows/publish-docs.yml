@@ -40,8 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install mkdocs
-          python3 -m pip install mkdocs-material
+          python3 -m pip install mkdocs mkdocs-material mkdocs-video "mkdocs-material[imaging]"
 
       - uses: gradle/gradle-build-action@v2
 

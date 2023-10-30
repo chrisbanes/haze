@@ -14,6 +14,9 @@ repo_url: 'https://github.com/chrisbanes/haze'
 # Navigation
 nav:
   - 'Overview': index.md
+  - 'Usage': usage.md
+  - 'Android': android.md
+  - 'FAQs': faq.md
   - 'API reference': api/
   - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
 
@@ -21,13 +24,30 @@ nav:
 theme:
   name: 'material'
   language: 'en'
-  logo: assets/croc.svg
+  icon:
+    logo: material/blur-radial
   palette:
     primary: 'white'
     accent: 'teal'
   font:
     text: 'DM Sans'
     code: 'Space Mono'
+  features:
+    - content.tabs.link
+    - content.code.copy
+
+plugins:
+  - social
+  - search
+  - mkdocs-video:
+      is_video: true
+      video_muted: true
+      video_controls: false
+      video_autoplay: true
+      video_loop: true
+      css_style:
+        width: "100%"
+        height: "30rem"
 
 # Extensions
 markdown_extensions:

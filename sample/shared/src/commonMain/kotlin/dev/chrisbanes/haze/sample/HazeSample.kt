@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -39,6 +40,13 @@ fun HazeSample(appTitle: String) {
       modifier = Modifier.fillMaxSize(),
     ) { contentPadding ->
       BoxWithConstraints {
+        val topBarBounds = with(LocalDensity.current) {
+          Rect(
+            Offset(0f, 0f),
+            Offset(maxWidth.toPx(), contentPadding.calculateTopPadding().toPx()),
+          )
+        }
+
         LazyVerticalGrid(
           columns = GridCells.Adaptive(128.dp),
           verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -47,12 +55,7 @@ fun HazeSample(appTitle: String) {
           modifier = Modifier
             .fillMaxSize()
             .haze(
-              Rect(
-                0f,
-                0f,
-                constraints.maxWidth.toFloat(),
-                with(LocalDensity.current) { contentPadding.calculateTopPadding().toPx() },
-              ),
+              topBarBounds,
               backgroundColor = MaterialTheme.colorScheme.surface,
             ),
         ) {
