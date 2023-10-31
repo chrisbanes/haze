@@ -3,17 +3,22 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.isEmpty
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.LayoutModifierNode
+import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import org.jetbrains.skia.FilterTileMode
 import org.jetbrains.skia.ImageFilter
@@ -93,49 +98,81 @@ private val NOISE_SHADER by lazy {
   )
 }
 
-internal actual fun Modifier.haze(
-  areas: List<RoundRect>,
-  backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-): Modifier = composed {
-  val blurRadiusPx = with(LocalDensity.current) { blurRadius.toPx() }
-  val blur = remember(blurRadius) {
+internal actual class HazeNode actual constructor(
+  private var areas: List<RoundRect>,
+  private var backgroundColor: Color,
+  private var tint: Color,
+  private var blurRadius: Dp,
+) : Modifier.Node(), LayoutModifierNode, CompositionLocalConsumerModifierNode {
+
+  private var blurFilter: ImageFilter? = null
+
+  override fun onAttach() {
+    super.onAttach()
+    blurFilter = createBlurImageFilter(blurRadius)
+  }
+
+  actual fun update(
+    areas: List<Rect>,
+    backgroundColor: Color,
+    tint: Color,
+    blurRadius: Dp,
+  ) {
+    this.areas = areas
+    this.backgroundColor = backgroundColor
+    this.tint = tint
+    blurFilter = createBlurImageFilter(blurRadius)
+  }
+
+  override fun MeasureScope.measure(
+    measurable: Measurable,
+    constraints: Constraints,
+  ): MeasureResult {
+    val placeable = measurable.measure(constraints)
+    return layout(placeable.width, placeable.height) {
+      placeable.placeWithLayer(x = 0, y = 0) {
+        renderEffect = createBlurRenderEffect()
+      }
+    }
+  }
+
+  private fun createBlurImageFilter(blurRadius: Dp): ImageFilter {
+    val blurRadiusPx = with(currentValueOf(LocalDensity)) {
+      blurRadius.toPx()
+    }
     val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
-    ImageFilter.makeBlur(
+    return ImageFilter.makeBlur(
       sigmaX = sigma,
       sigmaY = sigma,
       mode = FilterTileMode.DECAL,
     )
   }
 
-  graphicsLayer(
-    renderEffect = remember(areas, tint, blur) {
-      areas.asSequence()
-        .filterNot { it.isEmpty }
-        .map { area ->
-          val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-            uniform("rectangle", area.left, area.top, area.right, area.bottom)
-            uniform("topLeftCornerRadius", area.topLeftCornerRadius.x, area.topLeftCornerRadius.y)
-            uniform("topRightCornerRadius", area.topRightCornerRadius.x, area.topRightCornerRadius.y)
-            uniform("bottomRightCornerRadius", area.bottomRightCornerRadius.x, area.bottomRightCornerRadius.y)
-            uniform("bottomLeftCornerRadius", area.bottomLeftCornerRadius.x, area.bottomLeftCornerRadius.y)
-            uniform("color", tint.red, tint.green, tint.blue, 1f)
-            uniform("colorShift", tint.alpha)
+  private fun createBlurRenderEffect(): RenderEffect? {
+    return areas.asSequence()
+      .filterNot { it.isEmpty }
+      .map { area ->
+        val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
+          uniform("rectangle", area.left, area.top, area.right, area.bottom)
+          uniform("topLeftCornerRadius", area.topLeftCornerRadius.x, area.topLeftCornerRadius.y)
+          uniform("topRightCornerRadius", area.topRightCornerRadius.x, area.topRightCornerRadius.y)
+          uniform("bottomRightCornerRadius", area.bottomRightCornerRadius.x, area.bottomRightCornerRadius.y)
+          uniform("bottomLeftCornerRadius", area.bottomLeftCornerRadius.x, area.bottomLeftCornerRadius.y)
+          uniform("color", tint.red, tint.green, tint.blue, 1f)
+          uniform("colorShift", tint.alpha)
 
-            child("noise", NOISE_SHADER)
-          }
-
-          ImageFilter.makeRuntimeShader(
-            runtimeShaderBuilder = compositeShaderBuilder,
-            shaderNames = arrayOf("content", "blur"),
-            inputs = arrayOf(null, blur),
-          )
+          child("noise", NOISE_SHADER)
         }
-        .toList()
-        .flatten()?.asComposeRenderEffect()
-    },
-  )
+
+        ImageFilter.makeRuntimeShader(
+          runtimeShaderBuilder = compositeShaderBuilder,
+          shaderNames = arrayOf("content", "blur"),
+          inputs = arrayOf(null, blurFilter),
+        )
+      }
+      .toList()
+      .flatten()?.asComposeRenderEffect()
+  }
 }
 
 private fun Collection<ImageFilter>.flatten(): ImageFilter? = when {

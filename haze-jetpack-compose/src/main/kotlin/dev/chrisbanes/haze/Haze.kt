@@ -3,9 +3,9 @@
 
 package dev.chrisbanes.haze
 
+import android.os.Build
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
@@ -28,18 +28,6 @@ import androidx.compose.ui.unit.dp
  */
 fun Modifier.haze(
   vararg area: Rect,
-  backgroundColor: Color,
-  tint: Color = HazeDefaults.tint(backgroundColor),
-  blurRadius: Dp = HazeDefaults.blurRadius,
-): Modifier = this then HazeNodeElement(
-  areas = area.map { RoundRect(it) },
-  tint = tint,
-  backgroundColor = backgroundColor,
-  blurRadius = blurRadius,
-)
-
-fun Modifier.haze(
-  vararg area: RoundRect,
   backgroundColor: Color,
   tint: Color = HazeDefaults.tint(backgroundColor),
   blurRadius: Dp = HazeDefaults.blurRadius,
@@ -76,13 +64,24 @@ internal data class HazeNodeElement(
   val tint: Color,
   val blurRadius: Dp,
 ) : ModifierNodeElement<HazeNode>() {
-  override fun create(): HazeNode {
-    return HazeNode(
-      areas = areas,
-      backgroundColor = backgroundColor,
-      tint = tint,
-      blurRadius = blurRadius,
-    )
+  override fun create(): HazeNode = when {
+    Build.VERSION.SDK_INT >= 31 -> {
+      HazeNode31(
+        areas = areas,
+        backgroundColor = backgroundColor,
+        tint = tint,
+        blurRadius = blurRadius,
+      )
+    }
+
+    else -> {
+      HazeNodeBase(
+        areas = areas,
+        backgroundColor = backgroundColor,
+        tint = tint,
+        blurRadius = blurRadius,
+      )
+    }
   }
 
   override fun update(node: HazeNode) {
@@ -103,16 +102,11 @@ internal data class HazeNodeElement(
   }
 }
 
-internal expect class HazeNode(
-  areas: List<Rect>,
-  backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-) : Modifier.Node {
-  fun update(
+internal open class HazeNode : Modifier.Node() {
+  open fun update(
     areas: List<Rect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
-  )
+  ): Unit = Unit
 }
