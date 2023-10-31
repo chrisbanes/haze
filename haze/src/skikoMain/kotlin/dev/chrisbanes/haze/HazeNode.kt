@@ -14,9 +14,7 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
-import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -79,50 +77,11 @@ private val NOISE_SHADER by lazy {
   )
 }
 
-internal actual fun Modifier.haze(
-  areas: List<Rect>,
-  backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-): Modifier = this then HazeNodeElement(
-  areas = areas,
-  tint = tint,
-  blurRadius = blurRadius,
-)
-
-private data class HazeNodeElement(
-  val areas: List<Rect>,
-  val tint: Color,
-  val blurRadius: Dp,
-) : ModifierNodeElement<HazeNode>() {
-  override fun create(): HazeNode {
-    return HazeNode(
-      areas = areas,
-      tint = tint,
-      blurRadius = blurRadius,
-    )
-  }
-
-  override fun update(node: HazeNode) {
-    node.update(
-      areas = areas,
-      tint = tint,
-      blurRadius = blurRadius,
-    )
-  }
-
-  override fun InspectorInfo.inspectableProperties() {
-    name = "haze"
-    properties["areas"] = areas
-    properties["tint"] = tint
-    properties["blurRadius"] = blurRadius
-  }
-}
-
-private class HazeNode(
+internal actual class HazeNode actual constructor(
   private var areas: List<Rect>,
+  private var backgroundColor: Color,
   private var tint: Color,
-  private val blurRadius: Dp,
+  private var blurRadius: Dp,
 ) : Modifier.Node(), LayoutModifierNode, CompositionLocalConsumerModifierNode {
 
   private var blurFilter: ImageFilter? = null
@@ -132,12 +91,14 @@ private class HazeNode(
     blurFilter = createBlurImageFilter(blurRadius)
   }
 
-  fun update(
+  actual fun update(
     areas: List<Rect>,
+    backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
   ) {
     this.areas = areas
+    this.backgroundColor = backgroundColor
     this.tint = tint
     blurFilter = createBlurImageFilter(blurRadius)
   }
@@ -148,9 +109,9 @@ private class HazeNode(
   ): MeasureResult {
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
-      placeable.placeWithLayer(0, 0, layerBlock = {
+      placeable.placeWithLayer(x = 0, y = 0) {
         renderEffect = createBlurRenderEffect()
-      })
+      }
     }
   }
 
