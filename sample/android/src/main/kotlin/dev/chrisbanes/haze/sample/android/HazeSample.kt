@@ -18,8 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -55,7 +57,13 @@ fun HazeSample(appTitle: String) {
           modifier = Modifier
             .fillMaxSize()
             .haze(
-              topBarBounds,
+              RoundRect(
+                topBarBounds,
+                topLeft = CornerRadius.Zero,
+                topRight = CornerRadius.Zero,
+                bottomLeft = CornerRadius(40f),
+                bottomRight = CornerRadius(40f),
+              ),
               backgroundColor = MaterialTheme.colorScheme.surface,
             ),
         ) {
