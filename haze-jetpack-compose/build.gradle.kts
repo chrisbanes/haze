@@ -11,6 +11,14 @@ plugins {
 
 android {
   namespace = "dev.chrisbanes.haze.jetpackcompose"
+
+  buildFeatures {
+    compose = true
+  }
+
+  composeOptions {
+    kotlinCompilerExtensionVersion = libs.versions.jetpackcompose.compiler.get()
+  }
 }
 
 dependencies {

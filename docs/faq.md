@@ -1,7 +1,7 @@
 
 ## What's the difference between this and Modifier.blur?
 
-On Android, [Modifier.blur](https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)) and Haze both use the same concepts underneath, and enable blurring when running on Android 12 devices (or newer). There are some key differences though. The obvious one is multiplatform support. 
+On Android, [Modifier.blur](https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)) and Haze both use the same concepts underneath, and enable blurring when running on Android 12 devices (or newer). There are some key differences though. The obvious one is multiplatform support.
 
 Ignoring that though...
 
@@ -22,6 +22,6 @@ The iOS and Desktop implementations are enabled by using Skia APIs directly, giv
 !!! warning "Jetpack Compose"
     Please note, this section refers to the Jetpack Compose implementation. Please read the [Android guide](android.md) if you haven't already.
 
-On Android, we don't have direct access to the Skia APIs, therefore we need to use the APIs which are provided by the Android framework. This means that we have access to [RenderEffect.createBlurEffect](https://developer.android.com/reference/android/graphics/RenderEffect#createBlurEffect(float,%20float,%20android.graphics.RenderEffect,%20android.graphics.Shader.TileMode)) for the blurring, and [createColorFilterEffect](https://developer.android.com/reference/android/graphics/RenderEffect#createColorFilterEffect(android.graphics.ColorFilter,%20android.graphics.RenderEffect)) for the tinting, both of which were added in API 31.
+On Android, we don't have direct access to the Skia APIs, therefore we need to use the APIs which are provided by the Android framework. We have access to [RenderEffect.createBlurEffect](https://developer.android.com/reference/android/graphics/RenderEffect#createBlurEffect(float,%20float,%20android.graphics.RenderEffect,%20android.graphics.Shader.TileMode)) for the blurring, and [createColorFilterEffect](https://developer.android.com/reference/android/graphics/RenderEffect#createColorFilterEffect(android.graphics.ColorFilter,%20android.graphics.RenderEffect)) for the tinting, both of which were added in API 31. A noise effect is applied using a [BitmapShader](https://developer.android.com/reference/android/graphics/BitmapShader) drawing a tiled precomputed [blue noise](https://github.com/Calinou/free-blue-noise-textures) texture (bundled in the library). We may investigate making the noise computed on device in the future, but this will require [runtime shader](https://developer.android.com/reference/android/graphics/RenderEffect#createRuntimeShaderEffect(android.graphics.RuntimeShader,%20java.lang.String)) support, added in API 33.
 
-The Android implementation is missing the noise effect, since there is no built-in way to achieve that. We may look to add this later, but it will likely require [runtime shader](https://developer.android.com/reference/android/graphics/RenderEffect#createRuntimeShaderEffect(android.graphics.RuntimeShader,%20java.lang.String)) support, added in API 33.
+Thanks to [Romain Guy](https://github.com/romainguy) for the pointers.
