@@ -101,7 +101,7 @@ internal fun Modifier.haze(
       val effect = createBlurEffect(
         blurRadiusPx,
         blurRadiusPx,
-        Shader.TileMode.DECAL
+        Shader.TileMode.DECAL,
       ).let {
         createBlendModeEffect(
           createShaderEffect(BitmapShader(bitmap, REPEAT, REPEAT)),
