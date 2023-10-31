@@ -71,7 +71,7 @@ object HazeDefaults {
 }
 
 internal data class HazeNodeElement(
-  val areas: List<Rect>,
+  val areas: List<RoundRect>,
   val backgroundColor: Color,
   val tint: Color,
   val blurRadius: Dp,
@@ -104,13 +104,13 @@ internal data class HazeNodeElement(
 }
 
 internal expect class HazeNode(
-  areas: List<Rect>,
+  areas: List<RoundRect>,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
 ) : Modifier.Node {
   fun update(
-    areas: List<Rect>,
+    areas: List<RoundRect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,

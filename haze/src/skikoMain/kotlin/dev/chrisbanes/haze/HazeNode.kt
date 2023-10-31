@@ -113,7 +113,7 @@ internal actual class HazeNode actual constructor(
   }
 
   actual fun update(
-    areas: List<Rect>,
+    areas: List<RoundRect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,

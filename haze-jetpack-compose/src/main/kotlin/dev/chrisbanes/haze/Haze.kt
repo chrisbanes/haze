@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import android.os.Build
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
@@ -28,6 +29,18 @@ import androidx.compose.ui.unit.dp
  */
 fun Modifier.haze(
   vararg area: Rect,
+  backgroundColor: Color,
+  tint: Color = HazeDefaults.tint(backgroundColor),
+  blurRadius: Dp = HazeDefaults.blurRadius,
+): Modifier = this then HazeNodeElement(
+  areas = area.map { RoundRect(it) },
+  tint = tint,
+  backgroundColor = backgroundColor,
+  blurRadius = blurRadius,
+)
+
+fun Modifier.haze(
+  vararg area: RoundRect,
   backgroundColor: Color,
   tint: Color = HazeDefaults.tint(backgroundColor),
   blurRadius: Dp = HazeDefaults.blurRadius,
@@ -59,7 +72,7 @@ object HazeDefaults {
 }
 
 internal data class HazeNodeElement(
-  val areas: List<Rect>,
+  val areas: List<RoundRect>,
   val backgroundColor: Color,
   val tint: Color,
   val blurRadius: Dp,
@@ -104,7 +117,7 @@ internal data class HazeNodeElement(
 
 internal open class HazeNode : Modifier.Node() {
   open fun update(
-    areas: List<Rect>,
+    areas: List<RoundRect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
