@@ -10,13 +10,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -37,6 +48,31 @@ fun HazeSample(appTitle: String) {
           modifier = Modifier.fillMaxWidth(),
         )
       },
+      bottomBar = {
+        var selectedIndex by remember { mutableIntStateOf(0) }
+
+        NavigationBar(
+          containerColor = Color.Transparent,
+          modifier = Modifier.fillMaxWidth(),
+        ) {
+          for (i in (0 until 3)) {
+            NavigationBarItem(
+              selected = selectedIndex == i,
+              onClick = { selectedIndex = i },
+              icon = {
+                Icon(
+                  imageVector = when (i) {
+                    0 -> Icons.Default.Call
+                    1 -> Icons.Default.Lock
+                    else -> Icons.Default.Search
+                  },
+                  contentDescription = null,
+                )
+              },
+            )
+          }
+        }
+      },
       modifier = Modifier.fillMaxSize(),
     ) { contentPadding ->
       BoxWithConstraints {
@@ -44,6 +80,12 @@ fun HazeSample(appTitle: String) {
           Rect(
             Offset(0f, 0f),
             Offset(maxWidth.toPx(), contentPadding.calculateTopPadding().toPx()),
+          )
+        }
+        val bottomBarsBounds = with(LocalDensity.current) {
+          Rect(
+            Offset(0f, maxHeight.toPx() - contentPadding.calculateBottomPadding().toPx()),
+            Offset(maxWidth.toPx(), maxHeight.toPx()),
           )
         }
 
@@ -56,6 +98,7 @@ fun HazeSample(appTitle: String) {
             .fillMaxSize()
             .haze(
               topBarBounds,
+              bottomBarsBounds,
               backgroundColor = MaterialTheme.colorScheme.surface,
             ),
         ) {
