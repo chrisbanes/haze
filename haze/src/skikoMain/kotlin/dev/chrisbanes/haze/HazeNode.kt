@@ -43,14 +43,18 @@ private const val SHADER_SKSL = """
       return length(max(q,0.0)) + min(max(q.x,q.y),0.0);
   }
 
-  vec4 main(vec2 coord) {
-    vec2 shiftRect = (rectangle.zw - rectangle.xy) / 2.0;
-    vec2 shiftCoord = coord - rectangle.xy;
-    float distanceToClosestEdge = boxSDF(shiftCoord - shiftRect, shiftRect);
+  bool rectContains(vec4 rectangle, vec2 coord) {
+      vec2 shiftRect = (rectangle.zw - rectangle.xy) / 2.0;
+      vec2 shiftCoord = coord - rectangle.xy;
+      return boxSDF(shiftCoord - shiftRect, shiftRect) <= 0.0;
+  }
 
+  vec4 main(vec2 coord) {
     vec4 c = content.eval(coord);
-    if (distanceToClosestEdge > 0.0) {
-      return c;
+
+    if (!rectContains(rectangle, coord)) {
+        // If we're not drawing in the rectangle, return transparent
+        return vec4(0.0, 0.0, 0.0, 0.0);
     }
 
     vec4 b = blur.eval(coord);
@@ -128,30 +132,35 @@ internal actual class HazeNode actual constructor(
   }
 
   private fun createBlurRenderEffect(): RenderEffect? {
-    return areas.asSequence()
-      .filterNot { it.isEmpty }
-      .map { area ->
-        val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-          uniform("rectangle", area.left, area.top, area.right, area.bottom)
-          uniform("color", tint.red, tint.green, tint.blue, 1f)
-          uniform("colorShift", tint.alpha)
+    val rects = areas.filterNot { it.isEmpty }
+    if (rects.isEmpty()) {
+      return null
+    }
 
-          child("noise", NOISE_SHADER)
-        }
+    val filters = rects.asSequence().map { area ->
+      val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
+        uniform("rectangle", area.left, area.top, area.right, area.bottom)
+        uniform("color", tint.red, tint.green, tint.blue, 1f)
+        uniform("colorShift", tint.alpha)
 
-        ImageFilter.makeRuntimeShader(
-          runtimeShaderBuilder = compositeShaderBuilder,
-          shaderNames = arrayOf("content", "blur"),
-          inputs = arrayOf(null, blurFilter),
-        )
+        child("noise", NOISE_SHADER)
       }
-      .toList()
-      .flatten()?.asComposeRenderEffect()
-  }
-}
 
-private fun Collection<ImageFilter>.flatten(): ImageFilter? = when {
-  isEmpty() -> null
-  size == 1 -> first()
-  else -> ImageFilter.makeMerge(toTypedArray(), null)
+      ImageFilter.makeRuntimeShader(
+        runtimeShaderBuilder = compositeShaderBuilder,
+        shaderNames = arrayOf("content", "blur"),
+        inputs = arrayOf(null, blurFilter),
+      )
+    }
+
+    return ImageFilter.makeMerge(
+      buildList {
+        // We need null as the first item, which tells Skia to draw the content without any filter.
+        // The filters then draw on top, clipped to their respective areas.
+        add(null)
+        addAll(filters)
+      }.toTypedArray(),
+      null,
+    ).asComposeRenderEffect()
+  }
 }
