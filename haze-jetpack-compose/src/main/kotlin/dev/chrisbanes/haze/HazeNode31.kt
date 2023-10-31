@@ -119,12 +119,11 @@ internal class HazeNode31(
     }
   }
 
-  @RequiresApi(31)
   private fun buildEffects(): List<EffectHolder> {
-    // This is our RenderEffect. It first applies a blur effect, and then a color filter effect
-    // to allow content to be visible on top
     val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
 
+    // This is our RenderEffect. It first applies a blur effect, and then a color filter effect
+    // to allow content to be visible on top
     val effect = RenderEffect.createBlurEffect(
       blurRadiusPx,
       blurRadiusPx,
