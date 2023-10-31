@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlendMode
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.jetpackcompose.R
+import kotlin.math.roundToInt
 
 fun Modifier.haze(
   vararg area: Rect,
@@ -89,8 +91,10 @@ internal fun Modifier.haze(
 
   return composed {
     val context = LocalContext.current
-    val bitmap = remember(context) {
-      BitmapFactory.decodeResource(context.resources, R.drawable.noise)
+    val noiseTexture = remember(context) {
+      BitmapFactory.decodeResource(context.resources, R.drawable.haze_noise)
+        // We draw the noise with 15% opacity
+        .withAlpha(0.15f)
     }
 
     drawWithCache {
@@ -104,7 +108,7 @@ internal fun Modifier.haze(
         Shader.TileMode.DECAL,
       ).let {
         createBlendModeEffect(
-          createShaderEffect(BitmapShader(bitmap, REPEAT, REPEAT)),
+          createShaderEffect(BitmapShader(noiseTexture, REPEAT, REPEAT)),
           it,
           BlendMode.OVERLAY,
         )
@@ -184,3 +188,21 @@ private class EffectRenderNodeHolder(
   val renderNodeDrawArea: Rect,
   val area: Rect,
 )
+
+/**
+ * Returns a copy of the current [Bitmap], drawn with the given [alpha] value.
+ *
+ * There might be a better way to do this via a [BlendMode], but none of the results looked as
+ * good.
+ */
+private fun Bitmap.withAlpha(alpha: Float): Bitmap {
+  val paint = android.graphics.Paint().apply {
+    this.alpha = (alpha * 255).roundToInt().coerceIn(0, 255)
+  }
+
+  return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also {
+    android.graphics.Canvas(it).apply {
+      drawBitmap(this@withAlpha, 0f, 0f, paint)
+    }
+  }
+}
