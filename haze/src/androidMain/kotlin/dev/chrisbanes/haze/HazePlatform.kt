@@ -6,11 +6,13 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.Dp
 
 internal actual fun Modifier.haze(
-  areas: List<Rect>,
+  areas: List<RoundRect>,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
@@ -21,13 +23,20 @@ internal actual fun Modifier.haze(
   return drawWithContent {
     drawContent()
 
+    val path = Path()
     for (area in areas) {
+      path.addRoundRect(area)
       // We need to boost the alpha as we don't have a blur effect
-      drawRect(
-        color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
-        topLeft = area.topLeft,
-        size = area.size,
-      )
+//      drawRect(
+//        color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
+//        topLeft = area.topLeft,
+//        size = area.size,
+//      )
     }
+    // We need to boost the alpha as we don't have a blur effect
+    drawPath(
+      path = path,
+      color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
+    )
   }
 }

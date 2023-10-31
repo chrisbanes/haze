@@ -12,19 +12,28 @@ import android.os.Build
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 fun Modifier.haze(
   vararg area: Rect,
+  backgroundColor: Color,
+  tint: Color = HazeDefaults.tint(backgroundColor),
+  blurRadius: Dp = HazeDefaults.blurRadius,
+): Modifier = haze(
+  areas = area.map { RoundRect(it) },
+  tint = tint,
+  backgroundColor = backgroundColor,
+  blurRadius = blurRadius,
+)
+
+fun Modifier.haze(
+  vararg area: RoundRect,
   backgroundColor: Color,
   tint: Color = HazeDefaults.tint(backgroundColor),
   blurRadius: Dp = HazeDefaults.blurRadius,
@@ -56,7 +65,7 @@ object HazeDefaults {
 }
 
 internal fun Modifier.haze(
-  areas: List<Rect>,
+  areas: List<RoundRect>,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
@@ -66,14 +75,24 @@ internal fun Modifier.haze(
     return drawWithContent {
       drawContent()
 
+      val path = Path()
       for (area in areas) {
+        path.addRoundRect(area)
         // We need to boost the alpha as we don't have a blur effect
-        drawRect(
-          color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
-          topLeft = area.topLeft,
-          size = area.size,
-        )
+//        drawRoundRect(
+//          color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
+//          topLeft = Offset(area.left, area.top),
+//          size = Size(area.width, area.height),
+//          cornerRadius = CornerRadius(
+//            x = area.corn
+//          ),
+//        )
       }
+      // We need to boost the alpha as we don't have a blur effect
+      drawPath(
+        path = path,
+        color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
+      )
     }
   }
 
@@ -103,6 +122,7 @@ internal fun Modifier.haze(
         translationX = expandedRect.left
         translationY = expandedRect.top
       }
+      RoundRect
       EffectRenderNodeHolder(renderNode = node, renderNodeDrawArea = expandedRect, area = area)
     }
 
@@ -151,6 +171,6 @@ internal fun Modifier.haze(
 
 private class EffectRenderNodeHolder(
   val renderNode: RenderNode,
-  val renderNodeDrawArea: Rect,
-  val area: Rect,
+  val renderNodeDrawArea: RoundRect,
+  val area: RoundRect,
 )

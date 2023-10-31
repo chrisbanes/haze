@@ -5,11 +5,12 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 
 internal expect fun Modifier.haze(
-  areas: List<Rect>,
+  areas: List<RoundRect>,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,

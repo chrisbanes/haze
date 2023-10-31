@@ -7,6 +7,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.isEmpty
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -29,19 +31,38 @@ private const val SHADER_SKSL = """
   uniform shader noise;
 
   uniform vec4 rectangle;
+  uniform vec2 topLeftCornerRadius;
+  uniform vec2 topRightCornerRadius;
+  uniform vec2 bottomRightCornerRadius;
+  uniform vec2 bottomLeftCornerRadius;
   uniform vec4 color;
   uniform float colorShift;
 
   // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-  float boxSDF(vec2 position, vec2 box) {
-      vec2 q = abs(position) - box;
-      return length(max(q,0.0)) + min(max(q.x,q.y),0.0);
+  float boxSDF(vec2 position, vec2 box, vec2 radius) {
+    float cornerRadius = max(radius.x, radius.y);
+    vec2 q = abs(position) - box + vec2(cornerRadius);
+    return length(max(q,0.0)) + min(max(q.x,q.y),0.0) - cornerRadius;
   }
 
   vec4 main(vec2 coord) {
     vec2 shiftRect = (rectangle.zw - rectangle.xy) / 2.0;
     vec2 shiftCoord = coord - rectangle.xy;
-    float distanceToClosestEdge = boxSDF(shiftCoord - shiftRect, shiftRect);
+    vec2 cornerRadius;
+    if (shiftCoord.x > shiftRect.x) {
+      if (shiftCoord.y > shiftRect.y) {
+        cornerRadius = bottomRightCornerRadius;
+      } else {
+        cornerRadius = topRightCornerRadius;
+      }
+    } else {
+      if (shiftCoord.y > shiftRect.y) {
+        cornerRadius = bottomLeftCornerRadius;
+      } else {
+        cornerRadius = topLeftCornerRadius;
+      }
+    }
+    float distanceToClosestEdge = boxSDF(shiftCoord - shiftRect, shiftRect, cornerRadius);
 
     vec4 c = content.eval(coord);
     if (distanceToClosestEdge > 0.0) {
@@ -73,7 +94,7 @@ private val NOISE_SHADER by lazy {
 }
 
 internal actual fun Modifier.haze(
-  areas: List<Rect>,
+  areas: List<RoundRect>,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
@@ -95,6 +116,10 @@ internal actual fun Modifier.haze(
         .map { area ->
           val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
             uniform("rectangle", area.left, area.top, area.right, area.bottom)
+            uniform("topLeftCornerRadius", area.topLeftCornerRadius.x, area.topLeftCornerRadius.y)
+            uniform("topRightCornerRadius", area.topRightCornerRadius.x, area.topRightCornerRadius.y)
+            uniform("bottomRightCornerRadius", area.bottomRightCornerRadius.x, area.bottomRightCornerRadius.y)
+            uniform("bottomLeftCornerRadius", area.bottomLeftCornerRadius.x, area.bottomLeftCornerRadius.y)
             uniform("color", tint.red, tint.green, tint.blue, 1f)
             uniform("colorShift", tint.alpha)
 
