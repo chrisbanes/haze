@@ -38,6 +38,20 @@ fun Modifier.haze(
   blurRadius = blurRadius,
 )
 
+/**
+ * Draw content within the provided [area]s blurred in a 'glassmorphism' style.
+ *
+ * When running on Android 12 devicees (and newer), usage of this API renders the corresponding composable
+ * into a separate graphics layer. On older Android platforms, a translucent scrim will be drawn
+ * instead.
+ *
+ * @param area The areas of the content which should have the blur effect applied to.
+ * @param backgroundColor Background color of the content. Typically you would provide
+ * `MaterialTheme.colorScheme.surface` or similar.
+ * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
+ * the blurred content.
+ * @param blurRadius Radius of the blur.
+ */
 fun Modifier.haze(
   vararg area: RoundRect,
   backgroundColor: Color,
