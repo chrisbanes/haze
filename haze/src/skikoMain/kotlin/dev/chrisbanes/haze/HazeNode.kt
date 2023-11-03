@@ -4,7 +4,8 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.isEmpty
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
@@ -34,19 +35,23 @@ private const val SHADER_SKSL = """
   uniform shader noise;
 
   uniform vec4 rectangle;
+  uniform vec4 radius;
   uniform vec4 color;
   uniform float colorShift;
 
   // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-  float boxSDF(vec2 position, vec2 box) {
-      vec2 q = abs(position) - box;
-      return length(max(q,0.0)) + min(max(q.x,q.y),0.0);
+  float sdRoundedBox(vec2 position, vec2 box, vec4 radius)
+  {
+    radius.xy = (position.x > 0.0) ? radius.xy : radius.zw;
+    radius.x = (position.y > 0.0) ? radius.x : radius.y;
+    vec2 q = abs(position) - box + radius.x;
+    return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - radius.x;
   }
 
   bool rectContains(vec4 rectangle, vec2 coord) {
       vec2 shiftRect = (rectangle.zw - rectangle.xy) / 2.0;
       vec2 shiftCoord = coord - rectangle.xy;
-      return boxSDF(shiftCoord - shiftRect, shiftRect) <= 0.0;
+      return sdRoundedBox(shiftCoord - shiftRect, shiftRect, radius) <= 0.0;
   }
 
   vec4 main(vec2 coord) {
@@ -82,7 +87,7 @@ private val NOISE_SHADER by lazy {
 }
 
 internal actual class HazeNode actual constructor(
-  private var areas: List<Rect>,
+  private var areas: List<RoundRect>,
   private var backgroundColor: Color,
   private var tint: Color,
   private var blurRadius: Dp,
@@ -96,7 +101,7 @@ internal actual class HazeNode actual constructor(
   }
 
   actual fun update(
-    areas: List<Rect>,
+    areas: List<RoundRect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
@@ -140,6 +145,7 @@ internal actual class HazeNode actual constructor(
     val filters = rects.asSequence().map { area ->
       val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
         uniform("rectangle", area.left, area.top, area.right, area.bottom)
+        uniform("radius", area.bottomRightCornerRadius.x, area.topRightCornerRadius.x, area.bottomLeftCornerRadius.x, area.topLeftCornerRadius.x)
         uniform("color", tint.red, tint.green, tint.blue, 1f)
         uniform("colorShift", tint.alpha)
 

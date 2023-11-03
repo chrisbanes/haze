@@ -4,8 +4,9 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.unit.Dp
@@ -16,13 +17,13 @@ import androidx.compose.ui.unit.Dp
  * which are not available in CMP (yet).
  */
 internal actual class HazeNode actual constructor(
-  private var areas: List<Rect>,
+  private var areas: List<RoundRect>,
   private var backgroundColor: Color,
   private var tint: Color,
   private var blurRadius: Dp,
 ) : Modifier.Node(), DrawModifierNode {
   actual fun update(
-    areas: List<Rect>,
+    areas: List<RoundRect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
@@ -36,13 +37,14 @@ internal actual class HazeNode actual constructor(
   override fun ContentDrawScope.draw() {
     drawContent()
 
+    val path = Path()
     for (area in areas) {
-      // We need to boost the alpha as we don't have a blur effect
-      drawRect(
-        color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
-        topLeft = area.topLeft,
-        size = area.size,
-      )
+      path.addRoundRect(area)
     }
+    // We need to boost the alpha as we don't have a blur effect
+    drawPath(
+      path = path,
+      color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
+    )
   }
 }

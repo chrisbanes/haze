@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
@@ -27,6 +28,32 @@ import androidx.compose.ui.unit.dp
  */
 fun Modifier.haze(
   vararg area: Rect,
+  backgroundColor: Color,
+  tint: Color = HazeDefaults.tint(backgroundColor),
+  blurRadius: Dp = HazeDefaults.blurRadius,
+): Modifier = this then HazeNodeElement(
+  areas = area.map { RoundRect(it) },
+  tint = tint,
+  backgroundColor = backgroundColor,
+  blurRadius = blurRadius,
+)
+
+/**
+ * Draw content within the provided [area]s blurred in a 'glassmorphism' style.
+ *
+ * When running on Android 12 devicees (and newer), usage of this API renders the corresponding composable
+ * into a separate graphics layer. On older Android platforms, a translucent scrim will be drawn
+ * instead.
+ *
+ * @param area The areas of the content which should have the blur effect applied to.
+ * @param backgroundColor Background color of the content. Typically you would provide
+ * `MaterialTheme.colorScheme.surface` or similar.
+ * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
+ * the blurred content.
+ * @param blurRadius Radius of the blur.
+ */
+fun Modifier.haze(
+  vararg area: RoundRect,
   backgroundColor: Color,
   tint: Color = HazeDefaults.tint(backgroundColor),
   blurRadius: Dp = HazeDefaults.blurRadius,
@@ -58,7 +85,7 @@ object HazeDefaults {
 }
 
 internal data class HazeNodeElement(
-  val areas: List<Rect>,
+  val areas: List<RoundRect>,
   val backgroundColor: Color,
   val tint: Color,
   val blurRadius: Dp,
@@ -91,13 +118,13 @@ internal data class HazeNodeElement(
 }
 
 internal expect class HazeNode(
-  areas: List<Rect>,
+  areas: List<RoundRect>,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
 ) : Modifier.Node {
   fun update(
-    areas: List<Rect>,
+    areas: List<RoundRect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,

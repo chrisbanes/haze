@@ -14,11 +14,12 @@ import android.graphics.RenderNode
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
@@ -34,7 +35,7 @@ import kotlin.math.roundToInt
 
 @RequiresApi(31)
 internal class HazeNode31(
-  private var areas: List<Rect>,
+  private var areas: List<RoundRect>,
   private var backgroundColor: Color,
   private var tint: Color,
   private var blurRadius: Dp,
@@ -57,7 +58,7 @@ internal class HazeNode31(
   }
 
   override fun update(
-    areas: List<Rect>,
+    areas: List<RoundRect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
@@ -111,7 +112,9 @@ internal class HazeNode31(
     drawIntoCanvas { canvas ->
       effects.forEach { effect ->
         with(effect) {
-          clipRect(area.left, area.top, area.right, area.bottom) {
+          clipPath(
+            Path().apply { addRoundRect(area) },
+          ) {
             canvas.nativeCanvas.drawRenderNode(renderNode)
           }
         }
@@ -165,8 +168,8 @@ internal class HazeNode31(
 
 private class EffectHolder(
   val renderNode: RenderNode,
-  val renderNodeDrawArea: Rect,
-  val area: Rect,
+  val renderNodeDrawArea: RoundRect,
+  val area: RoundRect,
 )
 
 /**
