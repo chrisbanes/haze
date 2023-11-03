@@ -4,7 +4,6 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.isEmpty
 import androidx.compose.ui.graphics.BlurEffect

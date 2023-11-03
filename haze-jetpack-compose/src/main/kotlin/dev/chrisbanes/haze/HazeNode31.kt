@@ -15,8 +15,15 @@ import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.draw
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.currentValueOf
@@ -106,7 +113,7 @@ internal class HazeNode31(
       effects.forEach { effect ->
         with(effect) {
           clipPath(
-            Path().apply { addRoundRect(area) }
+            Path().apply { addRoundRect(area) },
           ) {
             canvas.nativeCanvas.drawRenderNode(renderNode)
           }
