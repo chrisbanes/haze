@@ -40,8 +40,7 @@ private const val SHADER_SKSL = """
   uniform float noiseFactor;
 
   // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-  float sdRoundedBox(vec2 position, vec2 box, vec4 radius)
-  {
+  float sdRoundedBox(vec2 position, vec2 box, vec4 radius) {
     radius.xy = (position.x > 0.0) ? radius.xy : radius.zw;
     radius.x = (position.y > 0.0) ? radius.x : radius.y;
     vec2 q = abs(position) - box + radius.x;
@@ -115,15 +114,15 @@ private class SkiaHazeNode(
   LayoutModifierNode,
   CompositionLocalConsumerModifierNode {
 
-  private var blurFilter: ImageFilter? = null
+  private var hazeRenderEffect: RenderEffect? = null
 
   override fun onAttach() {
     super.onAttach()
-    blurFilter = createBlurImageFilter(blurRadius)
+    hazeRenderEffect = createHazeRenderEffect()
   }
 
   override fun onUpdate() {
-    blurFilter = createBlurImageFilter(blurRadius)
+    hazeRenderEffect = createHazeRenderEffect()
   }
 
   override fun MeasureScope.measure(
@@ -133,28 +132,19 @@ private class SkiaHazeNode(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        renderEffect = createBlurRenderEffect()
+        renderEffect = hazeRenderEffect
       }
     }
   }
 
-  private fun createBlurImageFilter(blurRadius: Dp): ImageFilter {
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) {
-      blurRadius.toPx()
-    }
-    val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
-    return ImageFilter.makeBlur(
-      sigmaX = sigma,
-      sigmaY = sigma,
-      mode = FilterTileMode.DECAL,
-    )
-  }
-
-  private fun createBlurRenderEffect(): RenderEffect? {
+  private fun createHazeRenderEffect(): RenderEffect? {
     val rects = areas.filterNot { it.isEmpty }
     if (rects.isEmpty()) {
       return null
     }
+
+    val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
+    val blurFilter = createBlurImageFilter(blurRadiusPx)
 
     val filters = rects.asSequence().map { area ->
       val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
@@ -184,4 +174,13 @@ private class SkiaHazeNode(
       null,
     ).asComposeRenderEffect()
   }
+}
+
+private fun createBlurImageFilter(blurRadiusPx: Float): ImageFilter {
+  val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
+  return ImageFilter.makeBlur(
+    sigmaX = sigma,
+    sigmaY = sigma,
+    mode = FilterTileMode.DECAL,
+  )
 }
