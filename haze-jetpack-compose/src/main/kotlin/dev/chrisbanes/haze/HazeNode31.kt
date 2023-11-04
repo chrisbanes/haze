@@ -35,12 +35,20 @@ import kotlin.math.roundToInt
 
 @RequiresApi(31)
 internal class HazeNode31(
-  private var areas: List<RoundRect>,
-  private var backgroundColor: Color,
-  private var tint: Color,
-  private var noiseFactor: Float,
-  private var blurRadius: Dp,
-) : HazeNode(), DrawModifierNode, CompositionLocalConsumerModifierNode {
+  areas: List<RoundRect>,
+  backgroundColor: Color,
+  tint: Color,
+  blurRadius: Dp,
+  noiseFactor: Float,
+) : HazeNode(
+  areas = areas,
+  backgroundColor = backgroundColor,
+  tint = tint,
+  blurRadius = blurRadius,
+  noiseFactor = noiseFactor,
+),
+  DrawModifierNode,
+  CompositionLocalConsumerModifierNode {
 
   private var effects: List<EffectHolder> = emptyList()
 
@@ -51,19 +59,7 @@ internal class HazeNode31(
     effects = buildEffects()
   }
 
-  override fun update(
-    areas: List<RoundRect>,
-    backgroundColor: Color,
-    tint: Color,
-    blurRadius: Dp,
-    noiseFactor: Float,
-  ) {
-    this.areas = areas
-    this.backgroundColor = backgroundColor
-    this.tint = tint
-    this.blurRadius = blurRadius
-    this.noiseFactor = noiseFactor
-
+  override fun onUpdate() {
     if (isAttached) {
       effects = buildEffects()
     }

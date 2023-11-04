@@ -104,7 +104,7 @@ internal data class HazeNodeElement(
   val noiseFactor: Float,
 ) : ModifierNodeElement<HazeNode>() {
   override fun create(): HazeNode {
-    return HazeNode(
+    return createHazeNode(
       areas = areas,
       backgroundColor = backgroundColor,
       tint = tint,
@@ -114,13 +114,12 @@ internal data class HazeNodeElement(
   }
 
   override fun update(node: HazeNode) {
-    node.update(
-      areas = areas,
-      backgroundColor = backgroundColor,
-      tint = tint,
-      blurRadius = blurRadius,
-      noiseFactor = noiseFactor,
-    )
+    node.areas = areas
+    node.backgroundColor = backgroundColor
+    node.tint = tint
+    node.blurRadius = blurRadius
+    node.noiseFactor = noiseFactor
+    node.onUpdate()
   }
 
   override fun InspectorInfo.inspectableProperties() {
@@ -133,18 +132,20 @@ internal data class HazeNodeElement(
   }
 }
 
-internal expect class HazeNode(
+internal expect fun createHazeNode(
   areas: List<RoundRect>,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
   noiseFactor: Float,
-) : Modifier.Node {
-  fun update(
-    areas: List<RoundRect>,
-    backgroundColor: Color,
-    tint: Color,
-    blurRadius: Dp,
-    noiseFactor: Float,
-  )
+): HazeNode
+
+internal abstract class HazeNode(
+  var areas: List<RoundRect>,
+  var backgroundColor: Color,
+  var tint: Color,
+  var blurRadius: Dp,
+  var noiseFactor: Float,
+) : Modifier.Node() {
+  open fun onUpdate() {}
 }

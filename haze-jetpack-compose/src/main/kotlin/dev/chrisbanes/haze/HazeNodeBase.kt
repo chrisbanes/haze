@@ -14,27 +14,19 @@ import androidx.compose.ui.unit.Dp
  * On older platforms, we draw a translucent scrim over the content
  */
 internal class HazeNodeBase(
-  private var areas: List<RoundRect>,
-  private var backgroundColor: Color,
-  private var tint: Color,
-  private var blurRadius: Dp,
-  private var noiseFactor: Float,
-) : HazeNode(), DrawModifierNode {
-
-  override fun update(
-    areas: List<RoundRect>,
-    backgroundColor: Color,
-    tint: Color,
-    blurRadius: Dp,
-    noiseFactor: Float,
-  ) {
-    this.areas = areas
-    this.backgroundColor = backgroundColor
-    this.tint = tint
-    this.blurRadius = blurRadius
-    this.noiseFactor = noiseFactor
-  }
-
+  areas: List<RoundRect>,
+  backgroundColor: Color,
+  tint: Color,
+  blurRadius: Dp,
+  noiseFactor: Float,
+) : HazeNode(
+  areas = areas,
+  backgroundColor = backgroundColor,
+  tint = tint,
+  blurRadius = blurRadius,
+  noiseFactor = noiseFactor,
+),
+  DrawModifierNode {
   override fun ContentDrawScope.draw() {
     drawContent()
 

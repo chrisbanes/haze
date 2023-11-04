@@ -127,13 +127,12 @@ internal data class HazeNodeElement(
   }
 
   override fun update(node: HazeNode) {
-    node.update(
-      areas = areas,
-      backgroundColor = backgroundColor,
-      tint = tint,
-      blurRadius = blurRadius,
-      noiseFactor = noiseFactor,
-    )
+    node.areas = areas
+    node.backgroundColor = backgroundColor
+    node.tint = tint
+    node.blurRadius = blurRadius
+    node.noiseFactor = noiseFactor
+    node.onUpdate()
   }
 
   override fun InspectorInfo.inspectableProperties() {
@@ -146,12 +145,12 @@ internal data class HazeNodeElement(
   }
 }
 
-internal open class HazeNode : Modifier.Node() {
-  open fun update(
-    areas: List<RoundRect>,
-    backgroundColor: Color,
-    tint: Color,
-    blurRadius: Dp,
-    noiseFactor: Float,
-  ): Unit = Unit
+internal abstract class HazeNode(
+  var areas: List<RoundRect>,
+  var backgroundColor: Color,
+  var tint: Color,
+  var blurRadius: Dp,
+  var noiseFactor: Float,
+) : Modifier.Node() {
+  open fun onUpdate() {}
 }

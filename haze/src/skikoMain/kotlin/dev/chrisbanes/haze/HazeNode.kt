@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.isEmpty
 import androidx.compose.ui.graphics.BlurEffect
@@ -86,13 +85,35 @@ private val NOISE_SHADER by lazy {
   )
 }
 
-internal actual class HazeNode actual constructor(
-  private var areas: List<RoundRect>,
-  private var backgroundColor: Color,
-  private var tint: Color,
-  private var blurRadius: Dp,
-  private var noiseFactor: Float,
-) : Modifier.Node(), LayoutModifierNode, CompositionLocalConsumerModifierNode {
+internal actual fun createHazeNode(
+  areas: List<RoundRect>,
+  backgroundColor: Color,
+  tint: Color,
+  blurRadius: Dp,
+  noiseFactor: Float,
+): HazeNode = SkiaHazeNode(
+  areas = areas,
+  backgroundColor = backgroundColor,
+  tint = tint,
+  blurRadius = blurRadius,
+  noiseFactor = noiseFactor,
+)
+
+private class SkiaHazeNode(
+  areas: List<RoundRect>,
+  backgroundColor: Color,
+  tint: Color,
+  blurRadius: Dp,
+  noiseFactor: Float,
+) : HazeNode(
+  areas,
+  backgroundColor,
+  tint,
+  blurRadius,
+  noiseFactor,
+),
+  LayoutModifierNode,
+  CompositionLocalConsumerModifierNode {
 
   private var blurFilter: ImageFilter? = null
 
@@ -101,19 +122,7 @@ internal actual class HazeNode actual constructor(
     blurFilter = createBlurImageFilter(blurRadius)
   }
 
-  actual fun update(
-    areas: List<RoundRect>,
-    backgroundColor: Color,
-    tint: Color,
-    blurRadius: Dp,
-    noiseFactor: Float,
-  ) {
-    this.areas = areas
-    this.backgroundColor = backgroundColor
-    this.tint = tint
-    this.blurRadius = blurRadius
-    this.noiseFactor = noiseFactor
-
+  override fun onUpdate() {
     blurFilter = createBlurImageFilter(blurRadius)
   }
 
