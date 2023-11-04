@@ -8,11 +8,13 @@ package dev.chrisbanes.haze {
     property public final float blurRadius;
     property public final float tintAlpha;
     field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
+    field public static final float noiseFactor = 0.15f;
   }
 
   public final class HazeKt {
-    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, androidx.compose.ui.geometry.Rect![] area, long backgroundColor, optional long tint, optional float blurRadius);
-    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, androidx.compose.ui.geometry.RoundRect![] area, long backgroundColor, optional long tint, optional float blurRadius);
+    method public static inline androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, androidx.compose.ui.geometry.Rect![] area, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
+    method public static inline androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, androidx.compose.ui.geometry.RoundRect![] area, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
+    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, java.util.List<androidx.compose.ui.geometry.RoundRect> areas, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
   }
 
   public final class HazeNode31Kt {

@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.isEmpty
 import androidx.compose.ui.graphics.BlurEffect
@@ -38,10 +37,10 @@ private const val SHADER_SKSL = """
   uniform vec4 radius;
   uniform vec4 color;
   uniform float colorShift;
+  uniform float noiseFactor;
 
   // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-  float sdRoundedBox(vec2 position, vec2 box, vec4 radius)
-  {
+  float sdRoundedBox(vec2 position, vec2 box, vec4 radius) {
     radius.xy = (position.x > 0.0) ? radius.xy : radius.zw;
     radius.x = (position.y > 0.0) ? radius.x : radius.y;
     vec2 q = abs(position) - box + radius.x;
@@ -63,15 +62,14 @@ private const val SHADER_SKSL = """
     }
 
     vec4 b = blur.eval(coord);
-    vec4 n = noise.eval(coord);
 
     // Add noise for extra texture
-    float noiseLuminance = dot(n.rgb, vec3(0.2126, 0.7152, 0.0722));
-    // We apply the noise, toned down to 10%
-    float noiseFactor = min(1.0, noiseLuminance) * 0.1;
+    float noiseLuminance = dot(noise.eval(coord).rgb, vec3(0.2126, 0.7152, 0.0722));
+    // We apply the noise, with the given noiseFactor
+    float n = min(1.0, noiseLuminance) * noiseFactor;
 
     // Apply the noise, and shift towards `color` by `colorShift`
-    return b + noiseFactor + ((color - b) * colorShift);
+    return b + n + ((color - b) * colorShift);
   }
 """
 
@@ -86,30 +84,45 @@ private val NOISE_SHADER by lazy {
   )
 }
 
-internal actual class HazeNode actual constructor(
-  private var areas: List<RoundRect>,
-  private var backgroundColor: Color,
-  private var tint: Color,
-  private var blurRadius: Dp,
-) : Modifier.Node(), LayoutModifierNode, CompositionLocalConsumerModifierNode {
+internal actual fun createHazeNode(
+  areas: List<RoundRect>,
+  backgroundColor: Color,
+  tint: Color,
+  blurRadius: Dp,
+  noiseFactor: Float,
+): HazeNode = SkiaHazeNode(
+  areas = areas,
+  backgroundColor = backgroundColor,
+  tint = tint,
+  blurRadius = blurRadius,
+  noiseFactor = noiseFactor,
+)
 
-  private var blurFilter: ImageFilter? = null
+private class SkiaHazeNode(
+  areas: List<RoundRect>,
+  backgroundColor: Color,
+  tint: Color,
+  blurRadius: Dp,
+  noiseFactor: Float,
+) : HazeNode(
+  areas,
+  backgroundColor,
+  tint,
+  blurRadius,
+  noiseFactor,
+),
+  LayoutModifierNode,
+  CompositionLocalConsumerModifierNode {
+
+  private var hazeRenderEffect: RenderEffect? = null
 
   override fun onAttach() {
     super.onAttach()
-    blurFilter = createBlurImageFilter(blurRadius)
+    hazeRenderEffect = createHazeRenderEffect()
   }
 
-  actual fun update(
-    areas: List<RoundRect>,
-    backgroundColor: Color,
-    tint: Color,
-    blurRadius: Dp,
-  ) {
-    this.areas = areas
-    this.backgroundColor = backgroundColor
-    this.tint = tint
-    blurFilter = createBlurImageFilter(blurRadius)
+  override fun onUpdate() {
+    hazeRenderEffect = createHazeRenderEffect()
   }
 
   override fun MeasureScope.measure(
@@ -119,28 +132,19 @@ internal actual class HazeNode actual constructor(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        renderEffect = createBlurRenderEffect()
+        renderEffect = hazeRenderEffect
       }
     }
   }
 
-  private fun createBlurImageFilter(blurRadius: Dp): ImageFilter {
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) {
-      blurRadius.toPx()
-    }
-    val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
-    return ImageFilter.makeBlur(
-      sigmaX = sigma,
-      sigmaY = sigma,
-      mode = FilterTileMode.DECAL,
-    )
-  }
-
-  private fun createBlurRenderEffect(): RenderEffect? {
+  private fun createHazeRenderEffect(): RenderEffect? {
     val rects = areas.filterNot { it.isEmpty }
     if (rects.isEmpty()) {
       return null
     }
+
+    val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
+    val blurFilter = createBlurImageFilter(blurRadiusPx)
 
     val filters = rects.asSequence().map { area ->
       val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
@@ -148,6 +152,7 @@ internal actual class HazeNode actual constructor(
         uniform("radius", area.bottomRightCornerRadius.x, area.topRightCornerRadius.x, area.bottomLeftCornerRadius.x, area.topLeftCornerRadius.x)
         uniform("color", tint.red, tint.green, tint.blue, 1f)
         uniform("colorShift", tint.alpha)
+        uniform("noiseFactor", noiseFactor)
 
         child("noise", NOISE_SHADER)
       }
@@ -169,4 +174,13 @@ internal actual class HazeNode actual constructor(
       null,
     ).asComposeRenderEffect()
   }
+}
+
+private fun createBlurImageFilter(blurRadiusPx: Float): ImageFilter {
+  val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
+  return ImageFilter.makeBlur(
+    sigmaX = sigma,
+    sigmaY = sigma,
+    mode = FilterTileMode.DECAL,
+  )
 }
