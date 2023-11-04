@@ -14,5 +14,6 @@ plugins {
   alias(libs.plugins.spotless) apply false
   alias(libs.plugins.composeMultiplatform) apply false
   alias(libs.plugins.mavenpublish) apply false
+  alias(libs.plugins.metalava) apply false
   alias(libs.plugins.dokka)
 }

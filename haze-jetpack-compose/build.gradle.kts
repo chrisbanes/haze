@@ -7,6 +7,7 @@ plugins {
   id("dev.chrisbanes.kotlin.android")
   id("org.jetbrains.dokka")
   id("com.vanniktech.maven.publish")
+  id("me.tylerbwong.gradle.metalava")
 }
 
 android {
@@ -23,4 +24,8 @@ android {
 
 dependencies {
   api(libs.androidx.compose.ui)
+}
+
+metalava {
+  filename.set("api/api.txt")
 }

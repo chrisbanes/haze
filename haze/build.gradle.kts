@@ -8,6 +8,7 @@ plugins {
   id("dev.chrisbanes.compose")
   id("org.jetbrains.dokka")
   id("com.vanniktech.maven.publish")
+  id("me.tylerbwong.gradle.metalava")
 }
 
 android {
@@ -34,4 +35,8 @@ kotlin {
       dependsOn(skikoMain)
     }
   }
+}
+
+metalava {
+  filename.set("api/api.txt")
 }
