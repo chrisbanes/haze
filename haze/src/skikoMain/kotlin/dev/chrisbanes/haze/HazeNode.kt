@@ -38,6 +38,7 @@ private const val SHADER_SKSL = """
   uniform vec4 radius;
   uniform vec4 color;
   uniform float colorShift;
+  uniform float noiseFactor;
 
   // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
   float sdRoundedBox(vec2 position, vec2 box, vec4 radius)
@@ -63,15 +64,14 @@ private const val SHADER_SKSL = """
     }
 
     vec4 b = blur.eval(coord);
-    vec4 n = noise.eval(coord);
 
     // Add noise for extra texture
-    float noiseLuminance = dot(n.rgb, vec3(0.2126, 0.7152, 0.0722));
-    // We apply the noise, toned down to 10%
-    float noiseFactor = min(1.0, noiseLuminance) * 0.1;
+    float noiseLuminance = dot(noise.eval(coord).rgb, vec3(0.2126, 0.7152, 0.0722));
+    // We apply the noise, with the given noiseFactor
+    float n = min(1.0, noiseLuminance) * noiseFactor;
 
     // Apply the noise, and shift towards `color` by `colorShift`
-    return b + noiseFactor + ((color - b) * colorShift);
+    return b + n + ((color - b) * colorShift);
   }
 """
 
@@ -91,6 +91,7 @@ internal actual class HazeNode actual constructor(
   private var backgroundColor: Color,
   private var tint: Color,
   private var blurRadius: Dp,
+  private var noiseFactor: Float,
 ) : Modifier.Node(), LayoutModifierNode, CompositionLocalConsumerModifierNode {
 
   private var blurFilter: ImageFilter? = null
@@ -105,10 +106,14 @@ internal actual class HazeNode actual constructor(
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
+    noiseFactor: Float,
   ) {
     this.areas = areas
     this.backgroundColor = backgroundColor
     this.tint = tint
+    this.blurRadius = blurRadius
+    this.noiseFactor = noiseFactor
+
     blurFilter = createBlurImageFilter(blurRadius)
   }
 
@@ -148,6 +153,7 @@ internal actual class HazeNode actual constructor(
         uniform("radius", area.bottomRightCornerRadius.x, area.topRightCornerRadius.x, area.bottomLeftCornerRadius.x, area.topLeftCornerRadius.x)
         uniform("color", tint.red, tint.green, tint.blue, 1f)
         uniform("colorShift", tint.alpha)
+        uniform("noiseFactor", noiseFactor)
 
         child("noise", NOISE_SHADER)
       }

@@ -18,6 +18,7 @@ internal class HazeNodeBase(
   private var backgroundColor: Color,
   private var tint: Color,
   private var blurRadius: Dp,
+  private var noiseFactor: Float,
 ) : HazeNode(), DrawModifierNode {
 
   override fun update(
@@ -25,11 +26,13 @@ internal class HazeNodeBase(
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
+    noiseFactor: Float,
   ) {
     this.areas = areas
     this.backgroundColor = backgroundColor
     this.tint = tint
     this.blurRadius = blurRadius
+    this.noiseFactor = noiseFactor
   }
 
   override fun ContentDrawScope.draw() {

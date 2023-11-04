@@ -38,20 +38,14 @@ internal class HazeNode31(
   private var areas: List<RoundRect>,
   private var backgroundColor: Color,
   private var tint: Color,
+  private var noiseFactor: Float,
   private var blurRadius: Dp,
 ) : HazeNode(), DrawModifierNode, CompositionLocalConsumerModifierNode {
 
   private var effects: List<EffectHolder> = emptyList()
 
-  private val noiseTexture: Bitmap by lazy {
-    // LocalContext is almost never going to change.
-    @SuppressLint("SuspiciousCompositionLocalModifierRead")
-    val context = currentValueOf(LocalContext)
-
-    BitmapFactory.decodeResource(context.resources, R.drawable.haze_noise)
-      // We draw the noise with 15% opacity
-      .withAlpha(0.15f)
-  }
+  private var noiseTexture: Bitmap? = null
+  private var noiseTextureFactor: Float = Float.MIN_VALUE
 
   override fun onAttach() {
     effects = buildEffects()
@@ -62,11 +56,13 @@ internal class HazeNode31(
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
+    noiseFactor: Float,
   ) {
     this.areas = areas
     this.backgroundColor = backgroundColor
     this.tint = tint
     this.blurRadius = blurRadius
+    this.noiseFactor = noiseFactor
 
     if (isAttached) {
       effects = buildEffects()
@@ -133,7 +129,9 @@ internal class HazeNode31(
       Shader.TileMode.DECAL,
     ).let {
       RenderEffect.createBlendModeEffect(
-        RenderEffect.createShaderEffect(BitmapShader(noiseTexture, REPEAT, REPEAT)),
+        RenderEffect.createShaderEffect(
+          BitmapShader(createNoiseTextureIfNeeded(), REPEAT, REPEAT),
+        ),
         it,
         BlendMode.HARD_LIGHT,
       )
@@ -163,6 +161,21 @@ internal class HazeNode31(
         area = area,
       )
     }
+  }
+
+  @SuppressLint("SuspiciousCompositionLocalModifierRead") // LocalContext will never change
+  private fun createNoiseTextureIfNeeded(noiseFactor: Float = this.noiseFactor): Bitmap {
+    val current = noiseTexture
+    // If the noise factor hasn't changed and we have a texture, nothing to do...
+    if (current != null && noiseTextureFactor == noiseFactor) {
+      return current
+    }
+
+    // We draw the noise with the given opacity
+    return BitmapFactory.decodeResource(
+      currentValueOf(LocalContext).resources,
+      R.drawable.haze_noise,
+    ).withAlpha(noiseFactor)
   }
 }
 

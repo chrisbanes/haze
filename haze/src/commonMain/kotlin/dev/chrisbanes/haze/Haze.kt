@@ -25,17 +25,20 @@ import androidx.compose.ui.unit.dp
  * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
  * the blurred content.
  * @param blurRadius Radius of the blur.
+ * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
  */
 fun Modifier.haze(
   vararg area: Rect,
   backgroundColor: Color,
   tint: Color = HazeDefaults.tint(backgroundColor),
   blurRadius: Dp = HazeDefaults.blurRadius,
+  noiseFactor: Float = HazeDefaults.noiseFactor,
 ): Modifier = this then HazeNodeElement(
   areas = area.map { RoundRect(it) },
   tint = tint,
   backgroundColor = backgroundColor,
   blurRadius = blurRadius,
+  noiseFactor = noiseFactor,
 )
 
 /**
@@ -51,27 +54,36 @@ fun Modifier.haze(
  * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
  * the blurred content.
  * @param blurRadius Radius of the blur.
+ * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
  */
 fun Modifier.haze(
   vararg area: RoundRect,
   backgroundColor: Color,
   tint: Color = HazeDefaults.tint(backgroundColor),
   blurRadius: Dp = HazeDefaults.blurRadius,
+  noiseFactor: Float = HazeDefaults.noiseFactor,
 ): Modifier = this then HazeNodeElement(
   areas = area.toList(),
   tint = tint,
   backgroundColor = backgroundColor,
   blurRadius = blurRadius,
+  noiseFactor = noiseFactor,
 )
 
 /**
  * Default values for the [haze] modifiers.
  */
+@Suppress("ktlint:standard:property-naming")
 object HazeDefaults {
   /**
    * Default blur radius. Larger values produce a stronger blur effect.
    */
   val blurRadius: Dp = 20.dp
+
+  /**
+   * Noise factor.
+   */
+  const val noiseFactor = 0.15f
 
   /**
    * Default alpha used for the tint color. Used by the [tint] function.
@@ -89,6 +101,7 @@ internal data class HazeNodeElement(
   val backgroundColor: Color,
   val tint: Color,
   val blurRadius: Dp,
+  val noiseFactor: Float,
 ) : ModifierNodeElement<HazeNode>() {
   override fun create(): HazeNode {
     return HazeNode(
@@ -96,6 +109,7 @@ internal data class HazeNodeElement(
       backgroundColor = backgroundColor,
       tint = tint,
       blurRadius = blurRadius,
+      noiseFactor = noiseFactor,
     )
   }
 
@@ -105,6 +119,7 @@ internal data class HazeNodeElement(
       backgroundColor = backgroundColor,
       tint = tint,
       blurRadius = blurRadius,
+      noiseFactor = noiseFactor,
     )
   }
 
@@ -114,6 +129,7 @@ internal data class HazeNodeElement(
     properties["backgroundColor"] = backgroundColor
     properties["tint"] = tint
     properties["blurRadius"] = blurRadius
+    properties["noiseFactor"] = noiseFactor
   }
 }
 
@@ -122,11 +138,13 @@ internal expect class HazeNode(
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
+  noiseFactor: Float,
 ) : Modifier.Node {
   fun update(
     areas: List<RoundRect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
+    noiseFactor: Float,
   )
 }

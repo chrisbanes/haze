@@ -21,17 +21,20 @@ internal actual class HazeNode actual constructor(
   private var backgroundColor: Color,
   private var tint: Color,
   private var blurRadius: Dp,
+  private var noiseFactor: Float,
 ) : Modifier.Node(), DrawModifierNode {
   actual fun update(
     areas: List<RoundRect>,
     backgroundColor: Color,
     tint: Color,
     blurRadius: Dp,
+    noiseFactor: Float,
   ) {
     this.areas = areas
     this.backgroundColor = backgroundColor
     this.tint = tint
     this.blurRadius = blurRadius
+    this.noiseFactor = noiseFactor
   }
 
   override fun ContentDrawScope.draw() {
