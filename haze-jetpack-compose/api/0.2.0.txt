@@ -1,0 +1,21 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze {
+
+  public final class HazeDefaults {
+    method public float getBlurRadius();
+    method public float getTintAlpha();
+    method public long tint(long color);
+    property public final float blurRadius;
+    property public final float tintAlpha;
+    field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
+  }
+
+  public final class HazeKt {
+    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, androidx.compose.ui.geometry.Rect![] area, long backgroundColor, optional long tint, optional float blurRadius);
+  }
+
+  public final class HazeNode31Kt {
+  }
+
+}
+
