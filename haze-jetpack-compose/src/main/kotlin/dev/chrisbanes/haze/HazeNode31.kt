@@ -135,7 +135,7 @@ internal class HazeNode31(
       RenderEffect.createBlendModeEffect(
         RenderEffect.createShaderEffect(BitmapShader(noiseTexture, REPEAT, REPEAT)),
         it,
-        BlendMode.OVERLAY,
+        BlendMode.HARD_LIGHT,
       )
     }.let {
       RenderEffect.createColorFilterEffect(
