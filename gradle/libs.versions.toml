@@ -20,7 +20,7 @@ spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.25.3" }
 
 [libraries]
-imageloader = "io.github.qdsfdhvh:image-loader:1.6.8"
+imageloader = "io.github.qdsfdhvh:image-loader:1.7.0"
 androidx-compose-ui = "androidx.compose.ui:ui:1.6.0-alpha08"
 androidx-compose-material3 = "androidx.compose.material3:material3:1.2.0-alpha10"
 androidx-core = "androidx.core:core-ktx:1.12.0"
