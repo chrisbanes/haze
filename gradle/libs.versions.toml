@@ -1,9 +1,9 @@
 [versions]
 agp = "8.1.4"
-jetpackcompose-compiler = "1.5.3"
-compose-multiplatform = "1.5.3"
+jetpackcompose-compiler = "1.5.4"
+compose-multiplatform = "1.5.10"
 ktlint = "1.0.1"
-kotlin = "1.9.10"
+kotlin = "1.9.20"
 spotless = "6.22.0"
 
 [plugins]
