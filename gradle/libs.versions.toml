@@ -15,7 +15,7 @@ cacheFixPlugin = { id = "org.gradle.android.cache-fix", version = "3.0" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 dokka = { id = "org.jetbrains.dokka", version = "1.9.10" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-metalava = { id = "me.tylerbwong.gradle.metalava", version = "0.3.3" }
+metalava = { id = "me.tylerbwong.gradle.metalava", version = "0.3.5" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.25.3" }
 
