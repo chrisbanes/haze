@@ -11,6 +11,12 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 
+/**
+ * Mark this composable as being a Haze child composable.
+ *
+ * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
+ * [Modifier.haze] to blur any content behind the host composable.
+ */
 fun Modifier.hazeChild(
   key: Any,
   state: HazeState,
@@ -38,6 +44,7 @@ private data class HazeChildNode(
   var state: HazeState,
 ) : Modifier.Node(), LayoutAwareModifierNode {
   override fun onPlaced(coordinates: LayoutCoordinates) {
+    // After we've been placed, update the state with our new bounds (in root coordinates)
     state.areas[key] = RoundRect(coordinates.boundsInRoot())
   }
 }
