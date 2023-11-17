@@ -126,7 +126,7 @@ private class SkiaHazeNode(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        renderEffect = getOrCreateRenderEffect(coordinates!!.boundsInRoot())
+        renderEffect = getOrCreateRenderEffect(coordinates?.boundsInRoot() ?: Rect.Zero)
       }
     }
   }

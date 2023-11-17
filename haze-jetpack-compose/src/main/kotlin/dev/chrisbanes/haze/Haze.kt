@@ -12,8 +12,6 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.isEmpty
 import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.ModifierLocalModifierNode
-import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
@@ -34,8 +32,6 @@ internal fun HazeState.areasInLocal(boundsInRoot: Rect): List<RoundRect> {
     .map { it.translate(rectOffset) }
     .toList()
 }
-
-internal val ModifierLocalHazeState = modifierLocalOf<HazeState?> { null }
 
 /**
  * Draw content within the provided [areas] blurred in a 'glassmorphism' style.
@@ -127,8 +123,6 @@ internal data class HazeNodeElement(
     node.blurRadius = blurRadius
     node.noiseFactor = noiseFactor
     node.onUpdate()
-    // Provide the state for child layouts
-    node.provide(ModifierLocalHazeState, state)
   }
 
   override fun InspectorInfo.inspectableProperties() {
@@ -146,6 +140,6 @@ internal abstract class HazeNode(
   var tint: Color,
   var blurRadius: Dp,
   var noiseFactor: Float,
-) : Modifier.Node(), ModifierLocalModifierNode {
+) : Modifier.Node() {
   open fun onUpdate() {}
 }
