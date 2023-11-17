@@ -1,19 +1,17 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze.sample
+package dev.chrisbanes.haze.sample.android
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.FloatingActionButton
@@ -31,7 +29,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 
-@Suppress("UNUSED_PARAMETER")
 @Composable
 fun CreditCardSample(navigator: Navigator) {
   val hazeState = remember { HazeState() }
@@ -77,7 +74,7 @@ fun CreditCardSample(navigator: Navigator) {
     FloatingActionButton(
       onClick = navigator::navigateUp,
       modifier = Modifier
-        .windowInsetsPadding(WindowInsets.statusBars)
+        .statusBarsPadding()
         .padding(24.dp),
     ) {
       Icon(Icons.Default.ArrowBack, contentDescription = null)

@@ -14,7 +14,7 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
 
     setContent {
-      HazeSample(appTitle = title.toString())
+      Samples(appTitle = title.toString())
     }
   }
 }
