@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import android.os.Build
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -17,7 +18,11 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+@Stable
 class HazeState {
+  /**
+   * The areas which are blurred by any [Modifier.haze] instances which use this state.
+   */
   val areas = mutableStateMapOf<Any, RoundRect>()
 }
 
