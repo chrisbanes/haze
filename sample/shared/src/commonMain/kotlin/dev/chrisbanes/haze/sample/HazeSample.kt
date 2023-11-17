@@ -3,12 +3,16 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Lock
@@ -23,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +45,11 @@ fun HazeSample(appTitle: String) {
   MaterialTheme {
     val hazeState = remember { HazeState() }
 
+    val gridState = rememberLazyGridState()
+    val showNavigationBar by remember(gridState) {
+      derivedStateOf { gridState.firstVisibleItemIndex == 0 }
+    }
+
     Scaffold(
       topBar = {
         LargeTopAppBar(
@@ -53,33 +63,24 @@ fun HazeSample(appTitle: String) {
       bottomBar = {
         var selectedIndex by remember { mutableIntStateOf(0) }
 
-        NavigationBar(
-          containerColor = Color.Transparent,
-          modifier = Modifier
-            .hazeChild("nav_bar", hazeState)
-            .fillMaxWidth(),
+        AnimatedVisibility(
+          visible = showNavigationBar,
+          enter = slideInVertically { it },
+          exit = slideOutVertically { it }
         ) {
-          for (i in (0 until 3)) {
-            NavigationBarItem(
-              selected = selectedIndex == i,
-              onClick = { selectedIndex = i },
-              icon = {
-                Icon(
-                  imageVector = when (i) {
-                    0 -> Icons.Default.Call
-                    1 -> Icons.Default.Lock
-                    else -> Icons.Default.Search
-                  },
-                  contentDescription = null,
-                )
-              },
-            )
-          }
+          SampleNavigationBar(
+            selectedIndex,
+            onItemClicked = { selectedIndex = it },
+            modifier = Modifier
+              .hazeChild("nav_bar", hazeState)
+              .fillMaxWidth()
+          )
         }
       },
       modifier = Modifier.fillMaxSize(),
     ) { contentPadding ->
       LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Adaptive(128.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -100,6 +101,35 @@ fun HazeSample(appTitle: String) {
           )
         }
       }
+    }
+  }
+}
+
+@Composable
+private fun SampleNavigationBar(
+  selectedIndex: Int,
+  onItemClicked: (Int) -> Unit,
+  modifier: Modifier = Modifier
+) {
+  NavigationBar(
+    containerColor = Color.Transparent,
+    modifier = modifier,
+  ) {
+    for (i in (0 until 3)) {
+      NavigationBarItem(
+        selected = selectedIndex == i,
+        onClick = { onItemClicked(i) },
+        icon = {
+          Icon(
+            imageVector = when (i) {
+              0 -> Icons.Default.Call
+              1 -> Icons.Default.Lock
+              else -> Icons.Default.Search
+            },
+            contentDescription = null,
+          )
+        },
+      )
     }
   }
 }
