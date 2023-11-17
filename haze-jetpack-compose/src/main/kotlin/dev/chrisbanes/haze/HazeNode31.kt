@@ -14,6 +14,7 @@ import android.graphics.RenderNode
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -24,9 +25,15 @@ import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.invalidateDraw
+import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -35,33 +42,47 @@ import kotlin.math.roundToInt
 
 @RequiresApi(31)
 internal class HazeNode31(
-  areas: List<RoundRect>,
+  state: HazeState,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
   noiseFactor: Float,
 ) : HazeNode(
-  areas = areas,
+  state = state,
   backgroundColor = backgroundColor,
   tint = tint,
   blurRadius = blurRadius,
   noiseFactor = noiseFactor,
 ),
   DrawModifierNode,
-  CompositionLocalConsumerModifierNode {
+  CompositionLocalConsumerModifierNode,
+  LayoutAwareModifierNode,
+  ObserverModifierNode {
 
+  private var effectsDirty = true
   private var effects: List<EffectHolder> = emptyList()
+  private var boundsInRoot = Rect.Zero
 
   private var noiseTexture: Bitmap? = null
   private var noiseTextureFactor: Float = Float.MIN_VALUE
 
-  override fun onAttach() {
-    effects = buildEffects()
+  override fun onUpdate() {
+    effectsDirty = true
+    invalidateDraw()
   }
 
-  override fun onUpdate() {
-    if (isAttached) {
-      effects = buildEffects()
+  override fun onObservedReadsChanged() {
+    effectsDirty = true
+    invalidateDraw()
+  }
+
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    val newBoundsInRoot = coordinates.boundsInRoot()
+    if (boundsInRoot != newBoundsInRoot) {
+      boundsInRoot = newBoundsInRoot
+
+      effectsDirty = true
+      invalidateDraw()
     }
   }
 
@@ -85,6 +106,11 @@ internal class HazeNode31(
       canvas.nativeCanvas.drawRenderNode(contentNode)
     }
 
+    if (effectsDirty) {
+      observeReads {
+        effects = buildEffects()
+      }
+    }
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
     // their RenderEffect to be applied to the composable content.
     effects.forEach { effect ->
@@ -139,9 +165,9 @@ internal class HazeNode31(
     }
 
     // We create a RenderNode for each of the areas we need to apply our effect to
-    return areas.map { area ->
+    return state.areasInLocal(boundsInRoot).map { area ->
       // We expand the area where our effect is applied to. This is necessary so that the blur
-      // effect is applied evenly to allow edges. If we don't do this, the blur effect is much less
+      // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
       // visible on the edges of the area.
       val expandedRect = area.inflate(blurRadiusPx)
 
