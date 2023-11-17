@@ -7,7 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import dev.chrisbanes.haze.sample.HazeSample
+import dev.chrisbanes.haze.sample.Samples
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
 
     setContent {
-      HazeSample(appTitle = title.toString())
+      Samples(appTitle = title.toString())
     }
   }
 }
