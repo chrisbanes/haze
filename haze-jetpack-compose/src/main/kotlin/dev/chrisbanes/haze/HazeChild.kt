@@ -38,9 +38,6 @@ data class HazeChildNode(
   var key: Any,
   var hazeState: HazeState?,
 ) : Modifier.Node(), ModifierLocalModifierNode, LayoutAwareModifierNode {
-
-  // TODO: need to think about layer changes (translationX, Y, etc)
-
   override fun onPlaced(coordinates: LayoutCoordinates) {
     val state = hazeState
       ?: ModifierLocalHazeState.current
