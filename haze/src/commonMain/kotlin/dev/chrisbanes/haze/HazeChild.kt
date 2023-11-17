@@ -16,7 +16,7 @@ fun Modifier.hazeChild(
   state: HazeState,
 ): Modifier = this then HazeChildNodeElement(key, state)
 
-data class HazeChildNodeElement(
+private data class HazeChildNodeElement(
   val key: Any,
   val state: HazeState,
 ) : ModifierNodeElement<HazeChildNode>() {
@@ -33,7 +33,7 @@ data class HazeChildNodeElement(
   }
 }
 
-data class HazeChildNode(
+private data class HazeChildNode(
   var key: Any,
   var state: HazeState,
 ) : Modifier.Node(), LayoutAwareModifierNode {
