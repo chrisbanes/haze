@@ -3,26 +3,29 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.isEmpty
+import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.node.ObserverModifierNode
+import androidx.compose.ui.node.invalidateDraw
+import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.unit.Dp
 
 internal actual fun createHazeNode(
-  areas: List<RoundRect>,
+  state: HazeState,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
   noiseFactor: Float,
-): HazeNode = AndroidHazeNode(
-  areas = areas,
-  backgroundColor = backgroundColor,
-  tint = tint,
-  blurRadius = blurRadius,
-  noiseFactor = noiseFactor,
-)
+): HazeNode = AndroidHazeNode(state, backgroundColor, tint, blurRadius, noiseFactor)
 
 /**
  * With CMP + Android, we can't do much other than display a transparent scrim.
@@ -30,31 +33,47 @@ internal actual fun createHazeNode(
  * which are not available in CMP (yet).
  */
 private class AndroidHazeNode(
-  areas: List<RoundRect>,
+  state: HazeState,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
   noiseFactor: Float,
-) : HazeNode(
-  areas,
-  backgroundColor,
-  tint,
-  blurRadius,
-  noiseFactor,
-),
-  DrawModifierNode {
+) : HazeNode(state, backgroundColor, tint, blurRadius, noiseFactor),
+  DrawModifierNode,
+  ObserverModifierNode,
+  LayoutAwareModifierNode {
 
   private val path = Path()
-
-  override fun onAttach() {
-    updatePath()
-  }
+  private var isPathValid = false
+  private var boundsInRoot = Rect.Zero
 
   override fun onUpdate() {
-    updatePath()
+    invalidateDraw()
+  }
+
+  override fun onObservedReadsChanged() {
+    markPathAsDirty()
+  }
+
+  private fun markPathAsDirty() {
+    isPathValid = false
+    invalidateDraw()
+  }
+
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    val newBoundsInRoot = coordinates.boundsInRoot()
+    if (boundsInRoot != newBoundsInRoot) {
+      boundsInRoot = newBoundsInRoot
+      markPathAsDirty()
+    }
   }
 
   override fun ContentDrawScope.draw() {
+    if (!isPathValid) {
+      observeReads { updatePath() }
+      isPathValid = true
+    }
+
     drawContent()
 
     drawPath(
@@ -66,8 +85,8 @@ private class AndroidHazeNode(
 
   private fun updatePath() {
     path.reset()
-    for (area in areas) {
-      path.addRoundRect(area)
+    for (rect in state.areasInLocal(boundsInRoot)) {
+      path.addRoundRect(rect)
     }
   }
 }

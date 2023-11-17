@@ -3,8 +3,10 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.isEmpty
+import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
@@ -12,9 +14,13 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
+import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.invalidatePlacement
+import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -85,44 +91,35 @@ private val NOISE_SHADER by lazy {
 }
 
 internal actual fun createHazeNode(
-  areas: List<RoundRect>,
+  state: HazeState,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
   noiseFactor: Float,
-): HazeNode = SkiaHazeNode(
-  areas = areas,
-  backgroundColor = backgroundColor,
-  tint = tint,
-  blurRadius = blurRadius,
-  noiseFactor = noiseFactor,
-)
+): HazeNode = SkiaHazeNode(state, backgroundColor, tint, blurRadius, noiseFactor)
 
 private class SkiaHazeNode(
-  areas: List<RoundRect>,
+  state: HazeState,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
   noiseFactor: Float,
-) : HazeNode(
-  areas,
-  backgroundColor,
-  tint,
-  blurRadius,
-  noiseFactor,
-),
+) : HazeNode(state, backgroundColor, tint, blurRadius, noiseFactor),
   LayoutModifierNode,
-  CompositionLocalConsumerModifierNode {
+  CompositionLocalConsumerModifierNode,
+  ObserverModifierNode {
 
+  private var isRenderEffectValid = false
   private var hazeRenderEffect: RenderEffect? = null
 
-  override fun onAttach() {
-    super.onAttach()
-    hazeRenderEffect = createHazeRenderEffect()
+  override fun onUpdate() {
+    isRenderEffectValid = false
+    invalidatePlacement()
   }
 
-  override fun onUpdate() {
-    hazeRenderEffect = createHazeRenderEffect()
+  override fun onObservedReadsChanged() {
+    isRenderEffectValid = false
+    invalidatePlacement()
   }
 
   override fun MeasureScope.measure(
@@ -132,13 +129,24 @@ private class SkiaHazeNode(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        renderEffect = hazeRenderEffect
+        renderEffect = getOrCreateRenderEffect(coordinates!!.boundsInRoot())
       }
     }
   }
 
-  private fun createHazeRenderEffect(): RenderEffect? {
-    val rects = areas.filterNot { it.isEmpty }
+  private fun getOrCreateRenderEffect(boundsInRoot: Rect): RenderEffect? {
+    if (!isRenderEffectValid) {
+      observeReads {
+        hazeRenderEffect = createHazeRenderEffect(boundsInRoot)
+      }
+      isRenderEffectValid = true
+    }
+    return hazeRenderEffect
+  }
+
+  private fun createHazeRenderEffect(boundsInRoot: Rect): RenderEffect? {
+    val rects = state.areasInLocal(boundsInRoot)
+
     if (rects.isEmpty()) {
       return null
     }
@@ -149,7 +157,13 @@ private class SkiaHazeNode(
     val filters = rects.asSequence().map { area ->
       val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
         uniform("rectangle", area.left, area.top, area.right, area.bottom)
-        uniform("radius", area.bottomRightCornerRadius.x, area.topRightCornerRadius.x, area.bottomLeftCornerRadius.x, area.topLeftCornerRadius.x)
+        uniform(
+          "radius",
+          area.bottomRightCornerRadius.x,
+          area.topRightCornerRadius.x,
+          area.bottomLeftCornerRadius.x,
+          area.topLeftCornerRadius.x,
+        )
         uniform("color", tint.red, tint.green, tint.blue, 1f)
         uniform("colorShift", tint.alpha)
         uniform("noiseFactor", noiseFactor)
