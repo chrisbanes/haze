@@ -1,6 +1,36 @@
 // Signature format: 4.0
 package dev.chrisbanes.haze {
 
+  public final class HazeChildKt {
+    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, Object key, dev.chrisbanes.haze.HazeState state);
+  }
+
+  public final class HazeChildNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.LayoutAwareModifierNode {
+    ctor public HazeChildNode(Object key, dev.chrisbanes.haze.HazeState state);
+    method public Object component1();
+    method public dev.chrisbanes.haze.HazeState component2();
+    method public dev.chrisbanes.haze.HazeChildNode copy(Object key, dev.chrisbanes.haze.HazeState state);
+    method public Object getKey();
+    method public dev.chrisbanes.haze.HazeState getState();
+    method public void setKey(Object);
+    method public void setState(dev.chrisbanes.haze.HazeState);
+    property public final Object key;
+    property public final dev.chrisbanes.haze.HazeState state;
+  }
+
+  public final class HazeChildNodeElement extends androidx.compose.ui.node.ModifierNodeElement<dev.chrisbanes.haze.HazeChildNode> {
+    ctor public HazeChildNodeElement(Object key, dev.chrisbanes.haze.HazeState state);
+    method public Object component1();
+    method public dev.chrisbanes.haze.HazeState component2();
+    method public dev.chrisbanes.haze.HazeChildNodeElement copy(Object key, dev.chrisbanes.haze.HazeState state);
+    method public dev.chrisbanes.haze.HazeChildNode create();
+    method public Object getKey();
+    method public dev.chrisbanes.haze.HazeState getState();
+    method public void update(dev.chrisbanes.haze.HazeChildNode node);
+    property public final Object key;
+    property public final dev.chrisbanes.haze.HazeState state;
+  }
+
   public final class HazeDefaults {
     method public float getBlurRadius();
     method public float getTintAlpha();
@@ -12,15 +42,19 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeKt {
-    method public static inline androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, androidx.compose.ui.geometry.Rect![] area, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
-    method public static inline androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, androidx.compose.ui.geometry.RoundRect![] area, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
-    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, java.util.List<androidx.compose.ui.geometry.RoundRect> areas, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
+    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
   }
 
   public final class HazeNodeKt {
   }
 
   public final class HazeNodeKt {
+  }
+
+  public final class HazeState {
+    ctor public HazeState();
+    method public androidx.compose.runtime.snapshots.SnapshotStateMap<java.lang.Object,androidx.compose.ui.geometry.RoundRect> getAreas();
+    property public final androidx.compose.runtime.snapshots.SnapshotStateMap<java.lang.Object,androidx.compose.ui.geometry.RoundRect> areas;
   }
 
 }
