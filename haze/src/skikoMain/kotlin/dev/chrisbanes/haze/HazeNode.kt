@@ -3,10 +3,7 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.isEmpty
-import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
@@ -109,16 +106,16 @@ private class SkiaHazeNode(
   CompositionLocalConsumerModifierNode,
   ObserverModifierNode {
 
-  private var isRenderEffectValid = false
+  private var renderEffectDirty = true
   private var hazeRenderEffect: RenderEffect? = null
 
   override fun onUpdate() {
-    isRenderEffectValid = false
+    renderEffectDirty = true
     invalidatePlacement()
   }
 
   override fun onObservedReadsChanged() {
-    isRenderEffectValid = false
+    renderEffectDirty = true
     invalidatePlacement()
   }
 
@@ -135,11 +132,11 @@ private class SkiaHazeNode(
   }
 
   private fun getOrCreateRenderEffect(boundsInRoot: Rect): RenderEffect? {
-    if (!isRenderEffectValid) {
+    if (renderEffectDirty) {
       observeReads {
         hazeRenderEffect = createHazeRenderEffect(boundsInRoot)
       }
-      isRenderEffectValid = true
+      renderEffectDirty = false
     }
     return hazeRenderEffect
   }

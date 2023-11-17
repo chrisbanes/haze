@@ -3,10 +3,7 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.isEmpty
-import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -44,7 +41,7 @@ private class AndroidHazeNode(
   LayoutAwareModifierNode {
 
   private val path = Path()
-  private var isPathValid = false
+  private var pathDirty = false
   private var boundsInRoot = Rect.Zero
 
   override fun onUpdate() {
@@ -56,7 +53,7 @@ private class AndroidHazeNode(
   }
 
   private fun markPathAsDirty() {
-    isPathValid = false
+    pathDirty = true
     invalidateDraw()
   }
 
@@ -69,9 +66,8 @@ private class AndroidHazeNode(
   }
 
   override fun ContentDrawScope.draw() {
-    if (!isPathValid) {
+    if (pathDirty) {
       observeReads { updatePath() }
-      isPathValid = true
     }
 
     drawContent()
@@ -88,5 +84,6 @@ private class AndroidHazeNode(
     for (rect in state.areasInLocal(boundsInRoot)) {
       path.addRoundRect(rect)
     }
+    pathDirty = false
   }
 }
