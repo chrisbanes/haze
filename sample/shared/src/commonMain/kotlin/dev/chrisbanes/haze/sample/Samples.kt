@@ -1,3 +1,6 @@
+// Copyright 2023, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.Crossfade
@@ -24,7 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 
 val Samples = listOf(
-  Sample("Scaffold") { ScaffoldSample(it) }
+  Sample("Scaffold") { ScaffoldSample(it) },
+  Sample("Credit Card") { CreditCardSample(it) },
 )
 
 data class Sample(
@@ -59,7 +63,7 @@ fun Samples(appTitle: String) {
                   IconButton(onClick = { currentSample = null }) {
                     Icon(
                       imageVector = Icons.Default.ArrowBack,
-                      contentDescription = "Navigate back"
+                      contentDescription = "Navigate back",
                     )
                   }
                 }
@@ -77,7 +81,7 @@ fun Samples(appTitle: String) {
                 headlineContent = { Text(text = sample.title) },
                 modifier = Modifier
                   .fillMaxWidth()
-                  .clickable { currentSample = sample }
+                  .clickable { currentSample = sample },
               )
             }
           }

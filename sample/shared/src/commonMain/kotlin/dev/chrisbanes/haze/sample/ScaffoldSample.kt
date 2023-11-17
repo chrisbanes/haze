@@ -73,14 +73,14 @@ fun ScaffoldSample(navigator: Navigator) {
         AnimatedVisibility(
           visible = showNavigationBar,
           enter = slideInVertically { it },
-          exit = slideOutVertically { it }
+          exit = slideOutVertically { it },
         ) {
           SampleNavigationBar(
             selectedIndex,
             onItemClicked = { selectedIndex = it },
             modifier = Modifier
               .hazeChild("nav_bar", hazeState)
-              .fillMaxWidth()
+              .fillMaxWidth(),
           )
         }
       },
@@ -116,7 +116,7 @@ fun ScaffoldSample(navigator: Navigator) {
 private fun SampleNavigationBar(
   selectedIndex: Int,
   onItemClicked: (Int) -> Unit,
-  modifier: Modifier = Modifier
+  modifier: Modifier = Modifier,
 ) {
   NavigationBar(
     containerColor = Color.Transparent,
