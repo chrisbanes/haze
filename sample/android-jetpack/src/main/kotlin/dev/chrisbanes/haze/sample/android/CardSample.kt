@@ -3,13 +3,20 @@
 
 package dev.chrisbanes.haze.sample.android
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
@@ -19,11 +26,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
@@ -58,12 +67,30 @@ fun CreditCardSample(navigator: Navigator) {
       )
     }
 
+    val cardOffset = remember { mutableFloatStateOf(0f) }
+    val draggableState = rememberDraggableState { cardOffset.value += it }
+
     // Our card
     Box(
       modifier = Modifier
         .fillMaxWidth(0.7f)
         .aspectRatio(16 / 9f)
         .align(Alignment.Center)
+        .offset { IntOffset(x = 0, y = cardOffset.value.toInt()) }
+        .draggable(
+          state = draggableState,
+          orientation = Orientation.Vertical,
+          onDragStopped = { velocity ->
+            animate(
+              initialValue = cardOffset.value,
+              targetValue = 0f,
+              initialVelocity = velocity,
+              animationSpec = spring(Spring.DampingRatioLowBouncy, Spring.StiffnessLow),
+            ) { value, _ ->
+              cardOffset.value = value
+            }
+          },
+        )
         .hazeChild("card", state = hazeState),
     ) {
       Column(Modifier.padding(32.dp)) {
@@ -83,7 +110,7 @@ fun CreditCardSample(navigator: Navigator) {
 }
 
 val LorumIspum by lazy {
-"""
+  """
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras sit amet congue mauris, iaculis accumsan eros. Aliquam pulvinar est ac elit vulputate egestas. Vestibulum consequat libero at sem varius, vitae semper urna rhoncus. Aliquam mollis, ipsum a convallis scelerisque, sem dui consequat leo, in tempor risus est ac mi. Nam vel tellus dolor. Nunc lobortis bibendum fermentum. Mauris sed mollis justo, eu tristique elit. Cras semper augue a tortor tempor, vitae vestibulum eros convallis. Curabitur id justo eget tortor iaculis lobortis. Integer pharetra augue ac elit porta iaculis non vitae libero. Nam eros turpis, suscipit at iaculis vitae, malesuada vel arcu. Donec tincidunt porttitor iaculis. Pellentesque non augue magna. Mauris mattis purus vitae mi maximus, id molestie ipsum facilisis. Donec bibendum gravida dolor nec suscipit. Pellentesque tempus felis iaculis, porta diam sed, tristique tortor.
 
 Sed vel tellus vel augue pulvinar semper sit amet eu est. In porta arcu eu sapien luctus scelerisque. In hac habitasse platea dictumst. Aenean varius lobortis malesuada. Sed vitae ornare arcu. Nunc maximus lectus purus, vel aliquet velit facilisis a. Nulla maximus bibendum magna id vulputate. Mauris volutpat lorem et risus porta dignissim. In at elit a est vulputate tincidunt.
