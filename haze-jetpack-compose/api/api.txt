@@ -17,11 +17,5 @@ package dev.chrisbanes.haze {
     method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, java.util.List<androidx.compose.ui.geometry.RoundRect> areas, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
   }
 
-  public final class HazeNode31Kt {
-  }
-
-  public final class RoundRectExtKt {
-  }
-
 }
 
