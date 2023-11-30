@@ -4,7 +4,7 @@ jetpackcompose-compiler = "1.5.4"
 compose-multiplatform = "1.5.11"
 ktlint = "1.0.1"
 kotlin = "1.9.20"
-spotless = "6.23.0"
+spotless = "6.23.2"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
