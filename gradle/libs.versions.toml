@@ -1,5 +1,5 @@
 [versions]
-agp = "8.1.4"
+agp = "8.2.0"
 jetpackcompose-compiler = "1.5.4"
 compose-multiplatform = "1.5.11"
 ktlint = "1.0.1"
