@@ -15,10 +15,10 @@ import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.draw
@@ -36,7 +36,9 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import dev.chrisbanes.haze.jetpackcompose.R
 import kotlin.math.roundToInt
 
@@ -108,7 +110,7 @@ internal class HazeNode31(
 
     if (effectsDirty) {
       observeReads {
-        effects = buildEffects()
+        effects = buildEffects(layoutDirection, currentValueOf(LocalDensity))
       }
     }
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
@@ -128,20 +130,19 @@ internal class HazeNode31(
     // Finally we draw each 'effect' RenderNode to the window canvas, drawing on top
     // of the original content
     drawIntoCanvas { canvas ->
-      effects.forEach { effect ->
-        with(effect) {
-          clipPath(
-            Path().apply { addRoundRect(area) },
-          ) {
-            canvas.nativeCanvas.drawRenderNode(renderNode)
-          }
+      for (effect in effects) {
+        clipPath(effect.path) {
+          canvas.nativeCanvas.drawRenderNode(effect.renderNode)
         }
       }
     }
   }
 
-  private fun buildEffects(): List<EffectHolder> {
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
+  private fun buildEffects(
+    layoutDirection: LayoutDirection,
+    density: Density,
+  ): List<EffectHolder> {
+    val blurRadiusPx = with(density) { blurRadius.toPx() }
 
     // This is our RenderEffect. It first applies a blur effect, and then a color filter effect
     // to allow content to be visible on top
@@ -165,24 +166,32 @@ internal class HazeNode31(
     }
 
     // We create a RenderNode for each of the areas we need to apply our effect to
-    return state.areasInLocal(boundsInRoot).map { area ->
-      // We expand the area where our effect is applied to. This is necessary so that the blur
-      // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
-      // visible on the edges of the area.
-      val expandedRect = area.inflate(blurRadiusPx)
+    return state.areas.values.asSequence()
+      .map { area ->
+        val bounds = area.boundsInLocal(boundsInRoot)
 
-      val node = RenderNode("blur").apply {
-        setRenderEffect(effect)
-        setPosition(0, 0, expandedRect.width.toInt(), expandedRect.height.toInt())
-        translationX = expandedRect.left
-        translationY = expandedRect.top
+        // We expand the area where our effect is applied to. This is necessary so that the blur
+        // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
+        // visible on the edges of the area.
+        val expandedRect = bounds.inflate(blurRadiusPx)
+
+        val node = RenderNode("blur").apply {
+          setRenderEffect(effect)
+          setPosition(0, 0, expandedRect.width.toInt(), expandedRect.height.toInt())
+          translationX = expandedRect.left
+          translationY = expandedRect.top
+        }
+
+        EffectHolder(
+          renderNode = node,
+          renderNodeDrawArea = expandedRect,
+          area = bounds,
+          shape = area.shape,
+        ).apply {
+          updatePath(layoutDirection, density)
+        }
       }
-      EffectHolder(
-        renderNode = node,
-        renderNodeDrawArea = expandedRect,
-        area = area,
-      )
-    }
+      .toList()
   }
 
   @SuppressLint("SuspiciousCompositionLocalModifierRead") // LocalContext will never change
@@ -203,9 +212,19 @@ internal class HazeNode31(
 
 private class EffectHolder(
   val renderNode: RenderNode,
-  val renderNodeDrawArea: RoundRect,
-  val area: RoundRect,
+  val renderNodeDrawArea: Rect,
+  val area: Rect,
+  val shape: Shape,
+  val path: Path = Path(),
 )
+
+private fun EffectHolder.updatePath(layoutDirection: LayoutDirection, density: Density) {
+  path.reset()
+  path.addOutline(
+    outline = shape.createOutline(area.size, layoutDirection, density),
+    offset = area.topLeft,
+  )
+}
 
 /**
  * Returns a copy of the current [Bitmap], drawn with the given [alpha] value.

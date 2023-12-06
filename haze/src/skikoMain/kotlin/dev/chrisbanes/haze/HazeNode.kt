@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
@@ -142,38 +143,56 @@ private class SkiaHazeNode(
   }
 
   private fun createHazeRenderEffect(boundsInRoot: Rect): RenderEffect? {
-    val rects = state.areasInLocal(boundsInRoot)
-
-    if (rects.isEmpty()) {
+    if (state.areas.isEmpty()) {
       return null
     }
 
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
+    val density = currentValueOf(LocalDensity)
+    val blurRadiusPx = with(density) { blurRadius.toPx() }
     val blurFilter = createBlurImageFilter(blurRadiusPx)
 
-    val filters = rects.asSequence().map { area ->
-      val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-        uniform("rectangle", area.left, area.top, area.right, area.bottom)
-        uniform(
-          "radius",
-          area.bottomRightCornerRadius.x,
-          area.topRightCornerRadius.x,
-          area.bottomLeftCornerRadius.x,
-          area.topLeftCornerRadius.x,
+    val filters = state.areas.asSequence()
+      .map { it.value }
+      .map { area ->
+        val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
+          val areaLocalBounds = area.boundsInLocal(boundsInRoot)
+          uniform(
+            "rectangle",
+            areaLocalBounds.left,
+            areaLocalBounds.top,
+            areaLocalBounds.right,
+            areaLocalBounds.bottom,
+          )
+
+          when (val shape = area.shape) {
+            is CornerBasedShape -> {
+              uniform(
+                "radius",
+                shape.topStart.toPx(area.bounds.size, density),
+                shape.topEnd.toPx(area.bounds.size, density),
+                shape.bottomStart.toPx(area.bounds.size, density),
+                shape.bottomEnd.toPx(area.bounds.size, density),
+              )
+            }
+
+            else -> {
+              uniform("radius", 0f, 0f, 0f, 0f)
+            }
+          }
+
+          uniform("color", tint.red, tint.green, tint.blue, 1f)
+          uniform("colorShift", tint.alpha)
+          uniform("noiseFactor", noiseFactor)
+
+          child("noise", NOISE_SHADER)
+        }
+
+        ImageFilter.makeRuntimeShader(
+          runtimeShaderBuilder = compositeShaderBuilder,
+          shaderNames = arrayOf("content", "blur"),
+          inputs = arrayOf(null, blurFilter),
         )
-        uniform("color", tint.red, tint.green, tint.blue, 1f)
-        uniform("colorShift", tint.alpha)
-        uniform("noiseFactor", noiseFactor)
-
-        child("noise", NOISE_SHADER)
       }
-
-      ImageFilter.makeRuntimeShader(
-        runtimeShaderBuilder = compositeShaderBuilder,
-        shaderNames = arrayOf("content", "blur"),
-        inputs = arrayOf(null, blurFilter),
-      )
-    }
 
     return ImageFilter.makeMerge(
       buildList {

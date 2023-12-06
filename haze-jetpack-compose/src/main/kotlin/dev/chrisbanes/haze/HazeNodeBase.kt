@@ -9,12 +9,17 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
+import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 
 /**
  * On older platforms, we draw a translucent scrim over the content
@@ -28,7 +33,8 @@ internal class HazeNodeBase(
 ) : HazeNode(state, backgroundColor, tint, blurRadius, noiseFactor),
   DrawModifierNode,
   ObserverModifierNode,
-  LayoutAwareModifierNode {
+  LayoutAwareModifierNode,
+  CompositionLocalConsumerModifierNode {
 
   private val path = Path()
   private var pathDirty = false
@@ -57,7 +63,7 @@ internal class HazeNodeBase(
 
   override fun ContentDrawScope.draw() {
     if (pathDirty) {
-      observeReads { updatePath() }
+      observeReads { updatePath(layoutDirection, currentValueOf(LocalDensity)) }
     }
 
     drawContent()
@@ -69,11 +75,9 @@ internal class HazeNodeBase(
     )
   }
 
-  private fun updatePath() {
+  private fun updatePath(layoutDirection: LayoutDirection, density: Density) {
     path.reset()
-    for (rect in state.areasInLocal(boundsInRoot)) {
-      path.addRoundRect(rect)
-    }
+    state.updatePath(path, layoutDirection, density)
     pathDirty = false
   }
 }

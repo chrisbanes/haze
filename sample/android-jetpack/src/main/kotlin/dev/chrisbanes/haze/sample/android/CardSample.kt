@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.FloatingActionButton
@@ -91,7 +92,7 @@ fun CreditCardSample(navigator: Navigator) {
             }
           },
         )
-        .hazeChild("card", state = hazeState),
+        .hazeChild("card", state = hazeState, shape = RoundedCornerShape(16.dp)),
     ) {
       Column(Modifier.padding(32.dp)) {
         Text("Bank of Haze")

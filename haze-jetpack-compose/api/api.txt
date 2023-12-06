@@ -1,8 +1,18 @@
 // Signature format: 4.0
 package dev.chrisbanes.haze {
 
+  @androidx.compose.runtime.Stable public final class HazeArea {
+    ctor public HazeArea();
+    method public androidx.compose.ui.geometry.Rect getBounds();
+    method public androidx.compose.ui.graphics.Shape getShape();
+    method public boolean isEmpty();
+    property public final androidx.compose.ui.geometry.Rect bounds;
+    property public final boolean isEmpty;
+    property public final androidx.compose.ui.graphics.Shape shape;
+  }
+
   public final class HazeChildKt {
-    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, Object key, dev.chrisbanes.haze.HazeState state);
+    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, Object key, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape);
   }
 
   public final class HazeDefaults {
@@ -22,10 +32,11 @@ package dev.chrisbanes.haze {
   public final class HazeNode31Kt {
   }
 
-  public final class HazeState {
+  @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
-    method public androidx.compose.runtime.snapshots.SnapshotStateMap<java.lang.Object,androidx.compose.ui.geometry.RoundRect> getAreas();
-    property public final androidx.compose.runtime.snapshots.SnapshotStateMap<java.lang.Object,androidx.compose.ui.geometry.RoundRect> areas;
+    method public java.util.Map<java.lang.Object,dev.chrisbanes.haze.HazeArea> getAreas();
+    method public void updateArea(Object key, androidx.compose.ui.geometry.Rect bounds, androidx.compose.ui.graphics.Shape shape);
+    property public final java.util.Map<java.lang.Object,dev.chrisbanes.haze.HazeArea> areas;
   }
 
   public final class RoundRectExtKt {

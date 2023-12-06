@@ -4,7 +4,8 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.node.LayoutAwareModifierNode
@@ -20,31 +21,36 @@ import androidx.compose.ui.platform.InspectorInfo
 fun Modifier.hazeChild(
   key: Any,
   state: HazeState,
-): Modifier = this then HazeChildNodeElement(key, state)
+  shape: Shape = RectangleShape,
+): Modifier = this then HazeChildNodeElement(key, state, shape)
 
 private data class HazeChildNodeElement(
   val key: Any,
   val state: HazeState,
+  val shape: Shape,
 ) : ModifierNodeElement<HazeChildNode>() {
-  override fun create(): HazeChildNode = HazeChildNode(key, state)
+  override fun create(): HazeChildNode = HazeChildNode(key, state, shape)
 
   override fun update(node: HazeChildNode) {
     node.key = key
     node.state = state
+    node.shape = shape
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeChild"
     properties["key"] = key
+    properties["shape"] = shape
   }
 }
 
 private data class HazeChildNode(
   var key: Any,
   var state: HazeState,
+  var shape: Shape,
 ) : Modifier.Node(), LayoutAwareModifierNode {
   override fun onPlaced(coordinates: LayoutCoordinates) {
     // After we've been placed, update the state with our new bounds (in root coordinates)
-    state.areas[key] = RoundRect(coordinates.boundsInRoot())
+    state.updateArea(key, coordinates.boundsInRoot(), shape)
   }
 }

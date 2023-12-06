@@ -4,17 +4,25 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.isEmpty
 import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 @Stable
@@ -22,23 +30,61 @@ class HazeState {
   /**
    * The areas which are blurred by any [Modifier.haze] instances which use this state.
    */
-  val areas = mutableStateMapOf<Any, RoundRect>()
+  private val _areas = mutableStateMapOf<Any, HazeArea>()
+
+  val areas: Map<Any, HazeArea> get() = _areas
+
+  fun updateArea(key: Any, bounds: Rect, shape: Shape) {
+    _areas.getOrPut(key, ::HazeArea).apply {
+      this.bounds = bounds
+      this.shape = shape
+    }
+  }
 }
 
-internal fun HazeState.areasInLocal(boundsInRoot: Rect): List<RoundRect> {
-  // The HazeState areas will be in the root coordinates. We need to translate them back to
-  // local coordinates, by offsetting our bounds in root
-  val rectOffset = Offset(-boundsInRoot.left, -boundsInRoot.top)
-
-  return areas.asSequence()
-    .map { it.value }
+internal fun HazeState.updatePath(
+  path: Path,
+  layoutDirection: LayoutDirection,
+  density: Density,
+) {
+  areas.values.asSequence()
     .filterNot { it.isEmpty }
-    .map { it.translate(rectOffset) }
-    .toList()
+    .forEach { area ->
+      path.addOutline(
+        outline = area.createOutline(layoutDirection, density),
+        offset = area.bounds.topLeft,
+      )
+    }
 }
+
+private fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) {
+  is Outline.Rectangle -> addRect(outline.rect.translate(offset))
+  is Outline.Rounded -> addRoundRect(outline.roundRect.translate(offset))
+  is Outline.Generic -> addPath(outline.path, offset)
+}
+
+@Stable
+class HazeArea {
+  var bounds: Rect by mutableStateOf(Rect.Zero)
+    internal set
+
+  var shape: Shape by mutableStateOf(RectangleShape)
+    internal set
+
+  val isEmpty: Boolean get() = bounds.isEmpty
+}
+
+internal fun HazeArea.boundsInLocal(boundsInRoot: Rect): Rect {
+  return bounds.translate(-boundsInRoot.left, -boundsInRoot.top)
+}
+
+internal fun HazeArea.createOutline(
+  layoutDirection: LayoutDirection,
+  density: Density,
+): Outline = shape.createOutline(bounds.size, layoutDirection, density)
 
 /**
- * Draw content within the provided [areas] blurred in a 'glassmorphism' style.
+ * Draw content within the provided [HazeState.areas] blurred in a 'glassmorphism' style.
  *
  * When running on Android 12 devicees (and newer), usage of this API renders the corresponding composable
  * into a separate graphics layer. On older Android platforms, a translucent scrim will be drawn
