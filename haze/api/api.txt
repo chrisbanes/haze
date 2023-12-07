@@ -32,14 +32,14 @@ package dev.chrisbanes.haze {
   public final class HazeNodeKt {
   }
 
-  public final class HazeNodeKt {
-  }
-
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
     method public java.util.Map<java.lang.Object,dev.chrisbanes.haze.HazeArea> getAreas();
     method public void updateArea(Object key, androidx.compose.ui.geometry.Rect bounds, androidx.compose.ui.graphics.Shape shape);
     property public final java.util.Map<java.lang.Object,dev.chrisbanes.haze.HazeArea> areas;
+  }
+
+  public final class PlatformKt {
   }
 
 }

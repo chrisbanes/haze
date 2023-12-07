@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Density
@@ -57,7 +56,7 @@ internal fun HazeState.updatePath(
     }
 }
 
-private fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) {
+internal fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) {
   is Outline.Rectangle -> addRect(outline.rect.translate(offset))
   is Outline.Rounded -> addRoundRect(outline.roundRect.translate(offset))
   is Outline.Generic -> addPath(outline.path, offset)
@@ -169,14 +168,6 @@ internal data class HazeNodeElement(
     properties["noiseFactor"] = noiseFactor
   }
 }
-
-internal expect fun createHazeNode(
-  state: HazeState,
-  backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-  noiseFactor: Float,
-): HazeNode
 
 internal abstract class HazeNode(
   var state: HazeState,

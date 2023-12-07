@@ -39,7 +39,7 @@ package dev.chrisbanes.haze {
     property public final java.util.Map<java.lang.Object,dev.chrisbanes.haze.HazeArea> areas;
   }
 
-  public final class RoundRectExtKt {
+  public final class PlatformKt {
   }
 
 }

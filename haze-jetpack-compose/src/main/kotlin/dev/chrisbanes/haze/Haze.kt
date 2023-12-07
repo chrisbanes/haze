@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze
 
-import android.os.Build
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -144,27 +143,13 @@ internal data class HazeNodeElement(
   val blurRadius: Dp,
   val noiseFactor: Float,
 ) : ModifierNodeElement<HazeNode>() {
-  override fun create(): HazeNode = when {
-    Build.VERSION.SDK_INT >= 31 -> {
-      HazeNode31(
-        state = state,
-        backgroundColor = backgroundColor,
-        tint = tint,
-        blurRadius = blurRadius,
-        noiseFactor = noiseFactor,
-      )
-    }
-
-    else -> {
-      HazeNodeBase(
-        state = state,
-        backgroundColor = backgroundColor,
-        tint = tint,
-        blurRadius = blurRadius,
-        noiseFactor = noiseFactor,
-      )
-    }
-  }
+  override fun create(): HazeNode = createHazeNode(
+    state = state,
+    backgroundColor = backgroundColor,
+    tint = tint,
+    blurRadius = blurRadius,
+    noiseFactor = noiseFactor,
+  )
 
   override fun update(node: HazeNode) {
     node.state = state

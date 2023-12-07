@@ -21,20 +21,10 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 
-internal actual fun createHazeNode(
-  state: HazeState,
-  backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-  noiseFactor: Float,
-): HazeNode = AndroidHazeNode(state, backgroundColor, tint, blurRadius, noiseFactor)
-
 /**
- * With CMP + Android, we can't do much other than display a transparent scrim.
- * See `:haze-jetpack-compose` for a working blur on Android, but we need Compose 1.6.0 APIs,
- * which are not available in CMP (yet).
+ * On older platforms, we draw a translucent scrim over the content
  */
-private class AndroidHazeNode(
+internal class HazeNodeBase(
   state: HazeState,
   backgroundColor: Color,
   tint: Color,
