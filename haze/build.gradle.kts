@@ -25,6 +25,10 @@ kotlin {
 
     val skikoMain by creating {
       dependsOn(commonMain)
+
+      dependencies {
+        implementation(compose.foundation)
+      }
     }
 
     val iosMain by getting {

@@ -1,74 +1,94 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:Suppress("NOTHING_TO_INLINE")
-
 package dev.chrisbanes.haze
 
-import android.os.Build
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
-/**
- * Draw content within the provided [area]s blurred in a 'glassmorphism' style.
- *
- * When running on Android 12 devicees (and newer), usage of this API renders the corresponding composable
- * into a separate graphics layer. On older Android platforms, a translucent scrim will be drawn
- * instead.
- *
- * @param area The areas of the content which should have the blur effect applied to.
- * @param backgroundColor Background color of the content. Typically you would provide
- * `MaterialTheme.colorScheme.surface` or similar.
- * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
- * the blurred content.
- * @param blurRadius Radius of the blur.
- * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
- */
-inline fun Modifier.haze(
-  vararg area: Rect,
-  backgroundColor: Color,
-  tint: Color = HazeDefaults.tint(backgroundColor),
-  blurRadius: Dp = HazeDefaults.blurRadius,
-  noiseFactor: Float = HazeDefaults.noiseFactor,
-): Modifier = haze(area.map(::RoundRect), backgroundColor, tint, blurRadius, noiseFactor)
+@Stable
+class HazeState {
+  /**
+   * The areas which are blurred by any [Modifier.haze] instances which use this state.
+   */
+  private val _areas = mutableStateMapOf<Any, HazeArea>()
+
+  val areas: Set<HazeArea> get() = _areas.values.toSet()
+
+  fun updateArea(key: Any, bounds: Rect, shape: Shape) {
+    _areas.getOrPut(key, ::HazeArea).apply {
+      this.bounds = bounds
+      this.shape = shape
+    }
+  }
+}
+
+internal fun HazeState.addAreasToPath(
+  path: Path,
+  layoutDirection: LayoutDirection,
+  density: Density,
+) {
+  areas.asSequence()
+    .filterNot { it.isEmpty }
+    .forEach { area ->
+      path.addOutline(
+        outline = area.createOutline(layoutDirection, density),
+        offset = area.bounds.topLeft,
+      )
+    }
+}
+
+internal fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) {
+  is Outline.Rectangle -> addRect(outline.rect.translate(offset))
+  is Outline.Rounded -> addRoundRect(outline.roundRect.translate(offset))
+  is Outline.Generic -> addPath(outline.path, offset)
+}
+
+@Stable
+class HazeArea {
+  var bounds: Rect by mutableStateOf(Rect.Zero)
+    internal set
+
+  var shape: Shape by mutableStateOf(RectangleShape)
+    internal set
+
+  val isEmpty: Boolean get() = bounds.isEmpty
+}
+
+internal fun HazeArea.boundsInLocal(boundsInRoot: Rect): Rect {
+  return bounds.translate(-boundsInRoot.left, -boundsInRoot.top)
+}
+
+internal fun HazeArea.createOutline(
+  layoutDirection: LayoutDirection,
+  density: Density,
+): Outline = shape.createOutline(bounds.size, layoutDirection, density)
 
 /**
- * Draw content within the provided [area]s blurred in a 'glassmorphism' style.
+ * Draw content within the provided [HazeState.areas] blurred in a 'glassmorphism' style.
  *
  * When running on Android 12 devicees (and newer), usage of this API renders the corresponding composable
  * into a separate graphics layer. On older Android platforms, a translucent scrim will be drawn
  * instead.
  *
- * @param area The areas of the content which should have the blur effect applied to.
- * @param backgroundColor Background color of the content. Typically you would provide
- * `MaterialTheme.colorScheme.surface` or similar.
- * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
- * the blurred content.
- * @param blurRadius Radius of the blur.
- * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
- */
-inline fun Modifier.haze(
-  vararg area: RoundRect,
-  backgroundColor: Color,
-  tint: Color = HazeDefaults.tint(backgroundColor),
-  blurRadius: Dp = HazeDefaults.blurRadius,
-  noiseFactor: Float = HazeDefaults.noiseFactor,
-): Modifier = haze(area.toList(), backgroundColor, tint, blurRadius, noiseFactor)
-
-/**
- * Draw content within the provided [areas] blurred in a 'glassmorphism' style.
- *
- * When running on Android 12 devicees (and newer), usage of this API renders the corresponding composable
- * into a separate graphics layer. On older Android platforms, a translucent scrim will be drawn
- * instead.
- *
- * @param areas The areas of the content which should have the blur effect applied to.
  * @param backgroundColor Background color of the content. Typically you would provide
  * `MaterialTheme.colorScheme.surface` or similar.
  * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
@@ -77,13 +97,13 @@ inline fun Modifier.haze(
  * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
  */
 fun Modifier.haze(
-  areas: List<RoundRect>,
+  state: HazeState,
   backgroundColor: Color,
   tint: Color = HazeDefaults.tint(backgroundColor),
   blurRadius: Dp = HazeDefaults.blurRadius,
   noiseFactor: Float = HazeDefaults.noiseFactor,
 ): Modifier = this then HazeNodeElement(
-  areas = areas,
+  state = state,
   tint = tint,
   backgroundColor = backgroundColor,
   blurRadius = blurRadius,
@@ -117,36 +137,22 @@ object HazeDefaults {
 }
 
 internal data class HazeNodeElement(
-  val areas: List<RoundRect>,
+  val state: HazeState,
   val backgroundColor: Color,
   val tint: Color,
   val blurRadius: Dp,
   val noiseFactor: Float,
 ) : ModifierNodeElement<HazeNode>() {
-  override fun create(): HazeNode = when {
-    Build.VERSION.SDK_INT >= 31 -> {
-      HazeNode31(
-        areas = areas,
-        backgroundColor = backgroundColor,
-        tint = tint,
-        blurRadius = blurRadius,
-        noiseFactor = noiseFactor,
-      )
-    }
-
-    else -> {
-      HazeNodeBase(
-        areas = areas,
-        backgroundColor = backgroundColor,
-        tint = tint,
-        blurRadius = blurRadius,
-        noiseFactor = noiseFactor,
-      )
-    }
-  }
+  override fun create(): HazeNode = createHazeNode(
+    state = state,
+    backgroundColor = backgroundColor,
+    tint = tint,
+    blurRadius = blurRadius,
+    noiseFactor = noiseFactor,
+  )
 
   override fun update(node: HazeNode) {
-    node.areas = areas
+    node.state = state
     node.backgroundColor = backgroundColor
     node.tint = tint
     node.blurRadius = blurRadius
@@ -156,7 +162,6 @@ internal data class HazeNodeElement(
 
   override fun InspectorInfo.inspectableProperties() {
     name = "haze"
-    properties["areas"] = areas
     properties["backgroundColor"] = backgroundColor
     properties["tint"] = tint
     properties["blurRadius"] = blurRadius
@@ -165,7 +170,7 @@ internal data class HazeNodeElement(
 }
 
 internal abstract class HazeNode(
-  var areas: List<RoundRect>,
+  var state: HazeState,
   var backgroundColor: Color,
   var tint: Color,
   var blurRadius: Dp,

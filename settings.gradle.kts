@@ -46,5 +46,6 @@ include(
   ":haze-jetpack-compose",
   ":sample:shared",
   ":sample:android",
+  ":sample:android-jetpack",
   ":sample:desktop",
 )

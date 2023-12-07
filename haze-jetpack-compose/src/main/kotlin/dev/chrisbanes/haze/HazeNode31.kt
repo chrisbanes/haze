@@ -14,54 +14,77 @@ import android.graphics.RenderNode
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.invalidateDraw
+import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import dev.chrisbanes.haze.jetpackcompose.R
 import kotlin.math.roundToInt
 
 @RequiresApi(31)
 internal class HazeNode31(
-  areas: List<RoundRect>,
+  state: HazeState,
   backgroundColor: Color,
   tint: Color,
   blurRadius: Dp,
   noiseFactor: Float,
 ) : HazeNode(
-  areas = areas,
+  state = state,
   backgroundColor = backgroundColor,
   tint = tint,
   blurRadius = blurRadius,
   noiseFactor = noiseFactor,
 ),
   DrawModifierNode,
-  CompositionLocalConsumerModifierNode {
+  CompositionLocalConsumerModifierNode,
+  LayoutAwareModifierNode,
+  ObserverModifierNode {
 
+  private var effectsDirty = true
   private var effects: List<EffectHolder> = emptyList()
+  private var boundsInRoot = Rect.Zero
 
   private var noiseTexture: Bitmap? = null
   private var noiseTextureFactor: Float = Float.MIN_VALUE
 
-  override fun onAttach() {
-    effects = buildEffects()
+  override fun onUpdate() {
+    effectsDirty = true
+    invalidateDraw()
   }
 
-  override fun onUpdate() {
-    if (isAttached) {
-      effects = buildEffects()
+  override fun onObservedReadsChanged() {
+    effectsDirty = true
+    invalidateDraw()
+  }
+
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    val newBoundsInRoot = coordinates.boundsInRoot()
+    if (boundsInRoot != newBoundsInRoot) {
+      boundsInRoot = newBoundsInRoot
+
+      effectsDirty = true
+      invalidateDraw()
     }
   }
 
@@ -85,6 +108,11 @@ internal class HazeNode31(
       canvas.nativeCanvas.drawRenderNode(contentNode)
     }
 
+    if (effectsDirty) {
+      observeReads {
+        effects = buildEffects(layoutDirection, currentValueOf(LocalDensity))
+      }
+    }
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
     // their RenderEffect to be applied to the composable content.
     effects.forEach { effect ->
@@ -102,20 +130,19 @@ internal class HazeNode31(
     // Finally we draw each 'effect' RenderNode to the window canvas, drawing on top
     // of the original content
     drawIntoCanvas { canvas ->
-      effects.forEach { effect ->
-        with(effect) {
-          clipPath(
-            Path().apply { addRoundRect(area) },
-          ) {
-            canvas.nativeCanvas.drawRenderNode(renderNode)
-          }
+      for (effect in effects) {
+        clipPath(effect.path) {
+          canvas.nativeCanvas.drawRenderNode(effect.renderNode)
         }
       }
     }
   }
 
-  private fun buildEffects(): List<EffectHolder> {
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
+  private fun buildEffects(
+    layoutDirection: LayoutDirection,
+    density: Density,
+  ): List<EffectHolder> {
+    val blurRadiusPx = with(density) { blurRadius.toPx() }
 
     // This is our RenderEffect. It first applies a blur effect, and then a color filter effect
     // to allow content to be visible on top
@@ -139,11 +166,13 @@ internal class HazeNode31(
     }
 
     // We create a RenderNode for each of the areas we need to apply our effect to
-    return areas.map { area ->
+    return state.areas.asSequence().map { area ->
+      val bounds = area.boundsInLocal(boundsInRoot)
+
       // We expand the area where our effect is applied to. This is necessary so that the blur
-      // effect is applied evenly to allow edges. If we don't do this, the blur effect is much less
+      // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
       // visible on the edges of the area.
-      val expandedRect = area.inflate(blurRadiusPx)
+      val expandedRect = bounds.inflate(blurRadiusPx)
 
       val node = RenderNode("blur").apply {
         setRenderEffect(effect)
@@ -151,12 +180,16 @@ internal class HazeNode31(
         translationX = expandedRect.left
         translationY = expandedRect.top
       }
+
       EffectHolder(
         renderNode = node,
         renderNodeDrawArea = expandedRect,
-        area = area,
-      )
-    }
+        area = bounds,
+        shape = area.shape,
+      ).apply {
+        updatePath(layoutDirection, density)
+      }
+    }.toList()
   }
 
   @SuppressLint("SuspiciousCompositionLocalModifierRead") // LocalContext will never change
@@ -177,9 +210,19 @@ internal class HazeNode31(
 
 private class EffectHolder(
   val renderNode: RenderNode,
-  val renderNodeDrawArea: RoundRect,
-  val area: RoundRect,
+  val renderNodeDrawArea: Rect,
+  val area: Rect,
+  val shape: Shape,
+  val path: Path = Path(),
 )
+
+private fun EffectHolder.updatePath(layoutDirection: LayoutDirection, density: Density) {
+  path.reset()
+  path.addOutline(
+    outline = shape.createOutline(area.size, layoutDirection, density),
+    offset = area.topLeft,
+  )
+}
 
 /**
  * Returns a copy of the current [Bitmap], drawn with the given [alpha] value.
