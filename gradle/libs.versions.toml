@@ -1,10 +1,10 @@
 [versions]
-agp = "8.1.3"
-jetpackcompose-compiler = "1.5.3"
-compose-multiplatform = "1.5.3"
+agp = "8.2.0"
+jetpackcompose-compiler = "1.5.4"
+compose-multiplatform = "1.5.11"
 ktlint = "1.0.1"
-kotlin = "1.9.10"
-spotless = "6.22.0"
+kotlin = "1.9.20"
+spotless = "6.23.3"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -15,16 +15,16 @@ cacheFixPlugin = { id = "org.gradle.android.cache-fix", version = "3.0" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 dokka = { id = "org.jetbrains.dokka", version = "1.9.10" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-metalava = { id = "me.tylerbwong.gradle.metalava", version = "0.3.3" }
+metalava = { id = "me.tylerbwong.gradle.metalava", version = "0.3.5" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.25.3" }
 
 [libraries]
 imageloader = "io.github.qdsfdhvh:image-loader:1.6.8"
-androidx-compose-ui = "androidx.compose.ui:ui:1.6.0-beta01"
+androidx-compose-ui = "androidx.compose.ui:ui:1.6.0-beta02"
 androidx-compose-material3 = "androidx.compose.material3:material3:1.1.2"
 androidx-core = "androidx.core:core-ktx:1.12.0"
-androidx-activity-compose = "androidx.activity:activity-compose:1.8.0"
+androidx-activity-compose = "androidx.activity:activity-compose:1.8.1"
 
 # Build logic dependencies
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
