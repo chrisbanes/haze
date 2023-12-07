@@ -39,6 +39,10 @@ class HazeState {
       this.shape = shape
     }
   }
+
+  fun clearArea(key: Any) {
+    _areas.remove(key)
+  }
 }
 
 internal fun HazeState.addAreasToPath(

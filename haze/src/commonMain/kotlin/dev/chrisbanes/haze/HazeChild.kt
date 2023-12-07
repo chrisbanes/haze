@@ -53,4 +53,12 @@ private data class HazeChildNode(
     // After we've been placed, update the state with our new bounds (in root coordinates)
     state.updateArea(key, coordinates.boundsInRoot(), shape)
   }
+
+  override fun onReset() {
+    state.clearArea(key)
+  }
+
+  override fun onDetach() {
+    state.clearArea(key)
+  }
 }
