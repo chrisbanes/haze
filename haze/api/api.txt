@@ -31,6 +31,7 @@ package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
+    method public void clearArea(Object key);
     method public java.util.Set<dev.chrisbanes.haze.HazeArea> getAreas();
     method public void updateArea(Object key, androidx.compose.ui.geometry.Rect bounds, androidx.compose.ui.graphics.Shape shape);
     property public final java.util.Set<dev.chrisbanes.haze.HazeArea> areas;
