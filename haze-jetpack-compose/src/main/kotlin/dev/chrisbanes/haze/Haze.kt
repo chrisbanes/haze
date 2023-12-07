@@ -31,7 +31,7 @@ class HazeState {
    */
   private val _areas = mutableStateMapOf<Any, HazeArea>()
 
-  val areas: Map<Any, HazeArea> get() = _areas
+  val areas: Set<HazeArea> get() = _areas.values.toSet()
 
   fun updateArea(key: Any, bounds: Rect, shape: Shape) {
     _areas.getOrPut(key, ::HazeArea).apply {
@@ -41,12 +41,12 @@ class HazeState {
   }
 }
 
-internal fun HazeState.updatePath(
+internal fun HazeState.addAreasToPath(
   path: Path,
   layoutDirection: LayoutDirection,
   density: Density,
 ) {
-  areas.values.asSequence()
+  areas.asSequence()
     .filterNot { it.isEmpty }
     .forEach { area ->
       path.addOutline(

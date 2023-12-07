@@ -77,7 +77,7 @@ internal class HazeNodeBase(
 
   private fun updatePath(layoutDirection: LayoutDirection, density: Density) {
     path.reset()
-    state.updatePath(path, layoutDirection, density)
+    state.addAreasToPath(path, layoutDirection, density)
     pathDirty = false
   }
 }

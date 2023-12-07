@@ -166,32 +166,30 @@ internal class HazeNode31(
     }
 
     // We create a RenderNode for each of the areas we need to apply our effect to
-    return state.areas.values.asSequence()
-      .map { area ->
-        val bounds = area.boundsInLocal(boundsInRoot)
+    return state.areas.asSequence().map { area ->
+      val bounds = area.boundsInLocal(boundsInRoot)
 
-        // We expand the area where our effect is applied to. This is necessary so that the blur
-        // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
-        // visible on the edges of the area.
-        val expandedRect = bounds.inflate(blurRadiusPx)
+      // We expand the area where our effect is applied to. This is necessary so that the blur
+      // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
+      // visible on the edges of the area.
+      val expandedRect = bounds.inflate(blurRadiusPx)
 
-        val node = RenderNode("blur").apply {
-          setRenderEffect(effect)
-          setPosition(0, 0, expandedRect.width.toInt(), expandedRect.height.toInt())
-          translationX = expandedRect.left
-          translationY = expandedRect.top
-        }
-
-        EffectHolder(
-          renderNode = node,
-          renderNodeDrawArea = expandedRect,
-          area = bounds,
-          shape = area.shape,
-        ).apply {
-          updatePath(layoutDirection, density)
-        }
+      val node = RenderNode("blur").apply {
+        setRenderEffect(effect)
+        setPosition(0, 0, expandedRect.width.toInt(), expandedRect.height.toInt())
+        translationX = expandedRect.left
+        translationY = expandedRect.top
       }
-      .toList()
+
+      EffectHolder(
+        renderNode = node,
+        renderNodeDrawArea = expandedRect,
+        area = bounds,
+        shape = area.shape,
+      ).apply {
+        updatePath(layoutDirection, density)
+      }
+    }.toList()
   }
 
   @SuppressLint("SuspiciousCompositionLocalModifierRead") // LocalContext will never change
