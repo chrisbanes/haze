@@ -41,7 +41,7 @@ jobs:
 
       - uses: gradle/gradle-build-action@v2
 
-      - run: ./gradlew :dokkaHtmlMultiModule
+      - run: ./gradlew :dokkaHtmlMultiModule --no-configuration-cache
 
       - name: Build site
         run: mkdocs build
