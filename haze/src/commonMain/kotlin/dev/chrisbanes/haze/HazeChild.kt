@@ -4,10 +4,11 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
@@ -51,7 +52,15 @@ private data class HazeChildNode(
 ) : Modifier.Node(), LayoutAwareModifierNode {
   override fun onPlaced(coordinates: LayoutCoordinates) {
     // After we've been placed, update the state with our new bounds (in root coordinates)
-    state.updateArea(key, coordinates.boundsInRoot(), shape)
+    val positionInRoot = coordinates.positionInRoot()
+    val size = coordinates.size
+    val bounds = Rect(
+      left = positionInRoot.x,
+      top = positionInRoot.y,
+      right = positionInRoot.x + size.width,
+      bottom = positionInRoot.y + size.height,
+    )
+    state.updateArea(key, bounds, shape)
   }
 
   override fun onReset() {

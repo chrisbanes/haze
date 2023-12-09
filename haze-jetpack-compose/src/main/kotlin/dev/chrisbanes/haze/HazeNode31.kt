@@ -14,6 +14,7 @@ import android.graphics.RenderNode
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -26,7 +27,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
@@ -63,7 +64,7 @@ internal class HazeNode31(
 
   private var effectsDirty = true
   private var effects: List<EffectHolder> = emptyList()
-  private var boundsInRoot = Rect.Zero
+  private var positionInRoot = Offset.Zero
 
   private var noiseTexture: Bitmap? = null
   private var noiseTextureFactor: Float = Float.MIN_VALUE
@@ -79,9 +80,9 @@ internal class HazeNode31(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    val newBoundsInRoot = coordinates.boundsInRoot()
-    if (boundsInRoot != newBoundsInRoot) {
-      boundsInRoot = newBoundsInRoot
+    val newPositionInRoot = coordinates.positionInRoot()
+    if (positionInRoot != newPositionInRoot) {
+      positionInRoot = newPositionInRoot
 
       effectsDirty = true
       invalidateDraw()
@@ -167,7 +168,7 @@ internal class HazeNode31(
 
     // We create a RenderNode for each of the areas we need to apply our effect to
     return state.areas.asSequence().map { area ->
-      val bounds = area.boundsInLocal(boundsInRoot)
+      val bounds = area.boundsInLocal(positionInRoot)
 
       // We expand the area where our effect is applied to. This is necessary so that the blur
       // effect is applied evenly to all edges. If we don't do this, the blur effect is much less

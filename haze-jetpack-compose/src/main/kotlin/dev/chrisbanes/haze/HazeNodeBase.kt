@@ -3,12 +3,12 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
@@ -38,7 +38,7 @@ internal class HazeNodeBase(
 
   private val path = Path()
   private var pathDirty = false
-  private var boundsInRoot = Rect.Zero
+  private var positionInRoot = Offset.Zero
 
   override fun onUpdate() {
     invalidateDraw()
@@ -54,9 +54,9 @@ internal class HazeNodeBase(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    val newBoundsInRoot = coordinates.boundsInRoot()
-    if (boundsInRoot != newBoundsInRoot) {
-      boundsInRoot = newBoundsInRoot
+    val newPositionInRoot = coordinates.positionInRoot()
+    if (positionInRoot != newPositionInRoot) {
+      positionInRoot = newPositionInRoot
       markPathAsDirty()
     }
   }

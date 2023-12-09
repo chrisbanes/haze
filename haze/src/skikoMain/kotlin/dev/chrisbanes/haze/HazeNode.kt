@@ -4,15 +4,12 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.foundation.shape.CornerBasedShape
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.MeasureResult
-import androidx.compose.ui.layout.MeasureScope
-import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.*
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
@@ -127,22 +124,22 @@ private class SkiaHazeNode(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        renderEffect = getOrCreateRenderEffect(coordinates?.boundsInRoot() ?: Rect.Zero)
+        renderEffect = getOrCreateRenderEffect(coordinates?.positionInRoot() ?: Offset.Zero)
       }
     }
   }
 
-  private fun getOrCreateRenderEffect(boundsInRoot: Rect): RenderEffect? {
+  private fun getOrCreateRenderEffect(positionInRoot: Offset): RenderEffect? {
     if (renderEffectDirty) {
       observeReads {
-        hazeRenderEffect = createHazeRenderEffect(boundsInRoot)
+        hazeRenderEffect = createHazeRenderEffect(positionInRoot)
       }
       renderEffectDirty = false
     }
     return hazeRenderEffect
   }
 
-  private fun createHazeRenderEffect(boundsInRoot: Rect): RenderEffect? {
+  private fun createHazeRenderEffect(positionInRoot: Offset): RenderEffect? {
     if (state.areas.isEmpty()) {
       return null
     }
@@ -153,7 +150,7 @@ private class SkiaHazeNode(
 
     val filters = state.areas.asSequence().map { area ->
       val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-        val areaLocalBounds = area.boundsInLocal(boundsInRoot)
+        val areaLocalBounds = area.boundsInLocal(positionInRoot)
         uniform(
           "rectangle",
           areaLocalBounds.left,
