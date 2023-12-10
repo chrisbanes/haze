@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 val Samples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
   Sample("Credit Card") { CreditCardSample(it) },
+  Sample("Images List") { ImagesList(it) },
 )
 
 data class Sample(
