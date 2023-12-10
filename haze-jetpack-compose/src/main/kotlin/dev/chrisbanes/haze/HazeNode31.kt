@@ -167,8 +167,8 @@ internal class HazeNode31(
     }
 
     // We create a RenderNode for each of the areas we need to apply our effect to
-    return state.areas.asSequence().map { area ->
-      val bounds = area.boundsInLocal(positionInRoot)
+    return state.areas.asSequence().mapNotNull { area ->
+      val bounds = area.boundsInLocal(positionInRoot) ?: return@mapNotNull null
 
       // We expand the area where our effect is applied to. This is necessary so that the blur
       // effect is applied evenly to all edges. If we don't do this, the blur effect is much less

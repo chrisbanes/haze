@@ -151,9 +151,10 @@ private class SkiaHazeNode(
     val blurRadiusPx = with(density) { blurRadius.toPx() }
     val blurFilter = createBlurImageFilter(blurRadiusPx)
 
-    val filters = state.areas.asSequence().map { area ->
+    val filters = state.areas.asSequence().mapNotNull { area ->
+      val areaLocalBounds = area.boundsInLocal(positionInRoot) ?: return@mapNotNull null
+
       val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-        val areaLocalBounds = area.boundsInLocal(positionInRoot)
         uniform(
           "rectangle",
           areaLocalBounds.left,
@@ -166,10 +167,10 @@ private class SkiaHazeNode(
           is CornerBasedShape -> {
             uniform(
               "radius",
-              shape.topStart.toPx(area.bounds.size, density),
-              shape.topEnd.toPx(area.bounds.size, density),
-              shape.bottomStart.toPx(area.bounds.size, density),
-              shape.bottomEnd.toPx(area.bounds.size, density),
+              shape.topStart.toPx(area.size, density),
+              shape.topEnd.toPx(area.size, density),
+              shape.bottomStart.toPx(area.size, density),
+              shape.bottomEnd.toPx(area.size, density),
             )
           }
 

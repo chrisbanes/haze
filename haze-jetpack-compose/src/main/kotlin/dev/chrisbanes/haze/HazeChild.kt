@@ -4,7 +4,6 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -12,6 +11,8 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 
 /**
  * Mark this composable as being a Haze child composable.
@@ -36,6 +37,7 @@ private data class HazeChildNodeElement(
     node.key = key
     node.state = state
     node.shape = shape
+    node.onUpdate()
   }
 
   override fun InspectorInfo.inspectableProperties() {
@@ -52,15 +54,20 @@ private data class HazeChildNode(
 ) : Modifier.Node(), LayoutAwareModifierNode {
   override fun onPlaced(coordinates: LayoutCoordinates) {
     // After we've been placed, update the state with our new bounds (in root coordinates)
-    val positionInRoot = coordinates.positionInRoot()
-    val size = coordinates.size
-    val bounds = Rect(
-      left = positionInRoot.x,
-      top = positionInRoot.y,
-      right = positionInRoot.x + size.width,
-      bottom = positionInRoot.y + size.height,
-    )
-    state.updateArea(key, bounds, shape)
+    state.updateAreaPosition(key, coordinates.positionInRoot())
+  }
+
+  override fun onAttach() {
+    state.updateAreaShape(key, shape)
+  }
+
+  fun onUpdate() {
+    state.updateAreaShape(key, shape)
+  }
+
+  override fun onRemeasured(size: IntSize) {
+    // After we've been remeasured, update the state with our new size
+    state.updateAreaSize(key, size.toSize())
   }
 
   override fun onReset() {
