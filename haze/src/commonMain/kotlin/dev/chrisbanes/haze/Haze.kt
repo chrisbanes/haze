@@ -11,6 +11,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isUnspecified
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
@@ -33,9 +36,20 @@ class HazeState {
 
   val areas: Set<HazeArea> get() = _areas.values.toSet()
 
-  fun updateArea(key: Any, bounds: Rect, shape: Shape) {
+  fun updateAreaPosition(key: Any, positionInRoot: Offset) {
     _areas.getOrPut(key, ::HazeArea).apply {
-      this.bounds = bounds
+      this.positionInRoot = positionInRoot
+    }
+  }
+
+  fun updateAreaSize(key: Any, size: Size) {
+    _areas.getOrPut(key, ::HazeArea).apply {
+      this.size = size
+    }
+  }
+
+  fun updateAreaShape(key: Any, shape: Shape) {
+    _areas.getOrPut(key, ::HazeArea).apply {
       this.shape = shape
     }
   }
@@ -54,8 +68,8 @@ internal fun HazeState.addAreasToPath(
     .filterNot { it.isEmpty }
     .forEach { area ->
       path.addOutline(
-        outline = area.createOutline(layoutDirection, density),
-        offset = area.bounds.topLeft,
+        outline = area.shape.createOutline(area.size, layoutDirection, density),
+        offset = area.positionInRoot,
       )
     }
 }
@@ -68,23 +82,25 @@ internal fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) 
 
 @Stable
 class HazeArea {
-  var bounds: Rect by mutableStateOf(Rect.Zero)
+  var size: Size by mutableStateOf(Size.Unspecified)
+    internal set
+
+  var positionInRoot: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
   var shape: Shape by mutableStateOf(RectangleShape)
     internal set
 
-  val isEmpty: Boolean get() = bounds.isEmpty
+  val isEmpty: Boolean get() = size.isEmpty()
 }
 
-internal fun HazeArea.boundsInLocal(positionInRoot: Offset): Rect {
-  return bounds.translate(-positionInRoot.x, -positionInRoot.y)
-}
+internal fun HazeArea.boundsInLocal(hazePositionInRoot: Offset): Rect? {
+  if (size.isUnspecified) return null
+  if (hazePositionInRoot.isUnspecified) return null
+  if (positionInRoot.isUnspecified) return null
 
-internal fun HazeArea.createOutline(
-  layoutDirection: LayoutDirection,
-  density: Density,
-): Outline = shape.createOutline(bounds.size, layoutDirection, density)
+  return size.toRect().translate(positionInRoot - hazePositionInRoot)
+}
 
 /**
  * Draw content within the provided [HazeState.areas] blurred in a 'glassmorphism' style.
