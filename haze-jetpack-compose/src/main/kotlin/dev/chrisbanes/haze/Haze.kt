@@ -77,8 +77,8 @@ class HazeArea {
   val isEmpty: Boolean get() = bounds.isEmpty
 }
 
-internal fun HazeArea.boundsInLocal(boundsInRoot: Rect): Rect {
-  return bounds.translate(-boundsInRoot.left, -boundsInRoot.top)
+internal fun HazeArea.boundsInLocal(positionInRoot: Offset): Rect {
+  return bounds.translate(-positionInRoot.x, -positionInRoot.y)
 }
 
 internal fun HazeArea.createOutline(
