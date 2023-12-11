@@ -16,6 +16,7 @@ import android.graphics.Shader.TileMode.REPEAT
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -39,9 +40,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.jetpackcompose.R
 import kotlin.math.roundToInt
+import kotlin.properties.Delegates.observable
 
 @RequiresApi(31)
 internal class HazeNode31(
@@ -64,29 +68,41 @@ internal class HazeNode31(
 
   private var effectsDirty = true
   private var effects: List<EffectHolder> = emptyList()
-  private var positionInRoot = Offset.Zero
+
+  private var positionInRoot by observable(Offset.Unspecified) { _, oldValue, newValue ->
+    if (oldValue != newValue) {
+      invalidateEffects()
+    }
+  }
+  private var size by observable(Size.Unspecified) { _, oldValue, newValue ->
+    if (oldValue != newValue) {
+      invalidateEffects()
+    }
+  }
 
   private var noiseTexture: Bitmap? = null
   private var noiseTextureFactor: Float = Float.MIN_VALUE
 
   override fun onUpdate() {
-    effectsDirty = true
-    invalidateDraw()
+    invalidateEffects()
   }
 
   override fun onObservedReadsChanged() {
+    invalidateEffects()
+  }
+
+  private fun invalidateEffects() {
     effectsDirty = true
     invalidateDraw()
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    val newPositionInRoot = coordinates.positionInRoot()
-    if (positionInRoot != newPositionInRoot) {
-      positionInRoot = newPositionInRoot
+    positionInRoot = coordinates.positionInRoot()
+    size = coordinates.size.toSize()
+  }
 
-      effectsDirty = true
-      invalidateDraw()
-    }
+  override fun onRemeasured(size: IntSize) {
+    this.size = size.toSize()
   }
 
   override fun ContentDrawScope.draw() {

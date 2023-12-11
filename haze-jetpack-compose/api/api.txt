@@ -6,15 +6,15 @@ package dev.chrisbanes.haze {
     method public long getPositionInRoot();
     method public androidx.compose.ui.graphics.Shape getShape();
     method public long getSize();
-    method public boolean isEmpty();
-    property public final boolean isEmpty;
+    method public boolean isValid();
+    property public final boolean isValid;
     property public final long positionInRoot;
     property public final androidx.compose.ui.graphics.Shape shape;
     property public final long size;
   }
 
   public final class HazeChildKt {
-    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, Object key, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape);
+    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape);
   }
 
   public final class HazeDefaults {
@@ -33,12 +33,10 @@ package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
-    method public void clearArea(Object key);
-    method public java.util.Set<dev.chrisbanes.haze.HazeArea> getAreas();
-    method public void updateAreaPosition(Object key, long positionInRoot);
-    method public void updateAreaShape(Object key, androidx.compose.ui.graphics.Shape shape);
-    method public void updateAreaSize(Object key, long size);
-    property public final java.util.Set<dev.chrisbanes.haze.HazeArea> areas;
+    method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
+    method public void registerArea(dev.chrisbanes.haze.HazeArea area);
+    method public void unregisterArea(dev.chrisbanes.haze.HazeArea area);
+    property public final java.util.List<dev.chrisbanes.haze.HazeArea> areas;
   }
 
 }
