@@ -36,8 +36,6 @@ import dev.chrisbanes.haze.hazeChild
 @Composable
 fun ImagesList(navigator: Navigator) {
   MaterialTheme {
-    val hazeState = remember { HazeState() }
-
     Scaffold(
       topBar = {
         LargeTopAppBar(
@@ -58,6 +56,8 @@ fun ImagesList(navigator: Navigator) {
         modifier = Modifier.fillMaxSize(),
       ) {
         items(50) { index ->
+          val hazeState = remember { HazeState() }
+
           Box(
             modifier = Modifier
               .fillParentMaxWidth()
@@ -76,13 +76,18 @@ fun ImagesList(navigator: Navigator) {
                 .fillMaxSize(),
             )
 
-            Text(
-              "Message $index",
+            Box(
               modifier = Modifier
                 .fillMaxSize(0.8f)
                 .align(Alignment.Center)
-                .hazeChild(index, hazeState, RoundedCornerShape(4.dp)),
-            )
+                .hazeChild(key = index, state = hazeState, shape = RoundedCornerShape(4.dp))
+            ) {
+              Text(
+                "Image $index",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.align(Alignment.Center)
+              )
+            }
           }
         }
       }
