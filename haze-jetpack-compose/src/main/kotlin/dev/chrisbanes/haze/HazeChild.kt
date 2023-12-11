@@ -11,7 +11,6 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toSize
 
 /**
@@ -48,27 +47,43 @@ private data class HazeChildNode(
   var shape: Shape,
 ) : Modifier.Node(), LayoutAwareModifierNode {
 
-  private val area: HazeArea = HazeArea()
+  private val area: HazeArea by lazy { HazeArea() }
+
+  private var attachedState: HazeState? = null
 
   override fun onAttach() {
-    state.registerArea(area)
+    attachToHazeState()
   }
 
   fun onUpdate() {
+    // Propagate any shape changes to the HazeArea
     area.shape = shape
+
+    if (state != attachedState) {
+      // The provided HazeState has changed, so we need to detach from the old one,
+      // and attach to the new one
+      detachFromHazeState()
+      attachToHazeState()
+    }
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
     // After we've been placed, update the state with our new bounds (in root coordinates)
     area.positionInRoot = coordinates.positionInRoot()
-  }
-
-  override fun onRemeasured(size: IntSize) {
-    // After we've been remeasured, update the state with our new size
-    area.size = size.toSize()
+    area.size = coordinates.size.toSize()
   }
 
   override fun onDetach() {
-    state.unregisterArea(area)
+    detachFromHazeState()
+  }
+
+  private fun attachToHazeState() {
+    state.registerArea(area)
+    attachedState = state
+  }
+
+  private fun detachFromHazeState() {
+    attachedState?.unregisterArea(area)
+    attachedState = null
   }
 }
