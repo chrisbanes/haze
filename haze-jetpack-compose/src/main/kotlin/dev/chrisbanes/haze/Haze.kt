@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.geometry.translate
@@ -61,15 +62,18 @@ class HazeState {
 
 internal fun HazeState.addAreasToPath(
   path: Path,
+  positionInRoot: Offset,
   layoutDirection: LayoutDirection,
   density: Density,
 ) {
+  if (positionInRoot.isUnspecified) return
+
   areas.asSequence()
-    .filterNot { it.isEmpty }
+    .filter { it.isValid }
     .forEach { area ->
       path.addOutline(
         outline = area.shape.createOutline(area.size, layoutDirection, density),
-        offset = area.positionInRoot,
+        offset = area.positionInRoot - positionInRoot,
       )
     }
 }
@@ -91,13 +95,13 @@ class HazeArea {
   var shape: Shape by mutableStateOf(RectangleShape)
     internal set
 
-  val isEmpty: Boolean get() = size.isEmpty()
+  val isValid: Boolean
+    get() = size.isSpecified && positionInRoot.isSpecified && !size.isEmpty()
 }
 
 internal fun HazeArea.boundsInLocal(hazePositionInRoot: Offset): Rect? {
-  if (size.isUnspecified) return null
+  if (!isValid) return null
   if (hazePositionInRoot.isUnspecified) return null
-  if (positionInRoot.isUnspecified) return null
 
   return size.toRect().translate(positionInRoot - hazePositionInRoot)
 }

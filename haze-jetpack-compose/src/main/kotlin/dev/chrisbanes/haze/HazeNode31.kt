@@ -68,12 +68,18 @@ internal class HazeNode31(
 
   private var effectsDirty = true
   private var effects: List<EffectHolder> = emptyList()
-  private var positionInRoot by observable(Offset.Unspecified) { _, _, _ ->
-    invalidateEffects()
+
+  private var positionInRoot by observable(Offset.Unspecified) { _, oldValue, newValue ->
+    if (oldValue != newValue) {
+      invalidateEffects()
+    }
   }
-  private var size by observable(Size.Unspecified) { _, _, _ ->
-    invalidateEffects()
+  private var size by observable(Size.Unspecified) { _, oldValue, newValue ->
+    if (oldValue != newValue) {
+      invalidateEffects()
+    }
   }
+
   private var noiseTexture: Bitmap? = null
   private var noiseTextureFactor: Float = Float.MIN_VALUE
 
@@ -92,6 +98,7 @@ internal class HazeNode31(
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
     positionInRoot = coordinates.positionInRoot()
+    size = coordinates.size.toSize()
   }
 
   override fun onRemeasured(size: IntSize) {

@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -19,7 +20,11 @@ import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toSize
+import kotlin.properties.Delegates
+import kotlin.properties.Delegates.observable
 
 /**
  * On older platforms, we draw a translucent scrim over the content
@@ -38,27 +43,38 @@ internal class HazeNodeBase(
 
   private val path = Path()
   private var pathDirty = false
-  private var positionInRoot = Offset.Zero
+
+  private var positionInRoot by observable(Offset.Unspecified) { _, oldValue, newValue ->
+    if (oldValue != newValue) {
+      invalidatePath()
+    }
+  }
+  private var size by observable(Size.Unspecified) { _, oldValue, newValue ->
+    if (oldValue != newValue) {
+      invalidatePath()
+    }
+  }
 
   override fun onUpdate() {
     invalidateDraw()
   }
 
   override fun onObservedReadsChanged() {
-    markPathAsDirty()
+    invalidatePath()
   }
 
-  private fun markPathAsDirty() {
+  private fun invalidatePath() {
     pathDirty = true
     invalidateDraw()
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    val newPositionInRoot = coordinates.positionInRoot()
-    if (positionInRoot != newPositionInRoot) {
-      positionInRoot = newPositionInRoot
-      markPathAsDirty()
-    }
+    positionInRoot = coordinates.positionInRoot()
+    size = coordinates.size.toSize()
+  }
+
+  override fun onRemeasured(size: IntSize) {
+    this.size = size.toSize()
   }
 
   override fun ContentDrawScope.draw() {
@@ -77,7 +93,7 @@ internal class HazeNodeBase(
 
   private fun updatePath(layoutDirection: LayoutDirection, density: Density) {
     path.reset()
-    state.addAreasToPath(path, layoutDirection, density)
+    state.addAreasToPath(path, positionInRoot, layoutDirection, density)
     pathDirty = false
   }
 }
