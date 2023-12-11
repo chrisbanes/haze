@@ -25,7 +25,7 @@ Box {
     modifier = Modifier
       // We use hazeChild on anything where we want the background
       // blurred.
-      .hazeChild(key = "app_bar", state = hazeState)
+      .hazeChild(state = hazeState)
       .fillMaxWidth(),
   )
 }
@@ -40,7 +40,7 @@ Haze has some support for blurring of `Shape`s. Each platform has varying suppor
 
 To use a shape, you can just pass it in to `hazeChild`:
 
-``` kotlin hl_lines="11"
+``` kotlin hl_lines="10"
 val hazeState = remember { HazeState() } 
 
 Box {
@@ -49,7 +49,6 @@ Box {
   LargeTopAppBar(
     modifier = Modifier
       .hazeChild(
-        key = "app_bar",
         state = hazeState,
         shape = RoundedCornerShape(16.dp),
       ),
@@ -74,7 +73,7 @@ Scaffold(
       // Need to make app bar transparent to see the content behind
       colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
       modifier = Modifier
-        .hazeChild(key = "app_bar", state = hazeState)
+        .hazeChild(state = hazeState)
         .fillMaxWidth(),
     ) {
       /* todo */
@@ -84,7 +83,7 @@ Scaffold(
     NavigationBar(
       containerColor = Color.Transparent,
       modifier = Modifier
-        .hazeChild(key = "app_bar", state = hazeState)
+        .hazeChild(state = hazeState)
         .fillMaxWidth(),
     ) {
       /* todo */
