@@ -189,7 +189,7 @@ internal class HazeNode31(
       // We expand the area where our effect is applied to. This is necessary so that the blur
       // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
       // visible on the edges of the area.
-      val expandedRect = bounds // .inflate(blurRadiusPx)
+      val expandedRect = bounds.inflate(blurRadiusPx)
 
       val node = RenderNode("blur").apply {
         setRenderEffect(effect)
