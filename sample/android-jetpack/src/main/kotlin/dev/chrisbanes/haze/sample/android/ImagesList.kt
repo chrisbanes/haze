@@ -80,12 +80,12 @@ fun ImagesList(navigator: Navigator) {
               modifier = Modifier
                 .fillMaxSize(0.8f)
                 .align(Alignment.Center)
-                .hazeChild(state = hazeState, shape = RoundedCornerShape(4.dp))
+                .hazeChild(state = hazeState, shape = RoundedCornerShape(4.dp)),
             ) {
               Text(
                 "Image $index",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier.align(Alignment.Center),
               )
             }
           }
