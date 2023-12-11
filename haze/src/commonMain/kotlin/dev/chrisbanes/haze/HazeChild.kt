@@ -21,20 +21,17 @@ import androidx.compose.ui.unit.toSize
  * [Modifier.haze] to blur any content behind the host composable.
  */
 fun Modifier.hazeChild(
-  key: Any,
   state: HazeState,
   shape: Shape = RectangleShape,
-): Modifier = this then HazeChildNodeElement(key, state, shape)
+): Modifier = this then HazeChildNodeElement(state, shape)
 
 private data class HazeChildNodeElement(
-  val key: Any,
   val state: HazeState,
   val shape: Shape,
 ) : ModifierNodeElement<HazeChildNode>() {
-  override fun create(): HazeChildNode = HazeChildNode(key, state, shape)
+  override fun create(): HazeChildNode = HazeChildNode(state, shape)
 
   override fun update(node: HazeChildNode) {
-    node.key = key
     node.state = state
     node.shape = shape
     node.onUpdate()
@@ -42,39 +39,36 @@ private data class HazeChildNodeElement(
 
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeChild"
-    properties["key"] = key
     properties["shape"] = shape
   }
 }
 
 private data class HazeChildNode(
-  var key: Any,
   var state: HazeState,
   var shape: Shape,
 ) : Modifier.Node(), LayoutAwareModifierNode {
-  override fun onPlaced(coordinates: LayoutCoordinates) {
-    // After we've been placed, update the state with our new bounds (in root coordinates)
-    state.updateAreaPosition(key, coordinates.positionInRoot())
-  }
+
+  private val area: HazeArea = HazeArea()
 
   override fun onAttach() {
-    state.updateAreaShape(key, shape)
+    state.registerArea(area)
   }
 
   fun onUpdate() {
-    state.updateAreaShape(key, shape)
+    area.shape = shape
+  }
+
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    // After we've been placed, update the state with our new bounds (in root coordinates)
+    area.positionInRoot = coordinates.positionInRoot()
   }
 
   override fun onRemeasured(size: IntSize) {
     // After we've been remeasured, update the state with our new size
-    state.updateAreaSize(key, size.toSize())
-  }
-
-  override fun onReset() {
-    state.clearArea(key)
+    area.size = size.toSize()
   }
 
   override fun onDetach() {
-    state.clearArea(key)
+    state.unregisterArea(area)
   }
 }

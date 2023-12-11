@@ -63,7 +63,7 @@ fun ScaffoldSample(navigator: Navigator) {
           },
           colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
           modifier = Modifier
-            .hazeChild("app_bar", hazeState)
+            .hazeChild(hazeState)
             .fillMaxWidth(),
         )
       },
@@ -79,7 +79,7 @@ fun ScaffoldSample(navigator: Navigator) {
             selectedIndex,
             onItemClicked = { selectedIndex = it },
             modifier = Modifier
-              .hazeChild("nav_bar", hazeState)
+              .hazeChild(hazeState)
               .fillMaxWidth(),
           )
         }

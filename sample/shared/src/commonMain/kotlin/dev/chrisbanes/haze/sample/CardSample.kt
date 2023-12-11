@@ -94,7 +94,7 @@ fun CreditCardSample(navigator: Navigator) {
             }
           },
         )
-        .hazeChild("card", state = hazeState, shape = RoundedCornerShape(16.dp)),
+        .hazeChild(state = hazeState, shape = RoundedCornerShape(16.dp)),
     ) {
       Column(Modifier.padding(32.dp)) {
         Text("Bank of Haze")

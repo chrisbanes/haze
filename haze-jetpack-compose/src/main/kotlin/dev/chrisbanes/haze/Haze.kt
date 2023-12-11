@@ -5,7 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -33,30 +33,16 @@ class HazeState {
   /**
    * The areas which are blurred by any [Modifier.haze] instances which use this state.
    */
-  private val _areas = mutableStateMapOf<Any, HazeArea>()
+  private val _areas = mutableStateListOf<HazeArea>()
 
-  val areas: Set<HazeArea> get() = _areas.values.toSet()
+  val areas: List<HazeArea> get() = _areas.toList()
 
-  fun updateAreaPosition(key: Any, positionInRoot: Offset) {
-    _areas.getOrPut(key, ::HazeArea).apply {
-      this.positionInRoot = positionInRoot
-    }
+  fun registerArea(area: HazeArea) {
+    _areas.add(area)
   }
 
-  fun updateAreaSize(key: Any, size: Size) {
-    _areas.getOrPut(key, ::HazeArea).apply {
-      this.size = size
-    }
-  }
-
-  fun updateAreaShape(key: Any, shape: Shape) {
-    _areas.getOrPut(key, ::HazeArea).apply {
-      this.shape = shape
-    }
-  }
-
-  fun clearArea(key: Any) {
-    _areas.remove(key)
+  fun unregisterArea(area: HazeArea) {
+    _areas.remove(area)
   }
 }
 
