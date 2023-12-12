@@ -2,7 +2,7 @@
 package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeArea {
-    ctor public HazeArea();
+    ctor public HazeArea(optional long size, optional long positionInRoot, optional androidx.compose.ui.graphics.Shape shape);
     method public long getPositionInRoot();
     method public androidx.compose.ui.graphics.Shape getShape();
     method public long getSize();

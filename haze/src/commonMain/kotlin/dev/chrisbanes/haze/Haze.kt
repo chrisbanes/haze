@@ -71,14 +71,18 @@ internal fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) 
 }
 
 @Stable
-class HazeArea {
-  var size: Size by mutableStateOf(Size.Unspecified)
+class HazeArea(
+  size: Size = Size.Unspecified,
+  positionInRoot: Offset = Offset.Unspecified,
+  shape: Shape = RectangleShape,
+) {
+  var size: Size by mutableStateOf(size)
     internal set
 
-  var positionInRoot: Offset by mutableStateOf(Offset.Unspecified)
+  var positionInRoot: Offset by mutableStateOf(positionInRoot)
     internal set
 
-  var shape: Shape by mutableStateOf(RectangleShape)
+  var shape: Shape by mutableStateOf(shape)
     internal set
 
   val isValid: Boolean
