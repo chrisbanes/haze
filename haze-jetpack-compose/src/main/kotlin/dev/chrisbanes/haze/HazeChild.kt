@@ -47,7 +47,9 @@ private data class HazeChildNode(
   var shape: Shape,
 ) : Modifier.Node(), LayoutAwareModifierNode {
 
-  private val area: HazeArea by lazy { HazeArea().apply { shape = this@HazeChildNode.shape } }
+  private val area: HazeArea by lazy {
+    HazeArea(shape = shape)
+  }
 
   private var attachedState: HazeState? = null
 
