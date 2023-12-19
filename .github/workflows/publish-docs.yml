@@ -51,7 +51,7 @@ jobs:
         run: cp -r build/dokka/htmlMultiModule/ site/api/
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: 'site'
 
