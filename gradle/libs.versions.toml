@@ -1,9 +1,12 @@
 [versions]
 agp = "8.2.0"
+androidx-test-ext-junit = "1.1.5"
 jetpackcompose-compiler = "1.5.6"
 compose-multiplatform = "1.5.11"
 ktlint = "1.0.1"
 kotlin = "1.9.21"
+robolectric = "4.10.3"
+roborazzi = "1.9.0-alpha-3"
 spotless = "6.23.3"
 
 [plugins]
@@ -16,6 +19,7 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-mu
 dokka = { id = "org.jetbrains.dokka", version = "1.9.10" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 metalava = { id = "me.tylerbwong.gradle.metalava", version = "0.3.5" }
+roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.26.0" }
 
@@ -25,6 +29,13 @@ androidx-compose-ui = "androidx.compose.ui:ui:1.6.0-beta03"
 androidx-compose-material3 = "androidx.compose.material3:material3:1.1.2"
 androidx-core = "androidx.core:core-ktx:1.12.0"
 androidx-activity-compose = "androidx.activity:activity-compose:1.8.2"
+androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.5.4"
+androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext-junit" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+roborazzi-core = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi"}
+roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi"}
+roborazzi-composedesktop = { module = "io.github.takahirom.roborazzi:roborazzi-compose-desktop", version.ref = "roborazzi"}
+roborazzi-junit = { module = "io.github.takahirom.roborazzi:roborazzi-junit-rule", version.ref = "roborazzi"}
 
 # Build logic dependencies
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
