@@ -193,10 +193,15 @@ internal class HazeNode31(
         BlendMode.HARD_LIGHT,
       )
     }.let {
-      RenderEffect.createColorFilterEffect(
-        BlendModeColorFilter(tint.toArgb(), BlendMode.SRC_OVER),
-        it,
-      )
+      if (tint.alpha >= 0.005f) {
+        // If we have an tint with a non-zero alpha value, wrap the effect with a color filter
+        RenderEffect.createColorFilterEffect(
+          BlendModeColorFilter(tint.toArgb(), BlendMode.SRC_OVER),
+          it,
+        )
+      } else {
+        it
+      }
     }
 
     // We create a RenderNode for each of the areas we need to apply our effect to
