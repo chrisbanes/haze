@@ -20,7 +20,7 @@ actual abstract class ScreenshotTest
 
 actual val HazeRoborazziDefaults.outputDirectoryName: String get() = "desktop"
 
-actual fun ScreenshotTest.screenshotTest(content: @Composable () -> Unit) {
+actual fun ScreenshotTest.screenshot(content: @Composable () -> Unit) {
   @OptIn(ExperimentalTestApi::class)
   captureRoborazziImage(content = content)
 }

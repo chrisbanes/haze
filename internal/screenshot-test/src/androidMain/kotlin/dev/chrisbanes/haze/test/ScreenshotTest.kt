@@ -24,7 +24,7 @@ actual abstract class ScreenshotTest {
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
   @get:Rule
-  val roborazzi0Rule = RoborazziRule(
+  val roborazziRule = RoborazziRule(
     composeRule = composeTestRule,
     captureRoot = composeTestRule.onRoot(),
     options = RoborazziRule.Options(
@@ -36,6 +36,6 @@ actual abstract class ScreenshotTest {
 
 actual val HazeRoborazziDefaults.outputDirectoryName: String get() = "android"
 
-actual fun ScreenshotTest.screenshotTest(content: @Composable () -> Unit) {
+actual fun ScreenshotTest.screenshot(content: @Composable () -> Unit) {
   captureRoboImage(content = content)
 }

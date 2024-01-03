@@ -7,5 +7,6 @@ import androidx.compose.runtime.Composable
 
 actual abstract class ScreenshotTest
 
-actual fun ScreenshotTest.screenshotTest(content: @Composable () -> Unit) {
+actual fun ScreenshotTest.screenshot(content: @Composable () -> Unit) {
+  // no-op on iOS
 }
