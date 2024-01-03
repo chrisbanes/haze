@@ -110,8 +110,17 @@ internal class HazeNode31(
     if (currentValueOf(LocalInspectionMode)) {
       // If LocalInspectionMode is true, we're likely running in a preview/screenshot test
       // and therefore don't have full access to Android drawing APIs. To avoid crashing we
-      // no-op and return early.
+      // just draw the content and return early.
+      drawContent()
       return
+    }
+    drawIntoCanvas { canvas ->
+      // Similar to above, drawRenderNode is only available on hw-accelerated canvases.
+      // To avoid crashing we just draw the content and return early.
+      if (!canvas.nativeCanvas.isHardwareAccelerated) {
+        drawContent()
+        return@draw
+      }
     }
 
     val contentDrawScope = this
