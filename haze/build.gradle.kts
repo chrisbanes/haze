@@ -49,33 +49,8 @@ kotlin {
 
     val commonTest by getting {
       dependencies {
-        implementation(compose.foundation)
-        implementation(compose.material3)
-      }
-    }
-
-    val androidUnitTest by getting {
-      dependencies {
-        implementation(libs.androidx.test.ext.junit)
-        implementation(libs.androidx.compose.ui.test.manifest)
-
-        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-        implementation(compose.uiTestJUnit4)
-
-        implementation(libs.robolectric)
-
-        implementation(libs.roborazzi.core)
-        implementation(libs.roborazzi.compose)
-        implementation(libs.roborazzi.junit)
-      }
-    }
-
-    val jvmTest by getting {
-      dependencies {
-        implementation(compose.desktop.currentOs)
         implementation(kotlin("test"))
-        implementation(libs.roborazzi.core)
-        implementation(libs.roborazzi.composedesktop)
+        implementation(projects.internal.screenshotTest)
       }
     }
   }

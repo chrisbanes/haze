@@ -1,9 +1,7 @@
-// Copyright 2024, Christopher Banes and the Haze project contributors
-// SPDX-License-Identifier: Apache-2.0
-
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.test
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -11,16 +9,14 @@ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.RoborazziRule
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
-import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(minSdk = 33, qualifiers = RobolectricDeviceQualifiers.Pixel5)
-class HazeScreenshotTest {
-
+@Config(sdk = [33], qualifiers = RobolectricDeviceQualifiers.Pixel5)
+actual abstract class ScreenshotTest {
   @get:Rule
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -28,11 +24,15 @@ class HazeScreenshotTest {
   val roborazziRule = RoborazziRule(
     composeRule = composeTestRule,
     captureRoot = composeTestRule.onRoot(),
-    options = RoborazziRule.Options(outputDirectoryPath = "screenshots/android"),
+    options = RoborazziRule.Options(
+      outputDirectoryPath = "screenshots/${HazeRoborazziDefaults.outputDirectoryName}",
+      roborazziOptions = HazeRoborazziDefaults.roborazziOptions,
+    ),
   )
+}
 
-  @Test
-  fun creditCard() = captureRoboImage {
-    CreditCardSample()
-  }
+actual val HazeRoborazziDefaults.outputDirectoryName: String get() = "android"
+
+actual fun ScreenshotTest.screenshotTest(content: @Composable () -> Unit) {
+  captureRoboImage(content = content)
 }

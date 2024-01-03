@@ -1,14 +1,10 @@
-// Copyright 2024, Christopher Banes and the Haze project contributors
-// SPDX-License-Identifier: Apache-2.0
-
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.test
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.DesktopComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
-import com.dropbox.differ.SimpleImageComparator
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.InternalRoborazziApi
 import com.github.takahirom.roborazzi.RoborazziOptions
@@ -17,20 +13,18 @@ import io.github.takahirom.roborazzi.captureRoboImage
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
-@OptIn(ExperimentalRoborazziApi::class)
-object HazeRoborazziDefaults {
+actual abstract class ScreenshotTest
 
-  val roborazziOptions = RoborazziOptions(
-    compareOptions = RoborazziOptions.CompareOptions(
-      changeThreshold = 0.1f,
-      imageComparator = SimpleImageComparator(maxDistance = 0f, hShift = 1, vShift = 1),
-    ),
-  )
+actual val HazeRoborazziDefaults.outputDirectoryName: String get() = "desktop"
+
+actual fun ScreenshotTest.screenshotTest(content: @Composable () -> Unit) {
+  @OptIn(ExperimentalTestApi::class)
+  captureRoborazziImage(content = content)
 }
 
 @OptIn(ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 @ExperimentalTestApi
-fun captureRoboImage(
+private fun captureRoborazziImage(
   width: Int = 1080,
   height: Int = 1920,
   density: Density = Density(2.75f),
