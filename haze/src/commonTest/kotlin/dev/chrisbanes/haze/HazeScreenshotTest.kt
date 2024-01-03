@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.screenshotTest
 import kotlin.test.Test
@@ -13,6 +14,13 @@ class HazeScreenshotTest: ScreenshotTest() {
   fun creditCard() = screenshotTest {
     MaterialTheme {
       CreditCardSample()
+    }
+  }
+
+  @Test
+  fun creditCard_transparentTint() = screenshotTest {
+    MaterialTheme {
+      CreditCardSample(tint = Color.Transparent)
     }
   }
 }

@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun CreditCardSample() {
+fun CreditCardSample(tint: Color? = null) {
   val hazeState = remember { HazeState() }
 
   Box {
@@ -34,7 +34,7 @@ fun CreditCardSample() {
         .haze(
           state = hazeState,
           backgroundColor = Color.Blue,
-          tint = Color.White.copy(alpha = 0.1f),
+          tint = tint ?: Color.White.copy(alpha = 0.1f),
           blurRadius = 8.dp,
         ),
     ) {
