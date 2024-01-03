@@ -18,13 +18,13 @@ import org.robolectric.annotation.GraphicsMode
 
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [33], qualifiers = RobolectricDeviceQualifiers.Pixel5)
+@Config(sdk = [28, 33], qualifiers = RobolectricDeviceQualifiers.Pixel5)
 actual abstract class ScreenshotTest {
   @get:Rule
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
   @get:Rule
-  val roborazziRule = RoborazziRule(
+  val roborazzi0Rule = RoborazziRule(
     composeRule = composeTestRule,
     captureRoot = composeTestRule.onRoot(),
     options = RoborazziRule.Options(
