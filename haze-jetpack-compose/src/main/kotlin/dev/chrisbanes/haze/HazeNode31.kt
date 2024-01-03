@@ -38,6 +38,7 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -106,6 +107,13 @@ internal class HazeNode31(
   }
 
   override fun ContentDrawScope.draw() {
+    if (currentValueOf(LocalInspectionMode)) {
+      // If LocalInspectionMode is true, we're likely running in a preview/screenshot test
+      // and therefore don't have full access to Android drawing APIs. To avoid crashing we
+      // no-op and return early.
+      return
+    }
+
     val contentDrawScope = this
 
     val contentNode = RenderNode("content").apply {
