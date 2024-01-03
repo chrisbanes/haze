@@ -5,7 +5,7 @@ jetpackcompose-compiler = "1.5.6"
 compose-multiplatform = "1.5.11"
 ktlint = "1.0.1"
 kotlin = "1.9.21"
-robolectric = "4.10.3"
+robolectric = "4.11.1"
 roborazzi = "1.9.0-alpha-3"
 spotless = "6.23.3"
 
