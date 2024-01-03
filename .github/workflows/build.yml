@@ -22,6 +22,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: 'true'
 
       - name: Setup JDK
         uses: actions/setup-java@v4
@@ -33,6 +35,15 @@ jobs:
 
       - name: Build
         run: ./gradlew build
+
+      - name: Upload reports + Roborazzi outputs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            **/build/reports/**
+            **/build/outputs/roborazzi/**
 
   deploy:
     if: github.ref == 'refs/heads/main'

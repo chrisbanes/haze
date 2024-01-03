@@ -8,10 +8,20 @@ plugins {
   id("org.jetbrains.dokka")
   id("com.vanniktech.maven.publish")
   id("me.tylerbwong.gradle.metalava")
+  id("io.github.takahirom.roborazzi")
 }
 
 android {
   namespace = "dev.chrisbanes.haze.jetpackcompose"
+
+  defaultConfig {
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  testOptions {
+    unitTests.isIncludeAndroidResources = true
+  }
+  testBuildType = "release"
 
   buildFeatures {
     compose = true
@@ -24,6 +34,9 @@ android {
 
 dependencies {
   api(libs.androidx.compose.ui)
+
+  testImplementation(kotlin("test"))
+  testImplementation(projects.internal.screenshotTest)
 }
 
 metalava {
