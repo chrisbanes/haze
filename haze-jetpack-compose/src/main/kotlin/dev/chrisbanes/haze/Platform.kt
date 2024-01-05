@@ -14,8 +14,10 @@ internal fun createHazeNode(
   blurRadius: Dp,
   noiseFactor: Float,
 ): HazeNode = when {
-  Build.VERSION.SDK_INT >= 31 -> {
-    HazeNode31(
+  Build.VERSION.SDK_INT >= 32 -> {
+    // We can't currently use this impl on API 31 due to
+    // https://github.com/chrisbanes/haze/issues/77
+    HazeNodeRenderEffect(
       state = state,
       backgroundColor = backgroundColor,
       tint = tint,
