@@ -79,7 +79,7 @@ fun ScaffoldSample(navigator: Navigator) {
             selectedIndex,
             onItemClicked = { selectedIndex = it },
             modifier = Modifier
-              .hazeChild(hazeState)
+              .hazeChild(hazeState, tint = Color.Yellow.copy(alpha = 0.3f))
               .fillMaxWidth(),
           )
         }

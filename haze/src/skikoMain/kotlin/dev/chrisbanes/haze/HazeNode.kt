@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
@@ -179,8 +180,10 @@ private class SkiaHazeNode(
           }
         }
 
+        val tint = if (area.tint.isSpecified) area.tint else defaultTint
         uniform("color", tint.red, tint.green, tint.blue, 1f)
         uniform("colorShift", tint.alpha)
+
         uniform("noiseFactor", noiseFactor)
 
         child("noise", NOISE_SHADER)
