@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -18,37 +19,48 @@ import androidx.compose.ui.unit.toSize
  *
  * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
  * [Modifier.haze] to blur any content behind the host composable.
+ *
+ * @param shape The shape of the content. This will affect the the bounds and outline of
+ * the blurred content.
+ * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
+ * the blurred content. If the provided color is [Color.Unspecified] then the default tint
+ * provided to [haze] will be used.
  */
 fun Modifier.hazeChild(
   state: HazeState,
   shape: Shape = RectangleShape,
-): Modifier = this then HazeChildNodeElement(state, shape)
+  tint: Color = Color.Unspecified,
+): Modifier = this then HazeChildNodeElement(state, shape, tint)
 
 private data class HazeChildNodeElement(
   val state: HazeState,
   val shape: Shape,
+  val tint: Color,
 ) : ModifierNodeElement<HazeChildNode>() {
-  override fun create(): HazeChildNode = HazeChildNode(state, shape)
+  override fun create(): HazeChildNode = HazeChildNode(state, shape, tint)
 
   override fun update(node: HazeChildNode) {
     node.state = state
     node.shape = shape
+    node.tint = tint
     node.onUpdate()
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeChild"
     properties["shape"] = shape
+    properties["tint"] = tint
   }
 }
 
 private data class HazeChildNode(
   var state: HazeState,
   var shape: Shape,
+  var tint: Color,
 ) : Modifier.Node(), LayoutAwareModifierNode {
 
   private val area: HazeArea by lazy {
-    HazeArea(shape = shape)
+    HazeArea(shape = shape, tint = tint)
   }
 
   private var attachedState: HazeState? = null
@@ -60,6 +72,7 @@ private data class HazeChildNode(
   fun onUpdate() {
     // Propagate any shape changes to the HazeArea
     area.shape = shape
+    area.tint = tint
 
     if (state != attachedState) {
       // The provided HazeState has changed, so we need to detach from the old one,

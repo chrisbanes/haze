@@ -20,11 +20,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -58,7 +58,7 @@ internal class HazeNodeRenderEffect(
 ) : HazeNode(
   state = state,
   backgroundColor = backgroundColor,
-  tint = tint,
+  defaultTint = tint,
   blurRadius = blurRadius,
   noiseFactor = noiseFactor,
 ),
@@ -145,6 +145,7 @@ internal class HazeNodeRenderEffect(
     if (effectsDirty) {
       observeReads {
         effects = buildEffects(layoutDirection, currentValueOf(LocalDensity))
+        effectsDirty = false
       }
     }
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
@@ -180,7 +181,7 @@ internal class HazeNodeRenderEffect(
 
     // This is our RenderEffect. It first applies a blur effect, and then a color filter effect
     // to allow content to be visible on top
-    val effect = RenderEffect.createBlurEffect(
+    val baseEffect = RenderEffect.createBlurEffect(
       blurRadiusPx,
       blurRadiusPx,
       Shader.TileMode.DECAL,
@@ -192,16 +193,6 @@ internal class HazeNodeRenderEffect(
         it,
         BlendMode.HARD_LIGHT,
       )
-    }.let {
-      if (tint.alpha >= 0.005f) {
-        // If we have an tint with a non-zero alpha value, wrap the effect with a color filter
-        RenderEffect.createColorFilterEffect(
-          BlendModeColorFilter(tint.toArgb(), BlendMode.SRC_OVER),
-          it,
-        )
-      } else {
-        it
-      }
     }
 
     // We create a RenderNode for each of the areas we need to apply our effect to
@@ -214,20 +205,24 @@ internal class HazeNodeRenderEffect(
       val expandedRect = bounds.inflate(blurRadiusPx)
 
       val node = RenderNode("blur").apply {
-        setRenderEffect(effect)
+        setRenderEffect(
+          baseEffect
+            .applyTint(if (area.tint.isSpecified) area.tint else defaultTint),
+        )
         setPosition(0, 0, expandedRect.width.toInt(), expandedRect.height.toInt())
         translationX = expandedRect.left
         translationY = expandedRect.top
       }
 
+      // TODO: Should try and re-use this
+      val path = Path()
+      area.updatePath(path, bounds, layoutDirection, density)
+
       EffectHolder(
+        path = path,
         renderNode = node,
         renderNodeDrawArea = expandedRect,
-        area = bounds,
-        shape = area.shape,
-      ).apply {
-        updatePath(layoutDirection, density)
-      }
+      )
     }.toList()
   }
 
@@ -245,21 +240,11 @@ internal class HazeNodeRenderEffect(
       R.drawable.haze_noise,
     ).withAlpha(noiseFactor)
   }
-}
 
-private class EffectHolder(
-  val renderNode: RenderNode,
-  val renderNodeDrawArea: Rect,
-  val area: Rect,
-  val shape: Shape,
-  val path: Path = Path(),
-)
-
-private fun EffectHolder.updatePath(layoutDirection: LayoutDirection, density: Density) {
-  path.reset()
-  path.addOutline(
-    outline = shape.createOutline(area.size, layoutDirection, density),
-    offset = area.topLeft,
+  private class EffectHolder(
+    val renderNode: RenderNode,
+    val renderNodeDrawArea: Rect,
+    val path: Path,
   )
 }
 
@@ -279,4 +264,16 @@ private fun Bitmap.withAlpha(alpha: Float): Bitmap {
       drawBitmap(this@withAlpha, 0f, 0f, paint)
     }
   }
+}
+
+@RequiresApi(31)
+private fun RenderEffect.applyTint(tint: Color): RenderEffect = when {
+  tint.alpha >= 0.005f -> {
+    // If we have an tint with a non-zero alpha value, wrap the effect with a color filter
+    RenderEffect.createColorFilterEffect(
+      BlendModeColorFilter(tint.toArgb(), BlendMode.SRC_OVER),
+      this,
+    )
+  }
+  else -> this
 }

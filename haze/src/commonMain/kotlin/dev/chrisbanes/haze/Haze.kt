@@ -75,6 +75,7 @@ class HazeArea(
   size: Size = Size.Unspecified,
   positionInRoot: Offset = Offset.Unspecified,
   shape: Shape = RectangleShape,
+  tint: Color = Color.Unspecified,
 ) {
   var size: Size by mutableStateOf(size)
     internal set
@@ -83,6 +84,9 @@ class HazeArea(
     internal set
 
   var shape: Shape by mutableStateOf(shape)
+    internal set
+
+  var tint: Color by mutableStateOf(tint)
     internal set
 
   val isValid: Boolean
@@ -96,6 +100,19 @@ internal fun HazeArea.boundsInLocal(hazePositionInRoot: Offset): Rect? {
   return size.toRect().translate(positionInRoot - hazePositionInRoot)
 }
 
+internal fun HazeArea.updatePath(
+  path: Path,
+  area: Rect,
+  layoutDirection: LayoutDirection,
+  density: Density,
+) {
+  path.reset()
+  path.addOutline(
+    outline = shape.createOutline(size, layoutDirection, density),
+    offset = area.topLeft,
+  )
+}
+
 /**
  * Draw content within the provided [HazeState.areas] blurred in a 'glassmorphism' style.
  *
@@ -105,8 +122,8 @@ internal fun HazeArea.boundsInLocal(hazePositionInRoot: Offset): Rect? {
  *
  * @param backgroundColor Background color of the content. Typically you would provide
  * `MaterialTheme.colorScheme.surface` or similar.
- * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
- * the blurred content.
+ * @param tint Default color to tint the blurred content. Should be translucent, otherwise you will not see
+ * the blurred content. Can be overridden by the `tint` parameter on [hazeChild].
  * @param blurRadius Radius of the blur.
  * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
  */
@@ -168,7 +185,7 @@ internal data class HazeNodeElement(
   override fun update(node: HazeNode) {
     node.state = state
     node.backgroundColor = backgroundColor
-    node.tint = tint
+    node.defaultTint = tint
     node.blurRadius = blurRadius
     node.noiseFactor = noiseFactor
     node.onUpdate()
@@ -186,7 +203,7 @@ internal data class HazeNodeElement(
 internal abstract class HazeNode(
   var state: HazeState,
   var backgroundColor: Color,
-  var tint: Color,
+  var defaultTint: Color,
   var blurRadius: Dp,
   var noiseFactor: Float,
 ) : Modifier.Node() {

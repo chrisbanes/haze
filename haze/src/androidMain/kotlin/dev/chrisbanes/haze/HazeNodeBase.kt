@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -40,17 +41,17 @@ internal class HazeNodeBase(
   LayoutAwareModifierNode,
   CompositionLocalConsumerModifierNode {
 
-  private val path = Path()
-  private var pathDirty = false
+  private var pathsDirty = true
+  private var paths: List<PathHolder> = emptyList()
 
   private var positionInRoot by observable(Offset.Unspecified) { _, oldValue, newValue ->
     if (oldValue != newValue) {
-      invalidatePath()
+      invalidatePaths()
     }
   }
   private var size by observable(Size.Unspecified) { _, oldValue, newValue ->
     if (oldValue != newValue) {
-      invalidatePath()
+      invalidatePaths()
     }
   }
 
@@ -59,11 +60,11 @@ internal class HazeNodeBase(
   }
 
   override fun onObservedReadsChanged() {
-    invalidatePath()
+    invalidatePaths()
   }
 
-  private fun invalidatePath() {
-    pathDirty = true
+  private fun invalidatePaths() {
+    pathsDirty = true
     invalidateDraw()
   }
 
@@ -77,22 +78,47 @@ internal class HazeNodeBase(
   }
 
   override fun ContentDrawScope.draw() {
-    if (pathDirty) {
-      observeReads { updatePath(layoutDirection, currentValueOf(LocalDensity)) }
-    }
-
     drawContent()
 
-    drawPath(
-      path = path,
-      // We need to boost the alpha as we don't have a blur effect
-      color = tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f)),
-    )
+    if (pathsDirty) {
+      observeReads {
+        paths = buildPaths(layoutDirection, currentValueOf(LocalDensity))
+        pathsDirty = false
+      }
+    }
+
+    for (pathHolder in paths) {
+      drawPath(
+        path = pathHolder.path,
+        color = pathHolder.tint,
+      )
+    }
   }
 
-  private fun updatePath(layoutDirection: LayoutDirection, density: Density) {
-    path.reset()
-    state.addAreasToPath(path, positionInRoot, layoutDirection, density)
-    pathDirty = false
-  }
+  private fun buildPaths(
+    layoutDirection: LayoutDirection,
+    density: Density,
+  ): List<PathHolder> = state.areas.asSequence()
+    .filter { it.isValid }
+    .mapNotNull { area ->
+      val bounds = area.boundsInLocal(positionInRoot) ?: return@mapNotNull null
+
+      // TODO: Should try and re-use this
+      val path = Path()
+      area.updatePath(path, bounds, layoutDirection, density)
+
+      PathHolder(
+        path = path,
+        tint = when {
+          area.tint.isSpecified -> area.tint
+          // We need to boost the alpha as we don't have a blur effect
+          else -> defaultTint.copy(alpha = (defaultTint.alpha * 1.35f).coerceAtMost(1f))
+        },
+      )
+    }.toList()
+
+  private class PathHolder(
+    val tint: Color,
+    val path: Path = Path(),
+  )
 }
