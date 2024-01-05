@@ -49,7 +49,7 @@ import kotlin.math.roundToInt
 import kotlin.properties.Delegates.observable
 
 @RequiresApi(31)
-internal class HazeNode31(
+internal class HazeNodeRenderEffect(
   state: HazeState,
   backgroundColor: Color,
   tint: Color,
