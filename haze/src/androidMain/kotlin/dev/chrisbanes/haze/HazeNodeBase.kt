@@ -56,7 +56,7 @@ internal class HazeNodeBase(
   }
 
   override fun onUpdate() {
-    invalidateDraw()
+    invalidatePaths()
   }
 
   override fun onObservedReadsChanged() {

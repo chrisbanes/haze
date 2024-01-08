@@ -4,6 +4,9 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -24,9 +27,31 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_transparentTint() = runScreenshotTest {
     setContent {
       MaterialTheme {
-        CreditCardSample(tint = Color.Transparent)
+        CreditCardSample(defaultTint = Color.Transparent)
       }
     }
     captureRoot()
+  }
+
+  @Test
+  fun creditCard_childTint() = runScreenshotTest {
+    var tint by mutableStateOf(Color.Magenta.copy(alpha = 0.5f))
+
+    setContent {
+      MaterialTheme {
+        CreditCardSample(childTint = tint)
+      }
+    }
+
+    waitForIdle()
+    captureRoot("magenta")
+
+    tint = Color.Yellow.copy(alpha = 0.5f)
+    waitForIdle()
+    captureRoot("yellow")
+
+    tint = Color.Red.copy(alpha = 0.5f)
+    waitForIdle()
+    captureRoot("red")
   }
 }
