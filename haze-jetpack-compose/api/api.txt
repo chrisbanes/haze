@@ -36,6 +36,7 @@ package dev.chrisbanes.haze {
   public final class HazeScreenshotTest {
     ctor public HazeScreenshotTest();
     method public error.NonExistentClass! creditCard();
+    method public error.NonExistentClass! creditCard_childTint();
     method public error.NonExistentClass! creditCard_transparentTint();
   }
 
@@ -48,7 +49,7 @@ package dev.chrisbanes.haze {
   }
 
   public final class ScreenshotTestContentKt {
-    method @androidx.compose.runtime.Composable public static void CreditCardSample(optional androidx.compose.ui.graphics.Color? tint);
+    method @androidx.compose.runtime.Composable public static void CreditCardSample(optional long defaultTint, optional long childTint);
     method public static String getLorumIspum();
     property public static final String LorumIspum;
   }
