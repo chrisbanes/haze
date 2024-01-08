@@ -3,10 +3,10 @@
 
 package dev.chrisbanes.haze.test
 
-import androidx.compose.runtime.Composable
-
 actual abstract class ScreenshotTest
 
-actual fun ScreenshotTest.screenshot(content: @Composable () -> Unit) {
-  // no-op on iOS
+actual fun ScreenshotTest.runScreenshotTest(
+  block: ScreenshotUiTest.() -> Unit,
+) {
+  // no-op
 }

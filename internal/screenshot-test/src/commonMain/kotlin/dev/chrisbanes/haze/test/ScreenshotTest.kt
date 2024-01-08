@@ -7,4 +7,10 @@ import androidx.compose.runtime.Composable
 
 expect abstract class ScreenshotTest()
 
-expect fun ScreenshotTest.screenshot(content: @Composable () -> Unit)
+expect fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit)
+
+interface ScreenshotUiTest {
+  fun setContent(content: @Composable () -> Unit)
+  fun captureRoot(nameSuffix: String? = null)
+  fun waitForIdle()
+}
