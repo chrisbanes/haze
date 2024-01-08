@@ -23,7 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun CreditCardSample(tint: Color? = null) {
+fun CreditCardSample(
+  defaultTint: Color = Color.White.copy(alpha = 0.1f),
+  childTint: Color = Color.Unspecified,
+) {
   val hazeState = remember { HazeState() }
 
   Box {
@@ -34,7 +37,7 @@ fun CreditCardSample(tint: Color? = null) {
         .haze(
           state = hazeState,
           backgroundColor = Color.Blue,
-          tint = tint ?: Color.White.copy(alpha = 0.1f),
+          tint = defaultTint,
           blurRadius = 8.dp,
         ),
     ) {
@@ -57,7 +60,11 @@ fun CreditCardSample(tint: Color? = null) {
         .fillMaxWidth(0.7f)
         .aspectRatio(16 / 9f)
         .align(Alignment.Center)
-        .hazeChild(state = hazeState, shape = RoundedCornerShape(16.dp)),
+        .hazeChild(
+          state = hazeState,
+          tint = childTint,
+          shape = RoundedCornerShape(16.dp),
+        ),
     ) {
       Column(Modifier.padding(32.dp)) {
         Text("Bank of Haze")

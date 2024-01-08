@@ -23,7 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun CreditCardSample(tint: Color? = null) {
+internal fun CreditCardSample(
+  defaultTint: Color = Color.White.copy(alpha = 0.1f),
+  childTint: Color = Color.Unspecified,
+) {
   val hazeState = remember { HazeState() }
 
   Box {
@@ -34,7 +37,7 @@ fun CreditCardSample(tint: Color? = null) {
         .haze(
           state = hazeState,
           backgroundColor = Color.Blue,
-          tint = tint ?: Color.White.copy(alpha = 0.1f),
+          tint = defaultTint,
           blurRadius = 8.dp,
         ),
     ) {
@@ -57,7 +60,11 @@ fun CreditCardSample(tint: Color? = null) {
         .fillMaxWidth(0.7f)
         .aspectRatio(16 / 9f)
         .align(Alignment.Center)
-        .hazeChild(state = hazeState, shape = RoundedCornerShape(16.dp)),
+        .hazeChild(
+          state = hazeState,
+          tint = childTint,
+          shape = RoundedCornerShape(16.dp),
+        ),
     ) {
       Column(Modifier.padding(32.dp)) {
         Text("Bank of Haze")
@@ -66,7 +73,7 @@ fun CreditCardSample(tint: Color? = null) {
   }
 }
 
-val LorumIspum by lazy {
+internal val LorumIspum by lazy {
   """
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras sit amet congue mauris, iaculis accumsan eros. Aliquam pulvinar est ac elit vulputate egestas. Vestibulum consequat libero at sem varius, vitae semper urna rhoncus. Aliquam mollis, ipsum a convallis scelerisque, sem dui consequat leo, in tempor risus est ac mi. Nam vel tellus dolor. Nunc lobortis bibendum fermentum. Mauris sed mollis justo, eu tristique elit. Cras semper augue a tortor tempor, vitae vestibulum eros convallis. Curabitur id justo eget tortor iaculis lobortis. Integer pharetra augue ac elit porta iaculis non vitae libero. Nam eros turpis, suscipit at iaculis vitae, malesuada vel arcu. Donec tincidunt porttitor iaculis. Pellentesque non augue magna. Mauris mattis purus vitae mi maximus, id molestie ipsum facilisis. Donec bibendum gravida dolor nec suscipit. Pellentesque tempus felis iaculis, porta diam sed, tristique tortor.
 

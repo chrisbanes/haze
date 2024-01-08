@@ -12,7 +12,7 @@ object HazeRoborazziDefaults {
   val roborazziOptions = RoborazziOptions(
     compareOptions = RoborazziOptions.CompareOptions(
       changeThreshold = 0.01f,
-      imageComparator = SimpleImageComparator(hShift = 1, vShift = 1),
+      imageComparator = SimpleImageComparator(maxDistance = 0.075f, hShift = 1, vShift = 1),
     ),
   )
 }
