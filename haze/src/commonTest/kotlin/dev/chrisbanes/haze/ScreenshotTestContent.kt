@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun CreditCardSample(
   defaultTint: Color = Color.White.copy(alpha = 0.1f),
-  childTint: Color = Color.Unspecified
+  childTint: Color = Color.Unspecified,
 ) {
   val hazeState = remember { HazeState() }
 
@@ -63,7 +63,7 @@ fun CreditCardSample(
         .hazeChild(
           state = hazeState,
           tint = childTint,
-          shape = RoundedCornerShape(16.dp)
+          shape = RoundedCornerShape(16.dp),
         ),
     ) {
       Column(Modifier.padding(32.dp)) {
