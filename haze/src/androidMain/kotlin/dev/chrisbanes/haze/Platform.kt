@@ -17,7 +17,7 @@ internal actual fun createHazeNode(
   tint: Color,
   blurRadius: Dp,
   noiseFactor: Float,
-): HazeNode = HazeNodeBase(state, backgroundColor, tint, blurRadius, noiseFactor)
+): HazeNode = AndroidHazeNode(state, backgroundColor, tint, blurRadius, noiseFactor)
 
 internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset {
   val view = currentValueOf(LocalView)
