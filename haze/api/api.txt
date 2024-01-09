@@ -2,14 +2,14 @@
 package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeArea {
-    ctor public HazeArea(optional long size, optional long positionInRoot, optional androidx.compose.ui.graphics.Shape shape, optional long tint);
-    method public long getPositionInRoot();
+    ctor public HazeArea(optional long size, optional long positionOnScreen, optional androidx.compose.ui.graphics.Shape shape, optional long tint);
+    method public long getPositionOnScreen();
     method public androidx.compose.ui.graphics.Shape getShape();
     method public long getSize();
     method public long getTint();
     method public boolean isValid();
     property public final boolean isValid;
-    property public final long positionInRoot;
+    property public final long positionOnScreen;
     property public final androidx.compose.ui.graphics.Shape shape;
     property public final long size;
     property public final long tint;

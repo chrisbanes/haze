@@ -46,24 +46,6 @@ class HazeState {
   }
 }
 
-internal fun HazeState.addAreasToPath(
-  path: Path,
-  positionInRoot: Offset,
-  layoutDirection: LayoutDirection,
-  density: Density,
-) {
-  if (positionInRoot.isUnspecified) return
-
-  areas.asSequence()
-    .filter { it.isValid }
-    .forEach { area ->
-      path.addOutline(
-        outline = area.shape.createOutline(area.size, layoutDirection, density),
-        offset = area.positionInRoot - positionInRoot,
-      )
-    }
-}
-
 internal fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) {
   is Outline.Rectangle -> addRect(outline.rect.translate(offset))
   is Outline.Rounded -> addRoundRect(outline.roundRect.translate(offset))
@@ -73,14 +55,14 @@ internal fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) 
 @Stable
 class HazeArea(
   size: Size = Size.Unspecified,
-  positionInRoot: Offset = Offset.Unspecified,
+  positionOnScreen: Offset = Offset.Unspecified,
   shape: Shape = RectangleShape,
   tint: Color = Color.Unspecified,
 ) {
   var size: Size by mutableStateOf(size)
     internal set
 
-  var positionInRoot: Offset by mutableStateOf(positionInRoot)
+  var positionOnScreen: Offset by mutableStateOf(positionOnScreen)
     internal set
 
   var shape: Shape by mutableStateOf(shape)
@@ -90,14 +72,14 @@ class HazeArea(
     internal set
 
   val isValid: Boolean
-    get() = size.isSpecified && positionInRoot.isSpecified && !size.isEmpty()
+    get() = size.isSpecified && positionOnScreen.isSpecified && !size.isEmpty()
 }
 
-internal fun HazeArea.boundsInLocal(hazePositionInRoot: Offset): Rect? {
+internal fun HazeArea.boundsInLocal(position: Offset): Rect? {
   if (!isValid) return null
-  if (hazePositionInRoot.isUnspecified) return null
+  if (position.isUnspecified) return null
 
-  return size.toRect().translate(positionInRoot - hazePositionInRoot)
+  return size.toRect().translate(positionOnScreen - position)
 }
 
 internal fun HazeArea.updatePath(

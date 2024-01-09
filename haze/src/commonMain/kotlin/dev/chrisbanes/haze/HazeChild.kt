@@ -8,7 +8,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
@@ -57,7 +58,9 @@ private data class HazeChildNode(
   var state: HazeState,
   var shape: Shape,
   var tint: Color,
-) : Modifier.Node(), LayoutAwareModifierNode {
+) : Modifier.Node(),
+  LayoutAwareModifierNode,
+  CompositionLocalConsumerModifierNode {
 
   private val area: HazeArea by lazy {
     HazeArea(shape = shape, tint = tint)
@@ -83,8 +86,8 @@ private data class HazeChildNode(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    // After we've been placed, update the state with our new bounds (in root coordinates)
-    area.positionInRoot = coordinates.positionInRoot()
+    // After we've been placed, update the state with our new bounds (in 'screen' coordinates)
+    area.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
     area.size = coordinates.size.toSize()
   }
 

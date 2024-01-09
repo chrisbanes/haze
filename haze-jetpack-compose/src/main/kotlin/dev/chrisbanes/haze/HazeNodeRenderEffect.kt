@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
@@ -70,7 +70,7 @@ internal class HazeNodeRenderEffect(
   private var effectsDirty = true
   private var effects: List<EffectHolder> = emptyList()
 
-  private var positionInRoot by observable(Offset.Unspecified) { _, oldValue, newValue ->
+  private var position by observable(Offset.Unspecified) { _, oldValue, newValue ->
     if (oldValue != newValue) {
       invalidateEffects()
     }
@@ -98,7 +98,7 @@ internal class HazeNodeRenderEffect(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    positionInRoot = coordinates.positionInRoot()
+    position = coordinates.positionInWindow() + calculateWindowOffset()
     size = coordinates.size.toSize()
   }
 
@@ -197,7 +197,7 @@ internal class HazeNodeRenderEffect(
 
     // We create a RenderNode for each of the areas we need to apply our effect to
     return state.areas.asSequence().mapNotNull { area ->
-      val bounds = area.boundsInLocal(positionInRoot) ?: return@mapNotNull null
+      val bounds = area.boundsInLocal(position) ?: return@mapNotNull null
 
       // We expand the area where our effect is applied to. This is necessary so that the blur
       // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
@@ -275,5 +275,6 @@ private fun RenderEffect.applyTint(tint: Color): RenderEffect = when {
       this,
     )
   }
+
   else -> this
 }

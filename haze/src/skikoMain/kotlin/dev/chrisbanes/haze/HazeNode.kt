@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
-import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
@@ -97,6 +97,11 @@ internal actual fun createHazeNode(
   noiseFactor: Float,
 ): HazeNode = SkiaHazeNode(state, backgroundColor, tint, blurRadius, noiseFactor)
 
+internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset {
+  // The Skiko-backed platforms don't use native windows for dialogs, etc
+  return Offset.Zero
+}
+
 private class SkiaHazeNode(
   state: HazeState,
   backgroundColor: Color,
@@ -128,22 +133,24 @@ private class SkiaHazeNode(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        renderEffect = getOrCreateRenderEffect(coordinates?.positionInRoot() ?: Offset.Zero)
+        val position = coordinates?.let { it.positionInWindow() + calculateWindowOffset() }
+          ?: Offset.Zero
+        renderEffect = getOrCreateRenderEffect(position)
       }
     }
   }
 
-  private fun getOrCreateRenderEffect(positionInRoot: Offset): RenderEffect? {
+  private fun getOrCreateRenderEffect(position: Offset): RenderEffect? {
     if (renderEffectDirty) {
       observeReads {
-        hazeRenderEffect = createHazeRenderEffect(positionInRoot)
+        hazeRenderEffect = createHazeRenderEffect(position)
       }
       renderEffectDirty = false
     }
     return hazeRenderEffect
   }
 
-  private fun createHazeRenderEffect(positionInRoot: Offset): RenderEffect? {
+  private fun createHazeRenderEffect(position: Offset): RenderEffect? {
     if (state.areas.isEmpty()) {
       return null
     }
@@ -153,7 +160,7 @@ private class SkiaHazeNode(
     val blurFilter = createBlurImageFilter(blurRadiusPx)
 
     val filters = state.areas.asSequence().mapNotNull { area ->
-      val areaLocalBounds = area.boundsInLocal(positionInRoot) ?: return@mapNotNull null
+      val areaLocalBounds = area.boundsInLocal(position) ?: return@mapNotNull null
 
       val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
         uniform(
