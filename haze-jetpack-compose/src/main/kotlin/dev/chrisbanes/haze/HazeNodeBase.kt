@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
@@ -44,7 +44,7 @@ internal class HazeNodeBase(
   private var pathsDirty = true
   private var paths: List<PathHolder> = emptyList()
 
-  private var positionInRoot by observable(Offset.Unspecified) { _, oldValue, newValue ->
+  private var position by observable(Offset.Unspecified) { _, oldValue, newValue ->
     if (oldValue != newValue) {
       invalidatePaths()
     }
@@ -69,7 +69,7 @@ internal class HazeNodeBase(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    positionInRoot = coordinates.positionInRoot()
+    position = coordinates.positionInWindow() + calculateWindowOffset()
     size = coordinates.size.toSize()
   }
 
@@ -101,7 +101,7 @@ internal class HazeNodeBase(
   ): List<PathHolder> = state.areas.asSequence()
     .filter { it.isValid }
     .mapNotNull { area ->
-      val bounds = area.boundsInLocal(positionInRoot) ?: return@mapNotNull null
+      val bounds = area.boundsInLocal(position) ?: return@mapNotNull null
 
       // TODO: Should try and re-use this
       val path = Path()

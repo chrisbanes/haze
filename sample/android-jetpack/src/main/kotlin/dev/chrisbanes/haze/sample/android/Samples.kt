@@ -30,6 +30,7 @@ val Samples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
   Sample("Credit Card") { CreditCardSample(it) },
   Sample("Images List") { ImagesList(it) },
+  Sample("Dialog") { DialogSample(it) },
 )
 
 data class Sample(
