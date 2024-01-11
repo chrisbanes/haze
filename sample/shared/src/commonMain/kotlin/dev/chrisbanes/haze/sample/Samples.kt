@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 
 val Samples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
@@ -52,7 +53,10 @@ fun Samples(appTitle: String) {
       Navigator { currentSample = null }
     }
 
-    Crossfade(targetState = currentSample) { sample ->
+    Crossfade(
+      targetState = currentSample,
+      modifier = Modifier.testTagsAsResourceId(true),
+    ) { sample ->
       if (sample != null) {
         sample.content(navigator)
       } else {
@@ -83,6 +87,7 @@ fun Samples(appTitle: String) {
                 headlineContent = { Text(text = sample.title) },
                 modifier = Modifier
                   .fillMaxWidth()
+                  .testTag(sample.title)
                   .clickable { currentSample = sample },
               )
             }

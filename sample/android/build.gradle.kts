@@ -6,6 +6,7 @@ plugins {
   id("dev.chrisbanes.android.application")
   id("dev.chrisbanes.kotlin.android")
   id("dev.chrisbanes.compose")
+  id("androidx.baselineprofile")
 }
 
 android {
@@ -14,6 +15,7 @@ android {
   defaultConfig {
     versionCode = 1
     versionName = "1.0"
+    applicationId = "dev.chrisbanes.haze.sample.android"
   }
 
   buildTypes {
@@ -51,4 +53,6 @@ dependencies {
 
   implementation(libs.androidx.core)
   implementation(libs.androidx.activity.compose)
+
+  baselineProfile(projects.internal.baselineProfile)
 }

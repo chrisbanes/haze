@@ -1,5 +1,6 @@
 [versions]
 agp = "8.2.1"
+androidx-benchmark = "1.2.2"
 androidx-test-ext-junit = "1.1.5"
 jetpackcompose-compiler = "1.5.6"
 compose-multiplatform = "1.5.11"
@@ -14,6 +15,7 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-lint = { id = "com.android.lint", version.ref = "agp" }
 android-test = { id = "com.android.test", version.ref = "agp" }
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-benchmark" }
 cacheFixPlugin = { id = "org.gradle.android.cache-fix", version = "3.0" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 dokka = { id = "org.jetbrains.dokka", version = "1.9.10" }
@@ -25,12 +27,14 @@ mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.27.0" }
 
 [libraries]
 imageloader = "io.github.qdsfdhvh:image-loader:1.6.8"
+androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
 androidx-compose-ui = "androidx.compose.ui:ui:1.6.0-rc01"
 androidx-compose-material3 = "androidx.compose.material3:material3:1.1.2"
 androidx-core = "androidx.core:core-ktx:1.12.0"
 androidx-activity-compose = "androidx.activity:activity-compose:1.8.2"
 androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.5.4"
 androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext-junit" }
+androidx-test-uiautomator = "androidx.test.uiautomator:uiautomator:2.2.0"
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 roborazzi-core = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi"}
 roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi"}
