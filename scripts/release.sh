@@ -39,4 +39,4 @@ git commit -m "Prepare next development version"
 rm gradle.properties.bak
 
 # Push it all up
-#git push && git push --tags
+git push && git push --tags
