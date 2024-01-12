@@ -25,7 +25,7 @@ git add gradle.properties
 git commit -m "Prepare for release $NEW_VERSION"
 
 # Build
-./gradlew build
+./gradlew publish --no-configuration-cache
 
 # Add git tag
 git tag "v$NEW_VERSION"
