@@ -28,7 +28,7 @@ git commit -m "Prepare for release $NEW_VERSION"
 ./gradlew publish --no-configuration-cache
 
 # Add git tag
-git tag "v$NEW_VERSION"
+git tag $NEW_VERSION
 # Prepare next snapshot
 echo "Setting next snapshot version $NEW_SNAPSHOT_VERSION"
 sed -i.bak "s/${NEW_VERSION}/${NEW_SNAPSHOT_VERSION}/g" gradle.properties
