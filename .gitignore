@@ -47,6 +47,8 @@ bin/
 site/
 .cache/
 
+# Ignore baseline profile files in samples
+sample/**/generated
 
 ##########################################################################################
 # Imported from https://github.com/github/gitignore/blob/main/Swift.gitignore
