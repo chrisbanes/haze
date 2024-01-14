@@ -22,16 +22,23 @@ android {
   experimentalProperties["android.experimental.self-instrumenting"] = true
 
   testOptions.managedDevices.devices {
-    create<ManagedVirtualDevice>("pixel7Api34") {
-      device = "Pixel 7"
+    create<ManagedVirtualDevice>("pixel5Api34") {
+      device = "Pixel 5"
       apiLevel = 34
+      systemImageSource = "aosp"
+    }
+
+    create<ManagedVirtualDevice>("pixel5Api30") {
+      device = "Pixel 5"
+      apiLevel = 30
       systemImageSource = "aosp"
     }
   }
 }
 
 baselineProfile {
-  managedDevices += "pixel7Api34"
+  managedDevices += "pixel5Api34"
+  managedDevices += "pixel5Api30"
   useConnectedDevices = false
 }
 
