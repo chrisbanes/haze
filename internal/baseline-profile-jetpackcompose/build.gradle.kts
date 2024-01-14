@@ -11,14 +11,14 @@ plugins {
 }
 
 android {
-  namespace = "dev.chrisbanes.haze.baselineprofile"
+  namespace = "dev.chrisbanes.haze.baselineprofile.jetpackcompose"
 
   defaultConfig {
     minSdk = 28
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
-  targetProjectPath = ":sample:android"
+  targetProjectPath = ":sample:android-jetpack"
   experimentalProperties["android.experimental.self-instrumenting"] = true
 
   testOptions.managedDevices.devices {
@@ -27,11 +27,18 @@ android {
       apiLevel = 34
       systemImageSource = "aosp"
     }
+
+    create<ManagedVirtualDevice>("pixel5Api30") {
+      device = "Pixel 5"
+      apiLevel = 30
+      systemImageSource = "aosp"
+    }
   }
 }
 
 baselineProfile {
   managedDevices += "pixel5Api34"
+  managedDevices += "pixel5Api30"
   useConnectedDevices = false
 }
 

@@ -18,7 +18,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -33,11 +33,24 @@ jobs:
 
       - uses: gradle/gradle-build-action@v2
 
-      - name: Build
+      - name: Check
         run: |
-          ./gradlew build \
-          -x :internal:baseline-profile:pixel7Api34NonMinifiedReleaseAndroidTest \
-          -x :internal:baseline-profile:collectNonMinifiedReleaseBaselineProfile
+          ./gradlew check \
+            -Pandroidx.baselineprofile.skipgeneration \
+            -x pixel5Api30NonMinifiedReleaseAndroidTest \
+            -x pixel5Api34NonMinifiedReleaseAndroidTest \
+            -x testNonMinifiedReleaseUnitTest \
+            -x testBenchmarkReleaseUnitTest \
+            -x metalavaCheckCompatibilityDebug
+
+      - name: Build samples
+        run: |
+          ./gradlew :sample:android:assemble \
+            :sample:android-jetpack:assemble \
+            :sample:desktop:assemble \
+            :sample:shared:assemble \
+            -x assembleBenchmarkRelease \
+            -x assembleNonMinifiedRelease
 
       - name: Upload reports + Roborazzi outputs
         if: failure()

@@ -17,7 +17,7 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
     }
 
     extensions.configure<KotlinMultiplatformExtension> {
-      targetHierarchy.default()
+      applyDefaultHierarchyTemplate()
 
       jvm()
       if (pluginManager.hasPlugin("com.android.library")) {
@@ -26,15 +26,9 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
         }
       }
 
-      listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64(),
-      ).forEach { target ->
-        target.binaries.framework {
-          baseName = path.substring(1).replace(':', '-')
-        }
-      }
+      iosX64()
+      iosArm64()
+      iosSimulatorArm64()
 
       configureSpotless()
       configureKotlin()
