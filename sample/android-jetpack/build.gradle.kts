@@ -6,6 +6,7 @@ plugins {
   id("dev.chrisbanes.android.application")
   id("dev.chrisbanes.kotlin.android")
   id("dev.chrisbanes.compose")
+  id("androidx.baselineprofile")
 }
 
 android {
@@ -60,4 +61,6 @@ dependencies {
   implementation(libs.androidx.core)
   implementation(libs.androidx.activity.compose)
   implementation(libs.androidx.compose.material3)
+
+  baselineProfile(projects.internal.baselineProfileJetpackcompose)
 }

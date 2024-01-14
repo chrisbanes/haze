@@ -5,6 +5,7 @@
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.android")
+  id("androidx.baselineprofile")
   id("org.jetbrains.dokka")
   id("com.vanniktech.maven.publish")
   id("me.tylerbwong.gradle.metalava")
@@ -37,6 +38,14 @@ dependencies {
 
   testImplementation(kotlin("test"))
   testImplementation(projects.internal.screenshotTest)
+}
+
+baselineProfile {
+  filter { include("dev.chrisbanes.haze.*") }
+}
+
+dependencies {
+  baselineProfile(projects.internal.baselineProfileJetpackcompose)
 }
 
 metalava {
