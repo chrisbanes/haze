@@ -21,5 +21,17 @@ kotlin {
         api(compose.material3)
       }
     }
+
+    val skikoMain by creating {
+      dependsOn(commonMain)
+    }
+
+    val iosMain by getting {
+      dependsOn(skikoMain)
+    }
+
+    val jvmMain by getting {
+      dependsOn(skikoMain)
+    }
   }
 }

@@ -6,6 +6,7 @@ plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
+  id("androidx.baselineprofile")
   id("org.jetbrains.dokka")
   id("com.vanniktech.maven.publish")
   id("me.tylerbwong.gradle.metalava")
@@ -60,6 +61,14 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
   kotlinOptions {
     freeCompilerArgs += "-Xcontext-receivers"
   }
+}
+
+baselineProfile {
+  filter { include("dev.chrisbanes.haze.*") }
+}
+
+dependencies {
+  baselineProfile(projects.internal.baselineProfile)
 }
 
 metalava {

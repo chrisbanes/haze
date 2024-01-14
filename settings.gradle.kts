@@ -44,6 +44,7 @@ rootProject.name = "haze-root"
 include(
   ":haze",
   ":haze-jetpack-compose",
+  ":internal:baseline-profile",
   ":internal:screenshot-test",
   ":sample:shared",
   ":sample:android",
