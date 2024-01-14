@@ -29,11 +29,11 @@ class BaselineProfileGenerator {
     pressHome()
     startActivityAndWait()
 
-    device.testImageslist()
+    device.testImagesList()
   }
 }
 
-private fun UiDevice.testImageslist() {
+private fun UiDevice.testImagesList() {
   waitForObject(By.res("Images List")).click()
   waitForIdle()
 }

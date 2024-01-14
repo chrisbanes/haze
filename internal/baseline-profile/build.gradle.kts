@@ -29,6 +29,7 @@ android {
     }
   }
 }
+
 baselineProfile {
   managedDevices += "pixel7Api34"
   useConnectedDevices = false
