@@ -24,7 +24,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 
 val Samples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
@@ -42,7 +46,7 @@ fun interface Navigator {
   fun navigateUp()
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun Samples(appTitle: String) {
   MaterialTheme {
@@ -52,7 +56,10 @@ fun Samples(appTitle: String) {
       Navigator { currentSample = null }
     }
 
-    Crossfade(targetState = currentSample) { sample ->
+    Crossfade(
+      targetState = currentSample,
+      modifier = Modifier.semantics { testTagsAsResourceId = true },
+    ) { sample ->
       if (sample != null) {
         sample.content(navigator)
       } else {
@@ -83,6 +90,7 @@ fun Samples(appTitle: String) {
                 headlineContent = { Text(text = sample.title) },
                 modifier = Modifier
                   .fillMaxWidth()
+                  .testTag(sample.title)
                   .clickable { currentSample = sample },
               )
             }
