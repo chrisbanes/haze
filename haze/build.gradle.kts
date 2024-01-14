@@ -21,7 +21,6 @@ android {
   testOptions {
     unitTests.isIncludeAndroidResources = true
   }
-  testBuildType = "release"
 }
 
 kotlin {

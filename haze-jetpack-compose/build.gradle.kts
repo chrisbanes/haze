@@ -22,7 +22,6 @@ android {
   testOptions {
     unitTests.isIncludeAndroidResources = true
   }
-  testBuildType = "release"
 
   buildFeatures {
     compose = true
