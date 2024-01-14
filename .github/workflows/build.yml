@@ -34,10 +34,7 @@ jobs:
       - uses: gradle/gradle-build-action@v2
 
       - name: Build
-        run: |
-          ./gradlew build \
-          -x :internal:baseline-profile:pixel7Api34NonMinifiedReleaseAndroidTest \
-          -x :internal:baseline-profile:collectNonMinifiedReleaseBaselineProfile
+        run: ./gradlew build -Pandroidx.baselineprofile.skipgeneration
 
       - name: Upload reports + Roborazzi outputs
         if: failure()
