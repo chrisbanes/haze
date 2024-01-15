@@ -13,6 +13,7 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.toSize
 
 /**
@@ -31,14 +32,18 @@ fun Modifier.hazeChild(
   state: HazeState,
   shape: Shape = RectangleShape,
   tint: Color = Color.Unspecified,
-): Modifier = this then HazeChildNodeElement(state, shape, tint)
+  blurRadius: Dp = Dp.Unspecified,
+  noiseFactor: Float = Float.MIN_VALUE,
+): Modifier = this then HazeChildNodeElement(state, shape, tint, blurRadius, noiseFactor)
 
 private data class HazeChildNodeElement(
   val state: HazeState,
   val shape: Shape,
   val tint: Color,
+  val blurRadius: Dp,
+  val noiseFactor: Float,
 ) : ModifierNodeElement<HazeChildNode>() {
-  override fun create(): HazeChildNode = HazeChildNode(state, shape, tint)
+  override fun create(): HazeChildNode = HazeChildNode(state, shape, tint, blurRadius, noiseFactor)
 
   override fun update(node: HazeChildNode) {
     node.state = state
@@ -58,12 +63,19 @@ private data class HazeChildNode(
   var state: HazeState,
   var shape: Shape,
   var tint: Color,
+  var blurRadius: Dp,
+  var noiseFactor: Float,
 ) : Modifier.Node(),
   LayoutAwareModifierNode,
   CompositionLocalConsumerModifierNode {
 
   private val area: HazeArea by lazy {
-    HazeArea(shape = shape, tint = tint)
+    HazeArea(
+      shape = shape,
+      tint = tint,
+      blurRadius = blurRadius,
+      noiseFactor = noiseFactor,
+    )
   }
 
   private var attachedState: HazeState? = null
@@ -76,6 +88,8 @@ private data class HazeChildNode(
     // Propagate any shape changes to the HazeArea
     area.shape = shape
     area.tint = tint
+    area.blurRadius = blurRadius
+    area.noiseFactor = noiseFactor
 
     if (state != attachedState) {
       // The provided HazeState has changed, so we need to detach from the old one,

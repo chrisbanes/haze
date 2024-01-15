@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -58,6 +59,8 @@ class HazeArea(
   positionOnScreen: Offset = Offset.Unspecified,
   shape: Shape = RectangleShape,
   tint: Color = Color.Unspecified,
+  blurRadius: Dp = Dp.Unspecified,
+  noiseFactor: Float = Float.MIN_VALUE,
 ) {
   var size: Size by mutableStateOf(size)
     internal set
@@ -69,6 +72,12 @@ class HazeArea(
     internal set
 
   var tint: Color by mutableStateOf(tint)
+    internal set
+
+  var blurRadius: Dp by mutableStateOf(blurRadius)
+    internal set
+
+  var noiseFactor: Float by mutableFloatStateOf(noiseFactor)
     internal set
 
   val isValid: Boolean
@@ -167,7 +176,7 @@ internal data class HazeNodeElement(
   override fun update(node: HazeNode) {
     node.state = state
     node.backgroundColor = backgroundColor
-    node.defaultTint = tint
+    node.tint = tint
     node.blurRadius = blurRadius
     node.noiseFactor = noiseFactor
     node.onUpdate()
@@ -185,7 +194,7 @@ internal data class HazeNodeElement(
 internal abstract class HazeNode(
   var state: HazeState,
   var backgroundColor: Color,
-  var defaultTint: Color,
+  var tint: Color,
   var blurRadius: Dp,
   var noiseFactor: Float,
 ) : Modifier.Node() {

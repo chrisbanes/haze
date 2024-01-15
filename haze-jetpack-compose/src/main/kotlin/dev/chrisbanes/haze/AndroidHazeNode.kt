@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.jetpackcompose.R
 import kotlin.math.roundToInt
@@ -60,7 +61,7 @@ internal class AndroidHazeNode(
 ) : HazeNode(
   state = state,
   backgroundColor = backgroundColor,
-  defaultTint = tint,
+  tint = tint,
   blurRadius = blurRadius,
   noiseFactor = noiseFactor,
 ),
@@ -98,7 +99,7 @@ internal class AndroidHazeNode(
     changed = impl.update(
       state = state,
       blurRadius = blurRadius,
-      defaultTint = defaultTint,
+      tint = tint,
       position = position,
       density = currentValueOf(LocalDensity),
       layoutDirection = currentValueOf(LocalLayoutDirection),
@@ -159,7 +160,7 @@ internal class AndroidHazeNode(
     fun update(
       state: HazeState,
       blurRadius: Dp,
-      defaultTint: Color,
+      tint: Color,
       position: Offset,
       density: Density,
       layoutDirection: LayoutDirection,
@@ -213,7 +214,7 @@ private class ScrimImpl : AndroidHazeNode.Impl {
   override fun update(
     state: HazeState,
     blurRadius: Dp,
-    defaultTint: Color,
+    tint: Color,
     position: Offset,
     density: Density,
     layoutDirection: LayoutDirection,
@@ -233,7 +234,7 @@ private class ScrimImpl : AndroidHazeNode.Impl {
           tint = when {
             area.tint.isSpecified -> area.tint
             // We need to boost the alpha as we don't have a blur effect
-            else -> defaultTint.copy(alpha = (defaultTint.alpha * 1.35f).coerceAtMost(1f))
+            else -> tint.copy(alpha = (tint.alpha * 1.35f).coerceAtMost(1f))
           },
         )
       }.toList()
@@ -297,32 +298,19 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
   override fun update(
     state: HazeState,
     blurRadius: Dp,
-    defaultTint: Color,
+    tint: Color,
     position: Offset,
     density: Density,
     layoutDirection: LayoutDirection,
     noiseFactor: Float,
   ): Boolean {
-    val blurRadiusPx = with(density) { blurRadius.toPx() }
-
-    // This is our RenderEffect. It first applies a blur effect, and then a color filter effect
-    // to allow content to be visible on top
-    val baseEffect = RenderEffect.createBlurEffect(
-      blurRadiusPx,
-      blurRadiusPx,
-      Shader.TileMode.DECAL,
-    ).let {
-      val noiseShader = BitmapShader(createNoiseTextureIfNeeded(noiseFactor), REPEAT, REPEAT)
-      RenderEffect.createBlendModeEffect(
-        RenderEffect.createShaderEffect(noiseShader),
-        it,
-        BlendMode.HARD_LIGHT,
-      )
-    }
-
     // We create a RenderNode for each of the areas we need to apply our effect to
     effects = state.areas.asSequence().mapNotNull { area ->
       val bounds = area.boundsInLocal(position) ?: return@mapNotNull null
+
+      val blurRadiusPx = with(density) {
+        (area.blurRadius.takeIf { it.isSpecified } ?: blurRadius).toPx()
+      }
 
       // We expand the area where our effect is applied to. This is necessary so that the blur
       // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
@@ -331,8 +319,18 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
       val node = RenderNode("blur").apply {
         setRenderEffect(
-          baseEffect
-            .withTint(if (area.tint.isSpecified) area.tint else defaultTint),
+          RenderEffect.createBlurEffect(
+            blurRadiusPx,
+            blurRadiusPx,
+            Shader.TileMode.DECAL,
+          ).let {
+            val noiseShader = BitmapShader(createNoiseTextureIfNeeded(noiseFactor), REPEAT, REPEAT)
+            RenderEffect.createBlendModeEffect(
+              RenderEffect.createShaderEffect(noiseShader),
+              it,
+              BlendMode.HARD_LIGHT,
+            )
+          }.withTint(if (area.tint.isSpecified) area.tint else tint),
         )
         setPosition(0, 0, expandedRect.width.toInt(), expandedRect.height.toInt())
         translationX = expandedRect.left
