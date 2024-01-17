@@ -1,4 +1,4 @@
-Haze is a library providing a 'glassmorpism' style blur for Compose.
+Haze is a library providing a 'glassmorphism' style blur for Compose.
 
 ![type:video](./media/desktop-small.mp4)
 
