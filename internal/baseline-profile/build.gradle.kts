@@ -10,6 +10,7 @@ plugins {
   id("androidx.baselineprofile")
 }
 
+@Suppress("UnstableApiUsage")
 android {
   namespace = "dev.chrisbanes.haze.baselineprofile"
 
@@ -22,6 +23,14 @@ android {
   experimentalProperties["android.experimental.self-instrumenting"] = true
 
   testOptions.managedDevices.devices {
+    create<ManagedVirtualDevice>("pixel5Api30") {
+      device = "Pixel 5"
+      apiLevel = 30
+      systemImageSource = "aosp"
+    }
+  }
+
+  testOptions.managedDevices.devices {
     create<ManagedVirtualDevice>("pixel5Api34") {
       device = "Pixel 5"
       apiLevel = 34
@@ -31,6 +40,7 @@ android {
 }
 
 baselineProfile {
+  managedDevices += "pixel5Api30"
   managedDevices += "pixel5Api34"
   useConnectedDevices = false
 }
