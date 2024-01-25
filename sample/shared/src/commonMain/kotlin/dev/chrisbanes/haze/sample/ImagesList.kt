@@ -42,6 +42,7 @@ fun ImagesList(navigator: Navigator) {
           title = { Text(text = "Images") },
           navigationIcon = {
             IconButton(onClick = navigator::navigateUp) {
+              @Suppress("DEPRECATION")
               Icon(Icons.Default.ArrowBack, null)
             }
           },
