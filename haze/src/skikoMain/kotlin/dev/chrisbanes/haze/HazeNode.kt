@@ -67,14 +67,16 @@ private const val SHADER_SKSL = """
     }
 
     vec4 b = blur.eval(coord);
+    vec4 n = noise.eval(coord);
 
     // Add noise for extra texture
-    float noiseLuminance = dot(noise.eval(coord).rgb, vec3(0.2126, 0.7152, 0.0722));
-    // We apply the noise, with the given noiseFactor
-    float n = min(1.0, noiseLuminance) * noiseFactor;
+    float noiseLuma = dot(n.rgb, vec3(0.2126, 0.7152, 0.0722));
 
-    // Apply the noise, and shift towards `color` by `colorShift`
-    return b + n + ((color - b) * colorShift);
+    // Calculate our overlay (tint + noise)
+    float overlay = min(1.0, colorShift + (noiseLuma * noiseFactor));
+
+    // Apply the overlay (noise + tint)
+    return b + ((color - b) * overlay);
   }
 """
 
