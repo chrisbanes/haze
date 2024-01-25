@@ -29,7 +29,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: 20
+          java-version: 21
 
       - uses: gradle/gradle-build-action@v2
 
@@ -46,7 +46,6 @@ jobs:
       - name: Build samples
         run: |
           ./gradlew :sample:android:assemble \
-            :sample:android-jetpack:assemble \
             :sample:desktop:assemble \
             :sample:shared:assemble \
             -x assembleBenchmarkRelease \
@@ -75,7 +74,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: 20
+          java-version: 21
 
       - uses: gradle/gradle-build-action@v2
 
