@@ -32,7 +32,7 @@ androidx-compose-ui = "androidx.compose.ui:ui:1.6.0-rc01"
 androidx-compose-material3 = "androidx.compose.material3:material3:1.1.2"
 androidx-core = "androidx.core:core-ktx:1.12.0"
 androidx-activity-compose = "androidx.activity:activity-compose:1.8.2"
-androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.5.4"
+androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.6.0"
 androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext-junit" }
 androidx-test-uiautomator = "androidx.test.uiautomator:uiautomator:2.2.0"
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
