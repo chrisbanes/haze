@@ -107,6 +107,7 @@ fun CreditCardSample(navigator: Navigator) {
         .windowInsetsPadding(WindowInsets.statusBars)
         .padding(24.dp),
     ) {
+      @Suppress("DEPRECATION")
       Icon(Icons.Default.ArrowBack, contentDescription = null)
     }
   }

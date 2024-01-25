@@ -67,6 +67,7 @@ fun Samples(appTitle: String) {
               navigationIcon = {
                 if (currentSample != null) {
                   IconButton(onClick = { currentSample = null }) {
+                    @Suppress("DEPRECATION")
                     Icon(
                       imageVector = Icons.Default.ArrowBack,
                       contentDescription = "Navigate back",

@@ -58,6 +58,7 @@ fun ScaffoldSample(navigator: Navigator) {
           title = { Text(text = "Haze Scaffold sample") },
           navigationIcon = {
             IconButton(onClick = navigator::navigateUp) {
+              @Suppress("DEPRECATION")
               Icon(Icons.Default.ArrowBack, null)
             }
           },

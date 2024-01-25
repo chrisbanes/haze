@@ -6,9 +6,9 @@ Haze is built with [Compose Multiplatform](https://www.jetbrains.com/lp/compose-
 
 | Platform      | Supported        |
 |---------------|------------------|
-| Android       | ✅ (see [Android](android.md))   |
-| Desktop (JVM) | ✅                |
-| iOS           | ✅                |
+| Android       | ✅               |
+| Desktop (JVM) | ✅               |
+| iOS           | ✅               |
 
 You can also see it in action in the [Tivi app](https://github.com/chrisbanes/tivi):
 
@@ -25,13 +25,16 @@ repositories {
 }
 
 dependencies {
-    // For Compose Multiplatform
+    // For Compose Multiplatform AND Jetpack Compose
     implementation("dev.chrisbanes.haze:haze:<version>")
-
-    // Or if you're using Jetpack Compose 1.6.0 alphas
-    implementation("dev.chrisbanes.haze:haze-jetpack-compose:<version>")
 }
 ```
+
+???+ info "Deprecated haze-jetpack-compose"
+
+    In older versions of the library we had seperate libraries for Compose Multiplatform and Jetpack Compose users.
+    That is no longer the case. If you are currently using the `haze-jetpack-compose` library, please migrate to the `haze`
+    dependency listed above.
 
 Snapshots of the development version are available in Sonatype's [snapshots repository][snap]. These are updated on every commit.
 

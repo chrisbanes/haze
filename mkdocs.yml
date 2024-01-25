@@ -15,7 +15,6 @@ repo_url: 'https://github.com/chrisbanes/haze'
 nav:
   - 'Overview': index.md
   - 'Usage': usage.md
-  - 'Android': android.md
   - 'FAQs': faq.md
   - 'API reference': api/
   - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample

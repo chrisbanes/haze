@@ -37,8 +37,7 @@ kotlin {
         implementation(libs.androidx.test.ext.junit)
         implementation(libs.androidx.compose.ui.test.manifest)
 
-        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-        implementation(compose.uiTestJUnit4)
+        implementation(compose.desktop.uiTestJUnit4)
 
         implementation(libs.robolectric)
 
@@ -52,6 +51,7 @@ kotlin {
 
       dependencies {
         implementation(compose.desktop.currentOs)
+        implementation(compose.desktop.uiTestJUnit4)
         implementation(libs.roborazzi.composedesktop)
       }
     }

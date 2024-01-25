@@ -11,8 +11,8 @@ HSPLdev/chrisbanes/haze/AndroidHazeNode;->onMeasureResultChanged()V
 HPLdev/chrisbanes/haze/AndroidHazeNode;->onObservedReadsChanged()V
 HPLdev/chrisbanes/haze/AndroidHazeNode;->onPlaced(Landroidx/compose/ui/layout/LayoutCoordinates;)V
 HPLdev/chrisbanes/haze/AndroidHazeNode;->onRemeasured-ozmzZPI(J)V
-HSPLdev/chrisbanes/haze/AndroidHazeNode;->setCanvasHardwareAccelerated(Z)V
-HPLdev/chrisbanes/haze/AndroidHazeNode;->setPosition-k-4lQ0M(J)V
+HPLdev/chrisbanes/haze/AndroidHazeNode;->setCanvasHardwareAccelerated(Z)V
+HSPLdev/chrisbanes/haze/AndroidHazeNode;->setPosition-k-4lQ0M(J)V
 HPLdev/chrisbanes/haze/AndroidHazeNode;->setSize-uvyYCjk(J)V
 HPLdev/chrisbanes/haze/AndroidHazeNode;->updateImpl()V
 HPLdev/chrisbanes/haze/AndroidHazeNode;->updateImplIfRequired(Z)Z
@@ -32,12 +32,12 @@ HPLdev/chrisbanes/haze/HazeArea;-><init>(JJLandroidx/compose/ui/graphics/Shape;J
 HSPLdev/chrisbanes/haze/HazeArea;-><init>(JJLandroidx/compose/ui/graphics/Shape;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
 HSPLdev/chrisbanes/haze/HazeArea;-><init>(JJLandroidx/compose/ui/graphics/Shape;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
 HPLdev/chrisbanes/haze/HazeArea;->getPositionOnScreen-F1C5BW0()J
-HSPLdev/chrisbanes/haze/HazeArea;->getShape()Landroidx/compose/ui/graphics/Shape;
+HPLdev/chrisbanes/haze/HazeArea;->getShape()Landroidx/compose/ui/graphics/Shape;
 HPLdev/chrisbanes/haze/HazeArea;->getSize-NH-jbRc()J
 HPLdev/chrisbanes/haze/HazeArea;->getTint-0d7_KjU()J
 HPLdev/chrisbanes/haze/HazeArea;->isValid()Z
-HSPLdev/chrisbanes/haze/HazeArea;->setPositionOnScreen-k-4lQ0M$haze_jetpack_compose_release(J)V
-HSPLdev/chrisbanes/haze/HazeArea;->setSize-uvyYCjk$haze_jetpack_compose_release(J)V
+HSPLdev/chrisbanes/haze/HazeArea;->setPositionOnScreen-k-4lQ0M$haze_release(J)V
+HSPLdev/chrisbanes/haze/HazeArea;->setSize-uvyYCjk$haze_release(J)V
 Ldev/chrisbanes/haze/HazeChildKt;
 HPLdev/chrisbanes/haze/HazeChildKt;->hazeChild-g2O1Hgs$default(Landroidx/compose/ui/Modifier;Ldev/chrisbanes/haze/HazeState;Landroidx/compose/ui/graphics/Shape;JILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 HPLdev/chrisbanes/haze/HazeChildKt;->hazeChild-g2O1Hgs(Landroidx/compose/ui/Modifier;Ldev/chrisbanes/haze/HazeState;Landroidx/compose/ui/graphics/Shape;J)Landroidx/compose/ui/Modifier;
@@ -99,6 +99,7 @@ Ldev/chrisbanes/haze/PlatformKt;
 HSPLdev/chrisbanes/haze/PlatformKt;-><clinit>()V
 HPLdev/chrisbanes/haze/PlatformKt;->calculateWindowOffset(Landroidx/compose/ui/node/CompositionLocalConsumerModifierNode;)J
 HSPLdev/chrisbanes/haze/PlatformKt;->createHazeNode-t_5eBTw(Ldev/chrisbanes/haze/HazeState;JJFF)Ldev/chrisbanes/haze/HazeNode;
+Ldev/chrisbanes/haze/R$drawable;
 Ldev/chrisbanes/haze/RenderNodeImpl;
 HSPLdev/chrisbanes/haze/RenderNodeImpl;-><init>(Landroid/content/Context;)V
 HSPLdev/chrisbanes/haze/RenderNodeImpl;->createNoiseTextureIfNeeded(F)Landroid/graphics/Bitmap;
