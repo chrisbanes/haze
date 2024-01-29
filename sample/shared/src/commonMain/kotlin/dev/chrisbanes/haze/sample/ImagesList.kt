@@ -84,7 +84,7 @@ fun ImagesList(navigator: Navigator) {
                 .align(Alignment.Center)
                 .hazeChild(
                   state = hazeState,
-                  style = HazeStyle(shape = RoundedCornerShape(4.dp)),
+                  shape = RoundedCornerShape(4.dp),
                 ),
             ) {
               Text(

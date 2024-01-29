@@ -66,7 +66,7 @@ fun DialogSample(navigator: Navigator) {
             .fillMaxHeight(fraction = .5f)
             .hazeChild(
               state = hazeState,
-              style = HazeStyle(shape = MaterialTheme.shapes.extraLarge),
+              shape = MaterialTheme.shapes.extraLarge,
             ),
           shape = MaterialTheme.shapes.extraLarge,
           // We can't use Haze tint with dialogs, as the tint will display a scrim over the

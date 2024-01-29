@@ -96,7 +96,7 @@ fun CreditCardSample(navigator: Navigator) {
         )
         .hazeChild(
           state = hazeState,
-          style = HazeStyle(shape = RoundedCornerShape(16.dp)),
+          shape = RoundedCornerShape(16.dp),
         ),
     ) {
       Column(Modifier.padding(32.dp)) {
