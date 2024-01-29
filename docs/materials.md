@@ -1,4 +1,4 @@
-We provide of the shelf implementations of [HazeStyle](../api/haze/dev.chrisbanes.haze/-haze-style/)s which implement 'materials' of varying opacity.
+We provide off of the shelf implementations of [HazeStyle](../api/haze/dev.chrisbanes.haze/-haze-style/)s which implement 'materials' of varying opacity.
 
 ![](./media/materials.png)
 
@@ -7,7 +7,7 @@ We provide of the shelf implementations of [HazeStyle](../api/haze/dev.chrisbane
 
 ## Usage
 
-Everything is provided through functions on the [HazeMaterials](../api/haze-materials/dev.chrisbanes.haze.materials/-haze-materials/) class, with each function providing a different material. 
+Everything is provided through functions on the [HazeMaterials](../api/haze-materials/dev.chrisbanes.haze.materials/-haze-materials/) class, with each function providing a different material.
 
 ``` kotlin hl_lines="8"
 Box {
