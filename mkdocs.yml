@@ -15,6 +15,7 @@ repo_url: 'https://github.com/chrisbanes/haze'
 nav:
   - 'Overview': index.md
   - 'Usage': usage.md
+  - 'Materials': materials.md
   - 'FAQs': faq.md
   - 'API reference': api/
   - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
@@ -30,7 +31,7 @@ theme:
     accent: 'teal'
   font:
     text: 'DM Sans'
-    code: 'Space Mono'
+    code: 'DM Mono'
   features:
     - content.tabs.link
     - content.code.copy

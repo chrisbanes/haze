@@ -43,6 +43,7 @@ rootProject.name = "haze-root"
 
 include(
   ":haze",
+  ":haze-materials",
   ":haze-jetpack-compose",
   ":internal:baseline-profile",
   ":internal:screenshot-test",
