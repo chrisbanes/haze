@@ -37,8 +37,10 @@ internal fun CreditCardSample(
         .haze(
           state = hazeState,
           backgroundColor = Color.Blue,
-          tint = defaultTint,
-          blurRadius = 8.dp,
+          style = HazeStyle(
+            tint = defaultTint,
+            blurRadius = 8.dp,
+          ),
         ),
     ) {
       Spacer(
@@ -62,8 +64,7 @@ internal fun CreditCardSample(
         .align(Alignment.Center)
         .hazeChild(
           state = hazeState,
-          tint = childTint,
-          shape = RoundedCornerShape(16.dp),
+          style = HazeStyle(tint = childTint, shape = RoundedCornerShape(16.dp)),
         ),
     ) {
       Column(Modifier.padding(32.dp)) {

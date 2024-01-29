@@ -9,7 +9,6 @@ import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
@@ -22,7 +21,6 @@ import androidx.compose.ui.node.invalidatePlacement
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
 import org.jetbrains.skia.FilterTileMode
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
@@ -94,10 +92,8 @@ private val NOISE_SHADER by lazy {
 internal actual fun createHazeNode(
   state: HazeState,
   backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-  noiseFactor: Float,
-): HazeNode = SkiaHazeNode(state, backgroundColor, tint, blurRadius, noiseFactor)
+  style: HazeStyle,
+): HazeNode = SkiaHazeNode(state, backgroundColor, style)
 
 internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset {
   // The Skiko-backed platforms don't use native windows for dialogs, etc
@@ -107,10 +103,8 @@ internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset()
 private class SkiaHazeNode(
   state: HazeState,
   backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-  noiseFactor: Float,
-) : HazeNode(state, backgroundColor, tint, blurRadius, noiseFactor),
+  style: HazeStyle,
+) : HazeNode(state, backgroundColor, style),
   LayoutModifierNode,
   CompositionLocalConsumerModifierNode,
   ObserverModifierNode {
@@ -158,11 +152,11 @@ private class SkiaHazeNode(
     }
 
     val density = currentValueOf(LocalDensity)
-    val blurRadiusPx = with(density) { blurRadius.toPx() }
-    val blurFilter = createBlurImageFilter(blurRadiusPx)
 
     val filters = state.areas.asSequence().mapNotNull { area ->
       val areaLocalBounds = area.boundsInLocal(position) ?: return@mapNotNull null
+
+      val resolvedStyle = resolveStyle(style, area.style)
 
       val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
         uniform(
@@ -173,7 +167,7 @@ private class SkiaHazeNode(
           areaLocalBounds.bottom,
         )
 
-        when (val shape = area.shape) {
+        when (val shape = resolvedStyle.shape) {
           is CornerBasedShape -> {
             uniform(
               "radius",
@@ -189,14 +183,18 @@ private class SkiaHazeNode(
           }
         }
 
-        val tint = if (area.tint.isSpecified) area.tint else defaultTint
+        val tint = resolvedStyle.tint
         uniform("color", tint.red, tint.green, tint.blue, 1f)
         uniform("colorShift", tint.alpha)
 
-        uniform("noiseFactor", noiseFactor)
+        uniform("noiseFactor", resolvedStyle.noiseFactor)
 
         child("noise", NOISE_SHADER)
       }
+
+      val blurFilter = createBlurImageFilter(
+        with(density) { resolvedStyle.blurRadius.toPx() },
+      )
 
       ImageFilter.makeRuntimeShader(
         runtimeShaderBuilder = compositeShaderBuilder,

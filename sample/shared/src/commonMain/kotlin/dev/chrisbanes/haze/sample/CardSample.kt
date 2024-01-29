@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 
@@ -53,8 +54,7 @@ fun CreditCardSample(navigator: Navigator) {
         .haze(
           state = hazeState,
           backgroundColor = Color.Blue,
-          tint = Color.White.copy(alpha = 0.1f),
-          blurRadius = 8.dp,
+          style = HazeStyle(tint = Color.White.copy(alpha = 0.1f), blurRadius = 8.dp),
         ),
     ) {
       Spacer(
@@ -94,7 +94,10 @@ fun CreditCardSample(navigator: Navigator) {
             }
           },
         )
-        .hazeChild(state = hazeState, shape = RoundedCornerShape(16.dp)),
+        .hazeChild(
+          state = hazeState,
+          style = HazeStyle(shape = RoundedCornerShape(16.dp)),
+        ),
     ) {
       Column(Modifier.padding(32.dp)) {
         Text("Bank of Haze")
@@ -114,7 +117,7 @@ fun CreditCardSample(navigator: Navigator) {
 }
 
 val LorumIspum by lazy {
-"""
+  """
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras sit amet congue mauris, iaculis accumsan eros. Aliquam pulvinar est ac elit vulputate egestas. Vestibulum consequat libero at sem varius, vitae semper urna rhoncus. Aliquam mollis, ipsum a convallis scelerisque, sem dui consequat leo, in tempor risus est ac mi. Nam vel tellus dolor. Nunc lobortis bibendum fermentum. Mauris sed mollis justo, eu tristique elit. Cras semper augue a tortor tempor, vitae vestibulum eros convallis. Curabitur id justo eget tortor iaculis lobortis. Integer pharetra augue ac elit porta iaculis non vitae libero. Nam eros turpis, suscipit at iaculis vitae, malesuada vel arcu. Donec tincidunt porttitor iaculis. Pellentesque non augue magna. Mauris mattis purus vitae mi maximus, id molestie ipsum facilisis. Donec bibendum gravida dolor nec suscipit. Pellentesque tempus felis iaculis, porta diam sed, tristique tortor.
 
 Sed vel tellus vel augue pulvinar semper sit amet eu est. In porta arcu eu sapien luctus scelerisque. In hac habitasse platea dictumst. Aenean varius lobortis malesuada. Sed vitae ornare arcu. Nunc maximus lectus purus, vel aliquet velit facilisis a. Nulla maximus bibendum magna id vulputate. Mauris volutpat lorem et risus porta dignissim. In at elit a est vulputate tincidunt.

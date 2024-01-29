@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.seiko.imageloader.rememberImagePainter
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 
@@ -72,7 +73,7 @@ fun ImagesList(navigator: Navigator) {
                 .haze(
                   state = hazeState,
                   backgroundColor = Color(0xFF646464),
-                  tint = Color(0x4D646464),
+                  style = HazeStyle(tint = Color(0x4D646464)),
                 )
                 .fillMaxSize(),
             )
@@ -81,7 +82,10 @@ fun ImagesList(navigator: Navigator) {
               modifier = Modifier
                 .fillMaxSize(0.8f)
                 .align(Alignment.Center)
-                .hazeChild(state = hazeState, shape = RoundedCornerShape(4.dp)),
+                .hazeChild(
+                  state = hazeState,
+                  style = HazeStyle(shape = RoundedCornerShape(4.dp)),
+                ),
             ) {
               Text(
                 "Image $index",

@@ -31,6 +31,7 @@ androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4
 androidx-compose-ui = "androidx.compose.ui:ui:1.6.0"
 androidx-compose-material3 = "androidx.compose.material3:material3:1.1.2"
 androidx-core = "androidx.core:core-ktx:1.12.0"
+androidx-collection = "androidx.collection:collection:1.4.0"
 androidx-activity-compose = "androidx.activity:activity-compose:1.8.2"
 androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.6.0"
 androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext-junit" }

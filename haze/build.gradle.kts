@@ -25,29 +25,35 @@ android {
 
 kotlin {
   sourceSets {
-    val commonMain by getting {
+    commonMain {
       dependencies {
         api(compose.ui)
       }
     }
 
+    androidMain {
+      dependencies {
+        implementation(libs.androidx.collection)
+      }
+    }
+
     val skikoMain by creating {
-      dependsOn(commonMain)
+      dependsOn(commonMain.get())
 
       dependencies {
         implementation(compose.foundation)
       }
     }
 
-    val iosMain by getting {
+    iosMain {
       dependsOn(skikoMain)
     }
 
-    val jvmMain by getting {
+    jvmMain {
       dependsOn(skikoMain)
     }
 
-    val commonTest by getting {
+    commonTest {
       dependencies {
         implementation(kotlin("test"))
         implementation(projects.internal.screenshotTest)

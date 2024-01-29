@@ -8,16 +8,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.Dp
 import kotlin.concurrent.getOrSet
 
 internal actual fun createHazeNode(
   state: HazeState,
   backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-  noiseFactor: Float,
-): HazeNode = AndroidHazeNode(state, backgroundColor, tint, blurRadius, noiseFactor)
+  style: HazeStyle,
+): HazeNode = AndroidHazeNode(state, backgroundColor, style)
 
 internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset {
   val view = currentValueOf(LocalView)

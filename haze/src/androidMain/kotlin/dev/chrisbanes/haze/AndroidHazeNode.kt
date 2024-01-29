@@ -15,6 +15,7 @@ import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.collection.lruCache
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,10 +25,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.draw
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -53,15 +54,11 @@ import kotlin.math.roundToInt
 internal class AndroidHazeNode(
   state: HazeState,
   backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-  noiseFactor: Float,
+  style: HazeStyle,
 ) : HazeNode(
   state = state,
   backgroundColor = backgroundColor,
-  defaultTint = tint,
-  blurRadius = blurRadius,
-  noiseFactor = noiseFactor,
+  style = style,
 ),
   DrawModifierNode,
   CompositionLocalConsumerModifierNode,
@@ -96,12 +93,10 @@ internal class AndroidHazeNode(
 
     changed = impl.update(
       state = state,
-      blurRadius = blurRadius,
-      defaultTint = defaultTint,
+      defaultStyle = style,
       position = position,
       density = currentValueOf(LocalDensity),
       layoutDirection = currentValueOf(LocalLayoutDirection),
-      noiseFactor = noiseFactor,
     ) || changed
 
     if (changed) {
@@ -157,12 +152,10 @@ internal class AndroidHazeNode(
     fun ContentDrawScope.draw(backgroundColor: Color)
     fun update(
       state: HazeState,
-      blurRadius: Dp,
-      defaultTint: Color,
+      defaultStyle: HazeStyle,
       position: Offset,
       density: Density,
       layoutDirection: LayoutDirection,
-      noiseFactor: Float,
     ): Boolean
   }
 }
@@ -211,33 +204,39 @@ private class ScrimImpl : AndroidHazeNode.Impl {
 
   override fun update(
     state: HazeState,
-    blurRadius: Dp,
-    defaultTint: Color,
+    defaultStyle: HazeStyle,
     position: Offset,
     density: Density,
     layoutDirection: LayoutDirection,
-    noiseFactor: Float,
   ): Boolean {
     effects = state.areas.asSequence()
       .filter { it.isValid }
       .mapNotNull { area ->
         val bounds = area.boundsInLocal(position) ?: return@mapNotNull null
 
-        // TODO: Should try and re-use this
-        val path = Path()
-        area.updatePath(path, bounds, layoutDirection, density)
+        val resolvedStyle = resolveStyle(defaultStyle, area.style)
+
+        // TODO: Should try and re-use this Path instance
+        val path = Path().apply {
+          updateFromHaze(bounds, resolvedStyle, layoutDirection, density)
+        }
 
         Effect(
           path = path,
-          tint = when {
-            area.tint.isSpecified -> area.tint
-            // We need to boost the alpha as we don't have a blur effect
-            else -> defaultTint.copy(alpha = (defaultTint.alpha * 1.35f).coerceAtMost(1f))
-          },
+          tint = resolvedStyle.tint.boostAlphaForBlurRadius(resolvedStyle.blurRadius),
         )
       }.toList()
 
     return true
+  }
+
+  /**
+   * In this implementation, the only tool we have is translucency.
+   */
+  private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
+    // We treat a blur radius of 72.dp as near 'opaque', and linearly boost using that
+    val factor = 1 + (blurRadius.value / 72f)
+    return copy(alpha = (alpha * factor).coerceAtMost(1f))
   }
 
   private data class Effect(
@@ -250,10 +249,9 @@ private class ScrimImpl : AndroidHazeNode.Impl {
 private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Impl {
   private var effects: List<Effect> = emptyList()
 
-  private var noiseTexture: Bitmap? = null
-  private var noiseTextureFactor: Float = Float.MIN_VALUE
-
   val contentNode = RenderNode("content")
+
+  val noiseTextureCache = lruCache<Float, Bitmap>(3)
 
   override fun ContentDrawScope.draw(backgroundColor: Color) {
     // First we draw the composable content into `contentNode`
@@ -295,33 +293,18 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
   override fun update(
     state: HazeState,
-    blurRadius: Dp,
-    defaultTint: Color,
+    defaultStyle: HazeStyle,
     position: Offset,
     density: Density,
     layoutDirection: LayoutDirection,
-    noiseFactor: Float,
   ): Boolean {
-    val blurRadiusPx = with(density) { blurRadius.toPx() }
-
-    // This is our RenderEffect. It first applies a blur effect, and then a color filter effect
-    // to allow content to be visible on top
-    val baseEffect = RenderEffect.createBlurEffect(
-      blurRadiusPx,
-      blurRadiusPx,
-      Shader.TileMode.DECAL,
-    ).let {
-      val noiseShader = BitmapShader(createNoiseTextureIfNeeded(noiseFactor), REPEAT, REPEAT)
-      RenderEffect.createBlendModeEffect(
-        RenderEffect.createShaderEffect(noiseShader),
-        it,
-        BlendMode.HARD_LIGHT,
-      )
-    }
-
     // We create a RenderNode for each of the areas we need to apply our effect to
     effects = state.areas.asSequence().mapNotNull { area ->
       val bounds = area.boundsInLocal(position) ?: return@mapNotNull null
+
+      val resolvedStyle = resolveStyle(defaultStyle, area.style)
+
+      val blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() }
 
       // We expand the area where our effect is applied to. This is necessary so that the blur
       // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
@@ -330,17 +313,28 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
       val node = RenderNode("blur").apply {
         setRenderEffect(
-          baseEffect
-            .withTint(if (area.tint.isSpecified) area.tint else defaultTint),
+          RenderEffect.createBlurEffect(
+            blurRadiusPx,
+            blurRadiusPx,
+            Shader.TileMode.DECAL,
+          ).let {
+            val noiseShader = BitmapShader(createNoiseTextureIfNeeded(defaultStyle.noiseFactor), REPEAT, REPEAT)
+            RenderEffect.createBlendModeEffect(
+              RenderEffect.createShaderEffect(noiseShader),
+              it,
+              BlendMode.HARD_LIGHT,
+            )
+          }.withTint(resolvedStyle.tint),
         )
         setPosition(0, 0, expandedRect.width.toInt(), expandedRect.height.toInt())
         translationX = expandedRect.left
         translationY = expandedRect.top
       }
 
-      // TODO: Should try and re-use this
-      val path = Path()
-      area.updatePath(path, bounds, layoutDirection, density)
+      // TODO: Should try and re-use this Path
+      val path = Path().apply {
+        updateFromHaze(bounds, resolvedStyle, layoutDirection, density)
+      }
 
       Effect(
         path = path,
@@ -353,20 +347,31 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
   }
 
   private fun createNoiseTextureIfNeeded(noiseFactor: Float): Bitmap {
-    val current = noiseTexture
-    // If the noise factor hasn't changed and we have a texture, nothing to do...
-    if (noiseTextureFactor == noiseFactor && current != null) {
-      return current
-    }
+    val cached = noiseTextureCache[noiseFactor]
+    if (cached != null) return cached
 
     // We draw the noise with the given opacity
     return BitmapFactory.decodeResource(context.resources, R.drawable.haze_noise)
       .withAlpha(noiseFactor)
+      .also { noiseTextureCache.put(noiseFactor, it) }
   }
 
   private data class Effect(
     val path: Path,
     val renderNode: RenderNode,
     val renderNodeDrawArea: Rect,
+  )
+}
+
+private fun Path.updateFromHaze(
+  bounds: Rect,
+  style: HazeStyle,
+  layoutDirection: LayoutDirection,
+  density: Density,
+) {
+  reset()
+  addOutline(
+    outline = (style.shape ?: RectangleShape).createOutline(bounds.size, layoutDirection, density),
+    offset = bounds.topLeft,
   )
 }

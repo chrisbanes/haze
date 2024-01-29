@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -19,14 +20,13 @@ import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 
 @Stable
 class HazeState {
@@ -56,8 +56,7 @@ internal fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) 
 class HazeArea(
   size: Size = Size.Unspecified,
   positionOnScreen: Offset = Offset.Unspecified,
-  shape: Shape = RectangleShape,
-  tint: Color = Color.Unspecified,
+  style: HazeStyle = HazeStyle.Unspecified,
 ) {
   var size: Size by mutableStateOf(size)
     internal set
@@ -65,10 +64,7 @@ class HazeArea(
   var positionOnScreen: Offset by mutableStateOf(positionOnScreen)
     internal set
 
-  var shape: Shape by mutableStateOf(shape)
-    internal set
-
-  var tint: Color by mutableStateOf(tint)
+  var style: HazeStyle by mutableStateOf(style)
     internal set
 
   val isValid: Boolean
@@ -82,45 +78,38 @@ internal fun HazeArea.boundsInLocal(position: Offset): Rect? {
   return size.toRect().translate(positionOnScreen - position)
 }
 
-internal fun HazeArea.updatePath(
-  path: Path,
-  area: Rect,
-  layoutDirection: LayoutDirection,
-  density: Density,
-) {
-  path.reset()
-  path.addOutline(
-    outline = shape.createOutline(size, layoutDirection, density),
-    offset = area.topLeft,
-  )
-}
-
-/**
- * Draw content within the provided [HazeState.areas] blurred in a 'glassmorphism' style.
- *
- * When running on Android 12 devicees (and newer), usage of this API renders the corresponding composable
- * into a separate graphics layer. On older Android platforms, a translucent scrim will be drawn
- * instead.
- *
- * @param backgroundColor Background color of the content. Typically you would provide
- * `MaterialTheme.colorScheme.surface` or similar.
- * @param tint Default color to tint the blurred content. Should be translucent, otherwise you will not see
- * the blurred content. Can be overridden by the `tint` parameter on [hazeChild].
- * @param blurRadius Radius of the blur.
- * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
- */
+@Deprecated(
+  "Deprecated. Replaced with new HazeStyle object",
+  ReplaceWith("haze(state, backgroundColor, HazeStyle(tint, blurRadius, noiseFactor))"),
+)
 fun Modifier.haze(
   state: HazeState,
   backgroundColor: Color,
   tint: Color = HazeDefaults.tint(backgroundColor),
   blurRadius: Dp = HazeDefaults.blurRadius,
   noiseFactor: Float = HazeDefaults.noiseFactor,
+): Modifier = haze(state, backgroundColor, HazeStyle(tint, blurRadius, noiseFactor))
+
+/**
+ * Draw content within the provided [HazeState.areas] blurred in a 'glassmorphism' style.
+ *
+ * When running on Android 12 devices (and newer), usage of this API renders the corresponding composable
+ * into a separate graphics layer. On older Android platforms, a translucent scrim will be drawn
+ * instead.
+ *
+ * @param backgroundColor Background color of the content. Typically you would provide
+ * `MaterialTheme.colorScheme.surface` or similar.
+ * @param style Default style to use for areas calculated from [hazeChild]s. Can be overridden
+ * by each [hazeChild] via its `style` parameter.
+ */
+fun Modifier.haze(
+  state: HazeState,
+  backgroundColor: Color,
+  style: HazeStyle = HazeDefaults.defaultStyle(backgroundColor),
 ): Modifier = this then HazeNodeElement(
   state = state,
-  tint = tint,
   backgroundColor = backgroundColor,
-  blurRadius = blurRadius,
-  noiseFactor = noiseFactor,
+  style = style,
 )
 
 /**
@@ -147,47 +136,82 @@ object HazeDefaults {
    * Default builder for the 'tint' color. Transforms the provided [color].
    */
   fun tint(color: Color): Color = color.copy(alpha = tintAlpha)
+
+  /**
+   * Default [HazeStyle] for the given background color.
+   */
+  fun defaultStyle(backgroundColor: Color): HazeStyle = HazeStyle(
+    tint = tint(backgroundColor),
+    blurRadius = blurRadius,
+    noiseFactor = noiseFactor,
+  )
 }
 
 internal data class HazeNodeElement(
   val state: HazeState,
   val backgroundColor: Color,
-  val tint: Color,
-  val blurRadius: Dp,
-  val noiseFactor: Float,
+  val style: HazeStyle,
 ) : ModifierNodeElement<HazeNode>() {
   override fun create(): HazeNode = createHazeNode(
     state = state,
     backgroundColor = backgroundColor,
-    tint = tint,
-    blurRadius = blurRadius,
-    noiseFactor = noiseFactor,
+    style = style,
   )
 
   override fun update(node: HazeNode) {
     node.state = state
     node.backgroundColor = backgroundColor
-    node.defaultTint = tint
-    node.blurRadius = blurRadius
-    node.noiseFactor = noiseFactor
+    node.style = style
     node.onUpdate()
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "haze"
     properties["backgroundColor"] = backgroundColor
-    properties["tint"] = tint
-    properties["blurRadius"] = blurRadius
-    properties["noiseFactor"] = noiseFactor
+    properties["style"] = style
   }
 }
 
 internal abstract class HazeNode(
   var state: HazeState,
   var backgroundColor: Color,
-  var defaultTint: Color,
-  var blurRadius: Dp,
-  var noiseFactor: Float,
+  var style: HazeStyle,
 ) : Modifier.Node() {
   open fun onUpdate() {}
+}
+
+/**
+ * A holder for the style properties used by Haze.
+ *
+ * Can be set via [Modifier.haze] and [Modifier.hazeChild].
+ *
+ * @property tint Default color to tint the blurred content. Should be translucent, otherwise you will not see
+ * the blurred content.
+ * @property blurRadius Radius of the blur.
+ * @property noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
+ */
+@Immutable
+data class HazeStyle(
+  val tint: Color = Color.Unspecified,
+  val blurRadius: Dp = Dp.Unspecified,
+  val noiseFactor: Float = Float.MIN_VALUE,
+  val shape: Shape? = null,
+) {
+  companion object {
+    val Unspecified: HazeStyle = HazeStyle()
+  }
+}
+
+internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle {
+  if (child == HazeStyle.Unspecified) {
+    // Fast path, if the child is unspecified, we only care about default
+    return default
+  }
+
+  return HazeStyle(
+    tint = if (child.tint.isSpecified) child.tint else default.tint,
+    blurRadius = if (child.blurRadius.isSpecified) child.blurRadius else default.blurRadius,
+    noiseFactor = if (child.noiseFactor >= 0f) child.noiseFactor else default.noiseFactor,
+    shape = child.shape ?: default.shape,
+  )
 }
