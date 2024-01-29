@@ -21,12 +21,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.takeOrElse
 
 @Stable
 class HazeState {
@@ -202,16 +202,15 @@ data class HazeStyle(
   }
 }
 
-internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle {
-  if (child == HazeStyle.Unspecified) {
-    // Fast path, if the child is unspecified, we only care about default
-    return default
-  }
+/**
+ * Resolves the style which should be used by renderers. The style returned from here
+ * is guaranteed to contains specified values.
+ */
+internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle = HazeStyle(
+  tint = child.tint.takeOrElse { default.tint }.takeOrElse { Color.Transparent },
+  blurRadius = child.blurRadius.takeOrElse { default.blurRadius }.takeOrElse { 0.dp },
+  noiseFactor = child.noiseFactor.takeOrElse { default.noiseFactor }.takeOrElse { 0f },
+  shape = child.shape ?: default.shape,
+)
 
-  return HazeStyle(
-    tint = if (child.tint.isSpecified) child.tint else default.tint,
-    blurRadius = if (child.blurRadius.isSpecified) child.blurRadius else default.blurRadius,
-    noiseFactor = if (child.noiseFactor >= 0f) child.noiseFactor else default.noiseFactor,
-    shape = child.shape ?: default.shape,
-  )
-}
+private inline fun Float.takeOrElse(block: () -> Float): Float = if (this in 0f..1f) this else block()
