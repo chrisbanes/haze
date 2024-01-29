@@ -22,17 +22,20 @@ import androidx.compose.ui.unit.toSize
  * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
  * [Modifier.haze] to blur any content behind the host composable.
  *
+ * @param shape The shape of the content. This will affect the the bounds and outline of
+ * the content.
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
  * style will override that value from the default style, given to [haze].
  */
 fun Modifier.hazeChild(
   state: HazeState,
+  shape: Shape = RectangleShape,
   style: HazeStyle = HazeStyle.Unspecified,
-): Modifier = this then HazeChildNodeElement(state, style)
+): Modifier = this then HazeChildNodeElement(state, shape, style)
 
 @Deprecated(
   "Deprecated. Replaced with new HazeStyle object",
-  ReplaceWith("hazeChild(state, HazeStyle(tint, blurRadius, noiseFactor, shape))"),
+  ReplaceWith("hazeChild(state, shape, HazeStyle(tint, blurRadius, noiseFactor))"),
 )
 fun Modifier.hazeChild(
   state: HazeState,
@@ -40,35 +43,39 @@ fun Modifier.hazeChild(
   tint: Color = Color.Unspecified,
   blurRadius: Dp = Dp.Unspecified,
   noiseFactor: Float = Float.MIN_VALUE,
-): Modifier = hazeChild(state, HazeStyle(tint, blurRadius, noiseFactor, shape))
+): Modifier = hazeChild(state, shape, HazeStyle(tint, blurRadius, noiseFactor))
 
 private data class HazeChildNodeElement(
   val state: HazeState,
+  val shape: Shape,
   val style: HazeStyle,
 ) : ModifierNodeElement<HazeChildNode>() {
-  override fun create(): HazeChildNode = HazeChildNode(state, style)
+  override fun create(): HazeChildNode = HazeChildNode(state, shape, style)
 
   override fun update(node: HazeChildNode) {
     node.state = state
+    node.shape = shape
     node.style = style
     node.onUpdate()
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeChild"
+    properties["shape"] = shape
     properties["style"] = style
   }
 }
 
 private data class HazeChildNode(
   var state: HazeState,
+  var shape: Shape,
   var style: HazeStyle,
 ) : Modifier.Node(),
   LayoutAwareModifierNode,
   CompositionLocalConsumerModifierNode {
 
   private val area: HazeArea by lazy {
-    HazeArea(style = style)
+    HazeArea(shape = shape, style = style)
   }
 
   private var attachedState: HazeState? = null
@@ -79,6 +86,7 @@ private data class HazeChildNode(
 
   fun onUpdate() {
     // Propagate any shape changes to the HazeArea
+    area.shape = shape
     area.style = style
 
     if (state != attachedState) {

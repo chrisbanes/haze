@@ -3,7 +3,7 @@ Haze is implemented through two Compose Modifiers: [Modifier.haze](../api/haze/d
 The most basic usage would be something like:
 
 ``` kotlin hl_lines="1 7-12 21-23"
-val hazeState = remember { HazeState() } 
+val hazeState = remember { HazeState() }
 
 Box {
   LazyColumn(
@@ -47,12 +47,14 @@ A tint effect is applied, primarily to maintain contrast and legibility. By defa
 
 Some visual noise is applied, to provide some tactility. This is completely optional, and defaults to a value of `0.1f` (10% strength). You can disable this by providing `0f`.
 
-### Shapes
+## Shapes
 
-Haze has some support for blurring of `Shape`s. Each platform has varying support:
+Haze has some support for blurring of a provided `Shape`, passed into [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
+
+The platforms have varying support:
 
 - Android: full support, through `clipPath`
-- iOS and Desktop: limited support. Only `RoundedCornerShape` currently works.
+- iOS and Desktop: limited support. Only `RoundedCornerShape`s currently works.
 
 ``` kotlin hl_lines="10"
 Box {
@@ -62,7 +64,7 @@ Box {
     modifier = Modifier
       .hazeChild(
         ...
-        style = HazeStyle(shape = RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
       ),
   )
 }
@@ -76,7 +78,7 @@ Make the content behind app bars is a common use case, so how can we use Haze wi
     Note: We are using multiple `hazeChild`s in this example. You can actually use an abitrary number of `hazeChild`s.
 
 ``` kotlin
-val hazeState = remember { HazeState() } 
+val hazeState = remember { HazeState() }
 
 Scaffold(
   topBar = {

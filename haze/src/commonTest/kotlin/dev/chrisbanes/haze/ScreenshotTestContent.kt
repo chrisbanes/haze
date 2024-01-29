@@ -64,7 +64,8 @@ internal fun CreditCardSample(
         .align(Alignment.Center)
         .hazeChild(
           state = hazeState,
-          style = HazeStyle(tint = childTint, shape = RoundedCornerShape(16.dp)),
+          shape = RoundedCornerShape(16.dp),
+          style = HazeStyle(tint = childTint),
         ),
     ) {
       Column(Modifier.padding(32.dp)) {

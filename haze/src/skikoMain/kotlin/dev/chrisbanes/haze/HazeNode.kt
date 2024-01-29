@@ -167,7 +167,7 @@ private class SkiaHazeNode(
           areaLocalBounds.bottom,
         )
 
-        when (val shape = resolvedStyle.shape) {
+        when (val shape = area.shape) {
           is CornerBasedShape -> {
             uniform(
               "radius",

@@ -2,20 +2,22 @@
 package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeArea {
-    ctor public HazeArea(optional long size, optional long positionOnScreen, optional dev.chrisbanes.haze.HazeStyle style);
+    ctor public HazeArea(optional long size, optional long positionOnScreen, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style);
     method public long getPositionOnScreen();
+    method public androidx.compose.ui.graphics.Shape getShape();
     method public long getSize();
     method public dev.chrisbanes.haze.HazeStyle getStyle();
     method public boolean isValid();
     property public final boolean isValid;
     property public final long positionOnScreen;
+    property public final androidx.compose.ui.graphics.Shape shape;
     property public final long size;
     property public final dev.chrisbanes.haze.HazeStyle style;
   }
 
   public final class HazeChildKt {
+    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style);
     method @Deprecated public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape, optional long tint, optional float blurRadius, optional float noiseFactor);
-    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style);
   }
 
   public final class HazeDefaults {
@@ -50,19 +52,16 @@ package dev.chrisbanes.haze {
   }
 
   @androidx.compose.runtime.Immutable public final class HazeStyle {
-    ctor public HazeStyle(optional long tint, optional float blurRadius, optional float noiseFactor, optional androidx.compose.ui.graphics.Shape? shape);
+    ctor public HazeStyle(optional long tint, optional float blurRadius, optional float noiseFactor);
     method public long component1-0d7_KjU();
     method public float component2-D9Ej5fM();
     method public float component3();
-    method public androidx.compose.ui.graphics.Shape? component4();
-    method public dev.chrisbanes.haze.HazeStyle copy-CLU3JFs(long tint, float blurRadius, float noiseFactor, androidx.compose.ui.graphics.Shape? shape);
+    method public dev.chrisbanes.haze.HazeStyle copy-5DgIosw(long tint, float blurRadius, float noiseFactor);
     method public float getBlurRadius();
     method public float getNoiseFactor();
-    method public androidx.compose.ui.graphics.Shape? getShape();
     method public long getTint();
     property public final float blurRadius;
     property public final float noiseFactor;
-    property public final androidx.compose.ui.graphics.Shape? shape;
     property public final long tint;
     field public static final dev.chrisbanes.haze.HazeStyle.Companion Companion;
   }

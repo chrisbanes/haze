@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.node.ModifierNodeElement
@@ -56,12 +57,16 @@ internal fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) 
 class HazeArea(
   size: Size = Size.Unspecified,
   positionOnScreen: Offset = Offset.Unspecified,
+  shape: Shape = RectangleShape,
   style: HazeStyle = HazeStyle.Unspecified,
 ) {
   var size: Size by mutableStateOf(size)
     internal set
 
   var positionOnScreen: Offset by mutableStateOf(positionOnScreen)
+    internal set
+
+  var shape: Shape by mutableStateOf(shape)
     internal set
 
   var style: HazeStyle by mutableStateOf(style)
@@ -195,7 +200,6 @@ data class HazeStyle(
   val tint: Color = Color.Unspecified,
   val blurRadius: Dp = Dp.Unspecified,
   val noiseFactor: Float = Float.MIN_VALUE,
-  val shape: Shape? = null,
 ) {
   companion object {
     val Unspecified: HazeStyle = HazeStyle()
@@ -210,7 +214,6 @@ internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle = Haz
   tint = child.tint.takeOrElse { default.tint }.takeOrElse { Color.Transparent },
   blurRadius = child.blurRadius.takeOrElse { default.blurRadius }.takeOrElse { 0.dp },
   noiseFactor = child.noiseFactor.takeOrElse { default.noiseFactor }.takeOrElse { 0f },
-  shape = child.shape ?: default.shape,
 )
 
 private inline fun Float.takeOrElse(block: () -> Float): Float = if (this in 0f..1f) this else block()

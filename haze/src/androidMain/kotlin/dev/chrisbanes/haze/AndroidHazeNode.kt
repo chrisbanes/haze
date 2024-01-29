@@ -25,7 +25,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.draw
@@ -218,7 +218,7 @@ private class ScrimImpl : AndroidHazeNode.Impl {
 
         // TODO: Should try and re-use this Path instance
         val path = Path().apply {
-          updateFromHaze(bounds, resolvedStyle, layoutDirection, density)
+          updateFromHaze(bounds, area.shape, layoutDirection, density)
         }
 
         Effect(
@@ -333,7 +333,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
       // TODO: Should try and re-use this Path
       val path = Path().apply {
-        updateFromHaze(bounds, resolvedStyle, layoutDirection, density)
+        updateFromHaze(bounds, area.shape, layoutDirection, density)
       }
 
       Effect(
@@ -365,13 +365,13 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
 private fun Path.updateFromHaze(
   bounds: Rect,
-  style: HazeStyle,
+  shape: Shape,
   layoutDirection: LayoutDirection,
   density: Density,
 ) {
   reset()
   addOutline(
-    outline = (style.shape ?: RectangleShape).createOutline(bounds.size, layoutDirection, density),
+    outline = shape.createOutline(bounds.size, layoutDirection, density),
     offset = bounds.topLeft,
   )
 }
