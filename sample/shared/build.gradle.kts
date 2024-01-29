@@ -17,6 +17,7 @@ kotlin {
     val commonMain by getting {
       dependencies {
         implementation(projects.haze)
+        implementation(projects.hazeMaterials)
         implementation(libs.imageloader)
         api(compose.material3)
       }
