@@ -317,8 +317,8 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
             blurRadiusPx,
             blurRadiusPx,
             Shader.TileMode.DECAL,
-          ).let {
-            val noiseShader = BitmapShader(createNoiseTextureIfNeeded(defaultStyle.noiseFactor), REPEAT, REPEAT)
+          ).letIf(defaultStyle.noiseFactor >= 0.0005f) {
+            val noiseShader = BitmapShader(getNoiseTexture(defaultStyle.noiseFactor), REPEAT, REPEAT)
             RenderEffect.createBlendModeEffect(
               RenderEffect.createShaderEffect(noiseShader),
               it,
@@ -346,7 +346,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     return true
   }
 
-  private fun createNoiseTextureIfNeeded(noiseFactor: Float): Bitmap {
+  private fun getNoiseTexture(noiseFactor: Float): Bitmap {
     val cached = noiseTextureCache[noiseFactor]
     if (cached != null) return cached
 
@@ -374,4 +374,9 @@ private fun Path.updateFromHaze(
     outline = (style.shape ?: RectangleShape).createOutline(bounds.size, layoutDirection, density),
     offset = bounds.topLeft,
   )
+}
+
+private inline fun <T> T.letIf(condition: Boolean, block: (T) -> T): T = when {
+  condition -> block(this)
+  else -> this
 }
