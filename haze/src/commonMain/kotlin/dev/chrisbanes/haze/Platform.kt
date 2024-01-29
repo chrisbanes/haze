@@ -6,14 +6,11 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import androidx.compose.ui.unit.Dp
 
 internal expect fun createHazeNode(
   state: HazeState,
   backgroundColor: Color,
-  tint: Color,
-  blurRadius: Dp,
-  noiseFactor: Float,
+  style: HazeStyle,
 ): HazeNode
 
 internal expect fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset

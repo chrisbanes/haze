@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 
@@ -63,7 +64,10 @@ fun DialogSample(navigator: Navigator) {
           modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(fraction = .5f)
-            .hazeChild(state = hazeState, shape = MaterialTheme.shapes.extraLarge),
+            .hazeChild(
+              state = hazeState,
+              shape = MaterialTheme.shapes.extraLarge,
+            ),
           shape = MaterialTheme.shapes.extraLarge,
           // We can't use Haze tint with dialogs, as the tint will display a scrim over the
           // background content. Instead we need to set a translucent background on the
@@ -80,7 +84,7 @@ fun DialogSample(navigator: Navigator) {
       modifier = Modifier.haze(
         state = hazeState,
         backgroundColor = MaterialTheme.colorScheme.background,
-        tint = Color.Transparent,
+        style = HazeStyle(tint = Color.Transparent),
       ),
       columns = GridCells.Fixed(4),
       contentPadding = innerPadding,

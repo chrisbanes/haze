@@ -13,6 +13,7 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.toSize
 
 /**
@@ -22,48 +23,59 @@ import androidx.compose.ui.unit.toSize
  * [Modifier.haze] to blur any content behind the host composable.
  *
  * @param shape The shape of the content. This will affect the the bounds and outline of
- * the blurred content.
- * @param tint Color to tint the blurred content. Should be translucent, otherwise you will not see
- * the blurred content. If the provided color is [Color.Unspecified] then the default tint
- * provided to [haze] will be used.
+ * the content.
+ * @param style The [HazeStyle] to use on this content. Any specified values in the given
+ * style will override that value from the default style, given to [haze].
  */
 fun Modifier.hazeChild(
   state: HazeState,
   shape: Shape = RectangleShape,
+  style: HazeStyle = HazeStyle.Unspecified,
+): Modifier = this then HazeChildNodeElement(state, shape, style)
+
+@Deprecated(
+  "Deprecated. Replaced with new HazeStyle object",
+  ReplaceWith("hazeChild(state, shape, HazeStyle(tint, blurRadius, noiseFactor))"),
+)
+fun Modifier.hazeChild(
+  state: HazeState,
+  shape: Shape = RectangleShape,
   tint: Color = Color.Unspecified,
-): Modifier = this then HazeChildNodeElement(state, shape, tint)
+  blurRadius: Dp = Dp.Unspecified,
+  noiseFactor: Float = Float.MIN_VALUE,
+): Modifier = hazeChild(state, shape, HazeStyle(tint, blurRadius, noiseFactor))
 
 private data class HazeChildNodeElement(
   val state: HazeState,
   val shape: Shape,
-  val tint: Color,
+  val style: HazeStyle,
 ) : ModifierNodeElement<HazeChildNode>() {
-  override fun create(): HazeChildNode = HazeChildNode(state, shape, tint)
+  override fun create(): HazeChildNode = HazeChildNode(state, shape, style)
 
   override fun update(node: HazeChildNode) {
     node.state = state
     node.shape = shape
-    node.tint = tint
+    node.style = style
     node.onUpdate()
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeChild"
     properties["shape"] = shape
-    properties["tint"] = tint
+    properties["style"] = style
   }
 }
 
 private data class HazeChildNode(
   var state: HazeState,
   var shape: Shape,
-  var tint: Color,
+  var style: HazeStyle,
 ) : Modifier.Node(),
   LayoutAwareModifierNode,
   CompositionLocalConsumerModifierNode {
 
   private val area: HazeArea by lazy {
-    HazeArea(shape = shape, tint = tint)
+    HazeArea(shape = shape, style = style)
   }
 
   private var attachedState: HazeState? = null
@@ -75,7 +87,7 @@ private data class HazeChildNode(
   fun onUpdate() {
     // Propagate any shape changes to the HazeArea
     area.shape = shape
-    area.tint = tint
+    area.style = style
 
     if (state != attachedState) {
       // The provided HazeState has changed, so we need to detach from the old one,
