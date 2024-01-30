@@ -4,7 +4,6 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalView
@@ -12,9 +11,8 @@ import kotlin.concurrent.getOrSet
 
 internal actual fun createHazeNode(
   state: HazeState,
-  backgroundColor: Color,
   style: HazeStyle,
-): HazeNode = AndroidHazeNode(state, backgroundColor, style)
+): HazeNode = AndroidHazeNode(state, style)
 
 internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset {
   val view = currentValueOf(LocalView)

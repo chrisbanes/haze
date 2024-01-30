@@ -36,8 +36,7 @@ internal fun CreditCardSample(
         .fillMaxSize()
         .haze(
           state = hazeState,
-          backgroundColor = Color.Blue,
-          style = HazeStyle(
+          style = HazeDefaults.style(
             tint = defaultTint,
             blurRadius = 8.dp,
           ),

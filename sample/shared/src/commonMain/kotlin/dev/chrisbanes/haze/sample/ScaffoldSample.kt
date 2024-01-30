@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
@@ -97,7 +98,7 @@ fun ScaffoldSample(navigator: Navigator) {
           .fillMaxSize()
           .haze(
             state = hazeState,
-            backgroundColor = MaterialTheme.colorScheme.surface,
+            style = HazeDefaults.style(backgroundColor = MaterialTheme.colorScheme.surface),
           ),
       ) {
         items(50) { index ->

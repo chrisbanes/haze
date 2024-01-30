@@ -28,8 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.seiko.imageloader.rememberImagePainter
+import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 
@@ -72,8 +72,7 @@ fun ImagesList(navigator: Navigator) {
               modifier = Modifier
                 .haze(
                   state = hazeState,
-                  backgroundColor = Color(0xFF646464),
-                  style = HazeStyle(tint = Color(0x4D646464)),
+                  style = HazeDefaults.style(backgroundColor = Color(0xFF646464)),
                 )
                 .fillMaxSize(),
             )

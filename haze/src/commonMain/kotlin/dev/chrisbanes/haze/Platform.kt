@@ -4,12 +4,10 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 
 internal expect fun createHazeNode(
   state: HazeState,
-  backgroundColor: Color,
   style: HazeStyle,
 ): HazeNode
 

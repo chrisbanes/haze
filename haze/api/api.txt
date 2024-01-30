@@ -21,18 +21,17 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeDefaults {
-    method public dev.chrisbanes.haze.HazeStyle defaultStyle(long backgroundColor);
     method public float getBlurRadius();
-    method public float getTintAlpha();
+    method public dev.chrisbanes.haze.HazeStyle style(optional long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
     method public long tint(long color);
     property public final float blurRadius;
-    property public final float tintAlpha;
     field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
     field public static final float noiseFactor = 0.15f;
+    field public static final float tintAlpha = 0.7f;
   }
 
   public final class HazeKt {
-    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, long backgroundColor, optional dev.chrisbanes.haze.HazeStyle style);
+    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style);
     method @Deprecated public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
   }
 

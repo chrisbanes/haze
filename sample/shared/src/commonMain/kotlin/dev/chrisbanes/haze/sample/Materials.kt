@@ -1,8 +1,6 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(ExperimentalHazeMaterialsApi::class)
-
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.foundation.Image
@@ -47,7 +45,7 @@ fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
       contentScale = ContentScale.Crop,
       contentDescription = null,
       modifier = Modifier
-        .haze(state = hazeState, backgroundColor = Color.Transparent)
+        .haze(state = hazeState)
         .fillMaxSize(),
     )
 
@@ -94,7 +92,7 @@ fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 private fun MaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier) {
   FlowRow(
