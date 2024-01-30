@@ -54,13 +54,8 @@ import kotlin.math.roundToInt
 
 internal class AndroidHazeNode(
   state: HazeState,
-  backgroundColor: Color,
   style: HazeStyle,
-) : HazeNode(
-  state = state,
-  backgroundColor = backgroundColor,
-  style = style,
-),
+) : HazeNode(state = state, style = style),
   DrawModifierNode,
   CompositionLocalConsumerModifierNode,
   LayoutAwareModifierNode,
@@ -124,7 +119,7 @@ internal class AndroidHazeNode(
     }
 
     with(impl) {
-      draw(backgroundColor)
+      draw()
     }
   }
 
@@ -150,7 +145,7 @@ internal class AndroidHazeNode(
   }
 
   internal interface Impl {
-    fun ContentDrawScope.draw(backgroundColor: Color)
+    fun ContentDrawScope.draw()
     fun update(
       state: HazeState,
       defaultStyle: HazeStyle,
@@ -182,7 +177,7 @@ private fun Bitmap.withAlpha(alpha: Float): Bitmap {
 private class ScrimImpl : AndroidHazeNode.Impl {
   private var effects: List<Effect> = emptyList()
 
-  override fun ContentDrawScope.draw(backgroundColor: Color) {
+  override fun ContentDrawScope.draw() {
     drawContent()
 
     for (effect in effects) {
@@ -241,7 +236,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
   val noiseTextureCache = lruCache<Float, Bitmap>(3)
 
-  override fun ContentDrawScope.draw(backgroundColor: Color) {
+  override fun ContentDrawScope.draw() {
     // First we draw the composable content into `contentNode`
     contentNode.setPosition(0, 0, size.width.toInt(), size.height.toInt())
 
@@ -304,8 +299,8 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
           createRenderEffect(
             blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() },
             noiseFactor = resolvedStyle.noiseFactor,
-            tint = resolvedStyle.tint
-          )
+            tint = resolvedStyle.tint,
+          ),
         )
         setPosition(0, 0, bounds.width.toInt(), bounds.height.toInt())
         translationX = bounds.left
@@ -326,7 +321,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
   private fun createRenderEffect(
     blurRadiusPx: Float,
     noiseFactor: Float,
-    tint: Color
+    tint: Color,
   ): RenderEffect {
     return RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
       .withNoise(noiseFactor)
@@ -353,9 +348,12 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     noiseFactor >= 0.005f -> {
       val noiseShader = BitmapShader(getNoiseTexture(noiseFactor), REPEAT, REPEAT)
       RenderEffect.createBlendModeEffect(
-        /* dst = */ RenderEffect.createShaderEffect(noiseShader),
-        /* src = */ this,
-        /* blendMode = */ BlendMode.HARD_LIGHT,
+        /* dst = */
+        RenderEffect.createShaderEffect(noiseShader),
+        /* src = */
+        this,
+        /* blendMode = */
+        BlendMode.HARD_LIGHT,
       )
     }
 

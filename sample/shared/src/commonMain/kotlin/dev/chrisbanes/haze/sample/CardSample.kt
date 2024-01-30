@@ -37,8 +37,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 
@@ -53,8 +53,7 @@ fun CreditCardSample(navigator: Navigator) {
         .fillMaxSize()
         .haze(
           state = hazeState,
-          backgroundColor = Color.Blue,
-          style = HazeStyle(tint = Color.White.copy(alpha = 0.1f), blurRadius = 8.dp),
+          style = HazeDefaults.style(tint = Color.White.copy(alpha = 0.1f), blurRadius = 8.dp),
         ),
     ) {
       Spacer(

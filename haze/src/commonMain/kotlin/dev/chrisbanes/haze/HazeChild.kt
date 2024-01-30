@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.toSize
  * @param shape The shape of the content. This will affect the the bounds and outline of
  * the content.
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
- * style will override that value from the default style, given to [haze].
+ * style will override that value from the default style, provided to [haze].
  */
 fun Modifier.hazeChild(
   state: HazeState,

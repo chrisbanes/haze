@@ -9,12 +9,8 @@ Box {
   LazyColumn(
     modifier = Modifier
       .fillMaxSize()
-      .haze(
-        // Pass it the HazeState we stored above
-        state = hazeState,
-        // Need to provide background color of the content
-        backgroundColor = MaterialTheme.colorScheme.surface,
-      ),
+      // Pass it the HazeState we stored above
+      .haze(state = hazeState)
   ) {
     // todo
   }

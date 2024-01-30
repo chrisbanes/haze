@@ -29,11 +29,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 
@@ -81,11 +79,7 @@ fun DialogSample(navigator: Navigator) {
     }
 
     LazyVerticalGrid(
-      modifier = Modifier.haze(
-        state = hazeState,
-        backgroundColor = MaterialTheme.colorScheme.background,
-        style = HazeStyle(tint = Color.Transparent),
-      ),
+      modifier = Modifier.haze(hazeState),
       columns = GridCells.Fixed(4),
       contentPadding = innerPadding,
       verticalArrangement = Arrangement.spacedBy(16.dp),

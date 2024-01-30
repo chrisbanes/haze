@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.layout.Measurable
@@ -91,9 +90,8 @@ private val NOISE_SHADER by lazy {
 
 internal actual fun createHazeNode(
   state: HazeState,
-  backgroundColor: Color,
   style: HazeStyle,
-): HazeNode = SkiaHazeNode(state, backgroundColor, style)
+): HazeNode = SkiaHazeNode(state, style)
 
 internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset {
   // The Skiko-backed platforms don't use native windows for dialogs, etc
@@ -102,9 +100,8 @@ internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset()
 
 private class SkiaHazeNode(
   state: HazeState,
-  backgroundColor: Color,
   style: HazeStyle,
-) : HazeNode(state, backgroundColor, style),
+) : HazeNode(state, style),
   LayoutModifierNode,
   CompositionLocalConsumerModifierNode,
   ObserverModifierNode {
