@@ -50,7 +50,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
+import androidx.core.util.Pools
 import kotlin.math.roundToInt
+
+/**
+ * A simple object path for [Path]s. They're fairly expensive so it makes sense to
+ * re-use instances.
+ */
+private val pathPool = Pools.SimplePool<Path>(10)
 
 internal class AndroidHazeNode(
   state: HazeState,
@@ -192,6 +199,11 @@ private class ScrimImpl : AndroidHazeNode.Impl {
     density: Density,
     layoutDirection: LayoutDirection,
   ): Boolean {
+    // Release all of the paths back into the pool
+    effects.asSequence()
+      .map(Effect::path)
+      .forEach { pathPool.releasePath(it) }
+
     effects = state.areas.asSequence()
       .filter { it.isValid }
       .mapNotNull { area ->
@@ -199,8 +211,7 @@ private class ScrimImpl : AndroidHazeNode.Impl {
 
         val resolvedStyle = resolveStyle(defaultStyle, area.style)
 
-        // TODO: Should try and re-use this Path instance
-        val path = Path().apply {
+        val path = pathPool.acquireOrCreate().apply {
           updateFromHaze(bounds, area.shape, layoutDirection, density)
         }
 
@@ -248,19 +259,20 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
       contentNode.endRecording()
     }
 
-    // TODO: optimize this. Shoud not be creating a path on every draw
-    val path = Path().apply {
-      effects.forEach { effect ->
-        addPath(effect.path)
-      }
+    val path = pathPool.acquireOrCreate().apply {
+      effects.forEach { addPath(it.path) }
     }
 
-    // Now we draw `contentNode` into the window canvas, clipping any effect areas which
-    // will be drawn below
-    with(drawContext.canvas) {
-      clipPath(path, ClipOp.Difference) {
-        nativeCanvas.drawRenderNode(contentNode)
+    try {
+      // Now we draw `contentNode` into the window canvas, clipping any effect areas which
+      // will be drawn below
+      with(drawContext.canvas) {
+        clipPath(path, ClipOp.Difference) {
+          nativeCanvas.drawRenderNode(contentNode)
+        }
       }
+    } finally {
+      pathPool.releasePath(path)
     }
 
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
@@ -289,6 +301,11 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     density: Density,
     layoutDirection: LayoutDirection,
   ): Boolean {
+    // Release all of the paths back into the pool
+    effects.asSequence()
+      .map(Effect::path)
+      .forEach { pathPool.releasePath(it) }
+
     // We create a RenderNode for each of the areas we need to apply our effect to
     effects = state.areas.asSequence().mapNotNull { area ->
       val bounds = area.boundsInLocal(position) ?: return@mapNotNull null
@@ -307,8 +324,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
         translationY = bounds.top
       }
 
-      // TODO: Should try and re-use this Path
-      val path = Path().apply {
+      val path = pathPool.acquireOrCreate().apply {
         updateFromHaze(bounds, area.shape, layoutDirection, density)
       }
 
@@ -384,9 +400,4 @@ private fun Path.updateFromHaze(
     outline = shape.createOutline(bounds.size, layoutDirection, density),
     offset = bounds.topLeft,
   )
-}
-
-private inline fun <T> T.letIf(condition: Boolean, block: (T) -> T): T = when {
-  condition -> block(this)
-  else -> this
 }
