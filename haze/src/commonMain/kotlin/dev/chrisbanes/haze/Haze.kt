@@ -18,8 +18,6 @@ import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.geometry.translate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.isSpecified
@@ -46,12 +44,6 @@ class HazeState {
   fun unregisterArea(area: HazeArea) {
     _areas.remove(area)
   }
-}
-
-internal fun Path.addOutline(outline: Outline, offset: Offset) = when (outline) {
-  is Outline.Rectangle -> addRect(outline.rect.translate(offset))
-  is Outline.Rounded -> addRoundRect(outline.roundRect.translate(offset))
-  is Outline.Generic -> addPath(outline.path, offset)
 }
 
 @Stable
