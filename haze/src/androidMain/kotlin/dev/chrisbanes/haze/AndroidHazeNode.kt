@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -178,19 +179,6 @@ private fun Bitmap.withAlpha(alpha: Float): Bitmap {
   }
 }
 
-@RequiresApi(31)
-private fun RenderEffect.withTint(tint: Color): RenderEffect = when {
-  tint.alpha >= 0.005f -> {
-    // If we have an tint with a non-zero alpha value, wrap the effect with a color filter
-    RenderEffect.createColorFilterEffect(
-      BlendModeColorFilter(tint.toArgb(), BlendMode.SRC_OVER),
-      this,
-    )
-  }
-
-  else -> this
-}
-
 private class ScrimImpl : AndroidHazeNode.Impl {
   private var effects: List<Effect> = emptyList()
 
@@ -265,17 +253,25 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
       contentNode.endRecording()
     }
 
-    // Now we draw `contentNode` into the window canvas, so that it is displayed
-    drawContext.canvas.nativeCanvas.drawRenderNode(contentNode)
+    // TODO: optimize this. Shoud not be creating a path on every draw
+    val path = Path().apply {
+      effects.forEach { effect ->
+        addPath(effect.path)
+      }
+    }
+
+    // Now we draw `contentNode` into the window canvas, clipping any effect areas which
+    // will be drawn below
+    with(drawContext.canvas) {
+      clipPath(path, ClipOp.Difference) {
+        nativeCanvas.drawRenderNode(contentNode)
+      }
+    }
 
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
     // their RenderEffect to be applied to the composable content.
     effects.forEach { effect ->
       effect.renderNode.beginRecording().apply {
-        // We need to draw our background color first, as the `contentNode` may not draw
-        // a background. This then makes the blur effect much less pronounced, as blurring with
-        // transparent negates the effect.
-        drawColor(backgroundColor.toArgb())
         translate(-effect.renderNodeDrawArea.left, -effect.renderNodeDrawArea.top)
         drawRenderNode(contentNode)
       }
@@ -301,34 +297,19 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     // We create a RenderNode for each of the areas we need to apply our effect to
     effects = state.areas.asSequence().mapNotNull { area ->
       val bounds = area.boundsInLocal(position) ?: return@mapNotNull null
-
       val resolvedStyle = resolveStyle(defaultStyle, area.style)
-
-      val blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() }
-
-      // We expand the area where our effect is applied to. This is necessary so that the blur
-      // effect is applied evenly to all edges. If we don't do this, the blur effect is much less
-      // visible on the edges of the area.
-      val expandedRect = bounds.inflate(blurRadiusPx)
 
       val node = RenderNode("blur").apply {
         setRenderEffect(
-          RenderEffect.createBlurEffect(
-            blurRadiusPx,
-            blurRadiusPx,
-            Shader.TileMode.DECAL,
-          ).letIf(defaultStyle.noiseFactor >= 0.0005f) {
-            val noiseShader = BitmapShader(getNoiseTexture(defaultStyle.noiseFactor), REPEAT, REPEAT)
-            RenderEffect.createBlendModeEffect(
-              RenderEffect.createShaderEffect(noiseShader),
-              it,
-              BlendMode.HARD_LIGHT,
-            )
-          }.withTint(resolvedStyle.tint),
+          createRenderEffect(
+            blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() },
+            noiseFactor = resolvedStyle.noiseFactor,
+            tint = resolvedStyle.tint
+          )
         )
-        setPosition(0, 0, expandedRect.width.toInt(), expandedRect.height.toInt())
-        translationX = expandedRect.left
-        translationY = expandedRect.top
+        setPosition(0, 0, bounds.width.toInt(), bounds.height.toInt())
+        translationX = bounds.left
+        translationY = bounds.top
       }
 
       // TODO: Should try and re-use this Path
@@ -336,14 +317,20 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
         updateFromHaze(bounds, area.shape, layoutDirection, density)
       }
 
-      Effect(
-        path = path,
-        renderNode = node,
-        renderNodeDrawArea = expandedRect,
-      )
+      Effect(path = path, renderNode = node, renderNodeDrawArea = bounds)
     }.toList()
 
     return true
+  }
+
+  private fun createRenderEffect(
+    blurRadiusPx: Float,
+    noiseFactor: Float,
+    tint: Color
+  ): RenderEffect {
+    return RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+      .withNoise(noiseFactor)
+      .withTint(tint)
   }
 
   private fun getNoiseTexture(noiseFactor: Float): Bitmap {
@@ -361,6 +348,31 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     val renderNode: RenderNode,
     val renderNodeDrawArea: Rect,
   )
+
+  private fun RenderEffect.withNoise(noiseFactor: Float): RenderEffect = when {
+    noiseFactor >= 0.005f -> {
+      val noiseShader = BitmapShader(getNoiseTexture(noiseFactor), REPEAT, REPEAT)
+      RenderEffect.createBlendModeEffect(
+        /* dst = */ RenderEffect.createShaderEffect(noiseShader),
+        /* src = */ this,
+        /* blendMode = */ BlendMode.HARD_LIGHT,
+      )
+    }
+
+    else -> this
+  }
+
+  private fun RenderEffect.withTint(tint: Color): RenderEffect = when {
+    tint.alpha >= 0.005f -> {
+      // If we have an tint with a non-zero alpha value, wrap the effect with a color filter
+      RenderEffect.createColorFilterEffect(
+        BlendModeColorFilter(tint.toArgb(), BlendMode.SRC_OVER),
+        this,
+      )
+    }
+
+    else -> this
+  }
 }
 
 private fun Path.updateFromHaze(

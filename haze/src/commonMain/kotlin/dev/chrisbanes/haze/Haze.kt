@@ -199,7 +199,7 @@ internal abstract class HazeNode(
 data class HazeStyle(
   val tint: Color = Color.Unspecified,
   val blurRadius: Dp = Dp.Unspecified,
-  val noiseFactor: Float = Float.MIN_VALUE,
+  val noiseFactor: Float = -1f,
 ) {
   companion object {
     val Unspecified: HazeStyle = HazeStyle()

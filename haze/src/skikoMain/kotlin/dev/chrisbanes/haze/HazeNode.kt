@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
@@ -22,6 +23,7 @@ import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
 import org.jetbrains.skia.FilterTileMode
+import org.jetbrains.skia.IRect
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
@@ -57,8 +59,6 @@ private const val SHADER_SKSL = """
   }
 
   vec4 main(vec2 coord) {
-    vec4 c = content.eval(coord);
-
     if (!rectContains(rectangle, coord)) {
         // If we're not drawing in the rectangle, return transparent
         return vec4(0.0, 0.0, 0.0, 0.0);
@@ -192,8 +192,10 @@ private class SkiaHazeNode(
         child("noise", NOISE_SHADER)
       }
 
+      // For CLAMP to work, we need to provide the crop rect
       val blurFilter = createBlurImageFilter(
-        with(density) { resolvedStyle.blurRadius.toPx() },
+        blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() },
+        cropRect = areaLocalBounds,
       )
 
       ImageFilter.makeRuntimeShader(
@@ -215,11 +217,16 @@ private class SkiaHazeNode(
   }
 }
 
-private fun createBlurImageFilter(blurRadiusPx: Float): ImageFilter {
+private fun createBlurImageFilter(blurRadiusPx: Float, cropRect: Rect? = null): ImageFilter {
   val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
   return ImageFilter.makeBlur(
     sigmaX = sigma,
     sigmaY = sigma,
-    mode = FilterTileMode.DECAL,
+    mode = FilterTileMode.CLAMP,
+    crop = cropRect?.toIRect(),
   )
+}
+
+private fun Rect.toIRect(): IRect {
+  return IRect.makeLTRB(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
 }
