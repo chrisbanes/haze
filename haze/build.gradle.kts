@@ -34,6 +34,7 @@ kotlin {
     androidMain {
       dependencies {
         implementation(libs.androidx.collection)
+        implementation(libs.androidx.core)
       }
     }
 

@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlendMode
 import android.graphics.BlendModeColorFilter
+import android.graphics.RecordingCanvas
 import android.graphics.RenderEffect
 import android.graphics.RenderNode
 import android.graphics.Shader
@@ -26,10 +27,14 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.draw
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -50,7 +55,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
+import androidx.core.graphics.withSave
+import androidx.core.util.Pools
 import kotlin.math.roundToInt
+
+/**
+ * A simple object path for [Path]s. They're fairly expensive so it makes sense to
+ * re-use instances.
+ */
+private val pathPool by lazy { Pools.SimplePool<Path>(10) }
 
 internal class AndroidHazeNode(
   state: HazeState,
@@ -181,7 +194,10 @@ private class ScrimImpl : AndroidHazeNode.Impl {
     drawContent()
 
     for (effect in effects) {
-      drawPath(path = effect.path, color = effect.tint)
+      val offset = effect.bounds.topLeft
+      translate(offset.x, offset.y) {
+        drawPath(path = effect.path, color = effect.tint)
+      }
     }
   }
 
@@ -192,6 +208,11 @@ private class ScrimImpl : AndroidHazeNode.Impl {
     density: Density,
     layoutDirection: LayoutDirection,
   ): Boolean {
+    // Release all of the paths back into the pool
+    effects.asSequence()
+      .map(Effect::path)
+      .forEach { pathPool.releasePath(it) }
+
     effects = state.areas.asSequence()
       .filter { it.isValid }
       .mapNotNull { area ->
@@ -199,14 +220,14 @@ private class ScrimImpl : AndroidHazeNode.Impl {
 
         val resolvedStyle = resolveStyle(defaultStyle, area.style)
 
-        // TODO: Should try and re-use this Path instance
-        val path = Path().apply {
-          updateFromHaze(bounds, area.shape, layoutDirection, density)
+        val path = pathPool.acquireOrCreate().apply {
+          addOutline(area.shape.createOutline(bounds.size, layoutDirection, density))
         }
 
         Effect(
           path = path,
           tint = resolvedStyle.tint.boostAlphaForBlurRadius(resolvedStyle.blurRadius),
+          bounds = bounds,
         )
       }.toList()
 
@@ -224,6 +245,7 @@ private class ScrimImpl : AndroidHazeNode.Impl {
 
   private data class Effect(
     val tint: Color,
+    val bounds: Rect,
     val path: Path,
   )
 }
@@ -248,35 +270,51 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
       contentNode.endRecording()
     }
 
-    // TODO: optimize this. Shoud not be creating a path on every draw
-    val path = Path().apply {
-      effects.forEach { effect ->
-        addPath(effect.path)
-      }
+    val allEffectsPath = pathPool.acquireOrCreate()
+
+    for (effect in effects) {
+      // First we need to make sure that the effects are updated (if necessary)
+      effect.update(layoutDirection, drawContext.density)
+      // Now add the effects path so we know the entire area covered by effects
+      allEffectsPath.addPath(effect.path, offset = effect.bounds.topLeft)
     }
 
-    // Now we draw `contentNode` into the window canvas, clipping any effect areas which
-    // will be drawn below
-    with(drawContext.canvas) {
-      clipPath(path, ClipOp.Difference) {
-        nativeCanvas.drawRenderNode(contentNode)
+    try {
+      // Now we draw `contentNode` into the window canvas, clipping any effect areas which
+      // will be drawn below
+      with(drawContext.canvas) {
+        clipPath(allEffectsPath, ClipOp.Difference) {
+          nativeCanvas.drawRenderNode(contentNode)
+        }
       }
+    } finally {
+      pathPool.releasePath(allEffectsPath)
     }
 
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
     // their RenderEffect to be applied to the composable content.
-    effects.forEach { effect ->
-      effect.renderNode.beginRecording().apply {
-        translate(-effect.renderNodeDrawArea.left, -effect.renderNodeDrawArea.top)
+    for (effect in effects) {
+      effect.renderNode.record {
+        translate(-effect.bounds.left, -effect.bounds.top)
         drawRenderNode(contentNode)
       }
-      effect.renderNode.endRecording()
 
       // Finally we draw the 'effect' RenderNode to the window canvas, drawing on top
       // of the original content
-      with(drawContext.canvas) {
-        clipPath(effect.path) {
-          nativeCanvas.drawRenderNode(effect.renderNode)
+      with(drawContext) {
+        val tempPath = pathPool.acquireOrCreate()
+        try {
+          // We need to offset the path so it clips at the right position
+          val tempPathAndroid = tempPath.asAndroidPath().apply {
+            set(effect.path.asAndroidPath())
+            offset(effect.bounds.left, effect.bounds.top)
+          }
+          canvas.nativeCanvas.withSave {
+            clipPath(tempPathAndroid)
+            drawRenderNode(effect.renderNode)
+          }
+        } finally {
+          pathPool.releasePath(tempPath)
         }
       }
     }
@@ -289,43 +327,28 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     density: Density,
     layoutDirection: LayoutDirection,
   ): Boolean {
+    val prevEffects = effects
     // We create a RenderNode for each of the areas we need to apply our effect to
-    effects = state.areas.asSequence().mapNotNull { area ->
-      val bounds = area.boundsInLocal(position) ?: return@mapNotNull null
-      val resolvedStyle = resolveStyle(defaultStyle, area.style)
+    effects = state.areas.asSequence()
+      .map { area -> prevEffects.firstOrNull { it.area == area } ?: Effect(area) }
+      .toList()
 
-      val node = RenderNode("blur").apply {
-        setRenderEffect(
-          createRenderEffect(
-            blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() },
-            noiseFactor = resolvedStyle.noiseFactor,
-            tint = resolvedStyle.tint,
-          ),
-        )
-        setPosition(0, 0, bounds.width.toInt(), bounds.height.toInt())
-        translationX = bounds.left
-        translationY = bounds.top
-      }
+    val invalidateCount = effects.count { effect ->
+      val bounds = effect.area.boundsInLocal(position) ?: Rect.Zero
+      val resolvedStyle = resolveStyle(defaultStyle, effect.area.style)
 
-      // TODO: Should try and re-use this Path
-      val path = Path().apply {
-        updateFromHaze(bounds, area.shape, layoutDirection, density)
-      }
+      effect.updateParameters(
+        bounds = bounds,
+        blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() },
+        noiseFactor = resolvedStyle.noiseFactor,
+        tint = resolvedStyle.tint,
+        shape = effect.area.shape,
+      )
+    }
 
-      Effect(path = path, renderNode = node, renderNodeDrawArea = bounds)
-    }.toList()
-
-    return true
-  }
-
-  private fun createRenderEffect(
-    blurRadiusPx: Float,
-    noiseFactor: Float,
-    tint: Color,
-  ): RenderEffect {
-    return RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
-      .withNoise(noiseFactor)
-      .withTint(tint)
+    // Invalidate if any of the effects triggered an invalidation, or we now have zero
+    // effects but were previously showing some
+    return invalidateCount > 0 || (effects.isEmpty() != prevEffects.isEmpty())
   }
 
   private fun getNoiseTexture(noiseFactor: Float): Bitmap {
@@ -338,22 +361,86 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
       .also { noiseTextureCache.put(noiseFactor, it) }
   }
 
+  private fun Effect.updateParameters(
+    bounds: Rect,
+    blurRadiusPx: Float,
+    noiseFactor: Float,
+    tint: Color,
+    shape: Shape,
+  ): Boolean {
+    if (!renderEffectDirty) {
+      renderEffectDirty = this.blurRadiusPx != blurRadiusPx ||
+        this.tint != tint ||
+        this.noiseFactor != noiseFactor
+    }
+    if (!renderNodeDirty) {
+      renderNodeDirty = this.bounds != bounds || !renderNode.hasDisplayList()
+    }
+    if (!pathDirty) {
+      pathDirty = this.bounds.size != bounds.size || this.shape != shape || path.isEmpty
+    }
+
+    // Finally update all of the properties
+    this.bounds = bounds
+    this.blurRadiusPx = blurRadiusPx
+    this.noiseFactor = noiseFactor
+    this.shape = shape
+    this.tint = tint
+
+    return renderEffectDirty || renderNodeDirty || pathDirty
+  }
+
+  private fun Effect.update(layoutDirection: LayoutDirection, density: Density) {
+    if (renderNodeDirty) updateRenderNodePosition()
+    if (renderEffectDirty) updateRenderEffect()
+    if (pathDirty) updatePath(layoutDirection, density)
+  }
+
+  private fun Effect.updateRenderEffect() {
+    renderNode.setRenderEffect(
+      RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+        .withNoise(noiseFactor)
+        .withTint(tint),
+    )
+    renderEffectDirty = false
+  }
+
+  private fun Effect.updateRenderNodePosition() {
+    renderNode.apply {
+      renderNode.setPosition(0, 0, bounds.width.toInt(), bounds.height.toInt())
+      renderNode.translationX = bounds.left
+      renderNode.translationY = bounds.top
+    }
+    renderNodeDirty = false
+  }
+
+  private fun Effect.updatePath(layoutDirection: LayoutDirection, density: Density) {
+    path.rewind()
+    path.addOutline(shape.createOutline(bounds.size, layoutDirection, density))
+    pathDirty = false
+  }
+
   private data class Effect(
-    val path: Path,
-    val renderNode: RenderNode,
-    val renderNodeDrawArea: Rect,
+    val area: HazeArea,
+    val path: Path = Path(),
+    val renderNode: RenderNode = RenderNode(null),
+    var bounds: Rect = Rect.Zero,
+    var blurRadiusPx: Float = 0f,
+    var noiseFactor: Float = 0f,
+    var tint: Color = Color.Unspecified,
+    var shape: Shape = RectangleShape,
+    var renderEffectDirty: Boolean = true,
+    var pathDirty: Boolean = true,
+    var renderNodeDirty: Boolean = true,
   )
 
   private fun RenderEffect.withNoise(noiseFactor: Float): RenderEffect = when {
     noiseFactor >= 0.005f -> {
       val noiseShader = BitmapShader(getNoiseTexture(noiseFactor), REPEAT, REPEAT)
       RenderEffect.createBlendModeEffect(
-        /* dst = */
-        RenderEffect.createShaderEffect(noiseShader),
-        /* src = */
-        this,
-        /* blendMode = */
-        BlendMode.HARD_LIGHT,
+        RenderEffect.createShaderEffect(noiseShader), // dst
+        this, // src
+        BlendMode.HARD_LIGHT, // blendMode
       )
     }
 
@@ -373,20 +460,8 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
   }
 }
 
-private fun Path.updateFromHaze(
-  bounds: Rect,
-  shape: Shape,
-  layoutDirection: LayoutDirection,
-  density: Density,
-) {
-  reset()
-  addOutline(
-    outline = shape.createOutline(bounds.size, layoutDirection, density),
-    offset = bounds.topLeft,
-  )
-}
-
-private inline fun <T> T.letIf(condition: Boolean, block: (T) -> T): T = when {
-  condition -> block(this)
-  else -> this
+@RequiresApi(31)
+private inline fun RenderNode.record(block: RecordingCanvas.() -> Unit) {
+  beginRecording().apply(block)
+  endRecording()
 }
