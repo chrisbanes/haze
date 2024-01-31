@@ -23,7 +23,8 @@ import androidx.compose.ui.unit.toSize
  * [Modifier.haze] to blur any content behind the host composable.
  *
  * @param shape The shape of the content. This will affect the the bounds and outline of
- * the content.
+ * the content. Please be aware that using non-rectangular shapes has an effect on performance,
+ * since we need to use path clipping.
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
  * style will override that value from the default style, provided to [haze].
  */
