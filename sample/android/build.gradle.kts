@@ -21,6 +21,8 @@ android {
   buildTypes {
     release {
       isMinifyEnabled = true
+      isShrinkResources = true
+      signingConfig = signingConfigs["debug"]
       proguardFiles(
         "proguard-rules.pro",
         getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -53,6 +55,7 @@ dependencies {
 
   implementation(libs.androidx.core)
   implementation(libs.androidx.activity.compose)
+  implementation(libs.androidx.profileinstaller)
 
-  baselineProfile(projects.internal.baselineProfile)
+  baselineProfile(projects.internal.benchmark)
 }

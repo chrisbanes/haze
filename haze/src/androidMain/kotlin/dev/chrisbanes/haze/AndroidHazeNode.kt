@@ -32,11 +32,11 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.withSave
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
-import androidx.core.graphics.withSave
 import androidx.core.util.Pools
 import kotlin.math.roundToInt
 
@@ -270,25 +269,22 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
       contentNode.endRecording()
     }
 
-    val allEffectsPath = pathPool.acquireOrCreate()
-
     for (effect in effects) {
       // First we need to make sure that the effects are updated (if necessary)
-      effect.update(layoutDirection, drawContext.density)
-      // Now add the effects path so we know the entire area covered by effects
-      allEffectsPath.addPath(effect.path, offset = effect.bounds.topLeft)
+      effect.update()
     }
 
-    try {
-      // Now we draw `contentNode` into the window canvas, clipping any effect areas which
-      // will be drawn below
-      with(drawContext.canvas) {
-        clipPath(allEffectsPath, ClipOp.Difference) {
-          nativeCanvas.drawRenderNode(contentNode)
+    // Now we draw `contentNode` into the window canvas, clipping any effect areas which
+    // will be drawn below
+    with(drawContext.canvas) {
+      withSave {
+        for (effect in effects) {
+          clipShape(effect.shape, effect.bounds, ClipOp.Difference) {
+            effect.getUpdatedPath(layoutDirection, drawContext.density)
+          }
         }
+        nativeCanvas.drawRenderNode(contentNode)
       }
-    } finally {
-      pathPool.releasePath(allEffectsPath)
     }
 
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
@@ -296,25 +292,23 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     for (effect in effects) {
       effect.renderNode.record {
         translate(-effect.bounds.left, -effect.bounds.top)
+        // We need to inflate the bounds by the blur radius, so that the effect
+        // has access to the pixels it needs in the clipRect
+        val (l, t, r, b) = effect.bounds
+        val inflate = effect.blurRadiusPx
+        clipRect(l - inflate, t - inflate, r + inflate, b + inflate)
+        // Finally draw the contentNode
         drawRenderNode(contentNode)
       }
 
       // Finally we draw the 'effect' RenderNode to the window canvas, drawing on top
       // of the original content
-      with(drawContext) {
-        val tempPath = pathPool.acquireOrCreate()
-        try {
-          // We need to offset the path so it clips at the right position
-          val tempPathAndroid = tempPath.asAndroidPath().apply {
-            set(effect.path.asAndroidPath())
-            offset(effect.bounds.left, effect.bounds.top)
+      with(drawContext.canvas) {
+        withSave {
+          clipShape(effect.shape, effect.bounds) {
+            effect.getUpdatedPath(layoutDirection, drawContext.density)
           }
-          canvas.nativeCanvas.withSave {
-            clipPath(tempPathAndroid)
-            drawRenderNode(effect.renderNode)
-          }
-        } finally {
-          pathPool.releasePath(tempPath)
+          nativeCanvas.drawRenderNode(effect.renderNode)
         }
       }
     }
@@ -390,10 +384,11 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     return renderEffectDirty || renderNodeDirty || pathDirty
   }
 
-  private fun Effect.update(layoutDirection: LayoutDirection, density: Density) {
+  private fun Effect.update() {
     if (renderNodeDirty) updateRenderNodePosition()
     if (renderEffectDirty) updateRenderEffect()
-    if (pathDirty) updatePath(layoutDirection, density)
+    // We don't update the path here as we may not need it. Let draw request it
+    // via getUpdatedPath if it needs it
   }
 
   private fun Effect.updateRenderEffect() {
@@ -412,6 +407,11 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
       renderNode.translationY = bounds.top
     }
     renderNodeDirty = false
+  }
+
+  private fun Effect.getUpdatedPath(layoutDirection: LayoutDirection, density: Density): Path {
+    if (pathDirty) updatePath(layoutDirection, density)
+    return path
   }
 
   private fun Effect.updatePath(layoutDirection: LayoutDirection, density: Density) {
@@ -462,6 +462,28 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
 @RequiresApi(31)
 private inline fun RenderNode.record(block: RecordingCanvas.() -> Unit) {
-  beginRecording().apply(block)
-  endRecording()
+  try {
+    beginRecording().apply(block)
+  } finally {
+    endRecording()
+  }
+}
+
+private fun Canvas.clipShape(
+  shape: Shape,
+  bounds: Rect,
+  clipOp: ClipOp = ClipOp.Intersect,
+  path: () -> Path,
+) {
+  if (shape == RectangleShape) {
+    clipRect(bounds, clipOp)
+  } else {
+    pathPool.usePath { tmpPath ->
+      tmpPath.asAndroidPath().apply {
+        set(path().asAndroidPath())
+        offset(bounds.left, bounds.top)
+      }
+      clipPath(tmpPath, clipOp)
+    }
+  }
 }

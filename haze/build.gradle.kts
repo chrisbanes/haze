@@ -28,6 +28,7 @@ kotlin {
     commonMain {
       dependencies {
         api(compose.ui)
+        implementation(compose.foundation)
       }
     }
 
@@ -40,10 +41,6 @@ kotlin {
 
     val skikoMain by creating {
       dependsOn(commonMain.get())
-
-      dependencies {
-        implementation(compose.foundation)
-      }
     }
 
     iosMain {
@@ -74,7 +71,7 @@ baselineProfile {
 }
 
 dependencies {
-  baselineProfile(projects.internal.baselineProfile)
+  baselineProfile(projects.internal.benchmark)
 }
 
 metalava {

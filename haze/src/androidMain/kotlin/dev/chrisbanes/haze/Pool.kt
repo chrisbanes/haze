@@ -14,3 +14,12 @@ internal fun Pools.Pool<Path>.releasePath(path: Path) {
   path.rewind()
   release(path)
 }
+
+internal inline fun Pools.Pool<Path>.usePath(block: (Path) -> Unit) {
+  val path = acquireOrCreate()
+  try {
+    block(path)
+  } finally {
+    releasePath(path)
+  }
+}
