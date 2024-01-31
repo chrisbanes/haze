@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeDefaults
@@ -75,6 +76,7 @@ fun CreditCardSample(navigator: Navigator) {
     // Our card
     Box(
       modifier = Modifier
+        .testTag("credit_card")
         .fillMaxWidth(0.7f)
         .aspectRatio(16 / 9f)
         .align(Alignment.Center)

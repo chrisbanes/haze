@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.seiko.imageloader.rememberImagePainter
 import dev.chrisbanes.haze.HazeDefaults
@@ -55,7 +56,9 @@ fun ImagesList(navigator: Navigator) {
       LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = contentPadding,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+          .testTag("lazy_column")
+          .fillMaxSize(),
       ) {
         items(50) { index ->
           val hazeState = remember { HazeState() }

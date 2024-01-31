@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
@@ -96,6 +97,7 @@ fun ScaffoldSample(navigator: Navigator) {
         contentPadding = contentPadding,
         modifier = Modifier
           .fillMaxSize()
+          .testTag("lazy_grid")
           .haze(
             state = hazeState,
             style = HazeDefaults.style(backgroundColor = MaterialTheme.colorScheme.surface),

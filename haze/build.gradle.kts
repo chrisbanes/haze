@@ -74,7 +74,7 @@ baselineProfile {
 }
 
 dependencies {
-  baselineProfile(projects.internal.baselineProfile)
+  baselineProfile(projects.internal.benchmark)
 }
 
 metalava {

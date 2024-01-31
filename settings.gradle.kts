@@ -45,7 +45,7 @@ include(
   ":haze",
   ":haze-materials",
   ":haze-jetpack-compose",
-  ":internal:baseline-profile",
+  ":internal:benchmark",
   ":internal:screenshot-test",
   ":sample:shared",
   ":sample:android",

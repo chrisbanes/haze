@@ -17,6 +17,8 @@ android {
   defaultConfig {
     minSdk = 28
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] = "EMULATOR"
   }
 
   targetProjectPath = ":sample:android"
@@ -28,9 +30,7 @@ android {
       apiLevel = 30
       systemImageSource = "aosp"
     }
-  }
 
-  testOptions.managedDevices.devices {
     create<ManagedVirtualDevice>("pixel5Api34") {
       device = "Pixel 5"
       apiLevel = 34
