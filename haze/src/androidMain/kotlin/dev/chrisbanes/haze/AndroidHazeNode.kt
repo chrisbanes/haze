@@ -440,7 +440,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
       RenderEffect.createBlendModeEffect(
         RenderEffect.createShaderEffect(noiseShader), // dst
         this, // src
-        BlendMode.HARD_LIGHT, // blendMode
+        BlendMode.DST_ATOP, // blendMode
       )
     }
 
