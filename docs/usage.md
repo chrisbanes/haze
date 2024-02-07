@@ -2,7 +2,7 @@ Haze is implemented through two Compose Modifiers: [Modifier.haze](../api/haze/d
 
 The most basic usage would be something like:
 
-``` kotlin hl_lines="1 7-12 21-23"
+``` kotlin hl_lines="1 7-8 17-19"
 val hazeState = remember { HazeState() }
 
 Box {
@@ -52,7 +52,7 @@ The platforms have varying support:
 - Android: full support, through `clipPath`
 - iOS and Desktop: limited support. Only `RoundedCornerShape`s currently works.
 
-``` kotlin hl_lines="10"
+``` kotlin hl_lines="8"
 Box {
   // rest of sample from above
 
