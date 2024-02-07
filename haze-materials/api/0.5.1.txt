@@ -1,0 +1,17 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze.materials {
+
+  @kotlin.RequiresOptIn(message="Experimental Haze Materials API", level=kotlin.RequiresOptIn.Level.WARNING) public @interface ExperimentalHazeMaterialsApi {
+  }
+
+  public final class HazeMaterials {
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle regular(optional long containerColor);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle thick(optional long containerColor);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle thin(optional long containerColor);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle ultraThick(optional long containerColor);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle ultraThin(optional long containerColor);
+    field public static final dev.chrisbanes.haze.materials.HazeMaterials INSTANCE;
+  }
+
+}
+
