@@ -7,7 +7,7 @@ compose-multiplatform = "1.6.0-rc02"
 ktlint = "1.0.1"
 kotlin = "1.9.22"
 robolectric = "4.10.3"
-roborazzi = "1.9.0"
+roborazzi = "1.10.1"
 spotless = "6.25.0"
 
 [plugins]
