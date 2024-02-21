@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -285,8 +286,8 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     with(drawContext.canvas) {
       withSave {
         for (effect in effects) {
-          clipShape(effect.shape, effect.bounds, ClipOp.Difference) {
-            effect.getUpdatedPath(layoutDirection, drawContext.density)
+          clipShape(effect.shape, effect.contentClipBounds, ClipOp.Difference) {
+            effect.getUpdatedContentClipPath(layoutDirection, drawContext.density)
           }
         }
         nativeCanvas.drawRenderNode(contentNode)
@@ -327,11 +328,23 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     density: Density,
     layoutDirection: LayoutDirection,
   ): Boolean {
-    val prevEffects = effects
+    val currentEffectsIsEmpty = effects.isEmpty()
+    val currentEffects = effects.associateByTo(HashMap(), Effect::area)
+
     // We create a RenderNode for each of the areas we need to apply our effect to
     effects = state.areas.asSequence()
-      .map { area -> prevEffects.firstOrNull { it.area == area } ?: Effect(area) }
+      .map { area ->
+        currentEffects.remove(area) ?: Effect(
+          area = area,
+          path = pathPool.acquireOrCreate(),
+          contentClipPath = pathPool.acquireOrCreate(),
+        )
+      }
       .toList()
+
+    // Any effects left in the currentEffects are no longer used, lets recycle them
+    currentEffects.forEach { (_, effect) -> effect.recycle() }
+    currentEffects.clear()
 
     val invalidateCount = effects.count { effect ->
       val bounds = effect.area.boundsInLocal(position) ?: Rect.Zero
@@ -348,7 +361,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
-    return invalidateCount > 0 || (effects.isEmpty() != prevEffects.isEmpty())
+    return invalidateCount > 0 || (effects.isEmpty() != currentEffectsIsEmpty)
   }
 
   private fun getNoiseTexture(noiseFactor: Float): Bitmap {
@@ -376,18 +389,24 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     if (!renderNodeDirty) {
       renderNodeDirty = this.bounds != bounds || !renderNode.hasDisplayList()
     }
-    if (!pathDirty) {
-      pathDirty = this.bounds.size != bounds.size || this.shape != shape || path.isEmpty
+    if (!pathsDirty) {
+      pathsDirty = this.bounds.size != bounds.size || this.shape != shape || path.isEmpty
     }
 
     // Finally update all of the properties
     this.bounds = bounds
+    this.contentClipBounds = when {
+      bounds.isEmpty -> bounds
+      // We clip the content to a slightly smaller rect than the blur bounds, to reduce the
+      // chance of rounding + anti-aliasing causing visually problems
+      else -> bounds.deflate(2f).coerceAtLeast(Rect.Zero)
+    }
     this.blurRadiusPx = blurRadiusPx
     this.noiseFactor = noiseFactor
     this.shape = shape
     this.tint = tint
 
-    return renderEffectDirty || renderNodeDirty || pathDirty
+    return renderEffectDirty || renderNodeDirty || pathsDirty
   }
 
   private fun Effect.update() {
@@ -416,27 +435,53 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
   }
 
   private fun Effect.getUpdatedPath(layoutDirection: LayoutDirection, density: Density): Path {
-    if (pathDirty) updatePath(layoutDirection, density)
+    if (pathsDirty) updatePaths(layoutDirection, density)
     return path
   }
 
-  private fun Effect.updatePath(layoutDirection: LayoutDirection, density: Density) {
+  private fun Effect.getUpdatedContentClipPath(layoutDirection: LayoutDirection, density: Density): Path {
+    if (pathsDirty) updatePaths(layoutDirection, density)
+    return contentClipPath
+  }
+
+  private fun Effect.updatePaths(layoutDirection: LayoutDirection, density: Density) {
     path.rewind()
-    path.addOutline(shape.createOutline(bounds.size, layoutDirection, density))
-    pathDirty = false
+    if (!bounds.isEmpty) {
+      path.addOutline(shape.createOutline(bounds.size, layoutDirection, density))
+    }
+
+    contentClipPath.rewind()
+    contentClipPath.addPath(path)
+    contentClipPath.transform(
+      Matrix().apply {
+        scale(
+          x = contentClipBounds.width / bounds.width,
+          y = contentClipBounds.height / bounds.height,
+        )
+      },
+    )
+
+    pathsDirty = false
+  }
+
+  private fun Effect.recycle() {
+    pathPool.releasePath(path)
+    pathPool.releasePath(contentClipPath)
   }
 
   private class Effect(
     val area: HazeArea,
-    val path: Path = Path(),
+    val path: Path,
+    val contentClipPath: Path,
     val renderNode: RenderNode = RenderNode(null),
     var bounds: Rect = Rect.Zero,
+    var contentClipBounds: Rect = Rect.Zero,
     var blurRadiusPx: Float = 0f,
     var noiseFactor: Float = 0f,
     var tint: Color = Color.Unspecified,
     var shape: Shape = RectangleShape,
     var renderEffectDirty: Boolean = true,
-    var pathDirty: Boolean = true,
+    var pathsDirty: Boolean = true,
     var renderNodeDirty: Boolean = true,
   )
 
@@ -493,3 +538,10 @@ private fun Canvas.clipShape(
     }
   }
 }
+
+private fun Rect.coerceAtLeast(rect: Rect): Rect = Rect(
+  left = left.coerceAtLeast(rect.left),
+  top = top.coerceAtLeast(rect.top),
+  right = right.coerceAtLeast(rect.right),
+  bottom = bottom.coerceAtLeast(rect.bottom),
+)
