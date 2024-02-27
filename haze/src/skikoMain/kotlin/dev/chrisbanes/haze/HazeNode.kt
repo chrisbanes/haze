@@ -73,7 +73,12 @@ private const val SHADER_SKSL = """
     float overlay = min(1.0, colorShift + (noiseLuma * noiseFactor));
 
     // Apply the overlay (noise + tint)
-    return b + ((color - b) * overlay);
+    b = b + ((color - b) * overlay);
+
+    //modified alpha value of the final vec4 to 1.0
+    b.a = 1.0;
+
+    return b;
   }
 """
 
