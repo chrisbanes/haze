@@ -69,8 +69,7 @@ fun ScaffoldSample(navigator: Navigator) {
               style = HazeDefaults.style(
                 tint = Color.White.copy(alpha = 0.15f),
                 blurRadius = 12.dp,
-                noiseFactor = 0.1f,
-                dropShadowSize = 20f
+                noiseFactor = 0.1f
               )
             )
             .fillMaxWidth(),

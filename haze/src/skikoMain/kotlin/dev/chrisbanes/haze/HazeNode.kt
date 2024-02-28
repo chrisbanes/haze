@@ -67,8 +67,10 @@ private class SkiaHazeNode(
   LayoutModifierNode,
   CompositionLocalConsumerModifierNode,
   ObserverModifierNode {
+
   private var renderEffectDirty = true
   private var hazeRenderEffect: RenderEffect? = null
+
   override fun onUpdate() {
     renderEffectDirty = true
     invalidatePlacement()
@@ -86,8 +88,7 @@ private class SkiaHazeNode(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        val position =
-          coordinates?.let { it.positionInWindow() + calculateWindowOffset() }
+        val position = coordinates?.let { it.positionInWindow() + calculateWindowOffset() }
             ?: Offset.Zero
         renderEffect = getOrCreateRenderEffect(position)
       }
@@ -181,19 +182,6 @@ private class SkiaHazeNode(
           uniform("colorShift", tint.alpha)
 
           uniform("noiseFactor", resolvedStyle.noiseFactor)
-
-          if (resolvedStyle.dropShadowSize >= 0) {
-            uniform(
-              "dropShadowSize",
-              resolvedStyle.dropShadowSize * density.density
-            )
-          } else {
-            uniform(
-              "dropShadowSize",
-              0f
-            )
-          }
-
 
           child("noise", NOISE_SHADER)
         }

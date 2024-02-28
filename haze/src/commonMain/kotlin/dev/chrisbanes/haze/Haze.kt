@@ -33,7 +33,9 @@ class HazeState {
    * The areas which are blurred by any [Modifier.haze] instances which use this state.
    */
   private val _areas = mutableStateListOf<HazeArea>()
+
   val areas: List<HazeArea> get() = _areas.toList()
+
   fun registerArea(area: HazeArea) {
     _areas.add(area)
   }
@@ -52,12 +54,16 @@ class HazeArea(
 ) {
   var size: Size by mutableStateOf(size)
     internal set
+
   var positionOnScreen: Offset by mutableStateOf(positionOnScreen)
     internal set
+
   var shape: Shape by mutableStateOf(shape)
     internal set
+
   var style: HazeStyle by mutableStateOf(style)
     internal set
+
   val isValid: Boolean
     get() = size.isSpecified && positionOnScreen.isSpecified && !size.isEmpty()
 }
@@ -116,7 +122,6 @@ object HazeDefaults {
    * Default alpha used for the tint color. Used by the [tint] function.
    */
   const val tintAlpha: Float = 0.7f
-  const val dropShadowSize: Float = -1f
 
   /**
    * Default builder for the 'tint' color. Transforms the provided [color].
@@ -143,12 +148,10 @@ object HazeDefaults {
     tint: Color = tint(backgroundColor),
     blurRadius: Dp = this.blurRadius,
     noiseFactor: Float = this.noiseFactor,
-    dropShadowSize: Float = this.dropShadowSize,
   ): HazeStyle = HazeStyle(
     tint = tint,
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
-    dropShadowSize = dropShadowSize
   )
 }
 
@@ -156,8 +159,7 @@ internal data class HazeNodeElement(
   val state: HazeState,
   val style: HazeStyle,
 ) : ModifierNodeElement<HazeNode>() {
-  override fun create(): HazeNode =
-    createHazeNode(state = state, style = style)
+  override fun create(): HazeNode = createHazeNode(state = state, style = style)
 
   override fun update(node: HazeNode) {
     node.state = state
@@ -194,7 +196,6 @@ data class HazeStyle(
   val tint: Color = Color.Unspecified,
   val blurRadius: Dp = Dp.Unspecified,
   val noiseFactor: Float = -1f,
-  val dropShadowSize: Float = -1f,
 ) {
   companion object {
     val Unspecified: HazeStyle = HazeStyle()
@@ -205,17 +206,10 @@ data class HazeStyle(
  * Resolves the style which should be used by renderers. The style returned from here
  * is guaranteed to contains specified values.
  */
-internal fun resolveStyle(
-  default: HazeStyle,
-  child: HazeStyle
-): HazeStyle = HazeStyle(
-  tint = child.tint.takeOrElse { default.tint }
-    .takeOrElse { Color.Transparent },
-  blurRadius = child.blurRadius.takeOrElse { default.blurRadius }
-    .takeOrElse { 0.dp },
-  noiseFactor = child.noiseFactor.takeOrElse { default.noiseFactor }
-    .takeOrElse { 0f },
-  dropShadowSize = child.dropShadowSize,
+internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle = HazeStyle(
+  tint = child.tint.takeOrElse { default.tint }.takeOrElse { Color.Transparent },
+  blurRadius = child.blurRadius.takeOrElse { default.blurRadius }.takeOrElse { 0.dp },
+  noiseFactor = child.noiseFactor.takeOrElse { default.noiseFactor }.takeOrElse { 0f },
 )
 
 private inline fun Float.takeOrElse(block: () -> Float): Float =
