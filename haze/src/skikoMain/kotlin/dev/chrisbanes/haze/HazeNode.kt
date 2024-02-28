@@ -1,6 +1,5 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
-
 package dev.chrisbanes.haze
 
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -32,58 +31,16 @@ import org.jetbrains.skia.Shader
  * Heavily influenced by
  * https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html
  */
-private const val SHADER_SKSL = """
-  uniform shader content;
-  uniform shader blur;
-  uniform shader noise;
-
-  uniform vec4 rectangle;
-  uniform vec4 radius;
-  uniform vec4 color;
-  uniform float colorShift;
-  uniform float noiseFactor;
-
-  // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-  float sdRoundedBox(vec2 position, vec2 box, vec4 radius) {
-    radius.xy = (position.x > 0.0) ? radius.xy : radius.zw;
-    radius.x = (position.y > 0.0) ? radius.x : radius.y;
-    vec2 q = abs(position) - box + radius.x;
-    return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - radius.x;
-  }
-
-  bool rectContains(vec4 rectangle, vec2 coord) {
-      vec2 shiftRect = (rectangle.zw - rectangle.xy) / 2.0;
-      vec2 shiftCoord = coord - rectangle.xy;
-      return sdRoundedBox(shiftCoord - shiftRect, shiftRect, radius) <= 0.0;
-  }
-
-  vec4 main(vec2 coord) {
-    if (!rectContains(rectangle, coord)) {
-        // If we're not drawing in the rectangle, return transparent
-        return vec4(0.0, 0.0, 0.0, 0.0);
-    }
-
-    vec4 b = blur.eval(coord);
-    vec4 n = noise.eval(coord);
-
-    // Add noise for extra texture
-    float noiseLuma = dot(n.rgb, vec3(0.2126, 0.7152, 0.0722));
-
-    // Calculate our overlay (tint + noise)
-    float overlay = min(1.0, colorShift + (noiseLuma * noiseFactor));
-
-    // Apply the overlay (noise + tint)
-    b = b + ((color - b) * overlay);
-
-    //modified alpha value of the final vec4 to 1.0
-    b.a = 1.0;
-
-    return b;
-  }
-"""
-
-private val RUNTIME_SHADER by lazy { RuntimeEffect.makeForShader(SHADER_SKSL) }
-
+private val RUNTIME_SHADER by lazy {
+  RuntimeEffect.makeForShader(
+    SHADER_SKSL
+  )
+}
+private val CLIPPING_SHADER by lazy {
+  RuntimeEffect.makeForShader(
+    CLIPPING_SHADER_SKSL
+  )
+}
 private val NOISE_SHADER by lazy {
   Shader.makeFractalNoise(
     baseFrequencyX = 0.45f,
@@ -110,10 +67,8 @@ private class SkiaHazeNode(
   LayoutModifierNode,
   CompositionLocalConsumerModifierNode,
   ObserverModifierNode {
-
   private var renderEffectDirty = true
   private var hazeRenderEffect: RenderEffect? = null
-
   override fun onUpdate() {
     renderEffectDirty = true
     invalidatePlacement()
@@ -131,8 +86,9 @@ private class SkiaHazeNode(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        val position = coordinates?.let { it.positionInWindow() + calculateWindowOffset() }
-          ?: Offset.Zero
+        val position =
+          coordinates?.let { it.positionInWindow() + calculateWindowOffset() }
+            ?: Offset.Zero
         renderEffect = getOrCreateRenderEffect(position)
       }
     }
@@ -152,48 +108,98 @@ private class SkiaHazeNode(
     if (state.areas.isEmpty()) {
       return null
     }
-
     val density = currentValueOf(LocalDensity)
+    var clippingFilter: ImageFilter? = null
 
-    val filters = state.areas.asSequence().mapNotNull { area ->
-      val areaLocalBounds = area.boundsInLocal(position) ?: return@mapNotNull null
+    state.areas.forEach { area ->
+      val areaLocalBounds =
+        area.boundsInLocal(position) ?: return null
+      val compositeShaderBuilder =
+        RuntimeShaderBuilder(CLIPPING_SHADER).apply {
+          uniform(
+            "rectangle",
+            areaLocalBounds.left,
+            areaLocalBounds.top,
+            areaLocalBounds.right,
+            areaLocalBounds.bottom,
+          )
 
-      val resolvedStyle = resolveStyle(style, area.style)
+          when (val shape = area.shape) {
+            is CornerBasedShape -> {
+              uniform(
+                "radius",
+                shape.topStart.toPx(area.size, density),
+                shape.topEnd.toPx(area.size, density),
+                shape.bottomStart.toPx(area.size, density),
+                shape.bottomEnd.toPx(area.size, density),
+              )
+            }
 
-      val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-        uniform(
-          "rectangle",
-          areaLocalBounds.left,
-          areaLocalBounds.top,
-          areaLocalBounds.right,
-          areaLocalBounds.bottom,
-        )
-
-        when (val shape = area.shape) {
-          is CornerBasedShape -> {
-            uniform(
-              "radius",
-              shape.topStart.toPx(area.size, density),
-              shape.topEnd.toPx(area.size, density),
-              shape.bottomStart.toPx(area.size, density),
-              shape.bottomEnd.toPx(area.size, density),
-            )
-          }
-
-          else -> {
-            uniform("radius", 0f, 0f, 0f, 0f)
+            else -> {
+              uniform("radius", 0f, 0f, 0f, 0f)
+            }
           }
         }
 
-        val tint = resolvedStyle.tint
-        uniform("color", tint.red, tint.green, tint.blue, 1f)
-        uniform("colorShift", tint.alpha)
+      clippingFilter = ImageFilter.makeRuntimeShader(
+        runtimeShaderBuilder = compositeShaderBuilder,
+        shaderNames = arrayOf("content"),
+        inputs = arrayOf(clippingFilter),
+      )
+    }
+    val filters = state.areas.asSequence().mapNotNull { area ->
+      val areaLocalBounds =
+        area.boundsInLocal(position) ?: return@mapNotNull null
+      val resolvedStyle = resolveStyle(style, area.style)
+      val compositeShaderBuilder =
+        RuntimeShaderBuilder(RUNTIME_SHADER).apply {
+          uniform(
+            "rectangle",
+            areaLocalBounds.left,
+            areaLocalBounds.top,
+            areaLocalBounds.right,
+            areaLocalBounds.bottom,
+          )
 
-        uniform("noiseFactor", resolvedStyle.noiseFactor)
+          when (val shape = area.shape) {
+            is CornerBasedShape -> {
+              uniform(
+                "radius",
+                shape.topStart.toPx(area.size, density),
+                shape.topEnd.toPx(area.size, density),
+                shape.bottomStart.toPx(area.size, density),
+                shape.bottomEnd.toPx(area.size, density),
+              )
+            }
 
-        child("noise", NOISE_SHADER)
-      }
+            else -> {
+              uniform("radius", 0f, 0f, 0f, 0f)
+            }
+          }
+          val tint = resolvedStyle.tint
+          uniform("color", tint.red, tint.green, tint.blue, 1f)
+          uniform("colorShift", tint.alpha)
 
+          uniform("noiseFactor", resolvedStyle.noiseFactor)
+
+          if (resolvedStyle.dropShadowSize >= 0) {
+            uniform(
+              "dropShadowSize",
+              resolvedStyle.dropShadowSize * density.density
+            )
+
+            println("shadowSize: " + resolvedStyle.dropShadowSize)
+            println("densitySize: " + density.density)
+          } else {
+            uniform(
+              "dropShadowSize",
+              0f
+            )
+          }
+
+
+          child("noise", NOISE_SHADER)
+        }
       // For CLAMP to work, we need to provide the crop rect
       val blurFilter = createBlurImageFilter(
         blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() },
@@ -206,12 +212,11 @@ private class SkiaHazeNode(
         inputs = arrayOf(null, blurFilter),
       )
     }
-
     return ImageFilter.makeMerge(
       buildList {
         // We need null as the first item, which tells Skia to draw the content without any filter.
         // The filters then draw on top, clipped to their respective areas.
-        add(null)
+        add(clippingFilter)
         addAll(filters)
       }.toTypedArray(),
       null,
@@ -219,7 +224,10 @@ private class SkiaHazeNode(
   }
 }
 
-private fun createBlurImageFilter(blurRadiusPx: Float, cropRect: Rect? = null): ImageFilter {
+private fun createBlurImageFilter(
+  blurRadiusPx: Float,
+  cropRect: Rect? = null
+): ImageFilter {
   val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
   return ImageFilter.makeBlur(
     sigmaX = sigma,
@@ -230,5 +238,10 @@ private fun createBlurImageFilter(blurRadiusPx: Float, cropRect: Rect? = null): 
 }
 
 private fun Rect.toIRect(): IRect {
-  return IRect.makeLTRB(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
+  return IRect.makeLTRB(
+    left.toInt(),
+    top.toInt(),
+    right.toInt(),
+    bottom.toInt()
+  )
 }
