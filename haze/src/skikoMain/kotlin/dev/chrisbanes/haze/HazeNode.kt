@@ -187,9 +187,6 @@ private class SkiaHazeNode(
               "dropShadowSize",
               resolvedStyle.dropShadowSize * density.density
             )
-
-            println("shadowSize: " + resolvedStyle.dropShadowSize)
-            println("densitySize: " + density.density)
           } else {
             uniform(
               "dropShadowSize",
