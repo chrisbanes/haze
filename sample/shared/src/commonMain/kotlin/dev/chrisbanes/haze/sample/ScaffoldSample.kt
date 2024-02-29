@@ -1,6 +1,5 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
-
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.AnimatedVisibility
@@ -48,7 +47,6 @@ import dev.chrisbanes.haze.hazeChild
 fun ScaffoldSample(navigator: Navigator) {
   MaterialTheme {
     val hazeState = remember { HazeState() }
-
     val gridState = rememberLazyGridState()
     val showNavigationBar by remember(gridState) {
       derivedStateOf { gridState.firstVisibleItemIndex == 0 }
@@ -66,7 +64,14 @@ fun ScaffoldSample(navigator: Navigator) {
           },
           colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
           modifier = Modifier
-            .hazeChild(hazeState)
+            .hazeChild(
+              hazeState,
+              style = HazeDefaults.style(
+                tint = Color.White.copy(alpha = 0.15f),
+                blurRadius = 12.dp,
+                noiseFactor = 0.1f
+              )
+            )
             .fillMaxWidth(),
         )
       },
