@@ -52,6 +52,7 @@ kotlin {
       dependencies {
         implementation(compose.desktop.currentOs)
         implementation(compose.desktop.uiTestJUnit4)
+        implementation(compose.components.resources)
         implementation(libs.roborazzi.composedesktop)
       }
     }
