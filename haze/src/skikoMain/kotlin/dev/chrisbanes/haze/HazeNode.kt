@@ -1,5 +1,6 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
+
 package dev.chrisbanes.haze
 
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -33,12 +34,12 @@ import org.jetbrains.skia.Shader
  */
 private val RUNTIME_SHADER by lazy {
   RuntimeEffect.makeForShader(
-    SHADER_SKSL
+    SHADER_SKSL,
   )
 }
 private val CLIPPING_SHADER by lazy {
   RuntimeEffect.makeForShader(
-    CLIPPING_SHADER_SKSL
+    CLIPPING_SHADER_SKSL,
   )
 }
 private val NOISE_SHADER by lazy {
@@ -89,7 +90,7 @@ private class SkiaHazeNode(
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
         val position = coordinates?.let { it.positionInWindow() + calculateWindowOffset() }
-            ?: Offset.Zero
+          ?: Offset.Zero
         renderEffect = getOrCreateRenderEffect(position)
       }
     }
@@ -211,7 +212,7 @@ private class SkiaHazeNode(
 
 private fun createBlurImageFilter(
   blurRadiusPx: Float,
-  cropRect: Rect? = null
+  cropRect: Rect? = null,
 ): ImageFilter {
   val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
   return ImageFilter.makeBlur(
@@ -227,6 +228,6 @@ private fun Rect.toIRect(): IRect {
     left.toInt(),
     top.toInt(),
     right.toInt(),
-    bottom.toInt()
+    bottom.toInt(),
   )
 }

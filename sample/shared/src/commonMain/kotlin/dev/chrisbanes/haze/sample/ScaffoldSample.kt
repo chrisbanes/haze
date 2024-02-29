@@ -1,5 +1,6 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
+
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.AnimatedVisibility
@@ -69,8 +70,8 @@ fun ScaffoldSample(navigator: Navigator) {
               style = HazeDefaults.style(
                 tint = Color.White.copy(alpha = 0.15f),
                 blurRadius = 12.dp,
-                noiseFactor = 0.1f
-              )
+                noiseFactor = 0.1f,
+              ),
             )
             .fillMaxWidth(),
         )
