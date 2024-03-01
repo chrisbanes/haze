@@ -138,7 +138,7 @@ internal class AndroidHazeNode(
   private fun updateImplIfRequired(forceScrim: Boolean): Boolean {
     // We can't currently use RenderNode impl on API 31 due to
     // https://github.com/chrisbanes/haze/issues/77
-    if (Build.VERSION.SDK_INT >= 32) {
+    if (Build.VERSION.SDK_INT >= 31) {
       if (forceScrim && impl !is ScrimImpl) {
         impl = ScrimImpl()
         return true
@@ -291,7 +291,6 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     // their RenderEffect to be applied to the composable content.
     for (effect in effects) {
       effect.renderNode.record {
-        translate(-effect.bounds.left, -effect.bounds.top)
         // We need to inflate the bounds by the blur radius, so that the effect
         // has access to the pixels it needs in the clipRect
         val (l, t, r, b) = effect.bounds
@@ -402,7 +401,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
   private fun Effect.updateRenderNodePosition() {
     renderNode.apply {
-      renderNode.setPosition(0, 0, bounds.width.toInt(), bounds.height.toInt())
+      renderNode.setPosition(-(bounds.left.toInt()), -(bounds.top.toInt()), bounds.width.toInt(), bounds.height.toInt())
       renderNode.translationX = bounds.left
       renderNode.translationY = bounds.top
     }
