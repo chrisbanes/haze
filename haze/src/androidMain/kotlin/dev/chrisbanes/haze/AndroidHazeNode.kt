@@ -136,8 +136,6 @@ internal class AndroidHazeNode(
   }
 
   private fun updateImplIfRequired(forceScrim: Boolean): Boolean {
-    // We can't currently use RenderNode impl on API 31 due to
-    // https://github.com/chrisbanes/haze/issues/77
     if (Build.VERSION.SDK_INT >= 31) {
       if (forceScrim && impl !is ScrimImpl) {
         impl = ScrimImpl()
