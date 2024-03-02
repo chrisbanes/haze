@@ -258,6 +258,12 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
   val noiseTextureCache = lruCache<Float, Bitmap>(3)
 
   override fun ContentDrawScope.draw() {
+    if (effects.isEmpty()) {
+      // If we don't have any effects, jyst call drawContent and return early
+      drawContent()
+      return
+    }
+
     // First we draw the composable content into `contentNode`
     contentNode.setPosition(0, 0, size.width.toInt(), size.height.toInt())
 
@@ -297,7 +303,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
         val (l, t, r, b) = effect.bounds
         val inflate = effect.blurRadiusPx
         clipRect(l - inflate, t - inflate, r + inflate, b + inflate)
-        // Finally draw the contentNode
+        // Finally draw the content into our effect RN
         drawRenderNode(contentNode)
       }
 
@@ -420,7 +426,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     pathDirty = false
   }
 
-  private data class Effect(
+  private class Effect(
     val area: HazeArea,
     val path: Path = Path(),
     val renderNode: RenderNode = RenderNode(null),
