@@ -41,7 +41,7 @@ A tint effect is applied, primarily to maintain contrast and legibility. By defa
 
 ### Noise
 
-Some visual noise is applied, to provide some tactility. This is completely optional, and defaults to a value of `0.1f` (10% strength). You can disable this by providing `0f`.
+Some visual noise is applied, to provide some tactility. This is completely optional, and defaults to a value of `0.15f` (15% strength). You can disable this by providing `0f`.
 
 ## Shapes
 
