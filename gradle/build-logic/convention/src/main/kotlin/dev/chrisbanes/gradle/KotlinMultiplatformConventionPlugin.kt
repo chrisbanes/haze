@@ -8,6 +8,7 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)
 class KotlinMultiplatformConventionPlugin : Plugin<Project> {
@@ -29,6 +30,11 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
       iosX64()
       iosArm64()
       iosSimulatorArm64()
+
+      @OptIn(ExperimentalWasmDsl::class)
+      wasmJs {
+        browser()
+      }
 
       configureSpotless()
       configureKotlin()
