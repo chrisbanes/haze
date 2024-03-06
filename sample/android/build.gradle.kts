@@ -51,8 +51,6 @@ android {
 dependencies {
   implementation(projects.sample.shared)
 
-  implementation(libs.imageloader)
-
   implementation(libs.androidx.core)
   implementation(libs.androidx.activity.compose)
   implementation(libs.androidx.profileinstaller)
