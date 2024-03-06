@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze.sample
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import com.seiko.imageloader.rememberImagePainter
+import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
@@ -40,8 +39,8 @@ fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
   val hazeState = remember { HazeState() }
 
   Box {
-    Image(
-      painter = rememberImagePainter(rememberRandomSampleImageUrl(width = 720, height = 1280)),
+    AsyncImage(
+      model = rememberRandomSampleImageUrl(width = 720, height = 1280),
       contentScale = ContentScale.Crop,
       contentDescription = null,
       modifier = Modifier

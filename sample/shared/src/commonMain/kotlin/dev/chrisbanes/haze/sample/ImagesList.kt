@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze.sample
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,7 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.seiko.imageloader.rememberImagePainter
+import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
@@ -68,8 +67,8 @@ fun ImagesList(navigator: Navigator) {
               .fillParentMaxWidth()
               .height(160.dp),
           ) {
-            Image(
-              painter = rememberImagePainter(rememberRandomSampleImageUrl(width = 800)),
+            AsyncImage(
+              model = rememberRandomSampleImageUrl(width = 800),
               contentScale = ContentScale.Crop,
               contentDescription = null,
               modifier = Modifier

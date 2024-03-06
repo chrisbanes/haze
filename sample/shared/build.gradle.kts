@@ -14,25 +14,43 @@ android {
 
 kotlin {
   sourceSets {
-    val commonMain by getting {
+    commonMain {
       dependencies {
         implementation(projects.haze)
         implementation(projects.hazeMaterials)
-        implementation(libs.imageloader)
+
+        implementation(libs.coil.compose)
+        implementation(libs.coil.ktor)
+        implementation(libs.ktor.core)
+
         api(compose.material3)
       }
     }
 
+    androidMain {
+      dependencies {
+        implementation(libs.ktor.cio)
+      }
+    }
+
     val skikoMain by creating {
-      dependsOn(commonMain)
+      dependsOn(commonMain.get())
     }
 
-    val iosMain by getting {
+    iosMain {
       dependsOn(skikoMain)
+
+      dependencies {
+        implementation(libs.ktor.cio)
+      }
     }
 
-    val jvmMain by getting {
+    jvmMain {
       dependsOn(skikoMain)
+
+      dependencies {
+        implementation(libs.ktor.cio)
+      }
     }
   }
 }
