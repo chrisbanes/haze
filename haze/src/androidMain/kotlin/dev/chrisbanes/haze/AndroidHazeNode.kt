@@ -260,7 +260,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
   override fun ContentDrawScope.draw() {
     if (effects.isEmpty()) {
-      // If we don't have any effects, jyst call drawContent and return early
+      // If we don't have any effects, just call drawContent and return early
       drawContent()
       return
     }
@@ -333,6 +333,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
     // We create a RenderNode for each of the areas we need to apply our effect to
     effects = state.areas.asSequence()
+      .filter { it.isValid }
       .map { area ->
         currentEffects.remove(area) ?: Effect(
           area = area,
@@ -439,27 +440,33 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     return path
   }
 
-  private fun Effect.getUpdatedContentClipPath(layoutDirection: LayoutDirection, density: Density): Path {
+  private fun Effect.getUpdatedContentClipPath(
+    layoutDirection: LayoutDirection,
+    density: Density,
+  ): Path {
     if (pathsDirty) updatePaths(layoutDirection, density)
     return contentClipPath
   }
 
   private fun Effect.updatePaths(layoutDirection: LayoutDirection, density: Density) {
     path.rewind()
+    contentClipPath.rewind()
+
     if (!bounds.isEmpty) {
       path.addOutline(shape.createOutline(bounds.size, layoutDirection, density))
-    }
 
-    contentClipPath.rewind()
-    contentClipPath.addPath(path)
-    contentClipPath.transform(
-      Matrix().apply {
-        scale(
-          x = contentClipBounds.width / bounds.width,
-          y = contentClipBounds.height / bounds.height,
+      if (!contentClipBounds.isEmpty) {
+        contentClipPath.addPath(path)
+        contentClipPath.transform(
+          Matrix().apply {
+            scale(
+              x = contentClipBounds.width / bounds.width,
+              y = contentClipBounds.height / bounds.height,
+            )
+          },
         )
-      },
-    )
+      }
+    }
 
     pathsDirty = false
   }
