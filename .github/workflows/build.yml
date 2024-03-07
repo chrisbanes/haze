@@ -31,7 +31,7 @@ jobs:
           distribution: 'zulu'
           java-version: 21
 
-      - uses: gradle/gradle-build-action@v2
+      - uses: gradle/gradle-build-action@v3
 
       - name: Check
         run: |
@@ -76,7 +76,7 @@ jobs:
           distribution: 'zulu'
           java-version: 21
 
-      - uses: gradle/gradle-build-action@v2
+      - uses: gradle/gradle-build-action@v3
 
       - name: Deploy to Sonatype
         run: ./gradlew publish --no-configuration-cache

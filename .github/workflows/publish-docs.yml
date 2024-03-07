@@ -42,7 +42,7 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install mkdocs mkdocs-material mkdocs-video "mkdocs-material[imaging]"
 
-      - uses: gradle/gradle-build-action@v2
+      - uses: gradle/gradle-build-action@v3
 
       - run: ./gradlew :dokkaHtmlMultiModule sample:web-wasm:wasmJsBrowserDistribution --no-configuration-cache
 
