@@ -16,6 +16,7 @@ dependencyResolutionManagement {
   repositories {
     mavenCentral()
     google()
+    maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
     mavenLocal()
   }
 }
@@ -50,4 +51,5 @@ include(
   ":sample:shared",
   ":sample:android",
   ":sample:desktop",
+  ":sample:web-wasm",
 )

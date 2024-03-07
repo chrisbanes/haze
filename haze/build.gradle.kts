@@ -51,11 +51,23 @@ kotlin {
       dependsOn(skikoMain)
     }
 
-    commonTest {
+    named("wasmJsMain") {
+      dependsOn(skikoMain)
+    }
+
+    val screenshotTest by creating {
       dependencies {
         implementation(kotlin("test"))
         implementation(projects.internal.screenshotTest)
       }
+    }
+
+    jvmTest {
+      dependsOn(screenshotTest)
+    }
+
+    androidUnitTest {
+      dependsOn(screenshotTest)
     }
   }
 }

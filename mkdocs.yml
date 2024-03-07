@@ -20,6 +20,7 @@ nav:
   - 'FAQs': faq.md
   - 'API reference': api/
   - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
+  - '🕸️ Sample WASM app': /haze/wasmsample/
 
 # Configuration
 theme:

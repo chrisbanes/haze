@@ -52,5 +52,9 @@ kotlin {
         implementation(libs.ktor.cio)
       }
     }
+
+    named("wasmJsMain") {
+      dependsOn(skikoMain)
+    }
   }
 }

@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: 17
+          java-version: 21
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -44,13 +44,16 @@ jobs:
 
       - uses: gradle/gradle-build-action@v2
 
-      - run: ./gradlew :dokkaHtmlMultiModule --no-configuration-cache
+      - run: ./gradlew :dokkaHtmlMultiModule sample:web-wasm:wasmJsBrowserDistribution --no-configuration-cache
 
       - name: Build site
         run: mkdocs build
 
       - name: Copy Dokka output to site
         run: cp -r build/dokka/htmlMultiModule/ site/api/
+
+      - name: Copy WebAssembly sample to site
+        run: cp -r sample/web-wasm/build/dist/wasmJs/productionExecutable/ site/wasmsample/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
