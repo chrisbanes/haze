@@ -9,11 +9,11 @@ Haze is built with [Compose Multiplatform](https://www.jetbrains.com/lp/compose-
 | Android       | ✅               |
 | Desktop (JVM) | ✅               |
 | iOS           | ✅               |
+| Wasm          | ✅               |
 
 You can also see it in action in the [Tivi app](https://github.com/chrisbanes/tivi):
 
 ![type:video](./media/tivi.mp4)
-
 
 ## Download
 
@@ -25,7 +25,6 @@ repositories {
 }
 
 dependencies {
-    // For Compose Multiplatform AND Jetpack Compose
     implementation("dev.chrisbanes.haze:haze:<version>")
 }
 ```
