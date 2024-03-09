@@ -267,13 +267,11 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
     // First we draw the composable content into `contentNode`
     contentNode.setPosition(0, 0, size.width.toInt(), size.height.toInt())
-
-    Canvas(contentNode.beginRecording()).also { canvas ->
-      val contentDrawScope = this
-      draw(this, layoutDirection, canvas, size) {
-        contentDrawScope.drawContent()
+    contentNode.record { canvas ->
+      val scope = this@draw
+      draw(scope, layoutDirection, Canvas(canvas), size) {
+        scope.drawContent()
       }
-      contentNode.endRecording()
     }
 
     for (effect in effects) {
@@ -297,15 +295,15 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
     // their RenderEffect to be applied to the composable content.
     for (effect in effects) {
-      effect.renderNode.record {
-        translate(-effect.bounds.left, -effect.bounds.top)
+      effect.renderNode.record { canvas ->
+        canvas.translate(-effect.bounds.left, -effect.bounds.top)
         // We need to inflate the bounds by the blur radius, so that the effect
         // has access to the pixels it needs in the clipRect
         val (l, t, r, b) = effect.bounds
         val inflate = effect.blurRadiusPx
-        clipRect(l - inflate, t - inflate, r + inflate, b + inflate)
+        canvas.clipRect(l - inflate, t - inflate, r + inflate, b + inflate)
         // Finally draw the content into our effect RN
-        drawRenderNode(contentNode)
+        canvas.drawRenderNode(contentNode)
       }
 
       // Finally we draw the 'effect' RenderNode to the window canvas, drawing on top
@@ -519,7 +517,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 }
 
 @RequiresApi(31)
-private inline fun RenderNode.record(block: RecordingCanvas.() -> Unit) {
+private inline fun RenderNode.record(block: (RecordingCanvas) -> Unit) {
   try {
     beginRecording().apply(block)
   } finally {
