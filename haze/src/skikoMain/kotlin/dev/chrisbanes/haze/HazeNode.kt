@@ -130,10 +130,10 @@ private class SkiaHazeNode(
             is CornerBasedShape -> {
               uniform(
                 "radius",
-                shape.topStart.toPx(area.size, density),
+                shape.bottomEnd.toPx(area.size, density),
                 shape.topEnd.toPx(area.size, density),
                 shape.bottomStart.toPx(area.size, density),
-                shape.bottomEnd.toPx(area.size, density),
+                shape.topStart.toPx(area.size, density),
               )
             }
 
@@ -167,10 +167,10 @@ private class SkiaHazeNode(
             is CornerBasedShape -> {
               uniform(
                 "radius",
-                shape.topStart.toPx(area.size, density),
+                shape.bottomEnd.toPx(area.size, density),
                 shape.topEnd.toPx(area.size, density),
                 shape.bottomStart.toPx(area.size, density),
-                shape.bottomEnd.toPx(area.size, density),
+                shape.topStart.toPx(area.size, density),
               )
             }
 
