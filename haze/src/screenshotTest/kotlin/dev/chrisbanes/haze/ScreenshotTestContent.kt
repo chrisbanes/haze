@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 internal fun CreditCardSample(
   defaultTint: Color = Color.White.copy(alpha = 0.1f),
   childTint: Color = Color.Unspecified,
-  roundedCornerShape: RoundedCornerShape = RoundedCornerShape(16.dp)
+  roundedCornerShape: RoundedCornerShape = RoundedCornerShape(16.dp),
 ) {
   val hazeState = remember { HazeState() }
 
