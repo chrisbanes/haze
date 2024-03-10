@@ -3,10 +3,12 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -53,5 +55,26 @@ class HazeScreenshotTest : ScreenshotTest() {
     tint = Color.Red.copy(alpha = 0.5f)
     waitForIdle()
     captureRoot("red")
+  }
+
+  @Test
+  fun creditCard_roundedCorner_topStart() = roundedCornerTest(RoundedCornerShape(topStart = 32.dp))
+
+  @Test
+  fun creditCard_roundedCorner_topEnd() = roundedCornerTest(RoundedCornerShape(topEnd = 32.dp))
+
+  @Test
+  fun creditCard_roundedCorner_bottomEnd() = roundedCornerTest(RoundedCornerShape(bottomEnd = 32.dp))
+
+  @Test
+  fun creditCard_roundedCorner_bottomStart() = roundedCornerTest(RoundedCornerShape(bottomStart = 32.dp))
+
+  private fun roundedCornerTest(roundedCornerShape: RoundedCornerShape) = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(roundedCornerShape = roundedCornerShape)
+      }
+    }
+    captureRoot()
   }
 }
