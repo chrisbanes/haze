@@ -27,6 +27,7 @@ internal fun CreditCardSample(
   defaultTint: Color = Color.White.copy(alpha = 0.1f),
   childTint: Color = Color.Unspecified,
   roundedCornerShape: RoundedCornerShape = RoundedCornerShape(16.dp),
+  enabled: Boolean = true,
 ) {
   val hazeState = remember { HazeState() }
 
@@ -62,10 +63,16 @@ internal fun CreditCardSample(
         .fillMaxWidth(0.7f)
         .aspectRatio(16 / 9f)
         .align(Alignment.Center)
-        .hazeChild(
-          state = hazeState,
-          shape = roundedCornerShape,
-          style = HazeStyle(tint = childTint),
+        .then(
+          if (enabled) {
+            Modifier.hazeChild(
+              state = hazeState,
+              shape = roundedCornerShape,
+              style = HazeStyle(tint = childTint),
+            )
+          } else {
+            Modifier
+          },
         ),
     ) {
       Column(Modifier.padding(32.dp)) {

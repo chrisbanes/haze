@@ -69,6 +69,28 @@ class HazeScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_roundedCorner_bottomStart() = roundedCornerTest(RoundedCornerShape(bottomStart = 32.dp))
 
+  @Test
+  fun creditCard_conditional() = runScreenshotTest {
+    var enabled by mutableStateOf(true)
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(enabled = enabled)
+      }
+    }
+
+    waitForIdle()
+    captureRoot("0_initial")
+
+    enabled = false
+    waitForIdle()
+    captureRoot("1_disabled")
+
+    enabled = true
+    waitForIdle()
+    captureRoot("2_reenabled")
+  }
+
   private fun roundedCornerTest(roundedCornerShape: RoundedCornerShape) = runScreenshotTest {
     setContent {
       ScreenshotTheme {
