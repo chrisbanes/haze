@@ -12,6 +12,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.invalidateSubtree
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.toSize
@@ -111,6 +112,11 @@ private data class HazeChildNode(
   private fun attachToHazeState() {
     state.registerArea(area)
     attachedState = state
+
+    // We need to trigger a layout so that we get the initial size. This is important for when
+    // the modifier is added after layout has settled down (such as conditional modifiers).
+    // invalidateSubtree() is a big hammer, but it's the only tool we have.
+    invalidateSubtree()
   }
 
   private fun detachFromHazeState() {
