@@ -59,7 +59,6 @@ rootProject.name = "haze-root"
 include(
   ":haze",
   ":haze-materials",
-  ":haze-jetpack-compose",
   ":internal:benchmark",
   ":internal:screenshot-test",
   ":sample:shared",
