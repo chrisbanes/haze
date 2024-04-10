@@ -6,8 +6,13 @@ pluginManagement {
   includeBuild("gradle/build-logic")
 
   repositories {
+    google {
+      content {
+        includeGroupByRegex(".*google.*")
+        includeGroupByRegex(".*android.*")
+      }
+    }
     mavenCentral()
-    google()
     gradlePluginPortal()
   }
 }
@@ -16,9 +21,12 @@ dependencyResolutionManagement {
   repositories {
     mavenCentral()
     google()
-    maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
+    maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental") {
+      content {
+        includeGroupByRegex("io.ktor.*")
+      }
+    }
     mavenLocal()
-    maven("https://oss.sonatype.org/content/repositories/snapshots")
   }
 }
 
@@ -26,14 +34,19 @@ plugins {
   id("com.gradle.enterprise") version "3.17.1"
 }
 
-val isCi = providers.environmentVariable("CI").isPresent
+val isCi: Boolean get() = !System.getenv("CI").isNullOrEmpty()
 
-gradleEnterprise {
+develocity {
   buildScan {
-    termsOfServiceUrl = "https://gradle.com/terms-of-service"
-    termsOfServiceAgree = "yes"
+    termsOfUseUrl.set("https://gradle.com/help/legal-terms-of-use")
+    termsOfUseAgree.set("yes")
 
-    publishAlwaysIf(isCi)
+    if (isCi) {
+      publishing.onlyIf { true }
+      tag("CI")
+    }
+
+    uploadInBackground.set(!isCi)
   }
 }
 
