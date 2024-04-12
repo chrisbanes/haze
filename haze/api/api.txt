@@ -17,6 +17,7 @@ package dev.chrisbanes.haze {
 
   public final class HazeChildKt {
     method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style);
+    method @Deprecated public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape, optional long tint, optional float blurRadius, optional float noiseFactor);
   }
 
   public final class HazeDefaults {
@@ -31,6 +32,14 @@ package dev.chrisbanes.haze {
 
   public final class HazeKt {
     method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style);
+    method @Deprecated public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
+  }
+
+  public final class HazeScreenshotTest {
+    ctor public HazeScreenshotTest();
+    method public error.NonExistentClass! creditCard();
+    method public error.NonExistentClass! creditCard_childTint();
+    method public error.NonExistentClass! creditCard_transparentTint();
   }
 
   @androidx.compose.runtime.Stable public final class HazeState {

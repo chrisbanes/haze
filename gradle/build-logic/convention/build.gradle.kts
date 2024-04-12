@@ -32,7 +32,6 @@ dependencies {
   compileOnly(libs.kotlin.gradlePlugin)
   compileOnly(libs.spotless.gradlePlugin)
   compileOnly(libs.compose.gradlePlugin)
-  compileOnly(libs.metalava.gradlePlugin)
 }
 
 gradlePlugin {
@@ -70,11 +69,6 @@ gradlePlugin {
     register("compose") {
       id = "dev.chrisbanes.compose"
       implementationClass = "dev.chrisbanes.gradle.ComposeMultiplatformConventionPlugin"
-    }
-
-    register("metalava") {
-      id = "dev.chrisbanes.metalava"
-      implementationClass = "dev.chrisbanes.gradle.MetalavaConventionPlugin"
     }
   }
 }

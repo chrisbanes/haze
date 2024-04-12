@@ -9,7 +9,7 @@ plugins {
   id("androidx.baselineprofile")
   id("org.jetbrains.dokka")
   id("com.vanniktech.maven.publish")
-  id("dev.chrisbanes.metalava")
+  id("me.tylerbwong.gradle.metalava")
   id("io.github.takahirom.roborazzi")
 }
 
@@ -84,4 +84,8 @@ baselineProfile {
 
 dependencies {
   baselineProfile(projects.internal.benchmark)
+}
+
+metalava {
+  filename.set("api/api.txt")
 }

@@ -8,7 +8,7 @@ plugins {
   id("dev.chrisbanes.compose")
   id("org.jetbrains.dokka")
   id("com.vanniktech.maven.publish")
-  id("dev.chrisbanes.metalava")
+  id("me.tylerbwong.gradle.metalava")
 }
 
 android {
@@ -24,4 +24,8 @@ kotlin {
       }
     }
   }
+}
+
+metalava {
+  filename.set("api/api.txt")
 }

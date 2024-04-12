@@ -6,13 +6,8 @@ pluginManagement {
   includeBuild("gradle/build-logic")
 
   repositories {
-    google {
-      content {
-        includeGroupByRegex(".*google.*")
-        includeGroupByRegex(".*android.*")
-      }
-    }
     mavenCentral()
+    google()
     gradlePluginPortal()
   }
 }
@@ -21,32 +16,23 @@ dependencyResolutionManagement {
   repositories {
     mavenCentral()
     google()
-    maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental") {
-      content {
-        includeGroupByRegex("io.ktor.*")
-      }
-    }
+    maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
     mavenLocal()
   }
 }
 
 plugins {
-  id("com.gradle.enterprise") version "3.17.1"
+  id("com.gradle.enterprise") version "3.17"
 }
 
-val isCi: Boolean get() = !System.getenv("CI").isNullOrEmpty()
+val isCi = providers.environmentVariable("CI").isPresent
 
-develocity {
+gradleEnterprise {
   buildScan {
-    termsOfUseUrl.set("https://gradle.com/help/legal-terms-of-use")
-    termsOfUseAgree.set("yes")
+    termsOfServiceUrl = "https://gradle.com/terms-of-service"
+    termsOfServiceAgree = "yes"
 
-    if (isCi) {
-      publishing.onlyIf { true }
-      tag("CI")
-    }
-
-    uploadInBackground.set(!isCi)
+    publishAlwaysIf(isCi)
   }
 }
 
@@ -59,6 +45,7 @@ rootProject.name = "haze-root"
 include(
   ":haze",
   ":haze-materials",
+  ":haze-jetpack-compose",
   ":internal:benchmark",
   ":internal:screenshot-test",
   ":sample:shared",

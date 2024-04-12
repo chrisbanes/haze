@@ -1,5 +1,5 @@
 [versions]
-agp = "8.3.2"
+agp = "8.3.1"
 androidx-benchmark = "1.2.3"
 androidx-test-ext-junit = "1.1.5"
 coil = "3.0.0-alpha06"
@@ -8,9 +8,8 @@ compose-multiplatform = "1.6.0"
 ktlint = "1.0.1"
 kotlin = "1.9.22"
 ktor = "3.0.0-wasm2"
-metalava = "0.3.5"
-robolectric = "4.12.1"
-roborazzi = "1.12.0"
+robolectric = "4.12"
+roborazzi = "1.11.0"
 spotless = "6.25.0"
 
 [plugins]
@@ -23,7 +22,7 @@ cacheFixPlugin = { id = "org.gradle.android.cache-fix", version = "3.0.1" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 dokka = { id = "org.jetbrains.dokka", version = "1.9.20" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-metalava = { id = "me.tylerbwong.gradle.metalava", version.ref = "metalava" }
+metalava = { id = "me.tylerbwong.gradle.metalava", version = "0.3.5" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.28.0" }
@@ -33,7 +32,7 @@ androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4
 androidx-core = "androidx.core:core-ktx:1.12.0"
 androidx-collection = "androidx.collection:collection:1.4.0"
 androidx-activity-compose = "androidx.activity:activity-compose:1.8.2"
-androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.6.5"
+androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.6.4"
 androidx-profileinstaller = "androidx.profileinstaller:profileinstaller:1.3.1"
 androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext-junit" }
 androidx-test-uiautomator = "androidx.test.uiautomator:uiautomator:2.3.0"
@@ -55,4 +54,3 @@ android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref 
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 spotless-gradlePlugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose-multiplatform" }
-metalava-gradlePlugin = { module = "me.tylerbwong.gradle.metalava:plugin", version.ref = "metalava" }

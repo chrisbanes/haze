@@ -16,7 +16,6 @@ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.RoborazziRule
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.roboOutputName
-import org.junit.Before
 import org.junit.Rule
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -38,12 +37,6 @@ actual abstract class ScreenshotTest {
       roborazziOptions = HazeRoborazziDefaults.roborazziOptions,
     ),
   )
-
-  @Before
-  fun setup() {
-    System.setProperty("robolectric.logging.enabled", "true")
-    System.setProperty("robolectric.screenshot.hwrdr.native", "true")
-  }
 }
 
 actual val HazeRoborazziDefaults.outputDirectoryName: String get() = "android"
