@@ -6,7 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.graphics.Path
 import androidx.core.util.Pools
 
-internal inline fun <T> Pools.Pool<T>.acquireOrCreate(block: () -> T): T = acquire() ?: block()
+internal inline fun <T : Any> Pools.Pool<T>.acquireOrCreate(block: () -> T): T = acquire() ?: block()
 
 internal fun Pools.Pool<Path>.acquireOrCreate(): Path = acquireOrCreate(::Path)
 
