@@ -1,2 +1,0 @@
-**/screenshots/**/*.png filter=lfs diff=lfs merge=lfs -text
-baseline-profile.txt filter=lfs diff=lfs merge=lfs -text
