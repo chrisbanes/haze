@@ -35,13 +35,6 @@ package dev.chrisbanes.haze {
     method @Deprecated public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
   }
 
-  public final class HazeScreenshotTest {
-    ctor public HazeScreenshotTest();
-    method public error.NonExistentClass! creditCard();
-    method public error.NonExistentClass! creditCard_childTint();
-    method public error.NonExistentClass! creditCard_transparentTint();
-  }
-
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
     method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();

@@ -6,18 +6,17 @@ package dev.chrisbanes.gradle
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 
-@OptIn(ExperimentalKotlinGradlePluginApi::class)
 class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   override fun apply(target: Project) = with(target) {
     with(pluginManager) {
       apply("org.jetbrains.kotlin.multiplatform")
     }
 
-    extensions.configure<KotlinMultiplatformExtension> {
+    kotlin {
       applyDefaultHierarchyTemplate()
 
       jvm()
@@ -41,3 +40,10 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
     }
   }
 }
+
+internal fun Project.kotlin(action: KotlinMultiplatformExtension.() -> Unit) {
+  extensions.configure<KotlinMultiplatformExtension>(action)
+}
+
+internal val Project.kotlin: KotlinMultiplatformExtension
+  get() = extensions.getByType<KotlinMultiplatformExtension>()
