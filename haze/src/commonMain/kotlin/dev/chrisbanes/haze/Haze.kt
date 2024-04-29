@@ -66,6 +66,11 @@ class HazeArea(
 
   val isValid: Boolean
     get() = size.isSpecified && positionOnScreen.isSpecified && !size.isEmpty()
+
+  internal fun reset() {
+    positionOnScreen = Offset.Unspecified
+    size = Size.Unspecified
+  }
 }
 
 internal fun HazeArea.boundsInLocal(position: Offset): Rect? {
