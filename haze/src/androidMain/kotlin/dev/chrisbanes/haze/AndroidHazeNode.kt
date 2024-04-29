@@ -282,13 +282,13 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     // Now we draw `contentNode` into the window canvas, clipping any effect areas which
     // will be drawn below
     with(drawContext.canvas) {
-      withSave {
-        for (effect in effects) {
+      for (effect in effects) {
+        withSave {
           clipShape(effect.shape, effect.contentClipBounds, ClipOp.Difference) {
             effect.getUpdatedContentClipPath(layoutDirection, drawContext.density)
           }
+          nativeCanvas.drawRenderNode(contentNode)
         }
-        nativeCanvas.drawRenderNode(contentNode)
       }
     }
 
