@@ -15,9 +15,8 @@ internal actual fun createHazeNode(
 ): HazeNode = AndroidHazeNode(state, style)
 
 internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset {
-  val view = currentValueOf(LocalView)
   val loc = tmpArray.getOrSet { IntArray(2) }
-  view.getLocationOnScreen(loc)
+  currentValueOf(LocalView).rootView.getLocationOnScreen(loc)
   return Offset(loc[0].toFloat(), loc[1].toFloat())
 }
 
