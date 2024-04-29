@@ -105,6 +105,10 @@ private data class HazeChildNode(
     area.size = coordinates.size.toSize()
   }
 
+  override fun onReset() {
+    area.reset()
+  }
+
   override fun onDetach() {
     detachFromHazeState()
   }
