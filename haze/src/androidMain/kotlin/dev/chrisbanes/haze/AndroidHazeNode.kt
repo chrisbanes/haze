@@ -26,7 +26,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -282,13 +281,15 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     // Now we draw `contentNode` into the window canvas, clipping any effect areas which
     // will be drawn below
     with(drawContext.canvas) {
-      for (effect in effects) {
-        withSave {
+      withSave {
+        // We add all of the clip outs to the canvas (to combine them)
+        for (effect in effects) {
           clipShape(effect.shape, effect.contentClipBounds, ClipOp.Difference) {
             effect.getUpdatedContentClipPath(layoutDirection, drawContext.density)
           }
-          nativeCanvas.drawRenderNode(contentNode)
         }
+        // Then we draw the render node
+        nativeCanvas.drawRenderNode(contentNode)
       }
     }
 
@@ -398,7 +399,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
       bounds.isEmpty -> bounds
       // We clip the content to a slightly smaller rect than the blur bounds, to reduce the
       // chance of rounding + anti-aliasing causing visually problems
-      else -> bounds.deflate(2f).coerceAtLeast(Rect.Zero)
+      else -> bounds.deflate(2f).takeIf { it.width >= 0 && it.height >= 0 } ?: Rect.Zero
     }
     this.blurRadiusPx = blurRadiusPx
     this.noiseFactor = noiseFactor
@@ -448,22 +449,13 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
   private fun Effect.updatePaths(layoutDirection: LayoutDirection, density: Density) {
     path.rewind()
-    contentClipPath.rewind()
-
     if (!bounds.isEmpty) {
       path.addOutline(shape.createOutline(bounds.size, layoutDirection, density))
+    }
 
-      if (!contentClipBounds.isEmpty) {
-        contentClipPath.addPath(path)
-        contentClipPath.transform(
-          Matrix().apply {
-            scale(
-              x = contentClipBounds.width / bounds.width,
-              y = contentClipBounds.height / bounds.height,
-            )
-          },
-        )
-      }
+    contentClipPath.rewind()
+    if (!contentClipBounds.isEmpty) {
+      contentClipPath.addOutline(shape.createOutline(contentClipBounds.size, layoutDirection, density))
     }
 
     pathsDirty = false
@@ -543,10 +535,3 @@ private fun Canvas.clipShape(
     }
   }
 }
-
-private fun Rect.coerceAtLeast(rect: Rect): Rect = Rect(
-  left = left.coerceAtLeast(rect.left),
-  top = top.coerceAtLeast(rect.top),
-  right = right.coerceAtLeast(rect.right),
-  bottom = bottom.coerceAtLeast(rect.bottom),
-)
