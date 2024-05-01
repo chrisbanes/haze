@@ -19,7 +19,12 @@ fun Project.configureJava() {
   }
 
   // Set Java language version to 11
-  tasks.withType<JavaCompile>().configureEach { options.release.set(11) }
+  tasks.withType<JavaCompile>().configureEach {
+    sourceCompatibility = "11"
+    targetCompatibility = "11"
+  }
 }
 
-private fun Project.java(action: JavaPluginExtension.() -> Unit) = extensions.configure<JavaPluginExtension>(action)
+private fun Project.java(action: JavaPluginExtension.() -> Unit) {
+  extensions.configure<JavaPluginExtension>(action)
+}
