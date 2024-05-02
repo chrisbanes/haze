@@ -103,7 +103,7 @@ Scaffold(
     modifier = Modifier
       .haze(
         state = hazeState,
-        backgroundColor = MaterialTheme.colorScheme.surface,
+        style = HazeDefaults.style(backgroundColor = MaterialTheme.colorScheme.surface),
       ),
   ) {
     // todo
