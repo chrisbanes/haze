@@ -51,7 +51,7 @@ internal fun CreditCardSample(
       )
 
       Text(
-        text = LorumIspum,
+        text = LoremIpsum,
         color = LocalContentColor.current.copy(alpha = 0.2f),
         modifier = Modifier.padding(24.dp),
       )
@@ -82,7 +82,7 @@ internal fun CreditCardSample(
   }
 }
 
-internal val LorumIspum by lazy {
+internal val LoremIpsum by lazy {
   """
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras sit amet congue mauris, iaculis accumsan eros. Aliquam pulvinar est ac elit vulputate egestas. Vestibulum consequat libero at sem varius, vitae semper urna rhoncus. Aliquam mollis, ipsum a convallis scelerisque, sem dui consequat leo, in tempor risus est ac mi. Nam vel tellus dolor. Nunc lobortis bibendum fermentum. Mauris sed mollis justo, eu tristique elit. Cras semper augue a tortor tempor, vitae vestibulum eros convallis. Curabitur id justo eget tortor iaculis lobortis. Integer pharetra augue ac elit porta iaculis non vitae libero. Nam eros turpis, suscipit at iaculis vitae, malesuada vel arcu. Donec tincidunt porttitor iaculis. Pellentesque non augue magna. Mauris mattis purus vitae mi maximus, id molestie ipsum facilisis. Donec bibendum gravida dolor nec suscipit. Pellentesque tempus felis iaculis, porta diam sed, tristique tortor.
 
