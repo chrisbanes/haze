@@ -64,5 +64,5 @@ include(
   ":sample:shared",
   ":sample:android",
   ":sample:desktop",
-  ":sample:web-wasm",
+  ":sample:web",
 )

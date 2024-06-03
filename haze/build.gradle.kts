@@ -54,6 +54,9 @@ kotlin {
     named("wasmJsMain") {
       dependsOn(skikoMain)
     }
+    jsMain {
+      dependsOn(skikoMain)
+    }
 
     val screenshotTest by creating {
       dependencies {

@@ -56,5 +56,9 @@ kotlin {
     named("wasmJsMain") {
       dependsOn(skikoMain)
     }
+
+    jsMain {
+      dependsOn(skikoMain)
+    }
   }
 }
