@@ -20,14 +20,14 @@ fun ScreenshotTheme(
   }
 }
 
-@Composable
-fun poppinsFontFamily(): FontFamily = FontFamily(Font(Res.font.poppins_regular))
+val FontFamily.Companion.Poppins: FontFamily
+  @Composable get() = FontFamily(Font(Res.font.poppins_regular))
 
 private val Typography: Typography
   @Composable get() {
     // Eugh, this is gross but there is no defaultFontFamily property in M3
     val default = Typography()
-    val fontFamily = poppinsFontFamily()
+    val fontFamily = FontFamily.Poppins
     return Typography(
       displayLarge = default.displayLarge.copy(fontFamily = fontFamily),
       displayMedium = default.displayMedium.copy(fontFamily = fontFamily),

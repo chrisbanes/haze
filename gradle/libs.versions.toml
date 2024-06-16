@@ -3,9 +3,10 @@ agp = "8.5.0"
 androidx-benchmark = "1.2.4"
 androidx-test-ext-junit = "1.1.5"
 coil = "3.0.0-alpha06"
-compose-multiplatform = "1.6.10"
+compose-multiplatform = "1.6.11"
+kotlinx-coroutines-swing = "1.8.1"
 ktlint = "1.0.1"
-kotlin = "1.9.23"
+kotlin = "1.9.24"
 ktor = "3.0.0-wasm2"
 metalava = "0.3.5"
 robolectric = "4.12.2"
@@ -40,6 +41,7 @@ androidx-test-uiautomator = "androidx.test.uiautomator:uiautomator:2.3.0"
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-ktor = { module = "io.coil-kt.coil3:coil-network-ktor", version.ref = "coil" }
 
+kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines-swing" }
 ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 

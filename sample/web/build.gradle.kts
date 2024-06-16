@@ -1,6 +1,7 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 
 plugins {
@@ -37,10 +38,11 @@ kotlin {
       }
     }
 
-    jsMain.dependencies {
-
-      // Coil fix
-      implementation(npm("node-polyfill-webpack-plugin", "^4.0.0"))
+    jsMain {
+      dependencies {
+        // Coil fix
+        implementation(npm("node-polyfill-webpack-plugin", "^4.0.0"))
+      }
     }
   }
 }
