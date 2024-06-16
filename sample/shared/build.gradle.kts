@@ -57,7 +57,7 @@ kotlin {
       dependsOn(skikoMain)
     }
 
-    jsMain {
+    named("jsMain") {
       dependsOn(skikoMain)
     }
   }

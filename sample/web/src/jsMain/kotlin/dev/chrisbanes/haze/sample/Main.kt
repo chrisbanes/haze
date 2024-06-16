@@ -13,7 +13,7 @@ import org.jetbrains.skiko.wasm.onWasmReady
 fun main() {
   onWasmReady {
     ComposeViewport(
-      viewportContainerId = "Sample"
+      viewportContainerId = "Sample",
     ) {
       PageLoadNotify()
       Samples("Haze Samples")

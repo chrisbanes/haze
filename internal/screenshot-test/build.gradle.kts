@@ -17,6 +17,8 @@ kotlin {
   sourceSets {
     val commonMain by getting {
       dependencies {
+
+        api(compose.components.resources)
         api(compose.foundation)
         api(compose.material3)
       }
@@ -52,7 +54,6 @@ kotlin {
       dependencies {
         implementation(compose.desktop.currentOs)
         implementation(compose.desktop.uiTestJUnit4)
-        implementation(compose.components.resources)
         implementation(libs.roborazzi.composedesktop)
       }
     }

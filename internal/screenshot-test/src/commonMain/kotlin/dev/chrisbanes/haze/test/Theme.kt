@@ -7,6 +7,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontFamily
+import haze_root.internal.screenshot_test.generated.resources.Res
+import haze_root.internal.screenshot_test.generated.resources.poppins_regular
+import org.jetbrains.compose.resources.Font
 
 @Composable
 fun ScreenshotTheme(
@@ -18,7 +21,7 @@ fun ScreenshotTheme(
 }
 
 @Composable
-internal expect fun poppinsFontFamily(): FontFamily
+fun poppinsFontFamily(): FontFamily = FontFamily(Font(Res.font.poppins_regular))
 
 private val Typography: Typography
   @Composable get() {
