@@ -28,7 +28,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -37,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeDefaults
@@ -55,10 +53,7 @@ fun ScaffoldSample(navigator: Navigator) {
   val showNavigationBar by remember(gridState) {
     derivedStateOf { gridState.firstVisibleItemIndex == 0 }
   }
-  // COLLAPSE
-//  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-  // ALWAYS LARGE
-  val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+
   Scaffold(
     topBar = {
       LargeTopAppBar(
@@ -72,7 +67,6 @@ fun ScaffoldSample(navigator: Navigator) {
           containerColor = Color.Transparent,
           scrolledContainerColor = Color.Transparent,
         ),
-        scrollBehavior = scrollBehavior,
         modifier = Modifier
           .hazeChild(
             state = hazeState,
@@ -108,7 +102,6 @@ fun ScaffoldSample(navigator: Navigator) {
       modifier = Modifier
         .fillMaxSize()
         .testTag("lazy_grid")
-        .nestedScroll(scrollBehavior.nestedScrollConnection)
         .haze(
           state = hazeState,
           style = HazeDefaults.style(backgroundColor = MaterialTheme.colorScheme.surface),

@@ -22,6 +22,10 @@ class MetalavaConventionPlugin : Plugin<Project> {
           .flatMap { it.kotlin.sourceDirectories },
       )
     }
+
+    tasks.named { it.startsWith("metalavaCheckCompatibility") }.configureEach {
+      dependsOn(tasks.named { it.startsWith("generateResourceAccessors") })
+    }
   }
 }
 
