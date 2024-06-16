@@ -13,6 +13,9 @@ kotlin {
       dependencies {
         implementation(projects.sample.shared)
         implementation(compose.desktop.currentOs)
+
+        //FIX MAIN DISPATCHER for JVM
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.6.4")
       }
     }
   }
