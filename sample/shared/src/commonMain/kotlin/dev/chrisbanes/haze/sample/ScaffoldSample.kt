@@ -55,8 +55,10 @@ fun ScaffoldSample(navigator: Navigator) {
   val showNavigationBar by remember(gridState) {
     derivedStateOf { gridState.firstVisibleItemIndex == 0 }
   }
-  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-
+  // COLLAPSE
+//  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+  // ALWAYS LARGE
+  val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
   Scaffold(
     topBar = {
       LargeTopAppBar(
@@ -81,7 +83,6 @@ fun ScaffoldSample(navigator: Navigator) {
     },
     bottomBar = {
       var selectedIndex by remember { mutableIntStateOf(0) }
-
       AnimatedVisibility(
         visible = showNavigationBar,
         enter = slideInVertically { it },

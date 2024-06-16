@@ -10,6 +10,7 @@ Haze is built with [Compose Multiplatform](https://www.jetbrains.com/lp/compose-
 | Desktop (JVM) | ✅               |
 | iOS           | ✅               |
 | Wasm          | ✅               |
+| JS/Canvas     | ✅               |
 
 You can also see it in action in the [Tivi app](https://github.com/chrisbanes/tivi):
 

@@ -31,7 +31,7 @@ dependencyResolutionManagement {
 }
 
 plugins {
-  id("com.gradle.enterprise") version "3.17.5"
+  id("com.gradle.develocity") version "3.17.4"
 }
 
 val isCi: Boolean get() = !System.getenv("CI").isNullOrEmpty()
@@ -64,5 +64,5 @@ include(
   ":sample:shared",
   ":sample:android",
   ":sample:desktop",
-  ":sample:web-wasm",
+  ":sample:web",
 )

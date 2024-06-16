@@ -34,7 +34,9 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
       wasmJs {
         browser()
       }
-
+      js(IR) {
+        browser()
+      }
       configureSpotless()
       configureKotlin()
     }
