@@ -15,7 +15,7 @@ kotlin {
         implementation(compose.desktop.currentOs)
 
         //FIX MAIN DISPATCHER for JVM
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.6.4")
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.1")
       }
     }
   }
