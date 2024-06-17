@@ -37,6 +37,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          brew install cairo freetype libffi libjpeg libpng zlib
           python3 -m pip install --upgrade pip
           python3 -m pip install mkdocs mkdocs-material mkdocs-video "mkdocs-material[imaging]"
 
