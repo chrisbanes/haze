@@ -41,6 +41,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
@@ -71,6 +72,7 @@ internal class AndroidHazeNode(
   DrawModifierNode,
   CompositionLocalConsumerModifierNode,
   LayoutAwareModifierNode,
+  GlobalPositionAwareModifierNode,
   ObserverModifierNode {
 
   private var impl: Impl = ScrimImpl()
@@ -115,6 +117,10 @@ internal class AndroidHazeNode(
   override fun onPlaced(coordinates: LayoutCoordinates) {
     position = coordinates.positionInWindow() + calculateWindowOffset()
     size = coordinates.size.toSize()
+  }
+
+  override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+    onPlaced(coordinates)
   }
 
   override fun onRemeasured(size: IntSize) {

@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateSubtree
@@ -74,6 +75,7 @@ private data class HazeChildNode(
   var style: HazeStyle,
 ) : Modifier.Node(),
   LayoutAwareModifierNode,
+  GlobalPositionAwareModifierNode,
   CompositionLocalConsumerModifierNode {
 
   private val area: HazeArea by lazy {
@@ -97,6 +99,10 @@ private data class HazeChildNode(
       detachFromHazeState()
       attachToHazeState()
     }
+  }
+
+  override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+    onPlaced(coordinates)
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {

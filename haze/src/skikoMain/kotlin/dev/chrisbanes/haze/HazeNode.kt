@@ -9,11 +9,13 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
@@ -66,11 +68,13 @@ private class SkiaHazeNode(
   style: HazeStyle,
 ) : HazeNode(state, style),
   LayoutModifierNode,
+  GlobalPositionAwareModifierNode,
   CompositionLocalConsumerModifierNode,
   ObserverModifierNode {
 
   private var renderEffectDirty = true
   private var hazeRenderEffect: RenderEffect? = null
+  private var lastPositionInWindow: Offset = Offset.Unspecified
 
   override fun onUpdate() {
     renderEffectDirty = true
@@ -82,6 +86,17 @@ private class SkiaHazeNode(
     invalidatePlacement()
   }
 
+  override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+    if (lastPositionInWindow != coordinates.calculatePositionInWindow()) {
+      renderEffectDirty = true
+      invalidatePlacement()
+    }
+  }
+
+  private fun LayoutCoordinates.calculatePositionInWindow(): Offset {
+    return positionInWindow() + calculateWindowOffset()
+  }
+
   override fun MeasureScope.measure(
     measurable: Measurable,
     constraints: Constraints,
@@ -89,9 +104,9 @@ private class SkiaHazeNode(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        val position = coordinates?.let { it.positionInWindow() + calculateWindowOffset() }
-          ?: Offset.Zero
+        val position = coordinates?.calculatePositionInWindow() ?: Offset.Zero
         renderEffect = getOrCreateRenderEffect(position)
+        lastPositionInWindow = position
       }
     }
   }
