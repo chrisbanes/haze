@@ -34,6 +34,7 @@ val Samples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
   Sample("Credit Card") { CreditCardSample(it) },
   Sample("Images List") { ImagesList(it) },
+  Sample("List over Image") { ListOverImage(it) },
   Sample("Dialog") { DialogSample(it) },
   Sample("Materials") { MaterialsSample(it) },
 )
