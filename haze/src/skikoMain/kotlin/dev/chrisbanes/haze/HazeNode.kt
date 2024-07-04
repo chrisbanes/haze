@@ -23,6 +23,7 @@ import androidx.compose.ui.node.invalidatePlacement
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import org.jetbrains.skia.FilterTileMode
 import org.jetbrains.skia.IRect
 import org.jetbrains.skia.ImageFilter
@@ -114,115 +115,123 @@ private class SkiaHazeNode(
   private fun getOrCreateRenderEffect(position: Offset): RenderEffect? {
     if (renderEffectDirty) {
       observeReads {
-        hazeRenderEffect = createHazeRenderEffect(position)
+        hazeRenderEffect = createHazeRenderEffect(
+          areas = state.areas,
+          position = position,
+          defaultStyle = style,
+          density = currentValueOf(LocalDensity),
+        )
       }
       renderEffectDirty = false
     }
     return hazeRenderEffect
   }
+}
 
-  private fun createHazeRenderEffect(position: Offset): RenderEffect? {
-    if (state.areas.isEmpty()) {
-      return null
-    }
-    val density = currentValueOf(LocalDensity)
-    var clippingFilter: ImageFilter? = null
+private fun createHazeRenderEffect(
+  areas: List<HazeArea>,
+  position: Offset,
+  defaultStyle: HazeStyle,
+  density: Density,
+): RenderEffect? {
+  if (areas.isEmpty()) return null
 
-    state.areas.forEach { area ->
-      val areaLocalBounds =
-        area.boundsInLocal(position) ?: return null
-      val compositeShaderBuilder =
-        RuntimeShaderBuilder(CLIPPING_SHADER).apply {
-          uniform(
-            "rectangle",
-            areaLocalBounds.left,
-            areaLocalBounds.top,
-            areaLocalBounds.right,
-            areaLocalBounds.bottom,
-          )
+  var clippingFilter: ImageFilter? = null
 
-          when (val shape = area.shape) {
-            is CornerBasedShape -> {
-              uniform(
-                "radius",
-                shape.bottomEnd.toPx(area.size, density),
-                shape.topEnd.toPx(area.size, density),
-                shape.bottomStart.toPx(area.size, density),
-                shape.topStart.toPx(area.size, density),
-              )
-            }
+  areas.forEach { area ->
+    val areaLocalBounds = area.boundsInLocal(position) ?: return null
 
-            else -> {
-              uniform("radius", 0f, 0f, 0f, 0f)
-            }
+    val compositeShaderBuilder =
+      RuntimeShaderBuilder(CLIPPING_SHADER).apply {
+        uniform(
+          "rectangle",
+          areaLocalBounds.left,
+          areaLocalBounds.top,
+          areaLocalBounds.right,
+          areaLocalBounds.bottom,
+        )
+
+        when (val shape = area.shape) {
+          is CornerBasedShape -> {
+            uniform(
+              "radius",
+              shape.bottomEnd.toPx(area.size, density),
+              shape.topEnd.toPx(area.size, density),
+              shape.bottomStart.toPx(area.size, density),
+              shape.topStart.toPx(area.size, density),
+            )
+          }
+
+          else -> {
+            uniform("radius", 0f, 0f, 0f, 0f)
           }
         }
+      }
 
-      clippingFilter = ImageFilter.makeRuntimeShader(
-        runtimeShaderBuilder = compositeShaderBuilder,
-        shaderNames = arrayOf("content"),
-        inputs = arrayOf(clippingFilter),
-      )
-    }
-    val filters = state.areas.asSequence().mapNotNull { area ->
-      val areaLocalBounds =
-        area.boundsInLocal(position) ?: return@mapNotNull null
-      val resolvedStyle = resolveStyle(style, area.style)
-      val compositeShaderBuilder =
-        RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-          uniform(
-            "rectangle",
-            areaLocalBounds.left,
-            areaLocalBounds.top,
-            areaLocalBounds.right,
-            areaLocalBounds.bottom,
-          )
-
-          when (val shape = area.shape) {
-            is CornerBasedShape -> {
-              uniform(
-                "radius",
-                shape.bottomEnd.toPx(area.size, density),
-                shape.topEnd.toPx(area.size, density),
-                shape.bottomStart.toPx(area.size, density),
-                shape.topStart.toPx(area.size, density),
-              )
-            }
-
-            else -> {
-              uniform("radius", 0f, 0f, 0f, 0f)
-            }
-          }
-          val tint = resolvedStyle.tint
-          uniform("color", tint.red, tint.green, tint.blue, 1f)
-          uniform("colorShift", tint.alpha)
-
-          uniform("noiseFactor", resolvedStyle.noiseFactor)
-
-          child("noise", NOISE_SHADER)
-        }
-      // For CLAMP to work, we need to provide the crop rect
-      val blurFilter = createBlurImageFilter(
-        blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() },
-        cropRect = areaLocalBounds,
-      )
-
-      ImageFilter.makeRuntimeShader(
-        runtimeShaderBuilder = compositeShaderBuilder,
-        shaderNames = arrayOf("content", "blur"),
-        inputs = arrayOf(null, blurFilter),
-      )
-    }
-    return ImageFilter.makeMerge(
-      buildList {
-        // We need null as the first item, which tells Skia to draw the content without any filter.
-        // The filters then draw on top, clipped to their respective areas.
-        add(clippingFilter)
-        addAll(filters)
-      }.toTypedArray(),
-      null,
-    ).asComposeRenderEffect()
+    clippingFilter = ImageFilter.makeRuntimeShader(
+      runtimeShaderBuilder = compositeShaderBuilder,
+      shaderNames = arrayOf("content"),
+      inputs = arrayOf(clippingFilter),
+    )
   }
+  val filters = areas.asSequence().mapNotNull { area ->
+    val areaLocalBounds =
+      area.boundsInLocal(position) ?: return@mapNotNull null
+    val resolvedStyle = resolveStyle(defaultStyle, area.style)
+    val compositeShaderBuilder =
+      RuntimeShaderBuilder(RUNTIME_SHADER).apply {
+        uniform(
+          "rectangle",
+          areaLocalBounds.left,
+          areaLocalBounds.top,
+          areaLocalBounds.right,
+          areaLocalBounds.bottom,
+        )
+
+        when (val shape = area.shape) {
+          is CornerBasedShape -> {
+            uniform(
+              "radius",
+              shape.bottomEnd.toPx(area.size, density),
+              shape.topEnd.toPx(area.size, density),
+              shape.bottomStart.toPx(area.size, density),
+              shape.topStart.toPx(area.size, density),
+            )
+          }
+
+          else -> {
+            uniform("radius", 0f, 0f, 0f, 0f)
+          }
+        }
+        val tint = resolvedStyle.tint
+        uniform("color", tint.red, tint.green, tint.blue, 1f)
+        uniform("colorShift", tint.alpha)
+
+        uniform("noiseFactor", resolvedStyle.noiseFactor)
+
+        child("noise", NOISE_SHADER)
+      }
+    // For CLAMP to work, we need to provide the crop rect
+    val blurFilter = createBlurImageFilter(
+      blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() },
+      cropRect = areaLocalBounds,
+    )
+
+    ImageFilter.makeRuntimeShader(
+      runtimeShaderBuilder = compositeShaderBuilder,
+      shaderNames = arrayOf("content", "blur"),
+      inputs = arrayOf(null, blurFilter),
+    )
+  }
+  return ImageFilter.makeMerge(
+    buildList {
+      // We need null as the first item, which tells Skia to draw the content without any filter.
+      // The filters then draw on top, clipped to their respective areas.
+      add(clippingFilter)
+      addAll(filters)
+    }.toTypedArray(),
+    null,
+  ).asComposeRenderEffect()
 }
 
 private fun createBlurImageFilter(

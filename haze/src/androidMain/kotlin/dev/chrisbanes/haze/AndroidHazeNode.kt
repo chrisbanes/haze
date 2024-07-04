@@ -9,9 +9,7 @@ import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlendMode
 import android.graphics.BlendModeColorFilter
-import android.graphics.RecordingCanvas
 import android.graphics.RenderEffect
-import android.graphics.RenderNode
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
@@ -31,9 +29,12 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.draw
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.withSave
@@ -49,12 +50,15 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
 import androidx.core.util.Pools
 import kotlin.math.roundToInt
@@ -146,15 +150,18 @@ internal class AndroidHazeNode(
     // https://github.com/chrisbanes/haze/issues/77
     if (Build.VERSION.SDK_INT >= 32) {
       if (forceScrim && impl !is ScrimImpl) {
+        impl.destroy()
         impl = ScrimImpl()
         return true
       } else if (!forceScrim && impl is ScrimImpl) {
-        impl = RenderNodeImpl(currentValueOf(LocalContext))
+        impl.destroy()
+        impl = RenderNodeImpl(currentValueOf(LocalContext), this)
         return true
       }
     } else {
       // This shouldn't happen, but adding it for completeness
       if (impl !is ScrimImpl) {
+        impl.destroy()
         impl = ScrimImpl()
         return true
       }
@@ -171,6 +178,10 @@ internal class AndroidHazeNode(
       density: Density,
       layoutDirection: LayoutDirection,
     ): Boolean
+
+    fun destroy() {
+      // no-op
+    }
   }
 }
 
@@ -256,10 +267,15 @@ private class ScrimImpl : AndroidHazeNode.Impl {
 }
 
 @RequiresApi(31)
-private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Impl {
+private class RenderNodeImpl(
+  private val context: Context,
+  compositionLocalConsumerModifierNode: CompositionLocalConsumerModifierNode
+) : AndroidHazeNode.Impl,
+  CompositionLocalConsumerModifierNode by compositionLocalConsumerModifierNode {
+
   private var effects: List<Effect> = emptyList()
 
-  val contentNode = RenderNode("content")
+  val contentLayer: GraphicsLayer = currentValueOf(LocalGraphicsContext).createGraphicsLayer()
 
   val noiseTextureCache = lruCache<Float, Bitmap>(3)
 
@@ -271,12 +287,8 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     }
 
     // First we draw the composable content into `contentNode`
-    contentNode.setPosition(0, 0, size.width.toInt(), size.height.toInt())
-    contentNode.record { canvas ->
-      val scope = this@draw
-      draw(scope, layoutDirection, Canvas(canvas), size) {
-        scope.drawContent()
-      }
+    contentLayer.record(size = size.roundToIntSize()) {
+      this@draw.drawContent()
     }
 
     for (effect in effects) {
@@ -294,23 +306,24 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
             effect.getUpdatedContentClipPath(layoutDirection, drawContext.density)
           }
         }
-        // Then we draw the render node
-        nativeCanvas.drawRenderNode(contentNode)
+        // Then we draw the content layer
+        drawLayer(contentLayer)
       }
     }
 
     // Now we need to draw `contentNode` into each of our 'effect' RenderNodes, allowing
     // their RenderEffect to be applied to the composable content.
     for (effect in effects) {
-      effect.renderNode.record { canvas ->
-        canvas.translate(-effect.bounds.left, -effect.bounds.top)
-        // We need to inflate the bounds by the blur radius, so that the effect
-        // has access to the pixels it needs in the clipRect
-        val (l, t, r, b) = effect.bounds
-        val inflate = effect.blurRadiusPx
-        canvas.clipRect(l - inflate, t - inflate, r + inflate, b + inflate)
-        // Finally draw the content into our effect RN
-        canvas.drawRenderNode(contentNode)
+      effect.layer.record {
+        translate(-effect.bounds.left, -effect.bounds.top) {
+          // We need to inflate the bounds by the blur radius, so that the effect
+          // has access to the pixels it needs in the clipRect
+          val (l, t, r, b) = effect.bounds.inflate(effect.blurRadiusPx)
+          clipRect(l, t, r, b) {
+            // Finally draw the content into our effect RN
+            drawLayer(contentLayer)
+          }
+        }
       }
 
       // Finally we draw the 'effect' RenderNode to the window canvas, drawing on top
@@ -320,7 +333,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
           clipShape(effect.shape, effect.bounds) {
             effect.getUpdatedPath(layoutDirection, drawContext.density)
           }
-          nativeCanvas.drawRenderNode(effect.renderNode)
+          drawLayer(effect.layer)
         }
       }
     }
@@ -340,11 +353,13 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     effects = state.areas.asSequence()
       .filter { it.isValid }
       .map { area ->
-        currentEffects.remove(area) ?: Effect(
-          area = area,
-          path = pathPool.acquireOrCreate(),
-          contentClipPath = pathPool.acquireOrCreate(),
-        )
+        currentEffects.remove(area)
+          ?: Effect(
+            area = area,
+            path = pathPool.acquireOrCreate(),
+            layer = currentValueOf(LocalGraphicsContext).createGraphicsLayer(),
+            contentClipPath = pathPool.acquireOrCreate(),
+          )
       }
       .toList()
 
@@ -370,6 +385,10 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     return invalidateCount > 0 || (effects.isEmpty() != currentEffectsIsEmpty)
   }
 
+  override fun destroy() {
+    currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(contentLayer)
+  }
+
   private fun getNoiseTexture(noiseFactor: Float): Bitmap {
     val cached = noiseTextureCache[noiseFactor]
     if (cached != null) return cached
@@ -392,8 +411,8 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
         this.tint != tint ||
         this.noiseFactor != noiseFactor
     }
-    if (!renderNodeDirty) {
-      renderNodeDirty = this.bounds != bounds || !renderNode.hasDisplayList()
+    if (!layerDirty) {
+      layerDirty = this.bounds != bounds || layer.isReleased
     }
     if (!pathsDirty) {
       pathsDirty = this.bounds.size != bounds.size || this.shape != shape || path.isEmpty
@@ -412,32 +431,30 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     this.shape = shape
     this.tint = tint
 
-    return renderEffectDirty || renderNodeDirty || pathsDirty
+    return renderEffectDirty || layerDirty || pathsDirty
   }
 
   private fun Effect.update() {
-    if (renderNodeDirty) updateRenderNodePosition()
+    if (layerDirty) updateRenderNodePosition()
     if (renderEffectDirty) updateRenderEffect()
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it
   }
 
   private fun Effect.updateRenderEffect() {
-    renderNode.setRenderEffect(
-      RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
-        .withNoise(noiseFactor)
-        .withTint(tint),
-    )
+    layer.renderEffect = RenderEffect
+      .createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+      .withNoise(noiseFactor)
+      .withTint(tint)
+      .asComposeRenderEffect()
+
     renderEffectDirty = false
   }
 
   private fun Effect.updateRenderNodePosition() {
-    renderNode.apply {
-      renderNode.setPosition(0, 0, bounds.width.toInt(), bounds.height.toInt())
-      renderNode.translationX = bounds.left
-      renderNode.translationY = bounds.top
-    }
-    renderNodeDirty = false
+    layer.topLeft = bounds.topLeft.round()
+    // TODO: need to update size?
+    layerDirty = false
   }
 
   private fun Effect.getUpdatedPath(layoutDirection: LayoutDirection, density: Density): Path {
@@ -461,7 +478,13 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
 
     contentClipPath.rewind()
     if (!contentClipBounds.isEmpty) {
-      contentClipPath.addOutline(shape.createOutline(contentClipBounds.size, layoutDirection, density))
+      contentClipPath.addOutline(
+        shape.createOutline(
+          size = contentClipBounds.size,
+          layoutDirection = layoutDirection,
+          density = density
+        )
+      )
     }
 
     pathsDirty = false
@@ -470,13 +493,14 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
   private fun Effect.recycle() {
     pathPool.releasePath(path)
     pathPool.releasePath(contentClipPath)
+    currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
   }
 
   private class Effect(
     val area: HazeArea,
     val path: Path,
     val contentClipPath: Path,
-    val renderNode: RenderNode = RenderNode(null),
+    val layer: GraphicsLayer,
     var bounds: Rect = Rect.Zero,
     var contentClipBounds: Rect = Rect.Zero,
     var blurRadiusPx: Float = 0f,
@@ -485,7 +509,7 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     var shape: Shape = RectangleShape,
     var renderEffectDirty: Boolean = true,
     var pathsDirty: Boolean = true,
-    var renderNodeDirty: Boolean = true,
+    var layerDirty: Boolean = true,
   )
 
   private fun RenderEffect.withNoise(noiseFactor: Float): RenderEffect = when {
@@ -511,15 +535,6 @@ private class RenderNodeImpl(private val context: Context) : AndroidHazeNode.Imp
     }
 
     else -> this
-  }
-}
-
-@RequiresApi(31)
-private inline fun RenderNode.record(block: (RecordingCanvas) -> Unit) {
-  try {
-    beginRecording().apply(block)
-  } finally {
-    endRecording()
   }
 }
 
