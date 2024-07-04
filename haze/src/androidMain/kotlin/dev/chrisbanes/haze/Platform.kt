@@ -9,11 +9,6 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalView
 import kotlin.concurrent.getOrSet
 
-internal actual fun createHazeNode(
-  state: HazeState,
-  style: HazeStyle,
-): HazeNode = AndroidHazeNode(state, style)
-
 internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset {
   val loc = tmpArray.getOrSet { IntArray(2) }
   currentValueOf(LocalView).rootView.getLocationOnScreen(loc)

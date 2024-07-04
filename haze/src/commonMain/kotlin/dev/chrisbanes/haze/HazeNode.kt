@@ -3,18 +3,10 @@
 
 package dev.chrisbanes.haze
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.BitmapShader
-import android.graphics.BlendMode
-import android.graphics.BlendModeColorFilter
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.graphics.Shader.TileMode.REPEAT
-import androidx.collection.lruCache
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -25,14 +17,11 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
-import androidx.compose.ui.graphics.asAndroidPath
-import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.withSave
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
@@ -44,7 +33,6 @@ import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Density
@@ -53,19 +41,17 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
-import androidx.core.util.Pools
-import kotlin.math.roundToInt
 
 /**
  * A simple object path for [Path]s. They're fairly expensive so it makes sense to
  * re-use instances.
  */
-private val pathPool by lazy { Pools.SimplePool<Path>(10) }
+private val pathPool by lazy { mutableSetOf<Path>() }
 
-internal class AndroidHazeNode(
-  state: HazeState,
-  style: HazeStyle,
-) : HazeNode(state = state, style = style),
+internal class HazeNode(
+  var state: HazeState,
+  var style: HazeStyle,
+) : Modifier.Node(),
   DrawModifierNode,
   CompositionLocalConsumerModifierNode,
   LayoutAwareModifierNode,
@@ -78,9 +64,7 @@ internal class AndroidHazeNode(
 
   private var effects: List<Effect> = emptyList()
 
-  private val noiseTextureCache = lruCache<Float, Bitmap>(3)
-
-  override fun onUpdate() {
+  fun onUpdate() {
     updateImpl()
   }
 
@@ -227,19 +211,6 @@ internal class AndroidHazeNode(
     return invalidateCount > 0 || (effects.isEmpty() != currentEffectsIsEmpty)
   }
 
-  private fun getNoiseTexture(noiseFactor: Float): Bitmap {
-    val cached = noiseTextureCache[noiseFactor]
-    if (cached != null) return cached
-
-    // We draw the noise with the given opacity
-    return BitmapFactory.decodeResource(
-      currentValueOf(LocalContext).resources,
-      R.drawable.haze_noise
-    )
-      .withAlpha(noiseFactor)
-      .also { noiseTextureCache.put(noiseFactor, it) }
-  }
-
   private fun Effect.updateParameters(
     bounds: Rect,
     blurRadiusPx: Float,
@@ -277,19 +248,9 @@ internal class AndroidHazeNode(
 
   private fun Effect.update() {
     if (layerDirty) updateRenderNodePosition()
-    if (renderEffectDirty) updateRenderEffect()
+    if (renderEffectDirty) updateRenderEffect(this)
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it
-  }
-
-  private fun Effect.updateRenderEffect() {
-    layer.renderEffect = RenderEffect
-      .createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
-      .withNoise(noiseFactor)
-      .withTint(tint)
-      .asComposeRenderEffect()
-
-    renderEffectDirty = false
   }
 
   private fun Effect.updateRenderNodePosition() {
@@ -336,34 +297,11 @@ internal class AndroidHazeNode(
     pathPool.releasePath(contentClipPath)
     currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
   }
-
-  private fun RenderEffect.withNoise(noiseFactor: Float): RenderEffect = when {
-    noiseFactor >= 0.005f -> {
-      val noiseShader = BitmapShader(getNoiseTexture(noiseFactor), REPEAT, REPEAT)
-      RenderEffect.createBlendModeEffect(
-        RenderEffect.createShaderEffect(noiseShader), // dst
-        this, // src
-        BlendMode.DST_ATOP, // blendMode
-      )
-    }
-
-    else -> this
-  }
-
-  private fun RenderEffect.withTint(tint: Color): RenderEffect = when {
-    tint.alpha >= 0.005f -> {
-      // If we have an tint with a non-zero alpha value, wrap the effect with a color filter
-      RenderEffect.createColorFilterEffect(
-        BlendModeColorFilter(tint.toArgb(), BlendMode.SRC_OVER),
-        this,
-      )
-    }
-
-    else -> this
-  }
 }
 
-private class Effect(
+internal expect fun CompositionLocalConsumerModifierNode.updateRenderEffect(effect: Effect)
+
+internal class Effect(
   val area: HazeArea,
   val path: Path,
   val contentClipPath: Path,
@@ -379,24 +317,6 @@ private class Effect(
   var layerDirty: Boolean = true,
 )
 
-/**
- * Returns a copy of the current [Bitmap], drawn with the given [alpha] value.
- *
- * There might be a better way to do this via a [BlendMode], but none of the results looked as
- * good.
- */
-private fun Bitmap.withAlpha(alpha: Float): Bitmap {
-  val paint = android.graphics.Paint().apply {
-    this.alpha = (alpha * 255).roundToInt().coerceIn(0, 255)
-  }
-
-  return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also {
-    android.graphics.Canvas(it).apply {
-      drawBitmap(this@withAlpha, 0f, 0f, paint)
-    }
-  }
-}
-
 private fun Canvas.clipShape(
   shape: Shape,
   bounds: Rect,
@@ -407,10 +327,8 @@ private fun Canvas.clipShape(
     clipRect(bounds, clipOp)
   } else {
     pathPool.usePath { tmpPath ->
-      tmpPath.asAndroidPath().apply {
-        set(path().asAndroidPath())
-        offset(bounds.left, bounds.top)
-      }
+      tmpPath.reset()
+      tmpPath.addPath(path(), bounds.topLeft)
       clipPath(tmpPath, clipOp)
     }
   }

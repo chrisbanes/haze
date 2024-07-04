@@ -164,7 +164,7 @@ internal data class HazeNodeElement(
   val state: HazeState,
   val style: HazeStyle,
 ) : ModifierNodeElement<HazeNode>() {
-  override fun create(): HazeNode = createHazeNode(state = state, style = style)
+  override fun create(): HazeNode = HazeNode(state = state, style = style)
 
   override fun update(node: HazeNode) {
     node.state = state
@@ -176,13 +176,6 @@ internal data class HazeNodeElement(
     name = "haze"
     properties["style"] = style
   }
-}
-
-internal abstract class HazeNode(
-  var state: HazeState,
-  var style: HazeStyle,
-) : Modifier.Node() {
-  open fun onUpdate() {}
 }
 
 /**
