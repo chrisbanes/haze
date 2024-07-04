@@ -11,25 +11,43 @@ import android.graphics.BlendModeColorFilter
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
+import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.collection.lruCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import kotlin.math.roundToInt
 
-internal actual fun CompositionLocalConsumerModifierNode.updateRenderEffect(effect: Effect) {
-  with(effect) {
-    layer.renderEffect = RenderEffect
-      .createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
-      .withNoise(noiseFactor)
-      .withTint(tint)
-      .asComposeRenderEffect()
+internal actual fun HazeNode.updateRenderEffect(effect: Effect) {
+  if (Build.VERSION.SDK_INT >= 32) {
+    with(effect) {
+      val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
+      layer?.renderEffect =
+        RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+          .withNoise(noiseFactor)
+          .withTint(tint)
+          .asComposeRenderEffect()
+      renderEffectDirty = false
+    }
+  }
+}
 
-    renderEffectDirty = false
+internal actual fun HazeNode.usingGraphicsLayers(): Boolean = Build.VERSION.SDK_INT >= 32
+
+internal actual fun HazeNode.drawEffect(drawScope: DrawScope, effect: Effect) = with(drawScope) {
+  if (usingGraphicsLayers() && drawContext.canvas.nativeCanvas.isHardwareAccelerated) {
+    drawLayer(effect.requireLayer())
+  } else {
+    drawRect(effect.tint.boostAlphaForBlurRadius(effect.blurRadius))
   }
 }
 
@@ -38,15 +56,24 @@ private val noiseTextureCache = lruCache<Float, Bitmap>(3)
 context(CompositionLocalConsumerModifierNode)
 private fun getNoiseTexture(noiseFactor: Float): Bitmap {
   val cached = noiseTextureCache[noiseFactor]
-  if (cached != null) return cached
+  if (cached != null && !cached.isRecycled) {
+    return cached
+  }
 
   // We draw the noise with the given opacity
-  return BitmapFactory.decodeResource(
-    currentValueOf(LocalContext).resources,
-    R.drawable.haze_noise,
-  )
+  val resources = currentValueOf(LocalContext).resources
+  return BitmapFactory.decodeResource(resources, R.drawable.haze_noise)
     .withAlpha(noiseFactor)
     .also { noiseTextureCache.put(noiseFactor, it) }
+}
+
+/**
+ * In this implementation, the only tool we have is translucency.
+ */
+private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
+  // We treat a blur radius of 72.dp as near 'opaque', and linearly boost using that
+  val factor = 1 + (blurRadius.value / 72f)
+  return copy(alpha = (alpha * factor).coerceAtMost(1f))
 }
 
 context(CompositionLocalConsumerModifierNode)
@@ -65,6 +92,7 @@ private fun RenderEffect.withNoise(noiseFactor: Float): RenderEffect = when {
 }
 
 context(CompositionLocalConsumerModifierNode)
+@RequiresApi(31)
 private fun RenderEffect.withTint(tint: Color): RenderEffect = when {
   tint.alpha >= 0.005f -> {
     // If we have an tint with a non-zero alpha value, wrap the effect with a color filter

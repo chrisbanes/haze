@@ -3,25 +3,26 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import androidx.compose.ui.unit.toIntRect
-import androidx.compose.ui.unit.toRect
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.platform.LocalDensity
 import org.jetbrains.skia.FilterTileMode
 import org.jetbrains.skia.IRect
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeShaderBuilder
 
-internal actual fun CompositionLocalConsumerModifierNode.calculateWindowOffset(): Offset {
-  // The Skiko-backed platforms don't use native windows for dialogs, etc
-  return Offset.Zero
+internal actual fun HazeNode.drawEffect(drawScope: DrawScope, effect: Effect) = with(drawScope) {
+  drawLayer(effect.requireLayer())
 }
 
-internal actual fun CompositionLocalConsumerModifierNode.updateRenderEffect(effect: Effect) {
+internal actual fun HazeNode.usingGraphicsLayers(): Boolean = true
+
+internal actual fun HazeNode.updateRenderEffect(effect: Effect) {
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
     val tint = effect.tint
     uniform("color", tint.red, tint.green, tint.blue, 1f)
@@ -30,7 +31,8 @@ internal actual fun CompositionLocalConsumerModifierNode.updateRenderEffect(effe
     child("noise", NOISE_SHADER)
   }
   // For CLAMP to work, we need to provide the crop rect
-  val blurFilter = createBlurImageFilter(effect.blurRadiusPx, effect.layer.size.toIntRect().toRect())
+  val blurRadiusPx = with(currentValueOf(LocalDensity)) { effect.blurRadius.toPx() }
+  val blurFilter = createBlurImageFilter(blurRadiusPx, effect.bounds.size.toRect())
 
   val filter = ImageFilter.makeRuntimeShader(
     runtimeShaderBuilder = compositeShaderBuilder,
@@ -38,13 +40,10 @@ internal actual fun CompositionLocalConsumerModifierNode.updateRenderEffect(effe
     inputs = arrayOf(null, blurFilter),
   )
 
-  effect.layer.renderEffect = filter.asComposeRenderEffect()
+  effect.requireLayer().renderEffect = filter.asComposeRenderEffect()
 }
 
-private fun createBlurImageFilter(
-  blurRadiusPx: Float,
-  cropRect: Rect? = null,
-): ImageFilter {
+private fun createBlurImageFilter(blurRadiusPx: Float, cropRect: Rect? = null): ImageFilter {
   val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
   return ImageFilter.makeBlur(
     sigmaX = sigma,
@@ -54,11 +53,5 @@ private fun createBlurImageFilter(
   )
 }
 
-private fun Rect.toIRect(): IRect {
-  return IRect.makeLTRB(
-    left.toInt(),
-    top.toInt(),
-    right.toInt(),
-    bottom.toInt(),
-  )
-}
+private fun Rect.toIRect(): IRect =
+  IRect.makeLTRB(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
