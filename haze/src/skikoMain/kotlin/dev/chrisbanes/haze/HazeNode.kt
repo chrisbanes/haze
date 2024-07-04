@@ -104,7 +104,7 @@ private class SkiaHazeNode(
     val placeable = measurable.measure(constraints)
     return layout(placeable.width, placeable.height) {
       placeable.placeWithLayer(x = 0, y = 0) {
-        val position = coordinates?.calculatePositionInWindow() ?: Offset.Zero
+        val position = this@layout.coordinates?.calculatePositionInWindow() ?: Offset.Zero
         renderEffect = getOrCreateRenderEffect(position)
         lastPositionInWindow = position
       }
