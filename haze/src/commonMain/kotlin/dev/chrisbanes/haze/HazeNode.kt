@@ -284,8 +284,8 @@ internal class HazeNode(
         shape.createOutline(
           size = contentClipBounds.size,
           layoutDirection = layoutDirection,
-          density = density
-        )
+          density = density,
+        ),
       )
     }
 

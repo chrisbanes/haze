@@ -11,6 +11,7 @@ import android.graphics.BlendModeColorFilter
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
+import androidx.annotation.RequiresApi
 import androidx.collection.lruCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -42,13 +43,14 @@ private fun getNoiseTexture(noiseFactor: Float): Bitmap {
   // We draw the noise with the given opacity
   return BitmapFactory.decodeResource(
     currentValueOf(LocalContext).resources,
-    R.drawable.haze_noise
+    R.drawable.haze_noise,
   )
     .withAlpha(noiseFactor)
     .also { noiseTextureCache.put(noiseFactor, it) }
 }
 
 context(CompositionLocalConsumerModifierNode)
+@RequiresApi(31)
 private fun RenderEffect.withNoise(noiseFactor: Float): RenderEffect = when {
   noiseFactor >= 0.005f -> {
     val noiseShader = BitmapShader(getNoiseTexture(noiseFactor), REPEAT, REPEAT)

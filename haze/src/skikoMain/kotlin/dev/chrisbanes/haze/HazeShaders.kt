@@ -3,68 +3,29 @@
 
 package dev.chrisbanes.haze
 
-internal const val CLIPPING_SHADER_SKSL = """
-  uniform shader content;
+import org.jetbrains.skia.RuntimeEffect
+import org.jetbrains.skia.Shader
 
-  uniform vec4 rectangle;
-  uniform vec4 radius;
+/**
+ * Heavily influenced by
+ * https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html
+ */
 
-  // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-  float sdRoundedBox(vec2 position, vec2 box, vec4 radius) {
-    radius.xy = (position.x > 0.0) ? radius.xy : radius.zw;
-    radius.x = (position.y > 0.0) ? radius.x : radius.y;
-    vec2 q = abs(position) - box + radius.x;
-    return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - radius.x;
-  }
+internal val RUNTIME_SHADER by lazy {
+  RuntimeEffect.makeForShader(SHADER_SKSL)
+}
 
-  bool rectContains(vec4 rectangle, vec2 coord) {
-      vec2 shiftRect = (rectangle.zw - rectangle.xy) / 2.0;
-      vec2 shiftCoord = coord - rectangle.xy;
-      return sdRoundedBox(shiftCoord - shiftRect, shiftRect, radius) <= 0.0;
-  }
-
-  vec4 main(vec2 coord) {
-
-    if (rectContains(rectangle, coord)) {
-        // If we're not drawing in the rectangle, return transparent
-        return vec4(0.0, 0.0, 0.0, 0.0);
-    }
-
-    return content.eval(coord);
-  }
-"""
-
-internal const val SHADER_SKSL = """
+private const val SHADER_SKSL = """
   uniform shader content;
   uniform shader blur;
   uniform shader noise;
 
-  uniform vec4 rectangle;
   uniform vec4 radius;
   uniform vec4 color;
   uniform float colorShift;
   uniform float noiseFactor;
 
-  // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-  float sdRoundedBox(vec2 position, vec2 box, vec4 radius) {
-    radius.xy = (position.x > 0.0) ? radius.xy : radius.zw;
-    radius.x = (position.y > 0.0) ? radius.x : radius.y;
-    vec2 q = abs(position) - box + radius.x;
-    return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - radius.x;
-  }
-
-  bool rectContains(vec4 rectangle, vec2 coord) {
-      vec2 shiftRect = (rectangle.zw - rectangle.xy) / 2.0;
-      vec2 shiftCoord = coord - rectangle.xy;
-      return sdRoundedBox(shiftCoord - shiftRect, shiftRect, radius) <= 0.0;
-  }
-
   vec4 main(vec2 coord) {
-    if (!rectContains(rectangle, coord)) {
-        // If we're not drawing in the rectangle, return transparent
-        return vec4(0.0, 0.0, 0.0, 0.0);
-    }
-
     vec4 b = blur.eval(coord);
     vec4 n = noise.eval(coord);
 
@@ -78,3 +39,12 @@ internal const val SHADER_SKSL = """
     return b + ((color - b) * overlay);
   }
 """
+
+internal val NOISE_SHADER by lazy {
+  Shader.makeFractalNoise(
+    baseFrequencyX = 0.45f,
+    baseFrequencyY = 0.45f,
+    numOctaves = 4,
+    seed = 2.0f,
+  )
+}
