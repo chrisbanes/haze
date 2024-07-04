@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
@@ -12,8 +11,6 @@ import android.graphics.BlendModeColorFilter
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.collection.lruCache
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,7 +32,6 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.withSave
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -51,10 +47,7 @@ import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.round
@@ -79,11 +72,13 @@ internal class AndroidHazeNode(
   GlobalPositionAwareModifierNode,
   ObserverModifierNode {
 
-  private var impl: Impl = ScrimImpl()
-
   private var position by mutableStateOf(Offset.Unspecified)
   private var size by mutableStateOf(Size.Unspecified)
   private var isCanvasHardwareAccelerated by mutableStateOf(false)
+
+  private var effects: List<Effect> = emptyList()
+
+  private val noiseTextureCache = lruCache<Float, Bitmap>(3)
 
   override fun onUpdate() {
     updateImpl()
@@ -98,20 +93,12 @@ internal class AndroidHazeNode(
   }
 
   private fun updateImpl() {
-    // If LocalInspectionMode is true, we're likely running in a preview/screenshot test
-    // and therefore don't have full access to Android drawing APIs. To avoid crashing we
-    // force the the scrim impl
-    var changed = updateImplIfRequired(
-      forceScrim = !isCanvasHardwareAccelerated || currentValueOf(LocalInspectionMode),
-    )
-
-    changed = impl.update(
+    val changed = update(
       state = state,
       defaultStyle = style,
       position = position,
       density = currentValueOf(LocalDensity),
-      layoutDirection = currentValueOf(LocalLayoutDirection),
-    ) || changed
+    )
 
     if (changed) {
       invalidateDraw()
@@ -132,159 +119,13 @@ internal class AndroidHazeNode(
   }
 
   override fun ContentDrawScope.draw() {
-    // Similar to above, drawRenderNode is only available on hw-accelerated canvases.
-    // To avoid crashing we just draw the content and return early.
-    val canvasHardwareAccelerated = drawContext.canvas.nativeCanvas.isHardwareAccelerated
-    if (canvasHardwareAccelerated != isCanvasHardwareAccelerated) {
-      isCanvasHardwareAccelerated = canvasHardwareAccelerated
-      updateImpl()
-    }
-
-    with(impl) {
-      draw()
-    }
-  }
-
-  private fun updateImplIfRequired(forceScrim: Boolean): Boolean {
-    // We can't currently use RenderNode impl on API 31 due to
-    // https://github.com/chrisbanes/haze/issues/77
-    if (Build.VERSION.SDK_INT >= 32) {
-      if (forceScrim && impl !is ScrimImpl) {
-        impl.destroy()
-        impl = ScrimImpl()
-        return true
-      } else if (!forceScrim && impl is ScrimImpl) {
-        impl.destroy()
-        impl = RenderNodeImpl(currentValueOf(LocalContext), this)
-        return true
-      }
-    } else {
-      // This shouldn't happen, but adding it for completeness
-      if (impl !is ScrimImpl) {
-        impl.destroy()
-        impl = ScrimImpl()
-        return true
-      }
-    }
-    return false
-  }
-
-  internal interface Impl {
-    fun ContentDrawScope.draw()
-    fun update(
-      state: HazeState,
-      defaultStyle: HazeStyle,
-      position: Offset,
-      density: Density,
-      layoutDirection: LayoutDirection,
-    ): Boolean
-
-    fun destroy() {
-      // no-op
-    }
-  }
-}
-
-/**
- * Returns a copy of the current [Bitmap], drawn with the given [alpha] value.
- *
- * There might be a better way to do this via a [BlendMode], but none of the results looked as
- * good.
- */
-private fun Bitmap.withAlpha(alpha: Float): Bitmap {
-  val paint = android.graphics.Paint().apply {
-    this.alpha = (alpha * 255).roundToInt().coerceIn(0, 255)
-  }
-
-  return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also {
-    android.graphics.Canvas(it).apply {
-      drawBitmap(this@withAlpha, 0f, 0f, paint)
-    }
-  }
-}
-
-private class ScrimImpl : AndroidHazeNode.Impl {
-  private var effects: List<Effect> = emptyList()
-
-  override fun ContentDrawScope.draw() {
-    drawContent()
-
-    for (effect in effects) {
-      val offset = effect.bounds.topLeft
-      translate(offset.x, offset.y) {
-        drawPath(path = effect.path, color = effect.tint)
-      }
-    }
-  }
-
-  override fun update(
-    state: HazeState,
-    defaultStyle: HazeStyle,
-    position: Offset,
-    density: Density,
-    layoutDirection: LayoutDirection,
-  ): Boolean {
-    // Release all of the paths back into the pool
-    effects.asSequence()
-      .map(Effect::path)
-      .forEach { pathPool.releasePath(it) }
-
-    effects = state.areas.asSequence()
-      .filter { it.isValid }
-      .mapNotNull { area ->
-        val bounds = area.boundsInLocal(position) ?: return@mapNotNull null
-
-        val resolvedStyle = resolveStyle(defaultStyle, area.style)
-
-        val path = pathPool.acquireOrCreate().apply {
-          addOutline(area.shape.createOutline(bounds.size, layoutDirection, density))
-        }
-
-        Effect(
-          path = path,
-          tint = resolvedStyle.tint.boostAlphaForBlurRadius(resolvedStyle.blurRadius),
-          bounds = bounds,
-        )
-      }.toList()
-
-    return true
-  }
-
-  /**
-   * In this implementation, the only tool we have is translucency.
-   */
-  private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
-    // We treat a blur radius of 72.dp as near 'opaque', and linearly boost using that
-    val factor = 1 + (blurRadius.value / 72f)
-    return copy(alpha = (alpha * factor).coerceAtMost(1f))
-  }
-
-  private data class Effect(
-    val tint: Color,
-    val bounds: Rect,
-    val path: Path,
-  )
-}
-
-@RequiresApi(31)
-private class RenderNodeImpl(
-  private val context: Context,
-  compositionLocalConsumerModifierNode: CompositionLocalConsumerModifierNode
-) : AndroidHazeNode.Impl,
-  CompositionLocalConsumerModifierNode by compositionLocalConsumerModifierNode {
-
-  private var effects: List<Effect> = emptyList()
-
-  val contentLayer: GraphicsLayer = currentValueOf(LocalGraphicsContext).createGraphicsLayer()
-
-  val noiseTextureCache = lruCache<Float, Bitmap>(3)
-
-  override fun ContentDrawScope.draw() {
     if (effects.isEmpty()) {
       // If we don't have any effects, just call drawContent and return early
       drawContent()
       return
     }
+
+    val contentLayer = currentValueOf(LocalGraphicsContext).createGraphicsLayer()
 
     // First we draw the composable content into `contentNode`
     contentLayer.record(size = size.roundToIntSize()) {
@@ -337,14 +178,15 @@ private class RenderNodeImpl(
         }
       }
     }
+
+    currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(contentLayer)
   }
 
-  override fun update(
+  private fun update(
     state: HazeState,
     defaultStyle: HazeStyle,
     position: Offset,
     density: Density,
-    layoutDirection: LayoutDirection,
   ): Boolean {
     val currentEffectsIsEmpty = effects.isEmpty()
     val currentEffects = effects.associateByTo(HashMap(), Effect::area)
@@ -385,16 +227,15 @@ private class RenderNodeImpl(
     return invalidateCount > 0 || (effects.isEmpty() != currentEffectsIsEmpty)
   }
 
-  override fun destroy() {
-    currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(contentLayer)
-  }
-
   private fun getNoiseTexture(noiseFactor: Float): Bitmap {
     val cached = noiseTextureCache[noiseFactor]
     if (cached != null) return cached
 
     // We draw the noise with the given opacity
-    return BitmapFactory.decodeResource(context.resources, R.drawable.haze_noise)
+    return BitmapFactory.decodeResource(
+      currentValueOf(LocalContext).resources,
+      R.drawable.haze_noise
+    )
       .withAlpha(noiseFactor)
       .also { noiseTextureCache.put(noiseFactor, it) }
   }
@@ -496,22 +337,6 @@ private class RenderNodeImpl(
     currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
   }
 
-  private class Effect(
-    val area: HazeArea,
-    val path: Path,
-    val contentClipPath: Path,
-    val layer: GraphicsLayer,
-    var bounds: Rect = Rect.Zero,
-    var contentClipBounds: Rect = Rect.Zero,
-    var blurRadiusPx: Float = 0f,
-    var noiseFactor: Float = 0f,
-    var tint: Color = Color.Unspecified,
-    var shape: Shape = RectangleShape,
-    var renderEffectDirty: Boolean = true,
-    var pathsDirty: Boolean = true,
-    var layerDirty: Boolean = true,
-  )
-
   private fun RenderEffect.withNoise(noiseFactor: Float): RenderEffect = when {
     noiseFactor >= 0.005f -> {
       val noiseShader = BitmapShader(getNoiseTexture(noiseFactor), REPEAT, REPEAT)
@@ -535,6 +360,40 @@ private class RenderNodeImpl(
     }
 
     else -> this
+  }
+}
+
+private class Effect(
+  val area: HazeArea,
+  val path: Path,
+  val contentClipPath: Path,
+  val layer: GraphicsLayer,
+  var bounds: Rect = Rect.Zero,
+  var contentClipBounds: Rect = Rect.Zero,
+  var blurRadiusPx: Float = 0f,
+  var noiseFactor: Float = 0f,
+  var tint: Color = Color.Unspecified,
+  var shape: Shape = RectangleShape,
+  var renderEffectDirty: Boolean = true,
+  var pathsDirty: Boolean = true,
+  var layerDirty: Boolean = true,
+)
+
+/**
+ * Returns a copy of the current [Bitmap], drawn with the given [alpha] value.
+ *
+ * There might be a better way to do this via a [BlendMode], but none of the results looked as
+ * good.
+ */
+private fun Bitmap.withAlpha(alpha: Float): Bitmap {
+  val paint = android.graphics.Paint().apply {
+    this.alpha = (alpha * 255).roundToInt().coerceIn(0, 255)
+  }
+
+  return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also {
+    android.graphics.Canvas(it).apply {
+      drawBitmap(this@withAlpha, 0f, 0f, paint)
+    }
   }
 }
 
