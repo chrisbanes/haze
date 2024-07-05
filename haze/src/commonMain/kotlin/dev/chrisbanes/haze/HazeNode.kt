@@ -9,9 +9,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.RenderEffect
@@ -162,6 +164,10 @@ internal class HazeNode(
       // Now position the effect, and apply the render effect
       effectLayer.topLeft = effect.bounds.topLeft.round()
       effectLayer.renderEffect = effect.renderEffect
+      effectLayer.colorFilter = when {
+        effect.tint.alpha >= 0.005f -> ColorFilter.tint(effect.tint, BlendMode.SrcOver)
+        else -> null
+      }
 
       // We draw the 'effect' to the window canvas, drawing on top of the original content
       clipShape(

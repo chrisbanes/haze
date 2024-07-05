@@ -20,9 +20,6 @@ private const val SHADER_SKSL = """
   uniform shader blur;
   uniform shader noise;
 
-  uniform vec4 radius;
-  uniform vec4 color;
-  uniform float colorShift;
   uniform float noiseFactor;
 
   vec4 main(vec2 coord) {
@@ -32,11 +29,11 @@ private const val SHADER_SKSL = """
     // Add noise for extra texture
     float noiseLuma = dot(n.rgb, vec3(0.2126, 0.7152, 0.0722));
 
-    // Calculate our overlay (tint + noise)
+    // Calculate our overlay (noise)
     float overlay = min(1.0, colorShift + (noiseLuma * noiseFactor));
 
-    // Apply the overlay (noise + tint)
-    return b + ((color - b) * overlay);
+    // Apply the overlay (noise)
+    return b + ((vec4(1.0) - b) * overlay);
   }
 """
 

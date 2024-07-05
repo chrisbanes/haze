@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlendMode
-import android.graphics.BlendModeColorFilter
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
@@ -20,7 +19,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
@@ -34,7 +32,6 @@ internal actual fun HazeNode.updateRenderEffect(effect: Effect) = with(effect) {
     renderEffect =
       RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
         .withNoise(noiseFactor)
-        .withTint(tint)
         .asComposeRenderEffect()
   }
   renderEffectDirty = false
@@ -88,20 +85,6 @@ private fun RenderEffect.withNoise(noiseFactor: Float): RenderEffect = when {
       RenderEffect.createShaderEffect(noiseShader), // dst
       this, // src
       BlendMode.DST_ATOP, // blendMode
-    )
-  }
-
-  else -> this
-}
-
-context(CompositionLocalConsumerModifierNode)
-@RequiresApi(31)
-private fun RenderEffect.withTint(tint: Color): RenderEffect = when {
-  tint.alpha >= 0.005f -> {
-    // If we have an tint with a non-zero alpha value, wrap the effect with a color filter
-    RenderEffect.createColorFilterEffect(
-      BlendModeColorFilter(tint.toArgb(), BlendMode.SRC_OVER),
-      this,
     )
   }
 

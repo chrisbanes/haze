@@ -29,9 +29,6 @@ internal actual fun HazeNode.usingGraphicsLayers(): Boolean = true
 
 internal actual fun HazeNode.updateRenderEffect(effect: Effect) {
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-    val tint = effect.tint
-    uniform("color", tint.red, tint.green, tint.blue, 1f)
-    uniform("colorShift", tint.alpha)
     uniform("noiseFactor", effect.noiseFactor)
     child("noise", NOISE_SHADER)
   }
