@@ -5,29 +5,42 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.Path
 
-internal inline fun <T : Any> MutableSet<T>.acquireOrCreate(block: () -> T): T =
-  acquire() ?: block()
+internal inline fun <T : Any> Pool<T>.acquireOrCreate(block: () -> T): T = acquire() ?: block()
 
-internal fun <T : Any> MutableSet<T>.acquire(): T? {
-  val acquired = firstOrNull()
-  if (acquired != null) {
-    remove(acquired)
+internal class Pool<T>(
+  private val onAcquire: (T) -> Unit = {},
+  private val onRelease: (T) -> Unit = {},
+) {
+  private val items = mutableSetOf<T>()
+
+  fun pooled(): Set<T> = items.toSet()
+
+  fun acquire(): T? {
+    return items.firstOrNull()
+      ?.also(onAcquire)
+      ?.also(items::remove)
   }
-  return acquired
+
+  fun release(item: T) {
+    onRelease(item)
+    items.add(item)
+  }
+
+  fun destroy() {
+    items.clear()
+  }
 }
 
-internal fun MutableSet<Path>.acquireOrCreate(): Path = acquireOrCreate(::Path)
-
-internal fun MutableSet<Path>.releasePath(path: Path) {
-  path.rewind()
-  add(path)
-}
-
-internal inline fun MutableSet<Path>.usePath(block: (Path) -> Unit) {
-  val path = acquireOrCreate()
+internal inline fun <T : Any> Pool<T>.use(
+  factory: () -> T,
+  block: (T) -> Unit,
+) {
+  val item = acquireOrCreate(factory)
   try {
-    block(path)
+    block(item)
   } finally {
-    releasePath(path)
+    release(item)
   }
 }
+
+internal inline fun Pool<Path>.usePath(block: (Path) -> Unit) = use(::Path, block)

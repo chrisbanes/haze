@@ -17,6 +17,7 @@ import androidx.collection.lruCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -27,25 +28,27 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import kotlin.math.roundToInt
 
-internal actual fun HazeNode.updateRenderEffect(effect: Effect) {
+internal actual fun HazeNode.updateRenderEffect(effect: Effect) = with(effect) {
   if (Build.VERSION.SDK_INT >= 32) {
-    with(effect) {
-      val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
-      layer?.renderEffect =
-        RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
-          .withNoise(noiseFactor)
-          .withTint(tint)
-          .asComposeRenderEffect()
-      renderEffectDirty = false
-    }
+    val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
+    renderEffect =
+      RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+        .withNoise(noiseFactor)
+        .withTint(tint)
+        .asComposeRenderEffect()
   }
+  renderEffectDirty = false
 }
 
 internal actual fun HazeNode.usingGraphicsLayers(): Boolean = Build.VERSION.SDK_INT >= 32
 
-internal actual fun HazeNode.drawEffect(drawScope: DrawScope, effect: Effect) = with(drawScope) {
-  if (usingGraphicsLayers() && drawContext.canvas.nativeCanvas.isHardwareAccelerated) {
-    drawLayer(effect.requireLayer())
+internal actual fun HazeNode.drawEffect(
+  drawScope: DrawScope,
+  effect: Effect,
+  graphicsLayer: GraphicsLayer?,
+) = with(drawScope) {
+  if (graphicsLayer != null && drawContext.canvas.nativeCanvas.isHardwareAccelerated) {
+    drawLayer(graphicsLayer)
   } else {
     drawRect(effect.tint.boostAlphaForBlurRadius(effect.blurRadius))
   }

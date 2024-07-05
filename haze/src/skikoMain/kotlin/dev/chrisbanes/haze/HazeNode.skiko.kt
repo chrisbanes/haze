@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalDensity
@@ -16,8 +17,12 @@ import org.jetbrains.skia.IRect
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeShaderBuilder
 
-internal actual fun HazeNode.drawEffect(drawScope: DrawScope, effect: Effect) = with(drawScope) {
-  drawLayer(effect.requireLayer())
+internal actual fun HazeNode.drawEffect(
+  drawScope: DrawScope,
+  effect: Effect,
+  graphicsLayer: GraphicsLayer?,
+) = with(drawScope) {
+  drawLayer(requireNotNull(graphicsLayer))
 }
 
 internal actual fun HazeNode.usingGraphicsLayers(): Boolean = true
@@ -40,7 +45,7 @@ internal actual fun HazeNode.updateRenderEffect(effect: Effect) {
     inputs = arrayOf(null, blurFilter),
   )
 
-  effect.requireLayer().renderEffect = filter.asComposeRenderEffect()
+  effect.renderEffect = filter.asComposeRenderEffect()
 }
 
 private fun createBlurImageFilter(blurRadiusPx: Float, cropRect: Rect? = null): ImageFilter {

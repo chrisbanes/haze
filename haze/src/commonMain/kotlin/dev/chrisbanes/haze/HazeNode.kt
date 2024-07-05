@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -46,7 +47,7 @@ import androidx.compose.ui.unit.roundToIntSize
  * A simple object path for [Path]s. They're fairly expensive so it makes sense to
  * re-use instances.
  */
-private val pathPool by lazy { mutableSetOf<Path>() }
+private val pathPool by lazy { Pool(Path::rewind) }
 
 internal class HazeNode(
   var state: HazeState,
@@ -144,28 +145,33 @@ internal class HazeNode(
 
     // Now we draw each effect over the content
     for (effect in effects) {
-      // Now we need to draw `contentNode` into each of our 'effect' graphic layers.
+      // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
       // The RenderEffect applied will provide the blurring effect.
+      val effectLayer = graphicsContext.createGraphicsLayer()
+
       // We need to inflate the bounds by the blur radius, so that the effect
       // has access to the pixels it needs in the clipRect
-      val (l, t, r, b) = effect.bounds.inflate(effect.blurRadius.toPx())
-
-      effect.layer?.record {
+      val inflatedBounds = effect.bounds.inflate(effect.blurRadius.toPx())
+      effectLayer.record(size = inflatedBounds.size.roundToIntSize()) {
         translate(-effect.bounds.left, -effect.bounds.top) {
-          clipRect(l, t, r, b) {
-            // Finally draw the content into our effect layer
-            drawLayer(contentLayer)
-          }
+          // Finally draw the content into our effect layer
+          drawLayer(contentLayer)
         }
       }
+
+      // Now position the effect, and apply the render effect
+      effectLayer.topLeft = effect.bounds.topLeft.round()
+      effectLayer.renderEffect = effect.renderEffect
 
       // We draw the 'effect' to the window canvas, drawing on top of the original content
       clipShape(
         shape = effect.shape,
         bounds = effect.bounds,
         path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
-        block = { drawEffect(this, effect) },
+        block = { drawEffect(this, effect, effectLayer) },
       )
+
+      graphicsContext.releaseGraphicsLayer(effectLayer)
     }
 
     graphicsContext.releaseGraphicsLayer(contentLayer)
@@ -186,12 +192,8 @@ internal class HazeNode(
         // We re-use any current effects, otherwise we need to create a new one
         currentEffects.remove(area) ?: Effect(
           area = area,
-          path = pathPool.acquireOrCreate(),
-          layer = when {
-            usingGraphicsLayers() -> currentValueOf(LocalGraphicsContext).createGraphicsLayer()
-            else -> null
-          },
-          contentClipPath = pathPool.acquireOrCreate(),
+          path = pathPool.acquireOrCreate(::Path),
+          contentClipPath = pathPool.acquireOrCreate(::Path),
         )
       }
       .toList()
@@ -219,22 +221,20 @@ internal class HazeNode(
   }
 
   private fun Effect.update() {
-    if (layerDirty) updateLayerPosition()
     if (renderEffectDirty && usingGraphicsLayers()) updateRenderEffect(this)
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it
   }
 
   private fun Effect.recycle() {
-    pathPool.releasePath(path)
-    pathPool.releasePath(contentClipPath)
-    layer?.let { currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(it) }
+    pathPool.release(path)
+    pathPool.release(contentClipPath)
   }
 }
 
 internal expect fun HazeNode.updateRenderEffect(effect: Effect)
 internal expect fun HazeNode.usingGraphicsLayers(): Boolean
-internal expect fun HazeNode.drawEffect(drawScope: DrawScope, effect: Effect)
+internal expect fun HazeNode.drawEffect(drawScope: DrawScope, effect: Effect, graphicsLayer: GraphicsLayer? = null)
 
 internal fun Effect.updateParameters(
   bounds: Rect,
@@ -249,15 +249,6 @@ internal fun Effect.updateParameters(
   this.shape = shape
   this.tint = tint
   return renderEffectDirty || layerDirty || pathsDirty
-}
-
-internal fun Effect.requireLayer(): GraphicsLayer = requireNotNull(layer)
-
-private fun Effect.updateLayerPosition() {
-  if (layerDirty) {
-    requireLayer().topLeft = bounds.topLeft.round()
-  }
-  layerDirty = false
 }
 
 private fun Effect.getUpdatedPath(layoutDirection: LayoutDirection, density: Density): Path {
@@ -298,7 +289,7 @@ internal class Effect(
   val area: HazeArea,
   val path: Path,
   val contentClipPath: Path,
-  val layer: GraphicsLayer? = null,
+  var renderEffect: RenderEffect? = null,
   var renderEffectDirty: Boolean = true,
   var pathsDirty: Boolean = true,
   var layerDirty: Boolean = true,
