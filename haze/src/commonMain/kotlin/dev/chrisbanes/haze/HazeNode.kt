@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntSize
 
 /**
@@ -163,7 +162,10 @@ internal class HazeNode(
         }
       }
 
-      drawEffect(this, effect, effectLayer)
+      // Draw the effect's graphic layer, translated to the correct position
+      translate(effect.bounds.left, effect.bounds.top) {
+        drawEffect(this, effect, effectLayer)
+      }
     }
   }
 
@@ -227,7 +229,6 @@ internal class HazeNode(
     density: Density,
   ) {
     layer?.apply {
-      topLeft = bounds.topLeft.round()
       colorFilter = when {
         tint.alpha >= 0.005f -> ColorFilter.tint(tint, BlendMode.SrcOver)
         else -> null
