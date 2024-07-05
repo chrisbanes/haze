@@ -6,12 +6,12 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import org.jetbrains.skia.FilterTileMode
 import org.jetbrains.skia.IRect
 import org.jetbrains.skia.ImageFilter
@@ -25,15 +25,15 @@ internal actual fun HazeNode.drawEffect(
   drawLayer(requireNotNull(graphicsLayer))
 }
 
-internal actual fun HazeNode.usingGraphicsLayers(): Boolean = true
+internal actual fun HazeNode.useGraphicsLayers(): Boolean = true
 
-internal actual fun HazeNode.updateRenderEffect(effect: Effect) {
+internal actual fun HazeNode.createRenderEffect(effect: Effect, density: Density): RenderEffect? {
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
     uniform("noiseFactor", effect.noiseFactor)
     child("noise", NOISE_SHADER)
   }
   // For CLAMP to work, we need to provide the crop rect
-  val blurRadiusPx = with(currentValueOf(LocalDensity)) { effect.blurRadius.toPx() }
+  val blurRadiusPx = with(density) { effect.blurRadius.toPx() }
   val blurFilter = createBlurImageFilter(blurRadiusPx, effect.bounds.size.toRect())
 
   val filter = ImageFilter.makeRuntimeShader(
@@ -42,7 +42,7 @@ internal actual fun HazeNode.updateRenderEffect(effect: Effect) {
     inputs = arrayOf(null, blurFilter),
   )
 
-  effect.renderEffect = filter.asComposeRenderEffect()
+  return filter.asComposeRenderEffect()
 }
 
 private fun createBlurImageFilter(blurRadiusPx: Float, cropRect: Rect? = null): ImageFilter {

@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.layer.setOutline
 import androidx.compose.ui.graphics.withSave
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
@@ -106,9 +107,11 @@ internal class HazeNode(
     }
 
     // First we need to make sure that the effects are updated (if necessary)
-    effects.forEach { it.update() }
+    for (effect in effects) {
+      effect.update(layoutDirection, drawContext.density)
+    }
 
-    if (!usingGraphicsLayers()) {
+    if (!useGraphicsLayers()) {
       // If we're not using graphics layers, our code path is much simpler.
       // We just draw the content directly to the canvas, and then draw each effect over it
       drawContent()
@@ -123,8 +126,6 @@ internal class HazeNode(
       }
       return
     }
-
-    val graphicsContext = currentValueOf(LocalGraphicsContext)
 
     // First we draw the composable content into a graphics layer
     contentLayer.record(size = size.roundToIntSize()) {
@@ -150,7 +151,7 @@ internal class HazeNode(
     for (effect in effects) {
       // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
       // The RenderEffect applied will provide the blurring effect.
-      val effectLayer = graphicsContext.createGraphicsLayer()
+      val effectLayer = requireNotNull(effect.layer)
 
       // We need to inflate the bounds by the blur radius, so that the effect
       // has access to the pixels it needs in the clipRect
@@ -162,28 +163,16 @@ internal class HazeNode(
         }
       }
 
-      // Now position the effect, and apply the render effect
-      effectLayer.topLeft = effect.bounds.topLeft.round()
-      effectLayer.renderEffect = effect.renderEffect
-      effectLayer.colorFilter = when {
-        effect.tint.alpha >= 0.005f -> ColorFilter.tint(effect.tint, BlendMode.SrcOver)
-        else -> null
-      }
-
-      // We draw the 'effect' to the window canvas, drawing on top of the original content
-      clipShape(
-        shape = effect.shape,
-        bounds = effect.bounds,
-        path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
-        block = { drawEffect(this, effect, effectLayer) },
-      )
-
-      graphicsContext.releaseGraphicsLayer(effectLayer)
+      drawEffect(this, effect, effectLayer)
     }
   }
 
   override fun onDetach() {
-    currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(contentLayer)
+    val graphicsContext = currentValueOf(LocalGraphicsContext)
+    graphicsContext.releaseGraphicsLayer(contentLayer)
+    effects.asSequence()
+      .mapNotNull { it.layer }
+      .forEach { graphicsContext.releaseGraphicsLayer(it) }
   }
 
   private fun update(
@@ -201,6 +190,10 @@ internal class HazeNode(
         // We re-use any current effects, otherwise we need to create a new one
         currentEffects.remove(area) ?: Effect(
           area = area,
+          layer = when {
+            useGraphicsLayers() -> currentValueOf(LocalGraphicsContext).createGraphicsLayer()
+            else -> null
+          },
           path = pathPool.acquireOrCreate(::Path),
           contentClipPath = pathPool.acquireOrCreate(::Path),
         )
@@ -229,8 +222,26 @@ internal class HazeNode(
     return invalidateCount > 0 || (effects.isEmpty() != currentEffectsIsEmpty)
   }
 
-  private fun Effect.update() {
-    if (renderEffectDirty && usingGraphicsLayers()) updateRenderEffect(this)
+  private fun Effect.updateLayer(
+    layoutDirection: LayoutDirection,
+    density: Density,
+  ) {
+    layer?.apply {
+      topLeft = bounds.topLeft.round()
+      colorFilter = when {
+        tint.alpha >= 0.005f -> ColorFilter.tint(tint, BlendMode.SrcOver)
+        else -> null
+      }
+      clip = true
+      setOutline(shape.createOutline(bounds.size, layoutDirection, density))
+      renderEffect = createRenderEffect(this@updateLayer, density)
+    }
+    layerDirty = false
+  }
+
+  private fun Effect.update(layoutDirection: LayoutDirection, density: Density) {
+    if (layerDirty) updateLayer(layoutDirection, density)
+
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it
   }
@@ -238,12 +249,17 @@ internal class HazeNode(
   private fun Effect.recycle() {
     pathPool.release(path)
     pathPool.release(contentClipPath)
+    layer?.let { currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(it) }
   }
 }
 
-internal expect fun HazeNode.updateRenderEffect(effect: Effect)
-internal expect fun HazeNode.usingGraphicsLayers(): Boolean
-internal expect fun HazeNode.drawEffect(drawScope: DrawScope, effect: Effect, graphicsLayer: GraphicsLayer? = null)
+internal expect fun HazeNode.createRenderEffect(effect: Effect, density: Density): RenderEffect?
+internal expect fun HazeNode.useGraphicsLayers(): Boolean
+internal expect fun HazeNode.drawEffect(
+  drawScope: DrawScope,
+  effect: Effect,
+  graphicsLayer: GraphicsLayer? = null,
+)
 
 internal fun Effect.updateParameters(
   bounds: Rect,
@@ -257,7 +273,7 @@ internal fun Effect.updateParameters(
   this.noiseFactor = noiseFactor
   this.shape = shape
   this.tint = tint
-  return renderEffectDirty || layerDirty || pathsDirty
+  return layerDirty || layerDirty || pathsDirty
 }
 
 private fun Effect.getUpdatedPath(layoutDirection: LayoutDirection, density: Density): Path {
@@ -298,8 +314,7 @@ internal class Effect(
   val area: HazeArea,
   val path: Path,
   val contentClipPath: Path,
-  var renderEffect: RenderEffect? = null,
-  var renderEffectDirty: Boolean = true,
+  var layer: GraphicsLayer? = null,
   var pathsDirty: Boolean = true,
   var layerDirty: Boolean = true,
 ) {
@@ -326,7 +341,7 @@ internal class Effect(
   var blurRadius: Dp = Dp.Unspecified
     set(value) {
       if (value != field) {
-        renderEffectDirty = true
+        layerDirty = true
         field = value
       }
     }
@@ -334,7 +349,7 @@ internal class Effect(
   var noiseFactor: Float = 0f
     set(value) {
       if (value != field) {
-        renderEffectDirty = true
+        layerDirty = true
         field = value
       }
     }
@@ -342,7 +357,7 @@ internal class Effect(
   var tint: Color = Color.Unspecified
     set(value) {
       if (value != field) {
-        renderEffectDirty = true
+        layerDirty = true
         field = value
       }
     }

@@ -7,13 +7,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlendMode
-import android.graphics.RenderEffect
+import android.graphics.RenderEffect as AndroidRenderEffect
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.collection.lruCache
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -22,22 +23,22 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import kotlin.math.roundToInt
 
-internal actual fun HazeNode.updateRenderEffect(effect: Effect) = with(effect) {
-  if (Build.VERSION.SDK_INT >= 32) {
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
-    renderEffect =
-      RenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+internal actual fun HazeNode.createRenderEffect(effect: Effect, density: Density): RenderEffect? =
+  with(effect) {
+    if (Build.VERSION.SDK_INT >= 32) {
+      val blurRadiusPx = with(density) { blurRadius.toPx() }
+      return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
         .withNoise(noiseFactor)
         .asComposeRenderEffect()
+    }
+    return null
   }
-  renderEffectDirty = false
-}
 
-internal actual fun HazeNode.usingGraphicsLayers(): Boolean = Build.VERSION.SDK_INT >= 32
+internal actual fun HazeNode.useGraphicsLayers(): Boolean = Build.VERSION.SDK_INT >= 32
 
 internal actual fun HazeNode.drawEffect(
   drawScope: DrawScope,
@@ -78,11 +79,11 @@ private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
 
 context(CompositionLocalConsumerModifierNode)
 @RequiresApi(31)
-private fun RenderEffect.withNoise(noiseFactor: Float): RenderEffect = when {
+private fun AndroidRenderEffect.withNoise(noiseFactor: Float): AndroidRenderEffect = when {
   noiseFactor >= 0.005f -> {
     val noiseShader = BitmapShader(getNoiseTexture(noiseFactor), REPEAT, REPEAT)
-    RenderEffect.createBlendModeEffect(
-      RenderEffect.createShaderEffect(noiseShader), // dst
+    AndroidRenderEffect.createBlendModeEffect(
+      AndroidRenderEffect.createShaderEffect(noiseShader), // dst
       this, // src
       BlendMode.DST_ATOP, // blendMode
     )
