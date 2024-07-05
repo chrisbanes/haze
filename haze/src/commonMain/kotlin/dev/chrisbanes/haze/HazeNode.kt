@@ -65,6 +65,8 @@ internal class HazeNode(
   private var size by mutableStateOf(IntSize.Zero)
   private var effects: List<Effect> = emptyList()
 
+  private val contentLayer by lazy { currentValueOf(LocalGraphicsContext).createGraphicsLayer() }
+
   fun onUpdate() {
     updateAndInvalidate()
   }
@@ -123,7 +125,6 @@ internal class HazeNode(
     }
 
     val graphicsContext = currentValueOf(LocalGraphicsContext)
-    val contentLayer = graphicsContext.createGraphicsLayer()
 
     // First we draw the composable content into a graphics layer
     contentLayer.record(size = size.roundToIntSize()) {
@@ -134,7 +135,7 @@ internal class HazeNode(
     // (they will be drawn on top)
     with(drawContext.canvas) {
       withSave {
-        // We add all of the clip outs to the canvas (Canvas will combine them)
+        // We add all the clip outs to the canvas (Canvas will combine them)
         for (effect in effects) {
           clipShape(effect.shape, effect.contentClipBounds, ClipOp.Difference) {
             effect.getUpdatedContentClipPath(layoutDirection, drawContext.density)
@@ -179,8 +180,10 @@ internal class HazeNode(
 
       graphicsContext.releaseGraphicsLayer(effectLayer)
     }
+  }
 
-    graphicsContext.releaseGraphicsLayer(contentLayer)
+  override fun onDetach() {
+    currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(contentLayer)
   }
 
   private fun update(
