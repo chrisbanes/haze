@@ -158,10 +158,8 @@ internal class HazeNode(
   }
 
   override fun onDetach() {
-    val graphicsContext = currentValueOf(LocalGraphicsContext)
-    effects.asSequence()
-      .mapNotNull { it.layer }
-      .forEach { graphicsContext.releaseGraphicsLayer(it) }
+    effects.forEach { it.recycle() }
+    effects = emptyList()
   }
 
   private fun update(
