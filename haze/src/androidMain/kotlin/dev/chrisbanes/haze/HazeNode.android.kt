@@ -52,11 +52,12 @@ internal actual fun HazeNode.drawEffect(
   }
 }
 
-private val noiseTextureCache = lruCache<Float, Bitmap>(3)
+private val noiseTextureCache = lruCache<Int, Bitmap>(3)
 
 context(CompositionLocalConsumerModifierNode)
 private fun getNoiseTexture(noiseFactor: Float): Bitmap {
-  val cached = noiseTextureCache[noiseFactor]
+  val cacheKey = (noiseFactor * 255).roundToInt()
+  val cached = noiseTextureCache[cacheKey]
   if (cached != null && !cached.isRecycled) {
     return cached
   }
@@ -65,7 +66,7 @@ private fun getNoiseTexture(noiseFactor: Float): Bitmap {
   val resources = currentValueOf(LocalContext).resources
   return BitmapFactory.decodeResource(resources, R.drawable.haze_noise)
     .withAlpha(noiseFactor)
-    .also { noiseTextureCache.put(noiseFactor, it) }
+    .also { noiseTextureCache.put(cacheKey, it) }
 }
 
 /**
