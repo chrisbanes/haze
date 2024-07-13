@@ -25,12 +25,14 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.takeOrElse
 import kotlin.math.roundToInt
 
-internal actual fun HazeNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect? =
+internal actual fun HazeEffectNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect? =
   with(effect) {
-    if (Build.VERSION.SDK_INT >= 32) {
-      val blurRadiusPx = with(density) { blurRadius.toPx() }
+    val blurRadiusPx = with(density) { blurRadiusOrZero.toPx() }
+    if (Build.VERSION.SDK_INT >= 32 && blurRadiusPx >= 0.005f) {
       return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
         .withNoise(noiseFactor)
         .asComposeRenderEffect()
@@ -38,9 +40,9 @@ internal actual fun HazeNode.createRenderEffect(effect: HazeEffect, density: Den
     return null
   }
 
-internal actual fun HazeNode.useGraphicsLayers(): Boolean = Build.VERSION.SDK_INT >= 32
+internal actual fun HazeEffectNode.useGraphicsLayers(): Boolean = Build.VERSION.SDK_INT >= 32
 
-internal actual fun HazeNode.drawEffect(
+internal actual fun HazeEffectNode.drawEffect(
   drawScope: DrawScope,
   effect: HazeEffect,
   graphicsLayer: GraphicsLayer?,

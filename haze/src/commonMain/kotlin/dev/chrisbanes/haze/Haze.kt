@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
@@ -27,12 +28,30 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 
+enum class RenderMode {
+  PARENT,
+  CHILD;
+
+  internal companion object {
+    val DEFAULT = CHILD // STOPSHIP: change this back to PARENT
+  }
+}
+
 @Stable
 class HazeState {
   /**
    * The areas which are blurred by any [Modifier.haze] instances which use this state.
    */
   private val _areas = mutableStateListOf<HazeArea>()
+
+  var renderMode: RenderMode by mutableStateOf(RenderMode.DEFAULT)
+    internal set
+
+  var contentLayer: GraphicsLayer? by mutableStateOf(null)
+    internal set
+
+  var defaultStyle: HazeStyle by mutableStateOf(HazeStyle.Unspecified)
+    internal set
 
   val areas: List<HazeArea> get() = _areas.toList()
 
@@ -106,7 +125,8 @@ fun Modifier.haze(
 fun Modifier.haze(
   state: HazeState,
   style: HazeStyle = HazeDefaults.style(),
-): Modifier = this then HazeNodeElement(state, style)
+  renderMode: RenderMode = RenderMode.DEFAULT,
+): Modifier = this then HazeNodeElement(state, style, renderMode)
 
 /**
  * Default values for the [haze] modifiers.
@@ -163,18 +183,28 @@ object HazeDefaults {
 internal data class HazeNodeElement(
   val state: HazeState,
   val style: HazeStyle,
+  val renderMode: RenderMode,
 ) : ModifierNodeElement<HazeNode>() {
-  override fun create(): HazeNode = HazeNode(state = state, style = style)
+  override fun create(): HazeNode {
+    state.defaultStyle = style
+    state.renderMode = renderMode
+    return HazeNode(state, renderMode)
+  }
 
   override fun update(node: HazeNode) {
     node.state = state
-    node.style = style
+    node.renderMode = renderMode
+
+    state.defaultStyle = style
+    state.renderMode = renderMode
+
     node.onUpdate()
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "haze"
     properties["style"] = style
+    properties["renderMode"] = renderMode
   }
 }
 
@@ -204,11 +234,13 @@ data class HazeStyle(
  * Resolves the style which should be used by renderers. The style returned from here
  * is guaranteed to contains specified values.
  */
-internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle = HazeStyle(
-  tint = child.tint.takeOrElse { default.tint }.takeOrElse { Color.Transparent },
-  blurRadius = child.blurRadius.takeOrElse { default.blurRadius }.takeOrElse { 0.dp },
-  noiseFactor = child.noiseFactor.takeOrElse { default.noiseFactor }.takeOrElse { 0f },
-)
+internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle {
+  return HazeStyle(
+    tint = child.tint.takeOrElse { default.tint }.takeOrElse { Color.Transparent },
+    blurRadius = child.blurRadius.takeOrElse { default.blurRadius }.takeOrElse { 0.dp },
+    noiseFactor = child.noiseFactor.takeOrElse { default.noiseFactor }.takeOrElse { 0f },
+  )
+}
 
 private inline fun Float.takeOrElse(block: () -> Float): Float =
   if (this in 0f..1f) this else block()

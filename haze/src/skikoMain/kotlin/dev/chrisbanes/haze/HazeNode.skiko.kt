@@ -17,7 +17,7 @@ import org.jetbrains.skia.IRect
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeShaderBuilder
 
-internal actual fun HazeNode.drawEffect(
+internal actual fun HazeEffectNode.drawEffect(
   drawScope: DrawScope,
   effect: HazeEffect,
   graphicsLayer: GraphicsLayer?,
@@ -25,15 +25,15 @@ internal actual fun HazeNode.drawEffect(
   drawLayer(requireNotNull(graphicsLayer))
 }
 
-internal actual fun HazeNode.useGraphicsLayers(): Boolean = true
+internal actual fun HazeEffectNode.useGraphicsLayers(): Boolean = true
 
-internal actual fun HazeNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect? {
+internal actual fun HazeEffectNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect? {
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
     uniform("noiseFactor", effect.noiseFactor)
     child("noise", NOISE_SHADER)
   }
   // For CLAMP to work, we need to provide the crop rect
-  val blurRadiusPx = with(density) { effect.blurRadius.toPx() }
+  val blurRadiusPx = with(density) { effect.blurRadiusOrZero.toPx() }
   val blurFilter = createBlurImageFilter(blurRadiusPx, effect.bounds.size.toRect())
 
   val filter = ImageFilter.makeRuntimeShader(

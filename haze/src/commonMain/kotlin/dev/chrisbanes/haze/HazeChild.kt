@@ -7,15 +7,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import androidx.compose.ui.node.GlobalPositionAwareModifierNode
-import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateSubtree
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
 
 /**
@@ -70,13 +72,10 @@ private data class HazeChildNodeElement(
 }
 
 private data class HazeChildNode(
-  var state: HazeState,
+  override var state: HazeState,
   var shape: Shape,
   var style: HazeStyle,
-) : Modifier.Node(),
-  LayoutAwareModifierNode,
-  GlobalPositionAwareModifierNode,
-  CompositionLocalConsumerModifierNode {
+) : HazeEffectNode() {
 
   private val area: HazeArea by lazy {
     HazeArea(shape = shape, style = style)
@@ -86,9 +85,10 @@ private data class HazeChildNode(
 
   override fun onAttach() {
     attachToHazeState()
+    super.onAttach()
   }
 
-  fun onUpdate() {
+  override fun onUpdate() {
     // Propagate any shape changes to the HazeArea
     area.shape = shape
     area.style = style
@@ -99,15 +99,15 @@ private data class HazeChildNode(
       detachFromHazeState()
       attachToHazeState()
     }
-  }
 
-  override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    onPlaced(coordinates)
+    super.onUpdate()
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
+    super.onPlaced(coordinates)
+
     // After we've been placed, update the state with our new bounds (in 'screen' coordinates)
-    area.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
+    area.positionOnScreen = position
     area.size = coordinates.size.toSize()
   }
 
@@ -116,7 +116,88 @@ private data class HazeChildNode(
   }
 
   override fun onDetach() {
+    super.onDetach()
     detachFromHazeState()
+  }
+
+  override fun ContentDrawScope.draw() {
+    if (effects.isEmpty() || state.renderMode != RenderMode.CHILD) {
+      // If we don't have any effects, just call drawContent and return early
+      drawContent()
+      return
+    }
+
+    // First we need to make sure that the effects are updated (if necessary)
+    for (effect in effects) {
+      updateEffect(effect, layoutDirection, drawContext.density)
+    }
+
+    if (!useGraphicsLayers()) {
+      // If we're not using graphics layers, our code path is much simpler.
+      // We just draw the content directly to the canvas, and then draw each effect over it
+      drawContent()
+
+      for (effect in effects) {
+        clipShape(
+          shape = effect.shape,
+          bounds = effect.bounds,
+          path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
+          block = { drawEffect(this, effect) }
+        )
+      }
+      return
+    }
+
+    val contentLayer = requireNotNull(state.contentLayer)
+
+    // Now we draw each effect over the content
+    for (effect in effects) {
+      // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
+      // The RenderEffect applied will provide the blurring effect.
+      val effectLayer = requireNotNull(effect.layer)
+
+      // We need to inflate the bounds by the blur radius, so that the effect
+      // has access to the pixels it needs in the clipRect
+      val inflatedBounds = effect.bounds.inflate(effect.blurRadiusOrZero.toPx())
+      effectLayer.record(size = inflatedBounds.size.roundToIntSize()) {
+        drawRect(effect.tint.copy(alpha = 1f))
+
+        translate(-effect.bounds.left, -effect.bounds.top) {
+          // Finally draw the content into our effect layer
+          drawLayer(contentLayer)
+        }
+      }
+
+      // Draw the effect's graphic layer, translated to the correct position
+      translate(effect.bounds.left, effect.bounds.top) {
+        drawEffect(this, effect, effectLayer)
+      }
+    }
+
+    // Finally we draw the content
+    drawContent()
+  }
+
+  override fun calculateUpdatedHazeEffects(): List<HazeEffect> {
+    if (state.renderMode == RenderMode.CHILD) {
+      val currentEffects = effects.associateByTo(mutableMapOf(), HazeEffect::area)
+
+      return sequenceOf(area)
+        .filter { it.isValid }
+        .map { area ->
+          // We re-use any current effects, otherwise we need to create a new one
+          currentEffects.remove(area) ?: HazeEffect(
+            area = area,
+            layer = when {
+              useGraphicsLayers() -> currentValueOf(LocalGraphicsContext).createGraphicsLayer()
+              else -> null
+            },
+          )
+        }
+        .toList()
+    }
+
+    return emptyList()
   }
 
   private fun attachToHazeState() {
