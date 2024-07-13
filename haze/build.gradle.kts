@@ -80,7 +80,7 @@ kotlin {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
   compilerOptions {
-    freeCompilerArgs.set(listOf("-Xcontext-receivers"))
+    freeCompilerArgs.add("-Xcontext-receivers")
   }
 }
 
