@@ -60,6 +60,8 @@ kotlin {
     }
 
     val screenshotTest by creating {
+      dependsOn(commonTest.get())
+
       dependencies {
         implementation(kotlin("test"))
         implementation(projects.internal.screenshotTest)
