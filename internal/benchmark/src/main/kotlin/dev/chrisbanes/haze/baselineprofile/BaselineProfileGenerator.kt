@@ -8,6 +8,7 @@ import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.uiautomator.By
 import dev.chrisbanes.haze.testutils.navigateToImagesList
+import dev.chrisbanes.haze.testutils.waitForObject
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,14 +27,14 @@ class BaselineProfileGenerator {
 
     device.navigateToImagesList()
 
-    val column = device.findObject(By.res("lazy_column"))
-
-    // Set gesture margin to avoid triggering gesture navigation
-    // with input events from automation.
-    column.setGestureMargin(device.displayWidth / 5)
-
     // Scroll down several times
     repeat(5) {
+      val column = device.waitForObject(By.res("lazy_column"))
+
+      // Set gesture margin to avoid triggering gesture navigation
+      // with input events from automation.
+      column.setGestureMargin(device.displayWidth / 5)
+
       column.drag(Point(column.visibleCenter.x, column.visibleBounds.top))
     }
   }

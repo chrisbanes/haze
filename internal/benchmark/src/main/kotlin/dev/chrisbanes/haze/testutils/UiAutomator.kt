@@ -16,11 +16,18 @@ internal fun UiDevice.waitForObject(
   selector: BySelector,
   timeout: Duration = 5.seconds,
 ): UiObject2 {
+  return waitForObjectOrNull(selector, timeout)
+    ?: error("Object with selector [$selector] not found")
+}
+
+internal fun UiDevice.waitForObjectOrNull(
+  selector: BySelector,
+  timeout: Duration = 5.seconds,
+): UiObject2? {
   if (wait(Until.hasObject(selector), timeout)) {
     return findObject(selector)
   }
-
-  error("Object with selector [$selector] not found")
+  return null
 }
 
 internal fun <R> UiDevice.wait(condition: SearchCondition<R>, timeout: Duration): R {
