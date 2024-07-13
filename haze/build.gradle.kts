@@ -19,7 +19,13 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   testOptions {
-    unitTests.isIncludeAndroidResources = true
+    unitTests {
+      isIncludeAndroidResources = true
+
+      all {
+        it.systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
+      }
+    }
   }
 }
 
@@ -60,6 +66,8 @@ kotlin {
     }
 
     val screenshotTest by creating {
+      dependsOn(commonTest.get())
+
       dependencies {
         implementation(kotlin("test"))
         implementation(projects.internal.screenshotTest)
@@ -77,8 +85,8 @@ kotlin {
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-  kotlinOptions {
-    freeCompilerArgs += "-Xcontext-receivers"
+  compilerOptions {
+    freeCompilerArgs.add("-Xcontext-receivers")
   }
 }
 

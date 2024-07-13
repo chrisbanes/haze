@@ -61,15 +61,17 @@ kotlin {
 
   targets.configureEach {
     compilations.configureEach {
-      compilerOptions.configure {
-        freeCompilerArgs.add("-Xexpect-actual-classes")
+      compileTaskProvider {
+        compilerOptions {
+          freeCompilerArgs.add("-Xexpect-actual-classes")
+        }
       }
     }
   }
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-  kotlinOptions {
-    freeCompilerArgs += "-Xcontext-receivers"
+  compilerOptions {
+    freeCompilerArgs.add("-Xcontext-receivers")
   }
 }
