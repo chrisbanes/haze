@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import kotlin.math.roundToInt
 
-internal actual fun HazeNode.createRenderEffect(effect: Effect, density: Density): RenderEffect? =
+internal actual fun HazeNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect? =
   with(effect) {
     if (Build.VERSION.SDK_INT >= 32) {
       val blurRadiusPx = with(density) { blurRadius.toPx() }
@@ -42,7 +42,7 @@ internal actual fun HazeNode.useGraphicsLayers(): Boolean = Build.VERSION.SDK_IN
 
 internal actual fun HazeNode.drawEffect(
   drawScope: DrawScope,
-  effect: Effect,
+  effect: HazeEffect,
   graphicsLayer: GraphicsLayer?,
 ) = with(drawScope) {
   if (graphicsLayer != null && drawContext.canvas.nativeCanvas.isHardwareAccelerated) {

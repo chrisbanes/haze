@@ -44,3 +44,9 @@ internal inline fun <T : Any> Pool<T>.use(
 }
 
 internal inline fun Pool<Path>.usePath(block: (Path) -> Unit) = use(::Path, block)
+
+/**
+ * A simple object path for [Path]s. They're fairly expensive so it makes sense to
+ * re-use instances.
+ */
+internal val pathPool by lazy { Pool(Path::rewind) }

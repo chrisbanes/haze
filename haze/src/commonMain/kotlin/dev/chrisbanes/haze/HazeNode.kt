@@ -10,19 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ClipOp
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -40,16 +32,9 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.roundToIntSize
-
-/**
- * A simple object path for [Path]s. They're fairly expensive so it makes sense to
- * re-use instances.
- */
-private val pathPool by lazy { Pool(Path::rewind) }
 
 internal class HazeNode(
   var state: HazeState,
@@ -63,9 +48,7 @@ internal class HazeNode(
 
   private var position by mutableStateOf(Offset.Unspecified)
   private var size by mutableStateOf(IntSize.Zero)
-  private var effects: List<Effect> = emptyList()
-
-  private val contentLayer by lazy { currentValueOf(LocalGraphicsContext).createGraphicsLayer() }
+  private var effects: List<HazeEffect> = emptyList()
 
   fun onUpdate() {
     updateAndInvalidate()
@@ -126,6 +109,9 @@ internal class HazeNode(
       return
     }
 
+    val graphicsContext = currentValueOf(LocalGraphicsContext)
+    val contentLayer = graphicsContext.createGraphicsLayer()
+
     // First we draw the composable content into a graphics layer
     contentLayer.record(size = size.roundToIntSize()) {
       this@draw.drawContent()
@@ -167,11 +153,12 @@ internal class HazeNode(
         drawEffect(this, effect, effectLayer)
       }
     }
+
+    graphicsContext.releaseGraphicsLayer(contentLayer)
   }
 
   override fun onDetach() {
     val graphicsContext = currentValueOf(LocalGraphicsContext)
-    graphicsContext.releaseGraphicsLayer(contentLayer)
     effects.asSequence()
       .mapNotNull { it.layer }
       .forEach { graphicsContext.releaseGraphicsLayer(it) }
@@ -183,21 +170,19 @@ internal class HazeNode(
     position: Offset = this.position,
   ): Boolean {
     val currentEffectsIsEmpty = effects.isEmpty()
-    val currentEffects = effects.associateByTo(HashMap(), Effect::area)
+    val currentEffects = effects.associateByTo(HashMap(), HazeEffect::area)
 
     // We create a RenderNode for each of the areas we need to apply our effect to
     effects = state.areas.asSequence()
       .filter { it.isValid }
       .map { area ->
         // We re-use any current effects, otherwise we need to create a new one
-        currentEffects.remove(area) ?: Effect(
+        currentEffects.remove(area) ?: HazeEffect(
           area = area,
           layer = when {
             useGraphicsLayers() -> currentValueOf(LocalGraphicsContext).createGraphicsLayer()
             else -> null
           },
-          path = pathPool.acquireOrCreate(::Path),
-          contentClipPath = pathPool.acquireOrCreate(::Path),
         )
       }
       .toList()
@@ -206,25 +191,24 @@ internal class HazeNode(
     currentEffects.forEach { (_, effect) -> effect.recycle() }
     currentEffects.clear()
 
-    val invalidateCount = effects.count { effect ->
-      val bounds = effect.area.boundsInLocal(position) ?: Rect.Zero
+    effects.forEach { effect ->
       val resolvedStyle = resolveStyle(defaultStyle, effect.area.style)
 
-      effect.updateParameters(
-        bounds = bounds,
-        blurRadius = resolvedStyle.blurRadius,
-        noiseFactor = resolvedStyle.noiseFactor,
-        tint = resolvedStyle.tint,
-        shape = effect.area.shape,
-      )
+      effect.bounds = effect.area.boundsInLocal(position) ?: Rect.Zero
+      effect.blurRadius = resolvedStyle.blurRadius
+      effect.noiseFactor = resolvedStyle.noiseFactor
+      effect.tint = resolvedStyle.tint
+      effect.shape = effect.area.shape
     }
+
+    val needInvalidate = effects.any { it.needInvalidation }
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
-    return invalidateCount > 0 || (effects.isEmpty() != currentEffectsIsEmpty)
+    return needInvalidate || (effects.isEmpty() != currentEffectsIsEmpty)
   }
 
-  private fun Effect.updateLayer(
+  private fun HazeEffect.updateLayer(
     layoutDirection: LayoutDirection,
     density: Density,
   ) {
@@ -240,167 +224,26 @@ internal class HazeNode(
     layerDirty = false
   }
 
-  private fun Effect.update(layoutDirection: LayoutDirection, density: Density) {
+  private fun HazeEffect.update(layoutDirection: LayoutDirection, density: Density) {
     if (layerDirty) updateLayer(layoutDirection, density)
 
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it
   }
 
-  private fun Effect.recycle() {
+  private fun HazeEffect.recycle() {
     pathPool.release(path)
     pathPool.release(contentClipPath)
     layer?.let { currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(it) }
   }
 }
 
-internal expect fun HazeNode.createRenderEffect(effect: Effect, density: Density): RenderEffect?
+internal expect fun HazeNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect?
+
 internal expect fun HazeNode.useGraphicsLayers(): Boolean
+
 internal expect fun HazeNode.drawEffect(
   drawScope: DrawScope,
-  effect: Effect,
+  effect: HazeEffect,
   graphicsLayer: GraphicsLayer? = null,
 )
-
-internal fun Effect.updateParameters(
-  bounds: Rect,
-  blurRadius: Dp,
-  noiseFactor: Float,
-  tint: Color,
-  shape: Shape,
-): Boolean {
-  this.bounds = bounds
-  this.blurRadius = blurRadius
-  this.noiseFactor = noiseFactor
-  this.shape = shape
-  this.tint = tint
-  return layerDirty || layerDirty || pathsDirty
-}
-
-private fun Effect.getUpdatedPath(layoutDirection: LayoutDirection, density: Density): Path {
-  if (pathsDirty) {
-    updatePaths(layoutDirection, density)
-  }
-  return path
-}
-
-private fun Effect.getUpdatedContentClipPath(
-  layoutDirection: LayoutDirection,
-  density: Density,
-): Path {
-  if (pathsDirty) {
-    updatePaths(layoutDirection, density)
-  }
-  return contentClipPath
-}
-
-private fun Effect.updatePaths(layoutDirection: LayoutDirection, density: Density) {
-  path.rewind()
-  if (!bounds.isEmpty) {
-    path.addOutline(shape.createOutline(bounds.size, layoutDirection, density))
-  }
-
-  contentClipPath.rewind()
-  val bounds = contentClipBounds
-  if (!bounds.isEmpty) {
-    contentClipPath.addOutline(
-      shape.createOutline(bounds.size, layoutDirection, density),
-    )
-  }
-
-  pathsDirty = false
-}
-
-internal class Effect(
-  val area: HazeArea,
-  val path: Path,
-  val contentClipPath: Path,
-  var layer: GraphicsLayer? = null,
-  var pathsDirty: Boolean = true,
-  var layerDirty: Boolean = true,
-) {
-
-  val contentClipBounds: Rect
-    get() = when {
-      bounds.isEmpty -> bounds
-      // We clip the content to a slightly smaller rect than the blur bounds, to reduce the
-      // chance of rounding + anti-aliasing causing visually problems
-      else -> bounds.deflate(2f).takeIf { it.width >= 0 && it.height >= 0 } ?: Rect.Zero
-    }
-
-  var bounds: Rect = Rect.Zero
-    set(value) {
-      if (value != field) {
-        layerDirty = true
-        if (value.size != field.size) {
-          pathsDirty = true
-        }
-        field = value
-      }
-    }
-
-  var blurRadius: Dp = Dp.Unspecified
-    set(value) {
-      if (value != field) {
-        layerDirty = true
-        field = value
-      }
-    }
-
-  var noiseFactor: Float = 0f
-    set(value) {
-      if (value != field) {
-        layerDirty = true
-        field = value
-      }
-    }
-
-  var tint: Color = Color.Unspecified
-    set(value) {
-      if (value != field) {
-        layerDirty = true
-        field = value
-      }
-    }
-
-  var shape: Shape = RectangleShape
-    set(value) {
-      if (value != field) {
-        pathsDirty = true
-      }
-      field = value
-    }
-}
-
-private fun Canvas.clipShape(
-  shape: Shape,
-  bounds: Rect,
-  clipOp: ClipOp = ClipOp.Intersect,
-  path: () -> Path,
-) {
-  if (shape == RectangleShape) {
-    clipRect(bounds, clipOp)
-  } else {
-    pathPool.usePath { tmpPath ->
-      tmpPath.addPath(path(), bounds.topLeft)
-      clipPath(tmpPath, clipOp)
-    }
-  }
-}
-
-private fun DrawScope.clipShape(
-  shape: Shape,
-  bounds: Rect,
-  clipOp: ClipOp = ClipOp.Intersect,
-  path: () -> Path,
-  block: DrawScope.() -> Unit,
-) {
-  if (shape == RectangleShape) {
-    clipRect(bounds.left, bounds.top, bounds.right, bounds.bottom, clipOp, block)
-  } else {
-    pathPool.usePath { tmpPath ->
-      tmpPath.addPath(path(), bounds.topLeft)
-      clipPath(tmpPath, clipOp, block)
-    }
-  }
-}

@@ -7,7 +7,6 @@ import android.graphics.Point
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Direction
 import dev.chrisbanes.haze.testutils.navigateToImagesList
 import dev.chrisbanes.haze.testutils.waitForObject
 import org.junit.Rule
@@ -31,8 +30,7 @@ class BaselineProfileGenerator {
     // Scroll down several times
     repeat(5) {
       val column = device.waitForObject(By.res("lazy_column"))
-
-      column.swipe(Direction.UP, 0.3f)
+      column.drag(Point(column.visibleCenter.x, column.visibleBounds.top))
     }
   }
 }

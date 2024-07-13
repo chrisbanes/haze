@@ -19,7 +19,7 @@ import org.jetbrains.skia.RuntimeShaderBuilder
 
 internal actual fun HazeNode.drawEffect(
   drawScope: DrawScope,
-  effect: Effect,
+  effect: HazeEffect,
   graphicsLayer: GraphicsLayer?,
 ) = with(drawScope) {
   drawLayer(requireNotNull(graphicsLayer))
@@ -27,7 +27,7 @@ internal actual fun HazeNode.drawEffect(
 
 internal actual fun HazeNode.useGraphicsLayers(): Boolean = true
 
-internal actual fun HazeNode.createRenderEffect(effect: Effect, density: Density): RenderEffect? {
+internal actual fun HazeNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect? {
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
     uniform("noiseFactor", effect.noiseFactor)
     child("noise", NOISE_SHADER)
