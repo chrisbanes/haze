@@ -107,17 +107,7 @@ internal class HazeNode(
     }
   }
 
-  override fun calculateUpdatedHazeEffects(): List<HazeEffect> {
-    val currentEffects = effects.associateByTo(mutableMapOf(), HazeEffect::area)
-
-    return state.areas.asSequence()
-      .filter { it.isValid }
-      .map { area ->
-        // We re-use any current effects, otherwise we need to create a new one
-        currentEffects.remove(area) ?: HazeEffect(area = area)
-      }
-      .toList()
-  }
+  override fun calculateHazeAreas(): List<HazeArea> = state.areas
 }
 
 internal expect fun HazeEffectNode.createRenderEffect(

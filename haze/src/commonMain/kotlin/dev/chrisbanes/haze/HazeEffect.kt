@@ -86,34 +86,34 @@ internal abstract class HazeEffectNode :
     val currentEffects = effects.associateByTo(mutableMapOf(), HazeEffect::area)
 
     // We create a RenderNode for each of the areas we need to apply our effect to
-    val newEffects = calculateUpdatedHazeEffects()
+    effects = calculateHazeAreas()
+      .asSequence()
+      .filter { it.isValid }
+      .map { area ->
+        // We re-use any current effects, otherwise we need to create a new one
+        currentEffects.remove(area) ?: HazeEffect(area = area)
+      }
+      .onEach { effect ->
+        val resolvedStyle = resolveStyle(state.content.style, effect.area.style)
 
-    // Now work out what areas have been disposed by getUpdatedEffects()
-    for (effect in newEffects) {
-      currentEffects.remove(effect.area)
-    }
+        effect.size = effect.area.size
+        effect.positionOnScreen = effect.area.positionOnScreen
+        effect.blurRadius = resolvedStyle.blurRadius
+        effect.noiseFactor = resolvedStyle.noiseFactor
+        effect.tint = resolvedStyle.tint
+        effect.shape = effect.area.shape
+      }
+      .toList()
+
     // Any effects left in currentEffects are no longer used, so recycle them
     currentEffects.forEach { (_, effect) -> effect.recycle() }
     currentEffects.clear()
 
-    newEffects.forEach { effect ->
-      val resolvedStyle = resolveStyle(state.content.style, effect.area.style)
-
-      effect.size = effect.area.size
-      effect.positionOnScreen = effect.area.positionOnScreen
-      effect.blurRadius = resolvedStyle.blurRadius
-      effect.noiseFactor = resolvedStyle.noiseFactor
-      effect.tint = resolvedStyle.tint
-      effect.shape = effect.area.shape
-    }
-
-    effects = newEffects
-
-    val needInvalidate = newEffects.any { it.needInvalidation }
+    val needInvalidate = effects.any { it.needInvalidation }
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
-    return needInvalidate || (newEffects.isEmpty() != currentEffectsIsEmpty)
+    return needInvalidate || (effects.isEmpty() != currentEffectsIsEmpty)
   }
 
   protected fun DrawScope.drawEffectsWithGraphicsLayer(contentLayer: GraphicsLayer) {
@@ -170,7 +170,7 @@ internal abstract class HazeEffectNode :
     effects = emptyList()
   }
 
-  protected open fun calculateUpdatedHazeEffects(): List<HazeEffect> = emptyList()
+  protected open fun calculateHazeAreas(): List<HazeArea> = emptyList()
 
   private fun HazeEffect.recycle() {
     pathPool.release(path)

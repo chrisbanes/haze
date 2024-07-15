@@ -141,20 +141,9 @@ private data class HazeChildNode(
     }
   }
 
-  override fun calculateUpdatedHazeEffects(): List<HazeEffect> {
-    if (state.renderMode == RenderMode.CHILD) {
-      val currentEffects = effects.associateByTo(mutableMapOf(), HazeEffect::area)
-
-      return sequenceOf(area)
-        .filter { it.isValid }
-        .map { area ->
-          // We re-use any current effects, otherwise we need to create a new one
-          currentEffects.remove(area) ?: HazeEffect(area = area)
-        }
-        .toList()
-    }
-
-    return emptyList()
+  override fun calculateHazeAreas(): List<HazeArea> = when (state.renderMode) {
+    RenderMode.CHILD -> listOf(area)
+    else -> emptyList()
   }
 
   private fun attachToHazeState() {
