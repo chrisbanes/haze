@@ -122,7 +122,6 @@ internal abstract class HazeEffectNode :
 
   protected fun DrawScope.drawEffectsWithGraphicsLayer(contentLayer: GraphicsLayer) {
     val graphicsContext = currentValueOf(LocalGraphicsContext)
-    val effectLayer = graphicsContext.createGraphicsLayer()
 
     // Now we draw each effect over the content
     for (effect in effects) {
@@ -131,33 +130,33 @@ internal abstract class HazeEffectNode :
       val contentArea = state.content
       val boundsInContent = effect.calculateBounds(-contentArea.positionOnScreen)
 
-      effectLayer.colorFilter = when {
-        effect.tint.alpha >= 0.005f -> ColorFilter.tint(effect.tint, BlendMode.SrcOver)
-        else -> null
-      }
-      effectLayer.clip = true
-      effectLayer.setOutline(effect.outline ?: Outline.Rectangle(effect.size.toRect()))
-      effectLayer.renderEffect = effect.renderEffect
+      graphicsContext.useGraphicsLayer { layer ->
+        layer.colorFilter = when {
+          effect.tint.alpha >= 0.005f -> ColorFilter.tint(effect.tint, BlendMode.SrcOver)
+          else -> null
+        }
+        layer.clip = true
+        layer.setOutline(effect.outline ?: Outline.Rectangle(effect.size.toRect()))
+        layer.renderEffect = effect.renderEffect
 
-      effectLayer.record(effect.size.roundToIntSize()) {
-        if (effect.backgroundColor.isSpecified) {
-          drawRect(effect.backgroundColor)
+        layer.record(effect.size.roundToIntSize()) {
+          if (effect.backgroundColor.isSpecified) {
+            drawRect(effect.backgroundColor)
+          }
+
+          translate(-boundsInContent.left, -boundsInContent.top) {
+            // Finally draw the content into our effect layer
+            drawLayer(contentLayer)
+          }
         }
 
-        translate(-boundsInContent.left, -boundsInContent.top) {
-          // Finally draw the content into our effect layer
-          drawLayer(contentLayer)
+        // Draw the effect's graphic layer, translated to the correct position
+        val effectOffset = effect.positionOnScreen - positionOnScreen
+        translate(effectOffset.x, effectOffset.y) {
+          drawEffect(this, effect, layer)
         }
-      }
-
-      // Draw the effect's graphic layer, translated to the correct position
-      val effectOffset = effect.positionOnScreen - positionOnScreen
-      translate(effectOffset.x, effectOffset.y) {
-        drawEffect(this, effect, effectLayer)
       }
     }
-
-    graphicsContext.releaseGraphicsLayer(effectLayer)
   }
 
   protected fun DrawScope.drawEffectsWithScrim() {
