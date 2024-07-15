@@ -25,8 +25,6 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.takeOrElse
 import kotlin.math.roundToInt
 
 internal actual fun HazeEffectNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect? =

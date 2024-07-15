@@ -17,7 +17,6 @@ import androidx.compose.ui.node.invalidateSubtree
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
 
 /**
@@ -140,9 +139,9 @@ private data class HazeChildNode(
       for (effect in effects) {
         clipShape(
           shape = effect.shape,
-          bounds = effect.bounds,
+          bounds = effect.calculateBounds(-position),
           path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
-          block = { drawEffect(this, effect) }
+          block = { drawEffect(this, effect) },
         )
       }
       return
@@ -156,22 +155,20 @@ private data class HazeChildNode(
       // The RenderEffect applied will provide the blurring effect.
       val effectLayer = requireNotNull(effect.layer)
 
-      // We need to inflate the bounds by the blur radius, so that the effect
-      // has access to the pixels it needs in the clipRect
-      val inflatedBounds = effect.bounds.inflate(effect.blurRadiusOrZero.toPx())
-      effectLayer.record(size = inflatedBounds.size.roundToIntSize()) {
+      effectLayer.record {
         drawRect(effect.tint.copy(alpha = 1f))
 
-        translate(-effect.bounds.left, -effect.bounds.top) {
+        val boundsInContent = effect.calculateBounds(-state.contentPositionOnScreen)
+        println("Drawing content layer at ${boundsInContent.topLeft}")
+
+        translate(-boundsInContent.left, -boundsInContent.top) {
           // Finally draw the content into our effect layer
           drawLayer(contentLayer)
         }
       }
 
       // Draw the effect's graphic layer, translated to the correct position
-      translate(effect.bounds.left, effect.bounds.top) {
-        drawEffect(this, effect, effectLayer)
-      }
+      drawEffect(this, effect, effectLayer)
     }
 
     // Finally we draw the content

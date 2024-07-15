@@ -11,11 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
-import androidx.compose.ui.geometry.isUnspecified
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -30,7 +27,8 @@ import androidx.compose.ui.unit.takeOrElse
 
 enum class RenderMode {
   PARENT,
-  CHILD;
+  CHILD,
+  ;
 
   internal companion object {
     val DEFAULT = CHILD // STOPSHIP: change this back to PARENT
@@ -48,6 +46,9 @@ class HazeState {
     internal set
 
   var contentLayer: GraphicsLayer? by mutableStateOf(null)
+    internal set
+
+  var contentPositionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
   var defaultStyle: HazeStyle by mutableStateOf(HazeStyle.Unspecified)
@@ -90,13 +91,6 @@ class HazeArea(
     positionOnScreen = Offset.Unspecified
     size = Size.Unspecified
   }
-}
-
-internal fun HazeArea.boundsInLocal(position: Offset): Rect? {
-  if (!isValid) return null
-  if (position.isUnspecified) return null
-
-  return size.toRect().translate(positionOnScreen - position)
 }
 
 @Deprecated(

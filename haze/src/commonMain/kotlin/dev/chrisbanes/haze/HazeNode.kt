@@ -43,7 +43,7 @@ internal class HazeNode(
         for (effect in effects) {
           clipShape(
             shape = effect.shape,
-            bounds = effect.bounds,
+            bounds = effect.calculateBounds(-position),
             path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
             block = { drawEffect(this, effect) },
           )
@@ -66,6 +66,7 @@ internal class HazeNode(
       }
 
       state.contentLayer = contentLayer
+      state.contentPositionOnScreen = position
     }
 
     // Now we draw `contentNode` into the window canvas, clipping any effect areas
@@ -94,16 +95,17 @@ internal class HazeNode(
 
         // We need to inflate the bounds by the blur radius, so that the effect
         // has access to the pixels it needs in the clipRect
-        val inflatedBounds = effect.bounds.inflate(effect.blurRadiusOrZero.toPx())
+        val bounds = effect.calculateBounds(-position)
+        val inflatedBounds = bounds.inflate(effect.blurRadiusOrZero.toPx())
         effectLayer.record(size = inflatedBounds.size.roundToIntSize()) {
-          translate(-effect.bounds.left, -effect.bounds.top) {
+          translate(-bounds.left, -bounds.top) {
             // Finally draw the content into our effect layer
             drawLayer(contentLayer)
           }
         }
 
         // Draw the effect's graphic layer, translated to the correct position
-        translate(effect.bounds.left, effect.bounds.top) {
+        translate(bounds.left, bounds.top) {
           drawEffect(this, effect, effectLayer)
         }
       }
@@ -144,7 +146,7 @@ internal class HazeNode(
 
 internal expect fun HazeEffectNode.createRenderEffect(
   effect: HazeEffect,
-  density: Density
+  density: Density,
 ): RenderEffect?
 
 internal expect fun HazeEffectNode.useGraphicsLayers(): Boolean

@@ -9,6 +9,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -35,7 +38,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 
-internal abstract class HazeEffectNode : Modifier.Node(),
+internal abstract class HazeEffectNode :
+  Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   LayoutAwareModifierNode,
   GlobalPositionAwareModifierNode,
@@ -92,7 +96,8 @@ internal abstract class HazeEffectNode : Modifier.Node(),
     newEffects.forEach { effect ->
       val resolvedStyle = resolveStyle(state.defaultStyle, effect.area.style)
 
-      effect.bounds = effect.area.boundsInLocal(position) ?: Rect.Zero
+      effect.size = effect.area.size
+      effect.positionOnScreen = effect.area.positionOnScreen
       effect.blurRadius = resolvedStyle.blurRadius
       effect.noiseFactor = resolvedStyle.noiseFactor
       effect.tint = resolvedStyle.tint
@@ -131,13 +136,17 @@ internal abstract class HazeEffectNode : Modifier.Node(),
         else -> null
       }
       clip = true
-      setOutline(shape.createOutline(bounds.size, layoutDirection, density))
+      setOutline(shape.createOutline(this@updateLayer.size, layoutDirection, density))
       renderEffect = createRenderEffect(this@updateLayer, density)
     }
     layerDirty = false
   }
 
-  protected fun updateEffect(effect: HazeEffect, layoutDirection: LayoutDirection, density: Density) {
+  protected fun updateEffect(
+    effect: HazeEffect,
+    layoutDirection: LayoutDirection,
+    density: Density,
+  ) {
     if (effect.layerDirty) effect.updateLayer(layoutDirection, density)
 
     // We don't update the path here as we may not need it. Let draw request it
@@ -157,19 +166,36 @@ internal class HazeEffect(
 
   val contentClipBounds: Rect
     get() = when {
-      bounds.isEmpty -> bounds
-      // We clip the content to a slightly smaller rect than the blur bounds, to reduce the
-      // chance of rounding + anti-aliasing causing visually problems
-      else -> bounds.deflate(2f).takeIf { it.width >= 0 && it.height >= 0 } ?: Rect.Zero
+      size.isEmpty() -> Rect.Zero
+      else -> {
+        // We clip the content to a slightly smaller rect than the blur bounds, to reduce the
+        // chance of rounding + anti-aliasing causing visually problems
+        size.toRect()
+          .translate(positionOnScreen)
+          .deflate(2f)
+          .takeIf { it.width >= 0 && it.height >= 0 } ?: Rect.Zero
+      }
     }
 
-  var bounds: Rect = Rect.Zero
+  fun calculateBounds(localPositionOnScreen: Offset = Offset.Zero): Rect = when {
+    positionOnScreen.isSpecified && size.isSpecified -> {
+      Rect(offset = positionOnScreen - localPositionOnScreen, size = size)
+    }
+    else -> Rect.Zero
+  }
+
+  var size: Size = Size.Unspecified
+    set(value) {
+      if (value != field) {
+        pathsDirty = true
+        field = value
+      }
+    }
+
+  var positionOnScreen: Offset = Offset.Unspecified
     set(value) {
       if (value != field) {
         layerDirty = true
-        if (value.size != field.size) {
-          pathsDirty = true
-        }
         field = value
       }
     }
@@ -230,8 +256,8 @@ internal fun HazeEffect.getUpdatedContentClipPath(
 
 private fun HazeEffect.updatePaths(layoutDirection: LayoutDirection, density: Density) {
   path.rewind()
-  if (!bounds.isEmpty) {
-    path.addOutline(shape.createOutline(bounds.size, layoutDirection, density))
+  if (!size.isEmpty()) {
+    path.addOutline(shape.createOutline(size, layoutDirection, density))
   }
 
   contentClipPath.rewind()
