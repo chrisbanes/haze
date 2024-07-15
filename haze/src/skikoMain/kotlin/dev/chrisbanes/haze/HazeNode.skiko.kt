@@ -25,7 +25,7 @@ internal actual fun HazeEffectNode.drawEffect(
   drawLayer(requireNotNull(graphicsLayer))
 }
 
-internal actual fun HazeEffectNode.useGraphicsLayers(): Boolean = true
+internal actual val USE_GRAPHICS_LAYERS: Boolean = true
 
 internal actual fun HazeEffectNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect? {
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {

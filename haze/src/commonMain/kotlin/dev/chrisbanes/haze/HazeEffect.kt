@@ -58,8 +58,8 @@ internal abstract class HazeEffectNode :
   protected var positionOnScreen by mutableStateOf(Offset.Unspecified)
     private set
 
-  var effects: List<HazeEffect> = emptyList()
-    private set
+  private val _effects: MutableList<HazeEffect> = mutableListOf()
+  val effects: List<HazeEffect> = _effects
 
   open fun update() {
     onObservedReadsChanged()
@@ -87,9 +87,10 @@ internal abstract class HazeEffectNode :
     val currentEffectsIsEmpty = effects.isEmpty()
     val currentEffects = effects.associateByTo(mutableMapOf(), HazeEffect::area)
 
+    _effects.clear()
+
     // We create a RenderNode for each of the areas we need to apply our effect to
-    effects = calculateHazeAreas()
-      .asSequence()
+    calculateHazeAreas()
       .filter { it.isValid }
       .map { area ->
         // We re-use any current effects, otherwise we need to create a new one
@@ -106,7 +107,7 @@ internal abstract class HazeEffectNode :
         effect.backgroundColor = resolvedStyle.backgroundColor
         effect.shape = effect.area.shape
       }
-      .toList()
+      .forEach(_effects::add)
 
     // Any effects left in currentEffects are no longer used, so recycle them
     currentEffects.forEach { (_, effect) -> effect.recycle() }
@@ -171,15 +172,11 @@ internal abstract class HazeEffectNode :
   }
 
   override fun onDetach() {
-    effects.forEach { it.recycle() }
-    effects = emptyList()
+    _effects.forEach { it.recycle() }
+    _effects.clear()
   }
 
-  protected open fun calculateHazeAreas(): List<HazeArea> = emptyList()
-
-  private fun HazeEffect.recycle() {
-    pathPool.release(path)
-  }
+  protected open fun calculateHazeAreas(): Sequence<HazeArea> = emptySequence()
 
   protected fun HazeEffect.onPreDraw(
     layoutDirection: LayoutDirection,
@@ -198,9 +195,20 @@ internal abstract class HazeEffectNode :
   }
 }
 
+internal expect fun HazeEffectNode.drawEffect(
+  drawScope: DrawScope,
+  effect: HazeEffect,
+  graphicsLayer: GraphicsLayer? = null,
+)
+
+internal expect fun HazeEffectNode.createRenderEffect(
+  effect: HazeEffect,
+  density: Density,
+): RenderEffect?
+
 internal class HazeEffect(val area: HazeArea) {
   val path by lazy { pathPool.acquireOrCreate(::Path) }
-  var pathsDirty: Boolean = true
+  var pathDirty: Boolean = true
 
   var renderEffect: RenderEffect? = null
   var renderEffectDirty: Boolean = true
@@ -218,7 +226,7 @@ internal class HazeEffect(val area: HazeArea) {
   var size: Size = Size.Unspecified
     set(value) {
       if (value != field) {
-        pathsDirty = true
+        pathDirty = true
         outlineDirty = true
         field = value
       }
@@ -248,30 +256,34 @@ internal class HazeEffect(val area: HazeArea) {
   var shape: Shape = RectangleShape
     set(value) {
       if (value != field) {
-        pathsDirty = true
+        pathDirty = true
         outlineDirty = true
       }
       field = value
     }
+
+  fun recycle() {
+    pathPool.release(path)
+  }
 }
 
 internal val HazeEffect.blurRadiusOrZero: Dp get() = blurRadius.takeOrElse { 0.dp }
 
 internal val HazeEffect.needInvalidation: Boolean
-  get() = renderEffectDirty || outlineDirty || pathsDirty
+  get() = renderEffectDirty || outlineDirty || pathDirty
 
 internal fun HazeEffect.getUpdatedPath(
   layoutDirection: LayoutDirection,
   density: Density,
 ): Path {
-  if (pathsDirty) updatePaths(layoutDirection, density)
+  if (pathDirty) updatePath(layoutDirection, density)
   return path
 }
 
-private fun HazeEffect.updatePaths(layoutDirection: LayoutDirection, density: Density) {
+private fun HazeEffect.updatePath(layoutDirection: LayoutDirection, density: Density) {
   path.rewind()
   if (!size.isEmpty()) {
     path.addOutline(shape.createOutline(size, layoutDirection, density))
   }
-  pathsDirty = false
+  pathDirty = false
 }

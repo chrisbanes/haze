@@ -3,35 +3,44 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.GlobalPositionAwareModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
 
 internal class HazeNode(
-  override var state: HazeState,
+  var state: HazeState,
   var defaultStyle: HazeStyle,
-) : HazeEffectNode(), DrawModifierNode {
+) : Modifier.Node(),
+  CompositionLocalConsumerModifierNode,
+  LayoutAwareModifierNode,
+  GlobalPositionAwareModifierNode,
+  DrawModifierNode {
 
-  override fun update() {
-    super.update()
+  fun update() {
     state.content.style = defaultStyle
   }
 
-  override fun onPlaced(coordinates: LayoutCoordinates) {
-    super.onPlaced(coordinates)
+  override fun onAttach() {
+    update()
+  }
 
-    state.content.style = defaultStyle
-    state.content.size = coordinates.size.toSize()
-    state.content.positionOnScreen = positionOnScreen
+  override fun onGloballyPositioned(coordinates: LayoutCoordinates) = onPlaced(coordinates)
+
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    state.content.apply {
+      size = coordinates.size.toSize()
+      positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
+    }
   }
 
   override fun ContentDrawScope.draw() {
@@ -40,16 +49,10 @@ internal class HazeNode(
     state.contentLayer?.let { graphicsContext.releaseGraphicsLayer(it) }
     state.contentLayer = null
 
-    if (effects.isEmpty() || !useGraphicsLayers()) {
-      // If we don't have any effects, or we're not using graphics layers,
-      // just call drawContent and return early
+    if (!USE_GRAPHICS_LAYERS) {
+      // If we're not using graphics layers, just call drawContent and return early
       drawContent()
       return
-    }
-
-    // First we need to make sure that the effects are updated (if necessary)
-    for (effect in effects) {
-      effect.onPreDraw(layoutDirection, drawContext.density)
     }
 
     val contentLayer = graphicsContext.createGraphicsLayer()
@@ -74,19 +77,6 @@ internal class HazeNode(
       state.contentLayer = null
     }
   }
-
-  override fun calculateHazeAreas(): List<HazeArea> = state.areas
 }
 
-internal expect fun HazeEffectNode.createRenderEffect(
-  effect: HazeEffect,
-  density: Density,
-): RenderEffect?
-
-internal expect fun HazeEffectNode.useGraphicsLayers(): Boolean
-
-internal expect fun HazeEffectNode.drawEffect(
-  drawScope: DrawScope,
-  effect: HazeEffect,
-  graphicsLayer: GraphicsLayer? = null,
-)
+internal expect val USE_GRAPHICS_LAYERS: Boolean

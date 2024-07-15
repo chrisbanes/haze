@@ -9,7 +9,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.invalidateSubtree
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.toSize
 
@@ -62,24 +61,10 @@ private class HazeChildNode(
     HazeArea(shape = shape, style = style)
   }
 
-  private var attachedState: HazeState? = null
-
-  override fun onAttach() {
-    attachToHazeState()
-    super.onAttach()
-  }
-
   override fun update() {
     // Propagate any shape changes to the HazeArea
     area.shape = shape
     area.style = style
-
-    if (state != attachedState) {
-      // The provided HazeState has changed, so we need to detach from the old one,
-      // and attach to the new one
-      detachFromHazeState()
-      attachToHazeState()
-    }
 
     super.update()
   }
@@ -96,11 +81,6 @@ private class HazeChildNode(
     area.reset()
   }
 
-  override fun onDetach() {
-    super.onDetach()
-    detachFromHazeState()
-  }
-
   override fun ContentDrawScope.draw() {
     if (effects.isEmpty()) {
       // If we don't have any effects, just call drawContent and return early
@@ -113,7 +93,7 @@ private class HazeChildNode(
       effect.onPreDraw(layoutDirection, drawContext.density)
     }
 
-    if (useGraphicsLayers()) {
+    if (USE_GRAPHICS_LAYERS) {
       drawEffectsWithGraphicsLayer(requireNotNull(state.contentLayer))
     } else {
       drawEffectsWithScrim()
@@ -123,20 +103,5 @@ private class HazeChildNode(
     drawContent()
   }
 
-  override fun calculateHazeAreas(): List<HazeArea> = listOf(area)
-
-  private fun attachToHazeState() {
-    state.registerArea(area)
-    attachedState = state
-
-    // We need to trigger a layout so that we get the initial size. This is important for when
-    // the modifier is added after layout has settled down (such as conditional modifiers).
-    // invalidateSubtree() is a big hammer, but it's the only tool we have.
-    invalidateSubtree()
-  }
-
-  private fun detachFromHazeState() {
-    attachedState?.unregisterArea(area)
-    attachedState = null
-  }
+  override fun calculateHazeAreas(): Sequence<HazeArea> = sequenceOf(area)
 }

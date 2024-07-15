@@ -38,7 +38,7 @@ internal actual fun HazeEffectNode.createRenderEffect(effect: HazeEffect, densit
     return null
   }
 
-internal actual fun HazeEffectNode.useGraphicsLayers(): Boolean = Build.VERSION.SDK_INT >= 32
+internal actual val USE_GRAPHICS_LAYERS: Boolean = Build.VERSION.SDK_INT >= 32
 
 internal actual fun HazeEffectNode.drawEffect(
   drawScope: DrawScope,
