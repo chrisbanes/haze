@@ -8,6 +8,7 @@ kotlinx-coroutines-swing = "1.8.1"
 ktlint = "1.0.1"
 kotlin = "2.0.0"
 ktor = "3.0.0-wasm2"
+jetpack-compose = "1.7.0-beta05"
 metalava = "0.3.5"
 poko = "0.16.0"
 robolectric = "4.13"
@@ -40,6 +41,9 @@ androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.6.8"
 androidx-profileinstaller = "androidx.profileinstaller:profileinstaller:1.3.1"
 androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext-junit" }
 androidx-test-uiautomator = "androidx.test.uiautomator:uiautomator:2.3.0"
+
+androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "jetpack-compose" }
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "jetpack-compose" }
 
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-ktor = { module = "io.coil-kt.coil3:coil-network-ktor", version.ref = "coil" }
