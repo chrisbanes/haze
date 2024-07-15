@@ -52,7 +52,7 @@ private data class HazeChildNodeElement(
   }
 }
 
-private data class HazeChildNode(
+private class HazeChildNode(
   override var state: HazeState,
   var shape: Shape,
   var style: HazeStyle,

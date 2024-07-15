@@ -36,20 +36,22 @@ package dev.chrisbanes.haze {
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
     method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
+    method public dev.chrisbanes.haze.HazeArea getContent();
+    method public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
     method public void registerArea(dev.chrisbanes.haze.HazeArea area);
     method public void unregisterArea(dev.chrisbanes.haze.HazeArea area);
     property public final java.util.List<dev.chrisbanes.haze.HazeArea> areas;
+    property public final dev.chrisbanes.haze.HazeArea content;
+    property public final androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
   }
 
-  @androidx.compose.runtime.Immutable public final class HazeStyle {
-    ctor public HazeStyle(optional long tint, optional float blurRadius, optional float noiseFactor);
-    method public long component1-0d7_KjU();
-    method public float component2-D9Ej5fM();
-    method public float component3();
-    method public dev.chrisbanes.haze.HazeStyle copy-5DgIosw(long tint, float blurRadius, float noiseFactor);
+  @androidx.compose.runtime.Immutable @dev.drewhamilton.poko.Poko public final class HazeStyle {
+    ctor public HazeStyle(optional long tint, optional long backgroundColor, optional float blurRadius, optional float noiseFactor);
+    method public long getBackgroundColor();
     method public float getBlurRadius();
     method public float getNoiseFactor();
     method public long getTint();
+    property public final long backgroundColor;
     property public final float blurRadius;
     property public final float noiseFactor;
     property public final long tint;
