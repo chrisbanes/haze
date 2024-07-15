@@ -7,20 +7,37 @@ import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.withSave
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.unit.toSize
 
 internal class HazeNode(
   override var state: HazeState,
+  var defaultStyle: HazeStyle,
   var renderMode: RenderMode,
 ) : HazeEffectNode(), DrawModifierNode {
+
+  override fun update() {
+    super.update()
+
+    state.content.style = defaultStyle
+    state.renderMode = renderMode
+  }
+
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    super.onPlaced(coordinates)
+
+    state.content.style = defaultStyle
+    state.content.size = coordinates.size.toSize()
+    state.content.positionOnScreen = positionOnScreen
+  }
 
   override fun ContentDrawScope.draw() {
     if (effects.isEmpty()) {
@@ -31,7 +48,7 @@ internal class HazeNode(
 
     // First we need to make sure that the effects are updated (if necessary)
     for (effect in effects) {
-      updateEffect(effect, layoutDirection, drawContext.density)
+      effect.onPreDraw(layoutDirection, drawContext.density)
     }
 
     if (!useGraphicsLayers()) {
@@ -40,14 +57,7 @@ internal class HazeNode(
       drawContent()
 
       if (renderMode == RenderMode.PARENT) {
-        for (effect in effects) {
-          clipShape(
-            shape = effect.shape,
-            bounds = effect.calculateBounds(-position),
-            path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
-            block = { drawEffect(this, effect) },
-          )
-        }
+        drawEffectsWithScrim()
       }
       return
     }
@@ -58,15 +68,6 @@ internal class HazeNode(
     // First we draw the composable content into a graphics layer
     contentLayer.record(size = size.roundToIntSize()) {
       this@draw.drawContent()
-    }
-
-    if (renderMode == RenderMode.CHILD) {
-      state.contentLayer?.let { old ->
-        graphicsContext.releaseGraphicsLayer(old)
-      }
-
-      state.contentLayer = contentLayer
-      state.contentPositionOnScreen = position
     }
 
     // Now we draw `contentNode` into the window canvas, clipping any effect areas
@@ -87,32 +88,13 @@ internal class HazeNode(
     }
 
     if (renderMode == RenderMode.PARENT) {
-      // Now we draw each effect over the content
-      for (effect in effects) {
-        // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
-        // The RenderEffect applied will provide the blurring effect.
-        val effectLayer = requireNotNull(effect.layer)
-
-        // We need to inflate the bounds by the blur radius, so that the effect
-        // has access to the pixels it needs in the clipRect
-        val bounds = effect.calculateBounds(-position)
-        val inflatedBounds = bounds.inflate(effect.blurRadiusOrZero.toPx())
-        effectLayer.record(size = inflatedBounds.size.roundToIntSize()) {
-          translate(-bounds.left, -bounds.top) {
-            // Finally draw the content into our effect layer
-            drawLayer(contentLayer)
-          }
-        }
-
-        // Draw the effect's graphic layer, translated to the correct position
-        translate(bounds.left, bounds.top) {
-          drawEffect(this, effect, effectLayer)
-        }
-      }
-    }
-
-    if (renderMode == RenderMode.PARENT) {
+      drawEffectsWithGraphicsLayer(contentLayer)
       graphicsContext.releaseGraphicsLayer(contentLayer)
+    } else {
+      state.contentLayer?.let { old ->
+        graphicsContext.releaseGraphicsLayer(old)
+      }
+      state.contentLayer = contentLayer
     }
   }
 

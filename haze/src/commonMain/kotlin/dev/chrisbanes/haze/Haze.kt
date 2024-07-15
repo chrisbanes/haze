@@ -31,12 +31,15 @@ enum class RenderMode {
   ;
 
   internal companion object {
-    val DEFAULT = CHILD // STOPSHIP: change this back to PARENT
+    val DEFAULT = PARENT // STOPSHIP: change this back to PARENT
   }
 }
 
 @Stable
 class HazeState {
+
+  val content: HazeArea by lazy { HazeArea() }
+
   /**
    * The areas which are blurred by any [Modifier.haze] instances which use this state.
    */
@@ -46,12 +49,6 @@ class HazeState {
     internal set
 
   var contentLayer: GraphicsLayer? by mutableStateOf(null)
-    internal set
-
-  var contentPositionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
-    internal set
-
-  var defaultStyle: HazeStyle by mutableStateOf(HazeStyle.Unspecified)
     internal set
 
   val areas: List<HazeArea> get() = _areas.toList()
@@ -180,19 +177,15 @@ internal data class HazeNodeElement(
   val renderMode: RenderMode,
 ) : ModifierNodeElement<HazeNode>() {
   override fun create(): HazeNode {
-    state.defaultStyle = style
-    state.renderMode = renderMode
-    return HazeNode(state, renderMode)
+    return HazeNode(state, style, renderMode)
   }
 
   override fun update(node: HazeNode) {
     node.state = state
+    node.defaultStyle = style
     node.renderMode = renderMode
 
-    state.defaultStyle = style
-    state.renderMode = renderMode
-
-    node.onUpdate()
+    node.update()
   }
 
   override fun InspectorInfo.inspectableProperties() {

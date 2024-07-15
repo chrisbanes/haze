@@ -19,7 +19,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.layer.setOutline
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
@@ -48,37 +51,35 @@ internal abstract class HazeEffectNode :
 
   abstract var state: HazeState
 
-  protected var position by mutableStateOf(Offset.Unspecified)
+  protected var positionOnScreen by mutableStateOf(Offset.Unspecified)
     private set
 
   var effects: List<HazeEffect> = emptyList()
     private set
 
-  open fun onUpdate() {
+  open fun update() {
     onObservedReadsChanged()
   }
 
   override fun onAttach() {
-    onObservedReadsChanged()
+    update()
   }
 
   override fun onObservedReadsChanged() {
-    observeReads { updateAndInvalidate() }
-  }
-
-  private fun updateAndInvalidate() {
-    if (update()) {
-      invalidateDraw()
+    observeReads {
+      if (updateEffects()) {
+        invalidateDraw()
+      }
     }
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    position = coordinates.positionInWindow() + calculateWindowOffset()
+    positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) = onPlaced(coordinates)
 
-  protected open fun update(): Boolean {
+  protected open fun updateEffects(): Boolean {
     val currentEffectsIsEmpty = effects.isEmpty()
     val currentEffects = effects.associateByTo(mutableMapOf(), HazeEffect::area)
 
@@ -94,7 +95,7 @@ internal abstract class HazeEffectNode :
     currentEffects.clear()
 
     newEffects.forEach { effect ->
-      val resolvedStyle = resolveStyle(state.defaultStyle, effect.area.style)
+      val resolvedStyle = resolveStyle(state.content.style, effect.area.style)
 
       effect.size = effect.area.size
       effect.positionOnScreen = effect.area.positionOnScreen
@@ -111,6 +112,46 @@ internal abstract class HazeEffectNode :
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
     return needInvalidate || (newEffects.isEmpty() != currentEffectsIsEmpty)
+  }
+
+  protected fun DrawScope.drawEffectsWithGraphicsLayer(contentLayer: GraphicsLayer) {
+    // Now we draw each effect over the content
+    for (effect in effects) {
+      // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
+      // The RenderEffect applied will provide the blurring effect.
+      val effectLayer = requireNotNull(effect.layer)
+
+      val contentArea = state.content
+      val boundsInContent = effect.calculateBounds(-contentArea.positionOnScreen)
+
+      effectLayer.record {
+        drawRect(effect.tint.copy(alpha = 1f))
+
+        println("Recording content layer at ${boundsInContent.topLeft}")
+
+        translate(-boundsInContent.left, -boundsInContent.top) {
+          // Finally draw the content into our effect layer
+          drawLayer(contentLayer)
+        }
+      }
+
+      // Draw the effect's graphic layer, translated to the correct position
+      val effectOffset = effect.positionOnScreen - positionOnScreen
+      translate(effectOffset.x, effectOffset.y) {
+        drawEffect(this, effect, effectLayer)
+      }
+    }
+  }
+
+  protected fun DrawScope.drawEffectsWithScrim() {
+    for (effect in effects) {
+      clipShape(
+        shape = effect.shape,
+        bounds = effect.calculateBounds(-positionOnScreen),
+        path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
+        block = { drawEffect(this, effect) },
+      )
+    }
   }
 
   override fun onDetach() {
@@ -142,12 +183,11 @@ internal abstract class HazeEffectNode :
     layerDirty = false
   }
 
-  protected fun updateEffect(
-    effect: HazeEffect,
+  protected fun HazeEffect.onPreDraw(
     layoutDirection: LayoutDirection,
     density: Density,
   ) {
-    if (effect.layerDirty) effect.updateLayer(layoutDirection, density)
+    if (layerDirty) updateLayer(layoutDirection, density)
 
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it

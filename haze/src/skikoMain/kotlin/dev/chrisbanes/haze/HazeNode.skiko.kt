@@ -34,7 +34,7 @@ internal actual fun HazeEffectNode.createRenderEffect(effect: HazeEffect, densit
   }
   // For CLAMP to work, we need to provide the crop rect
   val blurRadiusPx = with(density) { effect.blurRadiusOrZero.toPx() }
-  val blurFilter = createBlurImageFilter(blurRadiusPx, effect.bounds.size.toRect())
+  val blurFilter = createBlurImageFilter(blurRadiusPx, effect.size.toRect())
 
   val filter = ImageFilter.makeRuntimeShader(
     runtimeShaderBuilder = compositeShaderBuilder,
