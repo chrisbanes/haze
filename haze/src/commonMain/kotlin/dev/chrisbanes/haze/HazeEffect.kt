@@ -5,24 +5,26 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
-import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 
-internal class HazeEffect(
-  val area: HazeArea,
-  val layer: GraphicsLayer?,
-) {
+internal class HazeEffect(val area: HazeArea) {
   val path by lazy { pathPool.acquireOrCreate { Path() } }
   val contentClipPath by lazy { pathPool.acquireOrCreate { Path() } }
-
   var pathsDirty: Boolean = true
-  var layerDirty: Boolean = true
+
+  var renderEffect: RenderEffect? = null
+  var renderEffectDirty: Boolean = true
+
+  var outline: Outline? = null
+  var outlineDirty: Boolean = true
 
   val contentClipBounds: Rect
     get() = when {
@@ -35,9 +37,10 @@ internal class HazeEffect(
   var bounds: Rect = Rect.Zero
     set(value) {
       if (value != field) {
-        layerDirty = true
+        renderEffectDirty = true
         if (value.size != field.size) {
           pathsDirty = true
+          outlineDirty = true
         }
         field = value
       }
@@ -46,7 +49,7 @@ internal class HazeEffect(
   var blurRadius: Dp = Dp.Unspecified
     set(value) {
       if (value != field) {
-        layerDirty = true
+        renderEffectDirty = true
         field = value
       }
     }
@@ -54,30 +57,25 @@ internal class HazeEffect(
   var noiseFactor: Float = 0f
     set(value) {
       if (value != field) {
-        layerDirty = true
+        renderEffectDirty = true
         field = value
       }
     }
 
   var tint: Color = Color.Unspecified
-    set(value) {
-      if (value != field) {
-        layerDirty = true
-        field = value
-      }
-    }
 
   var shape: Shape = RectangleShape
     set(value) {
       if (value != field) {
         pathsDirty = true
+        outlineDirty = true
       }
       field = value
     }
 }
 
 internal val HazeEffect.needInvalidation: Boolean
-  get() = layerDirty || layerDirty || pathsDirty
+  get() = renderEffectDirty || outlineDirty || pathsDirty
 
 internal fun HazeEffect.getUpdatedPath(
   layoutDirection: LayoutDirection,

@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -132,11 +133,20 @@ internal class HazeNode(
       }
     }
 
+    val effectLayer = graphicsContext.createGraphicsLayer()
+
     // Now we draw each effect over the content
     for (effect in effects) {
       // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
       // The RenderEffect applied will provide the blurring effect.
-      val effectLayer = requireNotNull(effect.layer)
+
+      effectLayer.colorFilter = when {
+        effect.tint.alpha >= 0.005f -> ColorFilter.tint(effect.tint, BlendMode.SrcOver)
+        else -> null
+      }
+      effectLayer.clip = true
+      effectLayer.setOutline(effect.outline ?: Outline.Rectangle(effect.bounds))
+      effectLayer.renderEffect = effect.renderEffect
 
       // We need to inflate the bounds by the blur radius, so that the effect
       // has access to the pixels it needs in the clipRect
@@ -154,6 +164,7 @@ internal class HazeNode(
       }
     }
 
+    graphicsContext.releaseGraphicsLayer(effectLayer)
     graphicsContext.releaseGraphicsLayer(contentLayer)
   }
 
@@ -175,13 +186,7 @@ internal class HazeNode(
       .filter { it.isValid }
       .map { area ->
         // We re-use any current effects, otherwise we need to create a new one
-        currentEffects.remove(area) ?: HazeEffect(
-          area = area,
-          layer = when {
-            useGraphicsLayers() -> currentValueOf(LocalGraphicsContext).createGraphicsLayer()
-            else -> null
-          },
-        )
+        currentEffects.remove(area) ?: HazeEffect(area = area)
       }
       .toList()
 
@@ -206,25 +211,15 @@ internal class HazeNode(
     return needInvalidate || (effects.isEmpty() != currentEffectsIsEmpty)
   }
 
-  private fun HazeEffect.updateLayer(
-    layoutDirection: LayoutDirection,
-    density: Density,
-  ) {
-    layer?.apply {
-      colorFilter = when {
-        tint.alpha >= 0.005f -> ColorFilter.tint(tint, BlendMode.SrcOver)
-        else -> null
-      }
-      clip = true
-      setOutline(shape.createOutline(bounds.size, layoutDirection, density))
-      renderEffect = createRenderEffect(this@updateLayer, density)
-    }
-    layerDirty = false
-  }
-
   private fun HazeEffect.update(layoutDirection: LayoutDirection, density: Density) {
-    if (layerDirty) updateLayer(layoutDirection, density)
-
+    if (renderEffectDirty) {
+      renderEffect = createRenderEffect(this, density)
+      renderEffectDirty = false
+    }
+    if (outlineDirty) {
+      outline = shape.createOutline(bounds.size, layoutDirection, density)
+      outlineDirty = false
+    }
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it
   }
@@ -232,7 +227,6 @@ internal class HazeNode(
   private fun HazeEffect.recycle() {
     pathPool.release(path)
     pathPool.release(contentClipPath)
-    layer?.let { currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(it) }
   }
 }
 
