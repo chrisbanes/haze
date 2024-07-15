@@ -10,10 +10,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateSubtree
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.toSize
 
@@ -151,13 +149,7 @@ private data class HazeChildNode(
         .filter { it.isValid }
         .map { area ->
           // We re-use any current effects, otherwise we need to create a new one
-          currentEffects.remove(area) ?: HazeEffect(
-            area = area,
-            layer = when {
-              useGraphicsLayers() -> currentValueOf(LocalGraphicsContext).createGraphicsLayer()
-              else -> null
-            },
-          )
+          currentEffects.remove(area) ?: HazeEffect(area = area)
         }
         .toList()
     }

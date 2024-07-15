@@ -114,13 +114,7 @@ internal class HazeNode(
       .filter { it.isValid }
       .map { area ->
         // We re-use any current effects, otherwise we need to create a new one
-        currentEffects.remove(area) ?: HazeEffect(
-          area = area,
-          layer = when {
-            useGraphicsLayers() -> currentValueOf(LocalGraphicsContext).createGraphicsLayer()
-            else -> null
-          },
-        )
+        currentEffects.remove(area) ?: HazeEffect(area = area)
       }
       .toList()
   }

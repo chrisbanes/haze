@@ -15,8 +15,10 @@ import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -115,19 +117,26 @@ internal abstract class HazeEffectNode :
   }
 
   protected fun DrawScope.drawEffectsWithGraphicsLayer(contentLayer: GraphicsLayer) {
+    val graphicsContext = currentValueOf(LocalGraphicsContext)
+    val effectLayer = graphicsContext.createGraphicsLayer()
+
     // Now we draw each effect over the content
     for (effect in effects) {
       // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
       // The RenderEffect applied will provide the blurring effect.
-      val effectLayer = requireNotNull(effect.layer)
-
       val contentArea = state.content
       val boundsInContent = effect.calculateBounds(-contentArea.positionOnScreen)
 
+      effectLayer.colorFilter = when {
+        effect.tint.alpha >= 0.005f -> ColorFilter.tint(effect.tint, BlendMode.SrcOver)
+        else -> null
+      }
+      effectLayer.clip = true
+      effectLayer.setOutline(effect.outline ?: Outline.Rectangle(effect.size.toRect()))
+      effectLayer.renderEffect = effect.renderEffect
+
       effectLayer.record {
         drawRect(effect.tint.copy(alpha = 1f))
-
-        println("Recording content layer at ${boundsInContent.topLeft}")
 
         translate(-boundsInContent.left, -boundsInContent.top) {
           // Finally draw the content into our effect layer
@@ -141,6 +150,8 @@ internal abstract class HazeEffectNode :
         drawEffect(this, effect, effectLayer)
       }
     }
+
+    graphicsContext.releaseGraphicsLayer(effectLayer)
   }
 
   protected fun DrawScope.drawEffectsWithScrim() {
@@ -164,45 +175,35 @@ internal abstract class HazeEffectNode :
   private fun HazeEffect.recycle() {
     pathPool.release(path)
     pathPool.release(contentClipPath)
-    layer?.let { currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(it) }
-  }
-
-  private fun HazeEffect.updateLayer(
-    layoutDirection: LayoutDirection,
-    density: Density,
-  ) {
-    layer?.apply {
-      colorFilter = when {
-        tint.alpha >= 0.005f -> ColorFilter.tint(tint, BlendMode.SrcOver)
-        else -> null
-      }
-      clip = true
-      setOutline(shape.createOutline(this@updateLayer.size, layoutDirection, density))
-      renderEffect = createRenderEffect(this@updateLayer, density)
-    }
-    layerDirty = false
   }
 
   protected fun HazeEffect.onPreDraw(
     layoutDirection: LayoutDirection,
     density: Density,
   ) {
-    if (layerDirty) updateLayer(layoutDirection, density)
-
+    if (renderEffectDirty) {
+      renderEffect = createRenderEffect(this, density)
+      renderEffectDirty = false
+    }
+    if (outlineDirty) {
+      outline = shape.createOutline(size, layoutDirection, density)
+      outlineDirty = false
+    }
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it
   }
 }
 
-internal class HazeEffect(
-  val area: HazeArea,
-  val layer: GraphicsLayer?,
-) {
+internal class HazeEffect(val area: HazeArea) {
   val path by lazy { pathPool.acquireOrCreate { Path() } }
   val contentClipPath by lazy { pathPool.acquireOrCreate { Path() } }
-
   var pathsDirty: Boolean = true
-  var layerDirty: Boolean = true
+
+  var renderEffect: RenderEffect? = null
+  var renderEffectDirty: Boolean = true
+
+  var outline: Outline? = null
+  var outlineDirty: Boolean = true
 
   val contentClipBounds: Rect
     get() = when {
@@ -228,6 +229,7 @@ internal class HazeEffect(
     set(value) {
       if (value != field) {
         pathsDirty = true
+        outlineDirty = true
         field = value
       }
     }
@@ -235,7 +237,7 @@ internal class HazeEffect(
   var positionOnScreen: Offset = Offset.Unspecified
     set(value) {
       if (value != field) {
-        layerDirty = true
+        pathsDirty = true
         field = value
       }
     }
@@ -243,7 +245,7 @@ internal class HazeEffect(
   var blurRadius: Dp = Dp.Unspecified
     set(value) {
       if (value != field) {
-        layerDirty = true
+        renderEffectDirty = true
         field = value
       }
     }
@@ -251,23 +253,18 @@ internal class HazeEffect(
   var noiseFactor: Float = 0f
     set(value) {
       if (value != field) {
-        layerDirty = true
+        renderEffectDirty = true
         field = value
       }
     }
 
   var tint: Color = Color.Unspecified
-    set(value) {
-      if (value != field) {
-        layerDirty = true
-        field = value
-      }
-    }
 
   var shape: Shape = RectangleShape
     set(value) {
       if (value != field) {
         pathsDirty = true
+        outlineDirty = true
       }
       field = value
     }
@@ -276,7 +273,7 @@ internal class HazeEffect(
 internal val HazeEffect.blurRadiusOrZero: Dp get() = blurRadius.takeOrElse { 0.dp }
 
 internal val HazeEffect.needInvalidation: Boolean
-  get() = layerDirty || layerDirty || pathsDirty
+  get() = renderEffectDirty || outlineDirty || pathsDirty
 
 internal fun HazeEffect.getUpdatedPath(
   layoutDirection: LayoutDirection,
