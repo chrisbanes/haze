@@ -4,7 +4,6 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -15,7 +14,6 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateSubtree
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.toSize
 
 /**
@@ -35,18 +33,6 @@ fun Modifier.hazeChild(
   shape: Shape = RectangleShape,
   style: HazeStyle = HazeStyle.Unspecified,
 ): Modifier = this then HazeChildNodeElement(state, shape, style)
-
-@Deprecated(
-  "Deprecated. Replaced with new HazeStyle object",
-  ReplaceWith("hazeChild(state, shape, HazeStyle(tint, blurRadius, noiseFactor))"),
-)
-fun Modifier.hazeChild(
-  state: HazeState,
-  shape: Shape = RectangleShape,
-  tint: Color = Color.Unspecified,
-  blurRadius: Dp = Dp.Unspecified,
-  noiseFactor: Float = Float.MIN_VALUE,
-): Modifier = hazeChild(state, shape, HazeStyle(tint, blurRadius, noiseFactor))
 
 private data class HazeChildNodeElement(
   val state: HazeState,

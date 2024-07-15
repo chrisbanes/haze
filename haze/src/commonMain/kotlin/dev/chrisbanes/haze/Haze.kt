@@ -80,18 +80,6 @@ internal fun HazeArea.boundsInLocal(position: Offset): Rect? {
   return size.toRect().translate(positionOnScreen - position)
 }
 
-@Deprecated(
-  "Deprecated. Replaced with new HazeStyle object",
-  ReplaceWith("haze(state, HazeStyle(tint, blurRadius, noiseFactor))"),
-)
-fun Modifier.haze(
-  state: HazeState,
-  backgroundColor: Color,
-  tint: Color = HazeDefaults.tint(backgroundColor),
-  blurRadius: Dp = HazeDefaults.blurRadius,
-  noiseFactor: Float = HazeDefaults.noiseFactor,
-): Modifier = haze(state, HazeStyle(tint, blurRadius, noiseFactor))
-
 /**
  * Draw content within the provided [HazeState.areas] blurred in a 'glassmorphism' style.
  *
