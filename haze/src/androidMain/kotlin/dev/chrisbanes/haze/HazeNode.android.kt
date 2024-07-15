@@ -30,7 +30,7 @@ import kotlin.math.roundToInt
 internal actual fun HazeEffectNode.createRenderEffect(effect: HazeEffect, density: Density): RenderEffect? =
   with(effect) {
     val blurRadiusPx = with(density) { blurRadiusOrZero.toPx() }
-    if (Build.VERSION.SDK_INT >= 32 && blurRadiusPx >= 0.005f) {
+    if (Build.VERSION.SDK_INT >= 31 && blurRadiusPx >= 0.005f) {
       return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
         .withNoise(noiseFactor)
         .asComposeRenderEffect()

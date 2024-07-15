@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.layer.setOutline
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 
 internal abstract class HazeEffectNode :
@@ -101,6 +103,7 @@ internal abstract class HazeEffectNode :
         effect.blurRadius = resolvedStyle.blurRadius
         effect.noiseFactor = resolvedStyle.noiseFactor
         effect.tint = resolvedStyle.tint
+        effect.backgroundColor = resolvedStyle.backgroundColor
         effect.shape = effect.area.shape
       }
       .toList()
@@ -135,8 +138,10 @@ internal abstract class HazeEffectNode :
       effectLayer.setOutline(effect.outline ?: Outline.Rectangle(effect.size.toRect()))
       effectLayer.renderEffect = effect.renderEffect
 
-      effectLayer.record {
-        drawRect(effect.tint.copy(alpha = 1f))
+      effectLayer.record(effect.size.roundToIntSize()) {
+        if (effect.backgroundColor.isSpecified) {
+          drawRect(effect.backgroundColor)
+        }
 
         translate(-boundsInContent.left, -boundsInContent.top) {
           // Finally draw the content into our effect layer
@@ -158,7 +163,7 @@ internal abstract class HazeEffectNode :
     for (effect in effects) {
       clipShape(
         shape = effect.shape,
-        bounds = effect.calculateBounds(-positionOnScreen),
+        bounds = effect.calculateBounds(positionOnScreen),
         path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
         block = { drawEffect(this, effect) },
       )
@@ -174,7 +179,6 @@ internal abstract class HazeEffectNode :
 
   private fun HazeEffect.recycle() {
     pathPool.release(path)
-    pathPool.release(contentClipPath)
   }
 
   protected fun HazeEffect.onPreDraw(
@@ -195,8 +199,7 @@ internal abstract class HazeEffectNode :
 }
 
 internal class HazeEffect(val area: HazeArea) {
-  val path by lazy { pathPool.acquireOrCreate { Path() } }
-  val contentClipPath by lazy { pathPool.acquireOrCreate { Path() } }
+  val path by lazy { pathPool.acquireOrCreate(::Path) }
   var pathsDirty: Boolean = true
 
   var renderEffect: RenderEffect? = null
@@ -204,19 +207,6 @@ internal class HazeEffect(val area: HazeArea) {
 
   var outline: Outline? = null
   var outlineDirty: Boolean = true
-
-  val contentClipBounds: Rect
-    get() = when {
-      size.isEmpty() -> Rect.Zero
-      else -> {
-        // We clip the content to a slightly smaller rect than the blur bounds, to reduce the
-        // chance of rounding + anti-aliasing causing visually problems
-        size.toRect()
-          .translate(positionOnScreen)
-          .deflate(2f)
-          .takeIf { it.width >= 0 && it.height >= 0 } ?: Rect.Zero
-      }
-    }
 
   fun calculateBounds(localPositionOnScreen: Offset = Offset.Zero): Rect = when {
     positionOnScreen.isSpecified && size.isSpecified -> {
@@ -235,12 +225,6 @@ internal class HazeEffect(val area: HazeArea) {
     }
 
   var positionOnScreen: Offset = Offset.Unspecified
-    set(value) {
-      if (value != field) {
-        pathsDirty = true
-        field = value
-      }
-    }
 
   var blurRadius: Dp = Dp.Unspecified
     set(value) {
@@ -258,6 +242,7 @@ internal class HazeEffect(val area: HazeArea) {
       }
     }
 
+  var backgroundColor: Color = Color.Unspecified
   var tint: Color = Color.Unspecified
 
   var shape: Shape = RectangleShape
@@ -283,27 +268,10 @@ internal fun HazeEffect.getUpdatedPath(
   return path
 }
 
-internal fun HazeEffect.getUpdatedContentClipPath(
-  layoutDirection: LayoutDirection,
-  density: Density,
-): Path {
-  if (pathsDirty) updatePaths(layoutDirection, density)
-  return contentClipPath
-}
-
 private fun HazeEffect.updatePaths(layoutDirection: LayoutDirection, density: Density) {
   path.rewind()
   if (!size.isEmpty()) {
     path.addOutline(shape.createOutline(size, layoutDirection, density))
   }
-
-  contentClipPath.rewind()
-  val bounds = contentClipBounds
-  if (!bounds.isEmpty) {
-    contentClipPath.addOutline(
-      shape.createOutline(bounds.size, layoutDirection, density),
-    )
-  }
-
   pathsDirty = false
 }

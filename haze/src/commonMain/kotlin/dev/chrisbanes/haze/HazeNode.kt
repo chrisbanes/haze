@@ -3,13 +3,11 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.withSave
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.currentValueOf
@@ -21,14 +19,11 @@ import androidx.compose.ui.unit.toSize
 internal class HazeNode(
   override var state: HazeState,
   var defaultStyle: HazeStyle,
-  var renderMode: RenderMode,
 ) : HazeEffectNode(), DrawModifierNode {
 
   override fun update() {
     super.update()
-
     state.content.style = defaultStyle
-    state.renderMode = renderMode
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
@@ -40,8 +35,14 @@ internal class HazeNode(
   }
 
   override fun ContentDrawScope.draw() {
-    if (effects.isEmpty()) {
-      // If we don't have any effects, just call drawContent and return early
+    val graphicsContext = currentValueOf(LocalGraphicsContext)
+
+    state.contentLayer?.let { graphicsContext.releaseGraphicsLayer(it) }
+    state.contentLayer = null
+
+    if (effects.isEmpty() || !useGraphicsLayers()) {
+      // If we don't have any effects, or we're not using graphics layers,
+      // just call drawContent and return early
       drawContent()
       return
     }
@@ -51,18 +52,6 @@ internal class HazeNode(
       effect.onPreDraw(layoutDirection, drawContext.density)
     }
 
-    if (!useGraphicsLayers()) {
-      // If we're not using graphics layers, our code path is much simpler.
-      // We just draw the content directly to the canvas, and then draw each effect over it
-      drawContent()
-
-      if (renderMode == RenderMode.PARENT) {
-        drawEffectsWithScrim()
-      }
-      return
-    }
-
-    val graphicsContext = currentValueOf(LocalGraphicsContext)
     val contentLayer = graphicsContext.createGraphicsLayer()
 
     // First we draw the composable content into a graphics layer
@@ -70,32 +59,11 @@ internal class HazeNode(
       this@draw.drawContent()
     }
 
-    // Now we draw `contentNode` into the window canvas, clipping any effect areas
-    // (they will be drawn on top)
-    with(drawContext.canvas) {
-      withSave {
-        if (renderMode == RenderMode.PARENT) {
-          // We add all the clip outs to the canvas (Canvas will combine them)
-          for (effect in effects) {
-            clipShape(effect.shape, effect.contentClipBounds, ClipOp.Difference) {
-              effect.getUpdatedContentClipPath(layoutDirection, drawContext.density)
-            }
-          }
-        }
-        // Then we draw the content layer
-        drawLayer(contentLayer)
-      }
-    }
+    // Now we draw `content` into the window canvas
+    drawLayer(contentLayer)
 
-    if (renderMode == RenderMode.PARENT) {
-      drawEffectsWithGraphicsLayer(contentLayer)
-      graphicsContext.releaseGraphicsLayer(contentLayer)
-    } else {
-      state.contentLayer?.let { old ->
-        graphicsContext.releaseGraphicsLayer(old)
-      }
-      state.contentLayer = contentLayer
-    }
+    // Otherwise we need to stuff the content graphics layer into the HazeState
+    state.contentLayer = contentLayer
   }
 
   override fun onDetach() {

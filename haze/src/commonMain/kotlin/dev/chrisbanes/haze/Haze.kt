@@ -25,16 +25,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 
-enum class RenderMode {
-  PARENT,
-  CHILD,
-  ;
-
-  internal companion object {
-    val DEFAULT = PARENT // STOPSHIP: change this back to PARENT
-  }
-}
-
 @Stable
 class HazeState {
 
@@ -45,10 +35,7 @@ class HazeState {
    */
   private val _areas = mutableStateListOf<HazeArea>()
 
-  var renderMode: RenderMode by mutableStateOf(RenderMode.DEFAULT)
-    internal set
-
-  var contentLayer: GraphicsLayer? by mutableStateOf(null)
+  var contentLayer: GraphicsLayer? = null
     internal set
 
   val areas: List<HazeArea> get() = _areas.toList()
@@ -104,8 +91,7 @@ class HazeArea(
 fun Modifier.haze(
   state: HazeState,
   style: HazeStyle = HazeDefaults.style(),
-  renderMode: RenderMode = RenderMode.DEFAULT,
-): Modifier = this then HazeNodeElement(state, style, renderMode)
+): Modifier = this then HazeNodeElement(state, style)
 
 /**
  * Default values for the [haze] modifiers.
@@ -153,6 +139,7 @@ object HazeDefaults {
     blurRadius: Dp = this.blurRadius,
     noiseFactor: Float = this.noiseFactor,
   ): HazeStyle = HazeStyle(
+    backgroundColor = backgroundColor,
     tint = tint,
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
@@ -162,16 +149,14 @@ object HazeDefaults {
 internal data class HazeNodeElement(
   val state: HazeState,
   val style: HazeStyle,
-  val renderMode: RenderMode,
 ) : ModifierNodeElement<HazeNode>() {
   override fun create(): HazeNode {
-    return HazeNode(state, style, renderMode)
+    return HazeNode(state, style)
   }
 
   override fun update(node: HazeNode) {
     node.state = state
     node.defaultStyle = style
-    node.renderMode = renderMode
 
     node.update()
   }
@@ -179,7 +164,6 @@ internal data class HazeNodeElement(
   override fun InspectorInfo.inspectableProperties() {
     name = "haze"
     properties["style"] = style
-    properties["renderMode"] = renderMode
   }
 }
 
@@ -197,6 +181,7 @@ internal data class HazeNodeElement(
 @Immutable
 data class HazeStyle(
   val tint: Color = Color.Unspecified,
+  val backgroundColor: Color = Color.Unspecified,
   val blurRadius: Dp = Dp.Unspecified,
   val noiseFactor: Float = -1f,
 ) {
@@ -211,9 +196,12 @@ data class HazeStyle(
  */
 internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle {
   return HazeStyle(
-    tint = child.tint.takeOrElse { default.tint }.takeOrElse { Color.Transparent },
+    tint = child.tint.takeOrElse { default.tint }.takeOrElse { Color.Unspecified },
     blurRadius = child.blurRadius.takeOrElse { default.blurRadius }.takeOrElse { 0.dp },
     noiseFactor = child.noiseFactor.takeOrElse { default.noiseFactor }.takeOrElse { 0f },
+    backgroundColor = child.backgroundColor
+      .takeOrElse { default.backgroundColor }
+      .takeOrElse { Color.Unspecified },
   )
 }
 

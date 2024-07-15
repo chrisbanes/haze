@@ -102,7 +102,7 @@ private data class HazeChildNode(
   }
 
   override fun ContentDrawScope.draw() {
-    if (effects.isEmpty() || state.renderMode != RenderMode.CHILD) {
+    if (effects.isEmpty()) {
       // If we don't have any effects, just call drawContent and return early
       drawContent()
       return
@@ -113,24 +113,17 @@ private data class HazeChildNode(
       effect.onPreDraw(layoutDirection, drawContext.density)
     }
 
-    if (!useGraphicsLayers()) {
-      // If we're not using graphics layers, our code path is much simpler.
-      // We just draw the content directly to the canvas, and then draw each effect over it
-      drawContent()
-      drawEffectsWithScrim()
+    if (useGraphicsLayers()) {
+      drawEffectsWithGraphicsLayer(requireNotNull(state.contentLayer))
     } else {
-      val contentLayer = requireNotNull(state.contentLayer)
-      // Now we draw each effect
-      drawEffectsWithGraphicsLayer(contentLayer)
-      // Finally we draw the content
-      drawContent()
+      drawEffectsWithScrim()
     }
+
+    // Finally we draw the content
+    drawContent()
   }
 
-  override fun calculateHazeAreas(): List<HazeArea> = when (state.renderMode) {
-    RenderMode.CHILD -> listOf(area)
-    else -> emptyList()
-  }
+  override fun calculateHazeAreas(): List<HazeArea> = listOf(area)
 
   private fun attachToHazeState() {
     state.registerArea(area)
