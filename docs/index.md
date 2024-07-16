@@ -16,6 +16,13 @@ You can also see it in action in the [Tivi app](https://github.com/chrisbanes/ti
 
 ![type:video](./media/tivi.mp4)
 
+## Versions
+
+There are currently 2 different versions available: 0.7.x (stable) and 0.9.x (pre-release).
+
+The 0.9.x release depends on Compose Multiplatform 1.7.0, currently pre-release, meaning that we need to wait for that to go
+stable before Haze can go stable. The 0.9.x release also contains a near full re-write of how Haze works underneath. More information can be found on the [Migrating to 0.9](migrating-0.9.md) page.
+
 ## Download
 
 [![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze)](https://search.maven.org/search?q=g:dev.chrisbanes.haze)
@@ -30,17 +37,9 @@ dependencies {
 }
 ```
 
-???+ info "Deprecated haze-jetpack-compose"
-
-    In older versions of the library we had seperate libraries for Compose Multiplatform and Jetpack Compose users.
-    That is no longer the case. If you are currently using the `haze-jetpack-compose` library, please migrate to the `haze`
-    dependency listed above.
-
-Snapshots of the development version are available in Sonatype's [snapshots repository][snap]. These are updated on every commit.
-
 ## Acknowledgements
 
-The Skia-backed implementation, used on iOS and Desktop, is heavily influenced by [Kirill Grouchnikov](https://www.pushing-pixels.org)'s explorations on Compose Desktop. He wrote about it in his [Shader based render effects in Compose Desktop with Skia](https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html) blog post.
+In previous versions, the Skia-backed implementation (used on iOS and Desktop) is heavily influenced by [Kirill Grouchnikov](https://www.pushing-pixels.org)'s explorations on Compose Desktop. He wrote about it in his [Shader based render effects in Compose Desktop with Skia](https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html) blog post.
 
 The Android implementation is inspired by the techniques documented by [Chet Haase](https://twitter.com/chethaase) and [Nader Jawad](https://twitter.com/nadewad) in the [RenderNode for Bigger, Better Blurs](https://medium.com/androiddevelopers/rendernode-for-bigger-better-blurs-ced9f108c7e2) blog post.
 

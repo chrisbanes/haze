@@ -18,6 +18,7 @@ nav:
   - 'Materials': materials.md
   - 'Performance': performance.md
   - 'FAQs': faq.md
+  - 'Migrating to 0.9': migrating-0.9.md
   - 'API reference': api/
   - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
   - '🕸️ Sample app (Wasm)': /haze/sample/wasm/
