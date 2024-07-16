@@ -18,5 +18,6 @@ plugins {
   alias(libs.plugins.mavenpublish) apply false
   alias(libs.plugins.metalava) apply false
   alias(libs.plugins.roborazzi) apply false
+  alias(libs.plugins.poko) apply false
   alias(libs.plugins.dokka)
 }

@@ -105,6 +105,7 @@ object HazeMaterials {
     darkAlpha: Float,
   ): HazeStyle = HazeStyle(
     blurRadius = 24.dp,
+    backgroundColor = containerColor,
     tint = containerColor.copy(
       alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha,
     ),

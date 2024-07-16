@@ -6,13 +6,9 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import androidx.compose.ui.node.GlobalPositionAwareModifierNode
-import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.invalidateSubtree
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.toSize
 
@@ -45,7 +41,7 @@ private data class HazeChildNodeElement(
     node.state = state
     node.shape = shape
     node.style = style
-    node.onUpdate()
+    node.update()
   }
 
   override fun InspectorInfo.inspectableProperties() {
@@ -55,45 +51,29 @@ private data class HazeChildNodeElement(
   }
 }
 
-private data class HazeChildNode(
-  var state: HazeState,
+private class HazeChildNode(
+  override var state: HazeState,
   var shape: Shape,
   var style: HazeStyle,
-) : Modifier.Node(),
-  LayoutAwareModifierNode,
-  GlobalPositionAwareModifierNode,
-  CompositionLocalConsumerModifierNode {
+) : HazeEffectNode() {
 
   private val area: HazeArea by lazy {
     HazeArea(shape = shape, style = style)
   }
 
-  private var attachedState: HazeState? = null
-
-  override fun onAttach() {
-    attachToHazeState()
-  }
-
-  fun onUpdate() {
+  override fun update() {
     // Propagate any shape changes to the HazeArea
     area.shape = shape
     area.style = style
 
-    if (state != attachedState) {
-      // The provided HazeState has changed, so we need to detach from the old one,
-      // and attach to the new one
-      detachFromHazeState()
-      attachToHazeState()
-    }
-  }
-
-  override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    onPlaced(coordinates)
+    super.update()
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
+    super.onPlaced(coordinates)
+
     // After we've been placed, update the state with our new bounds (in 'screen' coordinates)
-    area.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
+    area.positionOnScreen = positionOnScreen
     area.size = coordinates.size.toSize()
   }
 
@@ -101,22 +81,27 @@ private data class HazeChildNode(
     area.reset()
   }
 
-  override fun onDetach() {
-    detachFromHazeState()
+  override fun ContentDrawScope.draw() {
+    if (effects.isEmpty()) {
+      // If we don't have any effects, just call drawContent and return early
+      drawContent()
+      return
+    }
+
+    // First we need to make sure that the effects are updated (if necessary)
+    for (effect in effects) {
+      effect.onPreDraw(layoutDirection, drawContext.density)
+    }
+
+    if (USE_GRAPHICS_LAYERS) {
+      drawEffectsWithGraphicsLayer(requireNotNull(state.contentLayer))
+    } else {
+      drawEffectsWithScrim()
+    }
+
+    // Finally we draw the content
+    drawContent()
   }
 
-  private fun attachToHazeState() {
-    state.registerArea(area)
-    attachedState = state
-
-    // We need to trigger a layout so that we get the initial size. This is important for when
-    // the modifier is added after layout has settled down (such as conditional modifiers).
-    // invalidateSubtree() is a big hammer, but it's the only tool we have.
-    invalidateSubtree()
-  }
-
-  private fun detachFromHazeState() {
-    attachedState?.unregisterArea(area)
-    attachedState = null
-  }
+  override fun calculateHazeAreas(): Sequence<HazeArea> = sequenceOf(area)
 }

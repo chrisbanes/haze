@@ -6,43 +6,32 @@ package dev.chrisbanes.haze
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
-import androidx.compose.ui.geometry.isUnspecified
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
+import dev.drewhamilton.poko.Poko
 
 @Stable
 class HazeState {
-  /**
-   * The areas which are blurred by any [Modifier.haze] instances which use this state.
-   */
-  private val _areas = mutableStateListOf<HazeArea>()
 
-  val areas: List<HazeArea> get() = _areas.toList()
+  val content: HazeArea by lazy { HazeArea() }
 
-  fun registerArea(area: HazeArea) {
-    _areas.add(area)
-  }
-
-  fun unregisterArea(area: HazeArea) {
-    _areas.remove(area)
-  }
+  var contentLayer: GraphicsLayer? = null
+    internal set
 }
 
 @Stable
@@ -71,13 +60,6 @@ class HazeArea(
     positionOnScreen = Offset.Unspecified
     size = Size.Unspecified
   }
-}
-
-internal fun HazeArea.boundsInLocal(position: Offset): Rect? {
-  if (!isValid) return null
-  if (position.isUnspecified) return null
-
-  return size.toRect().translate(positionOnScreen - position)
 }
 
 /**
@@ -142,6 +124,7 @@ object HazeDefaults {
     blurRadius: Dp = this.blurRadius,
     noiseFactor: Float = this.noiseFactor,
   ): HazeStyle = HazeStyle(
+    backgroundColor = backgroundColor,
     tint = tint,
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
@@ -152,12 +135,15 @@ internal data class HazeNodeElement(
   val state: HazeState,
   val style: HazeStyle,
 ) : ModifierNodeElement<HazeNode>() {
-  override fun create(): HazeNode = HazeNode(state = state, style = style)
+  override fun create(): HazeNode {
+    return HazeNode(state, style)
+  }
 
   override fun update(node: HazeNode) {
     node.state = state
-    node.style = style
-    node.onUpdate()
+    node.defaultStyle = style
+
+    node.update()
   }
 
   override fun InspectorInfo.inspectableProperties() {
@@ -178,8 +164,10 @@ internal data class HazeNodeElement(
  * Anything outside of that range will be clamped.
  */
 @Immutable
-data class HazeStyle(
+@Poko
+class HazeStyle(
   val tint: Color = Color.Unspecified,
+  val backgroundColor: Color = Color.Unspecified,
   val blurRadius: Dp = Dp.Unspecified,
   val noiseFactor: Float = -1f,
 ) {
@@ -192,11 +180,16 @@ data class HazeStyle(
  * Resolves the style which should be used by renderers. The style returned from here
  * is guaranteed to contains specified values.
  */
-internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle = HazeStyle(
-  tint = child.tint.takeOrElse { default.tint }.takeOrElse { Color.Transparent },
-  blurRadius = child.blurRadius.takeOrElse { default.blurRadius }.takeOrElse { 0.dp },
-  noiseFactor = child.noiseFactor.takeOrElse { default.noiseFactor }.takeOrElse { 0f },
-)
+internal fun resolveStyle(default: HazeStyle, child: HazeStyle): HazeStyle {
+  return HazeStyle(
+    tint = child.tint.takeOrElse { default.tint }.takeOrElse { Color.Unspecified },
+    blurRadius = child.blurRadius.takeOrElse { default.blurRadius }.takeOrElse { 0.dp },
+    noiseFactor = child.noiseFactor.takeOrElse { default.noiseFactor }.takeOrElse { 0f },
+    backgroundColor = child.backgroundColor
+      .takeOrElse { default.backgroundColor }
+      .takeOrElse { Color.Unspecified },
+  )
+}
 
 private inline fun Float.takeOrElse(block: () -> Float): Float =
   if (this in 0f..1f) this else block()

@@ -11,6 +11,7 @@ plugins {
   id("com.vanniktech.maven.publish")
   id("dev.chrisbanes.metalava")
   id("io.github.takahirom.roborazzi")
+  id("dev.drewhamilton.poko")
 }
 
 android {
@@ -40,6 +41,11 @@ kotlin {
 
     androidMain {
       dependencies {
+        // Needed to upgrade Jetpack Compose
+        // Can remove this once CMP goes stable
+        api(libs.androidx.compose.ui)
+        implementation(libs.androidx.compose.foundation)
+
         implementation(libs.androidx.collection)
         implementation(libs.androidx.core)
       }

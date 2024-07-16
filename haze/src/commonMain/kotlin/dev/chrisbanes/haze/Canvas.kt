@@ -6,12 +6,14 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 
 internal fun Canvas.clipShape(
   shape: Shape,
@@ -43,5 +45,14 @@ internal fun DrawScope.clipShape(
       tmpPath.addPath(path(), bounds.topLeft)
       clipPath(tmpPath, clipOp, block)
     }
+  }
+}
+
+internal inline fun GraphicsContext.useGraphicsLayer(block: (GraphicsLayer) -> Unit) {
+  val layer = createGraphicsLayer()
+  try {
+    block(layer)
+  } finally {
+    releaseGraphicsLayer(layer)
   }
 }
