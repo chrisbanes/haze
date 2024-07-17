@@ -28,8 +28,14 @@ import dev.drewhamilton.poko.Poko
 @Stable
 class HazeState {
 
-  val content: HazeArea by lazy { HazeArea() }
+  val contentArea: HazeArea by lazy { HazeArea() }
 
+  /**
+   * The content [GraphicsLayer]. This is used by [hazeChild] draw nodes when drawing their
+   * blurred areas.
+   *
+   * This is explicitly NOT snapshot or state backed, as doing so would cause draw loops.
+   */
   var contentLayer: GraphicsLayer? = null
     internal set
 }

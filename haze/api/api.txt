@@ -35,9 +35,9 @@ package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
-    method public dev.chrisbanes.haze.HazeArea getContent();
+    method public dev.chrisbanes.haze.HazeArea getContentArea();
     method public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
-    property public final dev.chrisbanes.haze.HazeArea content;
+    property public final dev.chrisbanes.haze.HazeArea contentArea;
     property public final androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
   }
 
