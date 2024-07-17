@@ -97,7 +97,7 @@ internal abstract class HazeEffectNode :
         currentEffects.remove(area) ?: HazeEffect(area = area)
       }
       .onEach { effect ->
-        val resolvedStyle = resolveStyle(state.content.style, effect.area.style)
+        val resolvedStyle = resolveStyle(state.contentArea.style, effect.area.style)
 
         effect.size = effect.area.size
         effect.positionOnScreen = effect.area.positionOnScreen
@@ -127,7 +127,7 @@ internal abstract class HazeEffectNode :
     for (effect in effects) {
       // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
       // The RenderEffect applied will provide the blurring effect.
-      val contentArea = state.content
+      val contentArea = state.contentArea
       val boundsInContent = effect.calculateBounds(-contentArea.positionOnScreen)
 
       graphicsContext.useGraphicsLayer { layer ->
