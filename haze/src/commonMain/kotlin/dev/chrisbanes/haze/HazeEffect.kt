@@ -142,6 +142,8 @@ internal abstract class HazeEffectNode :
         layer.record(effect.size.roundToIntSize()) {
           if (effect.backgroundColor.isSpecified) {
             drawRect(effect.backgroundColor)
+          } else {
+            error("HazeStyle.backgroundColor not specified. Please provide a color.")
           }
 
           translate(-boundsInContent.left, -boundsInContent.top) {

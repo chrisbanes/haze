@@ -115,9 +115,9 @@ object HazeDefaults {
   /**
    * Default [HazeStyle] for usage with [Modifier.haze].
    *
-   * @param backgroundColor The background color of this layout. Typically this would be
-   * `MaterialTheme.colorScheme.surface` or similar. This is just a convenience parameter for
-   * setting [tint] with an appropriate translucent color.
+   * @param backgroundColor Color to draw behind the blurred content. Ideally should be opaque
+   * so that the original content is not visible behind. Typically this would be
+   * `MaterialTheme.colorScheme.surface` or similar.
    * @param tint Default color to tint the blurred content. Should be translucent, otherwise you
    * will not see the blurred content.
    * @param blurRadius Radius of the blur.
@@ -163,7 +163,10 @@ internal data class HazeNodeElement(
  *
  * Can be set via [Modifier.haze] and [Modifier.hazeChild].
  *
- * @property tint Default color to tint the blurred content. Should be translucent, otherwise you will not see
+ * @property backgroundColor Color to draw behind the blurred content. Ideally should be opaque
+ * so that the original content is not visible behind. Typically this would be
+ * `MaterialTheme.colorScheme.surface` or similar.
+ * @property tint Color to tint the blurred content. Should be translucent, otherwise you will not see
  * the blurred content.
  * @property blurRadius Radius of the blur.
  * @property noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
@@ -172,8 +175,8 @@ internal data class HazeNodeElement(
 @Immutable
 @Poko
 class HazeStyle(
-  val tint: Color = Color.Unspecified,
   val backgroundColor: Color = Color.Unspecified,
+  val tint: Color = Color.Unspecified,
   val blurRadius: Dp = Dp.Unspecified,
   val noiseFactor: Float = -1f,
 ) {

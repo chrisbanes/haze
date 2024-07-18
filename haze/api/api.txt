@@ -42,7 +42,7 @@ package dev.chrisbanes.haze {
   }
 
   @androidx.compose.runtime.Immutable @dev.drewhamilton.poko.Poko public final class HazeStyle {
-    ctor public HazeStyle(optional long tint, optional long backgroundColor, optional float blurRadius, optional float noiseFactor);
+    ctor public HazeStyle(optional long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
     method public long getBackgroundColor();
     method public float getBlurRadius();
     method public float getNoiseFactor();
