@@ -2,13 +2,15 @@
 package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeArea {
-    ctor public HazeArea(optional long size, optional long positionOnScreen, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style);
+    ctor public HazeArea(optional long size, optional long positionOnScreen, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style, optional androidx.compose.ui.graphics.Brush? mask);
+    method public androidx.compose.ui.graphics.Brush? getMask();
     method public long getPositionOnScreen();
     method public androidx.compose.ui.graphics.Shape getShape();
     method public long getSize();
     method public dev.chrisbanes.haze.HazeStyle getStyle();
     method public boolean isValid();
     property public final boolean isValid;
+    property public final androidx.compose.ui.graphics.Brush? mask;
     property public final long positionOnScreen;
     property public final androidx.compose.ui.graphics.Shape shape;
     property public final long size;
@@ -16,7 +18,7 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeChildKt {
-    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style);
+    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style, optional androidx.compose.ui.graphics.Brush? mask);
   }
 
   public final class HazeDefaults {

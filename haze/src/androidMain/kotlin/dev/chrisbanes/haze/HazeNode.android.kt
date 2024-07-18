@@ -8,7 +8,6 @@ import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlendMode
 import android.graphics.BlendModeColorFilter
-import android.graphics.Rect as AndroidRect
 import android.graphics.RenderEffect as AndroidRenderEffect
 import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
