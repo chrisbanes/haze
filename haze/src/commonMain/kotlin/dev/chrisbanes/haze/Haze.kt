@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -46,6 +47,7 @@ class HazeArea(
   positionOnScreen: Offset = Offset.Unspecified,
   shape: Shape = RectangleShape,
   style: HazeStyle = HazeStyle.Unspecified,
+  mask: Brush? = null,
 ) {
   var size: Size by mutableStateOf(size)
     internal set
@@ -57,6 +59,9 @@ class HazeArea(
     internal set
 
   var style: HazeStyle by mutableStateOf(style)
+    internal set
+
+  var mask: Brush? by mutableStateOf(mask)
     internal set
 
   val isValid: Boolean

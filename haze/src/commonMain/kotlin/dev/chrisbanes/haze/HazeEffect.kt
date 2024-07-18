@@ -12,9 +12,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.toRect
-import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
@@ -106,6 +105,7 @@ internal abstract class HazeEffectNode :
         effect.tint = resolvedStyle.tint
         effect.backgroundColor = resolvedStyle.backgroundColor
         effect.shape = effect.area.shape
+        effect.mask = effect.area.mask
       }
       .forEach(_effects::add)
 
@@ -131,10 +131,6 @@ internal abstract class HazeEffectNode :
       val boundsInContent = effect.calculateBounds(-contentArea.positionOnScreen)
 
       graphicsContext.useGraphicsLayer { layer ->
-        layer.colorFilter = when {
-          effect.tint.alpha >= 0.005f -> ColorFilter.tint(effect.tint, BlendMode.SrcOver)
-          else -> null
-        }
         layer.clip = true
         layer.setOutline(effect.outline ?: Outline.Rectangle(effect.size.toRect()))
         layer.renderEffect = effect.renderEffect
@@ -221,6 +217,7 @@ internal class HazeEffect(val area: HazeArea) {
     positionOnScreen.isSpecified && size.isSpecified -> {
       Rect(offset = positionOnScreen - localPositionOnScreen, size = size)
     }
+
     else -> Rect.Zero
   }
 
@@ -251,8 +248,23 @@ internal class HazeEffect(val area: HazeArea) {
       }
     }
 
+  var mask: Brush? = null
+    set(value) {
+      if (value != field) {
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
   var backgroundColor: Color = Color.Unspecified
+
   var tint: Color = Color.Unspecified
+    set(value) {
+      if (value != field) {
+        renderEffectDirty = true
+        field = value
+      }
+    }
 
   var shape: Shape = RectangleShape
     set(value) {

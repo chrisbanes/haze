@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -29,19 +30,22 @@ fun Modifier.hazeChild(
   state: HazeState,
   shape: Shape = RectangleShape,
   style: HazeStyle = HazeStyle.Unspecified,
-): Modifier = this then HazeChildNodeElement(state, shape, style)
+  mask: Brush? = null,
+): Modifier = this then HazeChildNodeElement(state, shape, style, mask)
 
 private data class HazeChildNodeElement(
   val state: HazeState,
   val shape: Shape,
   val style: HazeStyle,
+  val mask: Brush?,
 ) : ModifierNodeElement<HazeChildNode>() {
-  override fun create(): HazeChildNode = HazeChildNode(state, shape, style)
+  override fun create(): HazeChildNode = HazeChildNode(state, shape, style, mask)
 
   override fun update(node: HazeChildNode) {
     node.state = state
     node.shape = shape
     node.style = style
+    node.mask = mask
     node.update()
   }
 
@@ -49,6 +53,7 @@ private data class HazeChildNodeElement(
     name = "HazeChild"
     properties["shape"] = shape
     properties["style"] = style
+    properties["mask"] = mask
   }
 }
 
@@ -56,18 +61,20 @@ private class HazeChildNode(
   override var state: HazeState,
   var shape: Shape,
   var style: HazeStyle,
+  var mask: Brush?,
 ) : HazeEffectNode() {
 
   private val area: HazeArea by lazy {
-    HazeArea(shape = shape, style = style)
+    HazeArea(shape = shape, style = style, mask = mask)
   }
 
   private var drawWithContentLayerCount = 0
 
   override fun update() {
-    // Propagate any shape changes to the HazeArea
+    // Propagate any changes to the HazeArea
     area.shape = shape
     area.style = style
+    area.mask = mask
 
     super.update()
   }
