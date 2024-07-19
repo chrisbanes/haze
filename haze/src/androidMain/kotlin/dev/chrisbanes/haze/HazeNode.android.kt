@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -59,7 +60,14 @@ internal actual fun HazeEffectNode.drawEffect(
   if (graphicsLayer != null && drawContext.canvas.nativeCanvas.isHardwareAccelerated) {
     drawLayer(graphicsLayer)
   } else {
-    drawRect(effect.tint.boostAlphaForBlurRadius(effect.blurRadius))
+    val mask = effect.mask
+    val boostedTint = effect.tint.boostAlphaForBlurRadius(effect.blurRadius)
+
+    if (mask != null) {
+       drawRect(brush = mask, colorFilter = ColorFilter.tint(boostedTint))
+    } else {
+      drawRect(color = boostedTint)
+    }
   }
 }
 

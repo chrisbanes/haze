@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.test.ScreenshotTest
@@ -30,6 +31,22 @@ class HazeScreenshotTest : ScreenshotTest() {
     setContent {
       ScreenshotTheme {
         CreditCardSample(defaultTint = Color.Transparent)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_mask() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(
+          mask = Brush.verticalGradient(
+            0f to Color.Transparent,
+            0.5f to Color.Black,
+            1f to Color.Transparent,
+          )
+        )
       }
     }
     captureRoot()
