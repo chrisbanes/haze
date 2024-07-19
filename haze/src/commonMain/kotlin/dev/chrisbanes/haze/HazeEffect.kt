@@ -130,7 +130,7 @@ internal abstract class HazeEffectNode :
       // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
       // The RenderEffect applied will provide the blurring effect.
       val contentArea = state.contentArea
-      val boundsInContent = effect.calculateBounds(-contentArea.positionOnScreen)
+      val effectOffsetInContent = effect.positionOnScreen - contentArea.positionOnScreen
 
       graphicsContext.useGraphicsLayer { layer ->
         layer.clip = true
@@ -144,15 +144,15 @@ internal abstract class HazeEffectNode :
             error("HazeStyle.backgroundColor not specified. Please provide a color.")
           }
 
-          translate(-boundsInContent.left, -boundsInContent.top) {
+          translate(-effectOffsetInContent.x, -effectOffsetInContent.y) {
             // Finally draw the content into our effect layer
             drawLayer(contentLayer)
           }
         }
 
         // Draw the effect's graphic layer, translated to the correct position
-        val effectOffset = effect.positionOnScreen - positionOnScreen
-        translate(effectOffset.x, effectOffset.y) {
+        val effectOffsetInLayout = effect.positionOnScreen - positionOnScreen
+        translate(effectOffsetInLayout.x, effectOffsetInLayout.y) {
           drawEffect(this, effect, layer)
         }
       }
