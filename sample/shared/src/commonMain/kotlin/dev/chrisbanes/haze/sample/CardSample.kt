@@ -42,7 +42,9 @@ import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun CreditCardSample(navigator: Navigator) {
   val hazeState = remember { HazeState() }
@@ -54,7 +56,11 @@ fun CreditCardSample(navigator: Navigator) {
         .fillMaxSize()
         .haze(
           state = hazeState,
-          style = HazeDefaults.style(tint = Color.White.copy(alpha = 0.1f), blurRadius = 8.dp),
+          style = HazeDefaults.style(
+            backgroundColor = Color.Blue,
+            tint = Color.White.copy(alpha = 0.1f),
+            blurRadius = 8.dp,
+          ),
         ),
     ) {
       Spacer(

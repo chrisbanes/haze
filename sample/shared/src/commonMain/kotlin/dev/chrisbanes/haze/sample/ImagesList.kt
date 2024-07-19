@@ -23,17 +23,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ImagesList(navigator: Navigator) {
   MaterialTheme {
@@ -72,10 +72,7 @@ fun ImagesList(navigator: Navigator) {
               contentScale = ContentScale.Crop,
               contentDescription = null,
               modifier = Modifier
-                .haze(
-                  state = hazeState,
-                  style = HazeDefaults.style(backgroundColor = Color(0xFF646464)),
-                )
+                .haze(state = hazeState, style = HazeMaterials.thin())
                 .fillMaxSize(),
             )
 
