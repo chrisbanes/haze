@@ -10,7 +10,6 @@ kotlin = "2.0.0"
 ktor = "3.0.0-wasm2"
 jetpack-compose = "1.7.0-beta05"
 metalava = "0.3.5"
-poko = "0.16.0"
 robolectric = "4.13"
 roborazzi = "1.22.2"
 spotless = "6.25.0"
@@ -27,7 +26,6 @@ compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-m
 dokka = { id = "org.jetbrains.dokka", version = "1.9.20" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 metalava = { id = "me.tylerbwong.gradle.metalava", version = "0.3.5" }
-poko = { id = "dev.drewhamilton.poko", version.ref = "poko" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.29.0" }
