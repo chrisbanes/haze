@@ -45,7 +45,7 @@ class HazeScreenshotTest : ScreenshotTest() {
             0f to Color.Transparent,
             0.5f to Color.Black,
             1f to Color.Transparent,
-          )
+          ),
         )
       }
     }

@@ -64,7 +64,7 @@ internal actual fun HazeEffectNode.drawEffect(
     val boostedTint = effect.tint.boostAlphaForBlurRadius(effect.blurRadius)
 
     if (mask != null) {
-       drawRect(brush = mask, colorFilter = ColorFilter.tint(boostedTint))
+      drawRect(brush = mask, colorFilter = ColorFilter.tint(boostedTint))
     } else {
       drawRect(color = boostedTint)
     }

@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -21,12 +22,12 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -57,14 +58,14 @@ fun ScaffoldSample(navigator: Navigator) {
 
   Scaffold(
     topBar = {
-      LargeTopAppBar(
+      TopAppBar(
         title = { Text(text = "Haze Scaffold sample") },
         navigationIcon = {
           IconButton(onClick = navigator::navigateUp) {
             Icon(Icons.AutoMirrored.Default.ArrowBack, null)
           }
         },
-        colors = TopAppBarDefaults.largeTopAppBarColors(
+        colors = TopAppBarDefaults.topAppBarColors(
           containerColor = Color.Transparent,
           scrolledContainerColor = Color.Transparent,
         ),
@@ -72,7 +73,7 @@ fun ScaffoldSample(navigator: Navigator) {
           .hazeChild(
             state = hazeState,
             style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
-            mask = Brush.verticalGradient(listOf(Color.Black, Color.Transparent)),
+            mask = remember { Brush.easedVerticalGradient(easing = EaseInOut) },
           )
           .fillMaxWidth(),
       )
