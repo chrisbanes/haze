@@ -34,8 +34,10 @@ import androidx.compose.ui.window.Dialog
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 fun DialogSample(navigator: Navigator) {
   Scaffold(
@@ -79,7 +81,7 @@ fun DialogSample(navigator: Navigator) {
     }
 
     LazyVerticalGrid(
-      modifier = Modifier.haze(hazeState),
+      modifier = Modifier.haze(state = hazeState, style = HazeMaterials.regular()),
       columns = GridCells.Fixed(4),
       contentPadding = innerPadding,
       verticalArrangement = Arrangement.spacedBy(16.dp),
