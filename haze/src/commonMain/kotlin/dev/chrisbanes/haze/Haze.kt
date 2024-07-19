@@ -23,7 +23,6 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
-import dev.drewhamilton.poko.Poko
 
 @Stable
 class HazeState {
@@ -173,8 +172,7 @@ internal data class HazeNodeElement(
  * Anything outside of that range will be clamped.
  */
 @Immutable
-@Poko
-class HazeStyle(
+data class HazeStyle(
   val backgroundColor: Color = Color.Unspecified,
   val tint: Color = Color.Unspecified,
   val blurRadius: Dp = Dp.Unspecified,

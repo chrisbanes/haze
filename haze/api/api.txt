@@ -41,8 +41,13 @@ package dev.chrisbanes.haze {
     property public final androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
   }
 
-  @androidx.compose.runtime.Immutable @dev.drewhamilton.poko.Poko public final class HazeStyle {
+  @androidx.compose.runtime.Immutable public final class HazeStyle {
     ctor public HazeStyle(optional long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
+    method public long component1-0d7_KjU();
+    method public long component2-0d7_KjU();
+    method public float component3-D9Ej5fM();
+    method public float component4();
+    method public dev.chrisbanes.haze.HazeStyle copy-gs-jSAA(long backgroundColor, long tint, float blurRadius, float noiseFactor);
     method public long getBackgroundColor();
     method public float getBlurRadius();
     method public float getNoiseFactor();
