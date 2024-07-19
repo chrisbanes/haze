@@ -60,6 +60,8 @@ internal abstract class HazeEffectNode :
   private val _effects: MutableList<HazeEffect> = mutableListOf()
   val effects: List<HazeEffect> = _effects
 
+  override val shouldAutoInvalidate: Boolean = false
+
   open fun update() {
     onObservedReadsChanged()
   }
