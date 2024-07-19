@@ -45,6 +45,11 @@ internal class HazeNode(
     }
   }
 
+  /**
+   * We manually invalidate when things have changed
+   */
+  override val shouldAutoInvalidate: Boolean = false
+
   override fun ContentDrawScope.draw() {
     if (!USE_GRAPHICS_LAYERS) {
       // If we're not using graphics layers, just call drawContent and return early
