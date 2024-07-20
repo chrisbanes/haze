@@ -8,13 +8,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.RenderEffect
@@ -25,7 +21,6 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.layer.setOutline
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -36,6 +31,7 @@ import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -90,6 +86,8 @@ internal abstract class HazeEffectNode :
 
     _effects.clear()
 
+    val density = currentValueOf(LocalDensity)
+
     // We create a RenderNode for each of the areas we need to apply our effect to
     calculateHazeAreas()
       .filter { it.isValid }
@@ -100,7 +98,13 @@ internal abstract class HazeEffectNode :
       .onEach { effect ->
         val resolvedStyle = resolveStyle(state.contentArea.style, effect.area.style)
 
+        val blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() }
+
         effect.size = effect.area.size
+        effect.layerSize = Size(
+          width = effect.size.width + (blurRadiusPx * 2),
+          height = effect.size.height + (blurRadiusPx * 2),
+        )
         effect.positionOnScreen = effect.area.positionOnScreen
         effect.blurRadius = resolvedStyle.blurRadius
         effect.noiseFactor = resolvedStyle.noiseFactor
@@ -129,31 +133,45 @@ internal abstract class HazeEffectNode :
     for (effect in effects) {
       // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
       // The RenderEffect applied will provide the blurring effect.
-      val contentArea = state.contentArea
-      val effectOffsetInContent = effect.positionOnScreen - contentArea.positionOnScreen
 
       graphicsContext.useGraphicsLayer { layer ->
-        layer.clip = true
-        layer.setOutline(effect.outline ?: Outline.Rectangle(effect.size.toRect()))
         layer.renderEffect = effect.renderEffect
 
-        layer.record(effect.size.roundToIntSize()) {
+        // The layer size is usually than the bounds. This is so that we include enough
+        // content around the edges to keep the blurring uniform. Without the extra border,
+        // the blur will naturally fade out at the edges.
+        val inflatedSize = effect.layerSize
+        // This is the topLeft in the inflated bounds where the real are should be at [0,0]
+        val inflatedOffset = effect.layerOffset
+
+        layer.record(inflatedSize.roundToIntSize()) {
           if (effect.backgroundColor.isSpecified) {
             drawRect(effect.backgroundColor)
           } else {
             error("HazeStyle.backgroundColor not specified. Please provide a color.")
           }
 
-          translate(-effectOffsetInContent.x, -effectOffsetInContent.y) {
-            // Finally draw the content into our effect layer
+          val contentArea = state.contentArea
+          translate(inflatedOffset + contentArea.positionOnScreen - effect.positionOnScreen) {
+            // Draw the content into our effect layer
             drawLayer(contentLayer)
           }
         }
 
-        // Draw the effect's graphic layer, translated to the correct position
-        val effectOffsetInLayout = effect.positionOnScreen - positionOnScreen
-        translate(effectOffsetInLayout.x, effectOffsetInLayout.y) {
-          drawEffect(this, effect, layer)
+        // Draw the effect to our canvas, translated to the correct position
+        translate(offset = effect.positionOnScreen - positionOnScreen) {
+          clipShape(
+            shape = effect.shape,
+            size = effect.size,
+            path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
+            block = {
+              // Since we included a border around the content, we need to translate so that
+              // we don't see it (but it still affects the RenderEffect)
+              translate(-inflatedOffset.x, -inflatedOffset.y) {
+                drawEffect(this, effect, layer)
+              }
+            },
+          )
         }
       }
     }
@@ -163,7 +181,8 @@ internal abstract class HazeEffectNode :
     for (effect in effects) {
       clipShape(
         shape = effect.shape,
-        bounds = effect.calculateBounds(positionOnScreen),
+        size = effect.size,
+        offset = effect.positionOnScreen - positionOnScreen,
         path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
         block = { drawEffect(this, effect) },
       )
@@ -171,23 +190,15 @@ internal abstract class HazeEffectNode :
   }
 
   override fun onDetach() {
-    _effects.forEach { it.recycle() }
-    _effects.clear()
+    _effects.onEach(HazeEffect::recycle).clear()
   }
 
   protected open fun calculateHazeAreas(): Sequence<HazeArea> = emptySequence()
 
-  protected fun HazeEffect.onPreDraw(
-    layoutDirection: LayoutDirection,
-    density: Density,
-  ) {
+  protected fun HazeEffect.onPreDraw(density: Density) {
     if (renderEffectDirty) {
       renderEffect = createRenderEffect(this, density)
       renderEffectDirty = false
-    }
-    if (outlineDirty) {
-      outline = shape.createOutline(size, layoutDirection, density)
-      outlineDirty = false
     }
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it
@@ -212,25 +223,27 @@ internal class HazeEffect(val area: HazeArea) {
   var renderEffect: RenderEffect? = null
   var renderEffectDirty: Boolean = true
 
-  var outline: Outline? = null
-  var outlineDirty: Boolean = true
-
-  fun calculateBounds(localPositionOnScreen: Offset = Offset.Zero): Rect = when {
-    positionOnScreen.isSpecified && size.isSpecified -> {
-      Rect(offset = positionOnScreen - localPositionOnScreen, size = size)
-    }
-
-    else -> Rect.Zero
-  }
-
   var size: Size = Size.Unspecified
     set(value) {
       if (value != field) {
         pathDirty = true
-        outlineDirty = true
         field = value
       }
     }
+
+  var layerSize: Size = Size.Unspecified
+    set(value) {
+      if (value != field) {
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  val layerOffset: Offset
+    get() = Offset(
+      x = (layerSize.width - size.width) / 2f,
+      y = (layerSize.height - size.height) / 2f,
+    )
 
   var positionOnScreen: Offset = Offset.Unspecified
 
@@ -272,7 +285,6 @@ internal class HazeEffect(val area: HazeArea) {
     set(value) {
       if (value != field) {
         pathDirty = true
-        outlineDirty = true
       }
       field = value
     }
@@ -285,7 +297,7 @@ internal class HazeEffect(val area: HazeArea) {
 internal val HazeEffect.blurRadiusOrZero: Dp get() = blurRadius.takeOrElse { 0.dp }
 
 internal val HazeEffect.needInvalidation: Boolean
-  get() = renderEffectDirty || outlineDirty || pathDirty
+  get() = renderEffectDirty || pathDirty
 
 internal fun HazeEffect.getUpdatedPath(
   layoutDirection: LayoutDirection,

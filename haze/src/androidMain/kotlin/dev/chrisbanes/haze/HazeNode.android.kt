@@ -14,9 +14,9 @@ import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.collection.lruCache
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RenderEffect
@@ -43,7 +43,7 @@ internal actual fun HazeEffectNode.createRenderEffect(
     if (Build.VERSION.SDK_INT >= 31 && blurRadiusPx >= 0.005f) {
       return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
         .withNoise(noiseFactor)
-        .withMask(effect.mask, effect.size)
+        .withMask(effect.mask, Rect(effect.layerOffset, effect.size))
         .withTint(tint = effect.tint, blendMode = BlendMode.SRC_ATOP)
         .asComposeRenderEffect()
     }
@@ -113,13 +113,16 @@ private fun AndroidRenderEffect.withNoise(noiseFactor: Float): AndroidRenderEffe
 }
 
 @RequiresApi(31)
-private fun AndroidRenderEffect.withMask(mask: Brush?, size: Size): AndroidRenderEffect {
-  val shader = mask?.toShader(size) ?: return this
+private fun AndroidRenderEffect.withMask(mask: Brush?, bounds: Rect): AndroidRenderEffect {
+  val shader = mask?.toShader(bounds.size) ?: return this
+
+  val shaderEffect = AndroidRenderEffect.createShaderEffect(shader)
 
   return AndroidRenderEffect.createBlendModeEffect(
+    // We need to offset the shader to the bounds
+    AndroidRenderEffect.createOffsetEffect(bounds.left, bounds.top, shaderEffect),
     this,
-    AndroidRenderEffect.createShaderEffect(shader),
-    BlendMode.DST_IN,
+    BlendMode.SRC_IN,
   )
 }
 
