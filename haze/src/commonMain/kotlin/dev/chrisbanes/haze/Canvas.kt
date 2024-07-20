@@ -3,7 +3,10 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.GraphicsContext
@@ -13,6 +16,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 
 internal fun Canvas.clipShape(
@@ -33,17 +37,29 @@ internal fun Canvas.clipShape(
 
 internal fun DrawScope.clipShape(
   shape: Shape,
-  bounds: Rect,
+  size: Size,
+  offset: Offset = Offset.Unspecified,
   clipOp: ClipOp = ClipOp.Intersect,
   path: () -> Path,
   block: DrawScope.() -> Unit,
 ) {
   if (shape == RectangleShape) {
-    clipRect(bounds.left, bounds.top, bounds.right, bounds.bottom, clipOp, block)
+    clipRect(
+      left = offset.x,
+      top = offset.y,
+      right = offset.x + size.width,
+      bottom = offset.y + size.height,
+      clipOp = clipOp,
+      block = block,
+    )
   } else {
-    pathPool.usePath { tmpPath ->
-      tmpPath.addPath(path(), bounds.topLeft)
-      clipPath(tmpPath, clipOp, block)
+    if (offset.isUnspecified || offset == Offset.Zero) {
+      clipPath(path(), clipOp, block)
+    } else {
+      pathPool.usePath { tmpPath ->
+        tmpPath.addPath(path(), offset)
+        clipPath(tmpPath, clipOp, block)
+      }
     }
   }
 }
@@ -56,3 +72,8 @@ internal inline fun GraphicsContext.useGraphicsLayer(block: (GraphicsLayer) -> U
     releaseGraphicsLayer(layer)
   }
 }
+
+inline fun DrawScope.translate(
+  offset: Offset,
+  block: DrawScope.() -> Unit,
+) = translate(offset.x, offset.y, block)

@@ -45,7 +45,7 @@ internal actual fun HazeEffectNode.createRenderEffect(
   }
   // For CLAMP to work, we need to provide the crop rect
   val blurRadiusPx = with(density) { effect.blurRadiusOrZero.toPx() }
-  val blurFilter = createBlurImageFilter(blurRadiusPx, effect.size.toRect())
+  val blurFilter = createBlurImageFilter(blurRadiusPx, effect.layerSize.toRect())
 
   return ImageFilter.makeRuntimeShader(
     runtimeShaderBuilder = compositeShaderBuilder,
@@ -53,7 +53,7 @@ internal actual fun HazeEffectNode.createRenderEffect(
     inputs = arrayOf(null, blurFilter),
   )
     .withTint(effect.tint, BlendMode.SRC_ATOP)
-    .withMask(effect.mask, effect.size)
+    .withMask(effect.mask, Rect(effect.layerOffset, effect.size))
     .asComposeRenderEffect()
 }
 
@@ -73,24 +73,24 @@ private fun ImageFilter.withTint(
   else -> this
 }
 
-private fun ImageFilter.withMask(mask: Brush?, size: Size): ImageFilter {
-  val shader = mask?.toShader(size) ?: return this
+private fun ImageFilter.withMask(mask: Brush?, bounds: Rect): ImageFilter {
+  val shader = mask?.toShader(bounds.size) ?: return this
 
   return ImageFilter.makeBlend(
-    blendMode = BlendMode.DST_IN,
-    bg = this,
-    fg = ImageFilter.makeShader(shader = shader, crop = null),
+    blendMode = BlendMode.SRC_IN,
+    bg = ImageFilter.makeShader(shader = shader, crop = bounds.toIRect()),
+    fg = this,
     crop = null,
   )
 }
 
-private fun createBlurImageFilter(blurRadiusPx: Float, cropRect: Rect? = null): ImageFilter {
+private fun createBlurImageFilter(blurRadiusPx: Float, bounds: Rect): ImageFilter {
   val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
   return ImageFilter.makeBlur(
     sigmaX = sigma,
     sigmaY = sigma,
     mode = FilterTileMode.CLAMP,
-    crop = cropRect?.toIRect(),
+    crop = bounds.toIRect(),
   )
 }
 

@@ -100,7 +100,7 @@ private class HazeChildNode(
 
     // First we need to make sure that the effects are updated (if necessary)
     for (effect in effects) {
-      effect.onPreDraw(layoutDirection, drawContext.density)
+      effect.onPreDraw(drawContext.density)
     }
 
     if (USE_GRAPHICS_LAYERS) {
