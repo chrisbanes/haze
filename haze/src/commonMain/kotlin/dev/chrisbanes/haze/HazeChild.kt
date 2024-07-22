@@ -13,6 +13,7 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.toSize
+import kotlinx.coroutines.launch
 
 /**
  * Mark this composable as being a Haze child composable.
@@ -68,7 +69,7 @@ private class HazeChildNode(
     HazeArea(shape = shape, style = style, mask = mask)
   }
 
-  private var drawWithContentLayerCount = 0
+  private var drawWithoutContentLayerCount = 0
 
   override fun update() {
     // Propagate any changes to the HazeArea
@@ -106,14 +107,14 @@ private class HazeChildNode(
     if (USE_GRAPHICS_LAYERS) {
       val contentLayer = state.contentLayer
       if (contentLayer != null) {
-        drawWithContentLayerCount = 0
+        drawWithoutContentLayerCount = 0
         drawEffectsWithGraphicsLayer(contentLayer)
       } else {
         // The content layer has not have been drawn yet (draw order matters here). If it hasn't
         // there's not much we do other than invalidate and wait for the next frame.
         // We only want to force a few frames, otherwise we're causing a draw loop.
-        if (++drawWithContentLayerCount <= 2) {
-          invalidateDraw()
+        if (++drawWithoutContentLayerCount <= 2) {
+          coroutineScope.launch { invalidateDraw() }
         }
       }
     } else {
