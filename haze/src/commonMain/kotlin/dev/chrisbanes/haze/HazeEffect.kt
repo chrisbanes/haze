@@ -226,6 +226,8 @@ internal class HazeEffect(val area: HazeArea) {
   var size: Size = Size.Unspecified
     set(value) {
       if (value != field) {
+        // We use the size for crop rects/brush sizing
+        renderEffectDirty = true
         pathDirty = true
         field = value
       }
