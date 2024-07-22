@@ -31,7 +31,7 @@ dependencyResolutionManagement {
 }
 
 plugins {
-  id("com.gradle.develocity") version "3.17.4"
+  id("com.gradle.develocity") version "3.17.6"
 }
 
 val isCi: Boolean get() = !System.getenv("CI").isNullOrEmpty()
