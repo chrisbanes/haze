@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -101,10 +102,8 @@ fun CreditCardSample(navigator: Navigator) {
             }
           },
         )
-        .hazeChild(
-          state = hazeState,
-          shape = RoundedCornerShape(16.dp),
-        ),
+        .clip(RoundedCornerShape(16.dp))
+        .hazeChild(state = hazeState),
     ) {
       Column(Modifier.padding(32.dp)) {
         Text("Bank of Haze")

@@ -63,11 +63,7 @@ fun DialogSample(navigator: Navigator) {
         Surface(
           modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(fraction = .5f)
-            .hazeChild(
-              state = hazeState,
-              shape = MaterialTheme.shapes.extraLarge,
-            ),
+            .fillMaxHeight(fraction = .5f),
           shape = MaterialTheme.shapes.extraLarge,
           // We can't use Haze tint with dialogs, as the tint will display a scrim over the
           // background content. Instead we need to set a translucent background on the
@@ -75,7 +71,9 @@ fun DialogSample(navigator: Navigator) {
           color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
           contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
-          // empty
+          Box(Modifier.hazeChild(state = hazeState)) {
+            // empty
+          }
         }
       }
     }

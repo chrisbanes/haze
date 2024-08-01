@@ -111,7 +111,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   private fun roundedCornerTest(roundedCornerShape: RoundedCornerShape) = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(roundedCornerShape = roundedCornerShape)
+        CreditCardSample(shape = roundedCornerShape)
       }
     }
     captureRoot()

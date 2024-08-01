@@ -43,29 +43,6 @@ A tint effect is applied, primarily to maintain contrast and legibility. By defa
 
 Some visual noise is applied, to provide some tactility. This is completely optional, and defaults to a value of `0.15f` (15% strength). You can disable this by providing `0f`.
 
-## Shapes
-
-Haze has some support for blurring of a provided `Shape`, passed into [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
-
-The platforms have varying support:
-
-- Android: full support, through `clipPath`
-- iOS and Desktop: limited support. Only `RoundedCornerShape`s currently works.
-
-``` kotlin hl_lines="8"
-Box {
-  // rest of sample from above
-
-  LargeTopAppBar(
-    modifier = Modifier
-      .hazeChild(
-        ...
-        shape = RoundedCornerShape(16.dp),
-      ),
-  )
-}
-```
-
 ## Scaffold
 
 Make the content behind app bars is a common use case, so how can we use Haze with `Scaffold`? It's pretty much the same as above:

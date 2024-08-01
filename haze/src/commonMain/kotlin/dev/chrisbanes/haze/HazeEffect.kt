@@ -9,14 +9,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -35,7 +33,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
@@ -110,13 +107,11 @@ internal abstract class HazeEffectNode :
         effect.noiseFactor = resolvedStyle.noiseFactor
         effect.tint = resolvedStyle.tint
         effect.backgroundColor = resolvedStyle.backgroundColor
-        effect.shape = effect.area.shape
         effect.mask = effect.area.mask
       }
       .forEach(_effects::add)
 
-    // Any effects left in currentEffects are no longer used, so recycle them
-    currentEffects.forEach { (_, effect) -> effect.recycle() }
+    // Any effects left in currentEffects are no longer used
     currentEffects.clear()
 
     val needInvalidate = effects.any { it.needInvalidation }
@@ -160,18 +155,11 @@ internal abstract class HazeEffectNode :
 
         // Draw the effect to our canvas, translated to the correct position
         translate(offset = effect.positionOnScreen - positionOnScreen) {
-          clipShape(
-            shape = effect.shape,
-            size = effect.size,
-            path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
-            block = {
-              // Since we included a border around the content, we need to translate so that
-              // we don't see it (but it still affects the RenderEffect)
-              translate(-inflatedOffset.x, -inflatedOffset.y) {
-                drawEffect(this, effect, layer)
-              }
-            },
-          )
+          // Since we included a border around the content, we need to translate so that
+          // we don't see it (but it still affects the RenderEffect)
+          translate(-inflatedOffset.x, -inflatedOffset.y) {
+            drawEffect(this, effect, layer)
+          }
         }
       }
     }
@@ -179,18 +167,15 @@ internal abstract class HazeEffectNode :
 
   protected fun DrawScope.drawEffectsWithScrim() {
     for (effect in effects) {
-      clipShape(
-        shape = effect.shape,
-        size = effect.size,
-        offset = effect.positionOnScreen - positionOnScreen,
-        path = { effect.getUpdatedPath(layoutDirection, drawContext.density) },
+      val offset = (effect.positionOnScreen - positionOnScreen).takeOrElse { Offset.Zero }
+      clipRect(
+        left = offset.x,
+        top = offset.y,
+        right = size.width + offset.x,
+        bottom = size.height + offset.y,
         block = { drawEffect(this, effect) },
       )
     }
-  }
-
-  override fun onDetach() {
-    _effects.onEach(HazeEffect::recycle).clear()
   }
 
   protected open fun calculateHazeAreas(): Sequence<HazeArea> = emptySequence()
@@ -217,9 +202,6 @@ internal expect fun HazeEffectNode.createRenderEffect(
 ): RenderEffect?
 
 internal class HazeEffect(val area: HazeArea) {
-  val path by lazy { pathPool.acquireOrCreate(::Path) }
-  var pathDirty: Boolean = true
-
   var renderEffect: RenderEffect? = null
   var renderEffectDirty: Boolean = true
 
@@ -228,7 +210,6 @@ internal class HazeEffect(val area: HazeArea) {
       if (value != field) {
         // We use the size for crop rects/brush sizing
         renderEffectDirty = true
-        pathDirty = true
         field = value
       }
     }
@@ -282,37 +263,9 @@ internal class HazeEffect(val area: HazeArea) {
         field = value
       }
     }
-
-  var shape: Shape = RectangleShape
-    set(value) {
-      if (value != field) {
-        pathDirty = true
-      }
-      field = value
-    }
-
-  fun recycle() {
-    pathPool.release(path)
-  }
 }
 
 internal val HazeEffect.blurRadiusOrZero: Dp get() = blurRadius.takeOrElse { 0.dp }
 
 internal val HazeEffect.needInvalidation: Boolean
-  get() = renderEffectDirty || pathDirty
-
-internal fun HazeEffect.getUpdatedPath(
-  layoutDirection: LayoutDirection,
-  density: Density,
-): Path {
-  if (pathDirty) updatePath(layoutDirection, density)
-  return path
-}
-
-private fun HazeEffect.updatePath(layoutDirection: LayoutDirection, density: Density) {
-  path.rewind()
-  if (!size.isEmpty()) {
-    path.addOutline(shape.createOutline(size, layoutDirection, density))
-  }
-  pathDirty = false
-}
+  get() = renderEffectDirty
