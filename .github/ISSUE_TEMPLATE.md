@@ -1,7 +1,8 @@
 ## Information
 
   - Haze version:
-  - Platform:
+  - Platform: [Android, iOS, etc]
+  - Platform version: [Android 14, etc]
 
 ## Expected Behavior
 
