@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -43,7 +44,8 @@ internal fun ImageItem(
         modifier = Modifier
           .align(Alignment.BottomEnd)
           .padding(16.dp)
-          .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp))
+          .clip(RoundedCornerShape(4.dp))
+          .background(MaterialTheme.colorScheme.surface)
           .sizeIn(minWidth = 40.dp, minHeight = 40.dp)
           .padding(8.dp)
           .wrapContentSize(Alignment.Center),

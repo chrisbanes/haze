@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -80,10 +81,8 @@ fun ImagesList(navigator: Navigator) {
               modifier = Modifier
                 .fillMaxSize(0.8f)
                 .align(Alignment.Center)
-                .hazeChild(
-                  state = hazeState,
-                  shape = RoundedCornerShape(4.dp),
-                ),
+                .clip(RoundedCornerShape(4.dp))
+                .hazeChild(state = hazeState),
             ) {
               Text(
                 "Image $index",

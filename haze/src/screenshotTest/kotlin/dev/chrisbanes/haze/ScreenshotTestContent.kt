@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 internal fun CreditCardSample(
   defaultTint: Color = Color.White.copy(alpha = 0.1f),
   childTint: Color = Color.Unspecified,
-  roundedCornerShape: RoundedCornerShape = RoundedCornerShape(16.dp),
+  shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   mask: Brush? = null,
 ) {
@@ -68,9 +68,10 @@ internal fun CreditCardSample(
         .align(Alignment.Center)
         .then(
           if (enabled) {
+            @Suppress("DEPRECATION")
             Modifier.hazeChild(
               state = hazeState,
-              shape = roundedCornerShape,
+              shape = shape,
               style = HazeStyle(tint = childTint),
               mask = mask,
             )

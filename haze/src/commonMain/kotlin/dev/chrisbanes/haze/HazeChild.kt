@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -26,25 +27,47 @@ import kotlinx.coroutines.launch
  * since we need to use path clipping.
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
  * style will override that value from the default style, provided to [haze].
+ * @param mask An optional mask which allows effects such as fading via [Brush.verticalGradient] or similar.
  */
+@Deprecated(
+  message = "Shape clipping is no longer necessary with Haze. You can use `Modifier.clip` or similar.",
+  replaceWith = ReplaceWith("clip(shape).hazeChild(state, style, mask)"),
+)
 fun Modifier.hazeChild(
   state: HazeState,
   shape: Shape = RectangleShape,
   style: HazeStyle = HazeStyle.Unspecified,
   mask: Brush? = null,
-): Modifier = this then HazeChildNodeElement(state, shape, style, mask)
+): Modifier = clip(shape).hazeChild(state, style, mask)
+
+/**
+ * Mark this composable as being a Haze child composable.
+ *
+ * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
+ * [Modifier.haze] to blur any content behind the host composable.
+ *
+ * @param shape The shape of the content. This will affect the the bounds and outline of
+ * the content. Please be aware that using non-rectangular shapes has an effect on performance,
+ * since we need to use path clipping.
+ * @param style The [HazeStyle] to use on this content. Any specified values in the given
+ * style will override that value from the default style, provided to [haze].
+ * @param mask An optional mask which allows effects such as fading via [Brush.verticalGradient] or similar.
+ */
+fun Modifier.hazeChild(
+  state: HazeState,
+  style: HazeStyle = HazeStyle.Unspecified,
+  mask: Brush? = null,
+): Modifier = this then HazeChildNodeElement(state, style, mask)
 
 private data class HazeChildNodeElement(
   val state: HazeState,
-  val shape: Shape,
   val style: HazeStyle,
   val mask: Brush?,
 ) : ModifierNodeElement<HazeChildNode>() {
-  override fun create(): HazeChildNode = HazeChildNode(state, shape, style, mask)
+  override fun create(): HazeChildNode = HazeChildNode(state, style, mask)
 
   override fun update(node: HazeChildNode) {
     node.state = state
-    node.shape = shape
     node.style = style
     node.mask = mask
     node.update()
@@ -52,7 +75,6 @@ private data class HazeChildNodeElement(
 
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeChild"
-    properties["shape"] = shape
     properties["style"] = style
     properties["mask"] = mask
   }
@@ -60,20 +82,17 @@ private data class HazeChildNodeElement(
 
 private class HazeChildNode(
   override var state: HazeState,
-  var shape: Shape,
   var style: HazeStyle,
   var mask: Brush?,
 ) : HazeEffectNode() {
 
   private val area: HazeArea by lazy {
-    HazeArea(shape = shape, style = style, mask = mask)
+    HazeArea(style = style, mask = mask)
   }
 
   private var drawWithoutContentLayerCount = 0
 
   override fun update() {
-    // Propagate any changes to the HazeArea
-    area.shape = shape
     area.style = style
     area.mask = mask
 
