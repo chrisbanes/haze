@@ -9,13 +9,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -153,28 +153,32 @@ internal abstract class HazeEffectNode :
           }
         }
 
-        // Draw the effect to our canvas, translated to the correct position
-        translate(offset = effect.positionOnScreen - positionOnScreen) {
-          // Since we included a border around the content, we need to translate so that
-          // we don't see it (but it still affects the RenderEffect)
-          translate(-inflatedOffset.x, -inflatedOffset.y) {
-            drawEffect(this, effect, layer)
-          }
-        }
+        drawEffect(effect = effect, innerDrawOffset = -inflatedOffset, layer = layer)
       }
     }
   }
 
   protected fun DrawScope.drawEffectsWithScrim() {
     for (effect in effects) {
-      val offset = (effect.positionOnScreen - positionOnScreen).takeOrElse { Offset.Zero }
-      clipRect(
-        left = offset.x,
-        top = offset.y,
-        right = size.width + offset.x,
-        bottom = size.height + offset.y,
-        block = { drawEffect(this, effect) },
-      )
+      drawEffect(effect)
+    }
+  }
+
+  private fun DrawScope.drawEffect(
+    effect: HazeEffect,
+    innerDrawOffset: Offset = Offset.Zero,
+    layer: GraphicsLayer? = null,
+  ) {
+    val drawOffset = (effect.positionOnScreen - positionOnScreen).takeOrElse { Offset.Zero }
+
+    translate(drawOffset) {
+      clipRect(right = effect.size.width, bottom = effect.size.height) {
+        // Since we included a border around the content, we need to translate so that
+        // we don't see it (but it still affects the RenderEffect)
+        translate(innerDrawOffset) {
+          drawEffect(this, effect, layer)
+        }
+      }
     }
   }
 
@@ -223,10 +227,15 @@ internal class HazeEffect(val area: HazeArea) {
     }
 
   val layerOffset: Offset
-    get() = Offset(
-      x = (layerSize.width - size.width) / 2f,
-      y = (layerSize.height - size.height) / 2f,
-    )
+    get() {
+      if (layerSize.isSpecified && size.isSpecified) {
+        return Offset(
+          x = (layerSize.width - size.width) / 2f,
+          y = (layerSize.height - size.height) / 2f,
+        )
+      }
+      return Offset.Zero
+    }
 
   var positionOnScreen: Offset = Offset.Unspecified
 

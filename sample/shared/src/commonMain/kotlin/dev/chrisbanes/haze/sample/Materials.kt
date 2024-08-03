@@ -155,9 +155,9 @@ private fun MaterialsCard(
   ) {
     Box(
       Modifier
-        .padding(16.dp)
         .fillMaxSize()
-        .hazeChild(state = state, style = style),
+        .hazeChild(state = state, style = style)
+        .padding(16.dp),
     ) {
       Text(name)
     }

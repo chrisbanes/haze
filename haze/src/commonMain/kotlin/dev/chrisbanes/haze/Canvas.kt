@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isFinite
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
@@ -21,4 +22,10 @@ internal inline fun GraphicsContext.useGraphicsLayer(block: (GraphicsLayer) -> U
 inline fun DrawScope.translate(
   offset: Offset,
   block: DrawScope.() -> Unit,
-) = translate(offset.x, offset.y, block)
+) {
+  if (offset.isFinite && offset != Offset.Zero) {
+    translate(offset.x, offset.y, block)
+  } else {
+    block()
+  }
+}
