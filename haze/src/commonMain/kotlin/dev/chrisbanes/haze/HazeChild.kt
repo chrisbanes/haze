@@ -14,7 +14,6 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.toSize
-import kotlinx.coroutines.launch
 
 /**
  * Mark this composable as being a Haze child composable.
@@ -46,9 +45,6 @@ fun Modifier.hazeChild(
  * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
  * [Modifier.haze] to blur any content behind the host composable.
  *
- * @param shape The shape of the content. This will affect the the bounds and outline of
- * the content. Please be aware that using non-rectangular shapes has an effect on performance,
- * since we need to use path clipping.
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
  * style will override that value from the default style, provided to [haze].
  * @param mask An optional mask which allows effects such as fading via [Brush.verticalGradient] or similar.
@@ -86,17 +82,37 @@ private class HazeChildNode(
   var mask: Brush?,
 ) : HazeEffectNode() {
 
+  private var invalidateTick = 0
+
   private val area: HazeArea by lazy {
     HazeArea(style = style, mask = mask)
   }
-
-  private var drawWithoutContentLayerCount = 0
 
   override fun update() {
     area.style = style
     area.mask = mask
 
     super.update()
+  }
+
+  override fun readState() {
+    super.readState()
+
+    // Yes, this is very very gross. The HazeNode will update the contentLayer in it's draw
+    // function. HazeNode and also updates `state.invalidateTick` as a way for HazeChild[ren] to
+    // know when the contentLayer has been updated. All fine so far, but for us to draw with the
+    // updated `contentLayer` we need to invalidate. Invalidating ourselves will trigger us to
+    // draw, but it will also trigger `contentLayer` to invalidate, and here's an infinite
+    // draw loop we trigger.
+    //
+    // This is a huge giant hack, but by skipping every other invalidation caused by a
+    // `invalidationTick` change, we break the loop.
+    if (invalidateTick != state.invalidateTick) {
+      invalidateTick = state.invalidateTick
+      if (invalidateTick % 2 == 0) {
+        invalidateDraw()
+      }
+    }
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
@@ -112,9 +128,12 @@ private class HazeChildNode(
   }
 
   override fun ContentDrawScope.draw() {
+    println("-> HazeChild. start draw()")
+
     if (effects.isEmpty()) {
       // If we don't have any effects, just call drawContent and return early
       drawContent()
+      println("-> HazeChild. end draw()")
       return
     }
 
@@ -126,15 +145,7 @@ private class HazeChildNode(
     if (USE_GRAPHICS_LAYERS) {
       val contentLayer = state.contentLayer
       if (contentLayer != null) {
-        drawWithoutContentLayerCount = 0
         drawEffectsWithGraphicsLayer(contentLayer)
-      } else {
-        // The content layer has not have been drawn yet (draw order matters here). If it hasn't
-        // there's not much we do other than invalidate and wait for the next frame.
-        // We only want to force a few frames, otherwise we're causing a draw loop.
-        if (++drawWithoutContentLayerCount <= 2) {
-          coroutineScope.launch { invalidateDraw() }
-        }
       }
     } else {
       drawEffectsWithScrim()
@@ -142,6 +153,8 @@ private class HazeChildNode(
 
     // Finally we draw the content
     drawContent()
+
+    println("-> HazeChild. end draw()")
   }
 
   override fun calculateHazeAreas(): Sequence<HazeArea> = sequenceOf(area)

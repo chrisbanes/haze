@@ -64,10 +64,12 @@ internal abstract class HazeEffectNode :
   }
 
   override fun onObservedReadsChanged() {
-    observeReads {
-      if (updateEffects()) {
-        invalidateDraw()
-      }
+    observeReads(::readState)
+  }
+
+  internal open fun readState() {
+    if (updateEffects()) {
+      invalidateDraw()
     }
   }
 
