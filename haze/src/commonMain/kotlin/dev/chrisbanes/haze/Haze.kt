@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -36,6 +37,8 @@ class HazeState {
    */
   var contentLayer: GraphicsLayer? = null
     internal set
+
+  internal var invalidateTick by mutableIntStateOf(Int.MIN_VALUE)
 }
 
 @Stable

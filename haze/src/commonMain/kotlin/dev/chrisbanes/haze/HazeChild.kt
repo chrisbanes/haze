@@ -11,10 +11,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.toSize
-import kotlinx.coroutines.launch
 
 /**
  * Mark this composable as being a Haze child composable.
@@ -46,9 +44,6 @@ fun Modifier.hazeChild(
  * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
  * [Modifier.haze] to blur any content behind the host composable.
  *
- * @param shape The shape of the content. This will affect the the bounds and outline of
- * the content. Please be aware that using non-rectangular shapes has an effect on performance,
- * since we need to use path clipping.
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
  * style will override that value from the default style, provided to [haze].
  * @param mask An optional mask which allows effects such as fading via [Brush.verticalGradient] or similar.
@@ -90,8 +85,6 @@ private class HazeChildNode(
     HazeArea(style = style, mask = mask)
   }
 
-  private var drawWithoutContentLayerCount = 0
-
   override fun update() {
     area.style = style
     area.mask = mask
@@ -112,9 +105,12 @@ private class HazeChildNode(
   }
 
   override fun ContentDrawScope.draw() {
+    log(TAG) { "-> HazeChild. start draw()" }
+
     if (effects.isEmpty()) {
       // If we don't have any effects, just call drawContent and return early
       drawContent()
+      log(TAG) { "-> HazeChild. end draw()" }
       return
     }
 
@@ -126,15 +122,7 @@ private class HazeChildNode(
     if (USE_GRAPHICS_LAYERS) {
       val contentLayer = state.contentLayer
       if (contentLayer != null) {
-        drawWithoutContentLayerCount = 0
         drawEffectsWithGraphicsLayer(contentLayer)
-      } else {
-        // The content layer has not have been drawn yet (draw order matters here). If it hasn't
-        // there's not much we do other than invalidate and wait for the next frame.
-        // We only want to force a few frames, otherwise we're causing a draw loop.
-        if (++drawWithoutContentLayerCount <= 2) {
-          coroutineScope.launch { invalidateDraw() }
-        }
       }
     } else {
       drawEffectsWithScrim()
@@ -142,7 +130,13 @@ private class HazeChildNode(
 
     // Finally we draw the content
     drawContent()
+
+    log(TAG) { "-> HazeChild. end draw()" }
   }
 
   override fun calculateHazeAreas(): Sequence<HazeArea> = sequenceOf(area)
+
+  private companion object {
+    const val TAG = "HazeChild"
+  }
 }

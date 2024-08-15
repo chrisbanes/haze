@@ -55,6 +55,8 @@ internal abstract class HazeEffectNode :
 
   override val shouldAutoInvalidate: Boolean = false
 
+  internal var lastInvalidationTick = Int.MIN_VALUE
+
   open fun update() {
     onObservedReadsChanged()
   }
@@ -65,9 +67,8 @@ internal abstract class HazeEffectNode :
 
   override fun onObservedReadsChanged() {
     observeReads {
-      if (updateEffects()) {
-        invalidateDraw()
-      }
+      updateEffects()
+      observeInvalidationTick()
     }
   }
 
@@ -77,7 +78,7 @@ internal abstract class HazeEffectNode :
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) = onPlaced(coordinates)
 
-  protected open fun updateEffects(): Boolean {
+  protected open fun updateEffects() {
     val currentEffectsIsEmpty = effects.isEmpty()
     val currentEffects = effects.associateByTo(mutableMapOf(), HazeEffect::area)
 
@@ -118,7 +119,9 @@ internal abstract class HazeEffectNode :
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
-    return needInvalidate || (effects.isEmpty() != currentEffectsIsEmpty)
+    if (needInvalidate || (effects.isEmpty() != currentEffectsIsEmpty)) {
+      invalidateDraw()
+    }
   }
 
   protected fun DrawScope.drawEffectsWithGraphicsLayer(contentLayer: GraphicsLayer) {
@@ -204,6 +207,8 @@ internal expect fun HazeEffectNode.createRenderEffect(
   effect: HazeEffect,
   density: Density,
 ): RenderEffect?
+
+internal expect fun HazeEffectNode.observeInvalidationTick()
 
 internal class HazeEffect(val area: HazeArea) {
   var renderEffect: RenderEffect? = null
