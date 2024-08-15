@@ -1,0 +1,73 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze {
+
+  public final class CanvasKt {
+    method public static inline void translate(androidx.compose.ui.graphics.drawscope.DrawScope, long offset, kotlin.jvm.functions.Function1<? super androidx.compose.ui.graphics.drawscope.DrawScope,kotlin.Unit> block);
+  }
+
+  @androidx.compose.runtime.Stable public final class HazeArea {
+    ctor public HazeArea(optional long size, optional long positionOnScreen, optional dev.chrisbanes.haze.HazeStyle style, optional androidx.compose.ui.graphics.Brush? mask);
+    method public androidx.compose.ui.graphics.Brush? getMask();
+    method public long getPositionOnScreen();
+    method public long getSize();
+    method public dev.chrisbanes.haze.HazeStyle getStyle();
+    method public boolean isValid();
+    property public final boolean isValid;
+    property public final androidx.compose.ui.graphics.Brush? mask;
+    property public final long positionOnScreen;
+    property public final long size;
+    property public final dev.chrisbanes.haze.HazeStyle style;
+  }
+
+  public final class HazeChildKt {
+    method @Deprecated public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style, optional androidx.compose.ui.graphics.Brush? mask);
+    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional androidx.compose.ui.graphics.Brush? mask);
+  }
+
+  public final class HazeDefaults {
+    method public float getBlurRadius();
+    method public dev.chrisbanes.haze.HazeStyle style(optional long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
+    method public long tint(long color);
+    property public final float blurRadius;
+    field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
+    field public static final float noiseFactor = 0.15f;
+    field public static final float tintAlpha = 0.7f;
+  }
+
+  public final class HazeKt {
+    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style);
+  }
+
+  @androidx.compose.runtime.Stable public final class HazeState {
+    ctor public HazeState();
+    method public dev.chrisbanes.haze.HazeArea getContentArea();
+    method public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
+    property public final dev.chrisbanes.haze.HazeArea contentArea;
+    property public final androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
+  }
+
+  @androidx.compose.runtime.Immutable public final class HazeStyle {
+    ctor public HazeStyle(optional long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
+    method public long component1-0d7_KjU();
+    method public long component2-0d7_KjU();
+    method public float component3-D9Ej5fM();
+    method public float component4();
+    method public dev.chrisbanes.haze.HazeStyle copy-gs-jSAA(long backgroundColor, long tint, float blurRadius, float noiseFactor);
+    method public long getBackgroundColor();
+    method public float getBlurRadius();
+    method public float getNoiseFactor();
+    method public long getTint();
+    property public final long backgroundColor;
+    property public final float blurRadius;
+    property public final float noiseFactor;
+    property public final long tint;
+    field public static final dev.chrisbanes.haze.HazeStyle.Companion Companion;
+  }
+
+  public static final class HazeStyle.Companion {
+    method public dev.chrisbanes.haze.HazeStyle getUnspecified();
+    property public final dev.chrisbanes.haze.HazeStyle Unspecified;
+  }
+
+}
+
