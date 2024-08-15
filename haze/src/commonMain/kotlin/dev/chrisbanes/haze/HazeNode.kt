@@ -51,7 +51,8 @@ internal class HazeNode(
   override val shouldAutoInvalidate: Boolean = false
 
   override fun ContentDrawScope.draw() {
-    println("HazeParent. start draw()")
+    log(TAG) { "start draw()" }
+
     if (!USE_GRAPHICS_LAYERS) {
       // If we're not using graphics layers, just call drawContent and return early
       drawContent()
@@ -60,12 +61,9 @@ internal class HazeNode(
 
     val graphicsContext = currentValueOf(LocalGraphicsContext)
 
-    // Release the current layer
-    Snapshot.withoutReadObservation {
-      state.contentLayer?.let { graphicsContext.releaseGraphicsLayer(it) }
-    }
-
-    val contentLayer = graphicsContext.createGraphicsLayer()
+    val contentLayer = state.contentLayer
+      ?.takeUnless { it.isReleased }
+      ?: graphicsContext.createGraphicsLayer().also { state.contentLayer = it }
 
     // First we draw the composable content into a graphics layer
     contentLayer.record {
@@ -75,12 +73,10 @@ internal class HazeNode(
     // Now we draw `content` into the window canvas
     drawLayer(contentLayer)
 
-    state.contentLayer = contentLayer
-
     val tick = Snapshot.withoutReadObservation { state.invalidateTick }
     state.invalidateTick = tick + 1
 
-    println("HazeParent. end draw()")
+    log(TAG) { "end draw()" }
   }
 
   override fun onDetach() {
@@ -90,6 +86,10 @@ internal class HazeNode(
       currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
     }
     state.contentLayer = null
+  }
+
+  private companion object {
+    const val TAG = "HazeNode"
   }
 }
 

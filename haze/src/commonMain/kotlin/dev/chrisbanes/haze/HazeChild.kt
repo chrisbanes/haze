@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.toSize
 
@@ -82,8 +81,6 @@ private class HazeChildNode(
   var mask: Brush?,
 ) : HazeEffectNode() {
 
-  private var invalidateTick = 0
-
   private val area: HazeArea by lazy {
     HazeArea(style = style, mask = mask)
   }
@@ -93,26 +90,6 @@ private class HazeChildNode(
     area.mask = mask
 
     super.update()
-  }
-
-  override fun readState() {
-    super.readState()
-
-    // Yes, this is very very gross. The HazeNode will update the contentLayer in it's draw
-    // function. HazeNode and also updates `state.invalidateTick` as a way for HazeChild[ren] to
-    // know when the contentLayer has been updated. All fine so far, but for us to draw with the
-    // updated `contentLayer` we need to invalidate. Invalidating ourselves will trigger us to
-    // draw, but it will also trigger `contentLayer` to invalidate, and here's an infinite
-    // draw loop we trigger.
-    //
-    // This is a huge giant hack, but by skipping every other invalidation caused by a
-    // `invalidationTick` change, we break the loop.
-    if (invalidateTick != state.invalidateTick) {
-      invalidateTick = state.invalidateTick
-      if (invalidateTick % 2 == 0) {
-        invalidateDraw()
-      }
-    }
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
@@ -128,12 +105,12 @@ private class HazeChildNode(
   }
 
   override fun ContentDrawScope.draw() {
-    println("-> HazeChild. start draw()")
+    log(TAG) { "-> HazeChild. start draw()" }
 
     if (effects.isEmpty()) {
       // If we don't have any effects, just call drawContent and return early
       drawContent()
-      println("-> HazeChild. end draw()")
+      log(TAG) { "-> HazeChild. end draw()" }
       return
     }
 
@@ -154,8 +131,12 @@ private class HazeChildNode(
     // Finally we draw the content
     drawContent()
 
-    println("-> HazeChild. end draw()")
+    log(TAG) { "-> HazeChild. end draw()" }
   }
 
   override fun calculateHazeAreas(): Sequence<HazeArea> = sequenceOf(area)
+
+  private companion object {
+    const val TAG = "HazeChild"
+  }
 }
