@@ -26,7 +26,8 @@ package dev.chrisbanes.haze {
 
   public final class HazeDefaults {
     method public float getBlurRadius();
-    method public dev.chrisbanes.haze.HazeStyle style(optional long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
+    method public dev.chrisbanes.haze.HazeStyle style(optional long backgroundColor, optional dev.chrisbanes.haze.HazeTint tint, optional float blurRadius, optional float noiseFactor);
+    method @Deprecated public dev.chrisbanes.haze.HazeStyle style(optional long backgroundColor, long tint, optional float blurRadius, optional float noiseFactor);
     method public long tint(long color);
     property public final float blurRadius;
     field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
@@ -47,26 +48,55 @@ package dev.chrisbanes.haze {
   }
 
   @androidx.compose.runtime.Immutable public final class HazeStyle {
-    ctor public HazeStyle(optional long backgroundColor, optional long tint, optional float blurRadius, optional float noiseFactor);
+    ctor public HazeStyle(optional long backgroundColor, optional dev.chrisbanes.haze.HazeTint? tint, optional float blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint? fallbackTint);
+    ctor public HazeStyle(optional long backgroundColor, optional java.util.List<? extends dev.chrisbanes.haze.HazeTint> tints, optional float blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint? fallbackTint);
     method public long component1-0d7_KjU();
-    method public long component2-0d7_KjU();
+    method public java.util.List<dev.chrisbanes.haze.HazeTint> component2();
     method public float component3-D9Ej5fM();
     method public float component4();
-    method public dev.chrisbanes.haze.HazeStyle copy-gs-jSAA(long backgroundColor, long tint, float blurRadius, float noiseFactor);
+    method public dev.chrisbanes.haze.HazeTint? component5();
+    method public dev.chrisbanes.haze.HazeStyle copy-cq6XJ1M(long backgroundColor, java.util.List<? extends dev.chrisbanes.haze.HazeTint> tints, float blurRadius, float noiseFactor, dev.chrisbanes.haze.HazeTint? fallbackTint);
     method public long getBackgroundColor();
     method public float getBlurRadius();
+    method public dev.chrisbanes.haze.HazeTint? getFallbackTint();
     method public float getNoiseFactor();
-    method public long getTint();
+    method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
     property public final long backgroundColor;
     property public final float blurRadius;
+    property public final dev.chrisbanes.haze.HazeTint? fallbackTint;
     property public final float noiseFactor;
-    property public final long tint;
+    property public final java.util.List<dev.chrisbanes.haze.HazeTint> tints;
     field public static final dev.chrisbanes.haze.HazeStyle.Companion Companion;
   }
 
   public static final class HazeStyle.Companion {
     method public dev.chrisbanes.haze.HazeStyle getUnspecified();
     property public final dev.chrisbanes.haze.HazeStyle Unspecified;
+  }
+
+  @androidx.compose.runtime.Stable public interface HazeTint {
+  }
+
+  public static final class HazeTint.Brush implements dev.chrisbanes.haze.HazeTint {
+    ctor public HazeTint.Brush(androidx.compose.ui.graphics.Brush brush, optional int blendMode);
+    method public androidx.compose.ui.graphics.Brush component1();
+    method public int component2-0nO6VwU();
+    method public dev.chrisbanes.haze.HazeTint.Brush copy-GB0RdKg(androidx.compose.ui.graphics.Brush brush, int blendMode);
+    method public int getBlendMode();
+    method public androidx.compose.ui.graphics.Brush getBrush();
+    property public final int blendMode;
+    property public final androidx.compose.ui.graphics.Brush brush;
+  }
+
+  public static final class HazeTint.Color implements dev.chrisbanes.haze.HazeTint {
+    ctor public HazeTint.Color(long color, optional int blendMode);
+    method public long component1-0d7_KjU();
+    method public int component2-0nO6VwU();
+    method public dev.chrisbanes.haze.HazeTint.Color copy-xETnrds(long color, int blendMode);
+    method public int getBlendMode();
+    method public long getColor();
+    property public final int blendMode;
+    property public final long color;
   }
 
 }

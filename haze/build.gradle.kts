@@ -15,9 +15,11 @@ plugins {
 
 android {
   namespace = "dev.chrisbanes.haze"
+
   defaultConfig {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
+
   testOptions {
     unitTests {
       isIncludeAndroidResources = true

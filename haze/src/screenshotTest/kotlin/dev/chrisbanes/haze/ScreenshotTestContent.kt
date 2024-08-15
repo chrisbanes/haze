@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -26,7 +27,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 internal fun CreditCardSample(
   defaultTint: Color = Color.White.copy(alpha = 0.1f),
-  childTint: Color = Color.Unspecified,
+  childTint: HazeTint? = null,
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   mask: Brush? = null,
@@ -40,10 +41,11 @@ internal fun CreditCardSample(
         .fillMaxSize()
         .haze(
           state = hazeState,
-          style = HazeDefaults.style(
+          style = HazeStyle(
             backgroundColor = MaterialTheme.colorScheme.background,
-            tint = defaultTint,
+            tint = HazeTint.Color(defaultTint),
             blurRadius = 8.dp,
+            noiseFactor = HazeDefaults.noiseFactor,
           ),
         ),
     ) {
@@ -66,17 +68,17 @@ internal fun CreditCardSample(
         .fillMaxWidth(0.7f)
         .aspectRatio(16 / 9f)
         .align(Alignment.Center)
+        .clip(shape)
         .then(
-          if (enabled) {
-            @Suppress("DEPRECATION")
-            Modifier.hazeChild(
-              state = hazeState,
-              shape = shape,
-              style = HazeStyle(tint = childTint),
-              mask = mask,
-            )
-          } else {
-            Modifier
+          when {
+            enabled -> {
+              Modifier.hazeChild(
+                state = hazeState,
+                style = HazeStyle(tints = listOfNotNull(childTint), blurRadius = 8.dp),
+                mask = mask,
+              )
+            }
+            else -> Modifier
           },
         ),
     ) {

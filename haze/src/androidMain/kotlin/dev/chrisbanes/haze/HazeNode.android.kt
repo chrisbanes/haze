@@ -31,7 +31,6 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import kotlin.math.roundToInt
 
 internal actual fun HazeEffectNode.createRenderEffect(
@@ -41,10 +40,11 @@ internal actual fun HazeEffectNode.createRenderEffect(
   with(effect) {
     val blurRadiusPx = with(density) { blurRadiusOrZero.toPx() }
     if (Build.VERSION.SDK_INT >= 31 && blurRadiusPx >= 0.005f) {
+      val bounds = Rect(effect.layerOffset, effect.size)
       return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
         .withNoise(noiseFactor)
-        .withMask(effect.mask, Rect(effect.layerOffset, effect.size))
-        .withTint(tint = effect.tint, blendMode = BlendMode.SRC_ATOP)
+        .withTints(effect.tints, bounds)
+        .withMask(effect.mask, bounds)
         .asComposeRenderEffect()
     }
     return null
@@ -61,12 +61,19 @@ internal actual fun HazeEffectNode.drawEffect(
     drawLayer(graphicsLayer)
   } else {
     val mask = effect.mask
-    val boostedTint = effect.tint.boostAlphaForBlurRadius(effect.blurRadius)
+    val tint = effect.fallbackTint
 
-    if (mask != null) {
-      drawRect(brush = mask, colorFilter = ColorFilter.tint(boostedTint))
-    } else {
-      drawRect(color = boostedTint)
+    println("Drawing effect with fallback tint: $tint")
+
+    if (tint is HazeTint.Color) {
+      if (mask != null) {
+        drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
+      } else {
+        drawRect(color = tint.color, blendMode = tint.blendMode)
+      }
+    } else if (tint is HazeTint.Brush) {
+      // We don't currently support mask + brush tints
+      drawRect(brush = tint.brush, blendMode = tint.blendMode)
     }
   }
 }
@@ -88,15 +95,6 @@ private fun getNoiseTexture(noiseFactor: Float): Bitmap {
     .also { noiseTextureCache.put(cacheKey, it) }
 }
 
-/**
- * In this implementation, the only tool we have is translucency.
- */
-private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
-  // We treat a blur radius of 72.dp as near 'opaque', and linearly boost using that
-  val factor = 1 + (blurRadius.value / 72f)
-  return copy(alpha = (alpha * factor).coerceAtMost(1f))
-}
-
 context(CompositionLocalConsumerModifierNode)
 @RequiresApi(31)
 private fun AndroidRenderEffect.withNoise(noiseFactor: Float): AndroidRenderEffect = when {
@@ -114,16 +112,25 @@ private fun AndroidRenderEffect.withNoise(noiseFactor: Float): AndroidRenderEffe
 
 @RequiresApi(31)
 private fun AndroidRenderEffect.withMask(mask: Brush?, bounds: Rect): AndroidRenderEffect {
-  val shader = mask?.toShader(bounds.size) ?: return this
+  return withBrush(mask, bounds, BlendMode.SRC_IN)
+}
 
-  val shaderEffect = AndroidRenderEffect.createShaderEffect(shader)
+@RequiresApi(31)
+private fun AndroidRenderEffect.withBrush(
+  brush: Brush?,
+  bounds: Rect,
+  blendMode: BlendMode = BlendMode.SRC_OVER,
+): AndroidRenderEffect {
+  val shader = brush?.toShader(bounds.size) ?: return this
 
-  return AndroidRenderEffect.createBlendModeEffect(
-    // We need to offset the shader to the bounds
-    AndroidRenderEffect.createOffsetEffect(bounds.left, bounds.top, shaderEffect),
-    this,
-    BlendMode.SRC_IN,
+  // We need to offset the shader to the bounds
+  val inner = AndroidRenderEffect.createOffsetEffect(
+    bounds.left,
+    bounds.top,
+    AndroidRenderEffect.createShaderEffect(shader),
   )
+
+  return AndroidRenderEffect.createBlendModeEffect(inner, this, blendMode)
 }
 
 private fun Brush.toShader(size: Size): Shader? = when (this) {
@@ -132,17 +139,26 @@ private fun Brush.toShader(size: Size): Shader? = when (this) {
 }
 
 @RequiresApi(31)
+private fun AndroidRenderEffect.withTints(tints: List<HazeTint>, bounds: Rect): AndroidRenderEffect {
+  return tints.fold(this) { acc, next ->
+    acc.withTint(next, bounds)
+  }
+}
+
+@RequiresApi(31)
 private fun AndroidRenderEffect.withTint(
-  tint: Color,
-  blendMode: BlendMode,
+  tint: HazeTint?,
+  bounds: Rect,
 ): AndroidRenderEffect = when {
-  tint.alpha >= 0.005f -> {
-    // If we have an tint with a non-zero alpha value, wrap the effect with a color filter
+  tint is HazeTint.Color && tint.color.alpha >= 0.005f -> {
     AndroidRenderEffect.createColorFilterEffect(
-      BlendModeColorFilter(tint.toArgb(), blendMode),
+      BlendModeColorFilter(tint.color.toArgb(), tint.blendMode.toAndroidBlendMode()),
       this,
     )
   }
+
+  tint is HazeTint.Brush -> withBrush(tint.brush, bounds, tint.blendMode.toAndroidBlendMode())
+
   else -> this
 }
 

@@ -106,7 +106,8 @@ internal abstract class HazeEffectNode :
         effect.positionOnScreen = effect.area.positionOnScreen
         effect.blurRadius = resolvedStyle.blurRadius
         effect.noiseFactor = resolvedStyle.noiseFactor
-        effect.tint = resolvedStyle.tint
+        effect.tints = resolvedStyle.tints
+        effect.fallbackTint = resolvedStyle.fallbackTint
         effect.backgroundColor = resolvedStyle.backgroundColor
         effect.mask = effect.area.mask
       }
@@ -270,7 +271,15 @@ internal class HazeEffect(val area: HazeArea) {
 
   var backgroundColor: Color = Color.Unspecified
 
-  var tint: Color = Color.Unspecified
+  var tints: List<HazeTint> = emptyList()
+    set(value) {
+      if (value != field) {
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  var fallbackTint: HazeTint? = null
     set(value) {
       if (value != field) {
         renderEffectDirty = true

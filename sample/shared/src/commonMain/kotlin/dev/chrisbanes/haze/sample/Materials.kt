@@ -32,6 +32,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.materials.CupertinoMaterials
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -50,6 +51,7 @@ fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
     )
 
     Column(
+      verticalArrangement = Arrangement.spacedBy(24.dp),
       modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
@@ -57,31 +59,61 @@ fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
     ) {
       Spacer(Modifier.height(400.dp))
 
-      Card(modifier = Modifier.padding(bottom = 24.dp)) {
+      Card {
         Text(
-          text = "Materials - Light",
+          text = "HazeMaterials - Light",
           style = MaterialTheme.typography.titleLarge,
           modifier = Modifier.padding(16.dp),
         )
       }
 
       SamplesTheme(useDarkColors = false) {
-        MaterialsRow(
+        HazeMaterialsRow(
           hazeState = hazeState,
           modifier = Modifier.fillMaxWidth(),
         )
       }
 
-      Card(modifier = Modifier.padding(top = 48.dp, bottom = 24.dp)) {
+      Card(modifier = Modifier.padding(top = 24.dp)) {
         Text(
-          text = "Materials - Dark",
+          text = "HazeMaterials - Dark",
           style = MaterialTheme.typography.titleLarge,
           modifier = Modifier.padding(16.dp),
         )
       }
 
       SamplesTheme(useDarkColors = true) {
-        MaterialsRow(
+        HazeMaterialsRow(
+          hazeState = hazeState,
+          modifier = Modifier.fillMaxWidth(),
+        )
+      }
+
+      Card(modifier = Modifier.padding(top = 24.dp)) {
+        Text(
+          text = "CupertinoMaterials - Light",
+          style = MaterialTheme.typography.titleLarge,
+          modifier = Modifier.padding(16.dp),
+        )
+      }
+
+      SamplesTheme(useDarkColors = false) {
+        CupertinoMaterialsRow(
+          hazeState = hazeState,
+          modifier = Modifier.fillMaxWidth(),
+        )
+      }
+
+      Card {
+        Text(
+          text = "CupertinoMaterials - Dark",
+          style = MaterialTheme.typography.titleLarge,
+          modifier = Modifier.padding(16.dp),
+        )
+      }
+
+      SamplesTheme(useDarkColors = true) {
+        CupertinoMaterialsRow(
           hazeState = hazeState,
           modifier = Modifier.fillMaxWidth(),
         )
@@ -94,7 +126,7 @@ fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-private fun MaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier) {
+private fun HazeMaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier) {
   FlowRow(
     modifier = modifier,
     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -133,6 +165,44 @@ private fun MaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier) {
       shape = MaterialTheme.shapes.large,
       state = hazeState,
       style = HazeMaterials.ultraThick(),
+    )
+  }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalHazeMaterialsApi::class)
+@Composable
+private fun CupertinoMaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier) {
+  FlowRow(
+    modifier = modifier,
+    horizontalArrangement = Arrangement.spacedBy(16.dp),
+    verticalArrangement = Arrangement.spacedBy(16.dp),
+  ) {
+    MaterialsCard(
+      name = "Ultra Thin",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = CupertinoMaterials.ultraThin(),
+    )
+
+    MaterialsCard(
+      name = "Thin",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = CupertinoMaterials.thin(),
+    )
+
+    MaterialsCard(
+      name = "Regular",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = CupertinoMaterials.regular(),
+    )
+
+    MaterialsCard(
+      name = "Thick",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = CupertinoMaterials.thick(),
     )
   }
 }

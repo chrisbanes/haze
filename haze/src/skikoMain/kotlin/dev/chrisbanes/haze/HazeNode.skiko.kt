@@ -8,7 +8,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -46,40 +45,50 @@ internal actual fun HazeEffectNode.createRenderEffect(
   // For CLAMP to work, we need to provide the crop rect
   val blurRadiusPx = with(density) { effect.blurRadiusOrZero.toPx() }
   val blurFilter = createBlurImageFilter(blurRadiusPx, effect.layerSize.toRect())
+  val bounds = Rect(effect.layerOffset, effect.size)
 
-  return ImageFilter.makeRuntimeShader(
-    runtimeShaderBuilder = compositeShaderBuilder,
-    shaderNames = arrayOf("content", "blur"),
-    inputs = arrayOf(null, blurFilter),
-  )
-    .withTint(effect.tint, BlendMode.SRC_ATOP)
-    .withMask(effect.mask, Rect(effect.layerOffset, effect.size))
+  return ImageFilter
+    .makeRuntimeShader(
+      runtimeShaderBuilder = compositeShaderBuilder,
+      shaderNames = arrayOf("content", "blur"),
+      inputs = arrayOf(null, blurFilter),
+    )
+    .withTints(effect.tints, bounds)
+    .withBrush(effect.mask, bounds, BlendMode.DST_IN)
     .asComposeRenderEffect()
 }
 
-private fun ImageFilter.withTint(
-  tint: Color,
-  blendMode: BlendMode,
-): ImageFilter = when {
-  tint.alpha >= 0.005f -> {
-    // If we have an tint with a non-zero alpha value, wrap the effect with a color filter
+private fun ImageFilter.withTints(tints: List<HazeTint>, bounds: Rect): ImageFilter {
+  return tints.fold(this) { acc, tint ->
+    acc.withTint(tint, bounds)
+  }
+}
+
+private fun ImageFilter.withTint(tint: HazeTint?, bounds: Rect): ImageFilter = when {
+  tint is HazeTint.Color && tint.color.alpha >= 0.005f -> {
     ImageFilter.makeColorFilter(
-      f = ColorFilter.makeBlend(tint.toArgb(), blendMode),
+      f = ColorFilter.makeBlend(tint.color.toArgb(), tint.blendMode.toSkiaBlendMode()),
       input = this,
       crop = null,
     )
   }
 
+  tint is HazeTint.Brush -> withBrush(tint.brush, bounds, tint.blendMode.toSkiaBlendMode())
+
   else -> this
 }
 
-private fun ImageFilter.withMask(mask: Brush?, bounds: Rect): ImageFilter {
-  val shader = mask?.toShader(bounds.size) ?: return this
+private fun ImageFilter.withBrush(
+  brush: Brush?,
+  bounds: Rect,
+  blendMode: BlendMode,
+): ImageFilter {
+  val shader = brush?.toShader(bounds.size) ?: return this
 
   return ImageFilter.makeBlend(
-    blendMode = BlendMode.SRC_IN,
-    bg = ImageFilter.makeShader(shader = shader, crop = bounds.toIRect()),
-    fg = this,
+    blendMode = blendMode,
+    fg = ImageFilter.makeShader(shader = shader, crop = bounds.toIRect()),
+    bg = this,
     crop = null,
   )
 }
