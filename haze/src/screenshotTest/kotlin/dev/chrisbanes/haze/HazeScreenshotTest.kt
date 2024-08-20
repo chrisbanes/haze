@@ -54,7 +54,9 @@ class HazeScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_childTint() = runScreenshotTest {
-    var tint by mutableStateOf(Color.Magenta.copy(alpha = 0.5f))
+    var tint by mutableStateOf(
+      HazeTint.Color(Color.Magenta.copy(alpha = 0.5f)),
+    )
 
     setContent {
       ScreenshotTheme {
@@ -65,26 +67,34 @@ class HazeScreenshotTest : ScreenshotTest() {
     waitForIdle()
     captureRoot("magenta")
 
-    tint = Color.Yellow.copy(alpha = 0.5f)
+    tint = HazeTint.Color(Color.Yellow.copy(alpha = 0.5f))
     waitForIdle()
     captureRoot("yellow")
 
-    tint = Color.Red.copy(alpha = 0.5f)
+    tint = HazeTint.Color(Color.Red.copy(alpha = 0.5f))
     waitForIdle()
     captureRoot("red")
   }
 
   @Test
-  fun creditCard_roundedCorner_topStart() = roundedCornerTest(RoundedCornerShape(topStart = 32.dp))
+  fun creditCard_roundedCorner_topStart() {
+    roundedCornerTest(RoundedCornerShape(topStart = 32.dp))
+  }
 
   @Test
-  fun creditCard_roundedCorner_topEnd() = roundedCornerTest(RoundedCornerShape(topEnd = 32.dp))
+  fun creditCard_roundedCorner_topEnd() {
+    roundedCornerTest(RoundedCornerShape(topEnd = 32.dp))
+  }
 
   @Test
-  fun creditCard_roundedCorner_bottomEnd() = roundedCornerTest(RoundedCornerShape(bottomEnd = 32.dp))
+  fun creditCard_roundedCorner_bottomEnd() {
+    roundedCornerTest(RoundedCornerShape(bottomEnd = 32.dp))
+  }
 
   @Test
-  fun creditCard_roundedCorner_bottomStart() = roundedCornerTest(RoundedCornerShape(bottomStart = 32.dp))
+  fun creditCard_roundedCorner_bottomStart() {
+    roundedCornerTest(RoundedCornerShape(bottomStart = 32.dp))
+  }
 
   @Test
   fun creditCard_conditional() = runScreenshotTest {

@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
 
 @RequiresOptIn(
   message = "Experimental Haze Materials API",
@@ -106,8 +107,8 @@ object HazeMaterials {
   ): HazeStyle = HazeStyle(
     blurRadius = 24.dp,
     backgroundColor = containerColor,
-    tint = containerColor.copy(
-      alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha,
+    tint = HazeTint.Color(
+      containerColor.copy(alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha),
     ),
   )
 }
