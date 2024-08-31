@@ -34,6 +34,7 @@ import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.CupertinoMaterials
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.FluentMaterials
 import dev.chrisbanes.haze.materials.HazeMaterials
 
 @Composable
@@ -114,6 +115,36 @@ fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
 
       SamplesTheme(useDarkColors = true) {
         CupertinoMaterialsRow(
+          hazeState = hazeState,
+          modifier = Modifier.fillMaxWidth(),
+        )
+      }
+
+      Card(modifier = Modifier.padding(top = 24.dp)) {
+        Text(
+          text = "FluentMaterials - Light",
+          style = MaterialTheme.typography.titleLarge,
+          modifier = Modifier.padding(16.dp),
+        )
+      }
+
+      SamplesTheme(useDarkColors = false) {
+        FluentMaterialsRow(
+          hazeState = hazeState,
+          modifier = Modifier.fillMaxWidth(),
+        )
+      }
+
+      Card {
+        Text(
+          text = "FluentMaterials - Dark",
+          style = MaterialTheme.typography.titleLarge,
+          modifier = Modifier.padding(16.dp),
+        )
+      }
+
+      SamplesTheme(useDarkColors = true) {
+        FluentMaterialsRow(
           hazeState = hazeState,
           modifier = Modifier.fillMaxWidth(),
         )
@@ -203,6 +234,65 @@ private fun CupertinoMaterialsRow(hazeState: HazeState, modifier: Modifier = Mod
       shape = MaterialTheme.shapes.large,
       state = hazeState,
       style = CupertinoMaterials.thick(),
+    )
+  }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalHazeMaterialsApi::class)
+@Composable
+private fun FluentMaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier) {
+  FlowRow(
+    modifier = modifier,
+    horizontalArrangement = Arrangement.spacedBy(16.dp),
+    verticalArrangement = Arrangement.spacedBy(16.dp),
+  ) {
+    MaterialsCard(
+      name = "Accent Acrylic Base",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = FluentMaterials.accentAcrylicBase(),
+    )
+
+    MaterialsCard(
+      name = "Accent Acrylic Default",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = FluentMaterials.accentAcrylicDefault(),
+    )
+
+    MaterialsCard(
+      name = "Thin Acrylic",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = FluentMaterials.thinAcrylic(),
+    )
+
+    MaterialsCard(
+      name = "Acrylic Base",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = FluentMaterials.acrylicBase(),
+    )
+
+    MaterialsCard(
+      name = "Acrylic Default",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = FluentMaterials.acrylicDefault(),
+    )
+
+    MaterialsCard(
+      name = "Mica",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = FluentMaterials.mica(),
+    )
+
+    MaterialsCard(
+      name = "MicaAlt",
+      shape = MaterialTheme.shapes.large,
+      state = hazeState,
+      style = FluentMaterials.micaAlt(),
     )
   }
 }
