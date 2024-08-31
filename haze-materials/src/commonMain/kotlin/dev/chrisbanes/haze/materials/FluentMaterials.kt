@@ -201,13 +201,13 @@ object FluentMaterials {
     tints = listOf(
       HazeTint.Color(
         color = containerColor.copy(
-          alpha = if (isDark) darkTintOpacity else lightTintOpacity
+          alpha = if (isDark) darkTintOpacity else lightTintOpacity,
         ),
-        blendMode = BlendMode.Color
+        blendMode = BlendMode.Color,
       ),
       HazeTint.Color(
         color = containerColor.copy(
-          alpha = if (isDark) darkLuminosityOpacity else lightLuminosityOpacity
+          alpha = if (isDark) darkLuminosityOpacity else lightLuminosityOpacity,
         ),
         blendMode = BlendMode.Luminosity,
       ),
@@ -258,7 +258,6 @@ object FluentMaterials {
     blurRadius = 240.dp,
     noiseFactor = 0f,
   )
-
 }
 
 private fun Color(color: Int, alpha: Float): Color {
