@@ -12,6 +12,17 @@ package dev.chrisbanes.haze.materials {
   @kotlin.RequiresOptIn(message="Experimental Haze Materials API", level=kotlin.RequiresOptIn.Level.WARNING) public @interface ExperimentalHazeMaterialsApi {
   }
 
+  @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public final class FluentMaterials {
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle accentAcrylicBase(optional long accentColor, optional boolean isDark);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle accentAcrylicDefault(optional long accentColor, optional boolean isDark);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle acrylicBase(optional boolean isDark);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle acrylicDefault(optional boolean isDark);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle mica(optional boolean isDark);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle micaAlt(optional boolean isDark);
+    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle thinAcrylic(optional boolean isDark);
+    field public static final dev.chrisbanes.haze.materials.FluentMaterials INSTANCE;
+  }
+
   public final class HazeMaterials {
     method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle regular(optional long containerColor);
     method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable @dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi public dev.chrisbanes.haze.HazeStyle thick(optional long containerColor);

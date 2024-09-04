@@ -27,7 +27,7 @@ internal class HazeNode(
   DrawModifierNode {
 
   fun update() {
-    state.contentArea.style = defaultStyle
+    state.contentArea.style = { defaultStyle }
   }
 
   override fun onAttach() {
