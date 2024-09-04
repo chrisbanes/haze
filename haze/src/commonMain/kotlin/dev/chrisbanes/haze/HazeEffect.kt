@@ -94,7 +94,7 @@ internal abstract class HazeEffectNode :
         currentEffects.remove(area) ?: HazeEffect(area = area)
       }
       .onEach { effect ->
-        val resolvedStyle = resolveStyle(state.contentArea.style, effect.area.style)
+        val resolvedStyle = resolveStyle(state.contentArea.style(), effect.area.style())
 
         val blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() }
 
@@ -104,12 +104,14 @@ internal abstract class HazeEffectNode :
           height = effect.size.height + (blurRadiusPx * 2),
         )
         effect.positionOnScreen = effect.area.positionOnScreen
+
         effect.blurRadius = resolvedStyle.blurRadius
         effect.noiseFactor = resolvedStyle.noiseFactor
         effect.tints = resolvedStyle.tints
         effect.fallbackTint = resolvedStyle.fallbackTint
         effect.backgroundColor = resolvedStyle.backgroundColor
-        effect.mask = effect.area.mask
+
+        effect.mask = effect.area.mask()
       }
       .forEach(_effects::add)
 

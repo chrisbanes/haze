@@ -44,20 +44,44 @@ fun Modifier.hazeChild(
  * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
  * [Modifier.haze] to blur any content behind the host composable.
  *
+ * This version of the method is more efficient for providing [HazeStyle]s and masks which change
+ * via an animation or similar.
+ *
+ * @param style The [HazeStyle] to use on this content. Any specified values in the given
+ * style will override that value from the default style, provided to [haze].
+ * @param mask Block to provide a mask which allows effects such as fading via
+ * [Brush.verticalGradient] or similar.
+ */
+fun Modifier.hazeChild(
+  state: HazeState,
+  style: HazeStyle = HazeStyle.Unspecified,
+  mask: Brush? = null,
+): Modifier = hazeChild(state = state, style = { style }, mask = { mask })
+
+/**
+ * Mark this composable as being a Haze child composable.
+ *
+ * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
+ * [Modifier.haze] to blur any content behind the host composable.
+ *
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
  * style will override that value from the default style, provided to [haze].
  * @param mask An optional mask which allows effects such as fading via [Brush.verticalGradient] or similar.
  */
 fun Modifier.hazeChild(
   state: HazeState,
-  style: HazeStyle = HazeStyle.Unspecified,
-  mask: Brush? = null,
-): Modifier = this then HazeChildNodeElement(state, style, mask)
+  mask: () -> Brush? = { null },
+  style: () -> HazeStyle,
+): Modifier = this then HazeChildNodeElement(
+  state = state,
+  style = style,
+  mask = mask,
+)
 
 private data class HazeChildNodeElement(
   val state: HazeState,
-  val style: HazeStyle,
-  val mask: Brush?,
+  val style: () -> HazeStyle,
+  val mask: () -> Brush?,
 ) : ModifierNodeElement<HazeChildNode>() {
   override fun create(): HazeChildNode = HazeChildNode(state, style, mask)
 
@@ -77,12 +101,15 @@ private data class HazeChildNodeElement(
 
 private class HazeChildNode(
   override var state: HazeState,
-  var style: HazeStyle,
-  var mask: Brush?,
+  var style: () -> HazeStyle,
+  var mask: () -> Brush?,
 ) : HazeEffectNode() {
 
   private val area: HazeArea by lazy {
-    HazeArea(style = style, mask = mask)
+    HazeArea().apply {
+      this.style = style
+      this.mask = mask
+    }
   }
 
   override fun update() {

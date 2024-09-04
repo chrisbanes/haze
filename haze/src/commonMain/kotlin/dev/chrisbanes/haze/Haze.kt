@@ -44,22 +44,17 @@ class HazeState {
 }
 
 @Stable
-class HazeArea(
-  size: Size = Size.Unspecified,
-  positionOnScreen: Offset = Offset.Unspecified,
-  style: HazeStyle = HazeStyle.Unspecified,
-  mask: Brush? = null,
-) {
-  var size: Size by mutableStateOf(size)
+class HazeArea {
+  var size: Size by mutableStateOf(Size.Unspecified)
     internal set
 
-  var positionOnScreen: Offset by mutableStateOf(positionOnScreen)
+  var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
-  var style: HazeStyle by mutableStateOf(style)
+  var style: () -> HazeStyle = { HazeStyle.Unspecified }
     internal set
 
-  var mask: Brush? by mutableStateOf(mask)
+  var mask: () -> Brush? = { null }
     internal set
 
   val isValid: Boolean
