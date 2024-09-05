@@ -7,11 +7,13 @@ package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeArea {
     ctor public HazeArea();
+    method public kotlin.jvm.functions.Function0<java.lang.Float> getAlpha();
     method public kotlin.jvm.functions.Function0<androidx.compose.ui.graphics.Brush> getMask();
     method public long getPositionOnScreen();
     method public long getSize();
     method public kotlin.jvm.functions.Function0<dev.chrisbanes.haze.HazeStyle> getStyle();
     method public boolean isValid();
+    property public final kotlin.jvm.functions.Function0<java.lang.Float> alpha;
     property public final boolean isValid;
     property public final kotlin.jvm.functions.Function0<androidx.compose.ui.graphics.Brush> mask;
     property public final long positionOnScreen;
@@ -20,9 +22,9 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeChildKt {
-    method @Deprecated public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style, optional androidx.compose.ui.graphics.Brush? mask);
-    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional androidx.compose.ui.graphics.Brush? mask);
-    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional kotlin.jvm.functions.Function0<? extends androidx.compose.ui.graphics.Brush> mask, kotlin.jvm.functions.Function0<dev.chrisbanes.haze.HazeStyle> style);
+    method @Deprecated public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional androidx.compose.ui.graphics.Shape shape, optional dev.chrisbanes.haze.HazeStyle style);
+    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional float alpha, optional androidx.compose.ui.graphics.Brush? mask);
+    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional kotlin.jvm.functions.Function0<? extends androidx.compose.ui.graphics.Brush> mask, optional kotlin.jvm.functions.Function0<java.lang.Float> alpha, kotlin.jvm.functions.Function0<dev.chrisbanes.haze.HazeStyle> style);
   }
 
   public final class HazeDefaults {

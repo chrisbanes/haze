@@ -53,6 +53,16 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_alpha() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(alpha = 0.5f)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
   fun creditCard_childTint() = runScreenshotTest {
     var tint by mutableStateOf(
       HazeTint.Color(Color.Magenta.copy(alpha = 0.5f)),

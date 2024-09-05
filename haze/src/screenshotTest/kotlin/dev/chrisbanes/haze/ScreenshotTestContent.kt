@@ -31,6 +31,7 @@ internal fun CreditCardSample(
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   mask: Brush? = null,
+  alpha: Float = 1f,
 ) {
   val hazeState = remember { HazeState() }
 
@@ -76,6 +77,7 @@ internal fun CreditCardSample(
                 state = hazeState,
                 style = HazeStyle(tints = listOfNotNull(childTint), blurRadius = 8.dp),
                 mask = mask,
+                alpha = alpha,
               )
             }
             else -> Modifier

@@ -2,15 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
-
 plugins {
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
 }
 
 kotlin {
-  @OptIn(ExperimentalWasmDsl::class)
+  @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
   wasmJs {
     browser {
       commonWebpackConfig {

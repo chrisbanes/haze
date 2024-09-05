@@ -8,7 +8,6 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 
 class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   override fun apply(target: Project) = with(target) {
@@ -30,7 +29,7 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
       iosArm64()
       iosSimulatorArm64()
 
-      @OptIn(ExperimentalWasmDsl::class)
+      @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
       wasmJs {
         browser()
       }
