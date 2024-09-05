@@ -39,8 +39,7 @@ jobs:
             -x pixel5Api30NonMinifiedReleaseAndroidTest \
             -x pixel5Api34NonMinifiedReleaseAndroidTest \
             -x testNonMinifiedReleaseUnitTest \
-            -x testBenchmarkReleaseUnitTest \
-            -x metalavaCheckCompatibilityDebug
+            -x testBenchmarkReleaseUnitTest
 
       - name: Build samples
         run: |
