@@ -32,22 +32,8 @@ jobs:
 
       - uses: gradle/gradle-build-action@v3
 
-      - name: Check
-        run: |
-          ./gradlew check \
-            -Pandroidx.baselineprofile.skipgeneration \
-            -x pixel5Api30NonMinifiedReleaseAndroidTest \
-            -x pixel5Api34NonMinifiedReleaseAndroidTest \
-            -x testNonMinifiedReleaseUnitTest \
-            -x testBenchmarkReleaseUnitTest
-
-      - name: Build samples
-        run: |
-          ./gradlew :sample:android:assemble \
-            :sample:desktop:assemble \
-            :sample:shared:assemble \
-            -x assembleBenchmarkRelease \
-            -x assembleNonMinifiedRelease
+      - name: Assemble and check
+        run: ./gradlew check assembleRelease -Pandroidx.baselineprofile.skipgeneration
 
       - name: Upload reports + Roborazzi outputs
         if: failure()
