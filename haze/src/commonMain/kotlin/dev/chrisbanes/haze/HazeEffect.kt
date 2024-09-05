@@ -111,6 +111,7 @@ internal abstract class HazeEffectNode :
         effect.fallbackTint = resolvedStyle.fallbackTint
         effect.backgroundColor = resolvedStyle.backgroundColor
 
+        effect.alpha = effect.area.alpha()
         effect.mask = effect.area.mask()
       }
       .forEach(_effects::add)
@@ -137,6 +138,7 @@ internal abstract class HazeEffectNode :
 
       graphicsContext.useGraphicsLayer { layer ->
         layer.renderEffect = effect.renderEffect
+        layer.alpha = effect.alpha
 
         // The layer size is usually than the bounds. This is so that we include enough
         // content around the edges to keep the blurring uniform. Without the extra border,
@@ -198,6 +200,10 @@ internal abstract class HazeEffectNode :
     // We don't update the path here as we may not need it. Let draw request it
     // via getUpdatedPath if it needs it
   }
+
+  protected fun HazeEffect.onPostDraw() {
+    drawParametersDirty = false
+  }
 }
 
 internal expect fun HazeEffectNode.drawEffect(
@@ -216,6 +222,7 @@ internal expect fun HazeEffectNode.observeInvalidationTick()
 internal class HazeEffect(val area: HazeArea) {
   var renderEffect: RenderEffect? = null
   var renderEffectDirty: Boolean = true
+  var drawParametersDirty: Boolean = true
 
   var size: Size = Size.Unspecified
     set(value) {
@@ -288,9 +295,17 @@ internal class HazeEffect(val area: HazeArea) {
         field = value
       }
     }
+
+  var alpha: Float = 1f
+    set(value) {
+      if (value != field) {
+        drawParametersDirty = true
+        field = value
+      }
+    }
 }
 
 internal val HazeEffect.blurRadiusOrZero: Dp get() = blurRadius.takeOrElse { 0.dp }
 
 internal val HazeEffect.needInvalidation: Boolean
-  get() = renderEffectDirty
+  get() = renderEffectDirty || drawParametersDirty

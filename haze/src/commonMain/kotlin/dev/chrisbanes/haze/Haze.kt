@@ -57,6 +57,9 @@ class HazeArea {
   var mask: () -> Brush? = { null }
     internal set
 
+  var alpha: () -> Float = { 1f }
+    internal set
+
   val isValid: Boolean
     get() = size.isSpecified && positionOnScreen.isSpecified && !size.isEmpty()
 

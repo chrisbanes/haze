@@ -16,9 +16,10 @@ import androidx.annotation.RequiresApi
 import androidx.collection.lruCache
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
@@ -63,17 +65,30 @@ internal actual fun HazeEffectNode.drawEffect(
     val mask = effect.mask
     val tint = effect.fallbackTint
 
-    println("Drawing effect with fallback tint: $tint")
+    println("Drawing effect with scrim: tint=$tint, mask=$mask, alpha=${effect.alpha}")
 
-    if (tint is HazeTint.Color) {
-      if (mask != null) {
-        drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
-      } else {
-        drawRect(color = tint.color, blendMode = tint.blendMode)
+    fun scrim() {
+      if (tint is HazeTint.Color) {
+        if (mask != null) {
+          drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
+        } else {
+          drawRect(color = tint.color, blendMode = tint.blendMode)
+        }
+      } else if (tint is HazeTint.Brush) {
+        // We don't currently support mask + brush tints
+        drawRect(brush = tint.brush, blendMode = tint.blendMode)
       }
-    } else if (tint is HazeTint.Brush) {
-      // We don't currently support mask + brush tints
-      drawRect(brush = tint.brush, blendMode = tint.blendMode)
+    }
+
+    if (effect.alpha != 1f) {
+      val paint = Paint().apply {
+        this.alpha = effect.alpha
+      }
+      drawContext.canvas.withSaveLayer(size.toRect(), paint) {
+        scrim()
+      }
+    } else {
+      scrim()
     }
   }
 }
