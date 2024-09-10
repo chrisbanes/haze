@@ -91,12 +91,6 @@ kotlin {
   }
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-  compilerOptions {
-    freeCompilerArgs.add("-Xcontext-receivers")
-  }
-}
-
 baselineProfile {
   filter { include("dev.chrisbanes.haze.*") }
 }
