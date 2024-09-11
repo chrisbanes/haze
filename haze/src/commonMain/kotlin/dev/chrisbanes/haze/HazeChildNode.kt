@@ -55,8 +55,6 @@ internal class HazeChildNode(
 
   override val shouldAutoInvalidate: Boolean = false
 
-  internal var lastInvalidationTick = Int.MIN_VALUE
-
   fun update() {
     onObservedReadsChanged()
   }
@@ -68,7 +66,6 @@ internal class HazeChildNode(
   override fun onObservedReadsChanged() {
     observeReads {
       updateEffect()
-      observeInvalidationTick()
     }
   }
 
@@ -206,8 +203,6 @@ internal expect fun HazeChildNode.createRenderEffect(
   effect: ReusableHazeEffect,
   density: Density,
 ): RenderEffect?
-
-internal expect fun HazeChildNode.observeInvalidationTick()
 
 internal class ReusableHazeEffect : HazeChildScope {
   var renderEffect: RenderEffect? = null

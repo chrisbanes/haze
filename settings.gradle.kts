@@ -21,6 +21,15 @@ dependencyResolutionManagement {
   repositories {
     mavenCentral()
     google()
+
+    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev") {
+      content {
+        includeGroupByRegex("org.jetbrains.compose.*")
+        includeGroupByRegex("org.jetbrains.skiko.*")
+        includeGroupByRegex("org.jetbrains.androidx.*")
+      }
+    }
+
     mavenLocal()
   }
 }
