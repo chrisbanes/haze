@@ -55,8 +55,6 @@ internal abstract class HazeEffectNode :
 
   override val shouldAutoInvalidate: Boolean = false
 
-  internal var lastInvalidationTick = Int.MIN_VALUE
-
   open fun update() {
     onObservedReadsChanged()
   }
@@ -68,7 +66,6 @@ internal abstract class HazeEffectNode :
   override fun onObservedReadsChanged() {
     observeReads {
       updateEffects()
-      observeInvalidationTick()
     }
   }
 
@@ -216,8 +213,6 @@ internal expect fun HazeEffectNode.createRenderEffect(
   effect: HazeEffect,
   density: Density,
 ): RenderEffect?
-
-internal expect fun HazeEffectNode.observeInvalidationTick()
 
 internal class HazeEffect(val area: HazeArea) {
   var renderEffect: RenderEffect? = null

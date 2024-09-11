@@ -73,9 +73,6 @@ internal class HazeNode(
     // Now we draw `content` into the window canvas
     drawLayer(contentLayer)
 
-    val tick = Snapshot.withoutReadObservation { state.invalidateTick }
-    state.invalidateTick = tick + 1
-
     log(TAG) { "end draw()" }
   }
 

@@ -6,7 +6,6 @@ package dev.chrisbanes.haze
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -23,7 +22,6 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.takeOrElse
 
 @Stable
@@ -39,8 +37,6 @@ class HazeState {
    */
   var contentLayer: GraphicsLayer? = null
     internal set
-
-  internal var invalidateTick by mutableIntStateOf(Int.MIN_VALUE)
 }
 
 @Stable
