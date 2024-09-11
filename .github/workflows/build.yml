@@ -33,7 +33,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Assemble and check
-        run: ./gradlew check assembleRelease -Pandroidx.baselineprofile.skipgeneration
+        run: ./gradlew check assembleDebug -Pandroidx.baselineprofile.skipgeneration
 
       - name: Upload reports + Roborazzi outputs
         if: failure()
