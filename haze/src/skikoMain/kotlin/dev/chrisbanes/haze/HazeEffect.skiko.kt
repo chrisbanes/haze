@@ -5,7 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.node.invalidateDraw
 
-internal actual fun HazeEffectNode.observeInvalidationTick() {
+internal actual fun HazeChildNode.observeInvalidationTick() {
   // Yes, this is very very gross. The HazeNode will update the contentLayer in it's draw
   // function. HazeNode and also updates `state.invalidateTick` as a way for HazeChild[ren] to
   // know when the contentLayer has been updated. All fine so far, but for us to draw with the

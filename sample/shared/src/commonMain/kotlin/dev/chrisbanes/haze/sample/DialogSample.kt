@@ -71,7 +71,9 @@ fun DialogSample(navigator: Navigator) {
           color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
           contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
-          Box(Modifier.hazeChild(state = hazeState)) {
+          Box(
+            Modifier.hazeChild(state = hazeState, style = HazeMaterials.regular()),
+          ) {
             // empty
           }
         }
@@ -79,7 +81,7 @@ fun DialogSample(navigator: Navigator) {
     }
 
     LazyVerticalGrid(
-      modifier = Modifier.haze(state = hazeState, style = HazeMaterials.regular()),
+      modifier = Modifier.haze(state = hazeState),
       columns = GridCells.Fixed(4),
       contentPadding = innerPadding,
       verticalArrangement = Arrangement.spacedBy(16.dp),

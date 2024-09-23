@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.nativeCanvas
@@ -35,8 +36,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
 import kotlin.math.roundToInt
 
-internal actual fun HazeEffectNode.createRenderEffect(
-  effect: HazeEffect,
+internal actual fun HazeChildNode.createRenderEffect(
+  effect: ReusableHazeEffect,
   density: Density,
 ): RenderEffect? =
   with(effect) {
@@ -54,9 +55,9 @@ internal actual fun HazeEffectNode.createRenderEffect(
 
 internal actual val USE_GRAPHICS_LAYERS: Boolean = Build.VERSION.SDK_INT >= 32
 
-internal actual fun HazeEffectNode.drawEffect(
+internal actual fun HazeChildNode.drawEffect(
   drawScope: DrawScope,
-  effect: HazeEffect,
+  effect: ReusableHazeEffect,
   graphicsLayer: GraphicsLayer?,
 ) = with(drawScope) {
   if (graphicsLayer != null && drawContext.canvas.nativeCanvas.isHardwareAccelerated) {
@@ -64,6 +65,12 @@ internal actual fun HazeEffectNode.drawEffect(
   } else {
     val mask = effect.mask
     val tint = effect.fallbackTint
+      ?.takeIf {
+        when (it) {
+          is HazeTint.Color -> it.color.isSpecified
+          else -> true
+        }
+      } ?: effect.tints.firstOrNull()?.boostForFallback(effect.blurRadiusOrZero)
 
     println("Drawing effect with scrim: tint=$tint, mask=$mask, alpha=${effect.alpha}")
 
@@ -154,7 +161,10 @@ private fun Brush.toShader(size: Size): Shader? = when (this) {
 }
 
 @RequiresApi(31)
-private fun AndroidRenderEffect.withTints(tints: List<HazeTint>, bounds: Rect): AndroidRenderEffect {
+private fun AndroidRenderEffect.withTints(
+  tints: List<HazeTint>,
+  bounds: Rect,
+): AndroidRenderEffect {
   return tints.fold(this) { acc, next ->
     acc.withTint(next, bounds)
   }

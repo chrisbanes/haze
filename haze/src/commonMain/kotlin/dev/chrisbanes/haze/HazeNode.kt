@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -15,34 +16,21 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.takeOrElse
 
 internal class HazeNode(
   var state: HazeState,
-  var defaultStyle: HazeStyle,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   LayoutAwareModifierNode,
   GlobalPositionAwareModifierNode,
   DrawModifierNode {
 
-  fun update() {
-    state.contentArea.style = { defaultStyle }
-  }
-
-  override fun onAttach() {
-    update()
-  }
-
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) = onPlaced(coordinates)
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    Snapshot.withMutableSnapshot {
-      state.contentArea.apply {
-        size = coordinates.size.toSize()
-        positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
-      }
-    }
+    state.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
   }
 
   /**
@@ -94,3 +82,22 @@ internal class HazeNode(
 }
 
 internal expect val USE_GRAPHICS_LAYERS: Boolean
+
+internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint = when (this) {
+  is HazeTint.Color -> {
+    // For color, we can boost the alpha
+    val boosted = color.boostAlphaForBlurRadius(blurRadius.takeOrElse { HazeDefaults.blurRadius })
+    copy(color = boosted)
+  }
+  // For anything else we just use as-is
+  else -> this
+}
+
+/**
+ * In this implementation, the only tool we have is translucency.
+ */
+private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
+  // We treat a blur radius of 72.dp as near 'opaque', and linearly boost using that
+  val factor = 1 + (blurRadius.value / 72)
+  return copy(alpha = (alpha * factor).coerceAtMost(1f))
+}

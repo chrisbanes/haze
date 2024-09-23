@@ -40,7 +40,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
@@ -56,6 +55,8 @@ fun ScaffoldSample(navigator: Navigator) {
     derivedStateOf { gridState.firstVisibleItemIndex == 0 }
   }
 
+  val style = HazeMaterials.regular(MaterialTheme.colorScheme.surface)
+
   Scaffold(
     topBar = {
       TopAppBar(
@@ -70,11 +71,10 @@ fun ScaffoldSample(navigator: Navigator) {
           scrolledContainerColor = Color.Transparent,
         ),
         modifier = Modifier
-          .hazeChild(
-            state = hazeState,
-            style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
-            mask = remember { Brush.easedVerticalGradient(easing = EaseInOut) },
-          )
+          .hazeChild(hazeState) {
+            applyStyle(style)
+            mask = Brush.easedVerticalGradient(easing = EaseInOut)
+          }
           .fillMaxWidth(),
       )
     },
@@ -89,7 +89,7 @@ fun ScaffoldSample(navigator: Navigator) {
           selectedIndex,
           onItemClicked = { selectedIndex = it },
           modifier = Modifier
-            .hazeChild(hazeState)
+            .hazeChild(state = hazeState, style = style)
             .fillMaxWidth(),
         )
       }
@@ -105,10 +105,7 @@ fun ScaffoldSample(navigator: Navigator) {
       modifier = Modifier
         .fillMaxSize()
         .testTag("lazy_grid")
-        .haze(
-          state = hazeState,
-          style = HazeDefaults.style(backgroundColor = MaterialTheme.colorScheme.surface),
-        ),
+        .haze(state = hazeState),
     ) {
       items(50) { index ->
         ImageItem(
