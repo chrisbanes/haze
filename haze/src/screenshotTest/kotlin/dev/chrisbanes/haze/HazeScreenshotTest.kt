@@ -30,7 +30,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_transparentTint() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(defaultTint = Color.Transparent)
+        CreditCardSample(tint = HazeTint.Color(Color.Transparent))
       }
     }
     captureRoot()
@@ -70,7 +70,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(childTint = tint)
+        CreditCardSample(tint = tint)
       }
     }
 

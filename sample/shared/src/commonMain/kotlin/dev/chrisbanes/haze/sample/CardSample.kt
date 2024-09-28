@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
@@ -57,15 +56,7 @@ fun CreditCardSample(navigator: Navigator) {
     Box(
       Modifier
         .fillMaxSize()
-        .haze(
-          state = hazeState,
-          style = HazeStyle(
-            backgroundColor = Color.Blue,
-            tint = HazeTint.Color(Color.White.copy(alpha = 0.1f)),
-            blurRadius = 8.dp,
-            noiseFactor = HazeDefaults.noiseFactor,
-          ),
-        ),
+        .haze(state = hazeState),
     ) {
       Spacer(
         Modifier
@@ -106,7 +97,12 @@ fun CreditCardSample(navigator: Navigator) {
           },
         )
         .clip(RoundedCornerShape(16.dp))
-        .hazeChild(state = hazeState),
+        .hazeChild(state = hazeState) {
+          backgroundColor = Color.Blue
+          tints = listOf(HazeTint.Color(Color.White.copy(alpha = 0.1f)))
+          blurRadius = 8.dp
+          noiseFactor = HazeDefaults.noiseFactor
+        },
     ) {
       Column(Modifier.padding(32.dp)) {
         Text("Bank of Haze")

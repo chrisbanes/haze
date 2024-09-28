@@ -3,6 +3,6 @@
 
 package dev.chrisbanes.haze
 
-internal actual fun HazeEffectNode.observeInvalidationTick() {
+internal actual fun HazeChildNode.observeInvalidationTick() {
   // No need to do anything on Android
 }

@@ -61,7 +61,7 @@ fun ListOverImage(navigator: Navigator) {
           contentScale = ContentScale.Crop,
           contentDescription = null,
           modifier = Modifier
-            .haze(state = hazeState, style = HazeMaterials.thin())
+            .haze(state = hazeState)
             .fillMaxSize(),
         )
 
@@ -87,7 +87,7 @@ fun ListOverImage(navigator: Navigator) {
                   .fillMaxSize(0.8f)
                   .align(Alignment.Center)
                   .clip(RoundedCornerShape(4.dp))
-                  .hazeChild(state = hazeState),
+                  .hazeChild(state = hazeState, style = HazeMaterials.thin()),
               ) {
                 Text(
                   "Item $index",

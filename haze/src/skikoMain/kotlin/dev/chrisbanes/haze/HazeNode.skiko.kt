@@ -24,9 +24,9 @@ import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeShaderBuilder
 import org.jetbrains.skia.Shader
 
-internal actual fun HazeEffectNode.drawEffect(
+internal actual fun HazeChildNode.drawEffect(
   drawScope: DrawScope,
-  effect: HazeEffect,
+  effect: ReusableHazeEffect,
   graphicsLayer: GraphicsLayer?,
 ) = with(drawScope) {
   drawLayer(requireNotNull(graphicsLayer))
@@ -34,8 +34,8 @@ internal actual fun HazeEffectNode.drawEffect(
 
 internal actual val USE_GRAPHICS_LAYERS: Boolean = true
 
-internal actual fun HazeEffectNode.createRenderEffect(
-  effect: HazeEffect,
+internal actual fun HazeChildNode.createRenderEffect(
+  effect: ReusableHazeEffect,
   density: Density,
 ): RenderEffect? {
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {

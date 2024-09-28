@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.isSpecified
@@ -36,28 +37,27 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
+import androidx.compose.ui.unit.toSize
 
-internal abstract class HazeEffectNode :
-  Modifier.Node(),
+internal class HazeChildNode(
+  var state: HazeState,
+  var block: HazeChildScope.() -> Unit,
+) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   LayoutAwareModifierNode,
   GlobalPositionAwareModifierNode,
   ObserverModifierNode,
   DrawModifierNode {
 
-  abstract var state: HazeState
+  private var positionOnScreen by mutableStateOf(Offset.Unspecified)
 
-  protected var positionOnScreen by mutableStateOf(Offset.Unspecified)
-    private set
-
-  private val _effects: MutableList<HazeEffect> = mutableListOf()
-  val effects: List<HazeEffect> = _effects
+  private val effect by lazy(::ReusableHazeEffect)
 
   override val shouldAutoInvalidate: Boolean = false
 
   internal var lastInvalidationTick = Int.MIN_VALUE
 
-  open fun update() {
+  fun update() {
     onObservedReadsChanged()
   }
 
@@ -67,113 +67,101 @@ internal abstract class HazeEffectNode :
 
   override fun onObservedReadsChanged() {
     observeReads {
-      updateEffects()
+      updateEffect()
       observeInvalidationTick()
     }
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
+    effect.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
+    effect.size = coordinates.size.toSize()
+
+    val blurRadiusPx = with(currentValueOf(LocalDensity)) { effect.blurRadius.toPx() }
+    effect.layerSize = effect.size.expand(blurRadiusPx * 2)
+
+    updateEffect()
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) = onPlaced(coordinates)
 
-  protected open fun updateEffects() {
-    val currentEffectsIsEmpty = effects.isEmpty()
-    val currentEffects = effects.associateByTo(mutableMapOf(), HazeEffect::area)
+  override fun ContentDrawScope.draw() {
+    log(TAG) { "-> HazeChild. start draw()" }
 
-    _effects.clear()
+    if (!effect.isValid) {
+      // If we don't have any effects, just call drawContent and return early
+      drawContent()
+      log(TAG) { "-> HazeChild. end draw()" }
+      return
+    }
 
-    val density = currentValueOf(LocalDensity)
+    // First we need to make sure that the effects are updated (if necessary)
+    effect.onPreDraw(drawContext.density)
 
-    // We create a RenderNode for each of the areas we need to apply our effect to
-    calculateHazeAreas()
-      .filter { it.isValid }
-      .map { area ->
-        // We re-use any current effects, otherwise we need to create a new one
-        currentEffects.remove(area) ?: HazeEffect(area = area)
+    if (USE_GRAPHICS_LAYERS) {
+      val contentLayer = state.contentLayer
+      if (contentLayer != null) {
+        drawEffectsWithGraphicsLayer(contentLayer)
       }
-      .onEach { effect ->
-        val resolvedStyle = resolveStyle(state.contentArea.style(), effect.area.style())
+    } else {
+      drawEffectsWithScrim()
+    }
 
-        val blurRadiusPx = with(density) { resolvedStyle.blurRadius.toPx() }
+    // Finally we draw the content
+    drawContent()
 
-        effect.size = effect.area.size
-        effect.layerSize = Size(
-          width = effect.size.width + (blurRadiusPx * 2),
-          height = effect.size.height + (blurRadiusPx * 2),
-        )
-        effect.positionOnScreen = effect.area.positionOnScreen
+    effect.onPostDraw()
 
-        effect.blurRadius = resolvedStyle.blurRadius
-        effect.noiseFactor = resolvedStyle.noiseFactor
-        effect.tints = resolvedStyle.tints
-        effect.fallbackTint = resolvedStyle.fallbackTint
-        effect.backgroundColor = resolvedStyle.backgroundColor
+    log(TAG) { "-> HazeChild. end draw()" }
+  }
 
-        effect.alpha = effect.area.alpha()
-        effect.mask = effect.area.mask()
-      }
-      .forEach(_effects::add)
-
-    // Any effects left in currentEffects are no longer used
-    currentEffects.clear()
-
-    val needInvalidate = effects.any { it.needInvalidation }
-
+  private fun updateEffect() {
+    effect.defaultStyle = state.defaultStyle
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
-    if (needInvalidate || (effects.isEmpty() != currentEffectsIsEmpty)) {
+    block(effect)
+
+    if (effect.needInvalidation) {
       invalidateDraw()
     }
   }
 
-  protected fun DrawScope.drawEffectsWithGraphicsLayer(contentLayer: GraphicsLayer) {
-    val graphicsContext = currentValueOf(LocalGraphicsContext)
+  private fun DrawScope.drawEffectsWithGraphicsLayer(contentLayer: GraphicsLayer) {
+    // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
+    // The RenderEffect applied will provide the blurring effect.
+    currentValueOf(LocalGraphicsContext).useGraphicsLayer { layer ->
+      layer.renderEffect = effect.renderEffect
+      layer.alpha = effect.alpha
 
-    // Now we draw each effect over the content
-    for (effect in effects) {
-      // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
-      // The RenderEffect applied will provide the blurring effect.
+      // The layer size is usually than the bounds. This is so that we include enough
+      // content around the edges to keep the blurring uniform. Without the extra border,
+      // the blur will naturally fade out at the edges.
+      val inflatedSize = effect.layerSize
+      // This is the topLeft in the inflated bounds where the real are should be at [0,0]
+      val inflatedOffset = effect.layerOffset
 
-      graphicsContext.useGraphicsLayer { layer ->
-        layer.renderEffect = effect.renderEffect
-        layer.alpha = effect.alpha
-
-        // The layer size is usually than the bounds. This is so that we include enough
-        // content around the edges to keep the blurring uniform. Without the extra border,
-        // the blur will naturally fade out at the edges.
-        val inflatedSize = effect.layerSize
-        // This is the topLeft in the inflated bounds where the real are should be at [0,0]
-        val inflatedOffset = effect.layerOffset
-
-        layer.record(inflatedSize.roundToIntSize()) {
-          if (effect.backgroundColor.isSpecified) {
-            drawRect(effect.backgroundColor)
-          } else {
-            error("HazeStyle.backgroundColor not specified. Please provide a color.")
-          }
-
-          val contentArea = state.contentArea
-          translate(inflatedOffset + contentArea.positionOnScreen - effect.positionOnScreen) {
-            // Draw the content into our effect layer
-            drawLayer(contentLayer)
-          }
+      layer.record(inflatedSize.roundToIntSize()) {
+        if (effect.backgroundColor.isSpecified) {
+          drawRect(effect.backgroundColor)
+        } else {
+          error("HazeStyle.backgroundColor not specified. Please provide a color.")
         }
 
-        drawEffect(effect = effect, innerDrawOffset = -inflatedOffset, layer = layer)
+        translate(inflatedOffset + state.positionOnScreen - effect.positionOnScreen) {
+          // Draw the content into our effect layer
+          drawLayer(contentLayer)
+        }
       }
+
+      drawEffect(effect = effect, innerDrawOffset = -inflatedOffset, layer = layer)
     }
   }
 
-  protected fun DrawScope.drawEffectsWithScrim() {
-    for (effect in effects) {
-      drawEffect(effect)
-    }
+  private fun DrawScope.drawEffectsWithScrim() {
+    drawEffect(effect)
   }
 
   private fun DrawScope.drawEffect(
-    effect: HazeEffect,
+    effect: ReusableHazeEffect,
     innerDrawOffset: Offset = Offset.Zero,
     layer: GraphicsLayer? = null,
   ) {
@@ -190,9 +178,7 @@ internal abstract class HazeEffectNode :
     }
   }
 
-  protected open fun calculateHazeAreas(): Sequence<HazeArea> = emptySequence()
-
-  protected fun HazeEffect.onPreDraw(density: Density) {
+  private fun ReusableHazeEffect.onPreDraw(density: Density) {
     if (renderEffectDirty) {
       renderEffect = createRenderEffect(this, density)
       renderEffectDirty = false
@@ -201,28 +187,39 @@ internal abstract class HazeEffectNode :
     // via getUpdatedPath if it needs it
   }
 
-  protected fun HazeEffect.onPostDraw() {
+  private fun ReusableHazeEffect.onPostDraw() {
     drawParametersDirty = false
+  }
+
+  private companion object {
+    const val TAG = "HazeChild"
   }
 }
 
-internal expect fun HazeEffectNode.drawEffect(
+internal expect fun HazeChildNode.drawEffect(
   drawScope: DrawScope,
-  effect: HazeEffect,
+  effect: ReusableHazeEffect,
   graphicsLayer: GraphicsLayer? = null,
 )
 
-internal expect fun HazeEffectNode.createRenderEffect(
-  effect: HazeEffect,
+internal expect fun HazeChildNode.createRenderEffect(
+  effect: ReusableHazeEffect,
   density: Density,
 ): RenderEffect?
 
-internal expect fun HazeEffectNode.observeInvalidationTick()
+internal expect fun HazeChildNode.observeInvalidationTick()
 
-internal class HazeEffect(val area: HazeArea) {
+internal class ReusableHazeEffect : HazeChildScope {
   var renderEffect: RenderEffect? = null
   var renderEffectDirty: Boolean = true
   var drawParametersDirty: Boolean = true
+
+  var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
+
+  var defaultStyle: HazeStyle by mutableStateOf(HazeStyle.Unspecified)
+
+  val isValid: Boolean
+    get() = size.isSpecified && layerSize.isSpecified
 
   var size: Size = Size.Unspecified
     set(value) {
@@ -242,19 +239,18 @@ internal class HazeEffect(val area: HazeArea) {
     }
 
   val layerOffset: Offset
-    get() {
-      if (layerSize.isSpecified && size.isSpecified) {
-        return Offset(
+    get() = when {
+      isValid -> {
+        Offset(
           x = (layerSize.width - size.width) / 2f,
           y = (layerSize.height - size.height) / 2f,
         )
       }
-      return Offset.Zero
+
+      else -> Offset.Zero
     }
 
-  var positionOnScreen: Offset = Offset.Unspecified
-
-  var blurRadius: Dp = Dp.Unspecified
+  override var blurRadius: Dp = HazeDefaults.blurRadius
     set(value) {
       if (value != field) {
         renderEffectDirty = true
@@ -262,7 +258,7 @@ internal class HazeEffect(val area: HazeArea) {
       }
     }
 
-  var noiseFactor: Float = 0f
+  override var noiseFactor: Float = HazeDefaults.noiseFactor
     set(value) {
       if (value != field) {
         renderEffectDirty = true
@@ -270,7 +266,7 @@ internal class HazeEffect(val area: HazeArea) {
       }
     }
 
-  var mask: Brush? = null
+  override var mask: Brush? = null
     set(value) {
       if (value != field) {
         renderEffectDirty = true
@@ -278,9 +274,9 @@ internal class HazeEffect(val area: HazeArea) {
       }
     }
 
-  var backgroundColor: Color = Color.Unspecified
+  override var backgroundColor: Color = Color.Unspecified
 
-  var tints: List<HazeTint> = emptyList()
+  override var tints: List<HazeTint> = emptyList()
     set(value) {
       if (value != field) {
         renderEffectDirty = true
@@ -288,7 +284,7 @@ internal class HazeEffect(val area: HazeArea) {
       }
     }
 
-  var fallbackTint: HazeTint? = null
+  override var fallbackTint: HazeTint? = null
     set(value) {
       if (value != field) {
         renderEffectDirty = true
@@ -296,16 +292,29 @@ internal class HazeEffect(val area: HazeArea) {
       }
     }
 
-  var alpha: Float = 1f
+  override var alpha: Float = 1f
     set(value) {
       if (value != field) {
         drawParametersDirty = true
         field = value
       }
     }
+
+  override fun applyStyle(style: HazeStyle) {
+    noiseFactor = style.noiseFactor
+    blurRadius = style.blurRadius
+    tints = style.tints
+    fallbackTint = style.fallbackTint
+    backgroundColor = style.backgroundColor
+  }
 }
 
-internal val HazeEffect.blurRadiusOrZero: Dp get() = blurRadius.takeOrElse { 0.dp }
+internal val ReusableHazeEffect.blurRadiusOrZero: Dp
+  get() = blurRadius.takeOrElse { 0.dp }
 
-internal val HazeEffect.needInvalidation: Boolean
+internal val ReusableHazeEffect.needInvalidation: Boolean
   get() = renderEffectDirty || drawParametersDirty
+
+private fun Size.expand(expansion: Float): Size {
+  return Size(width = width + expansion, height = height + expansion)
+}
