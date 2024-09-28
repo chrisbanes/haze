@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -60,9 +59,6 @@ internal class HazeNode(
 
     // Now we draw `content` into the window canvas
     drawLayer(contentLayer)
-
-    val tick = Snapshot.withoutReadObservation { state.invalidateTick }
-    state.invalidateTick = tick + 1
 
     log(TAG) { "end draw()" }
   }
