@@ -2,13 +2,13 @@ The 0.9 version contains a full re-write (actually more of a refactor) of Haze. 
 
 !!! warning "Should I use v0.9 pre-release?"
 
-    I think that all depends on your appetite for prerelease software. Haze itself is now much simpler than ever before, and most of the complexity is now in GraphicsLayer. On Android, we're using the latest Jetpack Compose 1.7.x stable versions. If you're only using Haze on Android, I would feel confident using it.
+    I think that all depends on your appetite for prerelease software. Haze itself is now much simpler than ever before, and most of the complexity is now in GraphicsLayer. On Android, we're using the latest Jetpack Compose 1.7.x stable versions. If you're only using Haze on Android, go for it.
 
-    On other platforms, Compose Multiplatform is at 1.7.0-beta, so not stable, but getting there.
+    On other platforms, Compose Multiplatform is at 1.7.0-rc01, so not stable, but nearly there.
 
 ## Changes
 
-Here's a list of known changes in v0.9. There may be others, so please file issues if you encounter other unexpected changes.
+Here's a list of known changes in v0.9.x. There may be others, so please file issues if you encounter other unexpected changes.
 
 ### Functional changes
 
@@ -26,11 +26,45 @@ As we're now using a common implementation on all platforms, the Skia-backed pla
 
 ### API changes
 
+#### More styling parameters
+
+- **What:** We now have more styling parameters, including a mask `Brush`, and alpha parameter.
+- **Why:** More is more, right?
+
+#### 🆕 HazeChildScope
+
+- **What:** We now have overloads on `Modifier.hazeChild` which allow you to provide a lambda block for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`.
+- **Why:** This has been primarily added to aid animating Haze's styling parameters, in a performant way.
+
+Here's an example of fading in the blurred content using a `LazyListState`:
+
+```kotlin
+FooAppBar(
+  ...
+  modifier = Modifier
+    .hazeChild(state = hazeState) {
+      alpha = if (listState.firstVisibleItemIndex == 0) {
+        listState.layoutInfo.visibleItemsInfo.first().let {
+          (it.offset / it.size.height.toFloat()).absoluteValue
+        }
+      } else {
+        alpha = 1f
+      }
+    },
+)
+```
+
 #### Default style functionality on Modifier.haze has been removed
 
 - **What:** In previous versions, there was a `style` parameter on `Modifier.haze`, which has been removed in v0.9.
 - **Migration:** Move all styling to `Modifier.hazeChild` calls.
 - **Why:** Previously `Modifier.haze` to be the source of truth for styling, as it was responsible for all drawing. With the changes listed below, drawing is now the responsibility of the children themselves, therefore it makes little sense to invert the responsibility.
+
+#### HazeArea has been removed
+
+- **What:** The `HazeArea` class has been removed
+- **Migration:** None. This was mostly an internal API so if you did have a use case for this, let me know via an issue.
+- **Why:** HazeArea instances were how we updated `Modifier.haze` instances about individual children (back-writes). With the changes listed below, drawing is now the responsibility of the children themselves, therefore there is no need to communicate this state back up.
 
 ## Why have these changes been made?
 
@@ -48,4 +82,4 @@ In v0.7 and older, Haze is all 'smoke and mirrors'. It draws all of the blurred 
 
 With the adoption of GraphicsLayers, we now have a way to pass 'drawn' content around, meaning that we are no longer bound by the restraints of before. v0.9 contains a re-written drawing pipeline, where the blurred content is drawn by the `hazeChild`, not the parent. The parent `haze` is now only responsible for drawing the background content into a graphics layer, and putting it somewhere for the children to access.
 
-This fixes a number of long-known issues on Haze, where are all caused by the fact that the blurred area wasn't drawn by the child.
+This fixes a number of long-known issues on Haze, where all were caused by the fact that the blurred area wasn't drawn by the child.
