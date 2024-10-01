@@ -1,10 +1,6 @@
 // Signature format: 4.0
 package dev.chrisbanes.haze {
 
-  public final class CanvasKt {
-    method public static inline void translate(androidx.compose.ui.graphics.drawscope.DrawScope, long offset, kotlin.jvm.functions.Function1<? super androidx.compose.ui.graphics.drawscope.DrawScope,kotlin.Unit> block);
-  }
-
   public final class HazeChildKt {
     method @Deprecated public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, androidx.compose.ui.graphics.Shape shape, dev.chrisbanes.haze.HazeStyle style);
     method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, dev.chrisbanes.haze.HazeStyle style);

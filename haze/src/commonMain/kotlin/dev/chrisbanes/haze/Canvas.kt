@@ -19,7 +19,7 @@ internal inline fun GraphicsContext.useGraphicsLayer(block: (GraphicsLayer) -> U
   }
 }
 
-inline fun DrawScope.translate(
+internal inline fun DrawScope.translate(
   offset: Offset,
   block: DrawScope.() -> Unit,
 ) {
