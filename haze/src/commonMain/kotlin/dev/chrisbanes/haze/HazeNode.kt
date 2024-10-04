@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
@@ -40,7 +41,7 @@ internal class HazeNode(
   override fun ContentDrawScope.draw() {
     log(TAG) { "start draw()" }
 
-    if (!USE_GRAPHICS_LAYERS) {
+    if (!useGraphicLayers()) {
       // If we're not using graphics layers, just call drawContent and return early
       drawContent()
       return
@@ -77,7 +78,7 @@ internal class HazeNode(
   }
 }
 
-internal expect val USE_GRAPHICS_LAYERS: Boolean
+internal expect fun DrawScope.useGraphicLayers(): Boolean
 
 internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint = when (this) {
   is HazeTint.Color -> {

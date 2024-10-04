@@ -32,7 +32,7 @@ internal actual fun HazeChildNode.drawEffect(
   drawLayer(requireNotNull(graphicsLayer))
 }
 
-internal actual val USE_GRAPHICS_LAYERS: Boolean = true
+internal actual fun DrawScope.useGraphicLayers(): Boolean = true
 
 internal actual fun HazeChildNode.createRenderEffect(
   effect: ReusableHazeEffect,
