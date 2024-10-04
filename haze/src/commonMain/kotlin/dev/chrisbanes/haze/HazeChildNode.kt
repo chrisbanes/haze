@@ -112,7 +112,6 @@ internal class HazeChildNode(
   }
 
   private fun updateEffect() {
-    effect.defaultStyle = state.defaultStyle
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
     block(effect)
@@ -210,8 +209,6 @@ internal class ReusableHazeEffect : HazeChildScope {
   var drawParametersDirty: Boolean = true
 
   var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
-
-  var defaultStyle: HazeStyle by mutableStateOf(HazeStyle.Unspecified)
 
   val isValid: Boolean
     get() = size.isSpecified && layerSize.isSpecified

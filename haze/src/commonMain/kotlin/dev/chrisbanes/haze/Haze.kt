@@ -37,8 +37,6 @@ class HazeState {
    */
   var contentLayer: GraphicsLayer? = null
     internal set
-
-  internal var defaultStyle: HazeStyle by mutableStateOf(HazeStyle.Unspecified)
 }
 
 /**
