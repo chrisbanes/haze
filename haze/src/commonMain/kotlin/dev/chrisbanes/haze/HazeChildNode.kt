@@ -94,7 +94,7 @@ internal class HazeChildNode(
     // First we need to make sure that the effects are updated (if necessary)
     effect.onPreDraw(drawContext.density)
 
-    if (USE_GRAPHICS_LAYERS) {
+    if (useGraphicLayers()) {
       val contentLayer = state.contentLayer
       if (contentLayer != null) {
         drawEffectsWithGraphicsLayer(contentLayer)

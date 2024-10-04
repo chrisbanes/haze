@@ -53,7 +53,9 @@ internal actual fun HazeChildNode.createRenderEffect(
     return null
   }
 
-internal actual val USE_GRAPHICS_LAYERS: Boolean = Build.VERSION.SDK_INT >= 32
+internal actual fun DrawScope.useGraphicLayers(): Boolean {
+  return Build.VERSION.SDK_INT >= 32 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
+}
 
 internal actual fun HazeChildNode.drawEffect(
   drawScope: DrawScope,
