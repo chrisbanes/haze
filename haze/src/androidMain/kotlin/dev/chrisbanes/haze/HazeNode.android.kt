@@ -16,90 +16,43 @@ import androidx.annotation.RequiresApi
 import androidx.collection.lruCache
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.isSpecified
-import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.Density
 import kotlin.math.roundToInt
 
 internal actual fun HazeChildNode.createRenderEffect(
-  effect: ReusableHazeEffect,
-  density: Density,
-): RenderEffect? =
-  with(effect) {
-    val blurRadiusPx = with(density) { blurRadiusOrZero.toPx() }
-    if (Build.VERSION.SDK_INT >= 31 && blurRadiusPx >= 0.005f) {
-      val bounds = Rect(effect.layerOffset, effect.size)
-      return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
-        .withNoise(noiseFactor)
-        .withTints(effect.tints, bounds)
-        .withMask(effect.mask, bounds)
-        .asComposeRenderEffect()
-    }
-    return null
+  blurRadiusPx: Float,
+  noiseFactor: Float,
+  tints: List<HazeTint>,
+  boundsInLayer: Rect,
+  layerSize: Size,
+  mask: Brush?,
+): RenderEffect? {
+  log("HazeChildNode") {
+    "createRenderEffect. blurRadiusPx=$blurRadiusPx, noiseFactor=$noiseFactor, " +
+      "tints=$tints, layerBounds=$boundsInLayer"
   }
+
+  if (Build.VERSION.SDK_INT >= 31 && blurRadiusPx >= 0.005f) {
+    return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+      .withNoise(noiseFactor)
+      .withTints(tints, boundsInLayer)
+      .withMask(mask, boundsInLayer)
+      .asComposeRenderEffect()
+  }
+  return null
+}
 
 internal actual fun DrawScope.useGraphicLayers(): Boolean {
   return Build.VERSION.SDK_INT >= 32 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
-}
-
-internal actual fun HazeChildNode.drawEffect(
-  drawScope: DrawScope,
-  effect: ReusableHazeEffect,
-  graphicsLayer: GraphicsLayer?,
-) = with(drawScope) {
-  if (graphicsLayer != null && drawContext.canvas.nativeCanvas.isHardwareAccelerated) {
-    drawLayer(graphicsLayer)
-  } else {
-    val mask = effect.mask
-    val tint = effect.fallbackTint
-      ?.takeIf {
-        when (it) {
-          is HazeTint.Color -> it.color.isSpecified
-          else -> true
-        }
-      } ?: effect.tints.firstOrNull()?.boostForFallback(effect.blurRadiusOrZero)
-
-    println("Drawing effect with scrim: tint=$tint, mask=$mask, alpha=${effect.alpha}")
-
-    fun scrim() {
-      if (tint is HazeTint.Color) {
-        if (mask != null) {
-          drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
-        } else {
-          drawRect(color = tint.color, blendMode = tint.blendMode)
-        }
-      } else if (tint is HazeTint.Brush) {
-        // We don't currently support mask + brush tints
-        drawRect(brush = tint.brush, blendMode = tint.blendMode)
-      }
-    }
-
-    if (effect.alpha != 1f) {
-      val paint = Paint().apply {
-        this.alpha = effect.alpha
-      }
-      drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-        scrim()
-      }
-    } else {
-      scrim()
-    }
-  }
 }
 
 private val noiseTextureCache = lruCache<Int, Bitmap>(3)

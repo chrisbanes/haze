@@ -52,6 +52,11 @@ interface HazeChildScope {
   var fallbackTint: HazeTint?
 
   /**
+   * TODO
+   */
+  var progressive: HazeProgressive?
+
+  /**
    * Apply the given [HazeStyle] to this block.
    */
   fun applyStyle(style: HazeStyle)
@@ -110,6 +115,7 @@ private data class HazeChildNodeElement(
   val state: HazeState,
   val block: HazeChildScope.() -> Unit,
 ) : ModifierNodeElement<HazeChildNode>() {
+
   override fun create(): HazeChildNode = HazeChildNode(state, block)
 
   override fun update(node: HazeChildNode) {

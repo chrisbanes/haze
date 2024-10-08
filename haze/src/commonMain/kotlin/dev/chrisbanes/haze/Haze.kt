@@ -167,7 +167,7 @@ interface HazeTint {
 
   data class Brush(
     val brush: androidx.compose.ui.graphics.Brush,
-    val blendMode: BlendMode = BlendMode.SrcOver,
+    val blendMode: BlendMode = BlendMode.SrcAtop,
   ) : HazeTint
 }
 
