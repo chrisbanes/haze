@@ -30,6 +30,7 @@ internal fun CreditCardSample(
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   mask: Brush? = null,
+  progressive: HazeProgressive? = null,
   alpha: Float = 1f,
 ) {
   val hazeState = remember { HazeState() }
@@ -66,15 +67,14 @@ internal fun CreditCardSample(
         .then(
           when {
             enabled -> {
-              Modifier.hazeChild(
-                state = hazeState,
-              ) {
+              Modifier.hazeChild(state = hazeState) {
                 backgroundColor = surfaceColor
                 noiseFactor = HazeDefaults.noiseFactor
                 tints = listOfNotNull(tint)
                 blurRadius = 8.dp
                 this.mask = mask
                 this.alpha = alpha
+                this.progressive = progressive
               }
             }
             else -> Modifier

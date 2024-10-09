@@ -198,19 +198,20 @@ internal class HazeChildNode(
     innerDrawOffset: Offset,
     contentLayer: GraphicsLayer,
   ) {
-    require(progressive.steps == null || progressive.steps > 1) {
-      "steps needs to be null (for auto), or greater than 1"
+    require(progressive.steps == HazeProgressive.STEPS_AUTO_BALANCED || progressive.steps > 1) {
+      "steps needs to be STEPS_AUTO_BALANCED, or a value greater than 1"
     }
     require(progressive.startIntensity in 0f..1f)
     require(progressive.endIntensity in 0f..1f)
 
-    val steps = progressive.steps ?: run {
+    var steps = progressive.steps
+    if (steps == HazeProgressive.STEPS_AUTO_BALANCED) {
       // Here we're going to calculate an appropriate amount of steps for the length.
       // We use a calculation of 48dp per step, which is a good balance between
       // quality vs performance
       val stepHeightPx = with(drawContext.density) { 48.dp.toPx() }
       val length = calculateLength(progressive.start, progressive.end, effect.size)
-      ceil(length / stepHeightPx).toInt().coerceAtLeast(2)
+      steps = ceil(length / stepHeightPx).toInt().coerceAtLeast(2)
     }
 
     val graphicsContext = currentValueOf(LocalGraphicsContext)
@@ -320,52 +321,108 @@ internal class HazeChildNode(
   }
 }
 
-private val Size.longestDimension: Float get() = max(height, width)
-
+/**
+ * Parameters for applying a progressive blur effect.
+ */
 sealed interface HazeProgressive {
-  val steps: Int?
+  /**
+   * The number of discrete steps which should be used to make up the progressive / gradient
+   * effect. More steps results in a higher quality effect, but at the cost of performance.
+   *
+   * Set to [STEPS_AUTO_BALANCED] so that the value is automatically computed, balancing quality
+   * and performance.
+   */
+  val steps: Int
 
+  /**
+   * A linear gradient effect.
+   *
+   * You may wish to use the convenience builder functions provided in [horizontalGradient] and
+   * [verticalGradient] for more common use cases.
+   *
+   * @param steps - The number of steps in the effect. See [HazeProgressive.steps] for information.
+   * @param easing - The easing function to use when applying the effect. Defaults to a
+   * linear easing effect.
+   * @param start - Starting position of the gradient. Defaults to [Offset.Zero] which
+   * represents the top-left of the drawing area.
+   * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`.
+   * @param end - Ending position of the gradient. Defaults to
+   * [Offset.Infinite] which represents the bottom-right of the drawing area.
+   * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
+   */
   data class LinearGradient(
-    override val steps: Int? = null,
+    override val steps: Int = STEPS_AUTO_BALANCED,
     val easing: Easing = EaseIn,
     val start: Offset = Offset.Zero,
     val startIntensity: Float = 0f,
-    val end: Offset = Offset(0f, Float.POSITIVE_INFINITY),
+    val end: Offset = Offset.Infinite,
     val endIntensity: Float = 1f,
   ) : HazeProgressive
 
   companion object {
+    /**
+     * A vertical gradient effect.
+     *
+     * @param steps - The number of steps in the effect. See [HazeProgressive.steps] for information.
+     * @param easing - The easing function to use when applying the effect. Defaults to a
+     * linear easing effect.
+     * @param startY - Starting x position of the horizontal gradient. Defaults to 0 which
+     * represents the top of the drawing area.
+     * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`.
+     * @param endY - Ending x position of the horizontal gradient. Defaults to
+     * [Float.POSITIVE_INFINITY] which represents the bottom of the drawing area.
+     * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
+     */
     fun verticalGradient(
-      steps: Int? = null,
+      steps: Int = STEPS_AUTO_BALANCED,
       easing: Easing = EaseIn,
       startY: Float = 0f,
-      startStrength: Float = 0f,
+      startIntensity: Float = 0f,
       endY: Float = Float.POSITIVE_INFINITY,
-      endStrength: Float = 1f,
+      endIntensity: Float = 1f,
     ): LinearGradient = LinearGradient(
       steps = steps,
       easing = easing,
       start = Offset(0f, startY),
-      startIntensity = startStrength,
+      startIntensity = startIntensity,
       end = Offset(0f, endY),
-      endIntensity = endStrength,
+      endIntensity = endIntensity,
     )
 
+    /**
+     * A horizontal gradient effect.
+     *
+     * @param steps - The number of steps in the effect. See [HazeProgressive.steps] for information.
+     * @param easing - The easing function to use when applying the effect. Defaults to a
+     * linear easing effect.
+     * @param startX - Starting x position of the horizontal gradient. Defaults to 0 which
+     * represents the left of the drawing area
+     * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`
+     * @param endX - Ending x position of the horizontal gradient. Defaults to
+     * [Float.POSITIVE_INFINITY] which represents the right of the drawing area.
+     * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
+     */
     fun horizontalGradient(
-      steps: Int? = null,
+      steps: Int = STEPS_AUTO_BALANCED,
       easing: Easing = EaseIn,
       startX: Float = 0f,
-      startStrength: Float = 0f,
+      startIntensity: Float = 0f,
       endX: Float = Float.POSITIVE_INFINITY,
-      endStrength: Float = 1f,
+      endIntensity: Float = 1f,
     ): LinearGradient = LinearGradient(
       steps = steps,
       easing = easing,
       start = Offset(startX, 0f),
-      startIntensity = startStrength,
+      startIntensity = startIntensity,
       end = Offset(endX, 0f),
-      endIntensity = endStrength,
+      endIntensity = endIntensity,
     )
+
+    /**
+     * Value which indicates the [steps] value should be automatically computed,
+     * balancing quality and performance.
+     */
+    const val STEPS_AUTO_BALANCED = -1
   }
 }
 

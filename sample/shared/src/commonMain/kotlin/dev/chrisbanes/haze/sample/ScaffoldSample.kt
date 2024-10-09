@@ -72,7 +72,7 @@ fun ScaffoldSample(navigator: Navigator) {
         modifier = Modifier
           .hazeChild(hazeState) {
             applyStyle(style)
-            progressive = HazeProgressive.verticalGradient(startStrength = 1f, endStrength = 0f)
+            progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
           }
           .fillMaxWidth(),
       )

@@ -63,6 +63,30 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_progressive_horiz() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(
+          progressive = HazeProgressive.horizontalGradient(),
+        )
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_progressive_vertical() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(
+          progressive = HazeProgressive.verticalGradient(),
+        )
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
   fun creditCard_childTint() = runScreenshotTest {
     var tint by mutableStateOf(
       HazeTint(Color.Magenta.copy(alpha = 0.5f)),

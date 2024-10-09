@@ -19,7 +19,11 @@ interface HazeChildScope {
   var alpha: Float
 
   /**
-   * Optional mask which allows effects, such as fading via a [Brush.verticalGradient] or similar.
+   * Optional alpha mask which allows effects such as fading via a
+   * [Brush.verticalGradient] or similar. This is only applied when [progressive] is null.
+   *
+   * An alpha mask provides a similar effect as that provided as [HazeProgressive], in a more
+   * performant way, but may provide a less pleasing visual result.
    */
   var mask: Brush?
 
@@ -52,7 +56,13 @@ interface HazeChildScope {
   var fallbackTint: HazeTint?
 
   /**
-   * TODO
+   * Parameters for enabling a progressive (or gradient) blur effect, or null for a uniform
+   * blurring effect. Defaults to null.
+   *
+   * Please note: progressive blurring effects can be expensive, so you should test on a variety
+   * of devices to verify that performance is acceptable for your use case. An alternative and
+   * more performant way to achieve this effect is via the [mask] parameter, at the cost of
+   * visual finesse.
    */
   var progressive: HazeProgressive?
 
@@ -82,7 +92,7 @@ fun Modifier.hazeChild(
   state: HazeState,
   shape: Shape,
   style: HazeStyle,
-): Modifier = this.clip(shape).hazeChild(state, style)
+): Modifier = clip(shape).hazeChild(state, style)
 
 /**
  * Mark this composable as being a Haze child composable.
