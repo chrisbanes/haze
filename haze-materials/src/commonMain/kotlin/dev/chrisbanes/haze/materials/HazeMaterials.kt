@@ -107,7 +107,7 @@ object HazeMaterials {
   ): HazeStyle = HazeStyle(
     blurRadius = 24.dp,
     backgroundColor = containerColor,
-    tint = HazeTint.Color(
+    tint = HazeTint(
       containerColor.copy(alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha),
     ),
   )

@@ -27,6 +27,7 @@ internal actual fun HazeChildNode.createRenderEffect(
   blurRadiusPx: Float,
   noiseFactor: Float,
   tints: List<HazeTint>,
+  tintAlphaModulate: Float,
   boundsInLayer: Rect,
   layerSize: Size,
   mask: Brush?,
@@ -53,31 +54,35 @@ internal actual fun HazeChildNode.createRenderEffect(
       shaderNames = arrayOf("content", "blur"),
       inputs = arrayOf(null, blurFilter),
     )
-    .withTints(tints, boundsInLayer)
+    .withTints(tints, tintAlphaModulate)
     .withBrush(mask, boundsInLayer, BlendMode.DST_IN)
     .asComposeRenderEffect()
 }
 
-private fun ImageFilter.withTints(tints: List<HazeTint>, bounds: Rect): ImageFilter {
+private fun ImageFilter.withTints(tints: List<HazeTint>, alphaModulate: Float): ImageFilter {
   return tints.fold(this) { acc, tint ->
-    acc.withTint(tint, bounds)
+    acc.withTint(tint, alphaModulate)
   }
 }
 
-private fun ImageFilter.withTint(tint: HazeTint?, bounds: Rect): ImageFilter = when {
-  tint is HazeTint.Color && tint.color.alpha >= 0.005f -> {
-    ImageFilter.makeColorFilter(
-      f = ColorFilter.makeBlend(tint.color.toArgb(), tint.blendMode.toSkiaBlendMode()),
-      input = this,
-      crop = null,
-    )
+private fun ImageFilter.withTint(tint: HazeTint?, alphaModulate: Float): ImageFilter {
+  if (tint != null) {
+    val color = tint.color
+    val modulated = color.copy(alpha = color.alpha * alphaModulate)
+
+    if (modulated.alpha >= 0.005f) {
+      return ImageFilter.makeColorFilter(
+        f = ColorFilter.makeBlend(
+          color = modulated.toArgb(),
+          mode = tint.blendMode.toSkiaBlendMode(),
+        ),
+        input = this,
+        crop = null,
+      )
+    }
   }
 
-  tint is HazeTint.Brush -> {
-    withBrush(tint.brush, bounds, tint.blendMode.toSkiaBlendMode())
-  }
-
-  else -> this
+  return this
 }
 
 private fun ImageFilter.withBrush(

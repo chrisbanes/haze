@@ -257,7 +257,8 @@ internal class HazeChildNode(
       layer.renderEffect = createRenderEffect(
         blurRadiusPx = intensity * blurRadiusPx,
         noiseFactor = effect.noiseFactor,
-        tints = emptyList(), // FIXME effect.tints,
+        tints = effect.tints,
+        tintAlphaModulate = intensity,
         boundsInLayer = boundsInLayer, // cache this
         layerSize = effect.layerSize,
         mask = Brush.linearGradient(
@@ -375,10 +376,11 @@ private fun lerp(start: Float, stop: Float, fraction: Float): Float {
 internal expect fun HazeChildNode.createRenderEffect(
   blurRadiusPx: Float,
   noiseFactor: Float,
-  tints: List<HazeTint>,
+  tints: List<HazeTint> = emptyList(),
+  tintAlphaModulate: Float = 1f,
   boundsInLayer: Rect,
   layerSize: Size,
-  mask: Brush?,
+  mask: Brush? = null,
 ): RenderEffect?
 
 internal class ReusableHazeEffect : HazeChildScope {
@@ -505,25 +507,19 @@ private fun DrawScope.drawFallbackEffect(
   fallbackTint: HazeTint?,
   mask: Brush?,
 ) {
-  val tint = fallbackTint?.takeIf {
-    when (it) {
-      is HazeTint.Color -> it.color.isSpecified
-      else -> true
-    }
-  } ?: tints.firstOrNull()?.boostForFallback(blurRadius.takeOrElse { 0.dp })
+  val tint = fallbackTint
+    ?.takeIf { it.color.isSpecified }
+    ?: tints.firstOrNull()?.boostForFallback(blurRadius.takeOrElse { 0.dp })
 
   log("HazeChildNode") { "drawEffect. Drawing effect with scrim: tint=$tint, mask=$mask, alpha=$alpha" }
 
   fun scrim() {
-    if (tint is HazeTint.Color) {
+    if (tint != null) {
       if (mask != null) {
         drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
       } else {
         drawRect(color = tint.color, blendMode = tint.blendMode)
       }
-    } else if (tint is HazeTint.Brush) {
-      // We don't currently support mask + brush tints
-      drawRect(brush = tint.brush, blendMode = tint.blendMode)
     }
   }
 

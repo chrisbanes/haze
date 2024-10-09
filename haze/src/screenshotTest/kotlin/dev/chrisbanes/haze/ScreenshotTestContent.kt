@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun CreditCardSample(
-  tint: HazeTint = HazeTint.Color(Color.White.copy(alpha = 0.1f)),
+  tint: HazeTint = HazeTint(Color.White.copy(alpha = 0.1f)),
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   mask: Brush? = null,

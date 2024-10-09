@@ -199,20 +199,20 @@ object FluentMaterials {
     noiseFactor = noiseFactor,
     backgroundColor = containerColor,
     tints = listOf(
-      HazeTint.Color(
+      HazeTint(
         color = containerColor.copy(
           alpha = if (isDark) darkTintOpacity else lightTintOpacity,
         ),
         blendMode = BlendMode.Color,
       ),
-      HazeTint.Color(
+      HazeTint(
         color = containerColor.copy(
           alpha = if (isDark) darkLuminosityOpacity else lightLuminosityOpacity,
         ),
         blendMode = BlendMode.Luminosity,
       ),
     ),
-    fallbackTint = HazeTint.Color(fallbackColor),
+    fallbackTint = HazeTint(fallbackColor),
   )
 
   @ReadOnlyComposable

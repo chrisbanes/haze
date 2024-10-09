@@ -80,14 +80,11 @@ internal class HazeNode(
 
 internal expect fun DrawScope.useGraphicLayers(): Boolean
 
-internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint = when (this) {
-  is HazeTint.Color -> {
-    // For color, we can boost the alpha
-    val boosted = color.boostAlphaForBlurRadius(blurRadius.takeOrElse { HazeDefaults.blurRadius })
-    copy(color = boosted)
-  }
-  // For anything else we just use as-is
-  else -> this
+internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
+  // For color, we can boost the alpha
+  val resolved = blurRadius.takeOrElse { HazeDefaults.blurRadius }
+  val boosted = color.boostAlphaForBlurRadius(resolved)
+  return copy(color = boosted)
 }
 
 /**

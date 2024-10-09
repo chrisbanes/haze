@@ -30,7 +30,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_transparentTint() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = HazeTint.Color(Color.Transparent))
+        CreditCardSample(tint = HazeTint(Color.Transparent))
       }
     }
     captureRoot()
@@ -65,7 +65,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_childTint() = runScreenshotTest {
     var tint by mutableStateOf(
-      HazeTint.Color(Color.Magenta.copy(alpha = 0.5f)),
+      HazeTint(Color.Magenta.copy(alpha = 0.5f)),
     )
 
     setContent {
@@ -77,11 +77,11 @@ class HazeScreenshotTest : ScreenshotTest() {
     waitForIdle()
     captureRoot("magenta")
 
-    tint = HazeTint.Color(Color.Yellow.copy(alpha = 0.5f))
+    tint = HazeTint(Color.Yellow.copy(alpha = 0.5f))
     waitForIdle()
     captureRoot("yellow")
 
-    tint = HazeTint.Color(Color.Red.copy(alpha = 0.5f))
+    tint = HazeTint(Color.Red.copy(alpha = 0.5f))
     waitForIdle()
     captureRoot("red")
   }

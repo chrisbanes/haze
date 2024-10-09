@@ -32,6 +32,7 @@ internal actual fun HazeChildNode.createRenderEffect(
   blurRadiusPx: Float,
   noiseFactor: Float,
   tints: List<HazeTint>,
+  tintAlphaModulate: Float,
   boundsInLayer: Rect,
   layerSize: Size,
   mask: Brush?,
@@ -44,7 +45,7 @@ internal actual fun HazeChildNode.createRenderEffect(
   if (Build.VERSION.SDK_INT >= 31 && blurRadiusPx >= 0.005f) {
     return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
       .withNoise(noiseFactor)
-      .withTints(tints, boundsInLayer)
+      .withTints(tints, tintAlphaModulate)
       .withMask(mask, boundsInLayer)
       .asComposeRenderEffect()
   }
@@ -118,28 +119,34 @@ private fun Brush.toShader(size: Size): Shader? = when (this) {
 @RequiresApi(31)
 private fun AndroidRenderEffect.withTints(
   tints: List<HazeTint>,
-  bounds: Rect,
+  alphaModulate: Float,
 ): AndroidRenderEffect {
   return tints.fold(this) { acc, next ->
-    acc.withTint(next, bounds)
+    acc.withTint(next, alphaModulate)
   }
 }
 
 @RequiresApi(31)
 private fun AndroidRenderEffect.withTint(
   tint: HazeTint?,
-  bounds: Rect,
-): AndroidRenderEffect = when {
-  tint is HazeTint.Color && tint.color.alpha >= 0.005f -> {
-    AndroidRenderEffect.createColorFilterEffect(
-      BlendModeColorFilter(tint.color.toArgb(), tint.blendMode.toAndroidBlendMode()),
-      this,
-    )
+  alphaModulate: Float,
+): AndroidRenderEffect {
+  if (tint != null) {
+    val color = tint.color
+    val modulated = color.copy(alpha = color.alpha * alphaModulate)
+
+    if (modulated.alpha >= 0.005f) {
+      return AndroidRenderEffect.createColorFilterEffect(
+        BlendModeColorFilter(
+          modulated.toArgb(),
+          tint.blendMode.toAndroidBlendMode(),
+        ),
+        this,
+      )
+    }
   }
 
-  tint is HazeTint.Brush -> withBrush(tint.brush, bounds, tint.blendMode.toAndroidBlendMode())
-
-  else -> this
+  return this
 }
 
 /**
