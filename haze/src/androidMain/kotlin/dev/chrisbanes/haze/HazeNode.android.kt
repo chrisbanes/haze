@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
@@ -30,7 +31,6 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.withSaveLayer
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
@@ -45,7 +45,9 @@ internal actual fun HazeChildNode.createRenderEffect(
     if (Build.VERSION.SDK_INT >= 31 && blurRadiusPx >= 0.005f) {
       val bounds = Rect(effect.layerOffset, effect.size)
       return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
-        .withNoise(noiseFactor)
+        .withNoise(noiseFactor) {
+          getNoiseTexture(currentValueOf(LocalContext).resources, it)
+        }
         .withTints(effect.tints, bounds)
         .withMask(effect.mask, bounds)
         .asComposeRenderEffect()
@@ -104,8 +106,7 @@ internal actual fun HazeChildNode.drawEffect(
 
 private val noiseTextureCache = lruCache<Int, Bitmap>(3)
 
-context(CompositionLocalConsumerModifierNode)
-private fun getNoiseTexture(noiseFactor: Float): Bitmap {
+private fun getNoiseTexture(resources: Resources, noiseFactor: Float): Bitmap {
   val cacheKey = (noiseFactor * 255).roundToInt()
   val cached = noiseTextureCache[cacheKey]
   if (cached != null && !cached.isRecycled) {
@@ -113,17 +114,18 @@ private fun getNoiseTexture(noiseFactor: Float): Bitmap {
   }
 
   // We draw the noise with the given opacity
-  val resources = currentValueOf(LocalContext).resources
   return BitmapFactory.decodeResource(resources, R.drawable.haze_noise)
     .withAlpha(noiseFactor)
     .also { noiseTextureCache.put(cacheKey, it) }
 }
 
-context(CompositionLocalConsumerModifierNode)
 @RequiresApi(31)
-private fun AndroidRenderEffect.withNoise(noiseFactor: Float): AndroidRenderEffect = when {
+private fun AndroidRenderEffect.withNoise(
+  noiseFactor: Float,
+  textureBlock: (noiseFactor: Float) -> Bitmap,
+): AndroidRenderEffect = when {
   noiseFactor >= 0.005f -> {
-    val noiseShader = BitmapShader(getNoiseTexture(noiseFactor), REPEAT, REPEAT)
+    val noiseShader = BitmapShader(textureBlock(noiseFactor), REPEAT, REPEAT)
     AndroidRenderEffect.createBlendModeEffect(
       AndroidRenderEffect.createShaderEffect(noiseShader), // dst
       this, // src
