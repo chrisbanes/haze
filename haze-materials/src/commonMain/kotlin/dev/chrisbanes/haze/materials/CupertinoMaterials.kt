@@ -103,11 +103,11 @@ object CupertinoMaterials {
     blurRadius = 24.dp,
     backgroundColor = MaterialTheme.colorScheme.surface,
     tints = listOf(
-      HazeTint.Color(
+      HazeTint(
         color = if (isDark) darkBackgroundColor else lightBackgroundColor,
         blendMode = if (isDark) BlendMode.Overlay else BlendMode.ColorDodge,
       ),
-      HazeTint.Color(color = if (isDark) darkForegroundColor else lightForegroundColor),
+      HazeTint(color = if (isDark) darkForegroundColor else lightForegroundColor),
     ),
   )
 }

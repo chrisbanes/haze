@@ -74,11 +74,11 @@ object HazeDefaults {
   fun tint(color: Color): HazeTint = when {
     color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
     else -> color
-  }.let { HazeTint.Color(it) }
+  }.let(::HazeTint)
 
   @Deprecated(
     "Migrate to HazeTint for tint",
-    ReplaceWith("HazeStyle(backgroundColor, HazeTint.Color(tint), blurRadius, noiseFactor)"),
+    ReplaceWith("HazeStyle(backgroundColor, HazeTint(tint), blurRadius, noiseFactor)"),
   )
   fun style(
     backgroundColor: Color = Color.Unspecified,
@@ -159,17 +159,10 @@ data class HazeStyle(
 }
 
 @Stable
-interface HazeTint {
-  data class Color(
-    val color: androidx.compose.ui.graphics.Color,
-    val blendMode: BlendMode = BlendMode.SrcOver,
-  ) : HazeTint
-
-  data class Brush(
-    val brush: androidx.compose.ui.graphics.Brush,
-    val blendMode: BlendMode = BlendMode.SrcOver,
-  ) : HazeTint
-}
+data class HazeTint(
+  val color: Color,
+  val blendMode: BlendMode = BlendMode.SrcOver,
+)
 
 /**
  * Resolves the style which should be used by renderers. The style returned from here

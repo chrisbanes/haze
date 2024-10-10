@@ -6,7 +6,7 @@ package dev.chrisbanes.haze
 import android.util.Log
 
 internal actual fun log(tag: String, message: () -> String) {
-  if (LOG_ENABLED && Log.isLoggable(tag, Log.DEBUG)) {
+  if (LOG_ENABLED) {
     Log.d(tag, message())
   }
 }

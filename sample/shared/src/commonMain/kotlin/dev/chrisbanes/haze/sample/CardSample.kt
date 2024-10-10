@@ -99,7 +99,7 @@ fun CreditCardSample(navigator: Navigator) {
         .clip(RoundedCornerShape(16.dp))
         .hazeChild(state = hazeState) {
           backgroundColor = Color.Blue
-          tints = listOf(HazeTint.Color(Color.White.copy(alpha = 0.1f)))
+          tints = listOf(HazeTint(Color.White.copy(alpha = 0.1f)))
           blurRadius = 8.dp
           noiseFactor = HazeDefaults.noiseFactor
         },

@@ -12,10 +12,7 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.Density
 import org.jetbrains.skia.BlendMode
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.FilterTileMode
@@ -24,28 +21,32 @@ import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeShaderBuilder
 import org.jetbrains.skia.Shader
 
-internal actual fun HazeChildNode.drawEffect(
-  drawScope: DrawScope,
-  effect: ReusableHazeEffect,
-  graphicsLayer: GraphicsLayer?,
-) = with(drawScope) {
-  drawLayer(requireNotNull(graphicsLayer))
-}
-
 internal actual fun DrawScope.useGraphicLayers(): Boolean = true
 
 internal actual fun HazeChildNode.createRenderEffect(
-  effect: ReusableHazeEffect,
-  density: Density,
+  blurRadiusPx: Float,
+  noiseFactor: Float,
+  tints: List<HazeTint>,
+  tintAlphaModulate: Float,
+  boundsInLayer: Rect,
+  layerSize: Size,
+  mask: Brush?,
 ): RenderEffect? {
+  log("HazeChildNode") {
+    "createRenderEffect. blurRadiusPx=$blurRadiusPx, " +
+      "noiseFactor=$noiseFactor, " +
+      "tints=$tints, " +
+      "boundsInLayer=$boundsInLayer, " +
+      "layerSize=$layerSize"
+  }
+
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-    uniform("noiseFactor", effect.noiseFactor)
+    uniform("noiseFactor", noiseFactor.coerceIn(0f, 1f))
     child("noise", NOISE_SHADER)
   }
+
   // For CLAMP to work, we need to provide the crop rect
-  val blurRadiusPx = with(density) { effect.blurRadiusOrZero.toPx() }
-  val blurFilter = createBlurImageFilter(blurRadiusPx, effect.layerSize.toRect())
-  val bounds = Rect(effect.layerOffset, effect.size)
+  val blurFilter = createBlurImageFilter(blurRadiusPx, layerSize.toRect())
 
   return ImageFilter
     .makeRuntimeShader(
@@ -53,29 +54,35 @@ internal actual fun HazeChildNode.createRenderEffect(
       shaderNames = arrayOf("content", "blur"),
       inputs = arrayOf(null, blurFilter),
     )
-    .withTints(effect.tints, bounds)
-    .withBrush(effect.mask, bounds, BlendMode.DST_IN)
+    .withTints(tints, tintAlphaModulate)
+    .withBrush(mask, boundsInLayer, BlendMode.DST_IN)
     .asComposeRenderEffect()
 }
 
-private fun ImageFilter.withTints(tints: List<HazeTint>, bounds: Rect): ImageFilter {
+private fun ImageFilter.withTints(tints: List<HazeTint>, alphaModulate: Float): ImageFilter {
   return tints.fold(this) { acc, tint ->
-    acc.withTint(tint, bounds)
+    acc.withTint(tint, alphaModulate)
   }
 }
 
-private fun ImageFilter.withTint(tint: HazeTint?, bounds: Rect): ImageFilter = when {
-  tint is HazeTint.Color && tint.color.alpha >= 0.005f -> {
-    ImageFilter.makeColorFilter(
-      f = ColorFilter.makeBlend(tint.color.toArgb(), tint.blendMode.toSkiaBlendMode()),
-      input = this,
-      crop = null,
-    )
+private fun ImageFilter.withTint(tint: HazeTint?, alphaModulate: Float): ImageFilter {
+  if (tint != null) {
+    val color = tint.color
+    val modulated = color.copy(alpha = color.alpha * alphaModulate)
+
+    if (modulated.alpha >= 0.005f) {
+      return ImageFilter.makeColorFilter(
+        f = ColorFilter.makeBlend(
+          color = modulated.toArgb(),
+          mode = tint.blendMode.toSkiaBlendMode(),
+        ),
+        input = this,
+        crop = null,
+      )
+    }
   }
 
-  tint is HazeTint.Brush -> withBrush(tint.brush, bounds, tint.blendMode.toSkiaBlendMode())
-
-  else -> this
+  return this
 }
 
 private fun ImageFilter.withBrush(
@@ -87,19 +94,24 @@ private fun ImageFilter.withBrush(
 
   return ImageFilter.makeBlend(
     blendMode = blendMode,
-    fg = ImageFilter.makeShader(shader = shader, crop = bounds.toIRect()),
+    fg = ImageFilter.makeOffset(
+      dx = bounds.left,
+      dy = bounds.top,
+      input = ImageFilter.makeShader(shader = shader, crop = null),
+      crop = null,
+    ),
     bg = this,
     crop = null,
   )
 }
 
-private fun createBlurImageFilter(blurRadiusPx: Float, bounds: Rect): ImageFilter {
+private fun createBlurImageFilter(blurRadiusPx: Float, bounds: Rect? = null): ImageFilter {
   val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
   return ImageFilter.makeBlur(
     sigmaX = sigma,
     sigmaY = sigma,
     mode = FilterTileMode.CLAMP,
-    crop = bounds.toIRect(),
+    crop = bounds?.toIRect(),
   )
 }
 
