@@ -44,6 +44,11 @@ internal fun UiDevice.navigateToScaffold() {
   waitForIdle()
 }
 
+internal fun UiDevice.navigateToScaffoldWithProgressive() {
+  waitForObject(By.res("Scaffold (with progressive blur)")).click()
+  waitForIdle()
+}
+
 internal fun UiDevice.navigateToCreditCard() {
   waitForObject(By.res("Credit Card")).click()
   waitForIdle()

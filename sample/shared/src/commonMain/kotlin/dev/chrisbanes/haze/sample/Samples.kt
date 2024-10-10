@@ -31,7 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 
 val Samples = listOf(
-  Sample("Scaffold") { ScaffoldSample(it) },
+  Sample("Scaffold") { ScaffoldSample(it, false) },
+  Sample("Scaffold (with progressive blur)") { ScaffoldSample(it, true) },
   Sample("Credit Card") { CreditCardSample(it) },
   Sample("Images List") { ImagesList(it) },
   Sample("List over Image") { ListOverImage(it) },

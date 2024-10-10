@@ -12,6 +12,7 @@ import androidx.test.uiautomator.By
 import dev.chrisbanes.haze.testutils.navigateToCreditCard
 import dev.chrisbanes.haze.testutils.navigateToImagesList
 import dev.chrisbanes.haze.testutils.navigateToScaffold
+import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
 import dev.chrisbanes.haze.testutils.waitForObject
 import org.junit.Rule
 import org.junit.Test
@@ -60,6 +61,31 @@ class BenchmarkTest {
       setupBlock = {
         startActivityAndWait()
         device.navigateToScaffold()
+      },
+    ) {
+      val grid = device.waitForObject(By.res("lazy_grid"))
+
+      // Set gesture margin to avoid triggering gesture navigation
+      // with input events from automation.
+      grid.setGestureMargin(device.displayWidth / 5)
+
+      // Scroll down several times
+      repeat(5) {
+        grid.drag(Point(grid.visibleCenter.x, grid.visibleBounds.top))
+      }
+    }
+  }
+
+  @Test
+  fun scaffoldProgressive() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.navigateToScaffoldWithProgressive()
       },
     ) {
       val grid = device.waitForObject(By.res("lazy_grid"))
