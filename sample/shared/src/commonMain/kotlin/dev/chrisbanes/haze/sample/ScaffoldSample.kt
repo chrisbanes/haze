@@ -61,7 +61,10 @@ fun ScaffoldSample(navigator: Navigator, useProgressive: Boolean) {
       LargeTopAppBar(
         title = { Text(text = "Haze Scaffold sample") },
         navigationIcon = {
-          IconButton(onClick = navigator::navigateUp) {
+          IconButton(
+            onClick = navigator::navigateUp,
+            modifier = Modifier.testTag("back"),
+          ) {
             Icon(Icons.AutoMirrored.Default.ArrowBack, null)
           }
         },

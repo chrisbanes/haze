@@ -3,12 +3,13 @@
 
 package dev.chrisbanes.haze.baselineprofile
 
-import android.graphics.Point
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.uiautomator.By
 import dev.chrisbanes.haze.testutils.navigateToImagesList
-import dev.chrisbanes.haze.testutils.waitForObject
+import dev.chrisbanes.haze.testutils.navigateToScaffold
+import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
+import dev.chrisbanes.haze.testutils.scroll
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,12 +26,20 @@ class BaselineProfileGenerator {
     pressHome()
     startActivityAndWait()
 
-    device.navigateToImagesList()
-
     // Scroll down several times
-    repeat(5) {
-      val column = device.waitForObject(By.res("lazy_column"))
-      column.drag(Point(column.visibleCenter.x, column.visibleBounds.top))
-    }
+    device.navigateToImagesList()
+    device.scroll("lazy_column")
+
+    device.findObject(By.res("back")).click()
+    device.waitForIdle()
+
+    device.navigateToScaffoldWithProgressive()
+    device.scroll("lazy_grid")
+
+    device.findObject(By.res("back")).click()
+    device.waitForIdle()
+
+    device.navigateToScaffold()
+    device.scroll("lazy_grid")
   }
 }

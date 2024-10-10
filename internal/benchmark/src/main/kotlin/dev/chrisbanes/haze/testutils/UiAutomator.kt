@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.testutils
 
+import android.graphics.Point
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.SearchCondition
@@ -52,4 +53,15 @@ internal fun UiDevice.navigateToScaffoldWithProgressive() {
 internal fun UiDevice.navigateToCreditCard() {
   waitForObject(By.res("Credit Card")).click()
   waitForIdle()
+}
+
+internal fun UiDevice.scroll(tag: String, scrolls: Int = 5) {
+  val grid = waitForObject(By.res(tag))
+  // Set gesture margin to avoid triggering gesture navigation
+  // with input events from automation.
+  grid.setGestureMargin(displayWidth / 5)
+  // Scroll down several times
+  repeat(scrolls) {
+    grid.drag(Point(grid.visibleCenter.x, grid.visibleBounds.top))
+  }
 }
