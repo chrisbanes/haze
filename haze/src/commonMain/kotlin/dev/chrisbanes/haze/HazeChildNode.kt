@@ -8,13 +8,11 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
-import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -60,8 +58,6 @@ internal class HazeChildNode(
   GlobalPositionAwareModifierNode,
   ObserverModifierNode,
   DrawModifierNode {
-
-  private var positionOnScreen by mutableStateOf(Offset.Unspecified)
 
   private val effect by lazy(::ReusableHazeEffect)
 
@@ -171,11 +167,7 @@ internal class HazeChildNode(
       clippedContentLayer.renderEffect = effect.renderEffect
       clippedContentLayer.alpha = effect.alpha
 
-      withPositionAndClip(
-        effectPositionOnScreen = effect.positionOnScreen,
-        size = effect.size,
-        innerDrawOffset = -inflatedOffset,
-      ) {
+      withPositionAndClip(size = effect.size, innerDrawOffset = -inflatedOffset) {
         drawLayer(clippedContentLayer)
       }
     }
@@ -271,30 +263,23 @@ internal class HazeChildNode(
         ),
       )
 
-      withPositionAndClip(
-        effectPositionOnScreen = effect.positionOnScreen,
-        size = effect.size,
-        innerDrawOffset = innerDrawOffset,
-        block = { drawLayer(layer) },
-      )
+      withPositionAndClip(size = effect.size, innerDrawOffset = innerDrawOffset) {
+        drawLayer(layer)
+      }
 
       graphicsContext.releaseGraphicsLayer(layer)
     }
   }
 
   private inline fun DrawScope.withPositionAndClip(
-    effectPositionOnScreen: Offset,
     size: Size,
     innerDrawOffset: Offset = Offset.Zero,
     block: DrawScope.() -> Unit,
   ) {
-    val drawOffset = (effectPositionOnScreen - positionOnScreen).takeOrElse { Offset.Zero }
-    translate(drawOffset) {
-      clipRect(right = size.width, bottom = size.height) {
-        // Since we included a border around the content, we need to translate so that
-        // we don't see it (but it still affects the RenderEffect)
-        translate(innerDrawOffset, block)
-      }
+    clipRect(right = size.width, bottom = size.height) {
+      // Since we included a border around the content, we need to translate so that
+      // we don't see it (but it still affects the RenderEffect)
+      translate(innerDrawOffset, block)
     }
   }
 
