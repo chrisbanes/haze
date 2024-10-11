@@ -8,6 +8,7 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -128,6 +129,7 @@ internal class HazeChildNode(
     block(effect)
 
     if (effect.needInvalidation) {
+      log("HazeChildNode") { "invalidateDraw called, due to effect needing invalidation" }
       invalidateDraw()
     }
   }
@@ -314,6 +316,7 @@ internal class HazeChildNode(
 
   private fun ReusableHazeEffect.onPostDraw() {
     drawParametersDirty = false
+    progressiveDirty = false
   }
 
   private companion object {
@@ -454,6 +457,7 @@ internal class ReusableHazeEffect : HazeChildScope {
   var size: Size = Size.Unspecified
     set(value) {
       if (value != field) {
+        log("ReusableHazeEffect") { "size changed. Current: $field. New: $value" }
         // We use the size for crop rects/brush sizing
         renderEffectDirty = true
         field = value
@@ -463,6 +467,7 @@ internal class ReusableHazeEffect : HazeChildScope {
   var layerSize: Size = Size.Unspecified
     set(value) {
       if (value != field) {
+        log("ReusableHazeEffect") { "layerSize changed. Current: $field. New: $value" }
         renderEffectDirty = true
         field = value
       }
@@ -483,6 +488,7 @@ internal class ReusableHazeEffect : HazeChildScope {
   override var blurRadius: Dp = HazeDefaults.blurRadius
     set(value) {
       if (value != field) {
+        log("ReusableHazeEffect") { "blurRadius changed. Current: $field. New: $value" }
         renderEffectDirty = true
         field = value
       }
@@ -491,6 +497,7 @@ internal class ReusableHazeEffect : HazeChildScope {
   override var noiseFactor: Float = HazeDefaults.noiseFactor
     set(value) {
       if (value != field) {
+        log("ReusableHazeEffect") { "noiseFactor changed. Current: $field. New: $value" }
         renderEffectDirty = true
         field = value
       }
@@ -499,6 +506,7 @@ internal class ReusableHazeEffect : HazeChildScope {
   override var mask: Brush? = null
     set(value) {
       if (value != field) {
+        log("ReusableHazeEffect") { "mask changed. Current: $field. New: $value" }
         renderEffectDirty = true
         field = value
       }
@@ -509,6 +517,7 @@ internal class ReusableHazeEffect : HazeChildScope {
   override var tints: List<HazeTint> = emptyList()
     set(value) {
       if (value != field) {
+        log("ReusableHazeEffect") { "tints changed. Current: $field. New: $value" }
         renderEffectDirty = true
         field = value
       }
@@ -517,6 +526,7 @@ internal class ReusableHazeEffect : HazeChildScope {
   override var fallbackTint: HazeTint? = null
     set(value) {
       if (value != field) {
+        log("ReusableHazeEffect") { "fallbackTint changed. Current: $field. New: $value" }
         renderEffectDirty = true
         field = value
       }
@@ -525,6 +535,7 @@ internal class ReusableHazeEffect : HazeChildScope {
   override var alpha: Float = 1f
     set(value) {
       if (value != field) {
+        log("ReusableHazeEffect") { "alpha changed. Current $field. New: $value" }
         drawParametersDirty = true
         field = value
       }
@@ -533,6 +544,7 @@ internal class ReusableHazeEffect : HazeChildScope {
   override var progressive: HazeProgressive? = null
     set(value) {
       if (value != field) {
+        log("ReusableHazeEffect") { "progressive changed. Current $field. New: $value" }
         progressiveDirty = true
         field = value
       }
@@ -551,7 +563,14 @@ internal val ReusableHazeEffect.blurRadiusOrZero: Dp
   get() = blurRadius.takeOrElse { 0.dp }
 
 internal val ReusableHazeEffect.needInvalidation: Boolean
-  get() = renderEffectDirty || drawParametersDirty || progressiveDirty
+  get() {
+    log("ReusableHazeEffect") {
+      "needInvalidation. renderEffectDirty=$renderEffectDirty, " +
+        "drawParametersDirty=$drawParametersDirty, " +
+        "progressiveDirty=$progressiveDirty"
+    }
+    return renderEffectDirty || drawParametersDirty || progressiveDirty
+  }
 
 private fun Size.expand(expansion: Float): Size {
   return Size(width = width + expansion, height = height + expansion)
