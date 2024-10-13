@@ -28,7 +28,7 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 metalava = { id = "me.tylerbwong.gradle.metalava", version = "0.3.5" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.29.0" }
+mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.30.0" }
 
 [libraries]
 androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
