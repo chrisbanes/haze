@@ -62,7 +62,10 @@ fun SamplesTheme(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Samples(appTitle: String) {
+fun Samples(
+  appTitle: String,
+  samples: List<Sample> = Samples,
+) {
   SamplesTheme {
     var currentSample by remember { mutableStateOf<Sample?>(null) }
 
@@ -100,7 +103,7 @@ fun Samples(appTitle: String) {
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,
           ) {
-            items(Samples) { sample ->
+            items(samples) { sample ->
               ListItem(
                 headlineContent = { Text(text = sample.title) },
                 modifier = Modifier

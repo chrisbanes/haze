@@ -55,5 +55,8 @@ dependencies {
   implementation(libs.androidx.activity.compose)
   implementation(libs.androidx.profileinstaller)
 
+  implementation(libs.androidx.media3.exoplayer)
+  implementation(libs.androidx.media3.ui)
+
   baselineProfile(projects.internal.benchmark)
 }

@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import dev.chrisbanes.haze.sample.Sample
 import dev.chrisbanes.haze.sample.Samples
 
 class MainActivity : ComponentActivity() {
@@ -15,7 +16,14 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
 
     setContent {
-      Samples(appTitle = title.toString())
+      Samples(
+        appTitle = title.toString(),
+        samples = Samples + AndroidSamples,
+      )
     }
   }
 }
+
+private val AndroidSamples = listOf(
+  Sample("ExoPlayer") { ExoPlayerSample(it) },
+)
