@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+import org.jetbrains.compose.ExperimentalComposeLibrary
+
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
@@ -72,11 +74,20 @@ kotlin {
       dependsOn(skikoMain)
     }
 
+    commonTest {
+      dependencies {
+        implementation(kotlin("test"))
+        implementation(libs.assertk)
+
+        @OptIn(ExperimentalComposeLibrary::class)
+        implementation(compose.uiTest)
+      }
+    }
+
     val screenshotTest by creating {
       dependsOn(commonTest.get())
 
       dependencies {
-        implementation(kotlin("test"))
         implementation(projects.internal.screenshotTest)
       }
     }

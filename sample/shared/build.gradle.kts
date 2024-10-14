@@ -16,8 +16,8 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        implementation(projects.haze)
-        implementation(projects.hazeMaterials)
+        api(projects.haze)
+        api(projects.hazeMaterials)
 
         implementation(libs.coil.compose)
         implementation(libs.coil.ktor)
