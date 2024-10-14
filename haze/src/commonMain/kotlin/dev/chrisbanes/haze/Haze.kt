@@ -37,6 +37,8 @@ class HazeState {
    */
   var contentLayer: GraphicsLayer? = null
     internal set
+
+  internal var contentDrawing = false
 }
 
 /**
