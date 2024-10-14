@@ -12,6 +12,8 @@ import androidx.test.uiautomator.By
 import dev.chrisbanes.haze.testutils.navigateToCreditCard
 import dev.chrisbanes.haze.testutils.navigateToImagesList
 import dev.chrisbanes.haze.testutils.navigateToScaffold
+import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
+import dev.chrisbanes.haze.testutils.scroll
 import dev.chrisbanes.haze.testutils.waitForObject
 import org.junit.Rule
 import org.junit.Test
@@ -37,16 +39,7 @@ class BenchmarkTest {
         device.navigateToImagesList()
       },
     ) {
-      val column = device.waitForObject(By.res("lazy_column"))
-
-      // Set gesture margin to avoid triggering gesture navigation
-      // with input events from automation.
-      column.setGestureMargin(device.displayWidth / 5)
-
-      // Scroll down several times
-      repeat(5) {
-        column.drag(Point(column.visibleCenter.x, column.visibleBounds.top))
-      }
+      device.scroll("lazy_column")
     }
   }
 
@@ -62,16 +55,23 @@ class BenchmarkTest {
         device.navigateToScaffold()
       },
     ) {
-      val grid = device.waitForObject(By.res("lazy_grid"))
+      device.scroll("lazy_grid")
+    }
+  }
 
-      // Set gesture margin to avoid triggering gesture navigation
-      // with input events from automation.
-      grid.setGestureMargin(device.displayWidth / 5)
-
-      // Scroll down several times
-      repeat(5) {
-        grid.drag(Point(grid.visibleCenter.x, grid.visibleBounds.top))
-      }
+  @Test
+  fun scaffoldProgressive() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.navigateToScaffoldWithProgressive()
+      },
+    ) {
+      device.scroll("lazy_grid")
     }
   }
 

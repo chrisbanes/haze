@@ -13,7 +13,6 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
-import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
@@ -23,13 +22,13 @@ internal class HazeNode(
   var state: HazeState,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
-  LayoutAwareModifierNode,
   GlobalPositionAwareModifierNode,
   DrawModifierNode {
 
-  override fun onGloballyPositioned(coordinates: LayoutCoordinates) = onPlaced(coordinates)
-
-  override fun onPlaced(coordinates: LayoutCoordinates) {
+  override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+    log("HazeNode") {
+      "onPlaced: positionInWindow=${coordinates.positionInWindow()}"
+    }
     state.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
   }
 

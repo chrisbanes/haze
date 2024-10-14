@@ -44,7 +44,7 @@ baselineProfile {
   managedDevices += "pixel5Api30"
   managedDevices += "pixel5Api34"
   useConnectedDevices = false
-  enableEmulatorDisplay = true
+  enableEmulatorDisplay = false
 }
 
 dependencies {

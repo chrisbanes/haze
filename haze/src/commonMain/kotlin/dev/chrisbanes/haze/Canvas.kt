@@ -5,19 +5,8 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isFinite
-import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.layer.GraphicsLayer
-
-internal inline fun GraphicsContext.useGraphicsLayer(block: (GraphicsLayer) -> Unit) {
-  val layer = createGraphicsLayer()
-  try {
-    block(layer)
-  } finally {
-    releaseGraphicsLayer(layer)
-  }
-}
 
 internal inline fun DrawScope.translate(
   offset: Offset,

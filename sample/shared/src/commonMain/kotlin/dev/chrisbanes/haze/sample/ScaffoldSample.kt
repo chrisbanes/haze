@@ -47,7 +47,7 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-fun ScaffoldSample(navigator: Navigator) {
+fun ScaffoldSample(navigator: Navigator, useProgressive: Boolean) {
   val hazeState = remember { HazeState() }
   val gridState = rememberLazyGridState()
   val showNavigationBar by remember(gridState) {
@@ -61,7 +61,10 @@ fun ScaffoldSample(navigator: Navigator) {
       LargeTopAppBar(
         title = { Text(text = "Haze Scaffold sample") },
         navigationIcon = {
-          IconButton(onClick = navigator::navigateUp) {
+          IconButton(
+            onClick = navigator::navigateUp,
+            modifier = Modifier.testTag("back"),
+          ) {
             Icon(Icons.AutoMirrored.Default.ArrowBack, null)
           }
         },
@@ -72,7 +75,9 @@ fun ScaffoldSample(navigator: Navigator) {
         modifier = Modifier
           .hazeChild(hazeState) {
             applyStyle(style)
-            progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
+            if (useProgressive) {
+              progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
+            }
           }
           .fillMaxWidth(),
       )
