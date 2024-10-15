@@ -1,37 +1,83 @@
 // Signature format: 4.0
 package dev.chrisbanes.haze {
 
-  public final class HazeChildKt {
-    method @Deprecated public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, androidx.compose.ui.graphics.Shape shape, dev.chrisbanes.haze.HazeStyle style);
-    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, dev.chrisbanes.haze.HazeStyle style);
-    method public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit> block);
+  @kotlin.RequiresOptIn(message="Experimental Haze API", level=kotlin.RequiresOptIn.Level.WARNING) public @interface ExperimentalHazeApi {
   }
 
-  public interface HazeChildScope {
-    method public void applyStyle(dev.chrisbanes.haze.HazeStyle style);
+  public final class HazeChildKt {
+    method @Deprecated public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, androidx.compose.ui.graphics.Shape shape, dev.chrisbanes.haze.HazeStyle style);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? block);
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeChildNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeChildScope androidx.compose.ui.node.ObserverModifierNode {
+    ctor public HazeChildNode(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? block);
+    method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
     method public float getAlpha();
     method public long getBackgroundColor();
+    method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? getBlock();
     method public float getBlurRadius();
-    method public dev.chrisbanes.haze.HazeTint? getFallbackTint();
+    method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public androidx.compose.ui.graphics.Brush? getMask();
     method public float getNoiseFactor();
     method public dev.chrisbanes.haze.HazeProgressive? getProgressive();
+    method public dev.chrisbanes.haze.HazeState getState();
+    method public dev.chrisbanes.haze.HazeStyle getStyle();
+    method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
+    method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
+    method public void onObservedReadsChanged();
+    method public void setAlpha(float);
+    method public void setBackgroundColor(long);
+    method public void setBlock(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>?);
+    method public void setBlurRadius(float);
+    method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
+    method public void setMask(androidx.compose.ui.graphics.Brush?);
+    method public void setNoiseFactor(float);
+    method public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
+    method public void setState(dev.chrisbanes.haze.HazeState);
+    method public void setStyle(dev.chrisbanes.haze.HazeStyle);
+    method public void setTints(java.util.List<dev.chrisbanes.haze.HazeTint>);
+    property public float alpha;
+    property public long backgroundColor;
+    property public final kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? block;
+    property public float blurRadius;
+    property public dev.chrisbanes.haze.HazeTint fallbackTint;
+    property public androidx.compose.ui.graphics.Brush? mask;
+    property public float noiseFactor;
+    property public dev.chrisbanes.haze.HazeProgressive? progressive;
+    property public boolean shouldAutoInvalidate;
+    property public final dev.chrisbanes.haze.HazeState state;
+    property public dev.chrisbanes.haze.HazeStyle style;
+    property public java.util.List<dev.chrisbanes.haze.HazeTint> tints;
+    field public static final String TAG = "HazeChild";
+  }
+
+  public interface HazeChildScope {
+    method public float getAlpha();
+    method public long getBackgroundColor();
+    method public float getBlurRadius();
+    method public dev.chrisbanes.haze.HazeTint getFallbackTint();
+    method public androidx.compose.ui.graphics.Brush? getMask();
+    method public float getNoiseFactor();
+    method public dev.chrisbanes.haze.HazeProgressive? getProgressive();
+    method public dev.chrisbanes.haze.HazeStyle getStyle();
     method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
     method public void setAlpha(float);
     method public void setBackgroundColor(long);
     method public void setBlurRadius(float);
-    method public void setFallbackTint(dev.chrisbanes.haze.HazeTint?);
+    method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
     method public void setMask(androidx.compose.ui.graphics.Brush?);
     method public void setNoiseFactor(float);
     method public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
+    method public void setStyle(dev.chrisbanes.haze.HazeStyle);
     method public void setTints(java.util.List<dev.chrisbanes.haze.HazeTint>);
     property public abstract float alpha;
     property public abstract long backgroundColor;
     property public abstract float blurRadius;
-    property public abstract dev.chrisbanes.haze.HazeTint? fallbackTint;
+    property public abstract dev.chrisbanes.haze.HazeTint fallbackTint;
     property public abstract androidx.compose.ui.graphics.Brush? mask;
     property public abstract float noiseFactor;
     property public abstract dev.chrisbanes.haze.HazeProgressive? progressive;
+    property public abstract dev.chrisbanes.haze.HazeStyle style;
     property public abstract java.util.List<dev.chrisbanes.haze.HazeTint> tints;
   }
 
@@ -47,7 +93,18 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeKt {
-    method public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state);
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode {
+    ctor public HazeNode(dev.chrisbanes.haze.HazeState state);
+    method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
+    method public dev.chrisbanes.haze.HazeState getState();
+    method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
+    method public void setState(dev.chrisbanes.haze.HazeState);
+    property public boolean shouldAutoInvalidate;
+    property public final dev.chrisbanes.haze.HazeState state;
+    field public static final String TAG = "HazeNode";
   }
 
   public sealed interface HazeProgressive {
@@ -95,22 +152,22 @@ package dev.chrisbanes.haze {
   }
 
   @androidx.compose.runtime.Immutable public final class HazeStyle {
-    ctor public HazeStyle(optional long backgroundColor, optional dev.chrisbanes.haze.HazeTint? tint, optional float blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint? fallbackTint);
-    ctor public HazeStyle(optional long backgroundColor, optional java.util.List<dev.chrisbanes.haze.HazeTint> tints, optional float blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint? fallbackTint);
+    ctor public HazeStyle(optional long backgroundColor, optional dev.chrisbanes.haze.HazeTint? tint, optional float blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint fallbackTint);
+    ctor public HazeStyle(optional long backgroundColor, optional java.util.List<dev.chrisbanes.haze.HazeTint> tints, optional float blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint fallbackTint);
     method public long component1-0d7_KjU();
     method public java.util.List<dev.chrisbanes.haze.HazeTint> component2();
     method public float component3-D9Ej5fM();
     method public float component4();
-    method public dev.chrisbanes.haze.HazeTint? component5();
-    method public dev.chrisbanes.haze.HazeStyle copy-cq6XJ1M(long backgroundColor, java.util.List<dev.chrisbanes.haze.HazeTint> tints, float blurRadius, float noiseFactor, dev.chrisbanes.haze.HazeTint? fallbackTint);
+    method public dev.chrisbanes.haze.HazeTint component5();
+    method public dev.chrisbanes.haze.HazeStyle copy-cq6XJ1M(long backgroundColor, java.util.List<dev.chrisbanes.haze.HazeTint> tints, float blurRadius, float noiseFactor, dev.chrisbanes.haze.HazeTint fallbackTint);
     method public long getBackgroundColor();
     method public float getBlurRadius();
-    method public dev.chrisbanes.haze.HazeTint? getFallbackTint();
+    method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public float getNoiseFactor();
     method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
     property public final long backgroundColor;
     property public final float blurRadius;
-    property public final dev.chrisbanes.haze.HazeTint? fallbackTint;
+    property public final dev.chrisbanes.haze.HazeTint fallbackTint;
     property public final float noiseFactor;
     property public final java.util.List<dev.chrisbanes.haze.HazeTint> tints;
     field public static final dev.chrisbanes.haze.HazeStyle.Companion Companion;
@@ -121,6 +178,11 @@ package dev.chrisbanes.haze {
     property public final dev.chrisbanes.haze.HazeStyle Unspecified;
   }
 
+  public final class HazeStyleKt {
+    method public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.HazeStyle> getLocalHazeStyle();
+    property public static final androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.HazeStyle> LocalHazeStyle;
+  }
+
   @androidx.compose.runtime.Stable public final class HazeTint {
     ctor public HazeTint(long color, optional int blendMode);
     method public long component1-0d7_KjU();
@@ -128,8 +190,16 @@ package dev.chrisbanes.haze {
     method public dev.chrisbanes.haze.HazeTint copy-xETnrds(long color, int blendMode);
     method public int getBlendMode();
     method public long getColor();
+    method public boolean isSpecified();
     property public final int blendMode;
     property public final long color;
+    property public final boolean isSpecified;
+    field public static final dev.chrisbanes.haze.HazeTint.Companion Companion;
+  }
+
+  public static final class HazeTint.Companion {
+    method public dev.chrisbanes.haze.HazeTint getUnspecified();
+    property public final dev.chrisbanes.haze.HazeTint Unspecified;
   }
 
 }

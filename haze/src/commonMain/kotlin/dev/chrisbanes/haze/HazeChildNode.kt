@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
@@ -45,20 +46,168 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 
-internal class HazeChildNode(
+/**
+ * The [Modifier.Node] implementation used by [Modifier.hazeChild].
+ *
+ * This is public API in order to aid custom extensible modifiers, _but_ we reserve the right
+ * to be able to change the API in the future, hence why it is marked as experimental forever.
+ */
+@ExperimentalHazeApi
+class HazeChildNode(
   var state: HazeState,
-  var block: HazeChildScope.() -> Unit,
+  style: HazeStyle = HazeStyle.Unspecified,
+  var block: (HazeChildScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
   ObserverModifierNode,
-  DrawModifierNode {
-
-  private val effect by lazy(::ReusableHazeEffect)
+  DrawModifierNode,
+  HazeChildScope {
 
   override val shouldAutoInvalidate: Boolean = false
 
-  fun update() {
+  private val paint by lazy { Paint() }
+
+  private var renderEffect: RenderEffect? = null
+  private var renderEffectDirty: Boolean = true
+  private var positionChanged: Boolean = true
+  private var drawParametersDirty: Boolean = true
+  private var progressiveDirty: Boolean = true
+
+  internal var compositionLocalStyle: HazeStyle = HazeStyle.Unspecified
+    set(value) {
+      if (field != value) {
+        log(TAG) { "LocalHazeStyle changed. Current: $field. New: $value" }
+        field = value
+        renderEffectDirty = true
+      }
+    }
+
+  override var style: HazeStyle = style
+    set(value) {
+      if (field != value) {
+        log(TAG) { "style changed. Current: $field. New: $value" }
+        field = value
+        renderEffectDirty = true
+      }
+    }
+
+  private var positionInContent: Offset = Offset.Unspecified
+    set(value) {
+      if (value != field) {
+        log(TAG) { "positionInContent changed. Current: $field. New: $value" }
+        positionChanged = true
+        field = value
+      }
+    }
+
+  private val isValid: Boolean
+    get() = size.isSpecified && layerSize.isSpecified
+
+  private var size: Size = Size.Unspecified
+    set(value) {
+      if (value != field) {
+        log(TAG) { "size changed. Current: $field. New: $value" }
+        // We use the size for crop rects/brush sizing
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  private var layerSize: Size = Size.Unspecified
+    set(value) {
+      if (value != field) {
+        log(TAG) { "layerSize changed. Current: $field. New: $value" }
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  private val layerOffset: Offset
+    get() = when {
+      isValid -> {
+        Offset(
+          x = (layerSize.width - size.width) / 2f,
+          y = (layerSize.height - size.height) / 2f,
+        )
+      }
+
+      else -> Offset.Zero
+    }
+
+  override var blurRadius: Dp = HazeDefaults.blurRadius
+    set(value) {
+      if (value != field) {
+        log(TAG) { "blurRadius changed. Current: $field. New: $value" }
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  override var noiseFactor: Float = HazeDefaults.noiseFactor
+    set(value) {
+      if (value != field) {
+        log(TAG) { "noiseFactor changed. Current: $field. New: $value" }
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  override var mask: Brush? = null
+    set(value) {
+      if (value != field) {
+        log(TAG) { "mask changed. Current: $field. New: $value" }
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  override var backgroundColor: Color = Color.Unspecified
+    set(value) {
+      if (value != field) {
+        log(TAG) { "backgroundColor changed. Current: $field. New: $value" }
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  override var tints: List<HazeTint> = emptyList()
+    set(value) {
+      if (value != field) {
+        log(TAG) { "tints changed. Current: $field. New: $value" }
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  override var fallbackTint: HazeTint = HazeTint.Unspecified
+    set(value) {
+      if (value != field) {
+        log(TAG) { "fallbackTint changed. Current: $field. New: $value" }
+        renderEffectDirty = true
+        field = value
+      }
+    }
+
+  override var alpha: Float = 1f
+    set(value) {
+      if (value != field) {
+        log(TAG) { "alpha changed. Current $field. New: $value" }
+        drawParametersDirty = true
+        field = value
+      }
+    }
+
+  override var progressive: HazeProgressive? = null
+    set(value) {
+      if (value != field) {
+        log(TAG) { "progressive changed. Current $field. New: $value" }
+        progressiveDirty = true
+        field = value
+      }
+    }
+
+  internal fun update() {
     onObservedReadsChanged()
   }
 
@@ -69,17 +218,20 @@ internal class HazeChildNode(
   override fun onObservedReadsChanged() {
     observeReads {
       updateEffect()
+      compositionLocalStyle = currentValueOf(LocalHazeStyle)
     }
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
     log(TAG) { "onGloballyPositioned: positionInWindow=${coordinates.positionInWindow()}" }
-    effect.positionInContent = coordinates.positionInWindow() +
-      calculateWindowOffset() - state.positionOnScreen
-    effect.size = coordinates.size.toSize()
+    positionInContent =
+      coordinates.positionInWindow() + calculateWindowOffset() - state.positionOnScreen
+    size = coordinates.size.toSize()
 
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) { effect.blurRadius.toPx() }
-    effect.layerSize = effect.size.expand(blurRadiusPx * 2)
+    val blurRadiusPx = with(currentValueOf(LocalDensity)) {
+      resolvedBlurRadius.takeOrElse { 0.dp }.toPx()
+    }
+    layerSize = size.expand(blurRadiusPx * 2)
 
     updateEffect()
   }
@@ -91,7 +243,7 @@ internal class HazeChildNode(
       "Layout nodes using Modifier.haze and Modifier.hazeChild can not be descendants of each other"
     }
 
-    if (!effect.isValid) {
+    if (!isValid) {
       // If we don't have any effects, just call drawContent and return early
       drawContent()
       log(TAG) { "-> HazeChild. end draw()" }
@@ -99,7 +251,7 @@ internal class HazeChildNode(
     }
 
     // First we need to make sure that the effects are updated (if necessary)
-    effect.onPreDraw(drawContext.density)
+    onPreDraw(drawContext.density)
 
     if (useGraphicLayers()) {
       val contentLayer = state.contentLayer
@@ -113,7 +265,7 @@ internal class HazeChildNode(
     // Finally we draw the content
     drawContent()
 
-    effect.onPostDraw()
+    onPostDraw()
 
     log(TAG) { "-> HazeChild. end draw()" }
   }
@@ -121,9 +273,9 @@ internal class HazeChildNode(
   private fun updateEffect() {
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
-    block(effect)
+    block?.invoke(this)
 
-    if (effect.needInvalidation) {
+    if (needInvalidation()) {
       log(TAG) { "invalidateDraw called, due to effect needing invalidation" }
       invalidateDraw()
     }
@@ -138,33 +290,33 @@ internal class HazeChildNode(
     // The layer size is usually than the bounds. This is so that we include enough
     // content around the edges to keep the blurring uniform. Without the extra border,
     // the blur will naturally fade out at the edges.
-    val inflatedSize = effect.layerSize
+    val inflatedSize = layerSize
     // This is the topLeft in the inflated bounds where the real are should be at [0,0]
-    val inflatedOffset = effect.layerOffset
+    val inflatedOffset = layerOffset
 
     clippedContentLayer.record(inflatedSize.roundToIntSize()) {
-      require(effect.backgroundColor.isSpecified) {
+      val bg = resolvedBackgroundColor
+      require(bg.isSpecified) {
         "backgroundColor not specified. Please provide a color."
       }
-      drawRect(effect.backgroundColor)
+      drawRect(bg)
 
-      translate(inflatedOffset - effect.positionInContent) {
+      translate(inflatedOffset - positionInContent) {
         // Draw the content into our effect layer
         drawLayer(contentLayer)
       }
     }
 
-    val progressive = effect.progressive
-    if (progressive is HazeProgressive.LinearGradient && useGraphicLayers()) {
+    val p = progressive
+    if (p is HazeProgressive.LinearGradient && useGraphicLayers()) {
       drawLinearGradientProgressiveEffect(
-        effect = effect,
-        progressive = progressive,
+        progressive = p,
         innerDrawOffset = -inflatedOffset,
         contentLayer = clippedContentLayer,
       )
     } else {
-      clippedContentLayer.renderEffect = effect.renderEffect
-      clippedContentLayer.alpha = effect.alpha
+      clippedContentLayer.renderEffect = renderEffect
+      clippedContentLayer.alpha = alpha
 
       clipRect(right = size.width, bottom = size.height) {
         translate(-inflatedOffset) {
@@ -179,18 +331,31 @@ internal class HazeChildNode(
   }
 
   private fun DrawScope.drawEffectWithScrim() {
-    // Maybe we can do this progressive too?
-    drawFallbackEffect(
-      alpha = effect.alpha,
-      blurRadius = effect.blurRadius,
-      tints = effect.tints,
-      fallbackTint = effect.fallbackTint,
-      mask = effect.mask,
-    )
+    val scrimTint = resolvedFallbackTint.takeIf { it.isSpecified }
+      ?: resolvedTints.firstOrNull()?.boostForFallback(resolvedBlurRadius.takeOrElse { 0.dp })
+
+    fun scrim() {
+      if (scrimTint != null) {
+        val m = mask
+        if (m != null) {
+          drawRect(brush = m, colorFilter = ColorFilter.tint(scrimTint.color))
+        } else {
+          drawRect(color = scrimTint.color, blendMode = scrimTint.blendMode)
+        }
+      }
+    }
+
+    if (alpha != 1f) {
+      paint.alpha = alpha
+      drawContext.canvas.withSaveLayer(size.toRect(), paint) {
+        scrim()
+      }
+    } else {
+      scrim()
+    }
   }
 
   private fun DrawScope.drawLinearGradientProgressiveEffect(
-    effect: ReusableHazeEffect,
     progressive: HazeProgressive.LinearGradient,
     innerDrawOffset: Offset,
     contentLayer: GraphicsLayer,
@@ -207,7 +372,7 @@ internal class HazeChildNode(
       // We use a calculation of 48dp per step, which is a good balance between
       // quality vs performance
       val stepHeightPx = with(drawContext.density) { 48.dp.toPx() }
-      val length = calculateLength(progressive.start, progressive.end, effect.size)
+      val length = calculateLength(progressive.start, progressive.end, size)
       steps = ceil(length / stepHeightPx).toInt().coerceAtLeast(2)
     }
 
@@ -248,17 +413,18 @@ internal class HazeChildNode(
           "maskStops=${maskStops.map { it.first to it.second.alpha }}"
       }
 
-      val blurRadiusPx = with(drawContext.density) { effect.blurRadiusOrZero.toPx() }
-      val boundsInLayer = Rect(effect.layerOffset, effect.size)
+      val boundsInLayer = Rect(layerOffset, size)
 
-      layer.alpha = effect.alpha
+      layer.alpha = alpha
       layer.renderEffect = createRenderEffect(
-        blurRadiusPx = intensity * blurRadiusPx,
-        noiseFactor = effect.noiseFactor,
-        tints = effect.tints,
+        blurRadiusPx = with(drawContext.density) {
+          intensity * resolvedBlurRadius.takeOrElse { 0.dp }.toPx()
+        },
+        noiseFactor = resolvedNoiseFactor,
+        tints = resolvedTints,
         tintAlphaModulate = intensity,
         boundsInLayer = boundsInLayer, // cache this
-        layerSize = effect.layerSize,
+        layerSize = layerSize,
         mask = Brush.linearGradient(
           *maskStops.toTypedArray(),
           start = progressive.start,
@@ -278,29 +444,39 @@ internal class HazeChildNode(
     }
   }
 
-  private fun ReusableHazeEffect.onPreDraw(density: Density) {
+  private fun onPreDraw(density: Density) {
     if (renderEffectDirty) {
       renderEffect = createRenderEffect(
-        blurRadiusPx = with(density) { blurRadiusOrZero.toPx() }, // cache this
-        noiseFactor = noiseFactor,
-        tints = tints,
+        blurRadiusPx = with(density) {
+          resolvedBlurRadius.takeOrElse { 0.dp }.toPx()
+        },
+        noiseFactor = resolvedNoiseFactor,
+        tints = resolvedTints,
         boundsInLayer = Rect(layerOffset, size), // cache this
         layerSize = layerSize,
         mask = mask,
       )
       renderEffectDirty = false
     }
-    // We don't update the path here as we may not need it. Let draw request it
-    // via getUpdatedPath if it needs it
   }
 
-  private fun ReusableHazeEffect.onPostDraw() {
+  private fun onPostDraw() {
     drawParametersDirty = false
     progressiveDirty = false
     positionChanged = false
   }
 
-  internal companion object {
+  private fun needInvalidation(): Boolean {
+    log(TAG) {
+      "needInvalidation. renderEffectDirty=$renderEffectDirty, " +
+        "drawParametersDirty=$drawParametersDirty, " +
+        "progressiveDirty=$progressiveDirty" +
+        "positionChanged=$positionChanged"
+    }
+    return renderEffectDirty || drawParametersDirty || progressiveDirty || positionChanged
+  }
+
+  private companion object {
     const val TAG = "HazeChild"
   }
 }
@@ -424,181 +600,34 @@ internal expect fun HazeChildNode.createRenderEffect(
   mask: Brush? = null,
 ): RenderEffect?
 
-internal class ReusableHazeEffect : HazeChildScope {
-  var renderEffect: RenderEffect? = null
-  var renderEffectDirty: Boolean = true
-  var positionChanged: Boolean = true
-  var drawParametersDirty: Boolean = true
-  var progressiveDirty: Boolean = true
+internal val HazeChildNode.resolvedBackgroundColor: Color
+  get() = backgroundColor
+    .takeOrElse { style.backgroundColor }
+    .takeOrElse { compositionLocalStyle.backgroundColor }
 
-  var positionInContent: Offset = Offset.Unspecified
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "positionInContent changed. Current: $field. New: $value" }
-        positionChanged = true
-        field = value
-      }
-    }
+internal val HazeChildNode.resolvedBlurRadius: Dp
+  get() = blurRadius
+    .takeOrElse { style.blurRadius }
+    .takeOrElse { compositionLocalStyle.blurRadius }
 
-  val isValid: Boolean
-    get() = size.isSpecified && layerSize.isSpecified
+internal val HazeChildNode.resolvedTints: List<HazeTint>
+  get() = tints.takeIf { it.isNotEmpty() }
+    ?: style.tints.takeIf { it.isNotEmpty() }
+    ?: compositionLocalStyle.tints.takeIf { it.isNotEmpty() }
+    ?: emptyList()
 
-  var size: Size = Size.Unspecified
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "size changed. Current: $field. New: $value" }
-        // We use the size for crop rects/brush sizing
-        renderEffectDirty = true
-        field = value
-      }
-    }
+internal val HazeChildNode.resolvedFallbackTint: HazeTint
+  get() = fallbackTint.takeIf { it.isSpecified }
+    ?: style.fallbackTint.takeIf { it.isSpecified }
+    ?: compositionLocalStyle.fallbackTint
 
-  var layerSize: Size = Size.Unspecified
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "layerSize changed. Current: $field. New: $value" }
-        renderEffectDirty = true
-        field = value
-      }
-    }
-
-  val layerOffset: Offset
-    get() = when {
-      isValid -> {
-        Offset(
-          x = (layerSize.width - size.width) / 2f,
-          y = (layerSize.height - size.height) / 2f,
-        )
-      }
-
-      else -> Offset.Zero
-    }
-
-  override var blurRadius: Dp = HazeDefaults.blurRadius
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "blurRadius changed. Current: $field. New: $value" }
-        renderEffectDirty = true
-        field = value
-      }
-    }
-
-  override var noiseFactor: Float = HazeDefaults.noiseFactor
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "noiseFactor changed. Current: $field. New: $value" }
-        renderEffectDirty = true
-        field = value
-      }
-    }
-
-  override var mask: Brush? = null
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "mask changed. Current: $field. New: $value" }
-        renderEffectDirty = true
-        field = value
-      }
-    }
-
-  override var backgroundColor: Color = Color.Unspecified
-
-  override var tints: List<HazeTint> = emptyList()
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "tints changed. Current: $field. New: $value" }
-        renderEffectDirty = true
-        field = value
-      }
-    }
-
-  override var fallbackTint: HazeTint? = null
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "fallbackTint changed. Current: $field. New: $value" }
-        renderEffectDirty = true
-        field = value
-      }
-    }
-
-  override var alpha: Float = 1f
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "alpha changed. Current $field. New: $value" }
-        drawParametersDirty = true
-        field = value
-      }
-    }
-
-  override var progressive: HazeProgressive? = null
-    set(value) {
-      if (value != field) {
-        log("ReusableHazeEffect") { "progressive changed. Current $field. New: $value" }
-        progressiveDirty = true
-        field = value
-      }
-    }
-
-  override fun applyStyle(style: HazeStyle) {
-    noiseFactor = style.noiseFactor
-    blurRadius = style.blurRadius
-    tints = style.tints
-    fallbackTint = style.fallbackTint
-    backgroundColor = style.backgroundColor
-  }
-}
-
-internal val ReusableHazeEffect.blurRadiusOrZero: Dp
-  get() = blurRadius.takeOrElse { 0.dp }
-
-internal val ReusableHazeEffect.needInvalidation: Boolean
-  get() {
-    log("ReusableHazeEffect") {
-      "needInvalidation. renderEffectDirty=$renderEffectDirty, " +
-        "drawParametersDirty=$drawParametersDirty, " +
-        "progressiveDirty=$progressiveDirty" +
-        "positionChanged=$positionChanged"
-    }
-    return renderEffectDirty || drawParametersDirty || progressiveDirty || positionChanged
-  }
+internal val HazeChildNode.resolvedNoiseFactor: Float
+  get() = noiseFactor
+    .takeOrElse { style.noiseFactor }
+    .takeOrElse { compositionLocalStyle.noiseFactor }
 
 private fun Size.expand(expansion: Float): Size {
   return Size(width = width + expansion, height = height + expansion)
-}
-
-private fun DrawScope.drawFallbackEffect(
-  alpha: Float,
-  blurRadius: Dp,
-  tints: List<HazeTint>,
-  fallbackTint: HazeTint?,
-  mask: Brush?,
-) {
-  val tint = fallbackTint
-    ?.takeIf { it.color.isSpecified }
-    ?: tints.firstOrNull()?.boostForFallback(blurRadius.takeOrElse { 0.dp })
-
-  log(HazeChildNode.TAG) { "drawEffect. Drawing effect with scrim: tint=$tint, mask=$mask, alpha=$alpha" }
-
-  fun scrim() {
-    if (tint != null) {
-      if (mask != null) {
-        drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
-      } else {
-        drawRect(color = tint.color, blendMode = tint.blendMode)
-      }
-    }
-  }
-
-  if (alpha != 1f) {
-    val paint = Paint().apply {
-      this.alpha = alpha
-    }
-    drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-      scrim()
-    }
-  } else {
-    scrim()
-  }
 }
 
 private fun calculateLength(

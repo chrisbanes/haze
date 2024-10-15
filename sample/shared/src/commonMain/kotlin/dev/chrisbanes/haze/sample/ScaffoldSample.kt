@@ -74,7 +74,7 @@ fun ScaffoldSample(navigator: Navigator, useProgressive: Boolean) {
         ),
         modifier = Modifier
           .hazeChild(hazeState) {
-            applyStyle(style)
+            this.style = style
             if (useProgressive) {
               progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
             }

@@ -54,11 +54,11 @@ FooAppBar(
 )
 ```
 
-#### Default style functionality on Modifier.haze has been removed
+#### Default style functionality on Modifier.haze has been moved
 
-- **What:** In previous versions, there was a `style` parameter on `Modifier.haze`, which has been removed in v0.9.
-- **Migration:** Move all styling to `Modifier.hazeChild` calls.
-- **Why:** Previously `Modifier.haze` to be the source of truth for styling, as it was responsible for all drawing. With the changes listed below, drawing is now the responsibility of the children themselves, therefore it makes little sense to invert the responsibility.
+- **What:** In previous versions, there was a `style` parameter on `Modifier.haze`, which has been moved in v0.9.
+- **Migration:** Use the new [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local instead.
+- **Why:** Composition locals are used throughout styling frameworks, so this is a better API going forward.
 
 #### HazeArea has been removed
 

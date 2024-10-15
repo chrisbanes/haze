@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,7 +21,29 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample()
+        CreditCardSample(tint = DefaultTint)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_style() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(style = OverrideStyle)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_compositionLocalStyle() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CompositionLocalProvider(LocalHazeStyle provides OverrideStyle) {
+          CreditCardSample()
+        }
       }
     }
     captureRoot()
@@ -41,6 +64,7 @@ class HazeScreenshotTest : ScreenshotTest() {
     setContent {
       ScreenshotTheme {
         CreditCardSample(
+          tint = DefaultTint,
           mask = Brush.verticalGradient(
             0f to Color.Transparent,
             0.5f to Color.Black,
@@ -56,7 +80,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_alpha() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(alpha = 0.5f)
+        CreditCardSample(tint = DefaultTint, alpha = 0.5f)
       }
     }
     captureRoot()
@@ -67,6 +91,7 @@ class HazeScreenshotTest : ScreenshotTest() {
     setContent {
       ScreenshotTheme {
         CreditCardSample(
+          tint = DefaultTint,
           progressive = HazeProgressive.horizontalGradient(),
         )
       }
@@ -79,6 +104,7 @@ class HazeScreenshotTest : ScreenshotTest() {
     setContent {
       ScreenshotTheme {
         CreditCardSample(
+          tint = DefaultTint,
           progressive = HazeProgressive.verticalGradient(),
         )
       }
@@ -136,7 +162,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(enabled = enabled)
+        CreditCardSample(tint = DefaultTint, enabled = enabled)
       }
     }
 
@@ -155,9 +181,14 @@ class HazeScreenshotTest : ScreenshotTest() {
   private fun roundedCornerTest(roundedCornerShape: RoundedCornerShape) = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(shape = roundedCornerShape)
+        CreditCardSample(tint = DefaultTint, shape = roundedCornerShape)
       }
     }
     captureRoot()
+  }
+
+  companion object {
+    val DefaultTint = HazeTint(Color.White.copy(alpha = 0.1f))
+    val OverrideStyle = HazeStyle(tints = listOf(HazeTint(Color.Red.copy(alpha = 0.5f))))
   }
 }
