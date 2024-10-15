@@ -38,28 +38,29 @@ internal class HazeNode(
   override val shouldAutoInvalidate: Boolean = false
 
   override fun ContentDrawScope.draw() {
+    state.contentDrawing = true
     log(TAG) { "start draw()" }
 
-    if (!useGraphicLayers()) {
+    if (useGraphicLayers()) {
+      val graphicsContext = currentValueOf(LocalGraphicsContext)
+
+      val contentLayer = state.contentLayer
+        ?.takeUnless { it.isReleased }
+        ?: graphicsContext.createGraphicsLayer().also { state.contentLayer = it }
+
+      // First we draw the composable content into a graphics layer
+      contentLayer.record {
+        this@draw.drawContent()
+      }
+
+      // Now we draw `content` into the window canvas
+      drawLayer(contentLayer)
+    } else {
       // If we're not using graphics layers, just call drawContent and return early
       drawContent()
-      return
     }
 
-    val graphicsContext = currentValueOf(LocalGraphicsContext)
-
-    val contentLayer = state.contentLayer
-      ?.takeUnless { it.isReleased }
-      ?: graphicsContext.createGraphicsLayer().also { state.contentLayer = it }
-
-    // First we draw the composable content into a graphics layer
-    contentLayer.record {
-      this@draw.drawContent()
-    }
-
-    // Now we draw `content` into the window canvas
-    drawLayer(contentLayer)
-
+    state.contentDrawing = false
     log(TAG) { "end draw()" }
   }
 

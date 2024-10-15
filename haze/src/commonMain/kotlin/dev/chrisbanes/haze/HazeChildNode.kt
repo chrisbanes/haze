@@ -87,6 +87,10 @@ internal class HazeChildNode(
   override fun ContentDrawScope.draw() {
     log(TAG) { "-> HazeChild. start draw()" }
 
+    require(!state.contentDrawing) {
+      "Layout nodes using Modifier.haze and Modifier.hazeChild can not be descendants of each other"
+    }
+
     if (!effect.isValid) {
       // If we don't have any effects, just call drawContent and return early
       drawContent()
