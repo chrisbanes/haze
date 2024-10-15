@@ -102,6 +102,12 @@ kotlin {
   }
 }
 
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+  compilerOptions {
+    optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
+  }
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
   compilerOptions {
     freeCompilerArgs.add("-Xcontext-receivers")

@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun CreditCardSample(
-  tint: HazeTint = HazeTint(Color.White.copy(alpha = 0.1f)),
+  style: HazeStyle = HazeStyle.Unspecified,
+  tint: HazeTint = HazeTint.Unspecified,
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   mask: Brush? = null,
@@ -68,9 +69,10 @@ internal fun CreditCardSample(
           when {
             enabled -> {
               Modifier.hazeChild(state = hazeState) {
+                this.style = style
                 backgroundColor = surfaceColor
                 noiseFactor = HazeDefaults.noiseFactor
-                tints = listOfNotNull(tint)
+                tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
                 blurRadius = 8.dp
                 this.mask = mask
                 this.alpha = alpha

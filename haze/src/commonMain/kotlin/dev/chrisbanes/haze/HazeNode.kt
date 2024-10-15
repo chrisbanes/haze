@@ -18,7 +18,17 @@ import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
 
-internal class HazeNode(
+@RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
+annotation class ExperimentalHazeApi
+
+/**
+ * The [Modifier.Node] implementation used by [Modifier.haze].
+ *
+ * This is public API in order to aid custom extensible modifiers, _but_ we reserve the right
+ * to be able to change the API in the future, hence why it is marked as experimental forever.
+ */
+@ExperimentalHazeApi
+class HazeNode(
   var state: HazeState,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,

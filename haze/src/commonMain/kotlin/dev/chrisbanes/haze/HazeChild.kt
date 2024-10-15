@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -19,6 +20,18 @@ interface HazeChildScope {
   var alpha: Float
 
   /**
+   * Style set on this specific [HazeChildNode].
+   *
+   * There are precedence rules to how each styling property is applied. The order of precedence
+   * for each property are as follows:
+   *
+   *  - Property value set in [HazeChildScope], if specified.
+   *  - Value set here in [HazeChildScope.style], if specified.
+   *  - Value set in the [LocalHazeStyle] composition local.
+   */
+  var style: HazeStyle
+
+  /**
    * Optional alpha mask which allows effects such as fading via a
    * [Brush.verticalGradient] or similar. This is only applied when [progressive] is null.
    *
@@ -31,29 +44,59 @@ interface HazeChildScope {
    * Color to draw behind the blurred content. Ideally should be opaque
    * so that the original content is not visible behind. Typically this would be
    * `MaterialTheme.colorScheme.surface` or similar.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [HazeStyle.backgroundColor] value set in [style], if specified.
+   *  - [HazeStyle.backgroundColor] value set in the [LocalHazeStyle] composition local.
    */
   var backgroundColor: Color
 
   /**
    * The [HazeTint]s to apply to the blurred content.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if not empty.
+   *  - [HazeStyle.tints] value set in [style], if not empty.
+   *  - [HazeStyle.tints] value set in the [LocalHazeStyle] composition local.
    */
   var tints: List<HazeTint>
 
   /**
    * Radius of the blur.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [HazeStyle.blurRadius] value set in [style], if specified.
+   *  - [HazeStyle.blurRadius] value set in the [LocalHazeStyle] composition local.
    */
   var blurRadius: Dp
 
   /**
    * Amount of noise applied to the content, in the range `0f` to `1f`.
    * Anything outside of that range will be clamped.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if in the range 0f..1f.
+   *  - [HazeStyle.noiseFactor] value set in [style], if in the range 0f..1f.
+   *  - [HazeStyle.noiseFactor] value set in the [LocalHazeStyle] composition local.
    */
   var noiseFactor: Float
 
   /**
-   *  The [HazeTint] to use when Haze uses the fallback scrim functionality.
+   * The [HazeTint] to use when Haze uses the fallback scrim functionality.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified
+   *  - [HazeStyle.fallbackTint] value set in [style], if specified.
+   *  - [HazeStyle.fallbackTint] value set in the [LocalHazeStyle] composition local.
    */
-  var fallbackTint: HazeTint?
+  var fallbackTint: HazeTint
 
   /**
    * Parameters for enabling a progressive (or gradient) blur effect, or null for a uniform
@@ -65,11 +108,6 @@ interface HazeChildScope {
    * visual finesse.
    */
   var progressive: HazeProgressive?
-
-  /**
-   * Apply the given [HazeStyle] to this block.
-   */
-  fun applyStyle(style: HazeStyle)
 }
 
 /**
@@ -102,34 +140,26 @@ fun Modifier.hazeChild(
  *
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
  * style will override that value from the default style, provided to [haze].
- */
-fun Modifier.hazeChild(
-  state: HazeState,
-  style: HazeStyle,
-): Modifier = hazeChild(state) { applyStyle(style) }
-
-/**
- * Mark this composable as being a Haze child composable.
- *
- * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
- * [Modifier.haze] to blur any content behind the host composable.
- *
  * @param block block on HazeChildScope where you define the styling and visual properties.
  */
+@Stable
 fun Modifier.hazeChild(
   state: HazeState,
-  block: (HazeChildScope.() -> Unit),
-): Modifier = this then HazeChildNodeElement(state, block)
+  style: HazeStyle = HazeStyle.Unspecified,
+  block: (HazeChildScope.() -> Unit)? = null,
+): Modifier = this then HazeChildNodeElement(state, style, block)
 
 private data class HazeChildNodeElement(
   val state: HazeState,
-  val block: HazeChildScope.() -> Unit,
+  val style: HazeStyle = HazeStyle.Unspecified,
+  val block: (HazeChildScope.() -> Unit)? = null,
 ) : ModifierNodeElement<HazeChildNode>() {
 
-  override fun create(): HazeChildNode = HazeChildNode(state, block)
+  override fun create(): HazeChildNode = HazeChildNode(state, style, block)
 
   override fun update(node: HazeChildNode) {
     node.state = state
+    node.style = style
     node.block = block
     node.update()
   }
