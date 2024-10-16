@@ -37,7 +37,7 @@ androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4
 androidx-core = "androidx.core:core-ktx:1.13.1"
 androidx-collection = "androidx.collection:collection:1.4.4"
 androidx-activity-compose = "androidx.activity:activity-compose:1.9.3"
-androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.7.3"
+androidx-compose-ui-test-manifest = "androidx.compose.ui:ui-test-manifest:1.7.4"
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "androidx-media3" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "androidx-media3" }
 androidx-profileinstaller = "androidx.profileinstaller:profileinstaller:1.4.1"
