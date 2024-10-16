@@ -135,7 +135,7 @@ class HazeChildNode(
       else -> Offset.Zero
     }
 
-  override var blurRadius: Dp = HazeDefaults.blurRadius
+  override var blurRadius: Dp = Dp.Unspecified
     set(value) {
       if (value != field) {
         log(TAG) { "blurRadius changed. Current: $field. New: $value" }
@@ -144,7 +144,7 @@ class HazeChildNode(
       }
     }
 
-  override var noiseFactor: Float = HazeDefaults.noiseFactor
+  override var noiseFactor: Float = -1f
     set(value) {
       if (value != field) {
         log(TAG) { "noiseFactor changed. Current: $field. New: $value" }

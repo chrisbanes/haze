@@ -60,8 +60,8 @@ private val noiseTextureCache = lruCache<Int, Bitmap>(3)
 
 context(CompositionLocalConsumerModifierNode)
 private fun getNoiseTexture(noiseFactor: Float): Bitmap {
-  val cacheKey = (noiseFactor * 255).roundToInt()
-  val cached = noiseTextureCache[cacheKey]
+  val noiseAlphaInt = (noiseFactor * 255).roundToInt().coerceIn(0, 255)
+  val cached = noiseTextureCache[noiseAlphaInt]
   if (cached != null && !cached.isRecycled) {
     return cached
   }
@@ -69,8 +69,8 @@ private fun getNoiseTexture(noiseFactor: Float): Bitmap {
   // We draw the noise with the given opacity
   val resources = currentValueOf(LocalContext).resources
   return BitmapFactory.decodeResource(resources, R.drawable.haze_noise)
-    .withAlpha(noiseFactor)
-    .also { noiseTextureCache.put(cacheKey, it) }
+    .withAlpha(noiseAlphaInt)
+    .also { noiseTextureCache.put(noiseAlphaInt, it) }
 }
 
 context(CompositionLocalConsumerModifierNode)
@@ -155,9 +155,9 @@ private fun AndroidRenderEffect.withTint(
  * There might be a better way to do this via a [BlendMode], but none of the results looked as
  * good.
  */
-private fun Bitmap.withAlpha(alpha: Float): Bitmap {
+private fun Bitmap.withAlpha(alpha: Int): Bitmap {
   val paint = android.graphics.Paint().apply {
-    this.alpha = (alpha * 255).roundToInt().coerceIn(0, 255)
+    this.alpha = alpha
   }
 
   return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also {
