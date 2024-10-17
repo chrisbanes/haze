@@ -37,6 +37,7 @@ internal actual fun HazeChildNode.createRenderEffect(
   offsetInLayer: Offset,
   layerSize: Size,
   mask: Brush?,
+  progressive: Brush?,
 ): RenderEffect? {
   log("HazeChildNode") {
     "createRenderEffect. " +

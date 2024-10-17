@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toArgb
 import org.jetbrains.skia.BlendMode
+import org.jetbrains.skia.Color
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.FilterTileMode
 import org.jetbrains.skia.IRect
@@ -33,6 +34,7 @@ internal actual fun HazeChildNode.createRenderEffect(
   offsetInLayer: Offset,
   layerSize: Size,
   mask: Brush?,
+  progressive: Brush?,
 ): RenderEffect? {
   log("HazeChildNode") {
     "createRenderEffect. " +
@@ -49,6 +51,7 @@ internal actual fun HazeChildNode.createRenderEffect(
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
     uniform("noiseFactor", noiseFactor.coerceIn(0f, 1f))
     child("noise", NOISE_SHADER)
+    child("progressive", progressive?.toShader(size) ?: Shader.makeColor(Color.WHITE))
   }
 
   // For CLAMP to work, we need to provide the crop rect

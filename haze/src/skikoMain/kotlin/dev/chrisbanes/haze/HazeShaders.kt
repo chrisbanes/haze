@@ -19,11 +19,14 @@ private const val SHADER_SKSL = """
   uniform shader content;
   uniform shader blur;
   uniform shader noise;
+  uniform shader progressive;
 
   uniform float noiseFactor;
 
   vec4 main(vec2 coord) {
-    vec4 b = blur.eval(coord);
+    float intensity = progressive.eval(coord).a;
+
+    vec4 b = blur.eval(coord) * intensity;
     vec4 n = noise.eval(coord);
 
     // Add noise for extra texture
