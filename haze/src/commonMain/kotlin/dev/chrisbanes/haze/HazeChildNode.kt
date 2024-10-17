@@ -360,9 +360,9 @@ class HazeChildNode(
     var steps = progressive.steps
     if (steps == HazeProgressive.STEPS_AUTO_BALANCED) {
       // Here we're going to calculate an appropriate amount of steps for the length.
-      // We use a calculation of 48dp per step, which is a good balance between
+      // We use a calculation of 60dp per step, which is a good balance between
       // quality vs performance
-      val stepHeightPx = with(drawContext.density) { 48.dp.toPx() }
+      val stepHeightPx = 60.dp.toPx()
       val length = calculateLength(progressive.start, progressive.end, size)
       steps = ceil(length / stepHeightPx).toInt().coerceAtLeast(2)
     }
@@ -420,8 +420,6 @@ class HazeChildNode(
       )
       layer.alpha = alpha
 
-      // Since we included a border around the content, we need to translate so that
-      // we don't see it (but it still affects the RenderEffect)
       drawLayer(layer)
 
       graphicsContext.releaseGraphicsLayer(layer)
