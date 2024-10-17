@@ -14,7 +14,7 @@ import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.collection.lruCache
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RenderEffect
@@ -33,20 +33,26 @@ internal actual fun HazeChildNode.createRenderEffect(
   noiseFactor: Float,
   tints: List<HazeTint>,
   tintAlphaModulate: Float,
-  boundsInLayer: Rect,
+  size: Size,
+  offsetInLayer: Offset,
   layerSize: Size,
   mask: Brush?,
 ): RenderEffect? {
   log("HazeChildNode") {
-    "createRenderEffect. blurRadiusPx=$blurRadiusPx, noiseFactor=$noiseFactor, " +
-      "tints=$tints, layerBounds=$boundsInLayer"
+    "createRenderEffect. " +
+      "blurRadiusPx=$blurRadiusPx, " +
+      "noiseFactor=$noiseFactor, " +
+      "tints=$tints, " +
+      "size=$size, " +
+      "offset=$offsetInLayer, " +
+      "layerSize=$layerSize"
   }
 
   if (Build.VERSION.SDK_INT >= 31 && blurRadiusPx >= 0.005f) {
     return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
       .withNoise(noiseFactor)
       .withTints(tints, tintAlphaModulate)
-      .withMask(mask, boundsInLayer)
+      .withMask(mask, size, offsetInLayer)
       .asComposeRenderEffect()
   }
   return null
@@ -89,22 +95,23 @@ private fun AndroidRenderEffect.withNoise(noiseFactor: Float): AndroidRenderEffe
 }
 
 @RequiresApi(31)
-private fun AndroidRenderEffect.withMask(mask: Brush?, bounds: Rect): AndroidRenderEffect {
-  return withBrush(mask, bounds, BlendMode.SRC_IN)
+private fun AndroidRenderEffect.withMask(mask: Brush?, size: Size, offset: Offset): AndroidRenderEffect {
+  return withBrush(mask, size, offset, BlendMode.SRC_IN)
 }
 
 @RequiresApi(31)
 private fun AndroidRenderEffect.withBrush(
   brush: Brush?,
-  bounds: Rect,
+  size: Size,
+  offset: Offset,
   blendMode: BlendMode = BlendMode.SRC_OVER,
 ): AndroidRenderEffect {
-  val shader = brush?.toShader(bounds.size) ?: return this
+  val shader = brush?.toShader(size) ?: return this
 
   // We need to offset the shader to the bounds
   val inner = AndroidRenderEffect.createOffsetEffect(
-    bounds.left,
-    bounds.top,
+    offset.x,
+    offset.y,
     AndroidRenderEffect.createShaderEffect(shader),
   )
 

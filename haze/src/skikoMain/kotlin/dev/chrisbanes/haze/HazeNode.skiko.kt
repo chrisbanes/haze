@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
@@ -28,15 +29,18 @@ internal actual fun HazeChildNode.createRenderEffect(
   noiseFactor: Float,
   tints: List<HazeTint>,
   tintAlphaModulate: Float,
-  boundsInLayer: Rect,
+  size: Size,
+  offsetInLayer: Offset,
   layerSize: Size,
   mask: Brush?,
 ): RenderEffect? {
   log("HazeChildNode") {
-    "createRenderEffect. blurRadiusPx=$blurRadiusPx, " +
+    "createRenderEffect. " +
+      "blurRadiusPx=$blurRadiusPx, " +
       "noiseFactor=$noiseFactor, " +
       "tints=$tints, " +
-      "boundsInLayer=$boundsInLayer, " +
+      "size=$size, " +
+      "offset=$offsetInLayer, " +
       "layerSize=$layerSize"
   }
 
@@ -55,7 +59,7 @@ internal actual fun HazeChildNode.createRenderEffect(
       inputs = arrayOf(null, blurFilter),
     )
     .withTints(tints, tintAlphaModulate)
-    .withBrush(mask, boundsInLayer, BlendMode.DST_IN)
+    .withBrush(mask, size, offsetInLayer, BlendMode.DST_IN)
     .asComposeRenderEffect()
 }
 
@@ -87,16 +91,17 @@ private fun ImageFilter.withTint(tint: HazeTint?, alphaModulate: Float): ImageFi
 
 private fun ImageFilter.withBrush(
   brush: Brush?,
-  bounds: Rect,
+  size: Size,
+  offset: Offset,
   blendMode: BlendMode,
 ): ImageFilter {
-  val shader = brush?.toShader(bounds.size) ?: return this
+  val shader = brush?.toShader(size) ?: return this
 
   return ImageFilter.makeBlend(
     blendMode = blendMode,
     fg = ImageFilter.makeOffset(
-      dx = bounds.left,
-      dy = bounds.top,
+      dx = offset.x,
+      dy = offset.y,
       input = ImageFilter.makeShader(shader = shader, crop = null),
       crop = null,
     ),

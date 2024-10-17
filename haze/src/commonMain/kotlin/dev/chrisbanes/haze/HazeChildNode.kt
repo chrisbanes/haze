@@ -7,7 +7,6 @@ import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.toRect
@@ -35,7 +34,6 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
@@ -224,12 +222,12 @@ class HazeChildNode(
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
     log(TAG) { "onGloballyPositioned: positionInWindow=${coordinates.positionInWindow()}" }
-    positionInContent =
-      coordinates.positionInWindow() + calculateWindowOffset() - state.positionOnScreen
+    positionInContent = coordinates.positionInWindow() +
+      calculateWindowOffset() - state.positionOnScreen
     size = coordinates.size.toSize()
 
     val blurRadiusPx = with(currentValueOf(LocalDensity)) {
-      resolvedBlurRadius.takeOrElse { 0.dp }.toPx()
+      resolveBlurRadius().takeOrElse { 0.dp }.toPx()
     }
     layerSize = size.expand(blurRadiusPx * 2)
 
@@ -249,9 +247,6 @@ class HazeChildNode(
       log(TAG) { "-> HazeChild. end draw()" }
       return
     }
-
-    // First we need to make sure that the effects are updated (if necessary)
-    onPreDraw(drawContext.density)
 
     if (useGraphicLayers()) {
       val contentLayer = state.contentLayer
@@ -295,10 +290,8 @@ class HazeChildNode(
     val inflatedOffset = layerOffset
 
     clippedContentLayer.record(inflatedSize.roundToIntSize()) {
-      val bg = resolvedBackgroundColor
-      require(bg.isSpecified) {
-        "backgroundColor not specified. Please provide a color."
-      }
+      val bg = resolveBackgroundColor()
+      require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
       drawRect(bg)
 
       translate(inflatedOffset - positionInContent) {
@@ -307,19 +300,18 @@ class HazeChildNode(
       }
     }
 
-    val p = progressive
-    if (p is HazeProgressive.LinearGradient && useGraphicLayers()) {
-      drawLinearGradientProgressiveEffect(
-        progressive = p,
-        innerDrawOffset = -inflatedOffset,
-        contentLayer = clippedContentLayer,
-      )
-    } else {
-      clippedContentLayer.renderEffect = renderEffect
-      clippedContentLayer.alpha = alpha
+    clipRect(right = size.width, bottom = size.height) {
+      translate(-inflatedOffset) {
+        val p = progressive
+        if (p is HazeProgressive.LinearGradient) {
+          drawLinearGradientProgressiveEffect(progressive = p, contentLayer = clippedContentLayer)
+        } else {
+          // First make sure that the RenderEffect is updated (if necessary)
+          updateRenderEffectIfDirty()
 
-      clipRect(right = size.width, bottom = size.height) {
-        translate(-inflatedOffset) {
+          clippedContentLayer.renderEffect = renderEffect
+          clippedContentLayer.alpha = alpha
+
           // Since we included a border around the content, we need to translate so that
           // we don't see it (but it still affects the RenderEffect)
           drawLayer(clippedContentLayer)
@@ -331,8 +323,8 @@ class HazeChildNode(
   }
 
   private fun DrawScope.drawEffectWithScrim() {
-    val scrimTint = resolvedFallbackTint.takeIf { it.isSpecified }
-      ?: resolvedTints.firstOrNull()?.boostForFallback(resolvedBlurRadius.takeOrElse { 0.dp })
+    val scrimTint = resolveFallbackTint().takeIf { it.isSpecified }
+      ?: resolveTints().firstOrNull()?.boostForFallback(resolveBlurRadius().takeOrElse { 0.dp })
 
     fun scrim() {
       if (scrimTint != null) {
@@ -357,7 +349,6 @@ class HazeChildNode(
 
   private fun DrawScope.drawLinearGradientProgressiveEffect(
     progressive: HazeProgressive.LinearGradient,
-    innerDrawOffset: Offset,
     contentLayer: GraphicsLayer,
   ) {
     require(progressive.steps == HazeProgressive.STEPS_AUTO_BALANCED || progressive.steps > 1) {
@@ -383,6 +374,10 @@ class HazeChildNode(
       else -> steps downTo 0
     }
 
+    val tints = resolveTints()
+    val noiseFactor = resolveNoiseFactor()
+    val blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx()
+
     for (i in seq) {
       val fraction = i / steps.toFloat()
       val intensity = lerp(
@@ -396,63 +391,51 @@ class HazeChildNode(
         drawLayer(contentLayer)
       }
 
-      val maskStops = buildList {
-        val min = min(progressive.startIntensity, progressive.endIntensity)
-        val max = max(progressive.startIntensity, progressive.endIntensity)
-        add(lerp(min, max, (i - 2f) / steps) to Color.Transparent)
-        add(lerp(min, max, (i - 1f) / steps) to Color.Black)
-        add(lerp(min, max, (i + 0f) / steps) to Color.Black)
-        add(lerp(min, max, (i + 1f) / steps) to Color.Transparent)
-      }
-
       log(TAG) {
         "drawProgressiveEffect. " +
           "step=$i, " +
           "fraction=$fraction, " +
-          "intensity=$intensity, " +
-          "maskStops=${maskStops.map { it.first to it.second.alpha }}"
+          "intensity=$intensity"
       }
 
-      val boundsInLayer = Rect(layerOffset, size)
+      val min = min(progressive.startIntensity, progressive.endIntensity)
+      val max = max(progressive.startIntensity, progressive.endIntensity)
 
-      layer.alpha = alpha
       layer.renderEffect = createRenderEffect(
-        blurRadiusPx = with(drawContext.density) {
-          intensity * resolvedBlurRadius.takeOrElse { 0.dp }.toPx()
-        },
-        noiseFactor = resolvedNoiseFactor,
-        tints = resolvedTints,
+        blurRadiusPx = intensity * blurRadiusPx,
+        noiseFactor = noiseFactor,
+        tints = tints,
         tintAlphaModulate = intensity,
-        boundsInLayer = boundsInLayer, // cache this
+        size = size,
+        offsetInLayer = layerOffset,
         layerSize = layerSize,
         mask = Brush.linearGradient(
-          *maskStops.toTypedArray(),
+          lerp(min, max, (i - 2f) / steps) to Color.Transparent,
+          lerp(min, max, (i - 1f) / steps) to Color.Black,
+          lerp(min, max, (i + 0f) / steps) to Color.Black,
+          lerp(min, max, (i + 1f) / steps) to Color.Transparent,
           start = progressive.start,
           end = progressive.end,
         ),
       )
+      layer.alpha = alpha
 
-      clipRect(right = size.width, bottom = size.height) {
-        translate(innerDrawOffset) {
-          // Since we included a border around the content, we need to translate so that
-          // we don't see it (but it still affects the RenderEffect)
-          drawLayer(layer)
-        }
-      }
+      // Since we included a border around the content, we need to translate so that
+      // we don't see it (but it still affects the RenderEffect)
+      drawLayer(layer)
 
       graphicsContext.releaseGraphicsLayer(layer)
     }
   }
 
-  private fun onPreDraw(density: Density) {
+  private fun DrawScope.updateRenderEffectIfDirty() {
     if (renderEffectDirty) {
       renderEffect = createRenderEffect(
-        blurRadiusPx = with(density) {
-          resolvedBlurRadius.takeOrElse { 0.dp }.toPx()
-        },
-        noiseFactor = resolvedNoiseFactor,
-        tints = resolvedTints,
-        boundsInLayer = Rect(layerOffset, size), // cache this
+        blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
+        noiseFactor = resolveNoiseFactor(),
+        tints = resolveTints(),
+        size = size,
+        offsetInLayer = layerOffset,
         layerSize = layerSize,
         mask = mask,
       )
@@ -595,36 +578,42 @@ internal expect fun HazeChildNode.createRenderEffect(
   noiseFactor: Float,
   tints: List<HazeTint> = emptyList(),
   tintAlphaModulate: Float = 1f,
-  boundsInLayer: Rect,
+  size: Size,
+  offsetInLayer: Offset,
   layerSize: Size,
   mask: Brush? = null,
 ): RenderEffect?
 
-internal val HazeChildNode.resolvedBackgroundColor: Color
-  get() = backgroundColor
+internal fun HazeChildNode.resolveBackgroundColor(): Color {
+  return backgroundColor
     .takeOrElse { style.backgroundColor }
     .takeOrElse { compositionLocalStyle.backgroundColor }
+}
 
-internal val HazeChildNode.resolvedBlurRadius: Dp
-  get() = blurRadius
+internal fun HazeChildNode.resolveBlurRadius(): Dp {
+  return blurRadius
     .takeOrElse { style.blurRadius }
     .takeOrElse { compositionLocalStyle.blurRadius }
+}
 
-internal val HazeChildNode.resolvedTints: List<HazeTint>
-  get() = tints.takeIf { it.isNotEmpty() }
+internal fun HazeChildNode.resolveTints(): List<HazeTint> {
+  return tints.takeIf { it.isNotEmpty() }
     ?: style.tints.takeIf { it.isNotEmpty() }
     ?: compositionLocalStyle.tints.takeIf { it.isNotEmpty() }
     ?: emptyList()
+}
 
-internal val HazeChildNode.resolvedFallbackTint: HazeTint
-  get() = fallbackTint.takeIf { it.isSpecified }
+internal fun HazeChildNode.resolveFallbackTint(): HazeTint {
+  return fallbackTint.takeIf { it.isSpecified }
     ?: style.fallbackTint.takeIf { it.isSpecified }
     ?: compositionLocalStyle.fallbackTint
+}
 
-internal val HazeChildNode.resolvedNoiseFactor: Float
-  get() = noiseFactor
+internal fun HazeChildNode.resolveNoiseFactor(): Float {
+  return noiseFactor
     .takeOrElse { style.noiseFactor }
     .takeOrElse { compositionLocalStyle.noiseFactor }
+}
 
 private fun Size.expand(expansion: Float): Size {
   return Size(width = width + expansion, height = height + expansion)
