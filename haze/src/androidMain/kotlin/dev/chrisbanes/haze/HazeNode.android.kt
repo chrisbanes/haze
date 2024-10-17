@@ -48,7 +48,9 @@ internal actual fun HazeChildNode.createRenderEffect(
       "layerSize=$layerSize"
   }
 
-  if (Build.VERSION.SDK_INT >= 31 && blurRadiusPx >= 0.005f) {
+  require(blurRadiusPx >= 0f) { "blurRadius needs to be equal or greater than 0f" }
+
+  if (Build.VERSION.SDK_INT >= 31) {
     return AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
       .withNoise(noiseFactor)
       .withTints(tints, tintAlphaModulate)

@@ -44,6 +44,8 @@ internal actual fun HazeChildNode.createRenderEffect(
       "layerSize=$layerSize"
   }
 
+  require(blurRadiusPx >= 0f) { "blurRadius needs to be equal or greater than 0f" }
+
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
     uniform("noiseFactor", noiseFactor.coerceIn(0f, 1f))
     child("noise", NOISE_SHADER)
