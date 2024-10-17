@@ -124,7 +124,7 @@ interface HazeChildScope {
  */
 @Deprecated(
   message = "Shape clipping is no longer necessary with Haze. You can use `Modifier.clip` or similar.",
-  replaceWith = ReplaceWith("clip(shape).hazeChild(state) { applyStyle(style) }"),
+  replaceWith = ReplaceWith("clip(shape).hazeChild(state, style)"),
 )
 fun Modifier.hazeChild(
   state: HazeState,
