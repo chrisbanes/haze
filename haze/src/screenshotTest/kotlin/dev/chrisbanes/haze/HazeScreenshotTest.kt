@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 
 class HazeScreenshotTest : ScreenshotTest() {
@@ -87,6 +88,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  @Ignore // https://github.com/robolectric/robolectric/issues/9691
   fun creditCard_progressive_horiz() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
@@ -100,6 +102,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  @Ignore // https://github.com/robolectric/robolectric/issues/9691
   fun creditCard_progressive_vertical() = runScreenshotTest {
     setContent {
       ScreenshotTheme {

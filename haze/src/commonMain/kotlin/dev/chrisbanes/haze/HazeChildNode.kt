@@ -39,10 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
-import kotlin.math.ceil
-import kotlin.math.hypot
-import kotlin.math.max
-import kotlin.math.min
 
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeChild].
@@ -112,7 +108,7 @@ class HazeChildNode(
       }
     }
 
-  private var layerSize: Size = Size.Unspecified
+  internal var layerSize: Size = Size.Unspecified
     set(value) {
       if (value != field) {
         log(TAG) { "layerSize changed. Current: $field. New: $value" }
@@ -121,7 +117,7 @@ class HazeChildNode(
       }
     }
 
-  private val layerOffset: Offset
+  internal val contentOffset: Offset
     get() = when {
       isValid -> {
         Offset(
@@ -287,7 +283,7 @@ class HazeChildNode(
     // the blur will naturally fade out at the edges.
     val inflatedSize = layerSize
     // This is the topLeft in the inflated bounds where the real are should be at [0,0]
-    val inflatedOffset = layerOffset
+    val inflatedOffset = contentOffset
 
     clippedContentLayer.record(inflatedSize.roundToIntSize()) {
       val bg = resolveBackgroundColor()
@@ -304,7 +300,11 @@ class HazeChildNode(
       translate(-inflatedOffset) {
         val p = progressive
         if (p is HazeProgressive.LinearGradient) {
-          drawLinearGradientProgressiveEffect(progressive = p, contentLayer = clippedContentLayer)
+          drawLinearGradientProgressiveEffect(
+            drawScope = this,
+            progressive = p,
+            contentLayer = clippedContentLayer,
+          )
         } else {
           // First make sure that the RenderEffect is updated (if necessary)
           updateRenderEffectIfDirty()
@@ -347,93 +347,14 @@ class HazeChildNode(
     }
   }
 
-  private fun DrawScope.drawLinearGradientProgressiveEffect(
-    progressive: HazeProgressive.LinearGradient,
-    contentLayer: GraphicsLayer,
-  ) {
-    require(progressive.steps == HazeProgressive.STEPS_AUTO_BALANCED || progressive.steps > 1) {
-      "steps needs to be STEPS_AUTO_BALANCED, or a value greater than 1"
-    }
-    require(progressive.startIntensity in 0f..1f)
-    require(progressive.endIntensity in 0f..1f)
-
-    var steps = progressive.steps
-    if (steps == HazeProgressive.STEPS_AUTO_BALANCED) {
-      // Here we're going to calculate an appropriate amount of steps for the length.
-      // We use a calculation of 60dp per step, which is a good balance between
-      // quality vs performance
-      val stepHeightPx = 60.dp.toPx()
-      val length = calculateLength(progressive.start, progressive.end, size)
-      steps = ceil(length / stepHeightPx).toInt().coerceAtLeast(2)
-    }
-
-    val graphicsContext = currentValueOf(LocalGraphicsContext)
-
-    val seq = when {
-      progressive.endIntensity >= progressive.startIntensity -> 0..steps
-      else -> steps downTo 0
-    }
-
-    val tints = resolveTints()
-    val noiseFactor = resolveNoiseFactor()
-    val blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx()
-
-    for (i in seq) {
-      val fraction = i / steps.toFloat()
-      val intensity = lerp(
-        progressive.startIntensity,
-        progressive.endIntensity,
-        progressive.easing.transform(fraction),
-      )
-
-      val layer = graphicsContext.createGraphicsLayer()
-      layer.record(contentLayer.size) {
-        drawLayer(contentLayer)
-      }
-
-      log(TAG) {
-        "drawProgressiveEffect. " +
-          "step=$i, " +
-          "fraction=$fraction, " +
-          "intensity=$intensity"
-      }
-
-      val min = min(progressive.startIntensity, progressive.endIntensity)
-      val max = max(progressive.startIntensity, progressive.endIntensity)
-
-      layer.renderEffect = createRenderEffect(
-        blurRadiusPx = intensity * blurRadiusPx,
-        noiseFactor = noiseFactor,
-        tints = tints,
-        tintAlphaModulate = intensity,
-        size = size,
-        offsetInLayer = layerOffset,
-        layerSize = layerSize,
-        mask = Brush.linearGradient(
-          lerp(min, max, (i - 2f) / steps) to Color.Transparent,
-          lerp(min, max, (i - 1f) / steps) to Color.Black,
-          lerp(min, max, (i + 0f) / steps) to Color.Black,
-          lerp(min, max, (i + 1f) / steps) to Color.Transparent,
-          start = progressive.start,
-          end = progressive.end,
-        ),
-      )
-      layer.alpha = alpha
-
-      drawLayer(layer)
-
-      graphicsContext.releaseGraphicsLayer(layer)
-    }
-  }
-
   private fun DrawScope.updateRenderEffectIfDirty() {
     if (renderEffectDirty) {
       renderEffect = createRenderEffect(
         blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
         noiseFactor = resolveNoiseFactor(),
         tints = resolveTints(),
-        size = size,
-        offsetInLayer = layerOffset,
+        contentSize = size,
+        contentOffset = contentOffset,
         layerSize = layerSize,
         mask = mask,
       )
@@ -457,7 +378,7 @@ class HazeChildNode(
     return renderEffectDirty || drawParametersDirty || progressiveDirty || positionChanged
   }
 
-  private companion object {
+  internal companion object {
     const val TAG = "HazeChild"
   }
 }
@@ -466,15 +387,6 @@ class HazeChildNode(
  * Parameters for applying a progressive blur effect.
  */
 sealed interface HazeProgressive {
-  /**
-   * The number of discrete steps which should be used to make up the progressive / gradient
-   * effect. More steps results in a higher quality effect, but at the cost of performance.
-   *
-   * Set to [STEPS_AUTO_BALANCED] so that the value is automatically computed, balancing quality
-   * and performance.
-   */
-  val steps: Int
-
   /**
    * A linear gradient effect.
    *
@@ -492,7 +404,6 @@ sealed interface HazeProgressive {
    * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
    */
   data class LinearGradient(
-    override val steps: Int = STEPS_AUTO_BALANCED,
     val easing: Easing = EaseIn,
     val start: Offset = Offset.Zero,
     val startIntensity: Float = 0f,
@@ -515,14 +426,12 @@ sealed interface HazeProgressive {
      * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
      */
     fun verticalGradient(
-      steps: Int = STEPS_AUTO_BALANCED,
       easing: Easing = EaseIn,
       startY: Float = 0f,
       startIntensity: Float = 0f,
       endY: Float = Float.POSITIVE_INFINITY,
       endIntensity: Float = 1f,
     ): LinearGradient = LinearGradient(
-      steps = steps,
       easing = easing,
       start = Offset(0f, startY),
       startIntensity = startIntensity,
@@ -544,31 +453,19 @@ sealed interface HazeProgressive {
      * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
      */
     fun horizontalGradient(
-      steps: Int = STEPS_AUTO_BALANCED,
       easing: Easing = EaseIn,
       startX: Float = 0f,
       startIntensity: Float = 0f,
       endX: Float = Float.POSITIVE_INFINITY,
       endIntensity: Float = 1f,
     ): LinearGradient = LinearGradient(
-      steps = steps,
       easing = easing,
       start = Offset(startX, 0f),
       startIntensity = startIntensity,
       end = Offset(endX, 0f),
       endIntensity = endIntensity,
     )
-
-    /**
-     * Value which indicates the [steps] value should be automatically computed,
-     * balancing quality and performance.
-     */
-    const val STEPS_AUTO_BALANCED = -1
   }
-}
-
-private fun lerp(start: Float, stop: Float, fraction: Float): Float {
-  return start + fraction * (stop - start)
 }
 
 internal expect fun HazeChildNode.createRenderEffect(
@@ -576,11 +473,18 @@ internal expect fun HazeChildNode.createRenderEffect(
   noiseFactor: Float,
   tints: List<HazeTint> = emptyList(),
   tintAlphaModulate: Float = 1f,
-  size: Size,
-  offsetInLayer: Offset,
+  contentSize: Size,
+  contentOffset: Offset,
   layerSize: Size,
   mask: Brush? = null,
+  progressive: Brush? = null,
 ): RenderEffect?
+
+internal expect fun HazeChildNode.drawLinearGradientProgressiveEffect(
+  drawScope: DrawScope,
+  progressive: HazeProgressive.LinearGradient,
+  contentLayer: GraphicsLayer,
+)
 
 internal fun HazeChildNode.resolveBackgroundColor(): Color {
   return backgroundColor
@@ -611,19 +515,4 @@ internal fun HazeChildNode.resolveNoiseFactor(): Float {
   return noiseFactor
     .takeOrElse { style.noiseFactor }
     .takeOrElse { compositionLocalStyle.noiseFactor }
-}
-
-private fun Size.expand(expansion: Float): Size {
-  return Size(width = width + expansion, height = height + expansion)
-}
-
-private fun calculateLength(
-  start: Offset,
-  end: Offset,
-  size: Size,
-): Float {
-  val (startX, startY) = start
-  val endX = end.x.coerceAtMost(size.width)
-  val endY = end.y.coerceAtMost(size.height)
-  return hypot(endX - startX, endY - startY)
 }
