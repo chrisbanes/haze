@@ -11,7 +11,7 @@ import org.jetbrains.skia.Shader
  * https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html
  */
 
-internal val RUNTIME_SHADER by lazy {
+internal val RUNTIME_SHADER: RuntimeEffect by lazy {
   RuntimeEffect.makeForShader(SHADER_SKSL)
 }
 
@@ -22,9 +22,9 @@ private const val SHADER_SKSL = """
 
   uniform float noiseFactor;
 
-  vec4 main(vec2 coord) {
-    vec4 b = blur.eval(coord);
-    vec4 n = noise.eval(coord);
+  half4 main(vec2 coord) {
+    half4 b = blur.eval(coord);
+    half4 n = noise.eval(coord);
 
     // Add noise for extra texture
     float noiseLuma = dot(n.rgb, vec3(0.2126, 0.7152, 0.0722));
@@ -33,9 +33,13 @@ private const val SHADER_SKSL = """
     float overlay = min(1.0, noiseLuma * noiseFactor);
 
     // Apply the overlay (noise)
-    return b + ((vec4(1.0) - b) * overlay);
+    return b + ((half4(1.0) - b) * overlay);
   }
 """
+
+internal val BLUR_SHADER: RuntimeEffect by lazy {
+  RuntimeEffect.makeForShader(BLUR_SKSL)
+}
 
 internal val NOISE_SHADER by lazy {
   Shader.makeFractalNoise(
