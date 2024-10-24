@@ -37,6 +37,28 @@ Styles can be provided in a number of different ways:
 - The style parameter on [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
 - By setting the relevant property in the optional [HazeChildScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html) lambda `block`, passed into [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
 
+### HazeChildScope
+
+We now have a parameter on `Modifier.hazeChild` which allow you to provide a lambda block, for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`.
+
+It's useful for when you need to update styling parameters, using values derived from other state. Here's an example which fades the effect as the user scrolls:
+
+```kotlin
+FooAppBar(
+  ...
+  modifier = Modifier
+    .hazeChild(state = hazeState) {
+      alpha = if (listState.firstVisibleItemIndex == 0) {
+        listState.layoutInfo.visibleItemsInfo.first().let {
+          (it.offset / it.size.height.toFloat()).absoluteValue
+        }
+      } else {
+        alpha = 1f
+      }
+    },
+)
+```
+
 ### Styling resolution
 
 As we a few different ways to set styling properties, it's important to know how the final values are resolved.
@@ -61,3 +83,42 @@ A tint effect is applied, primarily to maintain contrast and legibility. By defa
 
 Some visual noise is applied, to provide some tactility. This is completely optional, and defaults to a value of `0.15f` (15% strength). You can disable this by providing `0f`.
 
+## Progressive (aka gradient) blurs
+
+Progressive blurs allow you to provide a visual effect where the blur radius is varied over a dimension. You may have seen this effect used on iOS.
+
+![type:video](./media/progressive.mp4)
+
+Progressive blurs can be enabled by setting the `progressive` property on [HazeChildScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html). The API is very similar to the Brush gradient APIs, so it should feel familiar.
+
+```kotlin
+LargeTopAppBar(
+  // ...
+  modifier = Modifier.hazeChild(hazeState) {
+    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
+  }
+)
+```
+
+!!! warning "Performance of Progressive"
+
+    Please be aware that using progressive blurring does come with a performance cost. Please see the [Performance](performance.md) page for up-to-date benchmarks. 
+    
+    As a quick summary: on Android SDK 33+ and other platforms, the cost is about 25% more than non-progressive. On Android SDK 32 it is about 2x. If performance is critical, you may wish to look at the masking functionality below.
+
+## Masking
+
+You can provide any `Brush`, which will be used as a mask when the final effect is drawn.
+
+```kotlin
+LargeTopAppBar(
+  // ...
+  modifier = Modifier.hazeChild(hazeState) {
+    mask = Brush.verticalGradient(...)
+  }
+)
+```
+
+!!! info "Mask vs Progressive"
+
+    When you provide a gradient brush as a mask, the effect is visually similar to a gradient blur. The difference is that the effect is faded through opacity only, and may not feel as refined. However, it is much faster than progressive blurring, having a negligible cost.

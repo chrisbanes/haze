@@ -11,17 +11,20 @@ Ignoring that though...
 
 ## Are the blur implementations the same across different platforms?
 
-Broadly speaking, we try to keep the platforms as consistent as possible, but the platforms each have their own API surfaces so what we can do on each is different (easily).
+In v0.9 onwards, all platforms use the same implementation (mostly).
 
-#### Skia backed platforms (iOS and Desktop)
+In older versions of Haze (older than v0.9), the Android implementation was always built upon [RenderNode][rendernode] and [RenderEffect][rendereffect]. In Compose 1.7.0, we now have access to new GraphicsLayer APIs, which are similar to [RenderNode][rendernode], but available in `commonMain` in Compose Multiplatform.
 
-The iOS and Desktop implementations are enabled by using Skia APIs directly, giving us a broad API surface to use. The `Modifier.haze` on these platforms largely mirrors what is documented in this [blog post](https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html), using the Skia-provided [guassian blur](https://api.skia.org/classSkImageFilters.html#a9cbc8ef4bef80adda33622b229136f90) image filter, and [perlin noise](https://api.skia.org/classSkPerlinNoiseShader.html) shader, brought together in a custom runtime shader (which also applies the tint).
+The migration to [GraphicsLayer][graphicslayer] has resulted in Haze now having a single implementation across all platforms, based on the previous Android implementation. This will help minimize platform differences, and bugs.
 
-#### Android (Jetpack Compose)
+It goes further though. In v0.7.x and older, Haze is all 'smoke and mirrors'. It draws all of the blurred areas in the `haze` layout node. The `hazeChild` nodes just updates the size, shape, etc, which the `haze` modifier reads, to know where to draw blurred.
 
-!!! warning "Jetpack Compose"
-    Please note, this section refers to the Jetpack Compose implementation. Please read the [Android guide](android.md) if you haven't already.
+With the adoption of [GraphicsLayer][graphicslayer]s, we now have a way to pass 'drawn' content around, meaning that we are no longer bound by the previous restrictions. v0.9 contains a re-written drawing pipeline, where the blurred content is drawn by the `hazeChild`, not the parent. The parent `haze` is now only responsible for drawing the background content into a graphics layer, and putting it somewhere for the children to access.
 
-On Android, we don't have direct access to the Skia APIs, therefore we need to use the APIs which are provided by the Android framework. We have access to [RenderEffect.createBlurEffect](https://developer.android.com/reference/android/graphics/RenderEffect#createBlurEffect(float,%20float,%20android.graphics.RenderEffect,%20android.graphics.Shader.TileMode)) for the blurring, and [createColorFilterEffect](https://developer.android.com/reference/android/graphics/RenderEffect#createColorFilterEffect(android.graphics.ColorFilter,%20android.graphics.RenderEffect)) for the tinting, both of which were added in API 31. A noise effect is applied using a [BitmapShader](https://developer.android.com/reference/android/graphics/BitmapShader) drawing a tiled precomputed [blue noise](https://github.com/Calinou/free-blue-noise-textures) texture (bundled in the library). We may investigate making the noise computed on device in the future, but this will require [runtime shader](https://developer.android.com/reference/android/graphics/RenderEffect#createRuntimeShaderEffect(android.graphics.RuntimeShader,%20java.lang.String)) support, added in API 33.
+This fixes a number of long-known issues on Haze, where all were caused by the fact that the blurred area wasn't drawn by the child.
 
-Thanks to [Romain Guy](https://github.com/romainguy) for the pointers.
+There are differences in the platform [RenderEffect][rendereffect]s which we use for actual effect though. These are platform specific, and need to use platform APIs, but the way they are written is very similar.
+
+ [rendernode]: https://developer.android.com/reference/android/graphics/RenderNode
+ [rendereffect]: https://developer.android.com/reference/android/graphics/RenderEffect
+ [graphicslayer]: https://duckduckgo.com/?q=graphicslayer+compose&t=osx

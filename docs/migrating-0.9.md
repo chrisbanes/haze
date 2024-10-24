@@ -33,26 +33,8 @@ As we're now using a common implementation on all platforms, the Skia-backed pla
 
 #### 🆕 HazeChildScope
 
-- **What:** We now have overloads on `Modifier.hazeChild` which allow you to provide a lambda block for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`.
+- **What:** We now have a parameter on `Modifier.hazeChild` which allow you to provide a lambda block for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`. See [here](usage.md#hazechildscope) for more information.
 - **Why:** This has been primarily added to aid animating Haze's styling parameters, in a performant way.
-
-Here's an example of fading in the blurred content using a `LazyListState`:
-
-```kotlin
-FooAppBar(
-  ...
-  modifier = Modifier
-    .hazeChild(state = hazeState) {
-      alpha = if (listState.firstVisibleItemIndex == 0) {
-        listState.layoutInfo.visibleItemsInfo.first().let {
-          (it.offset / it.size.height.toFloat()).absoluteValue
-        }
-      } else {
-        alpha = 1f
-      }
-    },
-)
-```
 
 #### Default style functionality on Modifier.haze has been moved
 
