@@ -28,6 +28,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
@@ -53,6 +54,7 @@ class HazeChildNode(
   var block: (HazeChildScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
+  LayoutAwareModifierNode,
   GlobalPositionAwareModifierNode,
   ObserverModifierNode,
   DrawModifierNode,
@@ -217,7 +219,28 @@ class HazeChildNode(
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    log(TAG) { "onGloballyPositioned: positionInWindow=${coordinates.positionInWindow()}" }
+    onPlaced(coordinates)
+
+    log(TAG) {
+      "onGloballyPositioned: " +
+        "positionInWindow=${coordinates.positionInWindow()}, " +
+        "positionInContent=$positionInContent, " +
+        "size=$size"
+    }
+  }
+
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    onPositioned(coordinates)
+
+    log(TAG) {
+      "onPlaced: " +
+        "positionInWindow=${coordinates.positionInWindow()}, " +
+        "positionInContent=$positionInContent, " +
+        "size=$size"
+    }
+  }
+
+  private fun onPositioned(coordinates: LayoutCoordinates) {
     positionInContent = coordinates.positionInWindow() +
       calculateWindowOffset() - state.positionOnScreen
     size = coordinates.size.toSize()

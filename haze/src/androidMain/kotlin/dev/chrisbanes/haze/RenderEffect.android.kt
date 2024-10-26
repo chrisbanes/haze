@@ -46,7 +46,7 @@ internal actual fun HazeChildNode.createRenderEffect(
 ): RenderEffect? {
   if (Build.VERSION.SDK_INT < 31) return null
 
-  log("HazeChildNode") {
+  log(HazeChildNode.TAG) {
     "createRenderEffect. " +
       "blurRadiusPx=$blurRadiusPx, " +
       "noiseFactor=$noiseFactor, " +

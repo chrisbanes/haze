@@ -3,8 +3,12 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.snapshots.Snapshot
+
 internal actual fun log(tag: String, message: () -> String) {
   if (LOG_ENABLED) {
-    println("[$tag] ${message()}")
+    Snapshot.withoutReadObservation {
+      println("[$tag] ${message()}")
+    }
   }
 }
