@@ -36,7 +36,7 @@ internal actual fun HazeChildNode.createRenderEffect(
   mask: Brush?,
   progressive: Brush?,
 ): RenderEffect? {
-  log("HazeChildNode") {
+  log(HazeChildNode.TAG) {
     "createRenderEffect. " +
       "blurRadiusPx=$blurRadiusPx, " +
       "noiseFactor=$noiseFactor, " +

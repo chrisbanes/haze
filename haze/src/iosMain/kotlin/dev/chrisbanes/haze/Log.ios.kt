@@ -3,10 +3,13 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.snapshots.Snapshot
 import platform.Foundation.NSLog
 
 internal actual fun log(tag: String, message: () -> String) {
   if (LOG_ENABLED) {
-    NSLog("[%s] %s", tag, message())
+    Snapshot.withoutReadObservation {
+      NSLog("[%s] %s", tag, message())
+    }
   }
 }
