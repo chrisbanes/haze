@@ -395,7 +395,7 @@ class HazeChildNode(
     log(TAG) {
       "needInvalidation. renderEffectDirty=$renderEffectDirty, " +
         "drawParametersDirty=$drawParametersDirty, " +
-        "progressiveDirty=$progressiveDirty" +
+        "progressiveDirty=$progressiveDirty, " +
         "positionChanged=$positionChanged"
     }
     return renderEffectDirty || drawParametersDirty || progressiveDirty || positionChanged
