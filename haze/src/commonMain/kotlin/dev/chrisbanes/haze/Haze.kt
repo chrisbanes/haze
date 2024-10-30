@@ -23,8 +23,6 @@ class HazeState {
   var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
-  internal var block: HazeChildScope.() -> Unit = {}
-
   /**
    * The content [GraphicsLayer]. This is used by [hazeChild] draw nodes when drawing their
    * blurred areas.
