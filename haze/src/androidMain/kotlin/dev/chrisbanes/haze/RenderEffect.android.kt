@@ -79,7 +79,7 @@ internal actual fun HazeChildNode.createRenderEffect(
 }
 
 internal actual fun DrawScope.useGraphicLayers(): Boolean {
-  return Build.VERSION.SDK_INT >= 32 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
+  return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && drawContext.canvas.nativeCanvas.isHardwareAccelerated
 }
 
 private val noiseTextureCache = lruCache<Int, Bitmap>(3)
