@@ -60,6 +60,16 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_zeroBlurRadius() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(blurRadius = 0.dp)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
   fun creditCard_mask() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
