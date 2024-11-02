@@ -59,16 +59,33 @@ internal actual fun HazeChildNode.createRenderEffect(
   require(blurRadiusPx >= 0f) { "blurRadius needs to be equal or greater than 0f" }
 
   val progressiveShader = progressive?.toShader(contentSize)
-  val blur = if (Build.VERSION.SDK_INT >= 33 && progressiveShader != null) {
-    // If we've been provided with a progressive/gradient blur shader, we need to use
-    // our custom blur via a runtime shader
-    createBlurImageFilterWithMask(
-      blurRadiusPx = blurRadiusPx,
-      bounds = Rect(contentOffset, contentSize),
-      mask = progressiveShader,
-    )
-  } else {
-    AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+
+  val blur = when {
+    blurRadiusPx >= 0.005f && Build.VERSION.SDK_INT >= 33 && progressiveShader != null -> {
+      // If we've been provided with a progressive/gradient blur shader, we need to use
+      // our custom blur via a runtime shader
+      createBlurImageFilterWithMask(
+        blurRadiusPx = blurRadiusPx,
+        bounds = Rect(contentOffset, contentSize),
+        mask = progressiveShader,
+      )
+    }
+
+    blurRadiusPx >= 0.005f -> {
+      try {
+        AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+      } catch (e: IllegalArgumentException) {
+        throw IllegalArgumentException(
+          "Error whilst calling RenderEffect.createBlurEffect. " +
+            "This is likely because this device does not support a blur radius of $blurRadiusPx px",
+          e,
+        )
+      }
+    }
+
+    else -> {
+      AndroidRenderEffect.createOffsetEffect(0f, 0f)
+    }
   }
 
   return blur
