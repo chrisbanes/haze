@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -28,7 +29,6 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
-import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
@@ -54,7 +54,6 @@ class HazeChildNode(
   var block: (HazeChildScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
-  LayoutAwareModifierNode,
   GlobalPositionAwareModifierNode,
   ObserverModifierNode,
   DrawModifierNode,
@@ -219,30 +218,14 @@ class HazeChildNode(
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    onPlaced(coordinates)
-
     log(TAG) {
       "onGloballyPositioned: " +
-        "positionInWindow=${coordinates.positionInWindow()}, " +
-        "positionInContent=$positionInContent, " +
-        "size=$size"
+        "positionInWindow=${coordinates.positionInWindow()}"
     }
-  }
 
-  override fun onPlaced(coordinates: LayoutCoordinates) {
-    onPositioned(coordinates)
-
-    log(TAG) {
-      "onPlaced: " +
-        "positionInWindow=${coordinates.positionInWindow()}, " +
-        "positionInContent=$positionInContent, " +
-        "size=$size"
-    }
-  }
-
-  private fun onPositioned(coordinates: LayoutCoordinates) {
     positionInContent = coordinates.positionInWindow() +
-      calculateWindowOffset() - state.positionOnScreen
+      calculateWindowOffset() - state.positionOnScreen.takeOrElse { Offset.Zero }
+
     size = coordinates.size.toSize()
 
     val blurRadiusPx = with(currentValueOf(LocalDensity)) {
