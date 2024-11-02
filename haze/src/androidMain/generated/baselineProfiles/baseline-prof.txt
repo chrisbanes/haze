@@ -24,12 +24,12 @@ Ldev/chrisbanes/haze/HazeChildKt;
 HSPLdev/chrisbanes/haze/HazeChildKt;->hazeChild$default(Landroidx/compose/ui/Modifier;Ldev/chrisbanes/haze/HazeState;Ldev/chrisbanes/haze/HazeStyle;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 HSPLdev/chrisbanes/haze/HazeChildKt;->hazeChild(Landroidx/compose/ui/Modifier;Ldev/chrisbanes/haze/HazeState;Ldev/chrisbanes/haze/HazeStyle;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
 Ldev/chrisbanes/haze/HazeChildNode;
-HSPLdev/chrisbanes/haze/HazeChildNode;->$r8$lambda$4vKYWUwnv04DSYv_RBVwMGN3FXY(Ldev/chrisbanes/haze/HazeChildNode;JLandroidx/compose/ui/graphics/layer/GraphicsLayer;Landroidx/compose/ui/graphics/drawscope/DrawScope;)Lkotlin/Unit;
+HSPLdev/chrisbanes/haze/HazeChildNode;->$r8$lambda$r1HDnNv10MaXz_bu2cEaBm19yyY(Ldev/chrisbanes/haze/HazeChildNode;JLandroidx/compose/ui/graphics/layer/GraphicsLayer;Landroidx/compose/ui/graphics/drawscope/DrawScope;)Lkotlin/Unit;
 HSPLdev/chrisbanes/haze/HazeChildNode;->$r8$lambda$ughv07ZX8pJks1lK41Tnn8NeGh8(Ldev/chrisbanes/haze/HazeChildNode;)Lkotlin/Unit;
 HSPLdev/chrisbanes/haze/HazeChildNode;-><clinit>()V
 HSPLdev/chrisbanes/haze/HazeChildNode;-><init>(Ldev/chrisbanes/haze/HazeState;Ldev/chrisbanes/haze/HazeStyle;Lkotlin/jvm/functions/Function1;)V
 HSPLdev/chrisbanes/haze/HazeChildNode;->draw(Landroidx/compose/ui/graphics/drawscope/ContentDrawScope;)V
-HSPLdev/chrisbanes/haze/HazeChildNode;->drawEffectWithGraphicsLayer$lambda$25(Ldev/chrisbanes/haze/HazeChildNode;JLandroidx/compose/ui/graphics/layer/GraphicsLayer;Landroidx/compose/ui/graphics/drawscope/DrawScope;)Lkotlin/Unit;
+HSPLdev/chrisbanes/haze/HazeChildNode;->drawEffectWithGraphicsLayer$lambda$26(Ldev/chrisbanes/haze/HazeChildNode;JLandroidx/compose/ui/graphics/layer/GraphicsLayer;Landroidx/compose/ui/graphics/drawscope/DrawScope;)Lkotlin/Unit;
 HSPLdev/chrisbanes/haze/HazeChildNode;->drawEffectWithGraphicsLayer(Landroidx/compose/ui/graphics/drawscope/DrawScope;Landroidx/compose/ui/graphics/layer/GraphicsLayer;)V
 HSPLdev/chrisbanes/haze/HazeChildNode;->drawEffectWithScrim$scrim(Ldev/chrisbanes/haze/HazeTint;Ldev/chrisbanes/haze/HazeChildNode;Landroidx/compose/ui/graphics/drawscope/DrawScope;)V
 HSPLdev/chrisbanes/haze/HazeChildNode;->drawEffectWithScrim(Landroidx/compose/ui/graphics/drawscope/DrawScope;)V
@@ -125,7 +125,7 @@ HSPLdev/chrisbanes/haze/HazeNode;->onGloballyPositioned(Landroidx/compose/ui/lay
 HSPLdev/chrisbanes/haze/HazeNode;->onMeasureResultChanged()V
 HSPLdev/chrisbanes/haze/HazeNode;->setState(Ldev/chrisbanes/haze/HazeState;)V
 Ldev/chrisbanes/haze/HazeNode$$ExternalSyntheticLambda0;
-HSPLdev/chrisbanes/haze/HazeNode$$ExternalSyntheticLambda0;-><init>(Landroidx/compose/ui/layout/LayoutCoordinates;)V
+HSPLdev/chrisbanes/haze/HazeNode$$ExternalSyntheticLambda0;-><init>(Landroidx/compose/ui/layout/LayoutCoordinates;Ldev/chrisbanes/haze/HazeNode;)V
 Ldev/chrisbanes/haze/HazeNode$$ExternalSyntheticLambda1;
 HSPLdev/chrisbanes/haze/HazeNode$$ExternalSyntheticLambda1;-><init>()V
 Ldev/chrisbanes/haze/HazeNode$$ExternalSyntheticLambda2;
@@ -172,8 +172,6 @@ HSPLdev/chrisbanes/haze/HazeState;->getPositionOnScreen-F1C5BW0()J
 HSPLdev/chrisbanes/haze/HazeState;->setContentDrawing$haze_release(Z)V
 HSPLdev/chrisbanes/haze/HazeState;->setContentLayer$haze_release(Landroidx/compose/ui/graphics/layer/GraphicsLayer;)V
 HSPLdev/chrisbanes/haze/HazeState;->setPositionOnScreen-k-4lQ0M$haze_release(J)V
-Ldev/chrisbanes/haze/HazeState$$ExternalSyntheticLambda0;
-HSPLdev/chrisbanes/haze/HazeState$$ExternalSyntheticLambda0;-><init>()V
 Ldev/chrisbanes/haze/HazeStyle;
 HSPLdev/chrisbanes/haze/HazeStyle;-><clinit>()V
 HSPLdev/chrisbanes/haze/HazeStyle;-><init>(JLdev/chrisbanes/haze/HazeTint;FFLdev/chrisbanes/haze/HazeTint;)V
@@ -234,8 +232,8 @@ HSPLdev/chrisbanes/haze/RenderEffect_androidKt;->withMask-jA9W-mQ(Landroid/graph
 HSPLdev/chrisbanes/haze/RenderEffect_androidKt;->withNoise(Landroidx/compose/ui/node/CompositionLocalConsumerModifierNode;Landroid/graphics/RenderEffect;F)Landroid/graphics/RenderEffect;
 HSPLdev/chrisbanes/haze/RenderEffect_androidKt;->withTint-0mBilkg(Landroid/graphics/RenderEffect;Ldev/chrisbanes/haze/HazeTint;FLandroid/graphics/Shader;J)Landroid/graphics/RenderEffect;
 HSPLdev/chrisbanes/haze/RenderEffect_androidKt;->withTints-0mBilkg(Landroid/graphics/RenderEffect;Ljava/util/List;FLandroid/graphics/Shader;J)Landroid/graphics/RenderEffect;
-Ldev/chrisbanes/haze/RenderEffect_androidKt$$ExternalSyntheticLambda14;
-HSPLdev/chrisbanes/haze/RenderEffect_androidKt$$ExternalSyntheticLambda14;-><init>(FFLjava/util/List;JJJ)V
+Ldev/chrisbanes/haze/RenderEffect_androidKt$$ExternalSyntheticLambda15;
+HSPLdev/chrisbanes/haze/RenderEffect_androidKt$$ExternalSyntheticLambda15;-><init>(FFLjava/util/List;JJJ)V
 Ldev/chrisbanes/haze/RenderEffect_androidKt$special$$inlined$lruCache$default$1;
 HSPLdev/chrisbanes/haze/RenderEffect_androidKt$special$$inlined$lruCache$default$1;-><init>(I)V
 Ldev/chrisbanes/haze/UtilsKt;
