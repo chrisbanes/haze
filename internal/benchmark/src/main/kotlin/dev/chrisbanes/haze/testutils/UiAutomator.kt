@@ -50,6 +50,11 @@ internal fun UiDevice.navigateToScaffoldWithProgressive() {
   waitForIdle()
 }
 
+internal fun UiDevice.navigateToScaffoldWithMask() {
+  waitForObject(By.res("Scaffold (with mask)")).click()
+  waitForIdle()
+}
+
 internal fun UiDevice.navigateToCreditCard() {
   waitForObject(By.res("Credit Card")).click()
   waitForIdle()
