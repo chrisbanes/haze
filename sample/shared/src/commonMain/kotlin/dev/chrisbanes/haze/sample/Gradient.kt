@@ -24,24 +24,12 @@ fun Brush.Companion.easedGradient(
 
 fun Brush.Companion.easedVerticalGradient(
   easing: Easing,
-  numStops: Int = 16,
   startY: Float = 0.0f,
   endY: Float = Float.POSITIVE_INFINITY,
+  numStops: Int = 16,
 ): Brush = easedGradient(
   easing = easing,
   numStops = numStops,
   start = Offset(x = 0f, y = startY),
   end = Offset(x = 0f, y = endY),
-)
-
-fun Brush.Companion.cubicHorizontalGradient(
-  easing: Easing,
-  numStops: Int = 16,
-  startX: Float = 0.0f,
-  endX: Float = Float.POSITIVE_INFINITY,
-): Brush = easedGradient(
-  easing = easing,
-  numStops = numStops,
-  start = Offset(x = startX, y = 0f),
-  end = Offset(x = endX, y = 0f),
 )

@@ -12,6 +12,7 @@ import androidx.test.uiautomator.By
 import dev.chrisbanes.haze.testutils.navigateToCreditCard
 import dev.chrisbanes.haze.testutils.navigateToImagesList
 import dev.chrisbanes.haze.testutils.navigateToScaffold
+import dev.chrisbanes.haze.testutils.navigateToScaffoldWithMask
 import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
 import dev.chrisbanes.haze.testutils.scroll
 import dev.chrisbanes.haze.testutils.waitForObject
@@ -69,6 +70,22 @@ class BenchmarkTest {
       setupBlock = {
         startActivityAndWait()
         device.navigateToScaffoldWithProgressive()
+      },
+    ) {
+      device.scroll("lazy_grid")
+    }
+  }
+
+  @Test
+  fun scaffoldMask() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.navigateToScaffoldWithMask()
       },
     ) {
       device.scroll("lazy_grid")
