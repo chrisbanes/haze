@@ -1,14 +1,6 @@
-The 0.9 version contains a full re-write (actually more of a refactor) of Haze. It uses Compose Mutliplatform 1.7.0 (currently pre-release), meaning that we now have access to some new and exciting APIs.
-
-!!! warning "Should I use v0.9 pre-release?"
-
-    I think that all depends on your appetite for prerelease software. Haze itself is now much simpler than ever before, and most of the complexity is now in GraphicsLayer. On Android, we're using the latest Jetpack Compose 1.7.x stable versions. If you're only using Haze on Android, go for it.
-
-    On other platforms, Compose Multiplatform is at 1.7.0-rc01, so not stable, but nearly there.
-
 ## Changes
 
-Here's a list of known changes in v0.9.x. There may be others, so please file issues if you encounter other unexpected changes.
+Here's a list of known changes in v1.0.x. There may be others, so please file issues if you encounter other unexpected changes.
 
 ### Functional changes
 
@@ -38,7 +30,7 @@ As we're now using a common implementation on all platforms, the Skia-backed pla
 
 #### Default style functionality on Modifier.haze has been moved
 
-- **What:** In previous versions, there was a `style` parameter on `Modifier.haze`, which has been moved in v0.9.
+- **What:** In previous versions, there was a `style` parameter on `Modifier.haze`, which has been moved in v1.0.
 - **Migration:** Use the new [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local instead.
 - **Why:** Composition locals are used throughout styling frameworks, so this is a better API going forward.
 
@@ -50,7 +42,7 @@ As we're now using a common implementation on all platforms, the Skia-backed pla
 
 ## Why have these changes been made?
 
-Below we'll go through some of the background of the changes in v0.9. You don't need to know this stuff, but it might be interesting for some.
+Below we'll go through some of the background of the changes in v1.0. You don't need to know this stuff, but it might be interesting for some.
 
 ### GraphicsLayers
 
@@ -62,6 +54,6 @@ This has resulted in Haze now having a single implementation across all platform
 
 In v0.7 and older, Haze is all 'smoke and mirrors'. It draws all of the blurred areas in the `haze` layout node. The `hazeChild` nodes just update the size, shape, etc, which the `haze` modifier reads, to know where to draw.
 
-With the adoption of GraphicsLayers, we now have a way to pass 'drawn' content around, meaning that we are no longer bound by the restraints of before. v0.9 contains a re-written drawing pipeline, where the blurred content is drawn by the `hazeChild`, not the parent. The parent `haze` is now only responsible for drawing the background content into a graphics layer, and putting it somewhere for the children to access.
+With the adoption of GraphicsLayers, we now have a way to pass 'drawn' content around, meaning that we are no longer bound by the restraints of before. v1.0 contains a re-written drawing pipeline, where the blurred content is drawn by the `hazeChild`, not the parent. The parent `haze` is now only responsible for drawing the background content into a graphics layer, and putting it somewhere for the children to access.
 
 This fixes a number of long-known issues on Haze, where all were caused by the fact that the blurred area wasn't drawn by the child.
