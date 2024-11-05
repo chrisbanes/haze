@@ -18,10 +18,10 @@ You can also see it in action in the [Tivi app](https://github.com/chrisbanes/ti
 
 ## Versions
 
-There are currently 2 different versions available: 0.7.x (stable) and 0.9.x (pre-release).
+There are currently 2 different versions available: 0.7.x (stable) and 1.0.x (pre-release).
 
-The 0.9.x release depends on Compose Multiplatform 1.7.0, currently pre-release, meaning that we need to wait for that to go
-stable before Haze can go stable. The 0.9.x release also contains a near full re-write of how Haze works underneath. More information can be found on the [Migrating to 0.9](migrating-0.9.md) page.
+The 1.0.x release depends on Compose Multiplatform 1.7.0, currently pre-release, meaning that we need to wait for that to go
+stable before Haze can go stable. The 1.0.x release also contains a near full re-write of how Haze works underneath. More information can be found on the [Migrating to 1.0](migrating-1.0.md) page.
 
 ## Download
 
