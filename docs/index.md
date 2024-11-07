@@ -16,13 +16,6 @@ You can also see it in action in the [Tivi app](https://github.com/chrisbanes/ti
 
 ![type:video](./media/tivi.mp4)
 
-## Versions
-
-There are currently 2 different versions available: 0.7.x (stable) and 1.0.x (pre-release).
-
-The 1.0.x release depends on Compose Multiplatform 1.7.0, currently pre-release, meaning that we need to wait for that to go
-stable before Haze can go stable. The 1.0.x release also contains a near full re-write of how Haze works underneath. More information can be found on the [Migrating to 1.0](migrating-1.0.md) page.
-
 ## Download
 
 [![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze)](https://search.maven.org/search?q=g:dev.chrisbanes.haze)
