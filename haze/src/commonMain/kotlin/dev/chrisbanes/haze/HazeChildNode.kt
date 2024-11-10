@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
+import io.github.reactivecircus.cache4k.Cache
 
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeChild].
@@ -358,7 +359,7 @@ class HazeChildNode(
 
   private fun DrawScope.updateRenderEffectIfDirty() {
     if (renderEffectDirty) {
-      renderEffect = createRenderEffect(
+      renderEffect = getOrCreateRenderEffect(
         blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
         noiseFactor = resolveNoiseFactor(),
         tints = resolveTints(),
@@ -495,7 +496,25 @@ sealed interface HazeProgressive {
   }
 }
 
-internal expect fun HazeChildNode.createRenderEffect(
+private val renderEffectCache by lazy {
+  Cache.Builder<RenderEffectParams, RenderEffect>()
+    .maximumCacheSize(10)
+    .build()
+}
+
+internal data class RenderEffectParams(
+  val blurRadiusPx: Float,
+  val noiseFactor: Float,
+  val tints: List<HazeTint> = emptyList(),
+  val tintAlphaModulate: Float = 1f,
+  val contentSize: Size,
+  val contentOffset: Offset,
+  val layerSize: Size,
+  val mask: Brush? = null,
+  val progressive: Brush? = null,
+)
+
+internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(
   blurRadiusPx: Float,
   noiseFactor: Float,
   tints: List<HazeTint> = emptyList(),
@@ -505,7 +524,34 @@ internal expect fun HazeChildNode.createRenderEffect(
   layerSize: Size,
   mask: Brush? = null,
   progressive: Brush? = null,
-): RenderEffect?
+): RenderEffect? = getOrCreateRenderEffect(
+  RenderEffectParams(
+    blurRadiusPx = blurRadiusPx,
+    noiseFactor = noiseFactor,
+    tints = tints,
+    tintAlphaModulate = tintAlphaModulate,
+    contentSize = contentSize,
+    contentOffset = contentOffset,
+    layerSize = layerSize,
+    mask = mask,
+    progressive = progressive,
+  ),
+)
+
+internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params: RenderEffectParams): RenderEffect? {
+  log(HazeChildNode.TAG) { "getOrCreateRenderEffect: $params" }
+  val cached = renderEffectCache.get(params)
+  if (cached != null) {
+    log(HazeChildNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
+    return cached
+  }
+
+  log(HazeChildNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
+  return createRenderEffect(params)
+    ?.also { renderEffectCache.put(params, it) }
+}
+
+internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
 
 internal expect fun HazeChildNode.drawLinearGradientProgressiveEffect(
   drawScope: DrawScope,

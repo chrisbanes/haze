@@ -27,7 +27,7 @@ internal actual fun HazeChildNode.drawLinearGradientProgressiveEffect(
 ) {
   if (Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
-      contentLayer.renderEffect = createRenderEffect(
+      contentLayer.renderEffect = getOrCreateRenderEffect(
         blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
         noiseFactor = resolveNoiseFactor(),
         tints = resolveTints(),
@@ -44,7 +44,7 @@ internal actual fun HazeChildNode.drawLinearGradientProgressiveEffect(
     }
   } else if (progressive.preferPerformance) {
     with(drawScope) {
-      contentLayer.renderEffect = createRenderEffect(
+      contentLayer.renderEffect = getOrCreateRenderEffect(
         blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
         noiseFactor = resolveNoiseFactor(),
         tints = resolveTints(),
@@ -116,7 +116,7 @@ private fun HazeChildNode.drawLinearGradientProgressiveEffectUsingLayers(
     val min = min(progressive.startIntensity, progressive.endIntensity)
     val max = max(progressive.startIntensity, progressive.endIntensity)
 
-    layer.renderEffect = createRenderEffect(
+    layer.renderEffect = getOrCreateRenderEffect(
       blurRadiusPx = intensity * blurRadiusPx,
       noiseFactor = noiseFactor,
       tints = tints,
