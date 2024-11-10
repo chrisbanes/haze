@@ -10,7 +10,7 @@ internal fun HazeProgressive.LinearGradient.asBrush(numStops: Int = 20): Brush {
   return Brush.linearGradient(
     colors = List(numStops) { i ->
       val x = i * 1f / (numStops - 1)
-      Color.Black.copy(alpha = lerp(startIntensity, endIntensity, easing.transform(x)))
+      Color.Magenta.copy(alpha = lerp(startIntensity, endIntensity, easing.transform(x)))
     },
     start = start,
     end = end,
