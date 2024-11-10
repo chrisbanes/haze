@@ -331,25 +331,28 @@ class HazeChildNode(
   private fun DrawScope.drawEffectWithScrim() {
     val scrimTint = resolveFallbackTint().takeIf { it.isSpecified }
       ?: resolveTints().firstOrNull()?.boostForFallback(resolveBlurRadius().takeOrElse { 0.dp })
+      ?: return
 
-    fun scrim() {
-      if (scrimTint != null) {
-        val m = mask
-        if (m != null) {
-          drawRect(brush = m, colorFilter = ColorFilter.tint(scrimTint.color))
-        } else {
-          drawRect(color = scrimTint.color, blendMode = scrimTint.blendMode)
-        }
+    fun scrim(tint: HazeTint) {
+      val m = mask
+      val p = progressive
+
+      if (m != null) {
+        drawRect(brush = m, colorFilter = ColorFilter.tint(tint.color))
+      } else if (p is HazeProgressive.LinearGradient) {
+        drawRect(brush = p.asBrush(), colorFilter = ColorFilter.tint(tint.color))
+      } else {
+        drawRect(color = tint.color, blendMode = tint.blendMode)
       }
     }
 
     if (alpha != 1f) {
       paint.alpha = alpha
       drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-        scrim()
+        scrim(scrimTint)
       }
     } else {
-      scrim()
+      scrim(scrimTint)
     }
   }
 
@@ -393,13 +396,13 @@ class HazeChildNode(
  * Parameters for applying a progressive blur effect.
  */
 sealed interface HazeProgressive {
+
   /**
    * A linear gradient effect.
    *
    * You may wish to use the convenience builder functions provided in [horizontalGradient] and
    * [verticalGradient] for more common use cases.
    *
-   * @param steps - The number of steps in the effect. See [HazeProgressive.steps] for information.
    * @param easing - The easing function to use when applying the effect. Defaults to a
    * linear easing effect.
    * @param start - Starting position of the gradient. Defaults to [Offset.Zero] which
@@ -421,7 +424,6 @@ sealed interface HazeProgressive {
     /**
      * A vertical gradient effect.
      *
-     * @param steps - The number of steps in the effect. See [HazeProgressive.steps] for information.
      * @param easing - The easing function to use when applying the effect. Defaults to a
      * linear easing effect.
      * @param startY - Starting x position of the horizontal gradient. Defaults to 0 which
@@ -448,7 +450,6 @@ sealed interface HazeProgressive {
     /**
      * A horizontal gradient effect.
      *
-     * @param steps - The number of steps in the effect. See [HazeProgressive.steps] for information.
      * @param easing - The easing function to use when applying the effect. Defaults to a
      * linear easing effect.
      * @param startX - Starting x position of the horizontal gradient. Defaults to 0 which
