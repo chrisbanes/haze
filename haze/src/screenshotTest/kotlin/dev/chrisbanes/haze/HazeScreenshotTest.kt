@@ -110,6 +110,19 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_progressive_horiz_preferMask() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(
+          tint = DefaultTint,
+          progressive = HazeProgressive.horizontalGradient(preferPerformance = true),
+        )
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
   fun creditCard_progressive_vertical() = runScreenshotTest {
     setContent {
       ScreenshotTheme {

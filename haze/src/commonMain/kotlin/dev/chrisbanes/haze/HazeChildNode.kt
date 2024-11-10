@@ -403,6 +403,13 @@ sealed interface HazeProgressive {
    * You may wish to use the convenience builder functions provided in [horizontalGradient] and
    * [verticalGradient] for more common use cases.
    *
+   * The [preferPerformance] flag below can be set to tell Haze how to handle the progressive effect
+   * in certain situations:
+   *
+   * * On certain platforms (Android SDK 32), drawing the progressive effect is inefficient.
+   *   When [preferPerformance] is set to true, Haze will use a mask when running on those
+   *   platforms, which is far more performant.
+   *
    * @param easing - The easing function to use when applying the effect. Defaults to a
    * linear easing effect.
    * @param start - Starting position of the gradient. Defaults to [Offset.Zero] which
@@ -411,6 +418,8 @@ sealed interface HazeProgressive {
    * @param end - Ending position of the gradient. Defaults to
    * [Offset.Infinite] which represents the bottom-right of the drawing area.
    * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
+   * @param preferPerformance - Whether Haze should prefer performance (when true), or
+   * quality (when false). See above for more information.
    */
   data class LinearGradient(
     val easing: Easing = EaseIn,
@@ -418,6 +427,7 @@ sealed interface HazeProgressive {
     val startIntensity: Float = 0f,
     val end: Offset = Offset.Infinite,
     val endIntensity: Float = 1f,
+    val preferPerformance: Boolean = false,
   ) : HazeProgressive
 
   companion object {
@@ -431,7 +441,10 @@ sealed interface HazeProgressive {
      * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`.
      * @param endY - Ending x position of the horizontal gradient. Defaults to
      * [Float.POSITIVE_INFINITY] which represents the bottom of the drawing area.
-     * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
+     * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`.
+     * @param preferPerformance - Whether Haze should prefer performance (when true), or
+     * quality (when false). See [HazeProgressive.LinearGradient]'s documentation for more
+     * information.
      */
     fun verticalGradient(
       easing: Easing = EaseIn,
@@ -439,12 +452,14 @@ sealed interface HazeProgressive {
       startIntensity: Float = 0f,
       endY: Float = Float.POSITIVE_INFINITY,
       endIntensity: Float = 1f,
+      preferPerformance: Boolean = false,
     ): LinearGradient = LinearGradient(
       easing = easing,
       start = Offset(0f, startY),
       startIntensity = startIntensity,
       end = Offset(0f, endY),
       endIntensity = endIntensity,
+      preferPerformance = preferPerformance,
     )
 
     /**
@@ -457,7 +472,10 @@ sealed interface HazeProgressive {
      * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`
      * @param endX - Ending x position of the horizontal gradient. Defaults to
      * [Float.POSITIVE_INFINITY] which represents the right of the drawing area.
-     * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
+     * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`.
+     * @param preferPerformance - Whether Haze should prefer performance (when true), or
+     * quality (when false). See [HazeProgressive.LinearGradient]'s documentation for more
+     * information.
      */
     fun horizontalGradient(
       easing: Easing = EaseIn,
@@ -465,12 +483,14 @@ sealed interface HazeProgressive {
       startIntensity: Float = 0f,
       endX: Float = Float.POSITIVE_INFINITY,
       endIntensity: Float = 1f,
+      preferPerformance: Boolean = false,
     ): LinearGradient = LinearGradient(
       easing = easing,
       start = Offset(startX, 0f),
       startIntensity = startIntensity,
       end = Offset(endX, 0f),
       endIntensity = endIntensity,
+      preferPerformance = preferPerformance,
     )
   }
 }
