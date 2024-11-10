@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
@@ -15,7 +16,6 @@ import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.collection.lruCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -30,54 +30,39 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
+import io.github.reactivecircus.cache4k.Cache
 import kotlin.concurrent.getOrSet
 import kotlin.math.roundToInt
 
-internal actual fun HazeChildNode.createRenderEffect(
-  blurRadiusPx: Float,
-  noiseFactor: Float,
-  tints: List<HazeTint>,
-  tintAlphaModulate: Float,
-  contentSize: Size,
-  contentOffset: Offset,
-  layerSize: Size,
-  mask: Brush?,
-  progressive: Brush?,
-): RenderEffect? {
+internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
   if (Build.VERSION.SDK_INT < 31) return null
 
-  log(HazeChildNode.TAG) {
-    "createRenderEffect. " +
-      "blurRadiusPx=$blurRadiusPx, " +
-      "noiseFactor=$noiseFactor, " +
-      "tints=$tints, " +
-      "contentSize=$contentSize, " +
-      "contentOffset=$contentOffset, " +
-      "layerSize=$layerSize"
-  }
+  require(params.blurRadiusPx >= 0f) { "blurRadius needs to be equal or greater than 0f" }
 
-  require(blurRadiusPx >= 0f) { "blurRadius needs to be equal or greater than 0f" }
-
-  val progressiveShader = progressive?.toShader(contentSize)
+  val progressiveShader = params.progressive?.toShader(params.contentSize)
 
   val blur = when {
-    blurRadiusPx >= 0.005f && Build.VERSION.SDK_INT >= 33 && progressiveShader != null -> {
+    params.blurRadiusPx >= 0.005f && Build.VERSION.SDK_INT >= 33 && progressiveShader != null -> {
       // If we've been provided with a progressive/gradient blur shader, we need to use
       // our custom blur via a runtime shader
       createBlurImageFilterWithMask(
-        blurRadiusPx = blurRadiusPx,
-        bounds = Rect(contentOffset, contentSize),
+        blurRadiusPx = params.blurRadiusPx,
+        bounds = Rect(params.contentOffset, params.contentSize),
         mask = progressiveShader,
       )
     }
 
-    blurRadiusPx >= 0.005f -> {
+    params.blurRadiusPx >= 0.005f -> {
       try {
-        AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+        AndroidRenderEffect.createBlurEffect(
+          params.blurRadiusPx,
+          params.blurRadiusPx,
+          Shader.TileMode.CLAMP,
+        )
       } catch (e: IllegalArgumentException) {
         throw IllegalArgumentException(
           "Error whilst calling RenderEffect.createBlurEffect. " +
-            "This is likely because this device does not support a blur radius of $blurRadiusPx px",
+            "This is likely because this device does not support a blur radius of ${params.blurRadiusPx} px",
           e,
         )
       }
@@ -89,9 +74,9 @@ internal actual fun HazeChildNode.createRenderEffect(
   }
 
   return blur
-    .withNoise(noiseFactor)
-    .withTints(tints, tintAlphaModulate, progressiveShader, contentOffset)
-    .withMask(mask, contentSize, contentOffset)
+    .withNoise(currentValueOf(LocalContext), params.noiseFactor)
+    .withTints(params.tints, params.tintAlphaModulate, progressiveShader, params.contentOffset)
+    .withMask(params.mask, params.contentSize, params.contentOffset)
     .asComposeRenderEffect()
 }
 
@@ -99,28 +84,32 @@ internal actual fun DrawScope.useGraphicLayers(): Boolean {
   return Build.VERSION.SDK_INT >= 32 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
 }
 
-private val noiseTextureCache = lruCache<Int, Bitmap>(3)
+private val noiseTextureCache by lazy {
+  Cache.Builder<Int, Bitmap>()
+    .maximumCacheSize(3)
+    .build()
+}
 
-context(CompositionLocalConsumerModifierNode)
-private fun getNoiseTexture(noiseFactor: Float): Bitmap {
+private fun Context.getNoiseTexture(noiseFactor: Float): Bitmap {
   val noiseAlphaInt = (noiseFactor * 255).roundToInt().coerceIn(0, 255)
-  val cached = noiseTextureCache[noiseAlphaInt]
+  val cached = noiseTextureCache.get(noiseAlphaInt)
   if (cached != null && !cached.isRecycled) {
     return cached
   }
 
   // We draw the noise with the given opacity
-  val resources = currentValueOf(LocalContext).resources
   return BitmapFactory.decodeResource(resources, R.drawable.haze_noise)
     .withAlpha(noiseAlphaInt)
     .also { noiseTextureCache.put(noiseAlphaInt, it) }
 }
 
-context(CompositionLocalConsumerModifierNode)
 @RequiresApi(31)
-private fun AndroidRenderEffect.withNoise(noiseFactor: Float): AndroidRenderEffect = when {
+private fun AndroidRenderEffect.withNoise(
+  context: Context,
+  noiseFactor: Float,
+): AndroidRenderEffect = when {
   noiseFactor >= 0.005f -> {
-    val noiseShader = BitmapShader(getNoiseTexture(noiseFactor), REPEAT, REPEAT)
+    val noiseShader = BitmapShader(context.getNoiseTexture(noiseFactor), REPEAT, REPEAT)
     AndroidRenderEffect.createBlendModeEffect(
       AndroidRenderEffect.createShaderEffect(noiseShader), // dst
       this, // src

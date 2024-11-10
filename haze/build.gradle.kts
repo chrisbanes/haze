@@ -39,6 +39,7 @@ kotlin {
       dependencies {
         api(compose.ui)
         implementation(compose.foundation)
+        implementation(libs.cache4k)
       }
     }
 
@@ -48,8 +49,6 @@ kotlin {
         // Can remove this once CMP goes stable
         api(libs.androidx.compose.ui)
         implementation(libs.androidx.compose.foundation)
-
-        implementation(libs.androidx.collection)
         implementation(libs.androidx.core)
       }
     }

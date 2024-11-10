@@ -14,7 +14,7 @@ internal actual fun HazeChildNode.drawLinearGradientProgressiveEffect(
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
 ) = with(drawScope) {
-  contentLayer.renderEffect = createRenderEffect(
+  contentLayer.renderEffect = getOrCreateRenderEffect(
     blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
     noiseFactor = resolveNoiseFactor(),
     tints = resolveTints(),

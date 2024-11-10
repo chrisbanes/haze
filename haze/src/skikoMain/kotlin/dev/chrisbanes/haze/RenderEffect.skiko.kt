@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import org.jetbrains.skia.BlendMode
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.FilterTileMode
@@ -25,45 +26,25 @@ import org.jetbrains.skia.Shader
 
 internal actual fun DrawScope.useGraphicLayers(): Boolean = true
 
-internal actual fun HazeChildNode.createRenderEffect(
-  blurRadiusPx: Float,
-  noiseFactor: Float,
-  tints: List<HazeTint>,
-  tintAlphaModulate: Float,
-  contentSize: Size,
-  contentOffset: Offset,
-  layerSize: Size,
-  mask: Brush?,
-  progressive: Brush?,
-): RenderEffect? {
-  log(HazeChildNode.TAG) {
-    "createRenderEffect. " +
-      "blurRadiusPx=$blurRadiusPx, " +
-      "noiseFactor=$noiseFactor, " +
-      "tints=$tints, " +
-      "contentSize=$contentSize, " +
-      "contentOffset=$contentOffset, " +
-      "layerSize=$layerSize"
-  }
-
-  require(blurRadiusPx >= 0f) { "blurRadius needs to be equal or greater than 0f" }
+internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
+  require(params.blurRadiusPx >= 0f) { "blurRadius needs to be equal or greater than 0f" }
 
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-    uniform("noiseFactor", noiseFactor.coerceIn(0f, 1f))
+    uniform("noiseFactor", params.noiseFactor.coerceIn(0f, 1f))
     child("noise", NOISE_SHADER)
   }
 
-  val progressiveShader = progressive?.toShader(contentSize)
+  val progressiveShader = params.progressive?.toShader(params.contentSize)
   val blur = if (progressiveShader != null) {
     // If we've been provided with a progressive/gradient blur shader, we need to use
     // our custom blur via a runtime shader
     createBlurImageFilterWithMask(
-      blurRadiusPx = blurRadiusPx,
-      bounds = Rect(contentOffset, contentSize),
+      blurRadiusPx = params.blurRadiusPx,
+      bounds = Rect(params.contentOffset, params.contentSize),
       mask = progressiveShader,
     )
   } else {
-    createBlurImageFilter(blurRadiusPx = blurRadiusPx, bounds = layerSize.toRect())
+    createBlurImageFilter(blurRadiusPx = params.blurRadiusPx, bounds = params.layerSize.toRect())
   }
 
   return ImageFilter
@@ -72,8 +53,8 @@ internal actual fun HazeChildNode.createRenderEffect(
       shaderNames = arrayOf("content", "blur"),
       inputs = arrayOf(null, blur),
     )
-    .withTints(tints, tintAlphaModulate, progressiveShader, contentOffset)
-    .withMask(mask, contentSize, contentOffset)
+    .withTints(params.tints, params.tintAlphaModulate, progressiveShader, params.contentOffset)
+    .withMask(params.mask, params.contentSize, params.contentOffset)
     .asComposeRenderEffect()
 }
 
