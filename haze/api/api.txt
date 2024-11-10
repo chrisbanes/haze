@@ -112,26 +112,29 @@ package dev.chrisbanes.haze {
   }
 
   public static final class HazeProgressive.Companion {
-    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient horizontalGradient(optional androidx.compose.animation.core.Easing easing, optional float startX, optional float startIntensity, optional float endX, optional float endIntensity);
-    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient verticalGradient(optional androidx.compose.animation.core.Easing easing, optional float startY, optional float startIntensity, optional float endY, optional float endIntensity);
+    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient horizontalGradient(optional androidx.compose.animation.core.Easing easing, optional float startX, optional float startIntensity, optional float endX, optional float endIntensity, optional boolean preferPerformance);
+    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient verticalGradient(optional androidx.compose.animation.core.Easing easing, optional float startY, optional float startIntensity, optional float endY, optional float endIntensity, optional boolean preferPerformance);
   }
 
   public static final class HazeProgressive.LinearGradient implements dev.chrisbanes.haze.HazeProgressive {
-    ctor public HazeProgressive.LinearGradient(optional androidx.compose.animation.core.Easing easing, optional long start, optional float startIntensity, optional long end, optional float endIntensity);
+    ctor public HazeProgressive.LinearGradient(optional androidx.compose.animation.core.Easing easing, optional long start, optional float startIntensity, optional long end, optional float endIntensity, optional boolean preferPerformance);
     method public androidx.compose.animation.core.Easing component1();
     method public long component2-F1C5BW0();
     method public float component3();
     method public long component4-F1C5BW0();
     method public float component5();
-    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient copy-umk_asQ(androidx.compose.animation.core.Easing easing, long start, float startIntensity, long end, float endIntensity);
+    method public boolean component6();
+    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient copy-E2oHoeU(androidx.compose.animation.core.Easing easing, long start, float startIntensity, long end, float endIntensity, boolean preferPerformance);
     method public androidx.compose.animation.core.Easing getEasing();
     method public long getEnd();
     method public float getEndIntensity();
+    method public boolean getPreferPerformance();
     method public long getStart();
     method public float getStartIntensity();
     property public final androidx.compose.animation.core.Easing easing;
     property public final long end;
     property public final float endIntensity;
+    property public final boolean preferPerformance;
     property public final long start;
     property public final float startIntensity;
   }

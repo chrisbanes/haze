@@ -42,6 +42,22 @@ internal actual fun HazeChildNode.drawLinearGradientProgressiveEffect(
       // Finally draw the layer
       drawLayer(contentLayer)
     }
+  } else if (progressive.preferPerformance) {
+    with(drawScope) {
+      contentLayer.renderEffect = createRenderEffect(
+        blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
+        noiseFactor = resolveNoiseFactor(),
+        tints = resolveTints(),
+        contentSize = size,
+        contentOffset = contentOffset,
+        layerSize = layerSize,
+        mask = progressive.asBrush(),
+      )
+      contentLayer.alpha = alpha
+
+      // Finally draw the layer
+      drawLayer(contentLayer)
+    }
   } else {
     drawLinearGradientProgressiveEffectUsingLayers(
       drawScope = drawScope,
