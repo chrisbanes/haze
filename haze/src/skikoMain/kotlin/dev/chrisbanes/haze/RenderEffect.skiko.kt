@@ -24,7 +24,7 @@ import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeShaderBuilder
 import org.jetbrains.skia.Shader
 
-internal actual fun DrawScope.useGraphicLayers(): Boolean = true
+internal actual fun DrawScope.canUseGraphicLayers(): Boolean = true
 
 internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
   require(params.blurRadiusPx >= 0f) { "blurRadius needs to be equal or greater than 0f" }

@@ -80,8 +80,11 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     .asComposeRenderEffect()
 }
 
-internal actual fun DrawScope.useGraphicLayers(): Boolean {
-  return Build.VERSION.SDK_INT >= 32 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
+/**
+ * This is the technical minimum for blurring to work on Android.
+ */
+internal actual fun DrawScope.canUseGraphicLayers(): Boolean {
+  return Build.VERSION.SDK_INT >= 31 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
 }
 
 private val noiseTextureCache by lazy {

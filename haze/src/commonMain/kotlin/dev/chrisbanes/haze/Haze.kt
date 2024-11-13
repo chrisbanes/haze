@@ -103,6 +103,18 @@ object HazeDefaults {
     blurRadius: Dp = this.blurRadius,
     noiseFactor: Float = this.noiseFactor,
   ): HazeStyle = HazeStyle(backgroundColor, tint, blurRadius, noiseFactor)
+
+  /**
+   * Default values for [HazeChildScope.blurEnabled]. This function only returns `true` on
+   * platforms where we know blurring works reliably.
+   *
+   * This is not the same as everywhere where it technically works. The key omission here
+   * is Android SDK Level 31, which is known to have some issues with
+   * RenderNode invalidation.
+   *
+   * The devices excluded by this function may change in the future.
+   */
+  fun blurEnabled(): Boolean = isBlurEnabledByDefault()
 }
 
 internal data class HazeNodeElement(

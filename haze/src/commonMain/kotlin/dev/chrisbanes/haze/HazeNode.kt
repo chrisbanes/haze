@@ -54,7 +54,7 @@ class HazeNode(
     state.contentDrawing = true
     log(TAG) { "start draw()" }
 
-    if (useGraphicLayers()) {
+    if (canUseGraphicLayers()) {
       val graphicsContext = currentValueOf(LocalGraphicsContext)
 
       val contentLayer = state.contentLayer
@@ -91,7 +91,9 @@ class HazeNode(
   }
 }
 
-internal expect fun DrawScope.useGraphicLayers(): Boolean
+internal expect fun isBlurEnabledByDefault(): Boolean
+
+internal expect fun DrawScope.canUseGraphicLayers(): Boolean
 
 internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
   // For color, we can boost the alpha

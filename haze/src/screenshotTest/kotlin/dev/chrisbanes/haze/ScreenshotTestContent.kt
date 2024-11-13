@@ -32,6 +32,7 @@ internal fun CreditCardSample(
   blurRadius: Dp = 8.dp,
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
+  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
   mask: Brush? = null,
   progressive: HazeProgressive? = null,
   alpha: Float = 1f,
@@ -71,6 +72,7 @@ internal fun CreditCardSample(
           when {
             enabled -> {
               Modifier.hazeChild(state = hazeState) {
+                this.blurEnabled = blurEnabled
                 this.style = style
                 backgroundColor = surfaceColor
                 noiseFactor = HazeDefaults.noiseFactor

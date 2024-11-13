@@ -28,6 +28,28 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_blurEnabled() = runScreenshotTest {
+    var blurEnabled by mutableStateOf(HazeDefaults.blurEnabled())
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(tint = DefaultTint, blurEnabled = blurEnabled)
+      }
+    }
+
+    waitForIdle()
+    captureRoot("default")
+
+    blurEnabled = false
+    waitForIdle()
+    captureRoot("disabled")
+
+    blurEnabled = true
+    waitForIdle()
+    captureRoot("enabled")
+  }
+
+  @Test
   fun creditCard_style() = runScreenshotTest {
     setContent {
       ScreenshotTheme {

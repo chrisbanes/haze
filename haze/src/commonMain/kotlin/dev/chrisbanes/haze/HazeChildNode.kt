@@ -70,6 +70,15 @@ class HazeChildNode(
   private var drawParametersDirty: Boolean = true
   private var progressiveDirty: Boolean = true
 
+  override var blurEnabled: Boolean = HazeDefaults.blurEnabled()
+    set(value) {
+      if (value != field) {
+        log(TAG) { "blurEnabled changed. Current: $field. New: $value" }
+        field = value
+        drawParametersDirty = true
+      }
+    }
+
   internal var compositionLocalStyle: HazeStyle = HazeStyle.Unspecified
     set(value) {
       if (field != value) {
@@ -251,11 +260,9 @@ class HazeChildNode(
       return
     }
 
-    if (useGraphicLayers()) {
-      val contentLayer = state.contentLayer
-      if (contentLayer != null) {
-        drawEffectWithGraphicsLayer(contentLayer)
-      }
+    val contentLayer = state.contentLayer
+    if (contentLayer != null && blurEnabled && canUseGraphicLayers()) {
+      drawEffectWithGraphicsLayer(contentLayer)
     } else {
       drawEffectWithScrim()
     }

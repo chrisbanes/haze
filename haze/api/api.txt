@@ -15,6 +15,7 @@ package dev.chrisbanes.haze {
     method public float getAlpha();
     method public long getBackgroundColor();
     method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? getBlock();
+    method public boolean getBlurEnabled();
     method public float getBlurRadius();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public androidx.compose.ui.graphics.Brush? getMask();
@@ -28,6 +29,7 @@ package dev.chrisbanes.haze {
     method public void setAlpha(float);
     method public void setBackgroundColor(long);
     method public void setBlock(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>?);
+    method public void setBlurEnabled(boolean);
     method public void setBlurRadius(float);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
     method public void setMask(androidx.compose.ui.graphics.Brush?);
@@ -39,6 +41,7 @@ package dev.chrisbanes.haze {
     property public float alpha;
     property public long backgroundColor;
     property public final kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? block;
+    property public boolean blurEnabled;
     property public float blurRadius;
     property public dev.chrisbanes.haze.HazeTint fallbackTint;
     property public androidx.compose.ui.graphics.Brush? mask;
@@ -54,6 +57,7 @@ package dev.chrisbanes.haze {
   public interface HazeChildScope {
     method public float getAlpha();
     method public long getBackgroundColor();
+    method public boolean getBlurEnabled();
     method public float getBlurRadius();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public androidx.compose.ui.graphics.Brush? getMask();
@@ -63,6 +67,7 @@ package dev.chrisbanes.haze {
     method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
     method public void setAlpha(float);
     method public void setBackgroundColor(long);
+    method public void setBlurEnabled(boolean);
     method public void setBlurRadius(float);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
     method public void setMask(androidx.compose.ui.graphics.Brush?);
@@ -72,6 +77,7 @@ package dev.chrisbanes.haze {
     method public void setTints(java.util.List<dev.chrisbanes.haze.HazeTint>);
     property public abstract float alpha;
     property public abstract long backgroundColor;
+    property public abstract boolean blurEnabled;
     property public abstract float blurRadius;
     property public abstract dev.chrisbanes.haze.HazeTint fallbackTint;
     property public abstract androidx.compose.ui.graphics.Brush? mask;
@@ -82,6 +88,7 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeDefaults {
+    method public boolean blurEnabled();
     method public float getBlurRadius();
     method public dev.chrisbanes.haze.HazeStyle style(long backgroundColor, optional dev.chrisbanes.haze.HazeTint tint, optional float blurRadius, optional float noiseFactor);
     method @Deprecated public dev.chrisbanes.haze.HazeStyle style(optional long backgroundColor, long tint, optional float blurRadius, optional float noiseFactor);
