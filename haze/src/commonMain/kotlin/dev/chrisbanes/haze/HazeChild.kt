@@ -14,6 +14,17 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 
 interface HazeChildScope {
+
+  /**
+   * Whether the blur effect is enabled or not, when running on platforms which support blurring.
+   *
+   * When set to `false` a scrim effect will be used. When set to `true`, and running on a platform
+   * which does not support blurring, a scrim effect will be used.
+   *
+   * Defaults to [HazeDefaults.blurEnabled].
+   */
+  var blurEnabled: Boolean
+
   /**
    * The opacity that the overall effect will drawn with, in the range of 0..1.
    */
