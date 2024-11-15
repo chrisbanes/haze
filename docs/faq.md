@@ -25,6 +25,23 @@ This fixes a number of long-known issues on Haze, where all were caused by the f
 
 There are differences in the platform [RenderEffect][rendereffect]s which we use for actual effect though. These are platform specific, and need to use platform APIs, but the way they are written is very similar.
 
+## What versions of Android does Haze work on?
+
+Haze works on all versions of Android, but the effect it uses differs based on the version of Android that it is running on.
+
+Haze utilizes RenderEffects for blurring, which technically only 'work' when running on Android 12 (SDK Level 31) or above. However, Haze by default does not enable blurring on SDK Level 31 due to [some issues](https://github.com/chrisbanes/haze/issues/77) found in testing, therefore only enables blurring on SDK Level 32 and above.
+
+You can override this by setting the `blurEnabled` property in the `hazeChild` block, like so:
+
+```kotlin
+Modifier.hazeChild(...) {
+    // Enable blur everywhere where it is technically possible...
+    blurEnabled = true
+}
+```
+
+This will enable blurring everywhere where it is technically possible, including Android SDK Level 31, but please testing on devices before releasing with this enabled. The issues that we've seen might be limited to just the emulator, but we're not sure.
+
  [rendernode]: https://developer.android.com/reference/android/graphics/RenderNode
  [rendereffect]: https://developer.android.com/reference/android/graphics/RenderEffect
  [graphicslayer]: https://duckduckgo.com/?q=graphicslayer+compose&t=osx
