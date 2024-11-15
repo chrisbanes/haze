@@ -13,7 +13,7 @@ kotlin = "2.0.21"
 ktor = "3.0.1"
 jetpack-compose = "1.7.5"
 metalava = "0.3.5"
-robolectric = "4.14-beta-1"
+robolectric = "4.14"
 roborazzi = "1.32.2"
 spotless = "6.25.0"
 
