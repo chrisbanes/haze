@@ -12,8 +12,10 @@ import androidx.test.uiautomator.By
 import dev.chrisbanes.haze.testutils.navigateToCreditCard
 import dev.chrisbanes.haze.testutils.navigateToImagesList
 import dev.chrisbanes.haze.testutils.navigateToScaffold
+import dev.chrisbanes.haze.testutils.navigateToScaffoldScaled
 import dev.chrisbanes.haze.testutils.navigateToScaffoldWithMask
 import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
+import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressiveScaled
 import dev.chrisbanes.haze.testutils.scroll
 import dev.chrisbanes.haze.testutils.waitForObject
 import org.junit.Rule
@@ -61,6 +63,22 @@ class BenchmarkTest {
   }
 
   @Test
+  fun scaffoldScaled() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.navigateToScaffoldScaled()
+      },
+    ) {
+      device.scroll("lazy_grid")
+    }
+  }
+
+  @Test
   fun scaffoldProgressive() {
     benchmarkRule.measureRepeated(
       packageName = APP_PACKAGE,
@@ -70,6 +88,22 @@ class BenchmarkTest {
       setupBlock = {
         startActivityAndWait()
         device.navigateToScaffoldWithProgressive()
+      },
+    ) {
+      device.scroll("lazy_grid")
+    }
+  }
+
+  @Test
+  fun scaffoldProgressiveScaled() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.navigateToScaffoldWithProgressiveScaled()
       },
     ) {
       device.scroll("lazy_grid")

@@ -122,3 +122,24 @@ LargeTopAppBar(
 !!! info "Mask vs Progressive"
 
     When you provide a gradient brush as a mask, the effect is visually similar to a gradient blur. The difference is that the effect is faded through opacity only, and may not feel as refined. However, it is much faster than progressive blurring, having a negligible cost.
+
+## Input Scale
+
+You can provide an input scale value which determines how much the content is scaled in both the x and y dimensions, allowing the blur effect to be potentially applied over scaled-down content (and thus less pixels), before being scaled back up and drawn at the original size.
+
+![](./media/inputscale.png)
+
+```kotlin
+LargeTopAppBar(
+  // ...
+  modifier = Modifier.hazeChild(hazeState) {
+    inputScale = 0.5f
+  }
+)
+```
+
+Using a value less than 1.0 **may** improve performance, at the sacrifice of quality and crispness. As always, run your own benchmarks as to whether this compromise is worth it.
+
+If you're looking for a good value to experiment with, `0.8` results in a reduction in total resolution of ~35%, while being visually imperceptible to most people (probably).
+
+The minimum value I would realistically use is somewhere in the region of `0.5`, which results in the total pixel count of only 25% of the original content. This is likely to be visually different to no scaling, but depending on the styling parameters, it will be visually pleasing to the user.

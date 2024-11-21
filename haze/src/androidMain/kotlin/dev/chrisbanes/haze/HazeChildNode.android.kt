@@ -14,10 +14,13 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
+import androidx.compose.ui.unit.times
 import dev.chrisbanes.haze.HazeChildNode.Companion.TAG
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
+
+private const val USE_RUNTIME_SHADER = true
 
 @RequiresApi(31)
 internal actual fun HazeChildNode.drawLinearGradientProgressiveEffect(
@@ -25,34 +28,18 @@ internal actual fun HazeChildNode.drawLinearGradientProgressiveEffect(
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
 ) {
-  if (Build.VERSION.SDK_INT >= 33) {
+  if (USE_RUNTIME_SHADER && Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
-      contentLayer.renderEffect = getOrCreateRenderEffect(
-        blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
-        noiseFactor = resolveNoiseFactor(),
-        tints = resolveTints(),
-        contentSize = size,
-        contentOffset = contentOffset,
-        layerSize = layerSize,
-        mask = mask,
-        progressive = progressive.asBrush(),
-      )
+      contentLayer.renderEffect = getOrCreateRenderEffect(progressive = progressive.asBrush())
       contentLayer.alpha = alpha
 
       // Finally draw the layer
       drawLayer(contentLayer)
     }
   } else if (progressive.preferPerformance) {
+    // When the 'prefer performance' flag is enabled, we switch to using a mask instead
     with(drawScope) {
-      contentLayer.renderEffect = getOrCreateRenderEffect(
-        blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
-        noiseFactor = resolveNoiseFactor(),
-        tints = resolveTints(),
-        contentSize = size,
-        contentOffset = contentOffset,
-        layerSize = layerSize,
-        mask = progressive.asBrush(),
-      )
+      contentLayer.renderEffect = getOrCreateRenderEffect(mask = progressive.asBrush())
       contentLayer.alpha = alpha
 
       // Finally draw the layer
@@ -91,7 +78,7 @@ private fun HazeChildNode.drawLinearGradientProgressiveEffectUsingLayers(
 
   val tints = resolveTints()
   val noiseFactor = resolveNoiseFactor()
-  val blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx()
+  val blurRadius = resolveBlurRadius().takeOrElse { 0.dp } * inputScale
 
   for (i in seq) {
     val fraction = i / steps.toFloat()
@@ -117,13 +104,10 @@ private fun HazeChildNode.drawLinearGradientProgressiveEffectUsingLayers(
     val max = max(progressive.startIntensity, progressive.endIntensity)
 
     layer.renderEffect = getOrCreateRenderEffect(
-      blurRadiusPx = intensity * blurRadiusPx,
+      blurRadius = blurRadius * intensity,
       noiseFactor = noiseFactor,
       tints = tints,
       tintAlphaModulate = intensity,
-      contentSize = size,
-      contentOffset = contentOffset,
-      layerSize = layerSize,
       mask = Brush.linearGradient(
         lerp(min, max, (i - 2f) / steps) to Color.Transparent,
         lerp(min, max, (i - 1f) / steps) to Color.Black,

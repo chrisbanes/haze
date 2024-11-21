@@ -45,13 +45,23 @@ internal fun UiDevice.navigateToScaffold() {
   waitForIdle()
 }
 
+internal fun UiDevice.navigateToScaffoldScaled() {
+  waitForObject(By.res("Scaffold (input scaled)")).click()
+  waitForIdle()
+}
+
 internal fun UiDevice.navigateToScaffoldWithProgressive() {
-  waitForObject(By.res("Scaffold (with progressive blur)")).click()
+  waitForObject(By.res("Scaffold (progressive blur)")).click()
+  waitForIdle()
+}
+
+internal fun UiDevice.navigateToScaffoldWithProgressiveScaled() {
+  waitForObject(By.res("Scaffold (progressive blur, input scaled)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldWithMask() {
-  waitForObject(By.res("Scaffold (with mask)")).click()
+  waitForObject(By.res("Scaffold (masked)")).click()
   waitForIdle()
 }
 
