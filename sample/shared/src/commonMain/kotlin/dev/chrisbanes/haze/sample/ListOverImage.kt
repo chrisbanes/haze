@@ -57,7 +57,7 @@ fun ListOverImage(navigator: Navigator) {
 
       Box {
         AsyncImage(
-          model = rememberRandomSampleImageUrl(width = 800),
+          model = rememberRandomSampleImageUrl(0),
           contentScale = ContentScale.Crop,
           contentDescription = null,
           modifier = Modifier

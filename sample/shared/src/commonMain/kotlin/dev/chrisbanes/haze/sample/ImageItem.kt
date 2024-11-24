@@ -28,12 +28,13 @@ import coil3.compose.AsyncImage
 @Composable
 internal fun ImageItem(
   text: String,
+  index: Int = -1,
   modifier: Modifier = Modifier,
 ) {
   Surface(modifier) {
     Box {
       AsyncImage(
-        model = rememberRandomSampleImageUrl(width = 400),
+        model = rememberRandomSampleImageUrl(index),
         contentScale = ContentScale.Crop,
         contentDescription = null,
         modifier = Modifier.fillMaxSize(),
@@ -54,20 +55,19 @@ internal fun ImageItem(
   }
 }
 
-private val rangeForRandom = (0..100000)
+val precannedImageUrls: List<String> by lazy {
+  (0 until 50).map { randomSampleImageUrl() }
+}
+
+private val rangeForRandom = (0..100_000)
 
 fun randomSampleImageUrl(
   seed: Int = rangeForRandom.random(),
-  width: Int = 300,
+  width: Int = 800,
   height: Int = width,
 ): String = "https://picsum.photos/seed/$seed/$width/$height"
 
-/**
- * Remember a URL generate by [randomSampleImageUrl].
- */
 @Composable
-fun rememberRandomSampleImageUrl(
-  seed: Int = rangeForRandom.random(),
-  width: Int = 300,
-  height: Int = width,
-): String = rememberSaveable { randomSampleImageUrl(seed, width, height) }
+fun rememberRandomSampleImageUrl(index: Int = -1): String = rememberSaveable {
+  precannedImageUrls.getOrNull(index) ?: randomSampleImageUrl()
+}
