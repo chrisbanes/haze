@@ -23,12 +23,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import coil3.SingletonImageLoader
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 
 val Samples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
@@ -72,6 +76,16 @@ fun Samples(
 
     val navigator = remember {
       Navigator { currentSample = null }
+    }
+
+    val coilPlatformContext = LocalPlatformContext.current
+    LaunchedEffect(coilPlatformContext) {
+      // Preload the first 20 precanned image urls
+      val imageLoader = SingletonImageLoader.get(coilPlatformContext)
+      precannedImageUrls
+        .asSequence()
+        .map { ImageRequest.Builder(coilPlatformContext).data(it).build() }
+        .forEach { imageLoader.enqueue(it) }
     }
 
     Crossfade(

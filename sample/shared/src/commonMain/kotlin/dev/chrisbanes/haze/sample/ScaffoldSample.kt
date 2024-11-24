@@ -83,9 +83,7 @@ fun ScaffoldSample(
           scrolledContainerColor = Color.Transparent,
         ),
         modifier = Modifier
-          .hazeChild(hazeState) {
-            this.style = style
-
+          .hazeChild(state = hazeState, style = style) {
             when (mode) {
               ScaffoldSampleMode.Default -> Unit
               ScaffoldSampleMode.Progressive -> {
@@ -134,6 +132,7 @@ fun ScaffoldSample(
       items(50) { index ->
         ImageItem(
           text = "${index + 1}",
+          index = index,
           modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(3 / 4f),

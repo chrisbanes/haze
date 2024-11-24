@@ -43,7 +43,7 @@ fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
 
   Box {
     AsyncImage(
-      model = rememberRandomSampleImageUrl(width = 720, height = 1280),
+      model = rememberRandomSampleImageUrl(),
       contentScale = ContentScale.Crop,
       contentDescription = null,
       modifier = Modifier

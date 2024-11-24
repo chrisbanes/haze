@@ -71,7 +71,7 @@ fun ImagesList(navigator: Navigator) {
               .height(160.dp),
           ) {
             AsyncImage(
-              model = rememberRandomSampleImageUrl(width = 800),
+              model = rememberRandomSampleImageUrl(index),
               contentScale = ContentScale.Crop,
               contentDescription = null,
               modifier = Modifier
