@@ -57,6 +57,7 @@ enum class ScaffoldSampleMode {
 fun ScaffoldSample(
   navigator: Navigator,
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
+  inputScale: Float = 1f,
 ) {
   val hazeState = remember { HazeState() }
   val gridState = rememberLazyGridState()
@@ -84,6 +85,8 @@ fun ScaffoldSample(
         ),
         modifier = Modifier
           .hazeChild(state = hazeState, style = style) {
+            this.inputScale = inputScale
+
             when (mode) {
               ScaffoldSampleMode.Default -> Unit
               ScaffoldSampleMode.Progressive -> {
@@ -111,7 +114,9 @@ fun ScaffoldSample(
           selectedIndex,
           onItemClicked = { selectedIndex = it },
           modifier = Modifier
-            .hazeChild(state = hazeState, style = style)
+            .hazeChild(state = hazeState, style = style) {
+              this.inputScale = inputScale
+            }
             .fillMaxWidth(),
         )
       }

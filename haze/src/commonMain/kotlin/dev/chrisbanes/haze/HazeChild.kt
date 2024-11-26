@@ -119,6 +119,32 @@ interface HazeChildScope {
    * visual finesse.
    */
   var progressive: HazeProgressive?
+
+  /**
+   * The input scale factor, which needs to be in the range 0 < x <= 1.
+   * Defaults to `1.0`, resulting in no scaling.
+   *
+   * The content will be scaled by this value in both the x and y dimensions, allowing the blur
+   * effect to be potentially applied over scaled-down content, before being scaled back up
+   * and drawn at the original size.
+   *
+   * Using a value less than 1.0 **may** improve performance, at the sacrifice of
+   * quality and crispness. As always, run your own benchmarks as to whether this
+   * compromise is worth it.
+   *
+   * If you're looking for a good value to experiment with, `0.8` results in a reduction in
+   * total resolution of ~35%, while being visually imperceptible to most people (probably).
+   *
+   * The minimum value I would realistically use is somewhere in the region of
+   * `0.5`, which results in the total pixel count being only 25% of the original content. This
+   * will likely be visually perceptible different to no scaling, but depending on the styling
+   * parameters will still look pleasing to the user.
+   *
+   * This feature is experimental as it's unclear how much gain it provides. It may be removed
+   * some point in the future.
+   */
+  @ExperimentalHazeApi
+  var inputScale: Float
 }
 
 /**

@@ -36,8 +36,12 @@ import coil3.request.ImageRequest
 
 val Samples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
-  Sample("Scaffold (with progressive blur)") { ScaffoldSample(it, ScaffoldSampleMode.Progressive) },
-  Sample("Scaffold (with mask)") { ScaffoldSample(it, ScaffoldSampleMode.Mask) },
+  Sample("Scaffold (input scaled)") { ScaffoldSample(it, inputScale = 0.5f) },
+  Sample("Scaffold (progressive blur)") { ScaffoldSample(it, ScaffoldSampleMode.Progressive) },
+  Sample("Scaffold (progressive blur, input scaled)") {
+    ScaffoldSample(it, ScaffoldSampleMode.Progressive, 0.5f)
+  },
+  Sample("Scaffold (masked)") { ScaffoldSample(it, ScaffoldSampleMode.Mask) },
   Sample("Credit Card") { CreditCardSample(it) },
   Sample("Images List") { ImagesList(it) },
   Sample("List over Image") { ListOverImage(it) },

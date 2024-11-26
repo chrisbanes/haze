@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -79,6 +80,18 @@ class HazeChildNode(
       }
     }
 
+  override var inputScale: Float = 1f
+    set(value) {
+      require(inputScale > 0f && inputScale <= 1f) { "inputScale needs to be in the range 0 < x <= 1f" }
+      if (value != field) {
+        log(TAG) { "inputScale changed. Current: $field. New: $value" }
+        field = value
+        drawParametersDirty = true
+        // Need to scale down the blurRadius
+        renderEffectDirty = true
+      }
+    }
+
   internal var compositionLocalStyle: HazeStyle = HazeStyle.Unspecified
     set(value) {
       if (field != value) {
@@ -109,7 +122,7 @@ class HazeChildNode(
   private val isValid: Boolean
     get() = size.isSpecified && layerSize.isSpecified
 
-  private var size: Size = Size.Unspecified
+  internal var size: Size = Size.Unspecified
     set(value) {
       if (value != field) {
         log(TAG) { "size changed. Current: $field. New: $value" }
@@ -119,7 +132,7 @@ class HazeChildNode(
       }
     }
 
-  internal var layerSize: Size = Size.Unspecified
+  private var layerSize: Size = Size.Unspecified
     set(value) {
       if (value != field) {
         log(TAG) { "layerSize changed. Current: $field. New: $value" }
@@ -295,40 +308,47 @@ class HazeChildNode(
     // The layer size is usually than the bounds. This is so that we include enough
     // content around the edges to keep the blurring uniform. Without the extra border,
     // the blur will naturally fade out at the edges.
-    val inflatedSize = layerSize
+    val inflatedSize = layerSize * inputScale
     // This is the topLeft in the inflated bounds where the real are should be at [0,0]
     val inflatedOffset = contentOffset
 
+    val bg = resolveBackgroundColor()
+    require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
+
     clippedContentLayer.record(inflatedSize.roundToIntSize()) {
-      val bg = resolveBackgroundColor()
-      require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
       drawRect(bg)
 
-      translate(inflatedOffset - positionInContent) {
-        // Draw the content into our effect layer
-        drawLayer(contentLayer)
+      clipRect {
+        scale(inputScale, Offset.Zero) {
+          translate(inflatedOffset - positionInContent) {
+            // Draw the content into our effect layer
+            drawLayer(contentLayer)
+          }
+        }
       }
     }
 
-    clipRect(right = size.width, bottom = size.height) {
+    clipRect {
       translate(-inflatedOffset) {
-        val p = progressive
-        if (p is HazeProgressive.LinearGradient) {
-          drawLinearGradientProgressiveEffect(
-            drawScope = this,
-            progressive = p,
-            contentLayer = clippedContentLayer,
-          )
-        } else {
-          // First make sure that the RenderEffect is updated (if necessary)
-          updateRenderEffectIfDirty()
+        scale(1f / inputScale, Offset.Zero) {
+          val p = progressive
+          if (p is HazeProgressive.LinearGradient) {
+            drawLinearGradientProgressiveEffect(
+              drawScope = this,
+              progressive = p,
+              contentLayer = clippedContentLayer,
+            )
+          } else {
+            // First make sure that the RenderEffect is updated (if necessary)
+            updateRenderEffectIfDirty()
 
-          clippedContentLayer.renderEffect = renderEffect
-          clippedContentLayer.alpha = alpha
+            clippedContentLayer.renderEffect = renderEffect
+            clippedContentLayer.alpha = alpha
 
-          // Since we included a border around the content, we need to translate so that
-          // we don't see it (but it still affects the RenderEffect)
-          drawLayer(clippedContentLayer)
+            // Since we included a border around the content, we need to translate so that
+            // we don't see it (but it still affects the RenderEffect)
+            drawLayer(clippedContentLayer)
+          }
         }
       }
     }
@@ -364,17 +384,9 @@ class HazeChildNode(
     }
   }
 
-  private fun DrawScope.updateRenderEffectIfDirty() {
+  private fun updateRenderEffectIfDirty() {
     if (renderEffectDirty) {
-      renderEffect = getOrCreateRenderEffect(
-        blurRadiusPx = resolveBlurRadius().takeOrElse { 0.dp }.toPx(),
-        noiseFactor = resolveNoiseFactor(),
-        tints = resolveTints(),
-        contentSize = size,
-        contentOffset = contentOffset,
-        layerSize = layerSize,
-        mask = mask,
-      )
+      renderEffect = getOrCreateRenderEffect()
       renderEffectDirty = false
     }
   }
@@ -510,38 +522,38 @@ private val renderEffectCache by lazy {
 }
 
 internal data class RenderEffectParams(
-  val blurRadiusPx: Float,
+  val blurRadius: Dp,
   val noiseFactor: Float,
   val tints: List<HazeTint> = emptyList(),
   val tintAlphaModulate: Float = 1f,
   val contentSize: Size,
   val contentOffset: Offset,
-  val layerSize: Size,
   val mask: Brush? = null,
   val progressive: Brush? = null,
+  val inputScale: Float = 1f,
 )
 
-internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(
-  blurRadiusPx: Float,
-  noiseFactor: Float,
-  tints: List<HazeTint> = emptyList(),
+internal fun HazeChildNode.getOrCreateRenderEffect(
+  inputScale: Float = this.inputScale,
+  blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp } * inputScale,
+  noiseFactor: Float = resolveNoiseFactor(),
+  tints: List<HazeTint> = resolveTints(),
   tintAlphaModulate: Float = 1f,
-  contentSize: Size,
-  contentOffset: Offset,
-  layerSize: Size,
-  mask: Brush? = null,
+  contentSize: Size = this.size * inputScale,
+  contentOffset: Offset = this.contentOffset * inputScale,
+  mask: Brush? = this.mask,
   progressive: Brush? = null,
 ): RenderEffect? = getOrCreateRenderEffect(
   RenderEffectParams(
-    blurRadiusPx = blurRadiusPx,
+    blurRadius = blurRadius,
     noiseFactor = noiseFactor,
     tints = tints,
     tintAlphaModulate = tintAlphaModulate,
     contentSize = contentSize,
     contentOffset = contentOffset,
-    layerSize = layerSize,
     mask = mask,
     progressive = progressive,
+    inputScale = inputScale,
   ),
 )
 

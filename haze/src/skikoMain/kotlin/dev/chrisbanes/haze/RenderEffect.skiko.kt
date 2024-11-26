@@ -6,7 +6,6 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RenderEffect
@@ -16,6 +15,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import org.jetbrains.skia.BlendMode
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.FilterTileMode
@@ -27,7 +29,7 @@ import org.jetbrains.skia.Shader
 internal actual fun DrawScope.canUseGraphicLayers(): Boolean = true
 
 internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
-  require(params.blurRadiusPx >= 0f) { "blurRadius needs to be equal or greater than 0f" }
+  require(params.blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
 
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
     uniform("noiseFactor", params.noiseFactor.coerceIn(0f, 1f))
@@ -39,12 +41,15 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     // If we've been provided with a progressive/gradient blur shader, we need to use
     // our custom blur via a runtime shader
     createBlurImageFilterWithMask(
-      blurRadiusPx = params.blurRadiusPx,
+      blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() },
       bounds = Rect(params.contentOffset, params.contentSize),
       mask = progressiveShader,
     )
   } else {
-    createBlurImageFilter(blurRadiusPx = params.blurRadiusPx, bounds = params.layerSize.toRect())
+    createBlurImageFilter(
+      blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() },
+      bounds = Rect(params.contentOffset, params.contentSize),
+    )
   }
 
   return ImageFilter

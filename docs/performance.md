@@ -1,6 +1,12 @@
 Real-time blurring is a non-trivial operation, especially for mobile devices, so developers are rightly worried about the performance impact of using something like Haze.
 
-Haze tries to use the most performant mechanism possible on each platform, which can basically be simplified into 2: `RenderNode` and `RenderEffect` on Android, and using Skia's `ImageFilter`s directly on iOS and Desktop.
+Haze tries to use the most performant mechanism possible on each platform, which can basically be simplified into 2: `RenderEffect` on Android, and using Skia's `ImageFilter`s directly on iOS and Desktop.
+
+## Input Scale
+
+You can provide an input scale value which determines how much the content is scaled in both the x and y dimensions, allowing the blur effect to be potentially applied over scaled-down content (and thus less pixels), before being scaled back up and drawn at the original size.
+
+You can find more information [here](usage.md#input-scale).
 
 ## Benchmarks
 
