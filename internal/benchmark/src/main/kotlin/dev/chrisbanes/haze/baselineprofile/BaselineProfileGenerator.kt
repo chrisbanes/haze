@@ -9,7 +9,7 @@ import androidx.test.uiautomator.By
 import dev.chrisbanes.haze.testutils.navigateToImagesList
 import dev.chrisbanes.haze.testutils.navigateToScaffold
 import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
-import dev.chrisbanes.haze.testutils.scroll
+import dev.chrisbanes.haze.testutils.repeatedScrolls
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,18 +28,18 @@ class BaselineProfileGenerator {
 
     // Scroll down several times
     device.navigateToImagesList()
-    device.scroll("lazy_column")
+    device.repeatedScrolls("lazy_column")
 
     device.findObject(By.res("back")).click()
     device.waitForIdle()
 
     device.navigateToScaffoldWithProgressive()
-    device.scroll("lazy_grid")
+    device.repeatedScrolls("lazy_grid")
 
     device.findObject(By.res("back")).click()
     device.waitForIdle()
 
     device.navigateToScaffold()
-    device.scroll("lazy_grid")
+    device.repeatedScrolls("lazy_grid")
   }
 }

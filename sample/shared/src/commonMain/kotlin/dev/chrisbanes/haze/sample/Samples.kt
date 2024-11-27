@@ -30,8 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 
 val Samples = listOf(
@@ -75,21 +79,39 @@ fun Samples(
   appTitle: String,
   samples: List<Sample> = Samples,
 ) {
+  setSingletonImageLoaderFactory { context ->
+    ImageLoader.Builder(context)
+      .memoryCache {
+        MemoryCache.Builder()
+          .maxSizePercent(context, 0.2)
+          .build()
+      }
+      .diskCache {
+        context.cacheDirPath()?.let { cacheDirPath ->
+          DiskCache.Builder()
+            .directory(cacheDirPath.resolve("image_cache"))
+            .maximumMaxSizeBytes(32 * 1024 * 1024)
+            .build()
+        }
+      }
+      .build()
+  }
+
+  val coilPlatformContext = LocalPlatformContext.current
+  LaunchedEffect(coilPlatformContext) {
+    // Preload the first 20 precanned image urls
+    val imageLoader = SingletonImageLoader.get(coilPlatformContext)
+    precannedImageUrls
+      .asSequence()
+      .map { ImageRequest.Builder(coilPlatformContext).data(it).build() }
+      .forEach { imageLoader.enqueue(it) }
+  }
+
   SamplesTheme {
     var currentSample by remember { mutableStateOf<Sample?>(null) }
 
     val navigator = remember {
       Navigator { currentSample = null }
-    }
-
-    val coilPlatformContext = LocalPlatformContext.current
-    LaunchedEffect(coilPlatformContext) {
-      // Preload the first 20 precanned image urls
-      val imageLoader = SingletonImageLoader.get(coilPlatformContext)
-      precannedImageUrls
-        .asSequence()
-        .map { ImageRequest.Builder(coilPlatformContext).data(it).build() }
-        .forEach { imageLoader.enqueue(it) }
     }
 
     Crossfade(

@@ -16,13 +16,13 @@ import dev.chrisbanes.haze.testutils.navigateToScaffoldScaled
 import dev.chrisbanes.haze.testutils.navigateToScaffoldWithMask
 import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
 import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressiveScaled
-import dev.chrisbanes.haze.testutils.scroll
+import dev.chrisbanes.haze.testutils.repeatedScrolls
 import dev.chrisbanes.haze.testutils.waitForObject
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-private const val DEFAULT_ITERATIONS = 8
+private const val DEFAULT_ITERATIONS = 16
 private const val APP_PACKAGE = "dev.chrisbanes.haze.sample.android"
 
 @RunWith(AndroidJUnit4::class)
@@ -42,7 +42,7 @@ class BenchmarkTest {
         device.navigateToImagesList()
       },
     ) {
-      device.scroll("lazy_column")
+      device.repeatedScrolls("lazy_column")
     }
   }
 
@@ -58,7 +58,7 @@ class BenchmarkTest {
         device.navigateToScaffold()
       },
     ) {
-      device.scroll("lazy_grid")
+      device.repeatedScrolls("lazy_grid")
     }
   }
 
@@ -74,7 +74,7 @@ class BenchmarkTest {
         device.navigateToScaffoldScaled()
       },
     ) {
-      device.scroll("lazy_grid")
+      device.repeatedScrolls("lazy_grid")
     }
   }
 
@@ -90,7 +90,7 @@ class BenchmarkTest {
         device.navigateToScaffoldWithProgressive()
       },
     ) {
-      device.scroll("lazy_grid")
+      device.repeatedScrolls("lazy_grid")
     }
   }
 
@@ -106,7 +106,7 @@ class BenchmarkTest {
         device.navigateToScaffoldWithProgressiveScaled()
       },
     ) {
-      device.scroll("lazy_grid")
+      device.repeatedScrolls("lazy_grid")
     }
   }
 
@@ -122,7 +122,7 @@ class BenchmarkTest {
         device.navigateToScaffoldWithMask()
       },
     ) {
-      device.scroll("lazy_grid")
+      device.repeatedScrolls("lazy_grid")
     }
   }
 
