@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
@@ -53,7 +54,11 @@ enum class ScaffoldSampleMode {
   Mask,
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(
+  ExperimentalMaterial3Api::class,
+  ExperimentalHazeMaterialsApi::class,
+  ExperimentalHazeApi::class,
+)
 @Composable
 fun ScaffoldSample(
   navigator: Navigator,
@@ -112,7 +117,7 @@ fun ScaffoldSample(
         exit = slideOutVertically { it },
       ) {
         SampleNavigationBar(
-          selectedIndex,
+          selectedIndex = selectedIndex,
           onItemClicked = { selectedIndex = it },
           modifier = Modifier
             .hazeChild(state = hazeState, style = style) {

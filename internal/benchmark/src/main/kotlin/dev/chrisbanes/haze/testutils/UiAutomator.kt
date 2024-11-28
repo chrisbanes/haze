@@ -3,13 +3,14 @@
 
 package dev.chrisbanes.haze.testutils
 
-import android.graphics.Point
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
+import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.SearchCondition
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
+import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -70,13 +71,30 @@ internal fun UiDevice.navigateToCreditCard() {
   waitForIdle()
 }
 
-internal fun UiDevice.scroll(tag: String, scrolls: Int = 5) {
-  val grid = waitForObject(By.res(tag))
-  // Set gesture margin to avoid triggering gesture navigation
+internal fun UiDevice.repeatedScrolls(
+  tag: String,
+  startDirection: Direction = Direction.DOWN,
+  repetitions: Int = 4,
+) {
+  val node = waitForObject(By.res(tag))
+  // Set gesture margins to avoid triggering gesture navigation
   // with input events from automation.
-  grid.setGestureMargin(displayWidth / 5)
-  // Scroll down several times
-  repeat(scrolls) {
-    grid.drag(Point(grid.visibleCenter.x, grid.visibleBounds.top))
+  val horiz = (displayWidth / 6f).roundToInt()
+  val vert = (displayHeight / 8f).roundToInt()
+  node.setGestureMargins(horiz, vert, horiz, vert)
+  // Scroll up + down several times
+  repeat(repetitions) { index ->
+    val direction = when {
+      index % 2 == 0 -> startDirection
+      else -> startDirection.opposite()
+    }
+    node.scroll(direction, 0.8f)
   }
+}
+
+private fun Direction.opposite(): Direction = when (this) {
+  Direction.LEFT -> Direction.RIGHT
+  Direction.RIGHT -> Direction.LEFT
+  Direction.DOWN -> Direction.UP
+  else -> Direction.DOWN
 }

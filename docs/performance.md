@@ -4,9 +4,12 @@ Haze tries to use the most performant mechanism possible on each platform, which
 
 ## Input Scale
 
-You can provide an input scale value which determines how much the content is scaled in both the x and y dimensions, allowing the blur effect to be potentially applied over scaled-down content (and thus less pixels), before being scaled back up and drawn at the original size.
+You can provide an input scale value which determines how much the content is scaled in both the x and y dimensions, allowing the blur effect to be potentially applied over scaled-down content (and thus less pixels), before being scaled back up and drawn at the original size. You can find more information on how to use this [here](usage.md#input-scale).
 
-You can find more information [here](usage.md#input-scale).
+In terms of the performance benefit which scaling provides, it's fairly small. In our Android benchmark tests, using an `inputScale` set to `0.5` reduced the _cost of Haze_ by **5-20%**. You can read more about this below.
+
+!!! abstract "Cost of Haze" 
+    Just to call out: the percentage that I mentioned is a reduction in the cost of Haze, not the total frame duration. Haze itself introduces a cost, which you can read more about below. The reduction in total frame duration duration will be in the region of 3-5%.
 
 ## Benchmarks
 
@@ -22,29 +25,39 @@ We currently have 4 benchmark scenarios, each of them is one of the samples in t
 - **Credit Card**. A simple example, where the user can drag the `hazeChild`. This tests how fast Haze's internal state invalidates and propogates to the `RenderNode`s. This example uses rounded rectangle haze areas like 'Images List'.
 
 !!! abstract "Test setup"
-    All of the tests were ran with 10 iterations on a Pixel 6, running the latest version of Android available. All of the numbers below are the P50 (median) frame duration time in milliseconds.
+    All of the tests were ran with 16 iterations on a Pixel 6, running the latest version of Android available.
 
-As with all benchmark tests, the results are only true for the exact things being tested. Using Haze in your own applications may result in different performance characteristics, so it is wise to write your own performance tests to validate the impact to your apps.
+As with all benchmark tests, the results are only true for the exact things being tested. Using Haze in your own applications may result in different performance characteristics, so it is wise to write your own performance tests to validate the impact to your apps. Benchmark tests will always have variability in them too, so don't take the numbers listed below as exact values. Look at them more as a guide.
 
-#### 0.7.3 vs 1.0.0
+The numbers listed below the P90 frame durations in milliseconds, which tend to be a good indicator of frames where a user interaction is happening (scrolling, etc). However, as these are the P90 values, these indicate the longest 10% frame durations, and thus are (probably) not indicitive of the performance which users see most of the time. It all depends on the distribution of the frame durations, but we're quickly getting into entry-level statistics, which is beyond what we're trying to document here.
 
-| Test          | 0.7.3      | 1.0.0      | Difference   |
-| ------------- | ---------- | -----------| ------------ |
-| Scaffold      | 6.9 ms     | 6.4 ms     | :material-trending-down: -7%     |
-| Scaffold (progressive) (SDK 32)     | -     | 14.8 ms     | -    |
-| Scaffold (progressive) (SDK 34)     | -     | 7.9 ms     | -     |
-| Images List   | 6.9 ms    | 6.8 ms     | :material-trending-down: -1%  |
-| Credit Card   | 4.9 ms     | 4.7 ms     | :material-trending-down: -4%  |
+#### Cost of Haze
 
-#### 1.0.0 vs baseline
+We can also measure the rough cost of using Haze in the same samples. Here we've ran the same tests, with Haze being completely disabled:
 
-We can also measure the rough cost of using Haze in the same samples. Here we've ran the same tests, but with Haze being disabled:
-
-| Test          | 1.0.0 (disabled)  | 1.0.0      | Difference   |
+| Test          | 1.0.x (disabled)  | 1.0.x      | Difference   |
 | ------------- | ------------------| -----------| ------------ |
-| Scaffold      | 4.9 ms            | 6.4 ms     | +31%         |
-| Images List   | 4.6 ms            | 6.8 ms     | +48%         |
-| Credit Card   | 4.1 ms            | 4.7 ms     | +15%         |
+| Scaffold      | 7.5 ms            | 9.7 ms     | +29%         |
+| Images List   | 6.6 ms            | 9.6 ms     | +45%         |
+| Credit Card   | 6.6 ms            | 13.1 ms    | +98%         |
+
+#### Cost of features
+
+We can also measure the rough cost of using features, such as input scale, progressive and masking:
+
+| Test                                      | P90 frame duration (ms)  | Difference (in Haze cost) |
+| -------------                             | -------------------------| -----------|
+| Scaffold                                  | 9.7 ms                   | -          |
+| Scaffold (inputScale = 0.5)               | 9.6 ms                   | -5%        |
+| Scaffold (masked)                         | 9.8 ms                   | +5%        |
+| Scaffold (progressive)                    | 9.7 ms                   | 0%         |
+| Scaffold (progressive, inputScale = 0.5)  | 9.4 ms                   | -14%       |
+
+The values are all very close, with the differences easily being within a margin of error, so don't use these differences as exact values (especially with the variability that we mentioned above). I think there's two big take aways here though:
+
+- Masking has a negligible effect on frame durations.
+- Progessive has a negligible effect on frame durations, when using using our custom blur shader (Android SDK 34+, all other platforms).
+- Input Scale has a small but positive effect on frame duration.
 
 !!! example "Full results"
     For those interested, you can find the full results in this [spreadsheet](https://docs.google.com/spreadsheets/d/1wZ9pbX0HDIa08ITwYy7BrYYwOq2sX-HUyAMQlcb3dI4/edit?usp=sharing).
