@@ -102,8 +102,8 @@ LargeTopAppBar(
 
 !!! warning "Performance of Progressive"
 
-    Please be aware that using progressive blurring does come with a performance cost. Please see the [Performance](performance.md) page for up-to-date benchmarks. 
-    
+    Please be aware that using progressive blurring does come with a performance cost. Please see the [Performance](performance.md) page for up-to-date benchmarks.
+
     As a quick summary: on Android SDK 33+ and other platforms, the cost is about 25% more than non-progressive. On Android SDK 32 it is about 2x. If performance is critical, you may wish to look at the masking functionality below.
 
 ## Masking
@@ -133,7 +133,7 @@ You can provide an input scale value which determines how much the content is sc
 LargeTopAppBar(
   // ...
   modifier = Modifier.hazeChild(hazeState) {
-    inputScale = 0.5f
+    inputScale = HazeInputScale.Fixed(0.5f)
   }
 )
 ```
