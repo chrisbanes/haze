@@ -78,7 +78,7 @@ private fun HazeChildNode.drawLinearGradientProgressiveEffectUsingLayers(
 
   val tints = resolveTints()
   val noiseFactor = resolveNoiseFactor()
-  val blurRadius = resolveBlurRadius().takeOrElse { 0.dp } * inputScale
+  val blurRadius = resolveBlurRadius().takeOrElse { 0.dp } * getInputScaleFactor()
 
   for (i in seq) {
     val fraction = i / steps.toFloat()

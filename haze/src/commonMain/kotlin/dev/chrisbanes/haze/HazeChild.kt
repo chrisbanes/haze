@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
+import kotlin.jvm.JvmInline
 
 interface HazeChildScope {
 
@@ -144,7 +145,41 @@ interface HazeChildScope {
    * some point in the future.
    */
   @ExperimentalHazeApi
-  var inputScale: Float
+  var inputScale: HazeInputScale
+}
+
+/**
+ * Value classes used for [HazeChildScope.inputScale].
+ */
+@ExperimentalHazeApi
+sealed interface HazeInputScale {
+  /**
+   * No input scaling. This is functionally the same as `Fixed(1.0f)`
+   */
+  data object None : HazeInputScale
+
+  /**
+   * An input scale which uses a fixed scale factor.
+   *
+   * @param scale The scale factor, in the range 0 < x <= 1.
+   */
+  @JvmInline
+  value class Fixed(val scale: Float) : HazeInputScale {
+    init {
+      require(scale > 0f && scale <= 1f) {
+        "scale needs to be in the range 0 < x <= 1f"
+      }
+    }
+  }
+
+  companion object {
+    /**
+     * The default [HazeInputScale] value. Currently this resolves to [HazeInputScale.None] but
+     * this may change in the future.
+     */
+    @ExperimentalHazeApi
+    val Default: HazeInputScale get() = None
+  }
 }
 
 /**
