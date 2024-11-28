@@ -18,7 +18,7 @@ package dev.chrisbanes.haze {
     method public boolean getBlurEnabled();
     method public float getBlurRadius();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
-    method public float getInputScale();
+    method public dev.chrisbanes.haze.HazeInputScale getInputScale();
     method public androidx.compose.ui.graphics.Brush? getMask();
     method public float getNoiseFactor();
     method public dev.chrisbanes.haze.HazeProgressive? getProgressive();
@@ -33,7 +33,7 @@ package dev.chrisbanes.haze {
     method public void setBlurEnabled(boolean);
     method public void setBlurRadius(float);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
-    method public void setInputScale(float);
+    method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
     method public void setMask(androidx.compose.ui.graphics.Brush?);
     method public void setNoiseFactor(float);
     method public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
@@ -46,7 +46,7 @@ package dev.chrisbanes.haze {
     property public boolean blurEnabled;
     property public float blurRadius;
     property public dev.chrisbanes.haze.HazeTint fallbackTint;
-    property public float inputScale;
+    property public dev.chrisbanes.haze.HazeInputScale inputScale;
     property public androidx.compose.ui.graphics.Brush? mask;
     property public float noiseFactor;
     property public dev.chrisbanes.haze.HazeProgressive? progressive;
@@ -63,7 +63,7 @@ package dev.chrisbanes.haze {
     method public boolean getBlurEnabled();
     method public float getBlurRadius();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
-    method public float getInputScale();
+    method public dev.chrisbanes.haze.HazeInputScale getInputScale();
     method public androidx.compose.ui.graphics.Brush? getMask();
     method public float getNoiseFactor();
     method public dev.chrisbanes.haze.HazeProgressive? getProgressive();
@@ -74,7 +74,7 @@ package dev.chrisbanes.haze {
     method public void setBlurEnabled(boolean);
     method public void setBlurRadius(float);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
-    method public void setInputScale(float);
+    method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
     method public void setMask(androidx.compose.ui.graphics.Brush?);
     method public void setNoiseFactor(float);
     method public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
@@ -85,7 +85,7 @@ package dev.chrisbanes.haze {
     property public abstract boolean blurEnabled;
     property public abstract float blurRadius;
     property public abstract dev.chrisbanes.haze.HazeTint fallbackTint;
-    property public abstract float inputScale;
+    property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
     property public abstract androidx.compose.ui.graphics.Brush? mask;
     property public abstract float noiseFactor;
     property public abstract dev.chrisbanes.haze.HazeProgressive? progressive;
@@ -103,6 +103,25 @@ package dev.chrisbanes.haze {
     field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
     field public static final float noiseFactor = 0.15f;
     field public static final float tintAlpha = 0.7f;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public sealed interface HazeInputScale {
+    field public static final dev.chrisbanes.haze.HazeInputScale.Companion Companion;
+  }
+
+  public static final class HazeInputScale.Companion {
+    method public dev.chrisbanes.haze.HazeInputScale getDefault();
+    property @dev.chrisbanes.haze.ExperimentalHazeApi public final dev.chrisbanes.haze.HazeInputScale Default;
+  }
+
+  @kotlin.jvm.JvmInline public static final value class HazeInputScale.Fixed implements dev.chrisbanes.haze.HazeInputScale {
+    ctor public HazeInputScale.Fixed(float scale);
+    method public float getScale();
+    property public final float scale;
+  }
+
+  public static final class HazeInputScale.None implements dev.chrisbanes.haze.HazeInputScale {
+    field public static final dev.chrisbanes.haze.HazeInputScale.None INSTANCE;
   }
 
   public final class HazeKt {

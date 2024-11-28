@@ -80,9 +80,8 @@ class HazeChildNode(
       }
     }
 
-  override var inputScale: Float = 1f
+  override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
-      require(inputScale > 0f && inputScale <= 1f) { "inputScale needs to be in the range 0 < x <= 1f" }
       if (value != field) {
         log(TAG) { "inputScale changed. Current: $field. New: $value" }
         field = value
@@ -308,7 +307,8 @@ class HazeChildNode(
     // The layer size is usually than the bounds. This is so that we include enough
     // content around the edges to keep the blurring uniform. Without the extra border,
     // the blur will naturally fade out at the edges.
-    val inflatedSize = layerSize * inputScale
+    val scaleFactor = getInputScaleFactor()
+    val inflatedSize = layerSize * scaleFactor
     // This is the topLeft in the inflated bounds where the real are should be at [0,0]
     val inflatedOffset = contentOffset
 
@@ -319,7 +319,7 @@ class HazeChildNode(
       drawRect(bg)
 
       clipRect {
-        scale(inputScale, Offset.Zero) {
+        scale(scaleFactor, Offset.Zero) {
           translate(inflatedOffset - positionInContent) {
             // Draw the content into our effect layer
             drawLayer(contentLayer)
@@ -330,7 +330,7 @@ class HazeChildNode(
 
     clipRect {
       translate(-inflatedOffset) {
-        scale(1f / inputScale, Offset.Zero) {
+        scale(1f / scaleFactor, Offset.Zero) {
           val p = progressive
           if (p is HazeProgressive.LinearGradient) {
             drawLinearGradientProgressiveEffect(
@@ -533,8 +533,13 @@ internal data class RenderEffectParams(
   val inputScale: Float = 1f,
 )
 
+internal fun HazeChildNode.getInputScaleFactor(): Float = when (val s = inputScale) {
+  HazeInputScale.None -> 1f
+  is HazeInputScale.Fixed -> s.scale
+}
+
 internal fun HazeChildNode.getOrCreateRenderEffect(
-  inputScale: Float = this.inputScale,
+  inputScale: Float = getInputScaleFactor(),
   blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp } * inputScale,
   noiseFactor: Float = resolveNoiseFactor(),
   tints: List<HazeTint> = resolveTints(),

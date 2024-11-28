@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
@@ -62,7 +63,7 @@ enum class ScaffoldSampleMode {
 fun ScaffoldSample(
   navigator: Navigator,
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
-  inputScale: Float = 1f,
+  inputScale: HazeInputScale = HazeInputScale.Default,
 ) {
   val hazeState = remember { HazeState() }
   val gridState = rememberLazyGridState()
