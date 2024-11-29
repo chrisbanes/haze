@@ -49,7 +49,6 @@ import io.github.reactivecircus.cache4k.Cache
  * This is public API in order to aid custom extensible modifiers, _but_ we reserve the right
  * to be able to change the API in the future, hence why it is marked as experimental forever.
  */
-@ExperimentalHazeApi
 class HazeChildNode(
   var state: HazeState,
   style: HazeStyle = HazeStyle.Unspecified,
@@ -80,6 +79,7 @@ class HazeChildNode(
       }
     }
 
+  @ExperimentalHazeApi
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
       if (value != field) {
@@ -298,6 +298,7 @@ class HazeChildNode(
     }
   }
 
+  @OptIn(ExperimentalHazeApi::class)
   private fun DrawScope.drawEffectWithGraphicsLayer(contentLayer: GraphicsLayer) {
     // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
     // The RenderEffect applied will provide the blurring effect.
@@ -533,11 +534,13 @@ internal data class RenderEffectParams(
   val inputScale: Float = 1f,
 )
 
+@ExperimentalHazeApi
 internal fun HazeChildNode.getInputScaleFactor(): Float = when (val s = inputScale) {
   HazeInputScale.None -> 1f
   is HazeInputScale.Fixed -> s.scale
 }
 
+@OptIn(ExperimentalHazeApi::class)
 internal fun HazeChildNode.getOrCreateRenderEffect(
   inputScale: Float = getInputScaleFactor(),
   blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp } * inputScale,
