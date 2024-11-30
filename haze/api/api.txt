@@ -9,7 +9,7 @@ package dev.chrisbanes.haze {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? block);
   }
 
-  public final class HazeChildNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeChildScope androidx.compose.ui.node.ObserverModifierNode {
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeChildNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeChildScope androidx.compose.ui.node.ObserverModifierNode {
     ctor public HazeChildNode(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? block);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
     method public float getAlpha();

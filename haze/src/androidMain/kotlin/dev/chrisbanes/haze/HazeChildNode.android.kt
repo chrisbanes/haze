@@ -14,7 +14,6 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
-import androidx.compose.ui.unit.times
 import dev.chrisbanes.haze.HazeChildNode.Companion.TAG
 import kotlin.math.ceil
 import kotlin.math.max
@@ -78,7 +77,7 @@ private fun HazeChildNode.drawLinearGradientProgressiveEffectUsingLayers(
 
   val tints = resolveTints()
   val noiseFactor = resolveNoiseFactor()
-  val blurRadius = resolveBlurRadius().takeOrElse { 0.dp } * getInputScaleFactor()
+  val blurRadius = resolveBlurRadius().takeOrElse { 0.dp } * calculateInputScaleFactor()
 
   for (i in seq) {
     val fraction = i / steps.toFloat()

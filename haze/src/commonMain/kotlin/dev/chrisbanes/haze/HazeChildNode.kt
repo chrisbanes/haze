@@ -49,6 +49,7 @@ import io.github.reactivecircus.cache4k.Cache
  * This is public API in order to aid custom extensible modifiers, _but_ we reserve the right
  * to be able to change the API in the future, hence why it is marked as experimental forever.
  */
+@ExperimentalHazeApi
 class HazeChildNode(
   var state: HazeState,
   style: HazeStyle = HazeStyle.Unspecified,
@@ -79,7 +80,6 @@ class HazeChildNode(
       }
     }
 
-  @ExperimentalHazeApi
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
       if (value != field) {
@@ -308,7 +308,7 @@ class HazeChildNode(
     // The layer size is usually than the bounds. This is so that we include enough
     // content around the edges to keep the blurring uniform. Without the extra border,
     // the blur will naturally fade out at the edges.
-    val scaleFactor = getInputScaleFactor()
+    val scaleFactor = calculateInputScaleFactor()
     val inflatedSize = layerSize * scaleFactor
     // This is the topLeft in the inflated bounds where the real are should be at [0,0]
     val inflatedOffset = contentOffset
@@ -535,14 +535,14 @@ internal data class RenderEffectParams(
 )
 
 @ExperimentalHazeApi
-internal fun HazeChildNode.getInputScaleFactor(): Float = when (val s = inputScale) {
+internal fun HazeChildNode.calculateInputScaleFactor(): Float = when (val s = inputScale) {
   HazeInputScale.None -> 1f
   is HazeInputScale.Fixed -> s.scale
 }
 
 @OptIn(ExperimentalHazeApi::class)
 internal fun HazeChildNode.getOrCreateRenderEffect(
-  inputScale: Float = getInputScaleFactor(),
+  inputScale: Float = calculateInputScaleFactor(),
   blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp } * inputScale,
   noiseFactor: Float = resolveNoiseFactor(),
   tints: List<HazeTint> = resolveTints(),
