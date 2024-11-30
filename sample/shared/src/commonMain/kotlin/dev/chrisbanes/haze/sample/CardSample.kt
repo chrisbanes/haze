@@ -42,8 +42,8 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeBackground
+import dev.chrisbanes.haze.hazeContent
 
 @Composable
 fun CreditCardSample(navigator: Navigator) {
@@ -52,9 +52,9 @@ fun CreditCardSample(navigator: Navigator) {
   Box {
     // Background content
     Box(
-      Modifier
+      modifier = Modifier
         .fillMaxSize()
-        .haze(state = hazeState),
+        .hazeBackground(hazeState),
     ) {
       Spacer(
         Modifier
@@ -95,7 +95,7 @@ fun CreditCardSample(navigator: Navigator) {
           },
         )
         .clip(RoundedCornerShape(16.dp))
-        .hazeChild(state = hazeState) {
+        .hazeContent(state = hazeState) {
           backgroundColor = Color.Blue
           tints = listOf(HazeTint(Color.White.copy(alpha = 0.1f)))
           blurRadius = 8.dp

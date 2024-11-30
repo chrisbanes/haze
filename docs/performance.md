@@ -8,7 +8,7 @@ You can provide an input scale value which determines how much the content is sc
 
 In terms of the performance benefit which scaling provides, it's fairly small. In our Android benchmark tests, using an `inputScale` set to `0.5` reduced the _cost of Haze_ by **5-20%**. You can read more about this below.
 
-!!! abstract "Cost of Haze" 
+!!! abstract "Cost of Haze"
     Just to call out: the percentage that I mentioned is a reduction in the cost of Haze, not the total frame duration. Haze itself introduces a cost, which you can read more about below. The reduction in total frame duration duration will be in the region of 3-5%.
 
 ## Benchmarks
@@ -21,8 +21,8 @@ We currently have 4 benchmark scenarios, each of them is one of the samples in t
 
 - **Scaffold**. The simple example, where the app bar and bottom navigation bar are blurred, with a scrollable list. This example uses rectangular haze areas.
 - **Scaffold, with progressive**. Same as Scaffold, but using a progressive blur.
-- **Images List**. Each item in the list has it's own `haze` and `hazeChild`. As each item has it's own `haze`, the internal haze state does not change all that much (the list item content moves, but the `hazeChild` doesn't in terms of local coordinates). This is more about multiple testing `RenderNode`s. This example uses rounded rectangle haze areas (i.e. we use `clipPath`).
-- **Credit Card**. A simple example, where the user can drag the `hazeChild`. This tests how fast Haze's internal state invalidates and propogates to the `RenderNode`s. This example uses rounded rectangle haze areas like 'Images List'.
+- **Images List**. Each item in the list has it's own `hazeBackground` and `hazeContent`. As each item has it's own `hazeBackground`, the internal haze state does not change all that much (the list item content moves, but the `hazeContent` doesn't in terms of local coordinates). This is more about multiple testing `RenderNode`s. This example uses rounded rectangle haze areas (i.e. we use `clipPath`).
+- **Credit Card**. A simple example, where the user can drag the `hazeContent`. This tests how fast Haze's internal state invalidates and propogates to the `RenderNode`s. This example uses rounded rectangle haze areas like 'Images List'.
 
 !!! abstract "Test setup"
     All of the tests were ran with 16 iterations on a Pixel 6, running the latest version of Android available.

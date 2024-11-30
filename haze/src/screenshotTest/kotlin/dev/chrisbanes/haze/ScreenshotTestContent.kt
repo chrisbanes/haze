@@ -41,15 +41,18 @@ internal fun CreditCardSample(
 
   Box {
     // Background content
-    Box(
-      Modifier
-        .fillMaxSize()
-        .haze(state = hazeState),
-    ) {
+    Box(modifier = Modifier.hazeBackground(state = hazeState)) {
       Spacer(
         Modifier
           .fillMaxSize()
-          .background(brush = Brush.linearGradient(colors = listOf(Color.Blue, Color.Cyan))),
+          .background(
+            brush = Brush.linearGradient(
+              colors = listOf(
+                Color.Blue,
+                Color.Cyan,
+              ),
+            ),
+          ),
       )
 
       Text(
@@ -71,7 +74,7 @@ internal fun CreditCardSample(
         .then(
           when {
             enabled -> {
-              Modifier.hazeChild(state = hazeState) {
+              Modifier.hazeContent(state = hazeState) {
                 this.blurEnabled = blurEnabled
                 this.style = style
                 backgroundColor = surfaceColor

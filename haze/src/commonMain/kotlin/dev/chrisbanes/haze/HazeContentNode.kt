@@ -51,7 +51,7 @@ import io.github.reactivecircus.cache4k.Cache
  * to be able to change the API in the future, hence why it is marked as experimental forever.
  */
 @ExperimentalHazeApi
-class HazeChildNode(
+class HazeContentNode(
   var state: HazeState,
   style: HazeStyle = HazeStyle.Unspecified,
   var block: (HazeChildScope.() -> Unit)? = null,
@@ -405,7 +405,7 @@ class HazeChildNode(
   }
 
   internal companion object {
-    const val TAG = "HazeChild"
+    const val TAG = "HazeContent"
   }
 }
 
@@ -531,7 +531,7 @@ internal class RenderEffectParams(
 )
 
 @ExperimentalHazeApi
-internal fun HazeChildNode.calculateInputScaleFactor(
+internal fun HazeContentNode.calculateInputScaleFactor(
   blurRadius: Dp = resolveBlurRadius(),
 ): Float = when (val s = inputScale) {
   HazeInputScale.None -> 1f
@@ -548,7 +548,7 @@ internal fun HazeChildNode.calculateInputScaleFactor(
 }
 
 @OptIn(ExperimentalHazeApi::class)
-internal fun HazeChildNode.getOrCreateRenderEffect(
+internal fun HazeContentNode.getOrCreateRenderEffect(
   inputScale: Float = calculateInputScaleFactor(),
   blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp } * inputScale,
   noiseFactor: Float = resolveNoiseFactor(),
@@ -572,52 +572,52 @@ internal fun HazeChildNode.getOrCreateRenderEffect(
 )
 
 internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params: RenderEffectParams): RenderEffect? {
-  log(HazeChildNode.TAG) { "getOrCreateRenderEffect: $params" }
+  log(HazeContentNode.TAG) { "getOrCreateRenderEffect: $params" }
   val cached = renderEffectCache.get(params)
   if (cached != null) {
-    log(HazeChildNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
+    log(HazeContentNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
     return cached
   }
 
-  log(HazeChildNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
+  log(HazeContentNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
   return createRenderEffect(params)
     ?.also { renderEffectCache.put(params, it) }
 }
 
 internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
 
-internal expect fun HazeChildNode.drawLinearGradientProgressiveEffect(
+internal expect fun HazeContentNode.drawLinearGradientProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
 )
 
-internal fun HazeChildNode.resolveBackgroundColor(): Color {
+internal fun HazeContentNode.resolveBackgroundColor(): Color {
   return backgroundColor
     .takeOrElse { style.backgroundColor }
     .takeOrElse { compositionLocalStyle.backgroundColor }
 }
 
-internal fun HazeChildNode.resolveBlurRadius(): Dp {
+internal fun HazeContentNode.resolveBlurRadius(): Dp {
   return blurRadius
     .takeOrElse { style.blurRadius }
     .takeOrElse { compositionLocalStyle.blurRadius }
 }
 
-internal fun HazeChildNode.resolveTints(): List<HazeTint> {
+internal fun HazeContentNode.resolveTints(): List<HazeTint> {
   return tints.takeIf { it.isNotEmpty() }
     ?: style.tints.takeIf { it.isNotEmpty() }
     ?: compositionLocalStyle.tints.takeIf { it.isNotEmpty() }
     ?: emptyList()
 }
 
-internal fun HazeChildNode.resolveFallbackTint(): HazeTint {
+internal fun HazeContentNode.resolveFallbackTint(): HazeTint {
   return fallbackTint.takeIf { it.isSpecified }
     ?: style.fallbackTint.takeIf { it.isSpecified }
     ?: compositionLocalStyle.fallbackTint
 }
 
-internal fun HazeChildNode.resolveNoiseFactor(): Float {
+internal fun HazeContentNode.resolveNoiseFactor(): Float {
   return noiseFactor
     .takeOrElse { style.noiseFactor }
     .takeOrElse { compositionLocalStyle.noiseFactor }

@@ -43,8 +43,8 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeBackground
+import dev.chrisbanes.haze.hazeContent
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -90,7 +90,7 @@ fun ScaffoldSample(
           scrolledContainerColor = Color.Transparent,
         ),
         modifier = Modifier
-          .hazeChild(state = hazeState, style = style) {
+          .hazeContent(state = hazeState, style = style) {
             this.inputScale = inputScale
 
             when (mode) {
@@ -101,6 +101,7 @@ fun ScaffoldSample(
                   endIntensity = 0f,
                 )
               }
+
               ScaffoldSampleMode.Mask -> {
                 mask = Brush.easedVerticalGradient(EaseIn)
               }
@@ -120,7 +121,7 @@ fun ScaffoldSample(
           selectedIndex = selectedIndex,
           onItemClicked = { selectedIndex = it },
           modifier = Modifier
-            .hazeChild(state = hazeState, style = style) {
+            .hazeContent(state = hazeState, style = style) {
               this.inputScale = inputScale
             }
             .fillMaxWidth(),
@@ -138,7 +139,7 @@ fun ScaffoldSample(
       modifier = Modifier
         .fillMaxSize()
         .testTag("lazy_grid")
-        .haze(state = hazeState),
+        .hazeBackground(hazeState),
     ) {
       items(50) { index ->
         ImageItem(

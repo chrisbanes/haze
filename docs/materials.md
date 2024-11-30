@@ -34,7 +34,7 @@ Class reference: [CupertinoMaterials](../api/haze-materials/dev.chrisbanes.haze.
 
 ### FluentMaterials
 
-These implement 'material' styles similar to those available on Windows platforms. The values used are taken from the WinUI 3 Figma file published by Microsoft. 
+These implement 'material' styles similar to those available on Windows platforms. The values used are taken from the WinUI 3 Figma file published by Microsoft.
 
 The primary use case for using these is for when aiming for consistency with native UI (i.e. for when mixing Compose Multiplatform content alongside WinUI content).
 
@@ -52,7 +52,7 @@ Box {
 
   LargeTopAppBar(
     modifier = Modifier
-      .hazeChild(
+      .hazeContent(
         ...
         style = HazeMaterials.thin(),
       ),
