@@ -109,6 +109,10 @@ package dev.chrisbanes.haze {
     field public static final dev.chrisbanes.haze.HazeInputScale.Companion Companion;
   }
 
+  public static final class HazeInputScale.Auto implements dev.chrisbanes.haze.HazeInputScale {
+    field public static final dev.chrisbanes.haze.HazeInputScale.Auto INSTANCE;
+  }
+
   public static final class HazeInputScale.Companion {
     method public dev.chrisbanes.haze.HazeInputScale getDefault();
     property @dev.chrisbanes.haze.ExperimentalHazeApi public final dev.chrisbanes.haze.HazeInputScale Default;

@@ -41,12 +41,11 @@ import dev.chrisbanes.haze.HazeInputScale
 
 val Samples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
-  Sample("Scaffold (input scaled)") { ScaffoldSample(it, inputScale = HazeInputScale.Fixed(0.5f)) },
+  Sample("Scaffold (input scaled)") { ScaffoldSample(it, inputScale = HazeInputScale.Auto) },
   Sample("Scaffold (progressive blur)") { ScaffoldSample(it, ScaffoldSampleMode.Progressive) },
-  Sample("Scaffold (progressive blur, input scaled)") {
-    ScaffoldSample(it, ScaffoldSampleMode.Progressive, HazeInputScale.Fixed(0.5f))
-  },
+  Sample("Scaffold (progressive blur, input scaled)") { ScaffoldSample(it, ScaffoldSampleMode.Progressive, HazeInputScale.Auto) },
   Sample("Scaffold (masked)") { ScaffoldSample(it, ScaffoldSampleMode.Mask) },
+  Sample("Scaffold (masked, input scaled)") { ScaffoldSample(it, ScaffoldSampleMode.Mask, HazeInputScale.Auto) },
   Sample("Credit Card") { CreditCardSample(it) },
   Sample("Images List") { ImagesList(it) },
   Sample("List over Image") { ListOverImage(it) },

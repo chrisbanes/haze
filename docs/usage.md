@@ -133,13 +133,19 @@ You can provide an input scale value which determines how much the content is sc
 LargeTopAppBar(
   // ...
   modifier = Modifier.hazeChild(hazeState) {
-    inputScale = HazeInputScale.Fixed(0.5f)
+    inputScale = HazeInputScale.Auto
   }
 )
 ```
 
-Using a value less than 1.0 **may** improve performance, at the sacrifice of quality and crispness. As always, run your own benchmarks as to whether this compromise is worth it.
+`HazeInputScale` has a number of different options:
 
-If you're looking for a good value to experiment with, `0.8` results in a reduction in total resolution of ~35%, while being visually imperceptible to most people (probably).
+- `HazeInputScale.None`: Turns off input scaling (default)
+- `HazeInputScale.Auto`: Turns on input scaling, with automatic values derived underneath.
+- `HazeInputScale.Fixed(...)`: Turns on input scaling, using the value you pass in.
 
-The minimum value I would realistically use is somewhere in the region of `0.5`, which results in the total pixel count of only 25% of the original content. This is likely to be visually different to no scaling, but depending on the styling parameters, it will be visually pleasing to the user.
+When using a `Fixed` value, less than 1.0 **may** improve performance, at the sacrifice of quality and crispness. As always, run your own benchmarks as to whether this compromise is worth it.
+
+If you're looking for a good value to experiment with, `0.66` results in a reduction in total resolution of ~55%, while being visually imperceptible to most people (probably).
+
+The minimum value I would realistically use is somewhere in the region of `0.33`, which results in the total pixel count of only 11% of the original content. This is likely to be visually different to no scaling, but depending on the styling parameters, it will be visually pleasing to the user.

@@ -159,6 +159,12 @@ sealed interface HazeInputScale {
   data object None : HazeInputScale
 
   /**
+   * Automatic input scaling. Haze will attempt to use an appropriate input scale depending on
+   * the other settings which have been set. The values used underneath may change in the future.
+   */
+  data object Auto : HazeInputScale
+
+  /**
    * An input scale which uses a fixed scale factor.
    *
    * @param scale The scale factor, in the range 0 < x <= 1.
@@ -175,7 +181,7 @@ sealed interface HazeInputScale {
   companion object {
     /**
      * The default [HazeInputScale] value. Currently this resolves to [HazeInputScale.None] but
-     * this may change in the future.
+     * this may change in the future, probably to [HazeInputScale.Auto].
      */
     @ExperimentalHazeApi
     val Default: HazeInputScale get() = None

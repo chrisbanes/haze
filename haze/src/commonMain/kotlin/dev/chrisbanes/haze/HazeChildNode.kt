@@ -259,24 +259,19 @@ class HazeChildNode(
   }
 
   override fun ContentDrawScope.draw() {
-    log(TAG) { "-> HazeChild. start draw()" }
-
     require(!state.contentDrawing) {
       "Layout nodes using Modifier.haze and Modifier.hazeChild can not be descendants of each other"
     }
 
-    if (!isValid) {
-      // If we don't have any effects, just call drawContent and return early
-      drawContent()
-      log(TAG) { "-> HazeChild. end draw()" }
-      return
-    }
+    log(TAG) { "-> HazeChild. start draw()" }
 
-    val contentLayer = state.contentLayer
-    if (contentLayer != null && blurEnabled && canUseGraphicLayers()) {
-      drawEffectWithGraphicsLayer(contentLayer)
-    } else {
-      drawEffectWithScrim()
+    if (isValid) {
+      val contentLayer = state.contentLayer
+      if (contentLayer != null && blurEnabled && canUseGraphicLayers()) {
+        drawEffectWithGraphicsLayer(contentLayer)
+      } else {
+        drawEffectWithScrim()
+      }
     }
 
     // Finally we draw the content
@@ -535,9 +530,20 @@ internal data class RenderEffectParams(
 )
 
 @ExperimentalHazeApi
-internal fun HazeChildNode.calculateInputScaleFactor(): Float = when (val s = inputScale) {
+internal fun HazeChildNode.calculateInputScaleFactor(
+  blurRadius: Dp = resolveBlurRadius(),
+): Float = when (val s = inputScale) {
   HazeInputScale.None -> 1f
   is HazeInputScale.Fixed -> s.scale
+  HazeInputScale.Auto -> {
+    when {
+      // For small blurRadius values, input scaling is very noticeable therefore we turn it off
+      blurRadius < 7.dp -> 1f
+      progressive != null -> 0.5f
+      mask != null -> 0.5f
+      else -> 0.3334f
+    }
+  }
 }
 
 @OptIn(ExperimentalHazeApi::class)
