@@ -13,6 +13,7 @@ plugins {
   id("com.vanniktech.maven.publish")
   id("dev.chrisbanes.metalava")
   id("io.github.takahirom.roborazzi")
+  id("dev.drewhamilton.poko")
 }
 
 android {

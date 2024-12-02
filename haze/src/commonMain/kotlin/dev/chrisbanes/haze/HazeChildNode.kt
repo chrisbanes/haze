@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
+import dev.drewhamilton.poko.Poko
 import io.github.reactivecircus.cache4k.Cache
 
 /**
@@ -517,7 +518,8 @@ private val renderEffectCache by lazy {
     .build()
 }
 
-internal data class RenderEffectParams(
+@Poko
+internal class RenderEffectParams(
   val blurRadius: Dp,
   val noiseFactor: Float,
   val tints: List<HazeTint> = emptyList(),
@@ -526,7 +528,6 @@ internal data class RenderEffectParams(
   val contentOffset: Offset,
   val mask: Brush? = null,
   val progressive: Brush? = null,
-  val inputScale: Float = 1f,
 )
 
 @ExperimentalHazeApi
@@ -567,7 +568,6 @@ internal fun HazeChildNode.getOrCreateRenderEffect(
     contentOffset = contentOffset,
     mask = mask,
     progressive = progressive,
-    inputScale = inputScale,
   ),
 )
 
