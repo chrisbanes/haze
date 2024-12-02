@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.takeOrElse
 import kotlin.math.hypot
 
 internal fun calculateLength(
@@ -25,6 +26,8 @@ internal fun Size.expand(expansion: Float): Size {
 internal fun lerp(start: Float, stop: Float, fraction: Float): Float {
   return start + fraction * (stop - start)
 }
+
+internal inline val Offset.orZero: Offset get() = takeOrElse { Offset.Zero }
 
 internal inline fun <T> unsynchronizedLazy(noinline initializer: () -> T): Lazy<T> {
   return lazy(mode = LazyThreadSafetyMode.NONE, initializer)

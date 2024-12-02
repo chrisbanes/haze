@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -33,11 +34,33 @@ annotation class ExperimentalHazeApi
 @ExperimentalHazeApi
 class HazeNode(
   var state: HazeState,
+  zIndex: Float = 0f,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
   LayoutAwareModifierNode,
   DrawModifierNode {
+
+  private val area = HazeArea()
+
+  var zIndex: Float
+    get() = area.zIndex
+    set(value) {
+      area.zIndex = value
+    }
+
+  init {
+    this.zIndex = zIndex
+  }
+
+  /**
+   * We manually invalidate when things have changed
+   */
+  override val shouldAutoInvalidate: Boolean = false
+
+  override fun onAttach() {
+    state.areas.add(area)
+  }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
     // If the positionOnScreen has not been placed yet, we use the value on onPlaced,
@@ -45,11 +68,11 @@ class HazeNode(
     // up to the first draw. We need onGloballyPositioned which tends to happen after
     // the first pass
     Snapshot.withoutReadObservation {
-      if (state.positionOnScreen.isUnspecified) {
+      if (area.positionOnScreen.isUnspecified) {
         log(TAG) {
           "onPlaced: " +
             "positionInWindow=${coordinates.positionInWindow()}, " +
-            "content positionOnScreens=${state.positionOnScreen}"
+            "area positionOnScreen=${area.positionOnScreen}"
         }
         onPositioned(coordinates)
       }
@@ -60,30 +83,26 @@ class HazeNode(
     log(TAG) {
       "onGloballyPositioned: " +
         "positionInWindow=${coordinates.positionInWindow()}, " +
-        "content positionOnScreens=${state.positionOnScreen}"
+        "content positionOnScreens=${area.positionOnScreen}"
     }
     onPositioned(coordinates)
   }
 
   private fun onPositioned(coordinates: LayoutCoordinates) {
-    state.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
+    area.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
   }
 
-  /**
-   * We manually invalidate when things have changed
-   */
-  override val shouldAutoInvalidate: Boolean = false
-
   override fun ContentDrawScope.draw() {
-    state.contentDrawing = true
     log(TAG) { "start draw()" }
+
+    area.contentDrawing = true
 
     if (canUseGraphicLayers()) {
       val graphicsContext = currentValueOf(LocalGraphicsContext)
 
-      val contentLayer = state.contentLayer
+      val contentLayer = area.contentLayer
         ?.takeUnless { it.isReleased }
-        ?: graphicsContext.createGraphicsLayer().also { state.contentLayer = it }
+        ?: graphicsContext.createGraphicsLayer().also { area.contentLayer = it }
 
       // First we draw the composable content into a graphics layer
       contentLayer.record {
@@ -97,17 +116,26 @@ class HazeNode(
       drawContent()
     }
 
-    state.contentDrawing = false
+    area.contentDrawing = false
+
     log(TAG) { "end draw()" }
   }
 
   override fun onDetach() {
-    super.onDetach()
+    area.reset()
+    state.areas.remove(area)
+  }
 
-    state.contentLayer?.let { layer ->
-      currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
+  override fun onReset() {
+    area.reset()
+  }
+
+  private fun HazeArea.reset() {
+    positionOnScreen = Offset.Unspecified
+    contentDrawing = false
+    contentLayer?.let {
+      currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(it)
     }
-    state.contentLayer = null
   }
 
   private companion object {
