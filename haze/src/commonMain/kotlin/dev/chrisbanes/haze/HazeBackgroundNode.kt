@@ -4,7 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -15,20 +15,18 @@ import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.takeOrElse
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 annotation class ExperimentalHazeApi
 
 /**
- * The [Modifier.Node] implementation used by [Modifier.haze].
+ * The [Modifier.Node] implementation used by [Modifier.hazeBackground].
  *
  * This is public API in order to aid custom extensible modifiers, _but_ we reserve the right
  * to be able to change the API in the future, hence why it is marked as experimental forever.
  */
 @ExperimentalHazeApi
-class HazeNode(
+class HazeBackgroundNode(
   var state: HazeState,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
@@ -84,29 +82,15 @@ class HazeNode(
       currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
     }
     state.contentLayer = null
+    state.positionOnScreen = Offset.Unspecified
+    state.contentDrawing = false
   }
 
   private companion object {
-    const val TAG = "HazeNode"
+    const val TAG = "HazeBackgroundNode"
   }
 }
 
 internal expect fun isBlurEnabledByDefault(): Boolean
 
 internal expect fun DrawScope.canUseGraphicLayers(): Boolean
-
-internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
-  // For color, we can boost the alpha
-  val resolved = blurRadius.takeOrElse { HazeDefaults.blurRadius }
-  val boosted = color.boostAlphaForBlurRadius(resolved)
-  return copy(color = boosted)
-}
-
-/**
- * In this implementation, the only tool we have is translucency.
- */
-private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
-  // We treat a blur radius of 72.dp as near 'opaque', and linearly boost using that
-  val factor = 1 + (blurRadius.value / 72)
-  return copy(alpha = (alpha * factor).coerceAtMost(1f))
-}

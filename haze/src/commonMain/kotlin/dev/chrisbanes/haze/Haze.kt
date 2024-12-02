@@ -35,6 +35,12 @@ class HazeState {
   internal var contentDrawing = false
 }
 
+@Deprecated(
+  message = "Modifier.haze() has been renamed to Modifier.hazeBackground()",
+  replaceWith = ReplaceWith("Modifier.hazeBackground(state)", "dev.chrisbanes.haze.hazeBackground"),
+)
+fun Modifier.haze(state: HazeState): Modifier = hazeBackground(state)
+
 /**
  * Draw background content for [hazeChild] child nodes, which will be drawn with a blur
  * in a 'glassmorphism' style.
@@ -44,7 +50,7 @@ class HazeState {
  * instead.
  */
 @Stable
-fun Modifier.haze(state: HazeState): Modifier = this then HazeNodeElement(state)
+fun Modifier.hazeBackground(state: HazeState): Modifier = this then HazeBackgroundNodeElement(state)
 
 /**
  * Default values for the [haze] modifiers.
@@ -73,17 +79,6 @@ object HazeDefaults {
     color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
     else -> color
   }.let(::HazeTint)
-
-  @Deprecated(
-    "Migrate to HazeTint for tint",
-    ReplaceWith("HazeStyle(backgroundColor, HazeTint(tint), blurRadius, noiseFactor)"),
-  )
-  fun style(
-    backgroundColor: Color = Color.Unspecified,
-    tint: Color,
-    blurRadius: Dp = this.blurRadius,
-    noiseFactor: Float = this.noiseFactor,
-  ): HazeStyle = HazeStyle(backgroundColor, tint(backgroundColor), blurRadius, noiseFactor)
 
   /**
    * Default [HazeStyle] for usage with [Modifier.haze].
@@ -117,17 +112,17 @@ object HazeDefaults {
   fun blurEnabled(): Boolean = isBlurEnabledByDefault()
 }
 
-internal data class HazeNodeElement(
+internal data class HazeBackgroundNodeElement(
   val state: HazeState,
-) : ModifierNodeElement<HazeNode>() {
+) : ModifierNodeElement<HazeBackgroundNode>() {
 
-  override fun create(): HazeNode = HazeNode(state)
+  override fun create(): HazeBackgroundNode = HazeBackgroundNode(state)
 
-  override fun update(node: HazeNode) {
+  override fun update(node: HazeBackgroundNode) {
     node.state = state
   }
 
   override fun InspectorInfo.inspectableProperties() {
-    name = "haze"
+    name = "hazeBackground"
   }
 }

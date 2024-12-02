@@ -30,8 +30,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeBackground
+import dev.chrisbanes.haze.hazeContent
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -61,7 +61,7 @@ fun ListOverImage(navigator: Navigator) {
           contentScale = ContentScale.Crop,
           contentDescription = null,
           modifier = Modifier
-            .haze(state = hazeState)
+            .hazeBackground(hazeState)
             .fillMaxSize(),
         )
 
@@ -87,7 +87,7 @@ fun ListOverImage(navigator: Navigator) {
                   .fillMaxSize(0.8f)
                   .align(Alignment.Center)
                   .clip(RoundedCornerShape(4.dp))
-                  .hazeChild(state = hazeState, style = HazeMaterials.thin()),
+                  .hazeContent(state = hazeState, style = HazeMaterials.thin()),
               ) {
                 Text(
                   "Item $index",

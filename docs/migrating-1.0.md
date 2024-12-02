@@ -25,7 +25,7 @@ As we're now using a common implementation on all platforms, the Skia-backed pla
 
 #### 🆕 HazeChildScope
 
-- **What:** We now have a parameter on `Modifier.hazeChild` which allow you to provide a lambda block for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`. See [here](usage.md#hazechildscope) for more information.
+- **What:** We now have a parameter on `Modifier.hazeContent` which allow you to provide a lambda block for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`. See [here](usage.md#hazechildscope) for more information.
 - **Why:** This has been primarily added to aid animating Haze's styling parameters, in a performant way.
 
 #### Default style functionality on Modifier.haze has been moved
@@ -52,8 +52,8 @@ This has resulted in Haze now having a single implementation across all platform
 
 ### New pipeline
 
-In v0.7 and older, Haze is all 'smoke and mirrors'. It draws all of the blurred areas in the `haze` layout node. The `hazeChild` nodes just update the size, shape, etc, which the `haze` modifier reads, to know where to draw.
+In v0.7 and older, Haze is all 'smoke and mirrors'. It draws all of the blurred areas in the `hazeBackground` layout node. The `hazeContent` nodes just update the size, shape, etc, which the `hazeBackground` modifier reads, to know where to draw.
 
-With the adoption of GraphicsLayers, we now have a way to pass 'drawn' content around, meaning that we are no longer bound by the restraints of before. v1.0 contains a re-written drawing pipeline, where the blurred content is drawn by the `hazeChild`, not the parent. The parent `haze` is now only responsible for drawing the background content into a graphics layer, and putting it somewhere for the children to access.
+With the adoption of GraphicsLayers, we now have a way to pass 'drawn' content around, meaning that we are no longer bound by the restraints of before. v1.0 contains a re-written drawing pipeline, where the blurred content is drawn by the `hazeContent`, not the parent. The parent `hazeBackground` is now only responsible for drawing the background content into a graphics layer, and putting it somewhere for the children to access.
 
 This fixes a number of long-known issues on Haze, where all were caused by the fact that the blurred area wasn't drawn by the child.

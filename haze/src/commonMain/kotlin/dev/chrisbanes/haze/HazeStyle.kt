@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.takeOrElse
 
 /**
  * A [ProvidableCompositionLocal] which provides the default [HazeStyle] for all [hazeChild]
@@ -81,3 +82,19 @@ data class HazeTint(
 
 internal inline fun Float.takeOrElse(block: () -> Float): Float =
   if (this in 0f..1f) this else block()
+
+internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
+  // For color, we can boost the alpha
+  val resolved = blurRadius.takeOrElse { HazeDefaults.blurRadius }
+  val boosted = color.boostAlphaForBlurRadius(resolved)
+  return copy(color = boosted)
+}
+
+/**
+ * In this implementation, the only tool we have is translucency.
+ */
+private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
+  // We treat a blur radius of 72.dp as near 'opaque', and linearly boost using that
+  val factor = 1 + (blurRadius.value / 72)
+  return copy(alpha = (alpha * factor).coerceAtMost(1f))
+}
