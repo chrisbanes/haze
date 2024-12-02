@@ -51,6 +51,7 @@ val Samples = listOf(
   Sample("List over Image") { ListOverImage(it) },
   Sample("Dialog") { DialogSample(it) },
   Sample("Materials") { MaterialsSample(it) },
+  Sample("List with Sticky Headers") { ListWithStickyHeaders(it) },
 )
 
 data class Sample(

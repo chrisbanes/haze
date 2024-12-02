@@ -113,10 +113,10 @@ class HazeChildNode(
       }
     }
 
-  private var positionInContent: Offset = Offset.Unspecified
+  private var positionInWindow: Offset = Offset.Unspecified
     set(value) {
       if (value != field) {
-        log(TAG) { "positionInContent changed. Current: $field. New: $value" }
+        log(TAG) { "positionInWindow changed. Current: $field. New: $value" }
         positionChanged = true
         field = value
       }
@@ -228,6 +228,15 @@ class HazeChildNode(
       }
     }
 
+  private var backgroundAreas: List<HazeArea> = emptyList()
+    set(value) {
+      if (value != field) {
+        log(TAG) { "backgroundAreas changed. Current $field. New: $value" }
+        drawParametersDirty = true
+        field = value
+      }
+    }
+
   internal fun update() {
     onObservedReadsChanged()
   }
@@ -248,7 +257,7 @@ class HazeChildNode(
     // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
     // up to the first draw. We usually need onGloballyPositioned which tends to happen after
     // the first pass
-    if (positionInContent.isUnspecified) {
+    if (positionInWindow.isUnspecified) {
       log(TAG) { "onPlaced: positionInWindow=${coordinates.positionInWindow()}" }
       onPositioned(coordinates)
     }
@@ -260,9 +269,7 @@ class HazeChildNode(
   }
 
   private fun onPositioned(coordinates: LayoutCoordinates) {
-    positionInContent = coordinates.positionInWindow() +
-      calculateWindowOffset() - state.positionOnScreen.takeOrElse { Offset.Zero }
-
+    positionInWindow = coordinates.positionInWindow() + calculateWindowOffset()
     size = coordinates.size.toSize()
 
     val blurRadiusPx = with(currentValueOf(LocalDensity)) {
@@ -274,16 +281,11 @@ class HazeChildNode(
   }
 
   override fun ContentDrawScope.draw() {
-    require(!state.contentDrawing) {
-      "Layout nodes using Modifier.haze and Modifier.hazeChild can not be descendants of each other"
-    }
-
     log(TAG) { "-> HazeChild. start draw()" }
 
     if (isValid) {
-      val contentLayer = state.contentLayer
-      if (contentLayer != null && blurEnabled && canUseGraphicLayers()) {
-        drawEffectWithGraphicsLayer(contentLayer)
+      if (blurEnabled && canUseGraphicLayers()) {
+        drawEffectWithGraphicsLayer()
       } else {
         drawEffectWithScrim()
       }
@@ -302,6 +304,8 @@ class HazeChildNode(
     // effects but were previously showing some
     block?.invoke(this)
 
+    backgroundAreas = state.backgroundAreas.sortedBy { it.zIndex }
+
     if (needInvalidation()) {
       log(TAG) { "invalidateDraw called, due to effect needing invalidation" }
       invalidateDraw()
@@ -309,7 +313,7 @@ class HazeChildNode(
   }
 
   @OptIn(ExperimentalHazeApi::class)
-  private fun DrawScope.drawEffectWithGraphicsLayer(contentLayer: GraphicsLayer) {
+  private fun DrawScope.drawEffectWithGraphicsLayer() {
     // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
     // The RenderEffect applied will provide the blurring effect.
     val graphicsContext = currentValueOf(LocalGraphicsContext)
@@ -331,9 +335,13 @@ class HazeChildNode(
 
       clipRect {
         scale(scaleFactor, Offset.Zero) {
-          translate(inflatedOffset - positionInContent) {
-            // Draw the content into our effect layer
-            drawLayer(contentLayer)
+          val baseOffset = inflatedOffset - positionInWindow
+
+          for (area in backgroundAreas) {
+            translate(baseOffset + area.positionOnScreen.orZero) {
+              // Draw the content into our effect layer
+              area.contentLayer?.let(::drawLayer)
+            }
           }
         }
       }

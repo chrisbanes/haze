@@ -5,6 +5,8 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -20,14 +22,39 @@ import androidx.compose.ui.unit.dp
 @Stable
 class HazeState {
 
+  internal val areas = mutableStateListOf<HazeArea>()
+
+  val backgroundAreas: List<HazeArea> get() = areas
+
+  @Deprecated("Use backgroundAreas instead")
+  var positionOnScreen: Offset
+    get() = backgroundAreas.firstOrNull()?.positionOnScreen ?: Offset.Unspecified
+    set(value) {
+      backgroundAreas.firstOrNull()?.apply {
+        positionOnScreen = value
+      }
+    }
+
+  @Deprecated("Use backgroundAreas instead")
+  var contentLayer: GraphicsLayer?
+    get() = backgroundAreas.firstOrNull()?.contentLayer
+    set(value) {
+      backgroundAreas.firstOrNull()?.apply {
+        contentLayer = value
+      }
+    }
+}
+
+class HazeArea {
+
   var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
+  var zIndex: Float by mutableFloatStateOf(0f)
+    internal set
+
   /**
-   * The content [GraphicsLayer]. This is used by [hazeChild] draw nodes when drawing their
-   * blurred areas.
-   *
-   * This is explicitly NOT snapshot or state backed, as doing so would cause draw loops.
+   * The content [GraphicsLayer].
    */
   var contentLayer: GraphicsLayer? = null
     internal set
@@ -44,7 +71,7 @@ class HazeState {
  * instead.
  */
 @Stable
-fun Modifier.haze(state: HazeState): Modifier = this then HazeNodeElement(state)
+fun Modifier.haze(state: HazeState, zIndex: Float = 0f): Modifier = this then HazeNodeElement(state)
 
 /**
  * Default values for the [haze] modifiers.
@@ -119,15 +146,18 @@ object HazeDefaults {
 
 internal data class HazeNodeElement(
   val state: HazeState,
+  val zIndex: Float = 0f,
 ) : ModifierNodeElement<HazeNode>() {
 
-  override fun create(): HazeNode = HazeNode(state)
+  override fun create(): HazeNode = HazeNode(state = state, zIndex = zIndex)
 
   override fun update(node: HazeNode) {
     node.state = state
+    node.zIndex = zIndex
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "haze"
+    properties["zIndex"] = zIndex
   }
 }
