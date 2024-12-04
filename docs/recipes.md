@@ -3,8 +3,8 @@
 
 Blurring the content behind app bars is a common use case, so how can we use Haze with `Scaffold`? It's pretty much the same as above:
 
-!!! tip "Multiple hazeContents"
-    Note: We are using multiple `hazeContent`s in this example. You can actually use an abitrary number of `hazeContent`s.
+!!! tip "Multiple hazeChilds"
+    Note: We are using multiple `hazeChild`s in this example. You can actually use an abitrary number of `hazeChild`s.
 
 ``` kotlin
 val hazeState = remember { HazeState() }
@@ -15,7 +15,7 @@ Scaffold(
       // Need to make app bar transparent to see the content behind
       colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
       modifier = Modifier
-        .hazeContent(state = hazeState)
+        .hazeChild(state = hazeState)
         .fillMaxWidth(),
     ) {
       /* todo */
@@ -25,7 +25,7 @@ Scaffold(
     NavigationBar(
       containerColor = Color.Transparent,
       modifier = Modifier
-        .hazeContent(state = hazeState)
+        .hazeChild(state = hazeState)
         .fillMaxWidth(),
     ) {
       /* todo */
@@ -34,7 +34,7 @@ Scaffold(
 ) {
   LazyVerticalGrid(
     modifier = Modifier
-      .hazeBackground(
+      .haze(
         state = hazeState,
         style = HazeDefaults.style(backgroundColor = MaterialTheme.colorScheme.surface),
       ),

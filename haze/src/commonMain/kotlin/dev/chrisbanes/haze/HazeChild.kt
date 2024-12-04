@@ -32,7 +32,7 @@ interface HazeChildScope {
   var alpha: Float
 
   /**
-   * Style set on this specific [HazeContentNode].
+   * Style set on this specific [HazeChildNode].
    *
    * There are precedence rules to how each styling property is applied. The order of precedence
    * for each property are as follows:
@@ -188,6 +188,18 @@ sealed interface HazeInputScale {
   }
 }
 
+/**
+ * Mark this composable as being a Haze child composable.
+ *
+ * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
+ * [Modifier.haze] to blur any content behind the host composable.
+ *
+ * @param shape The shape of the content. This will affect the the bounds and outline of
+ * the content. Please be aware that using non-rectangular shapes has an effect on performance,
+ * since we need to use path clipping.
+ * @param style The [HazeStyle] to use on this content. Any specified values in the given
+ * style will override that value from the default style, provided to [haze].
+ */
 @Deprecated(
   message = "Shape clipping is no longer necessary with Haze. You can use `Modifier.clip` or similar.",
   replaceWith = ReplaceWith("clip(shape).hazeChild(state, style)"),
@@ -196,17 +208,7 @@ fun Modifier.hazeChild(
   state: HazeState,
   shape: Shape,
   style: HazeStyle,
-): Modifier = clip(shape).hazeContent(state, style)
-
-@Deprecated(
-  "Modifier.hazeChild() has been renamed to Modifier.hazeContent()",
-  ReplaceWith("hazeContent(state, style, block)", "dev.chrisbanes.haze.hazeContent"),
-)
-fun Modifier.hazeChild(
-  state: HazeState,
-  style: HazeStyle = HazeStyle.Unspecified,
-  block: (HazeChildScope.() -> Unit)? = null,
-): Modifier = hazeContent(state, style, block)
+): Modifier = clip(shape).hazeChild(state, style)
 
 /**
  * Mark this composable as being a Haze child composable.
@@ -216,24 +218,24 @@ fun Modifier.hazeChild(
  *
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
  * style will override that value from the default style, provided to [haze].
- * @param block [HazeChildScope] where you define the styling, visual and configuration properties.
+ * @param block block on HazeChildScope where you define the styling and visual properties.
  */
 @Stable
-fun Modifier.hazeContent(
+fun Modifier.hazeChild(
   state: HazeState,
   style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeChildScope.() -> Unit)? = null,
-): Modifier = this then HazeContentNodeElement(state, style, block)
+): Modifier = this then HazeChildNodeElement(state, style, block)
 
-private data class HazeContentNodeElement(
+private data class HazeChildNodeElement(
   val state: HazeState,
   val style: HazeStyle = HazeStyle.Unspecified,
   val block: (HazeChildScope.() -> Unit)? = null,
-) : ModifierNodeElement<HazeContentNode>() {
+) : ModifierNodeElement<HazeChildNode>() {
 
-  override fun create(): HazeContentNode = HazeContentNode(state, style, block)
+  override fun create(): HazeChildNode = HazeChildNode(state, style, block)
 
-  override fun update(node: HazeContentNode) {
+  override fun update(node: HazeChildNode) {
     node.state = state
     node.style = style
     node.block = block
@@ -241,9 +243,6 @@ private data class HazeContentNodeElement(
   }
 
   override fun InspectorInfo.inspectableProperties() {
-    name = "HazeContent"
-    properties["state"] = state
-    properties["style"] = style
-    properties["block"] = block
+    name = "HazeChild"
   }
 }

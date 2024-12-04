@@ -1,4 +1,4 @@
-Haze is implemented through two Compose Modifiers: [Modifier.hazeBackground](../api/haze/dev.chrisbanes.haze/haze-background.html) and [Modifier.hazeContent](../api/haze/dev.chrisbanes.haze/haze-content.html).
+Haze is implemented through two Compose Modifiers: [Modifier.haze](../api/haze/dev.chrisbanes.haze/haze.html) and [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
 
 The most basic usage would be something like:
 
@@ -10,7 +10,7 @@ Box {
     modifier = Modifier
       .fillMaxSize()
       // Pass it the HazeState we stored above
-      .hazeBackground(state = hazeState)
+      .haze(state = hazeState)
   ) {
     // todo
   }
@@ -19,9 +19,9 @@ Box {
     // Need to make app bar transparent to see the content behind
     colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
     modifier = Modifier
-      // We use hazeContent on anything where we want the background
+      // We use hazeChild on anything where we want the background
       // blurred.
-      .hazeContent(state = hazeState)
+      .hazeChild(state = hazeState)
       .fillMaxWidth(),
   )
 }
@@ -29,17 +29,17 @@ Box {
 
 ## Styling
 
-Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](../api/haze/dev.chrisbanes.haze/-haze-style/) class, or the lambda block provided to `hazeContent`.
+Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](../api/haze/dev.chrisbanes.haze/-haze-style/) class, or the lambda block provided to `hazeChild`.
 
 Styles can be provided in a number of different ways:
 
 - [LocalHazeStyle](../api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
-- The style parameter on [Modifier.hazeContent](../api/haze/dev.chrisbanes.haze/haze-content.html).
-- By setting the relevant property in the optional [HazeChildScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html) lambda `block`, passed into [Modifier.hazeContent](../api/haze/dev.chrisbanes.haze/haze-content.html).
+- The style parameter on [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
+- By setting the relevant property in the optional [HazeChildScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html) lambda `block`, passed into [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
 
 ### HazeChildScope
 
-We now have a parameter on `Modifier.hazeContent` which allow you to provide a lambda block, for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`.
+We now have a parameter on `Modifier.hazeChild` which allow you to provide a lambda block, for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`.
 
 It's useful for when you need to update styling parameters, using values derived from other state. Here's an example which fades the effect as the user scrolls:
 
@@ -47,7 +47,7 @@ It's useful for when you need to update styling parameters, using values derived
 FooAppBar(
   ...
   modifier = Modifier
-    .hazeContent(state = hazeState) {
+    .hazeChild(state = hazeState) {
       alpha = if (listState.firstVisibleItemIndex == 0) {
         listState.layoutInfo.visibleItemsInfo.first().let {
           (it.offset / it.size.height.toFloat()).absoluteValue
@@ -66,7 +66,7 @@ As we a few different ways to set styling properties, it's important to know how
 Each styling property (such as `blurRadius`) is resolved seperately, and the order of precedence for each property is as follows, in order:
 
 - Value set in [HazeChildScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html), if specified.
-- Value set in style provided to hazeContent (or HazeChildScope.style), if specified.
+- Value set in style provided to hazeChild (or HazeChildScope.style), if specified.
 - Value set in the [LocalHazeStyle](../api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
 
 ### Styling properties
@@ -94,7 +94,7 @@ Progressive blurs can be enabled by setting the `progressive` property on [HazeC
 ```kotlin
 LargeTopAppBar(
   // ...
-  modifier = Modifier.hazeContent(hazeState) {
+  modifier = Modifier.hazeChild(hazeState) {
     progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
   }
 )
@@ -113,7 +113,7 @@ You can provide any `Brush`, which will be used as a mask when the final effect 
 ```kotlin
 LargeTopAppBar(
   // ...
-  modifier = Modifier.hazeContent(hazeState) {
+  modifier = Modifier.hazeChild(hazeState) {
     mask = Brush.verticalGradient(...)
   }
 )
@@ -132,7 +132,7 @@ You can provide an input scale value which determines how much the content is sc
 ```kotlin
 LargeTopAppBar(
   // ...
-  modifier = Modifier.hazeContent(hazeState) {
+  modifier = Modifier.hazeChild(hazeState) {
     inputScale = HazeInputScale.Auto
   }
 )

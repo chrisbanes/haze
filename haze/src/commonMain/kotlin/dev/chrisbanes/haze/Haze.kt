@@ -35,12 +35,6 @@ class HazeState {
   internal var contentDrawing = false
 }
 
-@Deprecated(
-  message = "Modifier.haze() has been renamed to Modifier.hazeBackground()",
-  replaceWith = ReplaceWith("Modifier.hazeBackground(state)", "dev.chrisbanes.haze.hazeBackground"),
-)
-fun Modifier.haze(state: HazeState): Modifier = hazeBackground(state)
-
 /**
  * Draw background content for [hazeChild] child nodes, which will be drawn with a blur
  * in a 'glassmorphism' style.
@@ -50,7 +44,7 @@ fun Modifier.haze(state: HazeState): Modifier = hazeBackground(state)
  * instead.
  */
 @Stable
-fun Modifier.hazeBackground(state: HazeState): Modifier = this then HazeBackgroundNodeElement(state)
+fun Modifier.haze(state: HazeState): Modifier = this then HazeNodeElement(state)
 
 /**
  * Default values for the [haze] modifiers.
@@ -79,6 +73,17 @@ object HazeDefaults {
     color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
     else -> color
   }.let(::HazeTint)
+
+  @Deprecated(
+    "Migrate to HazeTint for tint",
+    ReplaceWith("HazeStyle(backgroundColor, HazeTint(tint), blurRadius, noiseFactor)"),
+  )
+  fun style(
+    backgroundColor: Color = Color.Unspecified,
+    tint: Color,
+    blurRadius: Dp = this.blurRadius,
+    noiseFactor: Float = this.noiseFactor,
+  ): HazeStyle = HazeStyle(backgroundColor, tint(backgroundColor), blurRadius, noiseFactor)
 
   /**
    * Default [HazeStyle] for usage with [Modifier.haze].
@@ -112,17 +117,17 @@ object HazeDefaults {
   fun blurEnabled(): Boolean = isBlurEnabledByDefault()
 }
 
-internal data class HazeBackgroundNodeElement(
+internal data class HazeNodeElement(
   val state: HazeState,
-) : ModifierNodeElement<HazeBackgroundNode>() {
+) : ModifierNodeElement<HazeNode>() {
 
-  override fun create(): HazeBackgroundNode = HazeBackgroundNode(state)
+  override fun create(): HazeNode = HazeNode(state)
 
-  override fun update(node: HazeBackgroundNode) {
+  override fun update(node: HazeNode) {
     node.state = state
   }
 
   override fun InspectorInfo.inspectableProperties() {
-    name = "hazeBackground"
+    name = "haze"
   }
 }

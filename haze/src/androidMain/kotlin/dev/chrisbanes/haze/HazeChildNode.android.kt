@@ -14,7 +14,7 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
-import dev.chrisbanes.haze.HazeContentNode.Companion.TAG
+import dev.chrisbanes.haze.HazeChildNode.Companion.TAG
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -22,7 +22,7 @@ import kotlin.math.min
 private const val USE_RUNTIME_SHADER = true
 
 @RequiresApi(31)
-internal actual fun HazeContentNode.drawLinearGradientProgressiveEffect(
+internal actual fun HazeChildNode.drawLinearGradientProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
@@ -53,7 +53,7 @@ internal actual fun HazeContentNode.drawLinearGradientProgressiveEffect(
   }
 }
 
-private fun HazeContentNode.drawLinearGradientProgressiveEffectUsingLayers(
+private fun HazeChildNode.drawLinearGradientProgressiveEffectUsingLayers(
   drawScope: DrawScope,
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,

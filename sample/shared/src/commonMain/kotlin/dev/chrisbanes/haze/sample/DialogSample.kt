@@ -32,8 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeBackground
-import dev.chrisbanes.haze.hazeContent
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -72,7 +72,7 @@ fun DialogSample(navigator: Navigator) {
           contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
           Box(
-            Modifier.hazeContent(state = hazeState, style = HazeMaterials.regular()),
+            Modifier.hazeChild(state = hazeState, style = HazeMaterials.regular()),
           ) {
             // empty
           }
@@ -81,7 +81,7 @@ fun DialogSample(navigator: Navigator) {
     }
 
     LazyVerticalGrid(
-      modifier = Modifier.hazeBackground(hazeState),
+      modifier = Modifier.haze(state = hazeState),
       columns = GridCells.Fixed(4),
       contentPadding = innerPadding,
       verticalArrangement = Arrangement.spacedBy(16.dp),

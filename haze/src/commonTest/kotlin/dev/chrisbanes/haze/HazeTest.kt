@@ -36,8 +36,8 @@ class HazeTest {
       runComposeUiTest {
         setContent {
           val hazeState = remember { HazeState() }
-          Box(Modifier.hazeBackground(hazeState)) {
-            Spacer(Modifier.hazeContent(hazeState, HazeDefaults.style(Color.Blue)))
+          Box(Modifier.haze(hazeState)) {
+            Spacer(Modifier.hazeChild(hazeState, HazeDefaults.style(Color.Blue)))
           }
         }
       }
