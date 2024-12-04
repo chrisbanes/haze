@@ -3,7 +3,9 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -13,6 +15,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
@@ -33,7 +36,25 @@ class HazeNode(
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
+  LayoutAwareModifierNode,
   DrawModifierNode {
+
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    // If the positionOnScreen has not been placed yet, we use the value on onPlaced,
+    // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
+    // up to the first draw. We need onGloballyPositioned which tends to happen after
+    // the first pass
+    Snapshot.withoutReadObservation {
+      if (state.positionOnScreen.isUnspecified) {
+        log(TAG) {
+          "onPlaced: " +
+            "positionInWindow=${coordinates.positionInWindow()}, " +
+            "content positionOnScreens=${state.positionOnScreen}"
+        }
+        onPositioned(coordinates)
+      }
+    }
+  }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
     log(TAG) {
@@ -41,7 +62,10 @@ class HazeNode(
         "positionInWindow=${coordinates.positionInWindow()}, " +
         "content positionOnScreens=${state.positionOnScreen}"
     }
+    onPositioned(coordinates)
+  }
 
+  private fun onPositioned(coordinates: LayoutCoordinates) {
     state.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
   }
 

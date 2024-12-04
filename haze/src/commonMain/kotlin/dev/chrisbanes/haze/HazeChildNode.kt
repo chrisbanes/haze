@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
@@ -30,6 +31,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
@@ -58,6 +60,7 @@ class HazeChildNode(
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
+  LayoutAwareModifierNode,
   ObserverModifierNode,
   DrawModifierNode,
   HazeChildScope {
@@ -240,12 +243,23 @@ class HazeChildNode(
     }
   }
 
-  override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    log(TAG) {
-      "onGloballyPositioned: " +
-        "positionInWindow=${coordinates.positionInWindow()}"
+  override fun onPlaced(coordinates: LayoutCoordinates) {
+    // If the positionOnScreen has not been placed yet, we use the value from onPlaced,
+    // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
+    // up to the first draw. We usually need onGloballyPositioned which tends to happen after
+    // the first pass
+    if (positionInContent.isUnspecified) {
+      log(TAG) { "onPlaced: positionInWindow=${coordinates.positionInWindow()}" }
+      onPositioned(coordinates)
     }
+  }
 
+  override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+    log(TAG) { "onGloballyPositioned: positionInWindow=${coordinates.positionInWindow()}" }
+    onPositioned(coordinates)
+  }
+
+  private fun onPositioned(coordinates: LayoutCoordinates) {
     positionInContent = coordinates.positionInWindow() +
       calculateWindowOffset() - state.positionOnScreen.takeOrElse { Offset.Zero }
 
