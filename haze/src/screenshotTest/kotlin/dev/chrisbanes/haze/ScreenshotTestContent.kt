@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
@@ -23,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -36,6 +38,7 @@ internal fun CreditCardSample(
   mask: Brush? = null,
   progressive: HazeProgressive? = null,
   alpha: Float = 1f,
+  numberCards: Int = 1,
 ) {
   val hazeState = remember { HazeState() }
 
@@ -44,7 +47,7 @@ internal fun CreditCardSample(
     Box(
       Modifier
         .fillMaxSize()
-        .haze(state = hazeState),
+        .haze(state = hazeState, zIndex = 0f),
     ) {
       Spacer(
         Modifier
@@ -61,34 +64,40 @@ internal fun CreditCardSample(
 
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Our card
-    Box(
-      modifier = Modifier
-        .fillMaxWidth(0.7f)
-        .aspectRatio(16 / 9f)
-        .align(Alignment.Center)
-        .clip(shape)
-        .then(
-          when {
-            enabled -> {
+    repeat(numberCards) { index ->
+      // Our card
+      val reverseIndex = (numberCards - 1 - index)
+
+      Box(
+        modifier = Modifier
+          .fillMaxWidth(0.7f - (reverseIndex * 0.05f))
+          .aspectRatio(16 / 9f)
+          .align(Alignment.Center)
+          .offset { IntOffset(x = 0, y = reverseIndex * -100) }
+          // We add 1 to the zIndex as the background content is zIndex 0f
+          .haze(hazeState, zIndex = 1f + index)
+          .clip(shape)
+          .then(
+            if (enabled) {
               Modifier.hazeChild(state = hazeState) {
                 this.blurEnabled = blurEnabled
                 this.style = style
-                backgroundColor = surfaceColor
-                noiseFactor = HazeDefaults.noiseFactor
-                tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
+                this.backgroundColor = surfaceColor
+                this.noiseFactor = HazeDefaults.noiseFactor
+                this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
                 this.blurRadius = blurRadius
                 this.mask = mask
                 this.alpha = alpha
                 this.progressive = progressive
               }
-            }
-            else -> Modifier
-          },
-        ),
-    ) {
-      Column(Modifier.padding(32.dp)) {
-        Text("Bank of Haze")
+            } else {
+              Modifier
+            },
+          ),
+      ) {
+        Column(Modifier.padding(32.dp)) {
+          Text("Bank of Haze")
+        }
       }
     }
   }

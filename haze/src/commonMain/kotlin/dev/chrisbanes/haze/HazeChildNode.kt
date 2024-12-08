@@ -10,7 +10,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
-import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -28,6 +27,8 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.modifier.ModifierLocalModifierNode
+import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
@@ -46,6 +47,8 @@ import androidx.compose.ui.unit.toSize
 import dev.drewhamilton.poko.Poko
 import io.github.reactivecircus.cache4k.Cache
 
+internal val ModifierLocalCurrentHazeZIndex = modifierLocalOf { 0f }
+
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeChild].
  *
@@ -63,6 +66,7 @@ class HazeChildNode(
   LayoutAwareModifierNode,
   ObserverModifierNode,
   DrawModifierNode,
+  ModifierLocalModifierNode,
   HazeChildScope {
 
   override val shouldAutoInvalidate: Boolean = false
@@ -237,6 +241,14 @@ class HazeChildNode(
       }
     }
 
+  override var canDrawArea: ((HazeArea) -> Boolean)? = null
+    set(value) {
+      if (value != field) {
+        log(TAG) { "canDrawArea changed. Current $field. New: $value" }
+        field = value
+      }
+    }
+
   internal fun update() {
     onObservedReadsChanged()
   }
@@ -304,7 +316,21 @@ class HazeChildNode(
     // effects but were previously showing some
     block?.invoke(this)
 
-    backgroundAreas = state.backgroundAreas.sortedBy { it.zIndex }
+    val hazeZIndex = ModifierLocalCurrentHazeZIndex.current
+
+    backgroundAreas = state.areas
+      .asSequence()
+      .filter { area ->
+        when (val filter = canDrawArea) {
+          // If canDrawArea is not set, we use the implicit value of ModifierLocalCurrentHazeZIndex
+          null -> area.zIndex < hazeZIndex
+          else -> filter(area)
+        }.also { filtered ->
+          log(TAG) { "Background Area: $area. Upstream ZIndex: $hazeZIndex. Filtered: $filtered" }
+        }
+      }
+      .sortedBy { it.zIndex }
+      .toList()
 
     if (needInvalidation()) {
       log(TAG) { "invalidateDraw called, due to effect needing invalidation" }
@@ -338,9 +364,18 @@ class HazeChildNode(
           val baseOffset = inflatedOffset - positionInWindow
 
           for (area in backgroundAreas) {
+            require(!area.contentDrawing) {
+              "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
+                "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
+                "Alternatively you can use can `canDrawArea` to to filter out parent areas."
+            }
+
             translate(baseOffset + area.positionOnScreen.orZero) {
               // Draw the content into our effect layer
-              area.contentLayer?.let(::drawLayer)
+              area.contentLayer
+                ?.takeUnless { it.isReleased }
+                ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+                ?.let(::drawLayer)
             }
           }
         }
@@ -562,8 +597,11 @@ internal fun HazeChildNode.calculateInputScaleFactor(
     when {
       // For small blurRadius values, input scaling is very noticeable therefore we turn it off
       blurRadius < 7.dp -> 1f
+      // For progressive and masks, we need to keep enough resolution for the lowest intensity.
+      // 0.5f is about right.
       progressive != null -> 0.5f
       mask != null -> 0.5f
+      // Otherwise we use 1/3
       else -> 0.3334f
     }
   }

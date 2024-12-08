@@ -22,24 +22,24 @@ import androidx.compose.ui.unit.dp
 @Stable
 class HazeState {
 
-  internal val areas = mutableStateListOf<HazeArea>()
+  @Suppress("PropertyName")
+  internal val _areas = mutableStateListOf<HazeArea>()
+  val areas: List<HazeArea> get() = _areas
 
-  val backgroundAreas: List<HazeArea> get() = areas
-
-  @Deprecated("Use backgroundAreas instead")
+  @Deprecated("Inspect areas instead")
   var positionOnScreen: Offset
-    get() = backgroundAreas.firstOrNull()?.positionOnScreen ?: Offset.Unspecified
+    get() = areas.firstOrNull()?.positionOnScreen ?: Offset.Unspecified
     set(value) {
-      backgroundAreas.firstOrNull()?.apply {
+      areas.firstOrNull()?.apply {
         positionOnScreen = value
       }
     }
 
-  @Deprecated("Use backgroundAreas instead")
+  @Deprecated("Inspect areas instead")
   var contentLayer: GraphicsLayer?
-    get() = backgroundAreas.firstOrNull()?.contentLayer
+    get() = areas.firstOrNull()?.contentLayer
     set(value) {
-      backgroundAreas.firstOrNull()?.apply {
+      areas.firstOrNull()?.apply {
         contentLayer = value
       }
     }
@@ -60,6 +60,15 @@ class HazeArea {
     internal set
 
   internal var contentDrawing = false
+
+  override fun toString(): String {
+    return "HazeArea(" +
+      "positionOnScreen=$positionOnScreen, " +
+      "zIndex=$zIndex, " +
+      "contentLayer=$contentLayer, " +
+      "contentDrawing=$contentDrawing" +
+      ")"
+  }
 }
 
 /**
@@ -71,7 +80,7 @@ class HazeArea {
  * instead.
  */
 @Stable
-fun Modifier.haze(state: HazeState, zIndex: Float = 0f): Modifier = this then HazeNodeElement(state)
+fun Modifier.haze(state: HazeState, zIndex: Float = 0f): Modifier = this then HazeNodeElement(state, zIndex)
 
 /**
  * Default values for the [haze] modifiers.

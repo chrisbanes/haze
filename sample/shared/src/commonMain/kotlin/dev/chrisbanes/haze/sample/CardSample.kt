@@ -23,10 +23,10 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableFloatStateOf
@@ -36,11 +36,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
@@ -52,58 +52,67 @@ fun CreditCardSample(navigator: Navigator) {
   Box {
     // Background content
     Box(
-      Modifier
+      modifier = Modifier
         .fillMaxSize()
         .haze(state = hazeState),
     ) {
       Spacer(
         Modifier
           .fillMaxSize()
-          .background(brush = Brush.linearGradient(colors = listOf(Color.Blue, Color.Cyan))),
+          .background(brush = Brush.linearGradient(colors = listOf(Color.Black, Color.DarkGray))),
       )
 
       Text(
         text = LorumIspum,
-        color = LocalContentColor.current.copy(alpha = 0.2f),
+        color = Color.White.copy(alpha = 0.2f),
         modifier = Modifier.padding(24.dp),
       )
     }
 
-    val cardOffset = remember { mutableFloatStateOf(0f) }
-    val draggableState = rememberDraggableState { cardOffset.value += it }
+    // Card 1
 
-    // Our card
-    Box(
-      modifier = Modifier
-        .testTag("credit_card")
-        .fillMaxWidth(0.7f)
-        .aspectRatio(16 / 9f)
-        .align(Alignment.Center)
-        .offset { IntOffset(x = 0, y = cardOffset.value.toInt()) }
-        .draggable(
-          state = draggableState,
-          orientation = Orientation.Vertical,
-          onDragStopped = { velocity ->
-            animate(
-              initialValue = cardOffset.value,
-              targetValue = 0f,
-              initialVelocity = velocity,
-              animationSpec = spring(Spring.DampingRatioLowBouncy, Spring.StiffnessLow),
-            ) { value, _ ->
-              cardOffset.value = value
-            }
-          },
-        )
-        .clip(RoundedCornerShape(16.dp))
-        .hazeChild(state = hazeState) {
-          backgroundColor = Color.Blue
-          tints = listOf(HazeTint(Color.White.copy(alpha = 0.1f)))
-          blurRadius = 8.dp
-          noiseFactor = HazeDefaults.noiseFactor
-        },
-    ) {
-      Column(Modifier.padding(32.dp)) {
-        Text("Bank of Haze")
+    val cardStyle = HazeStyle(
+      backgroundColor = Color.Black,
+      tints = listOf(HazeTint(Color.Yellow.copy(alpha = 0.4f))),
+      blurRadius = 8.dp,
+      noiseFactor = HazeDefaults.noiseFactor,
+    )
+
+    repeat(3) { index ->
+      // Our card
+      val reverseIndex = (2 - index)
+      val cardOffset = remember { mutableFloatStateOf(0f) }
+      val draggableState = rememberDraggableState { cardOffset.value += it }
+
+      Box(
+        modifier = Modifier
+          .fillMaxWidth(0.7f - (reverseIndex * 0.05f))
+          .aspectRatio(16 / 9f)
+          .align(Alignment.Center)
+          .offset { IntOffset(x = 0, y = reverseIndex * -100) }
+          .offset { IntOffset(x = 0, y = cardOffset.value.toInt()) }
+          .draggable(
+            state = draggableState,
+            orientation = Orientation.Vertical,
+            onDragStopped = { velocity ->
+              animate(
+                initialValue = cardOffset.value,
+                targetValue = 0f,
+                initialVelocity = velocity,
+                animationSpec = spring(Spring.DampingRatioLowBouncy, Spring.StiffnessLow),
+              ) { value, _ ->
+                cardOffset.value = value
+              }
+            },
+          )
+          // We add 1 to the zIndex as the background content is zIndex 0f
+          .haze(hazeState, zIndex = 1f + index)
+          .clip(RoundedCornerShape(16.dp))
+          .hazeChild(state = hazeState, style = cardStyle),
+      ) {
+        Column(Modifier.padding(32.dp)) {
+          Text("Bank of Haze")
+        }
       }
     }
 
@@ -113,8 +122,10 @@ fun CreditCardSample(navigator: Navigator) {
         .windowInsetsPadding(WindowInsets.statusBars)
         .padding(24.dp),
     ) {
-      @Suppress("DEPRECATION")
-      Icon(Icons.Default.ArrowBack, contentDescription = null)
+      Icon(
+        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+        contentDescription = null,
+      )
     }
   }
 }

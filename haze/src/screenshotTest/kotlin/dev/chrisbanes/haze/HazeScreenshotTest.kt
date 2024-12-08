@@ -28,6 +28,16 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_multiple() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(tint = DefaultTint, numberCards = 3)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
   fun creditCard_blurEnabled() = runScreenshotTest {
     var blurEnabled by mutableStateOf(HazeDefaults.blurEnabled())
 
@@ -151,6 +161,20 @@ class HazeScreenshotTest : ScreenshotTest() {
         CreditCardSample(
           tint = DefaultTint,
           progressive = HazeProgressive.verticalGradient(),
+        )
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_progressive_vertical_multiple() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(
+          tint = DefaultTint,
+          progressive = HazeProgressive.verticalGradient(),
+          numberCards = 3,
         )
       }
     }

@@ -3,6 +3,9 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -13,11 +16,15 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.modifier.ModifierLocalModifierNode
+import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
@@ -39,15 +46,15 @@ class HazeNode(
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
   LayoutAwareModifierNode,
-  DrawModifierNode {
+  DrawModifierNode,
+  ObserverModifierNode,
+  ModifierLocalModifierNode {
+
+  override val providedValues = modifierLocalMapOf(ModifierLocalCurrentHazeZIndex to zIndex)
 
   private val area = HazeArea()
 
-  var zIndex: Float
-    get() = area.zIndex
-    set(value) {
-      area.zIndex = value
-    }
+  var zIndex: Float by mutableStateOf(0f)
 
   init {
     this.zIndex = zIndex
@@ -59,7 +66,27 @@ class HazeNode(
   override val shouldAutoInvalidate: Boolean = false
 
   override fun onAttach() {
-    state.areas.add(area)
+    state._areas.add(area)
+    onObservedReadsChanged()
+  }
+
+  override fun onObservedReadsChanged() {
+    observeReads {
+      updateCompoundZIndex()
+    }
+  }
+
+  private fun updateCompoundZIndex() {
+    val upstream = ModifierLocalCurrentHazeZIndex.current
+    // We increment the compound zIndex at each layer by at least 1
+    val compound = upstream + 1f + zIndex
+
+    log(TAG) {
+      "updateCompoundZIndex(). Upstream=$upstream, zIndex=$zIndex. Resulting compound=$compound"
+    }
+
+    provide(ModifierLocalCurrentHazeZIndex, compound)
+    area.zIndex = compound
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
@@ -123,7 +150,7 @@ class HazeNode(
 
   override fun onDetach() {
     area.reset()
-    state.areas.remove(area)
+    state._areas.remove(area)
   }
 
   override fun onReset() {

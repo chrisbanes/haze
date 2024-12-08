@@ -37,7 +37,11 @@ class HazeTest {
         setContent {
           val hazeState = remember { HazeState() }
           Box(Modifier.haze(hazeState)) {
-            Spacer(Modifier.hazeChild(hazeState, HazeDefaults.style(Color.Blue)))
+            Spacer(
+              Modifier.hazeChild(hazeState, HazeDefaults.style(Color.Blue)) {
+                canDrawArea = { true }
+              },
+            )
           }
         }
       }
