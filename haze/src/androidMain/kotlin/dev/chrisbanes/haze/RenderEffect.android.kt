@@ -84,7 +84,7 @@ internal actual fun DrawScope.canUseGraphicLayers(): Boolean {
   return Build.VERSION.SDK_INT >= 31 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
 }
 
-private val noiseTextureCache by lazy {
+private val noiseTextureCache by unsynchronizedLazy {
   Cache.Builder<Int, Bitmap>()
     .maximumCacheSize(3)
     .build()

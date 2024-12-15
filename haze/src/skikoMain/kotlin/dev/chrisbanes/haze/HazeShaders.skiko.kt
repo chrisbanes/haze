@@ -11,7 +11,7 @@ import org.jetbrains.skia.Shader
  * https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html
  */
 
-internal val RUNTIME_SHADER: RuntimeEffect by lazy {
+internal val RUNTIME_SHADER: RuntimeEffect by unsynchronizedLazy {
   RuntimeEffect.makeForShader(SHADER_SKSL)
 }
 
@@ -37,11 +37,11 @@ private const val SHADER_SKSL = """
   }
 """
 
-internal val BLUR_SHADER: RuntimeEffect by lazy {
+internal val BLUR_SHADER: RuntimeEffect by unsynchronizedLazy {
   RuntimeEffect.makeForShader(BLUR_SKSL)
 }
 
-internal val NOISE_SHADER by lazy {
+internal val NOISE_SHADER by unsynchronizedLazy {
   Shader.makeFractalNoise(
     baseFrequencyX = 0.45f,
     baseFrequencyY = 0.45f,
