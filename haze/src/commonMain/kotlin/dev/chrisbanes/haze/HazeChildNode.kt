@@ -67,7 +67,7 @@ class HazeChildNode(
 
   override val shouldAutoInvalidate: Boolean = false
 
-  private val paint by lazy { Paint() }
+  private val paint by unsynchronizedLazy { Paint() }
 
   private var renderEffect: RenderEffect? = null
   private var renderEffectDirty: Boolean = true
@@ -526,7 +526,7 @@ sealed interface HazeProgressive {
   }
 }
 
-private val renderEffectCache by lazy {
+private val renderEffectCache by unsynchronizedLazy {
   Cache.Builder<RenderEffectParams, RenderEffect>()
     .maximumCacheSize(10)
     .build()
