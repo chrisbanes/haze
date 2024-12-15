@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.toSize
 import dev.drewhamilton.poko.Poko
 import io.github.reactivecircus.cache4k.Cache
 
-internal val ModifierLocalCurrentHazeZIndex = modifierLocalOf { 0f }
+internal val ModifierLocalCurrentHazeZIndex = modifierLocalOf<Float?> { null }
 
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeChild].
@@ -321,12 +321,18 @@ class HazeChildNode(
     backgroundAreas = state.areas
       .asSequence()
       .filter { area ->
-        when (val filter = canDrawArea) {
-          // If canDrawArea is not set, we use the implicit value of ModifierLocalCurrentHazeZIndex
-          null -> area.zIndex < hazeZIndex
-          else -> filter(area)
-        }.also { filtered ->
-          log(TAG) { "Background Area: $area. Upstream ZIndex: $hazeZIndex. Filtered: $filtered" }
+        val filter = canDrawArea
+        if (filter != null) {
+          filter(area).also {
+            log(TAG) { "Background Area: $area. Using canDrawArea. Included=$it" }
+          }
+        } else if (hazeZIndex != null) {
+          (area.zIndex < hazeZIndex).also {
+            log(TAG) { "Background Area: $area. Using ModifierLocalCurrentHazeZIndex ($hazeZIndex). Included=$it" }
+          }
+        } else {
+          log(TAG) { "Background Area: $area. Included=true" }
+          true
         }
       }
       .sortedBy { it.zIndex }
@@ -369,7 +375,6 @@ class HazeChildNode(
                 "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
                 "Alternatively you can use can `canDrawArea` to to filter out parent areas."
             }
-
             translate(baseOffset + area.positionOnScreen.orZero) {
               // Draw the content into our effect layer
               area.contentLayer

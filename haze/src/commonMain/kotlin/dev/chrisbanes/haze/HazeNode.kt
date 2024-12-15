@@ -79,7 +79,7 @@ class HazeNode(
   private fun updateCompoundZIndex() {
     val upstream = ModifierLocalCurrentHazeZIndex.current
     // We increment the compound zIndex at each layer by at least 1
-    val compound = upstream + 1f + zIndex
+    val compound = (upstream ?: 0f) + zIndex
 
     log(TAG) {
       "updateCompoundZIndex(). Upstream=$upstream, zIndex=$zIndex. Resulting compound=$compound"

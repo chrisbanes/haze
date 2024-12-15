@@ -45,6 +45,7 @@ class HazeState {
     }
 }
 
+@Stable
 class HazeArea {
 
   var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)

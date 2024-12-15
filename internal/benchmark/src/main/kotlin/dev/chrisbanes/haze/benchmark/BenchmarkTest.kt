@@ -138,7 +138,7 @@ class BenchmarkTest {
         device.navigateToCreditCard()
       },
     ) {
-      val creditCard = device.waitForObject(By.res("credit_card"))
+      val creditCard = device.waitForObject(By.res("credit_card_2"))
 
       repeat(3) {
         // Drag it up

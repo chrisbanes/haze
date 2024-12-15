@@ -4,7 +4,7 @@ package dev.chrisbanes.haze {
   @kotlin.RequiresOptIn(message="Experimental Haze API", level=kotlin.RequiresOptIn.Level.WARNING) public @interface ExperimentalHazeApi {
   }
 
-  public final class HazeArea {
+  @androidx.compose.runtime.Stable public final class HazeArea {
     ctor public HazeArea();
     method public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
     method public long getPositionOnScreen();
