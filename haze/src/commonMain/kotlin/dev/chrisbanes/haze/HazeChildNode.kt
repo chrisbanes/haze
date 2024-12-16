@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.modifier.ModifierLocalModifierNode
 import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -74,17 +75,14 @@ class HazeChildNode(
   private val paint by unsynchronizedLazy { Paint() }
 
   private var renderEffect: RenderEffect? = null
-  private var renderEffectDirty: Boolean = true
-  private var positionChanged: Boolean = true
-  private var drawParametersDirty: Boolean = true
-  private var progressiveDirty: Boolean = true
+  private var dirtyTracker = Bitmask()
 
   override var blurEnabled: Boolean = HazeDefaults.blurEnabled()
     set(value) {
       if (value != field) {
         log(TAG) { "blurEnabled changed. Current: $field. New: $value" }
         field = value
-        drawParametersDirty = true
+        dirtyTracker += DirtyFields.BlurEnabled
       }
     }
 
@@ -93,9 +91,7 @@ class HazeChildNode(
       if (value != field) {
         log(TAG) { "inputScale changed. Current: $field. New: $value" }
         field = value
-        drawParametersDirty = true
-        // Need to scale down the blurRadius
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.InputScale
       }
     }
 
@@ -104,7 +100,7 @@ class HazeChildNode(
       if (field != value) {
         log(TAG) { "LocalHazeStyle changed. Current: $field. New: $value" }
         field = value
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.Style
       }
     }
 
@@ -113,15 +109,15 @@ class HazeChildNode(
       if (field != value) {
         log(TAG) { "style changed. Current: $field. New: $value" }
         field = value
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.Style
       }
     }
 
-  private var positionInWindow: Offset = Offset.Unspecified
+  private var positionOnScreen: Offset = Offset.Unspecified
     set(value) {
       if (value != field) {
         log(TAG) { "positionInWindow changed. Current: $field. New: $value" }
-        positionChanged = true
+        dirtyTracker += DirtyFields.PositionWindow
         field = value
       }
     }
@@ -133,8 +129,7 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "size changed. Current: $field. New: $value" }
-        // We use the size for crop rects/brush sizing
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.Size
         field = value
       }
     }
@@ -143,7 +138,7 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "layerSize changed. Current: $field. New: $value" }
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.LayerSize
         field = value
       }
     }
@@ -164,7 +159,7 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "blurRadius changed. Current: $field. New: $value" }
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.BlurRadius
         field = value
       }
     }
@@ -173,7 +168,7 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "noiseFactor changed. Current: $field. New: $value" }
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.NoiseFactor
         field = value
       }
     }
@@ -182,7 +177,7 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "mask changed. Current: $field. New: $value" }
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.Mask
         field = value
       }
     }
@@ -191,7 +186,7 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "backgroundColor changed. Current: $field. New: $value" }
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.BackgroundColor
         field = value
       }
     }
@@ -200,7 +195,7 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "tints changed. Current: $field. New: $value" }
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.Tints
         field = value
       }
     }
@@ -209,7 +204,7 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "fallbackTint changed. Current: $field. New: $value" }
-        renderEffectDirty = true
+        dirtyTracker += DirtyFields.FallbackTint
         field = value
       }
     }
@@ -218,7 +213,7 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "alpha changed. Current $field. New: $value" }
-        drawParametersDirty = true
+        dirtyTracker += DirtyFields.Alpha
         field = value
       }
     }
@@ -227,16 +222,16 @@ class HazeChildNode(
     set(value) {
       if (value != field) {
         log(TAG) { "progressive changed. Current $field. New: $value" }
-        progressiveDirty = true
+        dirtyTracker += DirtyFields.Progressive
         field = value
       }
     }
 
-  private var backgroundAreas: List<HazeArea> = emptyList()
+  private var areas: List<HazeArea> = emptyList()
     set(value) {
       if (value != field) {
         log(TAG) { "backgroundAreas changed. Current $field. New: $value" }
-        drawParametersDirty = true
+        dirtyTracker += DirtyFields.Areas
         field = value
       }
     }
@@ -269,7 +264,7 @@ class HazeChildNode(
     // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
     // up to the first draw. We usually need onGloballyPositioned which tends to happen after
     // the first pass
-    if (positionInWindow.isUnspecified) {
+    if (positionOnScreen.isUnspecified) {
       log(TAG) { "onPlaced: positionInWindow=${coordinates.positionInWindow()}" }
       onPositioned(coordinates)
     }
@@ -281,7 +276,7 @@ class HazeChildNode(
   }
 
   private fun onPositioned(coordinates: LayoutCoordinates) {
-    positionInWindow = coordinates.positionInWindow() + calculateWindowOffset()
+    positionOnScreen = coordinates.positionOnScreen()
     size = coordinates.size.toSize()
 
     val blurRadiusPx = with(currentValueOf(LocalDensity)) {
@@ -318,7 +313,7 @@ class HazeChildNode(
 
     val hazeZIndex = ModifierLocalCurrentHazeZIndex.current
 
-    backgroundAreas = state.areas
+    areas = state.areas
       .asSequence()
       .filter { area ->
         val filter = canDrawArea
@@ -349,7 +344,7 @@ class HazeChildNode(
     // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
     // The RenderEffect applied will provide the blurring effect.
     val graphicsContext = currentValueOf(LocalGraphicsContext)
-    val clippedContentLayer = graphicsContext.createGraphicsLayer()
+    val layer = graphicsContext.createGraphicsLayer()
 
     // The layer size is usually than the bounds. This is so that we include enough
     // content around the edges to keep the blurring uniform. Without the extra border,
@@ -362,14 +357,14 @@ class HazeChildNode(
     val bg = resolveBackgroundColor()
     require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
 
-    clippedContentLayer.record(inflatedSize.roundToIntSize()) {
+    layer.record(inflatedSize.roundToIntSize()) {
       drawRect(bg)
 
       clipRect {
-        scale(scaleFactor, Offset.Zero) {
-          val baseOffset = inflatedOffset - positionInWindow
+        scale(scale = scaleFactor, pivot = Offset.Zero) {
+          val baseOffset = inflatedOffset - positionOnScreen
 
-          for (area in backgroundAreas) {
+          for (area in areas) {
             require(!area.contentDrawing) {
               "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
                 "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
@@ -395,24 +390,24 @@ class HazeChildNode(
             drawLinearGradientProgressiveEffect(
               drawScope = this,
               progressive = p,
-              contentLayer = clippedContentLayer,
+              contentLayer = layer,
             )
           } else {
             // First make sure that the RenderEffect is updated (if necessary)
             updateRenderEffectIfDirty()
 
-            clippedContentLayer.renderEffect = renderEffect
-            clippedContentLayer.alpha = alpha
+            layer.renderEffect = renderEffect
+            layer.alpha = alpha
 
             // Since we included a border around the content, we need to translate so that
             // we don't see it (but it still affects the RenderEffect)
-            drawLayer(clippedContentLayer)
+            drawLayer(layer)
           }
         }
       }
     }
 
-    graphicsContext.releaseGraphicsLayer(clippedContentLayer)
+    graphicsContext.releaseGraphicsLayer(layer)
   }
 
   private fun DrawScope.drawEffectWithScrim() {
@@ -444,26 +439,18 @@ class HazeChildNode(
   }
 
   private fun updateRenderEffectIfDirty() {
-    if (renderEffectDirty) {
+    if (dirtyTracker.any(DirtyFields.RenderEffectAffectingFlags)) {
       renderEffect = getOrCreateRenderEffect()
-      renderEffectDirty = false
     }
   }
 
   private fun onPostDraw() {
-    drawParametersDirty = false
-    progressiveDirty = false
-    positionChanged = false
+    dirtyTracker = Bitmask()
   }
 
   private fun needInvalidation(): Boolean {
-    log(TAG) {
-      "needInvalidation. renderEffectDirty=$renderEffectDirty, " +
-        "drawParametersDirty=$drawParametersDirty, " +
-        "progressiveDirty=$progressiveDirty, " +
-        "positionChanged=$positionChanged"
-    }
-    return renderEffectDirty || drawParametersDirty || progressiveDirty || positionChanged
+    log(TAG) { "needInvalidation. Dirty params=${DirtyFields.stringify(dirtyTracker)}" }
+    return !dirtyTracker.isEmpty()
   }
 
   internal companion object {
@@ -686,4 +673,56 @@ internal fun HazeChildNode.resolveNoiseFactor(): Float {
   return noiseFactor
     .takeOrElse { style.noiseFactor }
     .takeOrElse { compositionLocalStyle.noiseFactor }
+}
+
+@Suppress("ConstPropertyName", "ktlint:standard:property-naming")
+internal object DirtyFields {
+  const val BlurEnabled: Int = 0b1 shl 0
+  const val InputScale = 0b1 shl 1
+  const val Style = 0b1 shl 2
+  const val PositionWindow = 0b1 shl 3
+  const val Size = 0b1 shl 4
+  const val LayerSize = 0b1 shl 5
+  const val BlurRadius = 0b1 shl 6
+  const val NoiseFactor = 0b1 shl 7
+  const val Mask = 0b1 shl 8
+  const val BackgroundColor = 0b1 shl 9
+  const val Tints = 0b1 shl 10
+  const val FallbackTint = 0b1 shl 11
+  const val Alpha = 0b1 shl 12
+  const val Progressive = 0b1 shl 13
+  const val Areas = 0b1 shl 14
+
+  const val RenderEffectAffectingFlags = BlurEnabled or
+    InputScale or
+    Style or
+    Size or
+    LayerSize or
+    BlurRadius or
+    NoiseFactor or
+    Mask or
+    Tints or
+    FallbackTint or
+    Progressive
+
+  fun stringify(dirtyTracker: Bitmask): String {
+    val params = buildList {
+      if (BlurEnabled in dirtyTracker) add("BlurEnabled")
+      if (InputScale in dirtyTracker) add("InputScale")
+      if (Style in dirtyTracker) add("Style")
+      if (PositionWindow in dirtyTracker) add("PositionWindow")
+      if (Size in dirtyTracker) add("Size")
+      if (LayerSize in dirtyTracker) add("LayerSize")
+      if (BlurRadius in dirtyTracker) add("BlurRadius")
+      if (NoiseFactor in dirtyTracker) add("NoiseFactor")
+      if (Mask in dirtyTracker) add("Mask")
+      if (BackgroundColor in dirtyTracker) add("BackgroundColor")
+      if (Tints in dirtyTracker) add("Tints")
+      if (FallbackTint in dirtyTracker) add("FallbackTint")
+      if (Alpha in dirtyTracker) add("Alpha")
+      if (Progressive in dirtyTracker) add("Progressive")
+      if (Areas in dirtyTracker) add("Areas")
+    }
+    return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
+  }
 }
