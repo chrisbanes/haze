@@ -146,6 +146,8 @@ interface HazeChildScope {
    */
   @ExperimentalHazeApi
   var inputScale: HazeInputScale
+
+  var canDrawArea: ((HazeArea) -> Boolean)?
 }
 
 /**

@@ -149,3 +149,70 @@ When using a `Fixed` value, less than 1.0 **may** improve performance, at the sa
 If you're looking for a good value to experiment with, `0.66` results in a reduction in total resolution of ~55%, while being visually imperceptible to most people (probably).
 
 The minimum value I would realistically use is somewhere in the region of `0.33`, which results in the total pixel count of only 11% of the original content. This is likely to be visually different to no scaling, but depending on the styling parameters, it will be visually pleasing to the user.
+
+## Using both Modifier.haze and Modifier.hazeChild
+
+A layout node can use both a `Modifier.hazeChild`, drawing a blurred effect from other areas, _and_ use `Modifier.haze` to draw itself for other `hazeChild` users.
+
+This nested functionality sounds complicated, but in reality it enables a simple use case: overlapping blurred layout nodes.
+
+![](./media/overlap.webp)
+
+This code to implement this is like below. You'll notice that the `CreditCard()` nodes use both the `haze` and `hazeChild` modifiers. **Pay attention to the modifier order here.**
+
+``` kotlin
+Box {
+  val hazeState = remember { HazeState() }
+
+  Background(
+    modifier = Modifier
+      .haze(hazeState, zIndex = 0f)
+  )
+
+  // Rear card
+  CreditCard(
+    modifier = Modifier
+      .haze(hazeState, zIndex = 1f)
+      .hazeChild(hazeState)
+  )
+
+  // Middle card
+  CreditCard(
+    modifier = Modifier
+      .haze(hazeState, zIndex = 2f)
+      .hazeChild(hazeState),
+  )
+
+  // Front card
+  CreditCard(
+    modifier = Modifier
+      .haze(hazeState, zIndex = 3f)
+      .hazeChild(hazeState)
+  )
+}
+```
+
+You will notice that there's something different here, the `zIndex` parameter. 
+
+For this to work you need to pass in the `zIndex` parameter of the node. It doesn't matter if you use `Modifier.zIndex`, or the implicit ordering from the layout, you need to explicitly pass in a valid `zIndex` value. 
+
+### zIndex
+
+Internally, the zIndex value is how Haze knows which layers to draw in which nodes. By default, `hazeChild` will draw all layers with a `zIndex` less than the value of the sibling `Modifier.haze`. So in the example above, the middle card (`zIndex` of 2) will draw the rear card (`zIndex` of 1) and background (`zIndex` of 0).
+
+This default behavior is usually the correct behavior for all use cases, but you can modify this behavior via the `canDrawArea` parameter, which acts as a filter when set:
+
+``` kotlin
+CreditCard(
+  modifier = Modifier
+    .haze(hazeState, zIndex = 2f, key = "foo")
+    .hazeChild(hazeState) {
+      canDrawArea = { area ->
+        // return true to draw
+        area.key != "foo"
+      }
+    },
+)
+```
+
+You'll notice that we're using another parameter here, `key`. This just acts as an ID for the node allowing easier filtering. It has serves no other purpose.

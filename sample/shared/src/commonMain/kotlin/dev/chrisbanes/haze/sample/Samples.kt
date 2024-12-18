@@ -37,8 +37,10 @@ import coil3.compose.setSingletonImageLoaderFactory
 import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 
+@OptIn(ExperimentalHazeApi::class)
 val Samples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
   Sample("Scaffold (input scaled)") { ScaffoldSample(it, inputScale = HazeInputScale.Auto) },
@@ -51,6 +53,7 @@ val Samples = listOf(
   Sample("List over Image") { ListOverImage(it) },
   Sample("Dialog") { DialogSample(it) },
   Sample("Materials") { MaterialsSample(it) },
+  Sample("List with Sticky Headers") { ListWithStickyHeaders(it) },
 )
 
 data class Sample(

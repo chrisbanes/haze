@@ -5,10 +5,15 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -20,19 +25,66 @@ import androidx.compose.ui.unit.dp
 @Stable
 class HazeState {
 
+  @Suppress("PropertyName")
+  internal val _areas = mutableStateListOf<HazeArea>()
+  val areas: List<HazeArea> get() = _areas.toList()
+
+  @Deprecated("Inspect areas instead")
+  var positionOnScreen: Offset
+    get() = areas.firstOrNull()?.positionOnScreen ?: Offset.Unspecified
+    set(value) {
+      areas.firstOrNull()?.apply {
+        positionOnScreen = value
+      }
+    }
+
+  @Deprecated("Inspect areas instead")
+  var contentLayer: GraphicsLayer?
+    get() = areas.firstOrNull()?.contentLayer
+    set(value) {
+      areas.firstOrNull()?.apply {
+        contentLayer = value
+      }
+    }
+}
+
+@Stable
+class HazeArea {
+
   var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
+  var size: Size by mutableStateOf(Size.Unspecified)
+    internal set
+
+  var zIndex: Float by mutableFloatStateOf(0f)
+    internal set
+
+  var key: Any? = null
+    internal set
+
   /**
-   * The content [GraphicsLayer]. This is used by [hazeChild] draw nodes when drawing their
-   * blurred areas.
-   *
-   * This is explicitly NOT snapshot or state backed, as doing so would cause draw loops.
+   * The content [GraphicsLayer].
    */
   var contentLayer: GraphicsLayer? = null
     internal set
 
+  internal val bounds: Rect? get() = when {
+    size.isSpecified && positionOnScreen.isSpecified -> Rect(positionOnScreen, size)
+    else -> null
+  }
+
   internal var contentDrawing = false
+
+  override fun toString(): String {
+    return "HazeArea(" +
+      "positionOnScreen=$positionOnScreen, " +
+      "size=$size, " +
+      "zIndex=$zIndex, " +
+      "contentLayer=$contentLayer, " +
+      "contentDrawing=$contentDrawing" +
+      ")"
+  }
 }
 
 /**
@@ -44,7 +96,7 @@ class HazeState {
  * instead.
  */
 @Stable
-fun Modifier.haze(state: HazeState): Modifier = this then HazeNodeElement(state)
+fun Modifier.haze(state: HazeState, zIndex: Float = 0f, key: Any? = null): Modifier = this then HazeNodeElement(state, zIndex)
 
 /**
  * Default values for the [haze] modifiers.
@@ -119,15 +171,21 @@ object HazeDefaults {
 
 internal data class HazeNodeElement(
   val state: HazeState,
+  val zIndex: Float = 0f,
+  val key: Any? = null,
 ) : ModifierNodeElement<HazeNode>() {
 
-  override fun create(): HazeNode = HazeNode(state)
+  override fun create(): HazeNode = HazeNode(state = state, zIndex = zIndex, key = key)
 
   override fun update(node: HazeNode) {
     node.state = state
+    node.zIndex = zIndex
+    node.key = key
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "haze"
+    properties["zIndex"] = zIndex
+    properties["key"] = key
   }
 }
