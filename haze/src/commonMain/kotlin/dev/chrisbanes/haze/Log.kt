@@ -3,6 +3,6 @@
 
 package dev.chrisbanes.haze
 
-internal const val LOG_ENABLED = true
+internal const val LOG_ENABLED = false
 
 internal expect fun log(tag: String, message: () -> String)

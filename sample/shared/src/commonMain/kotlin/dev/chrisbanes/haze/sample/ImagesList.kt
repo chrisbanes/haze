@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,34 +64,36 @@ fun ImagesList(navigator: Navigator) {
           .fillMaxSize(),
       ) {
         items(50) { index ->
-          val hazeState = remember { HazeState() }
-
-          Box(
-            modifier = Modifier
-              .fillParentMaxWidth()
-              .height(160.dp),
-          ) {
-            AsyncImage(
-              model = rememberRandomSampleImageUrl(index),
-              contentScale = ContentScale.Crop,
-              contentDescription = null,
-              modifier = Modifier
-                .haze(state = hazeState)
-                .fillMaxSize(),
-            )
+          key(index) {
+            val hazeState = remember { HazeState() }
 
             Box(
               modifier = Modifier
-                .fillMaxSize(0.8f)
-                .align(Alignment.Center)
-                .clip(RoundedCornerShape(4.dp))
-                .hazeChild(state = hazeState, style = HazeMaterials.thin()),
+                .fillParentMaxWidth()
+                .height(160.dp),
             ) {
-              Text(
-                "Image $index",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.Center),
+              AsyncImage(
+                model = rememberRandomSampleImageUrl(index),
+                contentScale = ContentScale.Crop,
+                contentDescription = null,
+                modifier = Modifier
+                  .haze(state = hazeState)
+                  .fillMaxSize(),
               )
+
+              Box(
+                modifier = Modifier
+                  .fillMaxSize(0.8f)
+                  .align(Alignment.Center)
+                  .clip(RoundedCornerShape(4.dp))
+                  .hazeChild(state = hazeState, style = HazeMaterials.thin()),
+              ) {
+                Text(
+                  "Image $index",
+                  style = MaterialTheme.typography.titleLarge,
+                  modifier = Modifier.align(Alignment.Center),
+                )
+              }
             }
           }
         }

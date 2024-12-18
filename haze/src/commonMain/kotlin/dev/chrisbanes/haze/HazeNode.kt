@@ -9,13 +9,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.modifier.ModifierLocalModifierNode
 import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -28,6 +29,7 @@ import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
+import androidx.compose.ui.unit.toSize
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 annotation class ExperimentalHazeApi
@@ -66,6 +68,7 @@ class HazeNode(
   override val shouldAutoInvalidate: Boolean = false
 
   override fun onAttach() {
+    log(TAG) { "onAttach. Adding HazeArea: $area" }
     state._areas.add(area)
     onObservedReadsChanged()
   }
@@ -98,8 +101,8 @@ class HazeNode(
       if (area.positionOnScreen.isUnspecified) {
         log(TAG) {
           "onPlaced: " +
-            "positionInWindow=${coordinates.positionInWindow()}, " +
-            "area positionOnScreen=${area.positionOnScreen}"
+            "positionOnScreen=${coordinates.positionOnScreen()}, " +
+            "area=$area"
         }
         onPositioned(coordinates)
       }
@@ -109,14 +112,15 @@ class HazeNode(
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
     log(TAG) {
       "onGloballyPositioned: " +
-        "positionInWindow=${coordinates.positionInWindow()}, " +
+        "positionOnScreen=${coordinates.positionOnScreen()}, " +
         "content positionOnScreens=${area.positionOnScreen}"
     }
     onPositioned(coordinates)
   }
 
   private fun onPositioned(coordinates: LayoutCoordinates) {
-    area.positionOnScreen = coordinates.positionInWindow() + calculateWindowOffset()
+    area.positionOnScreen = coordinates.positionOnScreen()
+    area.size = coordinates.size.toSize()
   }
 
   override fun ContentDrawScope.draw() {
@@ -149,20 +153,22 @@ class HazeNode(
   }
 
   override fun onDetach() {
+    log(TAG) { "onDetach. Removing HazeArea: $area" }
     area.reset()
     state._areas.remove(area)
   }
 
   override fun onReset() {
+    log(TAG) { "onReset. Resetting HazeArea: $area" }
     area.reset()
   }
 
   private fun HazeArea.reset() {
     positionOnScreen = Offset.Unspecified
+    size = Size.Unspecified
     contentDrawing = false
-    contentLayer?.let {
-      currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(it)
-    }
+    contentLayer?.let { currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(it) }
+    contentLayer = null
   }
 
   private companion object {

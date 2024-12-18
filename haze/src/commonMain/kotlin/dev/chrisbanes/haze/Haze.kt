@@ -11,6 +11,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -24,7 +27,7 @@ class HazeState {
 
   @Suppress("PropertyName")
   internal val _areas = mutableStateListOf<HazeArea>()
-  val areas: List<HazeArea> get() = _areas
+  val areas: List<HazeArea> get() = _areas.toList()
 
   @Deprecated("Inspect areas instead")
   var positionOnScreen: Offset
@@ -51,6 +54,9 @@ class HazeArea {
   var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
+  var size: Size by mutableStateOf(Size.Unspecified)
+    internal set
+
   var zIndex: Float by mutableFloatStateOf(0f)
     internal set
 
@@ -60,11 +66,17 @@ class HazeArea {
   var contentLayer: GraphicsLayer? = null
     internal set
 
+  internal val bounds: Rect? get() = when {
+    size.isSpecified && positionOnScreen.isSpecified -> Rect(positionOnScreen, size)
+    else -> null
+  }
+
   internal var contentDrawing = false
 
   override fun toString(): String {
     return "HazeArea(" +
       "positionOnScreen=$positionOnScreen, " +
+      "size=$size, " +
       "zIndex=$zIndex, " +
       "contentLayer=$contentLayer, " +
       "contentDrawing=$contentDrawing" +
