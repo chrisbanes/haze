@@ -746,7 +746,8 @@ internal object DirtyFields {
       Progressive
 
   const val InvalidateFlags =
-    BlurEnabled or
+    RenderEffectAffectingFlags or // Eventually we'll move this out of invalidation
+      BlurEnabled or
       InputScale or
       AreaOffsets or
       Size or
