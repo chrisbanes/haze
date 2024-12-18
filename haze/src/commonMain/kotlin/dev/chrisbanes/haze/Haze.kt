@@ -60,6 +60,9 @@ class HazeArea {
   var zIndex: Float by mutableFloatStateOf(0f)
     internal set
 
+  var key: Any? = null
+    internal set
+
   /**
    * The content [GraphicsLayer].
    */
@@ -93,7 +96,7 @@ class HazeArea {
  * instead.
  */
 @Stable
-fun Modifier.haze(state: HazeState, zIndex: Float = 0f): Modifier = this then HazeNodeElement(state, zIndex)
+fun Modifier.haze(state: HazeState, zIndex: Float = 0f, key: Any? = null): Modifier = this then HazeNodeElement(state, zIndex)
 
 /**
  * Default values for the [haze] modifiers.
@@ -169,17 +172,20 @@ object HazeDefaults {
 internal data class HazeNodeElement(
   val state: HazeState,
   val zIndex: Float = 0f,
+  val key: Any? = null,
 ) : ModifierNodeElement<HazeNode>() {
 
-  override fun create(): HazeNode = HazeNode(state = state, zIndex = zIndex)
+  override fun create(): HazeNode = HazeNode(state = state, zIndex = zIndex, key = key)
 
   override fun update(node: HazeNode) {
     node.state = state
     node.zIndex = zIndex
+    node.key = key
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "haze"
     properties["zIndex"] = zIndex
+    properties["key"] = key
   }
 }

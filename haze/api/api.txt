@@ -7,10 +7,12 @@ package dev.chrisbanes.haze {
   @androidx.compose.runtime.Stable public final class HazeArea {
     ctor public HazeArea();
     method public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
+    method public Object? getKey();
     method public long getPositionOnScreen();
     method public long getSize();
     method public float getZIndex();
     property public final androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
+    property public final Object? key;
     property public final long positionOnScreen;
     property public final long size;
     property public final float zIndex;
@@ -147,18 +149,21 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeKt {
-    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode {
-    ctor public HazeNode(dev.chrisbanes.haze.HazeState state, optional float zIndex);
+    ctor public HazeNode(dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
+    method public Object? getKey();
     method public dev.chrisbanes.haze.HazeState getState();
     method public float getZIndex();
     method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
     method public void onObservedReadsChanged();
+    method public void setKey(Object?);
     method public void setState(dev.chrisbanes.haze.HazeState);
     method public void setZIndex(float);
+    property public final Object? key;
     property public androidx.compose.ui.modifier.ModifierLocalMap providedValues;
     property public boolean shouldAutoInvalidate;
     property public final dev.chrisbanes.haze.HazeState state;

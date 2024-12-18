@@ -44,6 +44,7 @@ annotation class ExperimentalHazeApi
 class HazeNode(
   var state: HazeState,
   zIndex: Float = 0f,
+  key: Any? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
@@ -56,10 +57,16 @@ class HazeNode(
 
   private val area = HazeArea()
 
-  var zIndex: Float by mutableStateOf(0f)
+  var zIndex: Float by mutableStateOf(zIndex)
+
+  var key: Any?
+    get() = area.key
+    set(value) {
+      area.key = value
+    }
 
   init {
-    this.zIndex = zIndex
+    this.key = key
   }
 
   /**
