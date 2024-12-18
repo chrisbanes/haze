@@ -8,9 +8,11 @@ package dev.chrisbanes.haze {
     ctor public HazeArea();
     method public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
     method public long getPositionOnScreen();
+    method public long getSize();
     method public float getZIndex();
     property public final androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
     property public final long positionOnScreen;
+    property public final long size;
     property public final float zIndex;
   }
 

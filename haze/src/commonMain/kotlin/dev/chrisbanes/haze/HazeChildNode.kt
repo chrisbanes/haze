@@ -1,10 +1,15 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(ExperimentalHazeApi::class)
+
 package dev.chrisbanes.haze
 
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -99,8 +104,8 @@ class HazeChildNode(
     set(value) {
       if (field != value) {
         log(TAG) { "LocalHazeStyle changed. Current: $field. New: $value" }
+        onStyleChanged(field, value)
         field = value
-        dirtyTracker += DirtyFields.Style
       }
     }
 
@@ -108,8 +113,8 @@ class HazeChildNode(
     set(value) {
       if (field != value) {
         log(TAG) { "style changed. Current: $field. New: $value" }
+        onStyleChanged(field, value)
         field = value
-        dirtyTracker += DirtyFields.Style
       }
     }
 
@@ -122,11 +127,11 @@ class HazeChildNode(
       }
     }
 
-  private var relativePositions: Map<HazeArea, Offset> = emptyMap()
+  private var areaOffsets: Map<HazeArea, Offset> = emptyMap()
     set(value) {
       if (value != field) {
-        log(TAG) { "relativePositions changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.RelativePosition
+        log(TAG) { "areaOffsets changed. Current: $field. New: $value" }
+        dirtyTracker += DirtyFields.AreaOffsets
         field = value
       }
     }
@@ -253,6 +258,14 @@ class HazeChildNode(
       }
     }
 
+  private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
+    if (old?.tints != new?.tints) dirtyTracker += DirtyFields.Tints
+    if (old?.fallbackTint != new?.fallbackTint) dirtyTracker += DirtyFields.Tints
+    if (old?.backgroundColor != new?.backgroundColor) dirtyTracker += DirtyFields.BackgroundColor
+    if (old?.noiseFactor != new?.noiseFactor) dirtyTracker += DirtyFields.NoiseFactor
+    if (old?.blurRadius != new?.blurRadius) dirtyTracker += DirtyFields.BlurRadius
+  }
+
   internal fun update() {
     onObservedReadsChanged()
   }
@@ -261,12 +274,7 @@ class HazeChildNode(
     update()
   }
 
-  override fun onObservedReadsChanged() {
-    observeReads {
-      updateEffect()
-      compositionLocalStyle = currentValueOf(LocalHazeStyle)
-    }
-  }
+  override fun onObservedReadsChanged() = observeReads(::updateEffect)
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
     // If the positionOnScreen has not been placed yet, we use the value from onPlaced,
@@ -318,55 +326,35 @@ class HazeChildNode(
   }
 
   private fun updateEffect() {
+    compositionLocalStyle = currentValueOf(LocalHazeStyle)
+
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
     block?.invoke(this)
 
     val hazeZIndex = ModifierLocalCurrentHazeZIndex.current
 
-    val bounds = when {
-      size.isSpecified && positionOnScreen.isSpecified -> Rect(positionOnScreen, size)
-      else -> null
-    }
-
     areas = state.areas
       .also {
         log(TAG) { "Background Areas observing: $it" }
       }
       .asSequence()
-      // We only care about HazeAreas which overlap us
-      .filter { area ->
-        val areaBounds = area.bounds
-        (bounds != null && areaBounds != null && bounds.overlaps(areaBounds)).also {
-          log(TAG) { "Background Area: $area. Checking bounds. Included=$it" }
-        }
-      }
       .filter { area ->
         val filter = canDrawArea
-        if (filter != null) {
-          filter(area).also {
-            log(TAG) { "Background Area: $area. Using canDrawArea. Included=$it" }
-          }
-        } else if (hazeZIndex != null) {
-          (area.zIndex < hazeZIndex).also {
-            log(TAG) { "Background Area: $area. Using ModifierLocalCurrentHazeZIndex ($hazeZIndex). Included=$it" }
-          }
-        } else {
-          log(TAG) { "Background Area: $area. Included=true" }
-          true
+        when {
+          filter != null -> filter(area)
+          hazeZIndex != null -> area.zIndex < hazeZIndex
+          else -> true
+        }.also { included ->
+          log(TAG) { "Background Area: $area. Included=$included" }
         }
       }
       .toMutableList()
-      .apply {
-        sortBy { it.zIndex }
-      }
+      .apply { sortBy(HazeArea::zIndex) }
 
-    relativePositions = areas.associateWith { area -> area.positionOnScreen - positionOnScreen }
+    areaOffsets = areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
 
-    if (needInvalidation()) {
-      log(TAG) { "invalidateDraw called, due to effect needing invalidation" }
-      invalidateDraw()
-    }
+    invalidateIfNeeded()
   }
 
   @OptIn(ExperimentalHazeApi::class)
@@ -387,27 +375,40 @@ class HazeChildNode(
     val bg = resolveBackgroundColor()
     require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
 
-    layer.record(inflatedSize.roundToIntSize()) {
-      drawRect(bg)
+    // We don't want to observe any state here. Anything we state we read should be observed
+    // be triggered from `dirtyTracker` only
+    Snapshot.withoutReadObservation {
+      val bounds = Rect(positionOnScreen, size)
 
-      clipRect {
-        scale(scale = scaleFactor, pivot = Offset.Zero) {
-          translate(inflatedOffset - positionOnScreen) {
-            for (area in areas) {
-              require(!area.contentDrawing) {
-                "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
-                  "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
-                  "Alternatively you can use can `canDrawArea` to to filter out parent areas."
-              }
-              translate(area.positionOnScreen.orZero) {
-                // Draw the content into our effect layer
-                area.contentLayer
-                  ?.takeUnless { it.isReleased }
-                  ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
-                  ?.let {
-                    log(TAG) { "Drawing HazeArea GraphicsLayer: $it" }
-                    drawLayer(it)
-                  }
+      layer.record(inflatedSize.roundToIntSize()) {
+        drawRect(bg)
+
+        clipRect {
+          scale(scale = scaleFactor, pivot = Offset.Zero) {
+            translate(inflatedOffset - positionOnScreen) {
+              for (area in areas) {
+                require(!area.contentDrawing) {
+                  "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
+                    "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
+                    "Alternatively you can use can `canDrawArea` to to filter out parent areas."
+                }
+
+                val areaBounds = area.bounds
+                if (areaBounds == null || !bounds.overlaps(areaBounds)) {
+                  log(TAG) { "Area does not overlap us. Skipping... $area" }
+                  continue
+                }
+
+                translate(area.positionOnScreen.orZero) {
+                  // Draw the content into our effect layer
+                  area.contentLayer
+                    ?.takeUnless { it.isReleased }
+                    ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+                    ?.let {
+                      log(TAG) { "Drawing HazeArea GraphicsLayer: $it" }
+                      drawLayer(it)
+                    }
+                }
               }
             }
           }
@@ -481,9 +482,15 @@ class HazeChildNode(
     dirtyTracker = Bitmask()
   }
 
-  private fun needInvalidation(): Boolean {
-    log(TAG) { "needInvalidation. Dirty params=${DirtyFields.stringify(dirtyTracker)}" }
-    return dirtyTracker.any(DirtyFields.InvalidateFlags)
+  private fun invalidateIfNeeded() {
+    val invalidateRequired = dirtyTracker.any(DirtyFields.InvalidateFlags)
+    log(TAG) {
+      "invalidateRequired=$invalidateRequired. " +
+        "Dirty params=${DirtyFields.stringify(dirtyTracker)}"
+    }
+    if (invalidateRequired) {
+      invalidateDraw()
+    }
   }
 
   internal companion object {
@@ -712,25 +719,23 @@ internal fun HazeChildNode.resolveNoiseFactor(): Float {
 internal object DirtyFields {
   const val BlurEnabled: Int = 0b1 shl 0
   const val InputScale = 0b1 shl 1
-  const val Style = 0b1 shl 2
-  const val ScreenPosition = 0b1 shl 3
-  const val RelativePosition = 0b1 shl 4
-  const val Size = 0b1 shl 5
-  const val LayerSize = 0b1 shl 6
-  const val BlurRadius = 0b1 shl 7
-  const val NoiseFactor = 0b1 shl 8
-  const val Mask = 0b1 shl 9
-  const val BackgroundColor = 0b1 shl 10
-  const val Tints = 0b1 shl 11
-  const val FallbackTint = 0b1 shl 12
-  const val Alpha = 0b1 shl 13
-  const val Progressive = 0b1 shl 14
-  const val Areas = 0b1 shl 15
+  const val ScreenPosition = 0b1 shl 2
+  const val AreaOffsets = 0b1 shl 3
+  const val Size = 0b1 shl 4
+  const val LayerSize = 0b1 shl 5
+  const val BlurRadius = 0b1 shl 6
+  const val NoiseFactor = 0b1 shl 7
+  const val Mask = 0b1 shl 8
+  const val BackgroundColor = 0b1 shl 9
+  const val Tints = 0b1 shl 10
+  const val FallbackTint = 0b1 shl 11
+  const val Alpha = 0b1 shl 12
+  const val Progressive = 0b1 shl 13
+  const val Areas = 0b1 shl 14
 
   const val RenderEffectAffectingFlags =
     BlurEnabled or
       InputScale or
-      Style or
       Size or
       LayerSize or
       BlurRadius or
@@ -743,17 +748,19 @@ internal object DirtyFields {
   const val InvalidateFlags =
     BlurEnabled or
       InputScale or
-      RelativePosition or
+      AreaOffsets or
       Size or
-      LayerSize
+      LayerSize or
+      BackgroundColor or
+      Progressive or // TODO: only on Android SDK 32-33
+      Areas
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
       if (BlurEnabled in dirtyTracker) add("BlurEnabled")
       if (InputScale in dirtyTracker) add("InputScale")
-      if (Style in dirtyTracker) add("Style")
-      if (ScreenPosition in dirtyTracker) add("Position")
-      if (RelativePosition in dirtyTracker) add("RelativePosition")
+      if (ScreenPosition in dirtyTracker) add("ScreenPosition")
+      if (AreaOffsets in dirtyTracker) add("RelativePosition")
       if (Size in dirtyTracker) add("Size")
       if (LayerSize in dirtyTracker) add("LayerSize")
       if (BlurRadius in dirtyTracker) add("BlurRadius")
