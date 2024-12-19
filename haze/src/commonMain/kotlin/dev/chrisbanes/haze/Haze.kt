@@ -87,8 +87,15 @@ class HazeArea {
   }
 }
 
+@Deprecated(
+  message = "Renamed to Modifier.hazeSource()",
+  replaceWith = ReplaceWith("hazeSource(state)", "dev.chrisbanes.haze.hazeSource"),
+)
+@Stable
+fun Modifier.haze(state: HazeState): Modifier = hazeSource(state)
+
 /**
- * Draw background content for [hazeChild] child nodes, which will be drawn with a blur
+ * Captures background content for [hazeEffect] child nodes, which will be drawn with a blur
  * in a 'glassmorphism' style.
  *
  * When running on Android 12 devices (and newer), usage of this API renders the corresponding composable
@@ -96,10 +103,14 @@ class HazeArea {
  * instead.
  */
 @Stable
-fun Modifier.haze(state: HazeState, zIndex: Float = 0f, key: Any? = null): Modifier = this then HazeNodeElement(state, zIndex)
+fun Modifier.hazeSource(
+  state: HazeState,
+  zIndex: Float = 0f,
+  key: Any? = null,
+): Modifier = this then HazeSourceElement(state, zIndex, key)
 
 /**
- * Default values for the [haze] modifiers.
+ * Default values for the [hazeSource] and [hazeEffect] modifiers.
  */
 @Suppress("ktlint:standard:property-naming")
 object HazeDefaults {
@@ -138,7 +149,7 @@ object HazeDefaults {
   ): HazeStyle = HazeStyle(backgroundColor, tint(backgroundColor), blurRadius, noiseFactor)
 
   /**
-   * Default [HazeStyle] for usage with [Modifier.haze].
+   * Default [HazeStyle] for usage with [Modifier.hazeSource].
    *
    * @param backgroundColor Color to draw behind the blurred content. Ideally should be opaque
    * so that the original content is not visible behind. Typically this would be
@@ -157,7 +168,7 @@ object HazeDefaults {
   ): HazeStyle = HazeStyle(backgroundColor, tint, blurRadius, noiseFactor)
 
   /**
-   * Default values for [HazeChildScope.blurEnabled]. This function only returns `true` on
+   * Default values for [HazeEffectScope.blurEnabled]. This function only returns `true` on
    * platforms where we know blurring works reliably.
    *
    * This is not the same as everywhere where it technically works. The key omission here
@@ -169,22 +180,22 @@ object HazeDefaults {
   fun blurEnabled(): Boolean = isBlurEnabledByDefault()
 }
 
-internal data class HazeNodeElement(
+internal data class HazeSourceElement(
   val state: HazeState,
   val zIndex: Float = 0f,
   val key: Any? = null,
-) : ModifierNodeElement<HazeNode>() {
+) : ModifierNodeElement<HazeSourceNode>() {
 
-  override fun create(): HazeNode = HazeNode(state = state, zIndex = zIndex, key = key)
+  override fun create(): HazeSourceNode = HazeSourceNode(state = state, zIndex = zIndex, key = key)
 
-  override fun update(node: HazeNode) {
+  override fun update(node: HazeSourceNode) {
     node.state = state
     node.zIndex = zIndex
     node.key = key
   }
 
   override fun InspectorInfo.inspectableProperties() {
-    name = "haze"
+    name = "hazeSource"
     properties["zIndex"] = zIndex
     properties["key"] = key
   }

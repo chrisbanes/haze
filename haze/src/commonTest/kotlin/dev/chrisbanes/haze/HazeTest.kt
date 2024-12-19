@@ -36,9 +36,9 @@ class HazeTest {
       runComposeUiTest {
         setContent {
           val hazeState = remember { HazeState() }
-          Box(Modifier.haze(hazeState)) {
+          Box(Modifier.hazeSource(hazeState)) {
             Spacer(
-              Modifier.hazeChild(hazeState, HazeDefaults.style(Color.Blue)) {
+              Modifier.hazeEffect(hazeState, HazeDefaults.style(Color.Blue)) {
                 canDrawArea = { true }
               },
             )

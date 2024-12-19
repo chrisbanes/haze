@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -43,8 +42,8 @@ import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 
 @Composable
 fun CreditCardSample(navigator: Navigator) {
@@ -55,7 +54,7 @@ fun CreditCardSample(navigator: Navigator) {
     Box(
       modifier = Modifier
         .fillMaxSize()
-        .haze(state = hazeState),
+        .hazeSource(state = hazeState),
     ) {
       Spacer(
         Modifier
@@ -108,9 +107,9 @@ fun CreditCardSample(navigator: Navigator) {
             },
           )
           // We add 1 to the zIndex as the background content is zIndex 0f
-          .haze(hazeState, zIndex = 1f + index)
+          .hazeSource(hazeState, zIndex = 1f + index)
           .clip(RoundedCornerShape(16.dp))
-          .hazeChild(state = hazeState, style = cardStyle),
+          .hazeEffect(state = hazeState, style = cardStyle),
       ) {
         Column(Modifier.padding(32.dp)) {
           Text("Bank of Haze")

@@ -22,8 +22,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.sample.Navigator
@@ -64,7 +64,7 @@ fun ExoPlayerSample(navigator: Navigator) {
       },
       modifier = Modifier
         .fillMaxSize()
-        .haze(hazeState),
+        .hazeSource(hazeState),
     )
 
     Spacer(
@@ -72,7 +72,7 @@ fun ExoPlayerSample(navigator: Navigator) {
         .fillMaxSize(0.5f)
         .align(Alignment.Center)
         .clip(MaterialTheme.shapes.large)
-        .hazeChild(hazeState, HazeMaterials.ultraThin()),
+        .hazeEffect(hazeState, HazeMaterials.ultraThin()),
     )
   }
 }

@@ -30,8 +30,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -77,7 +77,7 @@ fun ImagesList(navigator: Navigator) {
                 contentScale = ContentScale.Crop,
                 contentDescription = null,
                 modifier = Modifier
-                  .haze(state = hazeState)
+                  .hazeSource(state = hazeState)
                   .fillMaxSize(),
               )
 
@@ -86,7 +86,7 @@ fun ImagesList(navigator: Navigator) {
                   .fillMaxSize(0.8f)
                   .align(Alignment.Center)
                   .clip(RoundedCornerShape(4.dp))
-                  .hazeChild(state = hazeState, style = HazeMaterials.thin()),
+                  .hazeEffect(state = hazeState, style = HazeMaterials.thin()),
               ) {
                 Text(
                   "Image $index",

@@ -7,7 +7,7 @@ import android.os.Build
 
 /**
  * By default we only enable blurring on SDK Level 32 and above, at the moment. You can override
- * this via [HazeChildScope.blurEnabled] if required.
+ * this via [HazeEffectScope.blurEnabled] if required.
  *
  * See https://github.com/chrisbanes/haze/issues/77 for more details.
  */

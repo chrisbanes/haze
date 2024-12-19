@@ -21,9 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -32,8 +30,8 @@ import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -77,7 +75,7 @@ fun ListWithStickyHeaders(navigator: Navigator) {
           Box(
             modifier = Modifier
               .fillMaxWidth()
-              .hazeChild(state = hazeState, style = style) {
+              .hazeEffect(state = hazeState, style = style) {
                 this.inputScale = HazeInputScale.Auto
               },
           ) {
@@ -88,7 +86,7 @@ fun ListWithStickyHeaders(navigator: Navigator) {
         items(groupSize) { index ->
           Box(
             modifier = Modifier
-              .haze(hazeState)
+              .hazeSource(hazeState)
               .fillParentMaxWidth(),
           ) {
             AsyncImage(

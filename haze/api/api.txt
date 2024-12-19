@@ -19,16 +19,31 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeChildKt {
-    method @Deprecated public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, androidx.compose.ui.graphics.Shape shape, dev.chrisbanes.haze.HazeStyle style);
-    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? block);
+    method @Deprecated @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
   }
 
-  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeChildNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeChildScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode {
-    ctor public HazeChildNode(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? block);
+  @Deprecated public interface HazeChildScope extends dev.chrisbanes.haze.HazeEffectScope {
+  }
+
+  public final class HazeDefaults {
+    method public boolean blurEnabled();
+    method public float getBlurRadius();
+    method public dev.chrisbanes.haze.HazeStyle style(long backgroundColor, optional dev.chrisbanes.haze.HazeTint tint, optional float blurRadius, optional float noiseFactor);
+    method @Deprecated public dev.chrisbanes.haze.HazeStyle style(optional long backgroundColor, long tint, optional float blurRadius, optional float noiseFactor);
+    method public dev.chrisbanes.haze.HazeTint tint(long color);
+    property public final float blurRadius;
+    field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
+    field public static final float noiseFactor = 0.15f;
+    field public static final float tintAlpha = 0.7f;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeEffectNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeEffectScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode {
+    ctor public HazeEffectNode(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
     method public float getAlpha();
     method public long getBackgroundColor();
-    method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? getBlock();
+    method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? getBlock();
     method public boolean getBlurEnabled();
     method public float getBlurRadius();
     method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
@@ -44,7 +59,7 @@ package dev.chrisbanes.haze {
     method public void onObservedReadsChanged();
     method public void setAlpha(float);
     method public void setBackgroundColor(long);
-    method public void setBlock(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>?);
+    method public void setBlock(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>?);
     method public void setBlurEnabled(boolean);
     method public void setBlurRadius(float);
     method public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
@@ -58,7 +73,7 @@ package dev.chrisbanes.haze {
     method public void setTints(java.util.List<dev.chrisbanes.haze.HazeTint>);
     property public float alpha;
     property public long backgroundColor;
-    property public final kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeChildScope,kotlin.Unit>? block;
+    property public final kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block;
     property public boolean blurEnabled;
     property public float blurRadius;
     property public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
@@ -71,10 +86,10 @@ package dev.chrisbanes.haze {
     property public final dev.chrisbanes.haze.HazeState state;
     property public dev.chrisbanes.haze.HazeStyle style;
     property public java.util.List<dev.chrisbanes.haze.HazeTint> tints;
-    field public static final String TAG = "HazeChild";
+    field public static final String TAG = "HazeEffect";
   }
 
-  public interface HazeChildScope {
+  public interface HazeEffectScope {
     method public float getAlpha();
     method public long getBackgroundColor();
     method public boolean getBlurEnabled();
@@ -113,18 +128,6 @@ package dev.chrisbanes.haze {
     property public abstract java.util.List<dev.chrisbanes.haze.HazeTint> tints;
   }
 
-  public final class HazeDefaults {
-    method public boolean blurEnabled();
-    method public float getBlurRadius();
-    method public dev.chrisbanes.haze.HazeStyle style(long backgroundColor, optional dev.chrisbanes.haze.HazeTint tint, optional float blurRadius, optional float noiseFactor);
-    method @Deprecated public dev.chrisbanes.haze.HazeStyle style(optional long backgroundColor, long tint, optional float blurRadius, optional float noiseFactor);
-    method public dev.chrisbanes.haze.HazeTint tint(long color);
-    property public final float blurRadius;
-    field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
-    field public static final float noiseFactor = 0.15f;
-    field public static final float tintAlpha = 0.7f;
-  }
-
   @dev.chrisbanes.haze.ExperimentalHazeApi public sealed interface HazeInputScale {
     field public static final dev.chrisbanes.haze.HazeInputScale.Companion Companion;
   }
@@ -149,26 +152,8 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeKt {
-    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
-  }
-
-  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode {
-    ctor public HazeNode(dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
-    method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
-    method public Object? getKey();
-    method public dev.chrisbanes.haze.HazeState getState();
-    method public float getZIndex();
-    method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
-    method public void onObservedReadsChanged();
-    method public void setKey(Object?);
-    method public void setState(dev.chrisbanes.haze.HazeState);
-    method public void setZIndex(float);
-    property public final Object? key;
-    property public androidx.compose.ui.modifier.ModifierLocalMap providedValues;
-    property public boolean shouldAutoInvalidate;
-    property public final dev.chrisbanes.haze.HazeState state;
-    property public final float zIndex;
-    field public static final String TAG = "HazeNode";
+    method @Deprecated @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
   }
 
   public sealed interface HazeProgressive {
@@ -201,6 +186,25 @@ package dev.chrisbanes.haze {
     property public final boolean preferPerformance;
     property public final long start;
     property public final float startIntensity;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeSourceNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode {
+    ctor public HazeSourceNode(dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
+    method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
+    method public Object? getKey();
+    method public dev.chrisbanes.haze.HazeState getState();
+    method public float getZIndex();
+    method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
+    method public void onObservedReadsChanged();
+    method public void setKey(Object?);
+    method public void setState(dev.chrisbanes.haze.HazeState);
+    method public void setZIndex(float);
+    property public final Object? key;
+    property public androidx.compose.ui.modifier.ModifierLocalMap providedValues;
+    property public boolean shouldAutoInvalidate;
+    property public final dev.chrisbanes.haze.HazeState state;
+    property public final float zIndex;
+    field public static final String TAG = "HazeSource";
   }
 
   @androidx.compose.runtime.Stable public final class HazeState {

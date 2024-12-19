@@ -30,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.CupertinoMaterials
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.FluentMaterials
@@ -47,7 +47,7 @@ fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
       contentScale = ContentScale.Crop,
       contentDescription = null,
       modifier = Modifier
-        .haze(state = hazeState)
+        .hazeSource(state = hazeState)
         .fillMaxSize(),
     )
 
@@ -316,7 +316,7 @@ private fun MaterialsCard(
     Box(
       Modifier
         .fillMaxSize()
-        .hazeChild(state = state, style = style)
+        .hazeEffect(state = state, style = style)
         .padding(16.dp),
     ) {
       Text(name)

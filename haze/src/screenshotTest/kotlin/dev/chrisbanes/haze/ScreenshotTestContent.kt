@@ -47,7 +47,7 @@ internal fun CreditCardSample(
     Box(
       Modifier
         .fillMaxSize()
-        .haze(state = hazeState, zIndex = 0f),
+        .hazeSource(state = hazeState, zIndex = 0f),
     ) {
       Spacer(
         Modifier
@@ -75,11 +75,11 @@ internal fun CreditCardSample(
           .align(Alignment.Center)
           .offset { IntOffset(x = 0, y = reverseIndex * -100) }
           // We add 1 to the zIndex as the background content is zIndex 0f
-          .haze(hazeState, zIndex = 1f + index)
+          .hazeSource(hazeState, zIndex = 1f + index)
           .clip(shape)
           .then(
             if (enabled) {
-              Modifier.hazeChild(state = hazeState) {
+              Modifier.hazeEffect(state = hazeState) {
                 this.blurEnabled = blurEnabled
                 this.style = style
                 this.backgroundColor = surfaceColor

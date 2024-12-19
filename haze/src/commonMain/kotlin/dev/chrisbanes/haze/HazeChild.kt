@@ -5,16 +5,23 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import kotlin.jvm.JvmInline
 
-interface HazeChildScope {
+@Deprecated(
+  message = "Renamed to HazeEffectScope",
+  replaceWith = ReplaceWith(
+    "HazeEffectScope",
+    "dev.chrisbanes.haze.HazeEffectScope",
+  ),
+)
+interface HazeChildScope : HazeEffectScope
+
+interface HazeEffectScope {
 
   /**
    * Whether the blur effect is enabled or not, when running on platforms which support blurring.
@@ -32,13 +39,13 @@ interface HazeChildScope {
   var alpha: Float
 
   /**
-   * Style set on this specific [HazeChildNode].
+   * Style set on this specific [HazeEffectNode].
    *
    * There are precedence rules to how each styling property is applied. The order of precedence
    * for each property are as follows:
    *
-   *  - Property value set in [HazeChildScope], if specified.
-   *  - Value set here in [HazeChildScope.style], if specified.
+   *  - Property value set in [HazeEffectScope], if specified.
+   *  - Value set here in [HazeEffectScope.style], if specified.
    *  - Value set in the [LocalHazeStyle] composition local.
    */
   var style: HazeStyle
@@ -151,7 +158,7 @@ interface HazeChildScope {
 }
 
 /**
- * Value classes used for [HazeChildScope.inputScale].
+ * Value classes used for [HazeEffectScope.inputScale].
  */
 @ExperimentalHazeApi
 sealed interface HazeInputScale {
@@ -190,54 +197,43 @@ sealed interface HazeInputScale {
   }
 }
 
-/**
- * Mark this composable as being a Haze child composable.
- *
- * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
- * [Modifier.haze] to blur any content behind the host composable.
- *
- * @param shape The shape of the content. This will affect the the bounds and outline of
- * the content. Please be aware that using non-rectangular shapes has an effect on performance,
- * since we need to use path clipping.
- * @param style The [HazeStyle] to use on this content. Any specified values in the given
- * style will override that value from the default style, provided to [haze].
- */
 @Deprecated(
-  message = "Shape clipping is no longer necessary with Haze. You can use `Modifier.clip` or similar.",
-  replaceWith = ReplaceWith("clip(shape).hazeChild(state, style)"),
+  message = "Renamed to Modifier.hazeEffect()",
+  replaceWith = ReplaceWith("hazeEffect(state, style, block)", "dev.chrisbanes.haze.hazeEffect"),
 )
-fun Modifier.hazeChild(
-  state: HazeState,
-  shape: Shape,
-  style: HazeStyle,
-): Modifier = clip(shape).hazeChild(state, style)
-
-/**
- * Mark this composable as being a Haze child composable.
- *
- * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
- * [Modifier.haze] to blur any content behind the host composable.
- *
- * @param style The [HazeStyle] to use on this content. Any specified values in the given
- * style will override that value from the default style, provided to [haze].
- * @param block block on HazeChildScope where you define the styling and visual properties.
- */
 @Stable
 fun Modifier.hazeChild(
   state: HazeState,
   style: HazeStyle = HazeStyle.Unspecified,
-  block: (HazeChildScope.() -> Unit)? = null,
-): Modifier = this then HazeChildNodeElement(state, style, block)
+  block: (HazeEffectScope.() -> Unit)? = null,
+): Modifier = hazeEffect(state, style, block)
 
-private data class HazeChildNodeElement(
+/**
+ * Mark this composable as being a Haze child composable.
+ *
+ * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
+ * [Modifier.hazeSource] to blur any content behind the host composable.
+ *
+ * @param style The [HazeStyle] to use on this content. Any specified values in the given
+ * style will override that value from the default style, provided to [hazeSource].
+ * @param block block on HazeChildScope where you define the styling and visual properties.
+ */
+@Stable
+fun Modifier.hazeEffect(
+  state: HazeState,
+  style: HazeStyle = HazeStyle.Unspecified,
+  block: (HazeEffectScope.() -> Unit)? = null,
+): Modifier = this then HazeEffectNodeElement(state, style, block)
+
+private data class HazeEffectNodeElement(
   val state: HazeState,
   val style: HazeStyle = HazeStyle.Unspecified,
-  val block: (HazeChildScope.() -> Unit)? = null,
-) : ModifierNodeElement<HazeChildNode>() {
+  val block: (HazeEffectScope.() -> Unit)? = null,
+) : ModifierNodeElement<HazeEffectNode>() {
 
-  override fun create(): HazeChildNode = HazeChildNode(state, style, block)
+  override fun create(): HazeEffectNode = HazeEffectNode(state, style, block)
 
-  override fun update(node: HazeChildNode) {
+  override fun update(node: HazeEffectNode) {
     node.state = state
     node.style = style
     node.block = block
@@ -245,6 +241,6 @@ private data class HazeChildNodeElement(
   }
 
   override fun InspectorInfo.inspectableProperties() {
-    name = "HazeChild"
+    name = "HazeEffect"
   }
 }

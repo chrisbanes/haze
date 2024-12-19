@@ -3,8 +3,8 @@
 
 Blurring the content behind app bars is a common use case, so how can we use Haze with `Scaffold`? It's pretty much the same as above:
 
-!!! tip "Multiple hazeChilds"
-    Note: We are using multiple `hazeChild`s in this example. You can actually use an abitrary number of `hazeChild`s.
+!!! tip "Multiple hazeEffects"
+    Note: We are using multiple `hazeEffect`s in this example. You can actually use an abitrary number of `hazeEffect`s.
 
 ``` kotlin
 val hazeState = remember { HazeState() }
@@ -15,7 +15,7 @@ Scaffold(
       // Need to make app bar transparent to see the content behind
       colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
       modifier = Modifier
-        .hazeChild(state = hazeState)
+        .hazeEffect(state = hazeState)
         .fillMaxWidth(),
     ) {
       /* todo */
@@ -25,7 +25,7 @@ Scaffold(
     NavigationBar(
       containerColor = Color.Transparent,
       modifier = Modifier
-        .hazeChild(state = hazeState)
+        .hazeEffect(state = hazeState)
         .fillMaxWidth(),
     ) {
       /* todo */
@@ -34,7 +34,7 @@ Scaffold(
 ) {
   LazyVerticalGrid(
     modifier = Modifier
-      .haze(
+      .hazeSource(
         state = hazeState,
         style = HazeDefaults.style(backgroundColor = MaterialTheme.colorScheme.surface),
       ),
@@ -48,9 +48,9 @@ Scaffold(
 
 The `stickyHeader` functionality on `LazyColumn` and friends is very useful, but unfortunately the limitations of Haze means that blurring the list contents for the header background is tricky.
 
-Since we can not use `Modifier.haze` on the `LazyColumn` and `Modifier.hazeChild` on items, as we would get into recursive drawing, we need to get a bit more creative.
+Since we can not use `Modifier.hazeSource` on the `LazyColumn` and `Modifier.hazeEffect` on items, as we would get into recursive drawing, we need to get a bit more creative.
 
-Since we can have multiple nodes using `Modifier.haze`, we can use the modifier on all non-header items, and then use `hazeChild` as normal on the `stickyHeader`:
+Since we can have multiple nodes using `Modifier.hazeSource`, we can use the modifier on all non-header items, and then use `hazeEffect` as normal on the `stickyHeader`:
 
 ```kotlin
 val hazeState = remember { HazeState() }
@@ -59,14 +59,14 @@ LazyColumn(...) {
   stickyHeader {
     Header(
       modifier = Modifier
-        .hazeChild(state = hazeState),
+        .hazeEffect(state = hazeState),
     )
   }
 
   items(list) { item ->
     Foo(
       modifier = Modifier
-        .haze(hazeState),
+        .hazeSource(hazeState),
     )
   }
 }

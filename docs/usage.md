@@ -1,4 +1,4 @@
-Haze is implemented through two Compose Modifiers: [Modifier.haze](../api/haze/dev.chrisbanes.haze/haze.html) and [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
+Haze is implemented through two Compose Modifiers: [Modifier.hazeSource](../api/haze/dev.chrisbanes.haze/haze-source.html) and [Modifier.hazeEffect](../api/haze/dev.chrisbanes.haze/haze-effect.html).
 
 The most basic usage would be something like:
 
@@ -10,7 +10,7 @@ Box {
     modifier = Modifier
       .fillMaxSize()
       // Pass it the HazeState we stored above
-      .haze(state = hazeState)
+      .hazeSource(state = hazeState)
   ) {
     // todo
   }
@@ -19,9 +19,9 @@ Box {
     // Need to make app bar transparent to see the content behind
     colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
     modifier = Modifier
-      // We use hazeChild on anything where we want the background
+      // We use hazeEffect on anything where we want the background
       // blurred.
-      .hazeChild(state = hazeState)
+      .hazeEffect(state = hazeState)
       .fillMaxWidth(),
   )
 }
@@ -29,17 +29,17 @@ Box {
 
 ## Styling
 
-Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](../api/haze/dev.chrisbanes.haze/-haze-style/) class, or the lambda block provided to `hazeChild`.
+Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](../api/haze/dev.chrisbanes.haze/-haze-style/) class, or the lambda block provided to `hazeEffect`.
 
 Styles can be provided in a number of different ways:
 
 - [LocalHazeStyle](../api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
-- The style parameter on [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
-- By setting the relevant property in the optional [HazeChildScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html) lambda `block`, passed into [Modifier.hazeChild](../api/haze/dev.chrisbanes.haze/haze-child.html).
+- The style parameter on [Modifier.hazeEffect](../api/haze/dev.chrisbanes.haze/haze-effect.html).
+- By setting the relevant property in the optional [HazeEffectScope](../api/haze/dev.chrisbanes.haze/-haze-effect-scope/) lambda `block`, passed into [Modifier.hazeEffect](../api/haze/dev.chrisbanes.haze/haze-effect.html).
 
-### HazeChildScope
+### HazeEffectScope
 
-We now have a parameter on `Modifier.hazeChild` which allow you to provide a lambda block, for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`.
+We now have a parameter on `Modifier.hazeEffect` which allow you to provide a lambda block, for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`.
 
 It's useful for when you need to update styling parameters, using values derived from other state. Here's an example which fades the effect as the user scrolls:
 
@@ -47,7 +47,7 @@ It's useful for when you need to update styling parameters, using values derived
 FooAppBar(
   ...
   modifier = Modifier
-    .hazeChild(state = hazeState) {
+    .hazeEffect(state = hazeState) {
       alpha = if (listState.firstVisibleItemIndex == 0) {
         listState.layoutInfo.visibleItemsInfo.first().let {
           (it.offset / it.size.height.toFloat()).absoluteValue
@@ -65,8 +65,8 @@ As we a few different ways to set styling properties, it's important to know how
 
 Each styling property (such as `blurRadius`) is resolved seperately, and the order of precedence for each property is as follows, in order:
 
-- Value set in [HazeChildScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html), if specified.
-- Value set in style provided to hazeChild (or HazeChildScope.style), if specified.
+- Value set in [HazeEffectScope](../api/haze/dev.chrisbanes.haze/-haze-effect-scope/), if specified.
+- Value set in style provided to hazeEffect (or HazeEffectScope.style), if specified.
 - Value set in the [LocalHazeStyle](../api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
 
 ### Styling properties
@@ -89,12 +89,12 @@ Progressive blurs allow you to provide a visual effect where the blur radius is 
 
 ![type:video](./media/progressive.mp4)
 
-Progressive blurs can be enabled by setting the `progressive` property on [HazeChildScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html). The API is very similar to the Brush gradient APIs, so it should feel familiar.
+Progressive blurs can be enabled by setting the `progressive` property on [HazeEffectScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html). The API is very similar to the Brush gradient APIs, so it should feel familiar.
 
 ```kotlin
 LargeTopAppBar(
   // ...
-  modifier = Modifier.hazeChild(hazeState) {
+  modifier = Modifier.hazeEffect(hazeState) {
     progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
   }
 )
@@ -113,7 +113,7 @@ You can provide any `Brush`, which will be used as a mask when the final effect 
 ```kotlin
 LargeTopAppBar(
   // ...
-  modifier = Modifier.hazeChild(hazeState) {
+  modifier = Modifier.hazeEffect(hazeState) {
     mask = Brush.verticalGradient(...)
   }
 )
@@ -132,7 +132,7 @@ You can provide an input scale value which determines how much the content is sc
 ```kotlin
 LargeTopAppBar(
   // ...
-  modifier = Modifier.hazeChild(hazeState) {
+  modifier = Modifier.hazeEffect(hazeState) {
     inputScale = HazeInputScale.Auto
   }
 )
@@ -150,15 +150,15 @@ If you're looking for a good value to experiment with, `0.66` results in a reduc
 
 The minimum value I would realistically use is somewhere in the region of `0.33`, which results in the total pixel count of only 11% of the original content. This is likely to be visually different to no scaling, but depending on the styling parameters, it will be visually pleasing to the user.
 
-## Using both Modifier.haze and Modifier.hazeChild
+## Using both Modifier.haze and Modifier.hazeEffect
 
-A layout node can use both a `Modifier.hazeChild`, drawing a blurred effect from other areas, _and_ use `Modifier.haze` to draw itself for other `hazeChild` users.
+A layout node can use both a `Modifier.hazeEffect`, drawing a blurred effect from other areas, _and_ use `Modifier.hazeSource` to draw itself for other `hazeEffect` users.
 
 This nested functionality sounds complicated, but in reality it enables a simple use case: overlapping blurred layout nodes.
 
 ![](./media/overlap.webp)
 
-This code to implement this is like below. You'll notice that the `CreditCard()` nodes use both the `haze` and `hazeChild` modifiers. **Pay attention to the modifier order here.**
+This code to implement this is like below. You'll notice that the `CreditCard()` nodes use both the `hazeSource` and `hazeEffect` modifiers. **Pay attention to the modifier order here.**
 
 ``` kotlin
 Box {
@@ -166,47 +166,47 @@ Box {
 
   Background(
     modifier = Modifier
-      .haze(hazeState, zIndex = 0f)
+      .hazeSource(hazeState, zIndex = 0f)
   )
 
   // Rear card
   CreditCard(
     modifier = Modifier
-      .haze(hazeState, zIndex = 1f)
-      .hazeChild(hazeState)
+      .hazeSource(hazeState, zIndex = 1f)
+      .hazeEffect(hazeState)
   )
 
   // Middle card
   CreditCard(
     modifier = Modifier
-      .haze(hazeState, zIndex = 2f)
-      .hazeChild(hazeState),
+      .hazeSource(hazeState, zIndex = 2f)
+      .hazeEffect(hazeState),
   )
 
   // Front card
   CreditCard(
     modifier = Modifier
-      .haze(hazeState, zIndex = 3f)
-      .hazeChild(hazeState)
+      .hazeSource(hazeState, zIndex = 3f)
+      .hazeEffect(hazeState)
   )
 }
 ```
 
-You will notice that there's something different here, the `zIndex` parameter. 
+You will notice that there's something different here, the `zIndex` parameter.
 
-For this to work you need to pass in the `zIndex` parameter of the node. It doesn't matter if you use `Modifier.zIndex`, or the implicit ordering from the layout, you need to explicitly pass in a valid `zIndex` value. 
+For this to work you need to pass in the `zIndex` parameter of the node. It doesn't matter if you use `Modifier.zIndex`, or the implicit ordering from the layout, you need to explicitly pass in a valid `zIndex` value.
 
 ### zIndex
 
-Internally, the zIndex value is how Haze knows which layers to draw in which nodes. By default, `hazeChild` will draw all layers with a `zIndex` less than the value of the sibling `Modifier.haze`. So in the example above, the middle card (`zIndex` of 2) will draw the rear card (`zIndex` of 1) and background (`zIndex` of 0).
+Internally, the zIndex value is how Haze knows which layers to draw in which nodes. By default, `hazeEffect` will draw all layers with a `zIndex` less than the value of the sibling `Modifier.hazeSource`. So in the example above, the middle card (`zIndex` of 2) will draw the rear card (`zIndex` of 1) and background (`zIndex` of 0).
 
 This default behavior is usually the correct behavior for all use cases, but you can modify this behavior via the `canDrawArea` parameter, which acts as a filter when set:
 
 ``` kotlin
 CreditCard(
   modifier = Modifier
-    .haze(hazeState, zIndex = 2f, key = "foo")
-    .hazeChild(hazeState) {
+    .hazeSource(hazeState, zIndex = 2f, key = "foo")
+    .hazeEffect(hazeState) {
       canDrawArea = { area ->
         // return true to draw
         area.key != "foo"
