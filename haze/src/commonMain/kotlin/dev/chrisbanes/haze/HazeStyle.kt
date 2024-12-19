@@ -13,14 +13,14 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 
 /**
- * A [ProvidableCompositionLocal] which provides the default [HazeStyle] for all [hazeChild]
+ * A [ProvidableCompositionLocal] which provides the default [HazeStyle] for all [hazeEffect]
  * layout nodes placed within this composition local's content.
  *
  * There are precedence rules to how each styling property is applied. The order of precedence
  * for each property are as follows:
  *
- *  - Value set in [HazeChildScope], if specified.
- *  - Value set in style provided to [hazeChild] (or [HazeChildScope.style]), if specified.
+ *  - Value set in [HazeEffectScope], if specified.
+ *  - Value set in style provided to [hazeEffect] (or [HazeEffectScope.style]), if specified.
  *  - Value set in this composition local.
  */
 val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> = compositionLocalOf { HazeStyle.Unspecified }
@@ -28,7 +28,7 @@ val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> = compositionLocalOf {
 /**
  * A holder for the style properties used by Haze.
  *
- * Can be set via [haze] and [hazeChild].
+ * Can be set via [hazeSource] and [hazeEffect].
  *
  * @property backgroundColor Color to draw behind the blurred content. Ideally should be opaque
  * so that the original content is not visible behind. Typically this would be

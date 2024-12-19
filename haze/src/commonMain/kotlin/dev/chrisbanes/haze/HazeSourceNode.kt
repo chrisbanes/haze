@@ -35,13 +35,13 @@ import androidx.compose.ui.unit.toSize
 annotation class ExperimentalHazeApi
 
 /**
- * The [Modifier.Node] implementation used by [Modifier.haze].
+ * The [Modifier.Node] implementation used by [Modifier.hazeSource].
  *
  * This is public API in order to aid custom extensible modifiers, _but_ we reserve the right
  * to be able to change the API in the future, hence why it is marked as experimental forever.
  */
 @ExperimentalHazeApi
-class HazeNode(
+class HazeSourceNode(
   var state: HazeState,
   zIndex: Float = 0f,
   key: Any? = null,
@@ -179,7 +179,7 @@ class HazeNode(
   }
 
   private companion object {
-    const val TAG = "HazeNode"
+    const val TAG = "HazeSource"
   }
 }
 

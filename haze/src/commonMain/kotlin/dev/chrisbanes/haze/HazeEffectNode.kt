@@ -7,8 +7,6 @@ package dev.chrisbanes.haze
 
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -56,16 +54,16 @@ import io.github.reactivecircus.cache4k.Cache
 internal val ModifierLocalCurrentHazeZIndex = modifierLocalOf<Float?> { null }
 
 /**
- * The [Modifier.Node] implementation used by [Modifier.hazeChild].
+ * The [Modifier.Node] implementation used by [Modifier.hazeEffect].
  *
  * This is public API in order to aid custom extensible modifiers, _but_ we reserve the right
  * to be able to change the API in the future, hence why it is marked as experimental forever.
  */
 @ExperimentalHazeApi
-class HazeChildNode(
+class HazeEffectNode(
   var state: HazeState,
   style: HazeStyle = HazeStyle.Unspecified,
-  var block: (HazeChildScope.() -> Unit)? = null,
+  var block: (HazeEffectScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
@@ -73,7 +71,7 @@ class HazeChildNode(
   ObserverModifierNode,
   DrawModifierNode,
   ModifierLocalModifierNode,
-  HazeChildScope {
+  HazeEffectScope {
 
   override val shouldAutoInvalidate: Boolean = false
 
@@ -494,7 +492,7 @@ class HazeChildNode(
   }
 
   internal companion object {
-    const val TAG = "HazeChild"
+    const val TAG = "HazeEffect"
   }
 }
 
@@ -620,7 +618,7 @@ internal class RenderEffectParams(
 )
 
 @ExperimentalHazeApi
-internal fun HazeChildNode.calculateInputScaleFactor(
+internal fun HazeEffectNode.calculateInputScaleFactor(
   blurRadius: Dp = resolveBlurRadius(),
 ): Float = when (val s = inputScale) {
   HazeInputScale.None -> 1f
@@ -640,7 +638,7 @@ internal fun HazeChildNode.calculateInputScaleFactor(
 }
 
 @OptIn(ExperimentalHazeApi::class)
-internal fun HazeChildNode.getOrCreateRenderEffect(
+internal fun HazeEffectNode.getOrCreateRenderEffect(
   inputScale: Float = calculateInputScaleFactor(),
   blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp } * inputScale,
   noiseFactor: Float = resolveNoiseFactor(),
@@ -664,52 +662,52 @@ internal fun HazeChildNode.getOrCreateRenderEffect(
 )
 
 internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params: RenderEffectParams): RenderEffect? {
-  log(HazeChildNode.TAG) { "getOrCreateRenderEffect: $params" }
+  log(HazeEffectNode.TAG) { "getOrCreateRenderEffect: $params" }
   val cached = renderEffectCache.get(params)
   if (cached != null) {
-    log(HazeChildNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
+    log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
     return cached
   }
 
-  log(HazeChildNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
+  log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
   return createRenderEffect(params)
     ?.also { renderEffectCache.put(params, it) }
 }
 
 internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
 
-internal expect fun HazeChildNode.drawLinearGradientProgressiveEffect(
+internal expect fun HazeEffectNode.drawLinearGradientProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
 )
 
-internal fun HazeChildNode.resolveBackgroundColor(): Color {
+internal fun HazeEffectNode.resolveBackgroundColor(): Color {
   return backgroundColor
     .takeOrElse { style.backgroundColor }
     .takeOrElse { compositionLocalStyle.backgroundColor }
 }
 
-internal fun HazeChildNode.resolveBlurRadius(): Dp {
+internal fun HazeEffectNode.resolveBlurRadius(): Dp {
   return blurRadius
     .takeOrElse { style.blurRadius }
     .takeOrElse { compositionLocalStyle.blurRadius }
 }
 
-internal fun HazeChildNode.resolveTints(): List<HazeTint> {
+internal fun HazeEffectNode.resolveTints(): List<HazeTint> {
   return tints.takeIf { it.isNotEmpty() }
     ?: style.tints.takeIf { it.isNotEmpty() }
     ?: compositionLocalStyle.tints.takeIf { it.isNotEmpty() }
     ?: emptyList()
 }
 
-internal fun HazeChildNode.resolveFallbackTint(): HazeTint {
+internal fun HazeEffectNode.resolveFallbackTint(): HazeTint {
   return fallbackTint.takeIf { it.isSpecified }
     ?: style.fallbackTint.takeIf { it.isSpecified }
     ?: compositionLocalStyle.fallbackTint
 }
 
-internal fun HazeChildNode.resolveNoiseFactor(): Float {
+internal fun HazeEffectNode.resolveNoiseFactor(): Float {
   return noiseFactor
     .takeOrElse { style.noiseFactor }
     .takeOrElse { compositionLocalStyle.noiseFactor }

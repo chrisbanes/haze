@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 
-internal actual fun HazeChildNode.drawLinearGradientProgressiveEffect(
+internal actual fun HazeEffectNode.drawLinearGradientProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
