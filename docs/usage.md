@@ -89,7 +89,7 @@ Progressive blurs allow you to provide a visual effect where the blur radius is 
 
 ![type:video](./media/progressive.mp4)
 
-Progressive blurs can be enabled by setting the `progressive` property on [HazeEffectScope](../api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html). The API is very similar to the Brush gradient APIs, so it should feel familiar.
+Progressive blurs can be enabled by setting the `progressive` property on [HazeEffectScope](../api/haze/dev.chrisbanes.haze/-haze-effect-scope/). The API is very similar to the Brush gradient APIs, so it should feel familiar.
 
 ```kotlin
 LargeTopAppBar(
