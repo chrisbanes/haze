@@ -16,10 +16,12 @@ class MetalavaConventionPlugin : Plugin<Project> {
 
     metalava {
       filename.set("api/api.txt")
-      sourcePaths.setFrom(
-        target.kotlin.sourceSets
-          .filterNot { it.name.contains("test", ignoreCase = true) }
-          .flatMap { it.kotlin.sourceDirectories },
+
+      excludedSourceSets.setFrom(
+        target.kotlin
+          .sourceSets
+          .filter { it.name.contains("test", ignoreCase = true) }
+          .flatMap { it.kotlin.sourceDirectories }
       )
     }
 

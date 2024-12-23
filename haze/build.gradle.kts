@@ -40,7 +40,6 @@ kotlin {
       dependencies {
         api(compose.ui)
         implementation(compose.foundation)
-        implementation(libs.cache4k)
       }
     }
 
@@ -68,6 +67,10 @@ kotlin {
 
     named("wasmJsMain") {
       dependsOn(skikoMain)
+
+      dependencies {
+        implementation(libs.kotlinx.datetime)
+      }
     }
 
     named("jsMain") {
