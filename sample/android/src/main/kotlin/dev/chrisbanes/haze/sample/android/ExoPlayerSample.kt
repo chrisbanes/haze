@@ -55,12 +55,11 @@ fun ExoPlayerSample(navigator: Navigator) {
     AndroidView(
       factory = { ctx ->
         // For Haze to work with video players, they need to be configured to use a TextureView.
-        // For ExoPlayer that needs to be done via a layout file.
-        val view = LayoutInflater.from(ctx)
-          .inflate(R.layout.exoplayer, null) as PlayerView
-        view.apply {
-          player = exoPlayer
-        }
+        // When using ExoPlayer's PlayerView, that needs to be done via a layout attribute.
+        LayoutInflater.from(ctx).inflate(R.layout.exoplayer, null) as PlayerView
+      },
+      update = { playerView ->
+        playerView.player = exoPlayer
       },
       modifier = Modifier
         .fillMaxSize()
@@ -77,4 +76,5 @@ fun ExoPlayerSample(navigator: Navigator) {
   }
 }
 
-private const val BIG_BUCK_BUNNY = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+private const val BIG_BUCK_BUNNY =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
