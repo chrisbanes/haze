@@ -32,7 +32,6 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import io.github.reactivecircus.cache4k.Cache
 import kotlin.concurrent.getOrSet
 import kotlin.math.roundToInt
 
@@ -84,15 +83,11 @@ internal actual fun DrawScope.canUseGraphicLayers(): Boolean {
   return Build.VERSION.SDK_INT >= 31 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
 }
 
-private val noiseTextureCache by unsynchronizedLazy {
-  Cache.Builder<Int, Bitmap>()
-    .maximumCacheSize(3)
-    .build()
-}
+private val noiseTextureCache by unsynchronizedLazy { SimpleLruCache<Int, Bitmap>(3) }
 
 private fun Context.getNoiseTexture(noiseFactor: Float): Bitmap {
   val noiseAlphaInt = (noiseFactor * 255).roundToInt().coerceIn(0, 255)
-  val cached = noiseTextureCache.get(noiseAlphaInt)
+  val cached = noiseTextureCache[noiseAlphaInt]
   if (cached != null && !cached.isRecycled) {
     return cached
   }
@@ -100,7 +95,7 @@ private fun Context.getNoiseTexture(noiseFactor: Float): Bitmap {
   // We draw the noise with the given opacity
   return BitmapFactory.decodeResource(resources, R.drawable.haze_noise)
     .transform(alpha = noiseAlphaInt)
-    .also { noiseTextureCache.put(noiseAlphaInt, it) }
+    .also { noiseTextureCache[noiseAlphaInt] = it }
 }
 
 @RequiresApi(31)

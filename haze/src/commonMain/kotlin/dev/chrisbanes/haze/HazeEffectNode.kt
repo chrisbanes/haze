@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import dev.drewhamilton.poko.Poko
-import io.github.reactivecircus.cache4k.Cache
 
 internal val ModifierLocalCurrentHazeZIndex = modifierLocalOf<Float?> { null }
 
@@ -599,11 +598,7 @@ sealed interface HazeProgressive {
   }
 }
 
-private val renderEffectCache by unsynchronizedLazy {
-  Cache.Builder<RenderEffectParams, RenderEffect>()
-    .maximumCacheSize(10)
-    .build()
-}
+private val renderEffectCache by unsynchronizedLazy { SimpleLruCache<RenderEffectParams, RenderEffect>(10) }
 
 @Poko
 internal class RenderEffectParams(
@@ -663,7 +658,7 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
 
 internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params: RenderEffectParams): RenderEffect? {
   log(HazeEffectNode.TAG) { "getOrCreateRenderEffect: $params" }
-  val cached = renderEffectCache.get(params)
+  val cached = renderEffectCache[params]
   if (cached != null) {
     log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
     return cached
@@ -671,7 +666,7 @@ internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params
 
   log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
   return createRenderEffect(params)
-    ?.also { renderEffectCache.put(params, it) }
+    ?.also { renderEffectCache[params] = it }
 }
 
 internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?

@@ -227,7 +227,7 @@ package dev.chrisbanes.haze {
     method public float component3-D9Ej5fM();
     method public float component4();
     method public dev.chrisbanes.haze.HazeTint component5();
-    method public dev.chrisbanes.haze.HazeStyle copy-cq6XJ1M(long backgroundColor, java.util.List<dev.chrisbanes.haze.HazeTint> tints, float blurRadius, float noiseFactor, dev.chrisbanes.haze.HazeTint fallbackTint);
+    method public dev.chrisbanes.haze.HazeStyle copy-cq6XJ1M(long backgroundColor, java.util.List<dev.chrisbanes.haze.HazeTint!> tints, float blurRadius, float noiseFactor, dev.chrisbanes.haze.HazeTint fallbackTint);
     method public long getBackgroundColor();
     method public float getBlurRadius();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
