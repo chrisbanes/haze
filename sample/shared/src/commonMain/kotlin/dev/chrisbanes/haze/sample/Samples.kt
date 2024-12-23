@@ -10,11 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -24,10 +20,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import coil3.ImageLoader
@@ -61,10 +54,6 @@ data class Sample(
   val content: @Composable (Navigator) -> Unit,
 )
 
-fun interface Navigator {
-  fun navigateUp()
-}
-
 @Composable
 fun SamplesTheme(
   useDarkColors: Boolean = isSystemInDarkTheme(),
@@ -80,6 +69,7 @@ fun SamplesTheme(
 @Composable
 fun Samples(
   appTitle: String,
+  navigator: Navigator = remember { Navigator() },
   samples: List<Sample> = Samples,
 ) {
   setSingletonImageLoaderFactory { context ->
@@ -111,14 +101,8 @@ fun Samples(
   }
 
   SamplesTheme {
-    var currentSample by remember { mutableStateOf<Sample?>(null) }
-
-    val navigator = remember {
-      Navigator { currentSample = null }
-    }
-
     Crossfade(
-      targetState = currentSample,
+      targetState = navigator.currentSample,
       modifier = Modifier.testTagsAsResourceId(true),
     ) { sample ->
       if (sample != null) {
@@ -127,18 +111,7 @@ fun Samples(
         Scaffold(
           topBar = {
             TopAppBar(
-              title = { Text(text = currentSample?.title ?: appTitle) },
-              navigationIcon = {
-                if (currentSample != null) {
-                  IconButton(onClick = { currentSample = null }) {
-                    @Suppress("DEPRECATION")
-                    Icon(
-                      imageVector = Icons.Default.ArrowBack,
-                      contentDescription = "Navigate back",
-                    )
-                  }
-                }
-              },
+              title = { Text(text = appTitle) },
               modifier = Modifier.fillMaxWidth(),
             )
           },
@@ -153,7 +126,7 @@ fun Samples(
                 modifier = Modifier
                   .fillMaxWidth()
                   .testTag(sample.title)
-                  .clickable { currentSample = sample },
+                  .clickable { navigator.navigateTo(sample) },
               )
             }
           }
