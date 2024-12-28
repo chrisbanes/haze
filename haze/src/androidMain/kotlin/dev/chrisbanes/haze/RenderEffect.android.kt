@@ -19,6 +19,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
@@ -50,7 +51,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
       // our custom blur via a runtime shader
       createBlurImageFilterWithMask(
         blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() },
-        bounds = Rect(params.contentOffset, params.contentSize),
+        bounds = params.contentSize.toRect(),
         mask = progressiveShader,
       )
     }
@@ -71,8 +72,8 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 
   return blur
     .withNoise(currentValueOf(LocalContext), params.noiseFactor)
-    .withTints(params.tints, params.tintAlphaModulate, progressiveShader, params.contentOffset)
-    .withMask(params.mask, params.contentSize, params.contentOffset)
+    .withTints(params.tints, params.tintAlphaModulate, progressiveShader)
+    .withMask(params.mask, params.contentSize)
     .asComposeRenderEffect()
 }
 
@@ -119,7 +120,7 @@ private fun AndroidRenderEffect.withNoise(
 private fun AndroidRenderEffect.withMask(
   mask: Brush?,
   size: Size,
-  offset: Offset,
+  offset: Offset = Offset.Zero,
   blendMode: BlendMode = BlendMode.DST_IN,
 ): AndroidRenderEffect {
   val shader = mask?.toShader(size) ?: return this
