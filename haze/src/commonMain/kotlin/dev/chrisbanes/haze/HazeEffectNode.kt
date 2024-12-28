@@ -41,7 +41,6 @@ import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -134,7 +133,7 @@ class HazeEffectNode(
     }
 
   private val isValid: Boolean
-    get() = size.isSpecified && layerSize.isSpecified && areas.isNotEmpty()
+    get() = size.isSpecified && positionOnScreen.isSpecified && areas.isNotEmpty()
 
   internal var size: Size = Size.Unspecified
     set(value) {
@@ -143,27 +142,6 @@ class HazeEffectNode(
         dirtyTracker += DirtyFields.Size
         field = value
       }
-    }
-
-  private var layerSize: Size = Size.Unspecified
-    set(value) {
-      if (value != field) {
-        log(TAG) { "layerSize changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.LayerSize
-        field = value
-      }
-    }
-
-  internal val contentOffset: Offset
-    get() = when {
-      isValid -> {
-        Offset(
-          x = (layerSize.width - size.width) / 2f,
-          y = (layerSize.height - size.height) / 2f,
-        )
-      }
-
-      else -> Offset.Zero
     }
 
   override var blurRadius: Dp = Dp.Unspecified
@@ -293,11 +271,6 @@ class HazeEffectNode(
     positionOnScreen = coordinates.positionOnScreen()
     size = coordinates.size.toSize()
 
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) {
-      resolveBlurRadius().takeOrElse { 0.dp }.toPx()
-    }
-    layerSize = size.expand(blurRadiusPx * 2)
-
     updateEffect()
   }
 
@@ -365,9 +338,7 @@ class HazeEffectNode(
     // content around the edges to keep the blurring uniform. Without the extra border,
     // the blur will naturally fade out at the edges.
     val scaleFactor = calculateInputScaleFactor()
-    val inflatedSize = layerSize * scaleFactor
-    // This is the topLeft in the inflated bounds where the real are should be at [0,0]
-    val inflatedOffset = contentOffset
+    val scaledSize = size * scaleFactor
 
     val bg = resolveBackgroundColor()
     require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
@@ -377,12 +348,12 @@ class HazeEffectNode(
     Snapshot.withoutReadObservation {
       val bounds = Rect(positionOnScreen, size)
 
-      layer.record(inflatedSize.roundToIntSize()) {
+      layer.record(scaledSize.roundToIntSize()) {
         drawRect(bg)
 
         clipRect {
           scale(scale = scaleFactor, pivot = Offset.Zero) {
-            translate(inflatedOffset - positionOnScreen) {
+            translate(offset = -positionOnScreen) {
               for (area in areas) {
                 require(!area.contentDrawing) {
                   "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
@@ -414,26 +385,24 @@ class HazeEffectNode(
     }
 
     clipRect {
-      translate(-inflatedOffset) {
-        scale(1f / scaleFactor, Offset.Zero) {
-          val p = progressive
-          if (p is HazeProgressive.LinearGradient) {
-            drawLinearGradientProgressiveEffect(
-              drawScope = this,
-              progressive = p,
-              contentLayer = layer,
-            )
-          } else {
-            // First make sure that the RenderEffect is updated (if necessary)
-            updateRenderEffectIfDirty()
+      scale(1f / scaleFactor, Offset.Zero) {
+        val p = progressive
+        if (p is HazeProgressive.LinearGradient) {
+          drawLinearGradientProgressiveEffect(
+            drawScope = this,
+            progressive = p,
+            contentLayer = layer,
+          )
+        } else {
+          // First make sure that the RenderEffect is updated (if necessary)
+          updateRenderEffectIfDirty()
 
-            layer.renderEffect = renderEffect
-            layer.alpha = alpha
+          layer.renderEffect = renderEffect
+          layer.alpha = alpha
 
-            // Since we included a border around the content, we need to translate so that
-            // we don't see it (but it still affects the RenderEffect)
-            drawLayer(layer)
-          }
+          // Since we included a border around the content, we need to translate so that
+          // we don't see it (but it still affects the RenderEffect)
+          drawLayer(layer)
         }
       }
     }
@@ -607,7 +576,6 @@ internal class RenderEffectParams(
   val tints: List<HazeTint> = emptyList(),
   val tintAlphaModulate: Float = 1f,
   val contentSize: Size,
-  val contentOffset: Offset,
   val mask: Brush? = null,
   val progressive: Brush? = null,
 )
@@ -640,7 +608,6 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
   tints: List<HazeTint> = resolveTints(),
   tintAlphaModulate: Float = 1f,
   contentSize: Size = this.size * inputScale,
-  contentOffset: Offset = this.contentOffset * inputScale,
   mask: Brush? = this.mask,
   progressive: Brush? = null,
 ): RenderEffect? = getOrCreateRenderEffect(
@@ -650,7 +617,6 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
     tints = tints,
     tintAlphaModulate = tintAlphaModulate,
     contentSize = contentSize,
-    contentOffset = contentOffset,
     mask = mask,
     progressive = progressive,
   ),
@@ -710,27 +676,25 @@ internal fun HazeEffectNode.resolveNoiseFactor(): Float {
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {
-  const val BlurEnabled: Int = 0b1 shl 0
-  const val InputScale = 0b1 shl 1
-  const val ScreenPosition = 0b1 shl 2
-  const val AreaOffsets = 0b1 shl 3
-  const val Size = 0b1 shl 4
-  const val LayerSize = 0b1 shl 5
-  const val BlurRadius = 0b1 shl 6
-  const val NoiseFactor = 0b1 shl 7
-  const val Mask = 0b1 shl 8
-  const val BackgroundColor = 0b1 shl 9
-  const val Tints = 0b1 shl 10
-  const val FallbackTint = 0b1 shl 11
-  const val Alpha = 0b1 shl 12
-  const val Progressive = 0b1 shl 13
-  const val Areas = 0b1 shl 14
+  const val BlurEnabled: Int = 0b1
+  const val InputScale = BlurEnabled shl 1
+  const val ScreenPosition = InputScale shl 1
+  const val AreaOffsets = ScreenPosition shl 1
+  const val Size = AreaOffsets shl 1
+  const val BlurRadius = Size shl 1
+  const val NoiseFactor = BlurRadius shl 1
+  const val Mask = NoiseFactor shl 1
+  const val BackgroundColor = Mask shl 1
+  const val Tints = BackgroundColor shl 1
+  const val FallbackTint = Tints shl 1
+  const val Alpha = FallbackTint shl 1
+  const val Progressive = Alpha shl 1
+  const val Areas = Progressive shl 1
 
   const val RenderEffectAffectingFlags =
     BlurEnabled or
       InputScale or
       Size or
-      LayerSize or
       BlurRadius or
       NoiseFactor or
       Mask or
@@ -744,7 +708,6 @@ internal object DirtyFields {
       InputScale or
       AreaOffsets or
       Size or
-      LayerSize or
       BackgroundColor or
       Progressive or // TODO: only on Android SDK 32-33
       Areas
@@ -756,7 +719,6 @@ internal object DirtyFields {
       if (ScreenPosition in dirtyTracker) add("ScreenPosition")
       if (AreaOffsets in dirtyTracker) add("RelativePosition")
       if (Size in dirtyTracker) add("Size")
-      if (LayerSize in dirtyTracker) add("LayerSize")
       if (BlurRadius in dirtyTracker) add("BlurRadius")
       if (NoiseFactor in dirtyTracker) add("NoiseFactor")
       if (Mask in dirtyTracker) add("Mask")
