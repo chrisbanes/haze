@@ -16,16 +16,15 @@ import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -72,7 +71,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 
   return blur
     .withNoise(currentValueOf(LocalContext), params.noiseFactor)
-    .withTints(params.tints, params.tintAlphaModulate, progressiveShader)
+    .withTints(params.tints, params.contentSize, params.tintAlphaModulate, progressiveShader)
     .withMask(params.mask, params.contentSize)
     .asComposeRenderEffect()
 }
@@ -120,11 +119,10 @@ private fun AndroidRenderEffect.withNoise(
 private fun AndroidRenderEffect.withMask(
   mask: Brush?,
   size: Size,
-  offset: Offset = Offset.Zero,
   blendMode: BlendMode = BlendMode.DST_IN,
 ): AndroidRenderEffect {
   val shader = mask?.toShader(size) ?: return this
-  return blendWith(AndroidRenderEffect.createShaderEffect(shader), blendMode, offset)
+  return blendWith(AndroidRenderEffect.createShaderEffect(shader), blendMode)
 }
 
 private fun Brush.toShader(size: Size): Shader? = when (this) {
@@ -135,55 +133,83 @@ private fun Brush.toShader(size: Size): Shader? = when (this) {
 @RequiresApi(31)
 private fun AndroidRenderEffect.withTints(
   tints: List<HazeTint>,
+  size: Size,
   alphaModulate: Float = 1f,
-  mask: Shader? = null,
-  maskOffset: Offset = Offset.Zero,
+  mask: Shader?,
 ): AndroidRenderEffect = tints.fold(this) { acc, tint ->
-  acc.withTint(tint, alphaModulate, mask, maskOffset)
+  acc.withTint(tint, size, alphaModulate, mask)
 }
 
 @RequiresApi(31)
 private fun AndroidRenderEffect.withTint(
   tint: HazeTint,
+  size: Size,
   alphaModulate: Float = 1f,
   mask: Shader?,
-  maskOffset: Offset,
 ): AndroidRenderEffect {
-  if (!tint.color.isSpecified) return this
-  val color = when {
+  if (!tint.isSpecified) return this
+
+  val tintBrush = tint.brush?.toShader(size)
+  if (tintBrush != null) {
+    val brushEffect = when {
+      alphaModulate >= 1f -> {
+        AndroidRenderEffect.createShaderEffect(tintBrush)
+      }
+      else -> {
+        // If we need to modulate the alpha, we'll need to wrap it in a ColorFilter
+        AndroidRenderEffect.createColorFilterEffect(
+          BlendModeColorFilter(Color.Blue.copy(alpha = alphaModulate).toArgb(), BlendMode.SRC_IN),
+          AndroidRenderEffect.createShaderEffect(tintBrush),
+        )
+      }
+    }
+
+    return if (mask != null) {
+      blendWith(
+        AndroidRenderEffect.createBlendModeEffect(
+          AndroidRenderEffect.createShaderEffect(mask),
+          brushEffect,
+          BlendMode.SRC_IN,
+        ),
+        blendMode = tint.blendMode.toAndroidBlendMode(),
+      )
+    } else {
+      blendWith(
+        foreground = brushEffect,
+        blendMode = tint.blendMode.toAndroidBlendMode(),
+      )
+    }
+  }
+
+  val tintColor = when {
     alphaModulate < 1f -> tint.color.copy(alpha = tint.color.alpha * alphaModulate)
     else -> tint.color
   }
-  if (color.alpha < 0.005f) return this
-
-  return if (mask != null) {
-    blendWith(
-      foreground = AndroidRenderEffect.createColorFilterEffect(
-        BlendModeColorFilter(color.toArgb(), BlendMode.SRC_IN),
-        AndroidRenderEffect.createShaderEffect(mask),
-      ),
-      blendMode = tint.blendMode.toAndroidBlendMode(),
-      offset = maskOffset,
-    )
-  } else {
-    AndroidRenderEffect.createColorFilterEffect(
-      BlendModeColorFilter(color.toArgb(), tint.blendMode.toAndroidBlendMode()),
-      this,
-    )
+  if (tintColor.alpha >= 0.005f) {
+    return if (mask != null) {
+      return blendWith(
+        foreground = AndroidRenderEffect.createColorFilterEffect(
+          BlendModeColorFilter(tintColor.toArgb(), BlendMode.SRC_IN),
+          AndroidRenderEffect.createShaderEffect(mask),
+        ),
+        blendMode = tint.blendMode.toAndroidBlendMode(),
+      )
+    } else {
+      AndroidRenderEffect.createColorFilterEffect(
+        BlendModeColorFilter(tintColor.toArgb(), tint.blendMode.toAndroidBlendMode()),
+        this,
+      )
+    }
   }
+
+  return this
 }
 
 @RequiresApi(31)
 private fun AndroidRenderEffect.blendWith(
   foreground: AndroidRenderEffect,
   blendMode: BlendMode,
-  offset: Offset = Offset.Zero,
-): AndroidRenderEffect = AndroidRenderEffect.createBlendModeEffect(
-  this,
-  // We need to offset the shader to the bounds
-  AndroidRenderEffect.createOffsetEffect(offset.x, offset.y, foreground),
-  blendMode,
-)
+): AndroidRenderEffect = AndroidRenderEffect.createBlendModeEffect(this, foreground, blendMode)
 
 @RequiresApi(33)
 private fun createBlurImageFilterWithMask(

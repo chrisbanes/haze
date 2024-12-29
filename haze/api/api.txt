@@ -251,14 +251,18 @@ package dev.chrisbanes.haze {
   }
 
   @androidx.compose.runtime.Stable public final class HazeTint {
+    ctor public HazeTint(androidx.compose.ui.graphics.Brush brush, optional int blendMode);
     ctor public HazeTint(long color, optional int blendMode);
     method public long component1-0d7_KjU();
     method public int component2-0nO6VwU();
-    method public dev.chrisbanes.haze.HazeTint copy-xETnrds(long color, int blendMode);
+    method public androidx.compose.ui.graphics.Brush? component3();
+    method public dev.chrisbanes.haze.HazeTint copy-39kzsgs(long color, int blendMode, androidx.compose.ui.graphics.Brush? brush);
     method public int getBlendMode();
+    method public androidx.compose.ui.graphics.Brush? getBrush();
     method public long getColor();
     method public boolean isSpecified();
     property public final int blendMode;
+    property public final androidx.compose.ui.graphics.Brush? brush;
     property public final long color;
     property public final boolean isSpecified;
     field public static final dev.chrisbanes.haze.HazeTint.Companion Companion;

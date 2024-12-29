@@ -8,6 +8,7 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
@@ -23,7 +24,8 @@ import androidx.compose.ui.unit.Dp
  *  - Value set in style provided to [hazeEffect] (or [HazeEffectScope.style]), if specified.
  *  - Value set in this composition local.
  */
-val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> = compositionLocalOf { HazeStyle.Unspecified }
+val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> =
+  compositionLocalOf { HazeStyle.Unspecified }
 
 /**
  * A holder for the style properties used by Haze.
@@ -67,16 +69,28 @@ data class HazeStyle(
   }
 }
 
+/**
+ * Describes a 'tint' drawn by the haze effect.
+ *
+ * Ideally this class would be a sealed class, but unfortunately that would require breaking the
+ * API so we need to use this merged class for v1.x.
+ */
+@ExposedCopyVisibility
 @Stable
-data class HazeTint(
+data class HazeTint internal constructor(
   val color: Color,
-  val blendMode: BlendMode = BlendMode.SrcOver,
+  val blendMode: BlendMode,
+  val brush: Brush?,
 ) {
+  constructor(color: Color, blendMode: BlendMode = BlendMode.SrcOver) : this(color = color, brush = null, blendMode = blendMode)
+
+  constructor(brush: Brush, blendMode: BlendMode = BlendMode.SrcOver) : this(color = Color.Unspecified, brush = brush, blendMode = blendMode)
+
   companion object {
-    val Unspecified: HazeTint = HazeTint(Color.Unspecified)
+    val Unspecified: HazeTint = HazeTint(Color.Unspecified, BlendMode.SrcOver, null)
   }
 
-  val isSpecified: Boolean get() = color.isSpecified
+  val isSpecified: Boolean get() = color.isSpecified || brush != null
 }
 
 internal inline fun Float.takeOrElse(block: () -> Float): Float =

@@ -107,11 +107,7 @@ class HazeScreenshotTest : ScreenshotTest() {
       ScreenshotTheme {
         CreditCardSample(
           tint = DefaultTint,
-          mask = Brush.verticalGradient(
-            0f to Color.Transparent,
-            0.5f to Color.Black,
-            1f to Color.Transparent,
-          ),
+          mask = VerticalMask,
         )
       }
     }
@@ -289,8 +285,53 @@ class HazeScreenshotTest : ScreenshotTest() {
     captureRoot("red")
   }
 
+  @Test
+  fun creditCard_brushTint() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(tint = BrushTint)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_brushTint_mask() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(tint = BrushTint, mask = VerticalMask)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_brushTint_progressive() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(tint = BrushTint, progressive = HazeProgressive.verticalGradient())
+      }
+    }
+    captureRoot()
+  }
+
   companion object {
     val DefaultTint = HazeTint(Color.White.copy(alpha = 0.1f))
     val OverrideStyle = HazeStyle(tints = listOf(HazeTint(Color.Red.copy(alpha = 0.5f))))
+
+    val BrushTint = HazeTint(
+      brush = Brush.radialGradient(
+        colors = listOf(
+          Color.Yellow.copy(alpha = 0.5f),
+          Color.Red.copy(alpha = 0.5f),
+        ),
+      ),
+    )
+
+    val VerticalMask = Brush.verticalGradient(
+      0f to Color.Transparent,
+      0.5f to Color.Black,
+      1f to Color.Transparent,
+    )
   }
 }
