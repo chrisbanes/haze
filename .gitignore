@@ -48,6 +48,8 @@ bin/
 # Docs
 site/
 .cache/
+docs/api
+docs/sample
 
 # Ignore baseline profile files in samples
 sample/**/generated

@@ -1,4 +1,4 @@
-Haze is implemented through two Compose Modifiers: [Modifier.hazeSource](../api/haze/dev.chrisbanes.haze/haze-source.html) and [Modifier.hazeEffect](../api/haze/dev.chrisbanes.haze/haze-effect.html).
+Haze is implemented through two Compose Modifiers: [Modifier.hazeSource](api/haze/dev.chrisbanes.haze/haze-source.html) and [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
 
 The most basic usage would be something like:
 
@@ -29,13 +29,13 @@ Box {
 
 ## Styling
 
-Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](../api/haze/dev.chrisbanes.haze/-haze-style/) class, or the lambda block provided to `hazeEffect`.
+Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](api/haze/dev.chrisbanes.haze/-haze-style/) class, or the lambda block provided to `hazeEffect`.
 
 Styles can be provided in a number of different ways:
 
-- [LocalHazeStyle](../api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
-- The style parameter on [Modifier.hazeEffect](../api/haze/dev.chrisbanes.haze/haze-effect.html).
-- By setting the relevant property in the optional [HazeEffectScope](../api/haze/dev.chrisbanes.haze/-haze-effect-scope/) lambda `block`, passed into [Modifier.hazeEffect](../api/haze/dev.chrisbanes.haze/haze-effect.html).
+- [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
+- The style parameter on [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
+- By setting the relevant property in the optional [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/) lambda `block`, passed into [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
 
 ### HazeEffectScope
 
@@ -65,9 +65,9 @@ As we a few different ways to set styling properties, it's important to know how
 
 Each styling property (such as `blurRadius`) is resolved seperately, and the order of precedence for each property is as follows, in order:
 
-- Value set in [HazeEffectScope](../api/haze/dev.chrisbanes.haze/-haze-effect-scope/), if specified.
+- Value set in [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/), if specified.
 - Value set in style provided to hazeEffect (or HazeEffectScope.style), if specified.
-- Value set in the [LocalHazeStyle](../api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
+- Value set in the [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
 
 ### Styling properties
 
@@ -89,7 +89,7 @@ Progressive blurs allow you to provide a visual effect where the blur radius is 
 
 ![type:video](./media/progressive.mp4)
 
-Progressive blurs can be enabled by setting the `progressive` property on [HazeEffectScope](../api/haze/dev.chrisbanes.haze/-haze-effect-scope/). The API is very similar to the Brush gradient APIs, so it should feel familiar.
+Progressive blurs can be enabled by setting the `progressive` property on [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/). The API is very similar to the Brush gradient APIs, so it should feel familiar.
 
 ```kotlin
 LargeTopAppBar(

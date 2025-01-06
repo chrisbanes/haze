@@ -22,8 +22,8 @@ nav:
   - 'Recipes': recipes.md
   - 'API reference': api/
   - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
-  - '🕸️ Sample app (Wasm)': /haze/sample/wasm/
-  - '🕸️ Sample app (JS)': /haze/sample/js/
+  - '🕸️ Sample app (Wasm)': sample/wasm/
+  - '🕸️ Sample app (JS)': sample/js/
 
 # Configuration
 theme:
@@ -42,6 +42,7 @@ theme:
     - content.code.copy
 
 plugins:
+  - mike
   - social
   - search
   - mkdocs-video:
@@ -71,3 +72,10 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  versions:
+    haze: !ENV [HAZE_VERSION, 'local-development']
+  version:
+    provider: mike
+    alias: true

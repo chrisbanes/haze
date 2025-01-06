@@ -2,6 +2,8 @@ name: Publish docs
 
 on:
   push:
+    branches:
+      - main
     tags:
       - '*'
   workflow_dispatch:
@@ -32,19 +34,15 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Get Docs Version
+        run: cat gradle.properties | grep --color=never VERSION_NAME >> $GITHUB_OUTPUT
+        id: version
 
       - name: Install dependencies
         run: |
           brew install cairo freetype libffi libjpeg libpng zlib
           python3 -m pip install --upgrade pip
-          python3 -m pip install mkdocs mkdocs-material mkdocs-video "mkdocs-material[imaging]"
-
-      - name: Build site
-        run: mkdocs build
-        env:
-          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
+          python3 -m pip install mkdocs mkdocs-material mkdocs-video "mkdocs-material[imaging]" mike
 
       - uses: gradle/gradle-build-action@v3
 
@@ -54,20 +52,29 @@ jobs:
               :sample:web:wasmJsBrowserDistribution \
               :sample:web:jsBrowserDistribution
 
-      - name: Copy Dokka output to site
-        run: cp -r build/dokka/htmlMultiModule/ site/api/
-
-      - name: Copy web samples site
+      - name: Copy Dokka and samples output to docs
         run: |
-          mkdir -p site/sample
-          cp -r sample/web/build/dist/wasmJs/productionExecutable/ site/sample/wasm/
-          cp -r sample/web/build/dist/js/productionExecutable/ site/sample/js/
+          cp -r build/dokka/htmlMultiModule/ docs/api/
+          mkdir -p docs/sample
+          cp -r sample/web/build/dist/wasmJs/productionExecutable/ docs/sample/wasm/
+          cp -r sample/web/build/dist/js/productionExecutable/ docs/sample/js/
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'site'
+      - name: Configure git for mike
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git fetch origin gh-pages --depth=1
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy dev docs with mike 🗿
+        env:
+          HAZE_VERSION: ${{ steps.version.outputs.VERSION_NAME }}
+          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
+        if: ${{ success() && contains(steps.version.outputs.VERSION_NAME, 'SNAPSHOT') }}
+        run: mike deploy -u --push ${{ steps.version.outputs.VERSION_NAME }} dev
+
+      - name: Deploy release docs with mike 🚀
+        env:
+          HAZE_VERSION: ${{ steps.version.outputs.VERSION_NAME }}
+          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
+        if: ${{ success() && !contains(steps.version.outputs.VERSION_NAME , 'SNAPSHOT') }}
+        run: mike deploy -u --push ${{ steps.version.outputs.VERSION_NAME }} latest

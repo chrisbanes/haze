@@ -31,7 +31,7 @@ As we're now using a common implementation on all platforms, the Skia-backed pla
 #### Default style functionality on Modifier.haze has been moved
 
 - **What:** In previous versions, there was a `style` parameter on `Modifier.haze`, which has been moved in v1.0.
-- **Migration:** Use the new [LocalHazeStyle](../api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local instead.
+- **Migration:** Use the new [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local instead.
 - **Why:** Composition locals are used throughout styling frameworks, so this is a better API going forward.
 
 #### HazeArea has been removed
