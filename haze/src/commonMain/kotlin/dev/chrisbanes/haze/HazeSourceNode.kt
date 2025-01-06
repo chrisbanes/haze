@@ -76,7 +76,7 @@ class HazeSourceNode(
 
   override fun onAttach() {
     log(TAG) { "onAttach. Adding HazeArea: $area" }
-    state._areas.add(area)
+    state.addArea(area)
     onObservedReadsChanged()
   }
 
@@ -162,7 +162,7 @@ class HazeSourceNode(
   override fun onDetach() {
     log(TAG) { "onDetach. Removing HazeArea: $area" }
     area.reset()
-    state._areas.remove(area)
+    state.removeArea(area)
   }
 
   override fun onReset() {

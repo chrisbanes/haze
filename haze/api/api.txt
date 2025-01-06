@@ -30,7 +30,6 @@ package dev.chrisbanes.haze {
     method public boolean blurEnabled();
     method public float getBlurRadius();
     method public dev.chrisbanes.haze.HazeStyle style(long backgroundColor, optional dev.chrisbanes.haze.HazeTint tint, optional float blurRadius, optional float noiseFactor);
-    method @Deprecated public dev.chrisbanes.haze.HazeStyle style(optional long backgroundColor, long tint, optional float blurRadius, optional float noiseFactor);
     method public dev.chrisbanes.haze.HazeTint tint(long color);
     property public final float blurRadius;
     field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;

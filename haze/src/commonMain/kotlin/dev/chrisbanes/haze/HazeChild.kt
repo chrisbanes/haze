@@ -154,6 +154,13 @@ interface HazeEffectScope {
   @ExperimentalHazeApi
   var inputScale: HazeInputScale
 
+  /**
+   * A block which controls whether this [hazeEffect] should draw the given [HazeArea].
+   *
+   * When null, the default behavior is that this effect will only draw areas with a
+   * [HazeArea.zIndex] less than [ModifierLocalCurrentHazeZIndex].
+   */
+  @ExperimentalHazeApi
   var canDrawArea: ((HazeArea) -> Boolean)?
 }
 
