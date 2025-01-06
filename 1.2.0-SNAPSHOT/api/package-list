@@ -1,0 +1,7 @@
+$dokka.format:html-v1
+$dokka.linkExtension:html
+
+module:haze
+dev.chrisbanes.haze
+module:haze-materials
+dev.chrisbanes.haze.materials
