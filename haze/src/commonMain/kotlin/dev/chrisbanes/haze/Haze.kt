@@ -24,10 +24,16 @@ import androidx.compose.ui.unit.dp
 
 @Stable
 class HazeState {
-
-  @Suppress("PropertyName")
-  internal val _areas = mutableStateListOf<HazeArea>()
+  private val _areas = mutableStateListOf<HazeArea>()
   val areas: List<HazeArea> get() = _areas.toList()
+
+  internal fun addArea(area: HazeArea) {
+    _areas += area
+  }
+
+  internal fun removeArea(area: HazeArea) {
+    _areas -= area
+  }
 
   @Deprecated("Inspect areas instead")
   var positionOnScreen: Offset
@@ -76,14 +82,14 @@ class HazeArea {
 
   internal var contentDrawing = false
 
-  override fun toString(): String {
-    return "HazeArea(" +
-      "positionOnScreen=$positionOnScreen, " +
-      "size=$size, " +
-      "zIndex=$zIndex, " +
-      "contentLayer=$contentLayer, " +
-      "contentDrawing=$contentDrawing" +
-      ")"
+  override fun toString(): String = buildString {
+    append("HazeArea(")
+    append("positionOnScreen=$positionOnScreen, ")
+    append("size=$size, ")
+    append("zIndex=$zIndex, ")
+    append("contentLayer=$contentLayer, ")
+    append("contentDrawing=$contentDrawing")
+    append(")")
   }
 }
 
@@ -136,17 +142,6 @@ object HazeDefaults {
     color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
     else -> color
   }.let(::HazeTint)
-
-  @Deprecated(
-    "Migrate to HazeTint for tint",
-    ReplaceWith("HazeStyle(backgroundColor, HazeTint(tint), blurRadius, noiseFactor)"),
-  )
-  fun style(
-    backgroundColor: Color = Color.Unspecified,
-    tint: Color,
-    blurRadius: Dp = this.blurRadius,
-    noiseFactor: Float = this.noiseFactor,
-  ): HazeStyle = HazeStyle(backgroundColor, tint(backgroundColor), blurRadius, noiseFactor)
 
   /**
    * Default [HazeStyle] for usage with [Modifier.hazeSource].
