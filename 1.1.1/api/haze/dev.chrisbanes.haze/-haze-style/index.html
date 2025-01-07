@@ -1,0 +1,198 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>HazeStyle</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+<a class="library-name--link" href="../../../index.html">
+                            haze-root
+                    </a>            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":haze:dokkaHtmlPartial/commonMain">common</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="haze::dev.chrisbanes.haze/HazeStyle///PointingToDeclaration//-1073587601">
+  <div class="breadcrumbs"><a href="../../index.html">haze</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><span class="current">HazeStyle</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Haze</span><wbr><span><span>Style</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Immutable.html"><span class="token annotation builtin">Immutable</span></a></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">HazeStyle</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>backgroundColor<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a><span class="token operator"> = </span>Color.Unspecified<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>tints<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-haze-tint/index.html">HazeTint</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>blurRadius<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator"> = </span>Dp.Unspecified<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>noiseFactor<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span>-1f<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>fallbackTint<span class="token operator">: </span><a href="../-haze-tint/index.html">HazeTint</a><span class="token operator"> = </span>HazeTint.Unspecified</span></span><span class="token punctuation">)</span></div><p class="paragraph">A holder for the style properties used by Haze.</p><p class="paragraph">Can be set via <a href="../haze.html">haze</a> and <a href="../haze-child.html">hazeChild</a>.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="-1573668151%2FConstructors%2F-1073587601" anchor-label="HazeStyle" id="-1573668151%2FConstructors%2F-1073587601" data-filterable-set=":haze:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current=":haze:dokkaHtmlPartial/commonMain" data-filterable-set=":haze:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-haze-style.html"><span>Haze</span><wbr><span><span>Style</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1573668151%2FConstructors%2F-1073587601"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">backgroundColor<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a><span class="token operator"> = </span>Color.Unspecified<span class="token punctuation">, </span></span><span class="parameter ">tint<span class="token operator">: </span><a href="../-haze-tint/index.html">HazeTint</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">blurRadius<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator"> = </span>Dp.Unspecified<span class="token punctuation">, </span></span><span class="parameter ">noiseFactor<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span>-1f<span class="token punctuation">, </span></span><span class="parameter ">fallbackTint<span class="token operator">: </span><a href="../-haze-tint/index.html">HazeTint</a><span class="token operator"> = </span>HazeTint.Unspecified</span></span><span class="token punctuation">)</span></div><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">backgroundColor<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a><span class="token operator"> = </span>Color.Unspecified<span class="token punctuation">, </span></span><span class="parameter ">tints<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-haze-tint/index.html">HazeTint</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()<span class="token punctuation">, </span></span><span class="parameter ">blurRadius<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator"> = </span>Dp.Unspecified<span class="token punctuation">, </span></span><span class="parameter ">noiseFactor<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span>-1f<span class="token punctuation">, </span></span><span class="parameter ">fallbackTint<span class="token operator">: </span><a href="../-haze-tint/index.html">HazeTint</a><span class="token operator"> = </span>HazeTint.Unspecified</span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="-1708725598%2FClasslikes%2F-1073587601" anchor-label="Companion" id="-1708725598%2FClasslikes%2F-1073587601" data-filterable-set=":haze:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":haze:dokkaHtmlPartial/commonMain" data-filterable-set=":haze:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1708725598%2FClasslikes%2F-1073587601"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="1244781990%2FProperties%2F-1073587601" anchor-label="backgroundColor" id="1244781990%2FProperties%2F-1073587601" data-filterable-set=":haze:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":haze:dokkaHtmlPartial/commonMain" data-filterable-set=":haze:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="background-color.html"><span>background</span><wbr><span><span>Color</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1244781990%2FProperties%2F-1073587601"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="background-color.html">backgroundColor</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a></div><div class="brief "><p class="paragraph">Color to draw behind the blurred content. Ideally should be opaque so that the original content is not visible behind. Typically this would be <code class="lang-kotlin">MaterialTheme.colorScheme.surface</code> or similar.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-513484762%2FProperties%2F-1073587601" anchor-label="blurRadius" id="-513484762%2FProperties%2F-1073587601" data-filterable-set=":haze:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":haze:dokkaHtmlPartial/commonMain" data-filterable-set=":haze:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="blur-radius.html"><span>blur</span><wbr><span><span>Radius</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-513484762%2FProperties%2F-1073587601"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="blur-radius.html">blurRadius</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a></div><div class="brief "><p class="paragraph">Radius of the blur.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-63415550%2FProperties%2F-1073587601" anchor-label="fallbackTint" id="-63415550%2FProperties%2F-1073587601" data-filterable-set=":haze:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":haze:dokkaHtmlPartial/commonMain" data-filterable-set=":haze:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="fallback-tint.html"><span>fallback</span><wbr><span><span>Tint</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-63415550%2FProperties%2F-1073587601"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="fallback-tint.html">fallbackTint</a><span class="token operator">: </span><a href="../-haze-tint/index.html">HazeTint</a></div><div class="brief "><p class="paragraph">The <a href="../-haze-tint/index.html">HazeTint</a> to use when Haze uses the fallback scrim functionality. In this scenario, the tints provided in <a href="tints.html">tints</a> are ignored.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="94397682%2FProperties%2F-1073587601" anchor-label="noiseFactor" id="94397682%2FProperties%2F-1073587601" data-filterable-set=":haze:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":haze:dokkaHtmlPartial/commonMain" data-filterable-set=":haze:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="noise-factor.html"><span>noise</span><wbr><span><span>Factor</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="94397682%2FProperties%2F-1073587601"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="noise-factor.html">noiseFactor</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Amount of noise applied to the content, in the range <code class="lang-kotlin">0f</code> to <code class="lang-kotlin">1f</code>. Anything outside of that range will be clamped.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1715547779%2FProperties%2F-1073587601" anchor-label="tints" id="1715547779%2FProperties%2F-1073587601" data-filterable-set=":haze:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":haze:dokkaHtmlPartial/commonMain" data-filterable-set=":haze:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="tints.html"><span><span>tints</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1715547779%2FProperties%2F-1073587601"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="tints.html">tints</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-haze-tint/index.html">HazeTint</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The <a href="../-haze-tint/index.html">HazeTint</a>s to apply to the blurred content.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2025 Copyright</span><span class="pull-right"><span>Generated by </span><a href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

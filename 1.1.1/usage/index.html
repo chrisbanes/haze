@@ -756,7 +756,7 @@
 
   <h1>Usage</h1>
 
-<div><p>Haze is implemented through two Compose Modifiers: <a href="api/haze/dev.chrisbanes.haze/haze.html">Modifier.haze</a> and <a href="api/haze/dev.chrisbanes.haze/haze-child.html">Modifier.hazeChild</a>.</p>
+<div><p>Haze is implemented through two Compose Modifiers: <a href="../api/haze/dev.chrisbanes.haze/haze.html">Modifier.haze</a> and <a href="../api/haze/dev.chrisbanes.haze/haze-child.html">Modifier.hazeChild</a>.</p>
 <p>The most basic usage would be something like:</p>
 <div class="highlight"><pre><span></span><code><span class="hll"><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 </span>
@@ -785,9 +785,9 @@
 <p>Haze has support for customizing the resulting effect, which is performed via the <a href="api/haze/dev.chrisbanes.haze/-haze-style/">HazeStyle</a> class, or the lambda block provided to <code>hazeChild</code>.</p>
 <p>Styles can be provided in a number of different ways:</p>
 <ul>
-<li><a href="api/haze/dev.chrisbanes.haze/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
-<li>The style parameter on <a href="api/haze/dev.chrisbanes.haze/haze-child.html">Modifier.hazeChild</a>.</li>
-<li>By setting the relevant property in the optional <a href="api/haze/dev.chrisbanes.haze/-haze-child-scope/">HazeChildScope</a> lambda <code>block</code>, passed into <a href="api/haze/dev.chrisbanes.haze/haze-child.html">Modifier.hazeChild</a>.</li>
+<li><a href="../api/haze/dev.chrisbanes.haze/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
+<li>The style parameter on <a href="../api/haze/dev.chrisbanes.haze/haze-child.html">Modifier.hazeChild</a>.</li>
+<li>By setting the relevant property in the optional <a href="api/haze/dev.chrisbanes.haze/-haze-child-scope/">HazeChildScope</a> lambda <code>block</code>, passed into <a href="../api/haze/dev.chrisbanes.haze/haze-child.html">Modifier.hazeChild</a>.</li>
 </ul>
 <h3 id="hazechildscope">HazeChildScope<a class="headerlink" href="#hazechildscope" title="Permanent link">¶</a></h3>
 <p>We now have a parameter on <code>Modifier.hazeChild</code> which allow you to provide a lambda block, for controlling all of Haze's styling parameters. It is similar to concept to <code>Modifier.graphicsLayer { ... }</code>.</p>
@@ -810,9 +810,9 @@
 <p>As we a few different ways to set styling properties, it's important to know how the final values are resolved.</p>
 <p>Each styling property (such as <code>blurRadius</code>) is resolved seperately, and the order of precedence for each property is as follows, in order:</p>
 <ul>
-<li>Value set in <a href="api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html">HazeChildScope</a>, if specified.</li>
+<li>Value set in <a href="../api/haze/dev.chrisbanes.haze/-haze-child-scope/">HazeChildScope</a>, if specified.</li>
 <li>Value set in style provided to hazeChild (or HazeChildScope.style), if specified.</li>
-<li>Value set in the <a href="api/haze/dev.chrisbanes.haze/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
+<li>Value set in the <a href="../api/haze/dev.chrisbanes.haze/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
 </ul>
 <h3 id="styling-properties">Styling properties<a class="headerlink" href="#styling-properties" title="Permanent link">¶</a></h3>
 <h4 id="blur-radius">Blur Radius<a class="headerlink" href="#blur-radius" title="Permanent link">¶</a></h4>
@@ -824,7 +824,7 @@
 <h2 id="progressive-aka-gradient-blurs">Progressive (aka gradient) blurs<a class="headerlink" href="#progressive-aka-gradient-blurs" title="Permanent link">¶</a></h2>
 <p>Progressive blurs allow you to provide a visual effect where the blur radius is varied over a dimension. You may have seen this effect used on iOS.</p>
 <p><div class="video-container"><video style="width:100%;height:30rem" loop muted autoplay alt="type:video"><source src="../media/progressive.mp4" type="video/mp4"></source></video></div></p>
-<p>Progressive blurs can be enabled by setting the <code>progressive</code> property on <a href="api/haze/dev.chrisbanes.haze/-haze-child-scope/index.html">HazeChildScope</a>. The API is very similar to the Brush gradient APIs, so it should feel familiar.</p>
+<p>Progressive blurs can be enabled by setting the <code>progressive</code> property on <a href="../api/haze/dev.chrisbanes.haze/-haze-child-scope/">HazeChildScope</a>. The API is very similar to the Brush gradient APIs, so it should feel familiar.</p>
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeChild</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
