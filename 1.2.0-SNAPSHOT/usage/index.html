@@ -423,13 +423,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-both-modifierhaze-and-modifierhazeeffect" class="md-nav__link">
+  <a href="#overlapping-blurred-layouts" class="md-nav__link">
     <span class="md-ellipsis">
-      Using both Modifier.haze and Modifier.hazeEffect
+      Overlapping blurred layouts
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using both Modifier.haze and Modifier.hazeEffect">
+    <nav class="md-nav" aria-label="Overlapping blurred layouts">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -761,13 +761,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-both-modifierhaze-and-modifierhazeeffect" class="md-nav__link">
+  <a href="#overlapping-blurred-layouts" class="md-nav__link">
     <span class="md-ellipsis">
-      Using both Modifier.haze and Modifier.hazeEffect
+      Overlapping blurred layouts
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using both Modifier.haze and Modifier.hazeEffect">
+    <nav class="md-nav" aria-label="Overlapping blurred layouts">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -859,7 +859,7 @@
 <p>Each styling property (such as <code>blurRadius</code>) is resolved seperately, and the order of precedence for each property is as follows, in order:</p>
 <ul>
 <li>Value set in <a href="api/haze/dev.chrisbanes.haze/-haze-effect-scope/">HazeEffectScope</a>, if specified.</li>
-<li>Value set in style provided to hazeEffect (or HazeEffectScope.style), if specified.</li>
+<li>Value set in style provided to hazeEffect (or <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-scope/style.html">HazeEffectScope.style</a>), if specified.</li>
 <li>Value set in the <a href="../api/haze/dev.chrisbanes.haze/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
 </ul>
 <h3 id="styling-properties">Styling properties<a class="headerlink" href="#styling-properties" title="Permanent link">¶</a></h3>
@@ -886,7 +886,7 @@
 <p>As a quick summary: on Android SDK 33+ and other platforms, the cost is about 25% more than non-progressive. On Android SDK 32 it is about 2x. If performance is critical, you may wish to look at the masking functionality below.</p>
 </div>
 <h2 id="masking">Masking<a class="headerlink" href="#masking" title="Permanent link">¶</a></h2>
-<p>You can provide any <code>Brush</code>, which will be used as a mask when the final effect is drawn.</p>
+<p>You can provide any <a href="https://developer.android.com/develop/ui/compose/graphics/draw/brush">Brush</a>, which will be used as a mask when the final effect is drawn.</p>
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -908,7 +908,7 @@
 <span class="w">  </span><span class="p">}</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>HazeInputScale</code> has a number of different options:</p>
+<p><a href="api/haze/dev.chrisbanes.haze/-haze-input-scale/">HazeInputScale</a> has a number of different options:</p>
 <ul>
 <li><code>HazeInputScale.None</code>: Turns off input scaling (default)</li>
 <li><code>HazeInputScale.Auto</code>: Turns on input scaling, with automatic values derived underneath.</li>
@@ -917,11 +917,11 @@
 <p>When using a <code>Fixed</code> value, less than 1.0 <strong>may</strong> improve performance, at the sacrifice of quality and crispness. As always, run your own benchmarks as to whether this compromise is worth it.</p>
 <p>If you're looking for a good value to experiment with, <code>0.66</code> results in a reduction in total resolution of ~55%, while being visually imperceptible to most people (probably).</p>
 <p>The minimum value I would realistically use is somewhere in the region of <code>0.33</code>, which results in the total pixel count of only 11% of the original content. This is likely to be visually different to no scaling, but depending on the styling parameters, it will be visually pleasing to the user.</p>
-<h2 id="using-both-modifierhaze-and-modifierhazeeffect">Using both Modifier.haze and Modifier.hazeEffect<a class="headerlink" href="#using-both-modifierhaze-and-modifierhazeeffect" title="Permanent link">¶</a></h2>
+<h2 id="overlapping-blurred-layouts">Overlapping blurred layouts<a class="headerlink" href="#overlapping-blurred-layouts" title="Permanent link">¶</a></h2>
 <p>A layout node can use both a <code>Modifier.hazeEffect</code>, drawing a blurred effect from other areas, <em>and</em> use <code>Modifier.hazeSource</code> to draw itself for other <code>hazeEffect</code> users.</p>
 <p>This nested functionality sounds complicated, but in reality it enables a simple use case: overlapping blurred layout nodes.</p>
 <p><img alt="" src="../media/overlap.webp"></p>
-<p>This code to implement this is like below. You'll notice that the <code>CreditCard()</code> nodes use both the <code>hazeSource</code> and <code>hazeEffect</code> modifiers. <strong>Pay attention to the modifier order here.</strong></p>
+<p>This code to implement this is like below. You can see that the <code>CreditCard()</code> nodes use both the <code>hazeSource</code> and <code>hazeEffect</code> modifiers. <strong>Pay attention to the modifier order here.</strong></p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 
