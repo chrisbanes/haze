@@ -66,7 +66,7 @@ As we a few different ways to set styling properties, it's important to know how
 Each styling property (such as `blurRadius`) is resolved seperately, and the order of precedence for each property is as follows, in order:
 
 - Value set in [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/), if specified.
-- Value set in style provided to hazeEffect (or HazeEffectScope.style), if specified.
+- Value set in style provided to hazeEffect (or [HazeEffectScope.style](api/haze/dev.chrisbanes.haze/-haze-effect-scope/style.html)), if specified.
 - Value set in the [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
 
 ### Styling properties
@@ -108,7 +108,7 @@ LargeTopAppBar(
 
 ## Masking
 
-You can provide any `Brush`, which will be used as a mask when the final effect is drawn.
+You can provide any [Brush](https://developer.android.com/develop/ui/compose/graphics/draw/brush), which will be used as a mask when the final effect is drawn.
 
 ```kotlin
 LargeTopAppBar(
@@ -138,7 +138,7 @@ LargeTopAppBar(
 )
 ```
 
-`HazeInputScale` has a number of different options:
+[HazeInputScale](api/haze/dev.chrisbanes.haze/-haze-input-scale/) has a number of different options:
 
 - `HazeInputScale.None`: Turns off input scaling (default)
 - `HazeInputScale.Auto`: Turns on input scaling, with automatic values derived underneath.
@@ -150,7 +150,7 @@ If you're looking for a good value to experiment with, `0.66` results in a reduc
 
 The minimum value I would realistically use is somewhere in the region of `0.33`, which results in the total pixel count of only 11% of the original content. This is likely to be visually different to no scaling, but depending on the styling parameters, it will be visually pleasing to the user.
 
-## Using both Modifier.haze and Modifier.hazeEffect
+## Overlapping blurred layouts
 
 A layout node can use both a `Modifier.hazeEffect`, drawing a blurred effect from other areas, _and_ use `Modifier.hazeSource` to draw itself for other `hazeEffect` users.
 
@@ -158,7 +158,7 @@ This nested functionality sounds complicated, but in reality it enables a simple
 
 ![](./media/overlap.webp)
 
-This code to implement this is like below. You'll notice that the `CreditCard()` nodes use both the `hazeSource` and `hazeEffect` modifiers. **Pay attention to the modifier order here.**
+This code to implement this is like below. You can see that the `CreditCard()` nodes use both the `hazeSource` and `hazeEffect` modifiers. **Pay attention to the modifier order here.**
 
 ``` kotlin
 Box {
