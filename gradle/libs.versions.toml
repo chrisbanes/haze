@@ -15,7 +15,7 @@ jetpack-compose = "1.7.6"
 metalava = "0.4.0-alpha03"
 robolectric = "4.14.1"
 roborazzi = "1.39.0"
-spotless = "7.0.0"
+spotless = "7.0.1"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
