@@ -1,0 +1,1030 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A blurring modifier for Compose">
+      
+      
+        <meta name="author" content="Chris Banes">
+      
+      
+        <link rel="canonical" href="https://chribanes.github.io/haze/1.3.0-SNAPSHOT/usage/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../materials/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Usage - Haze</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=DM+Sans:300,300i,400,400i,700,700i%7CDM+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"DM Sans";--md-code-font:"DM Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+      
+        <meta  property="og:type"  content="website" >
+      
+        <meta  property="og:title"  content="Usage - Haze" >
+      
+        <meta  property="og:description"  content="A blurring modifier for Compose" >
+      
+        <meta  property="og:image"  content="https://chribanes.github.io/haze/1.3.0-SNAPSHOT/assets/images/social/usage.png" >
+      
+        <meta  property="og:image:type"  content="image/png" >
+      
+        <meta  property="og:image:width"  content="1200" >
+      
+        <meta  property="og:image:height"  content="630" >
+      
+        <meta  property="og:url"  content="https://chribanes.github.io/haze/1.3.0-SNAPSHOT/usage/" >
+      
+        <meta  name="twitter:card"  content="summary_large_image" >
+      
+        <meta  name="twitter:title"  content="Usage - Haze" >
+      
+        <meta  name="twitter:description"  content="A blurring modifier for Compose" >
+      
+        <meta  name="twitter:image"  content="https://chribanes.github.io/haze/1.3.0-SNAPSHOT/assets/images/social/usage.png" >
+      
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#styling" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 13a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0 3.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m5 7.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m0 4a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-6a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5M14 9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m-4-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5m-3 6a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-7a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3.5a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0-4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haze
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Usage
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 13a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0 3.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m5 7.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m0 4a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-6a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5M14 9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m-4-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5m-3 6a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-7a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3.5a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0-4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg>
+
+    </a>
+    Haze
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#styling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Styling
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Styling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hazeeffectscope" class="md-nav__link">
+    <span class="md-ellipsis">
+      HazeEffectScope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#styling-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      Styling resolution
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#styling-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      Styling properties
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Styling properties">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#blur-radius" class="md-nav__link">
+    <span class="md-ellipsis">
+      Blur Radius
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tint" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tint
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      Noise
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#progressive-aka-gradient-blurs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Progressive (aka gradient) blurs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#masking" class="md-nav__link">
+    <span class="md-ellipsis">
+      Masking
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      Input Scale
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overlapping-blurred-layouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overlapping blurred layouts
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Overlapping blurred layouts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zindex" class="md-nav__link">
+    <span class="md-ellipsis">
+      zIndex
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../materials/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Materials
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Performance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FAQs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrating-1.0/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Migrating to 1.0
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Recipes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    API reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Sample code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample/wasm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    🕸️ Sample app (Wasm)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample/js/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    🕸️ Sample app (JS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#styling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Styling
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Styling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hazeeffectscope" class="md-nav__link">
+    <span class="md-ellipsis">
+      HazeEffectScope
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#styling-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      Styling resolution
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#styling-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      Styling properties
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Styling properties">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#blur-radius" class="md-nav__link">
+    <span class="md-ellipsis">
+      Blur Radius
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tint" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tint
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#noise" class="md-nav__link">
+    <span class="md-ellipsis">
+      Noise
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#progressive-aka-gradient-blurs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Progressive (aka gradient) blurs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#masking" class="md-nav__link">
+    <span class="md-ellipsis">
+      Masking
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      Input Scale
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overlapping-blurred-layouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overlapping blurred layouts
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Overlapping blurred layouts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#zindex" class="md-nav__link">
+    <span class="md-ellipsis">
+      zIndex
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+  <h1>Usage</h1>
+
+<div><p>Haze is implemented through two Compose Modifiers: <a href="../api/haze/dev.chrisbanes.haze/haze-source.html">Modifier.hazeSource</a> and <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</p>
+<p>The most basic usage would be something like:</p>
+<div class="highlight"><pre><span></span><code><span class="hll"><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span>
+<span class="n">Box</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">LazyColumn</span><span class="p">(</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">      </span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">()</span>
+<span class="hll"><span class="w">      </span><span class="c1">// Pass it the HazeState we stored above</span>
+</span><span class="hll"><span class="w">      </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span>
+</span><span class="w">  </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// todo</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">LargeTopAppBar</span><span class="p">(</span>
+<span class="w">    </span><span class="c1">// Need to make app bar transparent to see the content behind</span>
+<span class="w">    </span><span class="n">colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TopAppBarDefaults</span><span class="p">.</span><span class="na">largeTopAppBarColors</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">),</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="hll"><span class="w">      </span><span class="c1">// We use hazeEffect on anything where we want the background</span>
+</span><span class="hll"><span class="w">      </span><span class="c1">// blurred.</span>
+</span><span class="hll"><span class="w">      </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span>
+</span><span class="w">      </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">(),</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="styling">Styling<a class="headerlink" href="#styling" title="Permanent link">¶</a></h2>
+<p>Haze has support for customizing the resulting effect, which is performed via the <a href="api/haze/dev.chrisbanes.haze/-haze-style/">HazeStyle</a> class, or the lambda block provided to <code>hazeEffect</code>.</p>
+<p>Styles can be provided in a number of different ways:</p>
+<ul>
+<li><a href="../api/haze/dev.chrisbanes.haze/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
+<li>The style parameter on <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</li>
+<li>By setting the relevant property in the optional <a href="api/haze/dev.chrisbanes.haze/-haze-effect-scope/">HazeEffectScope</a> lambda <code>block</code>, passed into <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</li>
+</ul>
+<h3 id="hazeeffectscope">HazeEffectScope<a class="headerlink" href="#hazeeffectscope" title="Permanent link">¶</a></h3>
+<p>We now have a parameter on <code>Modifier.hazeEffect</code> which allow you to provide a lambda block, for controlling all of Haze's styling parameters. It is similar to concept to <code>Modifier.graphicsLayer { ... }</code>.</p>
+<p>It's useful for when you need to update styling parameters, using values derived from other state. Here's an example which fades the effect as the user scrolls:</p>
+<div class="highlight"><pre><span></span><code><span class="n">FooAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="p">...</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">listState</span><span class="p">.</span><span class="na">firstVisibleItemIndex</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="m">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">listState</span><span class="p">.</span><span class="na">layoutInfo</span><span class="p">.</span><span class="na">visibleItemsInfo</span><span class="p">.</span><span class="na">first</span><span class="p">().</span><span class="na">let</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="p">(</span><span class="nb">it</span><span class="p">.</span><span class="na">offset</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">it</span><span class="p">.</span><span class="na">size</span><span class="p">.</span><span class="na">height</span><span class="p">.</span><span class="na">toFloat</span><span class="p">()).</span><span class="na">absoluteValue</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<h3 id="styling-resolution">Styling resolution<a class="headerlink" href="#styling-resolution" title="Permanent link">¶</a></h3>
+<p>As we a few different ways to set styling properties, it's important to know how the final values are resolved.</p>
+<p>Each styling property (such as <code>blurRadius</code>) is resolved seperately, and the order of precedence for each property is as follows, in order:</p>
+<ul>
+<li>Value set in <a href="api/haze/dev.chrisbanes.haze/-haze-effect-scope/">HazeEffectScope</a>, if specified.</li>
+<li>Value set in style provided to hazeEffect (or <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-scope/style.html">HazeEffectScope.style</a>), if specified.</li>
+<li>Value set in the <a href="../api/haze/dev.chrisbanes.haze/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
+</ul>
+<h3 id="styling-properties">Styling properties<a class="headerlink" href="#styling-properties" title="Permanent link">¶</a></h3>
+<h4 id="blur-radius">Blur Radius<a class="headerlink" href="#blur-radius" title="Permanent link">¶</a></h4>
+<p>The blur radius controls how strong the blur effect is. This defaults to <code>20.dp</code> but can be customized as needed. Larger values might be needed to keep foreground control (such as text) legible and accessible.</p>
+<h4 id="tint">Tint<a class="headerlink" href="#tint" title="Permanent link">¶</a></h4>
+<p>A tint effect is applied, primarily to maintain contrast and legibility. By default we use the provided background color at 70% opacity. You may wish to use a different color or opacity. You provide multiple tints, which will be applied in sequence.</p>
+<h4 id="noise">Noise<a class="headerlink" href="#noise" title="Permanent link">¶</a></h4>
+<p>Some visual noise is applied, to provide some tactility. This is completely optional, and defaults to a value of <code>0.15f</code> (15% strength). You can disable this by providing <code>0f</code>.</p>
+<h2 id="progressive-aka-gradient-blurs">Progressive (aka gradient) blurs<a class="headerlink" href="#progressive-aka-gradient-blurs" title="Permanent link">¶</a></h2>
+<p>Progressive blurs allow you to provide a visual effect where the blur radius is varied over a dimension. You may have seen this effect used on iOS.</p>
+<p><div class="video-container"><video style="width:100%;height:30rem" loop muted autoplay alt="type:video"><source src="../media/progressive.mp4" type="video/mp4"></source></video></div></p>
+<p>Progressive blurs can be enabled by setting the <code>progressive</code> property on <a href="api/haze/dev.chrisbanes.haze/-haze-effect-scope/">HazeEffectScope</a>. The API is very similar to the Brush gradient APIs, so it should feel familiar.</p>
+<div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span><span class="w"> </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Performance of Progressive</p>
+<p>Please be aware that using progressive blurring does come with a performance cost. Please see the <a href="../performance/">Performance</a> page for up-to-date benchmarks.</p>
+<p>As a quick summary: on Android SDK 33+ and other platforms, the cost is about 25% more than non-progressive. On Android SDK 32 it is about 2x. If performance is critical, you may wish to look at the masking functionality below.</p>
+</div>
+<h2 id="masking">Masking<a class="headerlink" href="#masking" title="Permanent link">¶</a></h2>
+<p>You can provide any <a href="https://developer.android.com/develop/ui/compose/graphics/draw/brush">Brush</a>, which will be used as a mask when the final effect is drawn.</p>
+<div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Brush</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Mask vs Progressive</p>
+<p>When you provide a gradient brush as a mask, the effect is visually similar to a gradient blur. The difference is that the effect is faded through opacity only, and may not feel as refined. However, it is much faster than progressive blurring, having a negligible cost.</p>
+</div>
+<h2 id="input-scale">Input Scale<a class="headerlink" href="#input-scale" title="Permanent link">¶</a></h2>
+<p>You can provide an input scale value which determines how much the content is scaled in both the x and y dimensions, allowing the blur effect to be potentially applied over scaled-down content (and thus less pixels), before being scaled back up and drawn at the original size.</p>
+<p><img alt="" src="../media/inputscale.png"></p>
+<div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">inputScale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInputScale</span><span class="p">.</span><span class="na">Auto</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><a href="api/haze/dev.chrisbanes.haze/-haze-input-scale/">HazeInputScale</a> has a number of different options:</p>
+<ul>
+<li><code>HazeInputScale.None</code>: Turns off input scaling (default)</li>
+<li><code>HazeInputScale.Auto</code>: Turns on input scaling, with automatic values derived underneath.</li>
+<li><code>HazeInputScale.Fixed(...)</code>: Turns on input scaling, using the value you pass in.</li>
+</ul>
+<p>When using a <code>Fixed</code> value, less than 1.0 <strong>may</strong> improve performance, at the sacrifice of quality and crispness. As always, run your own benchmarks as to whether this compromise is worth it.</p>
+<p>If you're looking for a good value to experiment with, <code>0.66</code> results in a reduction in total resolution of ~55%, while being visually imperceptible to most people (probably).</p>
+<p>The minimum value I would realistically use is somewhere in the region of <code>0.33</code>, which results in the total pixel count of only 11% of the original content. This is likely to be visually different to no scaling, but depending on the styling parameters, it will be visually pleasing to the user.</p>
+<h2 id="overlapping-blurred-layouts">Overlapping blurred layouts<a class="headerlink" href="#overlapping-blurred-layouts" title="Permanent link">¶</a></h2>
+<p>A layout node can use both a <code>Modifier.hazeEffect</code>, drawing a blurred effect from other areas, <em>and</em> use <code>Modifier.hazeSource</code> to draw itself for other <code>hazeEffect</code> users.</p>
+<p>This nested functionality sounds complicated, but in reality it enables a simple use case: overlapping blurred layout nodes.</p>
+<p><img alt="" src="../media/overlap.webp"></p>
+<p>This code to implement this is like below. You can see that the <code>CreditCard()</code> nodes use both the <code>hazeSource</code> and <code>hazeEffect</code> modifiers. <strong>Pay attention to the modifier order here.</strong></p>
+<div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">Background</span><span class="p">(</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">      </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">,</span><span class="w"> </span><span class="n">zIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="w">  </span><span class="p">)</span>
+
+<span class="w">  </span><span class="c1">// Rear card</span>
+<span class="w">  </span><span class="n">CreditCard</span><span class="p">(</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">      </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">,</span><span class="w"> </span><span class="n">zIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">)</span>
+<span class="w">      </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span>
+<span class="w">  </span><span class="p">)</span>
+
+<span class="w">  </span><span class="c1">// Middle card</span>
+<span class="w">  </span><span class="n">CreditCard</span><span class="p">(</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">      </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">,</span><span class="w"> </span><span class="n">zIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2f</span><span class="p">)</span>
+<span class="w">      </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="p">)</span>
+
+<span class="w">  </span><span class="c1">// Front card</span>
+<span class="w">  </span><span class="n">CreditCard</span><span class="p">(</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">      </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">,</span><span class="w"> </span><span class="n">zIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">3f</span><span class="p">)</span>
+<span class="w">      </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>You will notice that there's something different here, the <code>zIndex</code> parameter.</p>
+<p>For this to work you need to pass in the <code>zIndex</code> parameter of the node. It doesn't matter if you use <code>Modifier.zIndex</code>, or the implicit ordering from the layout, you need to explicitly pass in a valid <code>zIndex</code> value.</p>
+<h3 id="zindex">zIndex<a class="headerlink" href="#zindex" title="Permanent link">¶</a></h3>
+<p>Internally, the zIndex value is how Haze knows which layers to draw in which nodes. By default, <code>hazeEffect</code> will draw all layers with a <code>zIndex</code> less than the value of the sibling <code>Modifier.hazeSource</code>. So in the example above, the middle card (<code>zIndex</code> of 2) will draw the rear card (<code>zIndex</code> of 1) and background (<code>zIndex</code> of 0).</p>
+<p>This default behavior is usually the correct behavior for all use cases, but you can modify this behavior via the <code>canDrawArea</code> parameter, which acts as a filter when set:</p>
+<div class="highlight"><pre><span></span><code><span class="n">CreditCard</span><span class="p">(</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">,</span><span class="w"> </span><span class="n">zIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2f</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"foo"</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">canDrawArea</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">area</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">        </span><span class="c1">// return true to draw</span>
+<span class="w">        </span><span class="n">area</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">"foo"</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>You'll notice that we're using another parameter here, <code>key</code>. This just acts as an ID for the node allowing easier filtering. It has serves no other purpose.</p></div>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>

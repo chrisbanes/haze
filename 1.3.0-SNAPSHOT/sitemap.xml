@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://chribanes.github.io/haze/1.3.0-SNAPSHOT/</loc>
+         <lastmod>2025-01-09</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/1.3.0-SNAPSHOT/faq/</loc>
+         <lastmod>2025-01-09</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/1.3.0-SNAPSHOT/materials/</loc>
+         <lastmod>2025-01-09</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/1.3.0-SNAPSHOT/migrating-1.0/</loc>
+         <lastmod>2025-01-09</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/1.3.0-SNAPSHOT/performance/</loc>
+         <lastmod>2025-01-09</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/1.3.0-SNAPSHOT/recipes/</loc>
+         <lastmod>2025-01-09</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/1.3.0-SNAPSHOT/usage/</loc>
+         <lastmod>2025-01-09</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/1.3.0-SNAPSHOT/using-snapshot-version/</loc>
+         <lastmod>2025-01-09</lastmod>
+    </url>
+</urlset>
