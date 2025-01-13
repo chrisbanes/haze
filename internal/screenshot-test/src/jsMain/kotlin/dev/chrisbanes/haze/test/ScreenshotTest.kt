@@ -3,7 +3,7 @@
 
 package dev.chrisbanes.haze.test
 
-actual abstract class ScreenshotTest
+actual abstract class ScreenshotTest : ContextTest()
 
 actual fun ScreenshotTest.runScreenshotTest(
   block: ScreenshotUiTest.() -> Unit,

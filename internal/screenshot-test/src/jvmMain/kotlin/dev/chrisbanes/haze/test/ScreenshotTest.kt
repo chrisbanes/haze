@@ -16,7 +16,7 @@ import com.github.takahirom.roborazzi.provideRoborazziContext
 import com.github.takahirom.roborazzi.roboOutputName
 import io.github.takahirom.roborazzi.captureRoboImage
 
-actual abstract class ScreenshotTest
+actual abstract class ScreenshotTest : ContextTest()
 
 actual val HazeRoborazziDefaults.outputDirectoryName: String get() = "desktop"
 
