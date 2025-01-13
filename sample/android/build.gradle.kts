@@ -55,7 +55,7 @@ dependencies {
   implementation(libs.androidx.activity.compose)
   implementation(libs.androidx.profileinstaller)
 
-  implementation(libs.androidx.compose.ui.tooling)
+  debugImplementation(libs.androidx.compose.ui.tooling)
   implementation(libs.androidx.compose.ui.preview)
 
   implementation(libs.androidx.media3.exoplayer)
