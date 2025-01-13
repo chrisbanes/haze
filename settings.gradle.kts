@@ -59,6 +59,7 @@ include(
   ":haze",
   ":haze-materials",
   ":internal:benchmark",
+  ":internal:context-test",
   ":internal:screenshot-test",
   ":sample:shared",
   ":sample:android",

@@ -42,7 +42,7 @@ annotation class ExperimentalHazeApi
  */
 @ExperimentalHazeApi
 class HazeSourceNode(
-  var state: HazeState,
+  state: HazeState,
   zIndex: Float = 0f,
   key: Any? = null,
 ) : Modifier.Node(),
@@ -58,6 +58,20 @@ class HazeSourceNode(
   private val area = HazeArea()
 
   var zIndex: Float by mutableStateOf(zIndex)
+
+  var state: HazeState = state
+    set(value) {
+      val attachedToState = area in field.areas
+      if (attachedToState) {
+        // Detach ourselves from the old HazeState
+        field.removeArea(area)
+      }
+      field = value
+      if (attachedToState) {
+        // Finally re-attach ourselves to the new state
+        value.addArea(area)
+      }
+    }
 
   var key: Any?
     get() = area.key

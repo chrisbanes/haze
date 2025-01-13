@@ -17,6 +17,7 @@ kotlin {
   sourceSets {
     val commonMain by getting {
       dependencies {
+        api(projects.internal.contextTest)
 
         api(compose.components.resources)
         api(compose.foundation)

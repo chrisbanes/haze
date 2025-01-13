@@ -10,21 +10,18 @@ import androidx.compose.ui.test.AndroidComposeUiTestEnvironment
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.RoborazziRule
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.roboOutputName
 import org.junit.Rule
-import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-@RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [28, 32, 35], qualifiers = RobolectricDeviceQualifiers.Pixel5)
-actual abstract class ScreenshotTest {
+actual abstract class ScreenshotTest : ContextTest() {
   @get:Rule
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 

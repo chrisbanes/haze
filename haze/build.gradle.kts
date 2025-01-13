@@ -65,7 +65,7 @@ kotlin {
       dependsOn(skikoMain)
     }
 
-    named("wasmJsMain") {
+    wasmJsMain {
       dependsOn(skikoMain)
 
       dependencies {
@@ -73,7 +73,7 @@ kotlin {
       }
     }
 
-    named("jsMain") {
+    jsMain {
       dependsOn(skikoMain)
     }
 
@@ -84,6 +84,8 @@ kotlin {
 
         @OptIn(ExperimentalComposeLibrary::class)
         implementation(compose.uiTest)
+
+        implementation(projects.internal.contextTest)
       }
     }
 
@@ -103,6 +105,11 @@ kotlin {
       dependsOn(screenshotTest)
     }
   }
+}
+
+// https://youtrack.jetbrains.com/issue/CMP-4906
+tasks.named("jsBrowserTest").configure {
+  enabled = false
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
