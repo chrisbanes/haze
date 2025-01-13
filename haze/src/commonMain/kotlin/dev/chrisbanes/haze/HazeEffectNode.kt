@@ -439,7 +439,7 @@ class HazeEffectNode(
   }
 
   private fun updateRenderEffectIfDirty() {
-    if (dirtyTracker.any(DirtyFields.RenderEffectAffectingFlags)) {
+    if (renderEffect == null || dirtyTracker.any(DirtyFields.RenderEffectAffectingFlags)) {
       renderEffect = getOrCreateRenderEffect()
     }
   }

@@ -46,6 +46,8 @@ androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref 
 androidx-test-uiautomator = "androidx.test.uiautomator:uiautomator:2.3.0"
 
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "jetpack-compose" }
+androidx-compose-ui-preview = { module = "androidx.compose.ui:ui-tooling", version.ref = "jetpack-compose" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "jetpack-compose" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "jetpack-compose" }
 
 assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assertk" }
