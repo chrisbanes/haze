@@ -1,0 +1,15 @@
+// Copyright 2025, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze.sample.android
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+import dev.chrisbanes.haze.sample.CreditCardSample
+import dev.chrisbanes.haze.sample.Navigator
+
+@Composable
+@Preview
+fun PreviewCardSample() {
+  CreditCardSample(Navigator())
+}
