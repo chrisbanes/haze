@@ -120,28 +120,24 @@ class HazeSourceNode(
     // the first pass
     Snapshot.withoutReadObservation {
       if (area.positionOnScreen.isUnspecified) {
-        log(TAG) {
-          "onPlaced: " +
-            "positionOnScreen=${coordinates.positionOnScreen()}, " +
-            "area=$area"
-        }
-        onPositioned(coordinates)
+        onPositioned(coordinates, "onPlaced")
       }
     }
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    log(TAG) {
-      "onGloballyPositioned: " +
-        "positionOnScreen=${coordinates.positionOnScreen()}, " +
-        "content positionOnScreens=${area.positionOnScreen}"
-    }
-    onPositioned(coordinates)
+    onPositioned(coordinates, "onGloballyPositioned")
   }
 
-  private fun onPositioned(coordinates: LayoutCoordinates) {
-    area.positionOnScreen = coordinates.positionOnScreen()
+  private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
+    area.positionOnScreen = coordinates.positionOnScreenCatching()
     area.size = coordinates.size.toSize()
+
+    log(TAG) {
+      "$source: positionOnScreen=${area.positionOnScreen}, " +
+        "size=${area.size}, " +
+        "positionOnScreens=${area.positionOnScreen}"
+    }
   }
 
   override fun ContentDrawScope.draw() {
