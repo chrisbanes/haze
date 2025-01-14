@@ -8,6 +8,8 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.takeOrElse
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.positionOnScreen
 import kotlin.math.hypot
 
 internal fun calculateLength(
@@ -33,4 +35,15 @@ internal inline val Offset.orZero: Offset get() = takeOrElse { Offset.Zero }
 
 internal inline fun <T> unsynchronizedLazy(noinline initializer: () -> T): Lazy<T> {
   return lazy(mode = LazyThreadSafetyMode.NONE, initializer)
+}
+
+/**
+ * Workaround for https://youtrack.jetbrains.com/issue/CMP-7380
+ */
+internal fun LayoutCoordinates.positionOnScreenCatching(): Offset {
+  return try {
+    positionOnScreen()
+  } catch (t: Throwable) {
+    Offset.Unspecified
+  }
 }

@@ -257,20 +257,18 @@ class HazeEffectNode(
     // up to the first draw. We usually need onGloballyPositioned which tends to happen after
     // the first pass
     if (positionOnScreen.isUnspecified) {
-      log(TAG) { "onPlaced: positionOnScreen=${coordinates.positionOnScreen()}" }
-      onPositioned(coordinates)
+      onPositioned(coordinates, "onPlaced")
     }
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    log(TAG) { "onGloballyPositioned: positionOnScreen=${coordinates.positionOnScreen()}" }
-    onPositioned(coordinates)
+    onPositioned(coordinates, "onGloballyPositioned")
   }
 
-  private fun onPositioned(coordinates: LayoutCoordinates) {
-    positionOnScreen = coordinates.positionOnScreen()
+  private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
+    positionOnScreen = coordinates.positionOnScreenCatching()
     size = coordinates.size.toSize()
-
+    log(TAG) { "$source: positionOnScreen=$positionOnScreen, size=$size" }
     updateEffect()
   }
 
