@@ -68,6 +68,6 @@ fun randomSampleImageUrl(
 ): String = "https://picsum.photos/seed/$seed/$width/$height"
 
 @Composable
-fun rememberRandomSampleImageUrl(index: Int = -1): String = rememberSaveable {
+fun rememberRandomSampleImageUrl(index: Int = -1): String = rememberSaveable(index) {
   precannedImageUrls.getOrNull(index) ?: randomSampleImageUrl()
 }

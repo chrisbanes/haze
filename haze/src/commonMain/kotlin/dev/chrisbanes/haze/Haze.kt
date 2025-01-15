@@ -72,7 +72,7 @@ class HazeArea {
   /**
    * The content [GraphicsLayer].
    */
-  var contentLayer: GraphicsLayer? = null
+  var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
 
   internal val bounds: Rect? get() = when {

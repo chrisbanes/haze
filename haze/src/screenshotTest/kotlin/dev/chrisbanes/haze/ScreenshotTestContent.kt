@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun CreditCardSample(
+  backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   style: HazeStyle = HazeStyle.Unspecified,
   tint: HazeTint = HazeTint.Unspecified,
   blurRadius: Dp = 8.dp,
@@ -52,7 +53,7 @@ internal fun CreditCardSample(
       Spacer(
         Modifier
           .fillMaxSize()
-          .background(brush = Brush.linearGradient(colors = listOf(Color.Blue, Color.Cyan))),
+          .background(brush = Brush.linearGradient(colors = backgroundColors)),
       )
 
       Text(

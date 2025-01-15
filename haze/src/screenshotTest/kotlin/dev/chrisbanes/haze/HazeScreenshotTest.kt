@@ -256,6 +256,39 @@ class HazeScreenshotTest : ScreenshotTest() {
     captureRoot()
   }
 
+  /**
+   * This test does not currently produce the correct output on Skia platforms.
+   * It works correctly when run on device, etc. It seems to be a timing setup thing in tests.
+   *
+   * My working theory is that state updates are ran immediately in the CMP UI tests, which
+   * breaks how dependent graphics layers are invalidated. In non-tests, state updates are deferred
+   * until the next 'pass'.
+   *
+   * This is being re-worked in CMP 1.8, so there's little point in investigating this too much:
+   * https://youtrack.jetbrains.com/issue/CMP-6703
+   */
+  @Test
+  fun creditCard_sourceContentChange() = runScreenshotTest {
+    var backgroundColors by mutableStateOf(listOf(Color.Blue, Color.Cyan))
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(backgroundColors = backgroundColors, tint = DefaultTint)
+      }
+    }
+
+    waitForIdle()
+    captureRoot("blue")
+
+    backgroundColors = listOf(Color.Yellow, Color.hsl(0.4f, 0.94f, 0.58f))
+    waitForIdle()
+    captureRoot("yellow")
+
+    backgroundColors = listOf(Color.Red, Color.hsl(0.06f, 0.69f, 0.35f))
+    waitForIdle()
+    captureRoot("red")
+  }
+
   companion object {
     val DefaultTint = HazeTint(Color.White.copy(alpha = 0.1f))
     val OverrideStyle = HazeStyle(tints = listOf(HazeTint(Color.Red.copy(alpha = 0.5f))))
