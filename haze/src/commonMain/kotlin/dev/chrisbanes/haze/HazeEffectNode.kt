@@ -341,40 +341,38 @@ class HazeEffectNode(
     val bg = resolveBackgroundColor()
     require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
 
-    // We don't want to observe any state here. Anything we state we read should be observed
-    // be triggered from `dirtyTracker` only
-    Snapshot.withoutReadObservation {
-      val bounds = Rect(positionOnScreen, size)
+    val bounds = Rect(positionOnScreen, size)
 
-      layer.record(scaledSize.roundToIntSize()) {
-        drawRect(bg)
+    layer.record(scaledSize.roundToIntSize()) {
+      drawRect(bg)
 
-        clipRect {
-          scale(scale = scaleFactor, pivot = Offset.Zero) {
-            translate(offset = -positionOnScreen) {
-              for (area in areas) {
-                require(!area.contentDrawing) {
-                  "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
-                    "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
-                    "Alternatively you can use can `canDrawArea` to to filter out parent areas."
-                }
+      clipRect {
+        scale(scale = scaleFactor, pivot = Offset.Zero) {
+          translate(offset = -positionOnScreen) {
+            for (area in areas) {
+              require(!area.contentDrawing) {
+                "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
+                  "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
+                  "Alternatively you can use can `canDrawArea` to to filter out parent areas."
+              }
 
-                val areaBounds = area.bounds
-                if (areaBounds == null || !bounds.overlaps(areaBounds)) {
-                  log(TAG) { "Area does not overlap us. Skipping... $area" }
-                  continue
-                }
+              val areaBounds = Snapshot.withoutReadObservation { area.bounds }
+              if (areaBounds == null || !bounds.overlaps(areaBounds)) {
+                log(TAG) { "Area does not overlap us. Skipping... $area" }
+                continue
+              }
 
-                translate(area.positionOnScreen.orZero) {
-                  // Draw the content into our effect layer
-                  area.contentLayer
-                    ?.takeUnless { it.isReleased }
-                    ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
-                    ?.let {
-                      log(TAG) { "Drawing HazeArea GraphicsLayer: $it" }
-                      drawLayer(it)
-                    }
-                }
+              val position = Snapshot.withoutReadObservation { area.positionOnScreen.orZero }
+              translate(position) {
+                // Draw the content into our effect layer. We do want to observe this via snapshot
+                // state
+                area.contentLayer
+                  ?.takeUnless { it.isReleased }
+                  ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+                  ?.let {
+                    log(TAG) { "Drawing HazeArea GraphicsLayer: $it" }
+                    drawLayer(it)
+                  }
               }
             }
           }
