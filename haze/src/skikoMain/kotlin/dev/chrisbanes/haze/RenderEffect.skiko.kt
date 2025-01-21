@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -59,7 +60,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
       shaderNames = arrayOf("content", "blur"),
       inputs = arrayOf(null, blur),
     )
-    .withTints(params.tints, params.tintAlphaModulate, progressiveShader)
+    .withTints(params.tints, params.tintAlphaModulate, params.contentSize, progressiveShader)
     .withMask(params.mask, params.contentSize)
     .asComposeRenderEffect()
 }
@@ -71,42 +72,78 @@ private fun ImageFilter.chainWith(imageFilter: ImageFilter): ImageFilter {
 private fun ImageFilter.withTints(
   tints: List<HazeTint>,
   alphaModulate: Float = 1f,
-  mask: Shader? = null,
-  maskOffset: Offset = Offset.Zero,
+  size: Size,
+  mask: Shader?,
 ): ImageFilter = tints.fold(this) { acc, tint ->
-  acc.withTint(tint, alphaModulate, mask, maskOffset)
+  acc.withTint(tint, alphaModulate, size, mask)
 }
 
 private fun ImageFilter.withTint(
   tint: HazeTint,
   alphaModulate: Float = 1f,
+  size: Size,
   mask: Shader?,
-  maskOffset: Offset,
 ): ImageFilter {
-  if (!tint.color.isSpecified) return this
-  val color = when {
+  if (!tint.isSpecified) return this
+
+  val tintBrush = tint.brush?.toShader(size)
+  if (tintBrush != null) {
+    val brushEffect = when {
+      alphaModulate >= 1f -> {
+        ImageFilter.makeShader(tintBrush, crop = null)
+      }
+      else -> {
+        // If we need to modulate the alpha, we'll need to wrap it in a ColorFilter
+        ImageFilter.makeColorFilter(
+          ColorFilter.makeBlend(Color.Black.copy(alpha = alphaModulate).toArgb(), BlendMode.SRC_IN),
+          ImageFilter.makeShader(tintBrush, crop = null),
+          crop = null,
+        )
+      }
+    }
+
+    return if (mask != null) {
+      blendWith(
+        ImageFilter.makeBlend(
+          blendMode = BlendMode.SRC_IN,
+          bg = ImageFilter.makeShader(mask, crop = null),
+          fg = brushEffect,
+          crop = null,
+        ),
+        blendMode = tint.blendMode.toSkiaBlendMode(),
+      )
+    } else {
+      blendWith(
+        foreground = brushEffect,
+        blendMode = tint.blendMode.toSkiaBlendMode(),
+      )
+    }
+  }
+
+  val tintColor = when {
     alphaModulate < 1f -> tint.color.copy(alpha = tint.color.alpha * alphaModulate)
     else -> tint.color
   }
-  if (color.alpha < 0.005f) return this
-
-  return if (mask != null) {
-    blendWith(
-      foreground = ImageFilter.makeColorFilter(
-        f = ColorFilter.makeBlend(color.toArgb(), BlendMode.SRC_IN),
-        input = ImageFilter.makeShader(shader = mask, crop = null),
+  if (tintColor.alpha >= 0.005f) {
+    return if (mask != null) {
+      return blendWith(
+        foreground = ImageFilter.makeColorFilter(
+          ColorFilter.makeBlend(tintColor.toArgb(), BlendMode.SRC_IN),
+          ImageFilter.makeShader(mask, crop = null),
+          crop = null,
+        ),
+        blendMode = tint.blendMode.toSkiaBlendMode(),
+      )
+    } else {
+      ImageFilter.makeColorFilter(
+        ColorFilter.makeBlend(tintColor.toArgb(), tint.blendMode.toSkiaBlendMode()),
+        this,
         crop = null,
-      ),
-      blendMode = tint.blendMode.toSkiaBlendMode(),
-      offset = maskOffset,
-    )
-  } else {
-    ImageFilter.makeColorFilter(
-      f = ColorFilter.makeBlend(color.toArgb(), tint.blendMode.toSkiaBlendMode()),
-      input = this,
-      crop = null,
-    )
+      )
+    }
   }
+
+  return this
 }
 
 private fun ImageFilter.withMask(

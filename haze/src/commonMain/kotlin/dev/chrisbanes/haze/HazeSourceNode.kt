@@ -198,6 +198,11 @@ internal expect fun isBlurEnabledByDefault(): Boolean
 internal expect fun DrawScope.canUseGraphicLayers(): Boolean
 
 internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
+  if (brush != null) {
+    // We can't boost brush tints
+    return this
+  }
+
   // For color, we can boost the alpha
   val resolved = blurRadius.takeOrElse { HazeDefaults.blurRadius }
   val boosted = color.boostAlphaForBlurRadius(resolved)

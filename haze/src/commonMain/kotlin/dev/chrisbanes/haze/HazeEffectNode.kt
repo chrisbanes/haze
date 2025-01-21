@@ -15,11 +15,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -30,7 +31,6 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.modifier.ModifierLocalModifierNode
 import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -72,8 +72,6 @@ class HazeEffectNode(
   HazeEffectScope {
 
   override val shouldAutoInvalidate: Boolean = false
-
-  private val paint by unsynchronizedLazy { Paint() }
 
   private var renderEffect: RenderEffect? = null
   private var dirtyTracker = Bitmask()
@@ -415,19 +413,46 @@ class HazeEffectNode(
       val m = mask
       val p = progressive
 
-      if (m != null) {
-        drawRect(brush = m, colorFilter = ColorFilter.tint(tint.color))
-      } else if (p is HazeProgressive.LinearGradient) {
-        drawRect(brush = p.asBrush(), colorFilter = ColorFilter.tint(tint.color))
+      if (tint.brush != null) {
+        val maskingShader = when {
+          m is ShaderBrush -> m.createShader(size)
+          p is HazeProgressive.LinearGradient -> (p.asBrush() as ShaderBrush).createShader(size)
+          else -> null
+        }
+
+        if (maskingShader != null) {
+          PaintPool.usePaint { outerPaint ->
+            drawContext.canvas.withSaveLayer(size.toRect(), outerPaint) {
+              drawRect(brush = tint.brush, blendMode = tint.blendMode)
+
+              PaintPool.usePaint { maskPaint ->
+                maskPaint.shader = maskingShader
+                maskPaint.blendMode = BlendMode.DstIn
+                drawContext.canvas.drawRect(size.toRect(), maskPaint)
+              }
+            }
+          }
+        } else {
+          drawRect(brush = tint.brush, blendMode = tint.blendMode)
+        }
       } else {
-        drawRect(color = tint.color, blendMode = tint.blendMode)
+        // This must be a color
+        if (m != null) {
+          drawRect(brush = m, colorFilter = ColorFilter.tint(tint.color))
+        } else if (p is HazeProgressive.LinearGradient) {
+          drawRect(brush = p.asBrush(), colorFilter = ColorFilter.tint(tint.color))
+        } else {
+          drawRect(color = tint.color, blendMode = tint.blendMode)
+        }
       }
     }
 
     if (alpha != 1f) {
-      paint.alpha = alpha
-      drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-        scrim(scrimTint)
+      PaintPool.usePaint { paint ->
+        paint.alpha = alpha
+        drawContext.canvas.withSaveLayer(size.toRect(), paint) {
+          scrim(scrimTint)
+        }
       }
     } else {
       scrim(scrimTint)
