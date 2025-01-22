@@ -49,6 +49,7 @@ val CommonSamples = listOf(
   Sample("Dialog") { DialogSample(it) },
   Sample("Materials") { MaterialsSample(it) },
   Sample("List with Sticky Headers") { ListWithStickyHeaders(it) },
+  Sample("Bottom Sheet") { BottomSheet(it) },
 )
 
 data class Sample(
@@ -102,6 +103,8 @@ fun Samples(
       .forEach { imageLoader.enqueue(it) }
   }
 
+  val sortedSamples = remember { samples.sortedBy(Sample::title) }
+
   SamplesTheme {
     Crossfade(
       targetState = navigator.currentSample,
@@ -122,7 +125,7 @@ fun Samples(
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,
           ) {
-            items(samples) { sample ->
+            items(sortedSamples) { sample ->
               ListItem(
                 headlineContent = { Text(text = sample.title) },
                 modifier = Modifier
