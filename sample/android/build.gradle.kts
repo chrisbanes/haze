@@ -58,8 +58,5 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   implementation(libs.androidx.compose.ui.preview)
 
-  implementation(libs.androidx.media3.exoplayer)
-  implementation(libs.androidx.media3.ui)
-
   baselineProfile(projects.internal.benchmark)
 }

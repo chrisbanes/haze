@@ -10,7 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.remember
 import dev.chrisbanes.haze.sample.Navigator
-import dev.chrisbanes.haze.sample.Sample
 import dev.chrisbanes.haze.sample.Samples
 
 class MainActivity : ComponentActivity() {
@@ -26,12 +25,7 @@ class MainActivity : ComponentActivity() {
       Samples(
         appTitle = title.toString(),
         navigator = navigator,
-        samples = Samples + AndroidSamples,
       )
     }
   }
 }
-
-private val AndroidSamples = listOf(
-  Sample("ExoPlayer") { ExoPlayerSample(it) },
-)
