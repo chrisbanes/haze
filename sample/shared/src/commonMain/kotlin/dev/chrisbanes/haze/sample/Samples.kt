@@ -33,8 +33,10 @@ import coil3.request.ImageRequest
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 
+expect val Samples: List<Sample>
+
 @OptIn(ExperimentalHazeApi::class)
-val Samples = listOf(
+val CommonSamples = listOf(
   Sample("Scaffold") { ScaffoldSample(it) },
   Sample("Scaffold (input scaled)") { ScaffoldSample(it, inputScale = HazeInputScale.Auto) },
   Sample("Scaffold (progressive blur)") { ScaffoldSample(it, ScaffoldSampleMode.Progressive) },
