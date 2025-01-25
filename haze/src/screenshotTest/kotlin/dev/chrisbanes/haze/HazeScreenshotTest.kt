@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
@@ -116,12 +117,23 @@ class HazeScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_alpha() = runScreenshotTest {
+    var alpha by mutableFloatStateOf(0.5f)
+
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = DefaultTint, alpha = 0.5f)
+        CreditCardSample(tint = DefaultTint, alpha = alpha)
       }
     }
+
     captureRoot()
+
+    alpha = 0.2f
+    waitForIdle()
+    captureRoot("20")
+
+    alpha = 0.7f
+    waitForIdle()
+    captureRoot("70")
   }
 
   @Test

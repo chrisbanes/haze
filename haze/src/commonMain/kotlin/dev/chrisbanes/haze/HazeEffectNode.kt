@@ -731,7 +731,8 @@ internal object DirtyFields {
       Size or
       BackgroundColor or
       Progressive or // TODO: only on Android SDK 32-33
-      Areas
+      Areas or
+      Alpha
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
