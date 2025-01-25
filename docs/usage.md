@@ -100,6 +100,11 @@ LargeTopAppBar(
 )
 ```
 
+There is two types of progressive effect support in Haze:
+
+- `HazeProgressive.LinearGradient`: Linear gradients, usually vertical or horizontal but you can set any angle.
+- `HazeProgressive.RadialGradient`: Radial gradients, with a defined center.
+
 !!! warning "Performance of Progressive"
 
     Please be aware that using progressive blurring does come with a performance cost. Please see the [Performance](performance.md) page for up-to-date benchmarks.

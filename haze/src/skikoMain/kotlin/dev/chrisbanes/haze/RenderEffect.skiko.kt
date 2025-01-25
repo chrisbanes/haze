@@ -38,7 +38,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     child("noise", NOISE_SHADER)
   }
 
-  val progressiveShader = params.progressive?.toShader(params.contentSize)
+  val progressiveShader = params.progressive?.asBrush()?.toShader(params.contentSize)
   val blur = if (progressiveShader != null) {
     // If we've been provided with a progressive/gradient blur shader, we need to use
     // our custom blur via a runtime shader

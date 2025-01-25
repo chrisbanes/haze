@@ -124,6 +124,10 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
   }
 }
 
+poko {
+  pokoAnnotation.set("dev/chrisbanes/haze/Poko")
+}
+
 baselineProfile {
   filter { include("dev.chrisbanes.haze.*") }
 }

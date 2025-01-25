@@ -40,7 +40,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 
   require(params.blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
 
-  val progressiveShader = params.progressive?.toShader(params.contentSize)
+  val progressiveShader = params.progressive?.asBrush()?.toShader(params.contentSize)
 
   val blur = when {
     params.blurRadius <= 0.dp -> AndroidRenderEffect.createOffsetEffect(0f, 0f)
