@@ -16,9 +16,9 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.jetbrains.skia.BlendMode
 import org.jetbrains.skia.ColorFilter
@@ -30,27 +30,36 @@ import org.jetbrains.skia.Shader
 
 internal actual fun DrawScope.canUseGraphicLayers(): Boolean = true
 
-internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
-  require(params.blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
+internal actual fun HazeEffectNode.createRenderEffect(
+  inputScale: Float,
+  blurRadius: Dp,
+  noiseFactor: Float,
+  tints: List<HazeTint>,
+  tintAlphaModulate: Float,
+  contentSize: Size,
+  mask: Brush?,
+  progressive: HazeProgressive?,
+): RenderEffect? {
+  require(blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
 
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
-    uniform("noiseFactor", params.noiseFactor.coerceIn(0f, 1f))
+    uniform("noiseFactor", noiseFactor.coerceIn(0f, 1f))
     child("noise", NOISE_SHADER)
   }
 
-  val progressiveShader = params.progressive?.asBrush()?.toShader(params.contentSize)
+  val progressiveShader = progressive?.asBrush()?.toShader(contentSize)
   val blur = if (progressiveShader != null) {
     // If we've been provided with a progressive/gradient blur shader, we need to use
     // our custom blur via a runtime shader
     createBlurImageFilterWithMask(
-      blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() },
-      bounds = params.contentSize.toRect(),
+      blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() },
+      bounds = contentSize.toRect(),
       mask = progressiveShader,
     )
   } else {
     createBlurImageFilter(
-      blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() },
-      bounds = params.contentSize.toRect(),
+      blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() },
+      bounds = contentSize.toRect(),
     )
   }
 
@@ -60,8 +69,8 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
       shaderNames = arrayOf("content", "blur"),
       inputs = arrayOf(null, blur),
     )
-    .withTints(params.tints, params.tintAlphaModulate, params.contentSize, progressiveShader)
-    .withMask(params.mask, params.contentSize)
+    .withTints(tints, tintAlphaModulate, contentSize, progressiveShader)
+    .withMask(mask, contentSize)
     .asComposeRenderEffect()
 }
 

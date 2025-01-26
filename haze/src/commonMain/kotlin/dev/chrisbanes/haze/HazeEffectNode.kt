@@ -619,18 +619,7 @@ sealed interface HazeProgressive {
   }
 }
 
-private val renderEffectCache by unsynchronizedLazy { SimpleLruCache<RenderEffectParams, RenderEffect>(10) }
-
-@Poko
-internal class RenderEffectParams(
-  val blurRadius: Dp,
-  val noiseFactor: Float,
-  val tints: List<HazeTint> = emptyList(),
-  val tintAlphaModulate: Float = 1f,
-  val contentSize: Size,
-  val mask: Brush? = null,
-  val progressive: HazeProgressive? = null,
-)
+private val renderEffectCache by unsynchronizedLazy { SimpleLruCache<Long, RenderEffect>(10) }
 
 @ExperimentalHazeApi
 internal fun HazeEffectNode.calculateInputScaleFactor(
@@ -647,7 +636,7 @@ internal fun HazeEffectNode.calculateInputScaleFactor(
       progressive != null -> 0.5f
       mask != null -> 0.5f
       // Otherwise we use 1/3
-      else -> 0.3334f
+      else -> 1 / 3f
     }
   }
 }
@@ -662,8 +651,8 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
   contentSize: Size = this.size * inputScale,
   mask: Brush? = this.mask,
   progressive: HazeProgressive? = null,
-): RenderEffect? = getOrCreateRenderEffect(
-  RenderEffectParams(
+): RenderEffect? {
+  val cacheKey = buildRenderEffectKey(
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
     tints = tints,
@@ -671,23 +660,57 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
     contentSize = contentSize,
     mask = mask,
     progressive = progressive,
-  ),
-)
+  )
 
-internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params: RenderEffectParams): RenderEffect? {
-  log(HazeEffectNode.TAG) { "getOrCreateRenderEffect: $params" }
-  val cached = renderEffectCache[params]
+  log(HazeEffectNode.TAG) { "getOrCreateRenderEffect: CacheKey=$cacheKey" }
+
+  val cached = renderEffectCache[cacheKey]
   if (cached != null) {
-    log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
+    log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Returning cached for key=$cacheKey" }
     return cached
   }
 
-  log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
-  return createRenderEffect(params)
-    ?.also { renderEffectCache[params] = it }
+  log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating for key=$cacheKey" }
+  return createRenderEffect(
+    inputScale = inputScale,
+    blurRadius = blurRadius,
+    noiseFactor = noiseFactor,
+    tints = tints,
+    tintAlphaModulate = tintAlphaModulate,
+    contentSize = contentSize,
+    progressive = progressive,
+  )?.also { renderEffectCache[cacheKey] = it }
 }
 
-internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
+internal expect fun HazeEffectNode.createRenderEffect(
+  inputScale: Float = calculateInputScaleFactor(),
+  blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp } * inputScale,
+  noiseFactor: Float = resolveNoiseFactor(),
+  tints: List<HazeTint> = resolveTints(),
+  tintAlphaModulate: Float = 1f,
+  contentSize: Size = this.size * inputScale,
+  mask: Brush? = this.mask,
+  progressive: HazeProgressive? = null,
+): RenderEffect?
+
+private fun buildRenderEffectKey(
+  blurRadius: Dp,
+  noiseFactor: Float,
+  tints: List<HazeTint> = emptyList(),
+  tintAlphaModulate: Float = 1f,
+  contentSize: Size,
+  mask: Brush? = null,
+  progressive: HazeProgressive? = null,
+): Long {
+  var result = blurRadius.hashCode().toLong()
+  result = 31 * result + noiseFactor.hashCode()
+  result = 31 * result + tints.hashCode()
+  result = 31 * result + tintAlphaModulate.hashCode()
+  result = 31 * result + contentSize.hashCode()
+  result = 31 * result + (mask?.hashCode() ?: 0)
+  result = 31 * result + (progressive?.hashCode() ?: 0)
+  return result
+}
 
 internal expect fun HazeEffectNode.drawProgressiveEffect(
   drawScope: DrawScope,
