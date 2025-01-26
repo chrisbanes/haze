@@ -7,6 +7,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -47,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
-import dev.drewhamilton.poko.Poko
 
 internal val ModifierLocalCurrentHazeZIndex = modifierLocalOf<Float?> { null }
 
@@ -381,8 +381,8 @@ class HazeEffectNode(
     clipRect {
       scale(1f / scaleFactor, Offset.Zero) {
         val p = progressive
-        if (p is HazeProgressive.LinearGradient) {
-          drawLinearGradientProgressiveEffect(
+        if (p != null) {
+          drawProgressiveEffect(
             drawScope = this,
             progressive = p,
             contentLayer = layer,
@@ -416,7 +416,7 @@ class HazeEffectNode(
       if (tint.brush != null) {
         val maskingShader = when {
           m is ShaderBrush -> m.createShader(size)
-          p is HazeProgressive.LinearGradient -> (p.asBrush() as ShaderBrush).createShader(size)
+          p != null -> (p.asBrush() as? ShaderBrush)?.createShader(size)
           else -> null
         }
 
@@ -437,10 +437,11 @@ class HazeEffectNode(
         }
       } else {
         // This must be a color
+        val progressiveBrush = p?.asBrush()
         if (m != null) {
           drawRect(brush = m, colorFilter = ColorFilter.tint(tint.color))
-        } else if (p is HazeProgressive.LinearGradient) {
-          drawRect(brush = p.asBrush(), colorFilter = ColorFilter.tint(tint.color))
+        } else if (progressiveBrush != null) {
+          drawRect(brush = progressiveBrush, colorFilter = ColorFilter.tint(tint.color))
         } else {
           drawRect(color = tint.color, blendMode = tint.blendMode)
         }
@@ -488,6 +489,7 @@ class HazeEffectNode(
 /**
  * Parameters for applying a progressive blur effect.
  */
+@Immutable
 sealed interface HazeProgressive {
 
   /**
@@ -521,6 +523,35 @@ sealed interface HazeProgressive {
     val end: Offset = Offset.Infinite,
     val endIntensity: Float = 1f,
     val preferPerformance: Boolean = false,
+  ) : HazeProgressive
+
+  /**
+   * A radial gradient effect.
+   *
+   * Platform support:
+   * - Skia backed platforms (iOS, Desktop, etc): ✅
+   * - Android SDK Level 33+: ✅
+   * - Android SDK Level 31-32: Falls back to a mask
+   * - Android SDK Level < 31: Falls back to a scrim
+   *
+   * @param easing - The easing function to use when applying the effect. Defaults to a
+   * linear easing effect.
+   * @param center Center position of the radial gradient circle. If this is set to
+   * [Offset.Unspecified] then the center of the drawing area is used as the center for
+   * the radial gradient. [Float.POSITIVE_INFINITY] can be used for either [Offset.x] or
+   * [Offset.y] to indicate the far right or far bottom of the drawing area respectively.
+   * @param centerIntensity - The intensity of the haze effect at the [center], in the range `0f`..`1f`.
+   * @param radius Radius for the radial gradient. Defaults to positive infinity to indicate
+   * the largest radius that can fit within the bounds of the drawing area.
+   * @param radiusIntensity - The intensity of the haze effect at the [radius], in the range `0f`..`1f`
+   */
+  @Poko
+  class RadialGradient(
+    val easing: Easing = EaseIn,
+    val center: Offset = Offset.Unspecified,
+    val centerIntensity: Float = 1f,
+    val radius: Float = Float.POSITIVE_INFINITY,
+    val radiusIntensity: Float = 0f,
   ) : HazeProgressive
 
   companion object {
@@ -598,7 +629,7 @@ internal class RenderEffectParams(
   val tintAlphaModulate: Float = 1f,
   val contentSize: Size,
   val mask: Brush? = null,
-  val progressive: Brush? = null,
+  val progressive: HazeProgressive? = null,
 )
 
 @ExperimentalHazeApi
@@ -630,7 +661,7 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
   tintAlphaModulate: Float = 1f,
   contentSize: Size = this.size * inputScale,
   mask: Brush? = this.mask,
-  progressive: Brush? = null,
+  progressive: HazeProgressive? = null,
 ): RenderEffect? = getOrCreateRenderEffect(
   RenderEffectParams(
     blurRadius = blurRadius,
@@ -658,9 +689,9 @@ internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params
 
 internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
 
-internal expect fun HazeEffectNode.drawLinearGradientProgressiveEffect(
+internal expect fun HazeEffectNode.drawProgressiveEffect(
   drawScope: DrawScope,
-  progressive: HazeProgressive.LinearGradient,
+  progressive: HazeProgressive,
   contentLayer: GraphicsLayer,
 )
 

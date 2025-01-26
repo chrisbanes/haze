@@ -22,21 +22,29 @@ import kotlin.math.min
 private const val USE_RUNTIME_SHADER = true
 
 @RequiresApi(31)
-internal actual fun HazeEffectNode.drawLinearGradientProgressiveEffect(
+internal actual fun HazeEffectNode.drawProgressiveEffect(
   drawScope: DrawScope,
-  progressive: HazeProgressive.LinearGradient,
+  progressive: HazeProgressive,
   contentLayer: GraphicsLayer,
 ) {
   if (USE_RUNTIME_SHADER && Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
-      contentLayer.renderEffect = getOrCreateRenderEffect(progressive = progressive.asBrush())
+      contentLayer.renderEffect = getOrCreateRenderEffect(progressive = progressive)
       contentLayer.alpha = alpha
 
       // Finally draw the layer
       drawLayer(contentLayer)
     }
-  } else if (progressive.preferPerformance) {
-    // When the 'prefer performance' flag is enabled, we switch to using a mask instead
+  } else if (progressive is HazeProgressive.LinearGradient && !progressive.preferPerformance) {
+    // If it's a linear gradient, and the 'preferPerformance' flag is not enabled, we can use
+    // our slow approximated version
+    drawLinearGradientProgressiveEffectUsingLayers(
+      drawScope = drawScope,
+      progressive = progressive,
+      contentLayer = contentLayer,
+    )
+  } else {
+    // Otherwise we convert it to a mask
     with(drawScope) {
       contentLayer.renderEffect = getOrCreateRenderEffect(mask = progressive.asBrush())
       contentLayer.alpha = alpha
@@ -44,12 +52,6 @@ internal actual fun HazeEffectNode.drawLinearGradientProgressiveEffect(
       // Finally draw the layer
       drawLayer(contentLayer)
     }
-  } else {
-    drawLinearGradientProgressiveEffectUsingLayers(
-      drawScope = drawScope,
-      progressive = progressive,
-      contentLayer = contentLayer,
-    )
   }
 }
 

@@ -155,7 +155,7 @@ package dev.chrisbanes.haze {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
   }
 
-  public sealed interface HazeProgressive {
+  @androidx.compose.runtime.Immutable public sealed interface HazeProgressive {
     field public static final dev.chrisbanes.haze.HazeProgressive.Companion Companion;
   }
 
@@ -185,6 +185,20 @@ package dev.chrisbanes.haze {
     property public final boolean preferPerformance;
     property public final long start;
     property public final float startIntensity;
+  }
+
+  @dev.chrisbanes.haze.Poko public static final class HazeProgressive.RadialGradient implements dev.chrisbanes.haze.HazeProgressive {
+    ctor public HazeProgressive.RadialGradient(optional androidx.compose.animation.core.Easing easing, optional long center, optional float centerIntensity, optional float radius, optional float radiusIntensity);
+    method public long getCenter();
+    method public float getCenterIntensity();
+    method public androidx.compose.animation.core.Easing getEasing();
+    method public float getRadius();
+    method public float getRadiusIntensity();
+    property public final long center;
+    property public final float centerIntensity;
+    property public final androidx.compose.animation.core.Easing easing;
+    property public final float radius;
+    property public final float radiusIntensity;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeSourceNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode {
@@ -271,6 +285,9 @@ package dev.chrisbanes.haze {
   public static final class HazeTint.Companion {
     method public dev.chrisbanes.haze.HazeTint getUnspecified();
     property public final dev.chrisbanes.haze.HazeTint Unspecified;
+  }
+
+  @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {
   }
 
 }
