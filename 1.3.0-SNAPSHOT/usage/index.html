@@ -102,7 +102,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#styling" class="md-skip">
+        <a href="#deep-ui-hierarchies" class="md-skip">
           Skip to content
         </a>
       
@@ -319,6 +319,15 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#deep-ui-hierarchies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deep UI hierarchies
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#styling" class="md-nav__link">
@@ -659,6 +668,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#deep-ui-hierarchies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deep UI hierarchies
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#styling" class="md-nav__link">
     <span class="md-ellipsis">
       Styling
@@ -827,6 +845,82 @@
 </span><span class="hll"><span class="w">      </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span>
 </span><span class="w">      </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">(),</span>
 <span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="deep-ui-hierarchies">Deep UI hierarchies<a class="headerlink" href="#deep-ui-hierarchies" title="Permanent link">¶</a></h2>
+<p>You can pass <code>HazeState</code> objects to composables as arguments. For example:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@Composable</span>
+<span class="kd">fun</span><span class="w"> </span><span class="nf">HazeExample</span><span class="p">(</span><span class="n">modifier</span><span class="p">:</span><span class="w"> </span><span class="n">Modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="hll"><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span>
+<span class="w">    </span><span class="n">Box</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Background</span><span class="p">(</span>
+<span class="hll"><span class="w">          </span><span class="n">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+</span><span class="w">          </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">()</span>
+<span class="w">        </span><span class="p">)</span>
+<span class="w">        </span><span class="n">Foreground</span><span class="p">(</span>
+<span class="hll"><span class="w">          </span><span class="n">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+</span><span class="w">          </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">()</span>
+<span class="w">        </span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>You can then use the argument to configure <code>hazeSource</code> and <code>hazeEffect</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@OptIn</span><span class="p">(</span><span class="n">ExperimentalHazeMaterialsApi</span><span class="o">::</span><span class="n">class</span><span class="p">)</span>
+<span class="nd">@Composable</span>
+<span class="kd">fun</span><span class="w"> </span><span class="nf">Foreground</span><span class="p">(</span>
+<span class="hll"><span class="w">  </span><span class="n">hazeState</span><span class="p">:</span><span class="w"> </span><span class="n">HazeState</span><span class="p">,</span>
+</span><span class="w">  </span><span class="n">modifier</span><span class="p">:</span><span class="w"> </span><span class="n">Modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Box</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Text</span><span class="p">(</span>
+<span class="w">            </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stringResource</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">string</span><span class="p">.</span><span class="na">haze_text</span><span class="p">),</span>
+<span class="w">            </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span>
+<span class="w">                </span><span class="p">.</span><span class="na">align</span><span class="p">(</span><span class="n">Alignment</span><span class="p">.</span><span class="na">Center</span><span class="p">)</span>
+<span class="w">                </span><span class="p">.</span><span class="na">wrapContentSize</span><span class="p">()</span>
+<span class="hll"><span class="w">                </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
+</span><span class="hll"><span class="w">                    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+</span><span class="hll"><span class="w">                    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
+</span><span class="hll"><span class="w">                </span><span class="p">)</span>
+</span><span class="w">        </span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>However, this can problematic in deep hierarchies when you need to pass the <code>HazeState</code> instances
+down through many levels. To avoid this you can use a composition local to pass the <code>HazeState</code>
+down to the descendants in the hierarchy:</p>
+<div class="highlight"><pre><span></span><code><span class="hll"><span class="kd">val</span><span class="w"> </span><span class="nv">LocalHazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compositionLocalOf</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span>
+<span class="nd">@Composable</span>
+<span class="kd">fun</span><span class="w"> </span><span class="nf">HazeExample</span><span class="p">(</span><span class="n">modifier</span><span class="p">:</span><span class="w"> </span><span class="n">Modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="hll"><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+</span>
+<span class="hll"><span class="w">    </span><span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalHazeState</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span class="w">        </span><span class="n">Box</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">Background</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">())</span>
+<span class="w">            </span><span class="n">Foreground</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">())</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="hll"><span class="w">    </span><span class="p">}</span>
+</span><span class="p">}</span>
+<span class="p">.</span>
+<span class="p">.</span>
+<span class="p">.</span>
+<span class="nd">@OptIn</span><span class="p">(</span><span class="n">ExperimentalHazeMaterialsApi</span><span class="o">::</span><span class="n">class</span><span class="p">)</span>
+<span class="nd">@Composable</span>
+<span class="kd">fun</span><span class="w"> </span><span class="nf">Foreground</span><span class="p">(</span><span class="n">modifier</span><span class="p">:</span><span class="w"> </span><span class="n">Modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="hll"><span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LocalHazeState</span><span class="p">.</span><span class="na">current</span>
+</span><span class="w">  </span><span class="n">Box</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Text</span><span class="p">(</span>
+<span class="w">      </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stringResource</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">string</span><span class="p">.</span><span class="na">haze_text</span><span class="p">),</span>
+<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span>
+<span class="w">        </span><span class="p">.</span><span class="na">align</span><span class="p">(</span><span class="n">Alignment</span><span class="p">.</span><span class="na">Center</span><span class="p">)</span>
+<span class="w">        </span><span class="p">.</span><span class="na">wrapContentSize</span><span class="p">()</span>
+<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
+<span class="hll"><span class="w">          </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+</span><span class="w">          </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
+<span class="w">        </span><span class="p">)</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="styling">Styling<a class="headerlink" href="#styling" title="Permanent link">¶</a></h2>
