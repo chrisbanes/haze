@@ -306,3 +306,13 @@ CreditCard(
 ```
 
 You'll notice that we're using another parameter here, `key`. This just acts as an ID for the node allowing easier filtering. It has serves no other purpose.
+
+## Screenshot testing
+
+Haze support screenshot testing. It is itself heavily screenshot tested, using Roborazzi on both JVM Desktop and Android (Robolectric).
+
+When using Robolectric it is important to take note of what SDK Level you are running against. When running on Android, Haze uses the built-in [RenderEffect.createBlurEffect](https://developer.android.com/reference/android/graphics/RenderEffect#createBlurEffect(float,%20float,%20android.graphics.Shader.TileMode)) using the [CLAMP](https://developer.android.com/reference/android/graphics/Shader.TileMode#CLAMP) tile mode. This enables the blur effect to work correctly at the edges of the area. Support for the CLAMP tile mode was only added in Robolectric recently, and requires your tests to be running against SDK 35 (or above).
+
+If your tests are running against an earlier SDK Level (say 33), you may find that the edges any blurred areas look strange and incorrect. This only affects your tests though. The fix is fairly simple: update your screenshot tests to use SDK Level 35+, like so: `@Config(sdk = [35])`.
+
+Other host screenshot testing libraries may work, but they have not tested and I have no bandwidth to support them. YMMV.
