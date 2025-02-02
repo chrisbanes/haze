@@ -1,6 +1,7 @@
 [versions]
 agp = "8.8.0"
 androidx-benchmark = "1.3.3"
+androidx-lifecycle = "2.8.4"
 androidx-media3 = "1.4.1"
 androidx-test-ext-junit = "1.2.1"
 assertk = "0.28.1"
@@ -38,18 +39,19 @@ mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.30.0" }
 androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
 androidx-core = "androidx.core:core-ktx:1.13.1"
 androidx-activity-compose = "androidx.activity:activity-compose:1.9.3"
-androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "jetpack-compose" }
-androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "jetpack-compose" }
+androidx-lifecycle-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "androidx-media3" }
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "androidx-media3" }
 androidx-profileinstaller = "androidx.profileinstaller:profileinstaller:1.4.1"
 androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext-junit" }
 androidx-test-uiautomator = "androidx.test.uiautomator:uiautomator:2.3.0"
 
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "jetpack-compose" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "jetpack-compose" }
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "jetpack-compose" }
 androidx-compose-ui-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "jetpack-compose" }
-androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "jetpack-compose" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "jetpack-compose" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "jetpack-compose" }
 
 assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assertk" }
 
@@ -63,10 +65,10 @@ ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
-roborazzi-core = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi"}
-roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi"}
-roborazzi-composedesktop = { module = "io.github.takahirom.roborazzi:roborazzi-compose-desktop", version.ref = "roborazzi"}
-roborazzi-junit = { module = "io.github.takahirom.roborazzi:roborazzi-junit-rule", version.ref = "roborazzi"}
+roborazzi-core = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
+roborazzi-composedesktop = { module = "io.github.takahirom.roborazzi:roborazzi-compose-desktop", version.ref = "roborazzi" }
+roborazzi-junit = { module = "io.github.takahirom.roborazzi:roborazzi-junit-rule", version.ref = "roborazzi" }
 
 # Build logic dependencies
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
