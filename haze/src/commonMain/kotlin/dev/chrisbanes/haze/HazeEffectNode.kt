@@ -364,13 +364,16 @@ class HazeEffectNode(
               translate(position) {
                 // Draw the content into our effect layer. We do want to observe this via snapshot
                 // state
-                area.contentLayer
+                val areaLayer = area.contentLayer
                   ?.takeUnless { it.isReleased }
                   ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
-                  ?.let {
-                    log(TAG) { "Drawing HazeArea GraphicsLayer: $it" }
-                    drawLayer(it)
-                  }
+
+                if (areaLayer != null) {
+                  log(TAG) { "Drawing HazeArea GraphicsLayer: $areaLayer" }
+                  drawLayer(areaLayer)
+                } else {
+                  log(TAG) { "HazeArea GraphicsLayer is not valid" }
+                }
               }
             }
           }

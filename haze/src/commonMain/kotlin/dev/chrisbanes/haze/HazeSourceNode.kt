@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.modifier.ModifierLocalModifierNode
 import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -30,6 +29,9 @@ import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.launch
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 annotation class ExperimentalHazeApi
@@ -92,6 +94,7 @@ class HazeSourceNode(
     log(TAG) { "onAttach. Adding HazeArea: $area" }
     state.addArea(area)
     onObservedReadsChanged()
+    observeLifecycle()
   }
 
   override fun onObservedReadsChanged() {
@@ -150,16 +153,22 @@ class HazeSourceNode(
 
       val contentLayer = area.contentLayer
         ?.takeUnless { it.isReleased }
-        ?: graphicsContext.createGraphicsLayer().also { area.contentLayer = it }
+        ?: graphicsContext.createGraphicsLayer().also {
+          area.contentLayer = it
+          log(TAG) { "Updated contentLayer in HazeArea: $area" }
+        }
 
       // First we draw the composable content into a graphics layer
       contentLayer.record {
         this@draw.drawContent()
+        log(TAG) { "Drawn content into layer: $contentLayer" }
       }
 
       // Now we draw `content` into the window canvas
       drawLayer(contentLayer)
+      log(TAG) { "Drawn layer to canvas: $contentLayer" }
     } else {
+      log(TAG) { "Not using graphics layer, so drawing content direct to canvas" }
       // If we're not using graphics layers, just call drawContent and return early
       drawContent()
     }
@@ -172,6 +181,7 @@ class HazeSourceNode(
   override fun onDetach() {
     log(TAG) { "onDetach. Removing HazeArea: $area" }
     area.reset()
+    area.releaseLayer()
     state.removeArea(area)
   }
 
@@ -184,8 +194,36 @@ class HazeSourceNode(
     positionOnScreen = Offset.Unspecified
     size = Size.Unspecified
     contentDrawing = false
-    contentLayer?.let { currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(it) }
+  }
+
+  private fun HazeArea.releaseLayer() {
+    contentLayer?.let { layer ->
+      log(TAG) { "Releasing content layer: $layer" }
+      currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
+    }
     contentLayer = null
+  }
+
+  private fun observeLifecycle() {
+    runCatching { currentValueOf(LocalLifecycleOwner) }
+      .onSuccess { lifecycleOwner ->
+        coroutineScope.launch {
+          lifecycleOwner.lifecycle.currentStateFlow.collect { state ->
+            if (state <= Lifecycle.State.CREATED) {
+              // When the UI host is stopped, release the GraphicsLayer. Android seems to have a issue
+              // tracking layers re-paints after an Activity stop + start. Clearing the layer once
+              // we're no longer visible fixes it 🤷: https://github.com/chrisbanes/haze/issues/497
+              area.releaseLayer()
+            }
+          }
+        }
+      }
+      .onFailure { error ->
+        // This is probably because we're built against an old version of androidx.lifecycle
+        // which doesn't work at runtime on non-Android platforms. Not much we can do here, and
+        // this workaround is for Android anyway.
+        log(TAG) { "Error whilst retrieving LocalLifecycleOwner: $error" }
+      }
   }
 
   private companion object {
