@@ -91,6 +91,7 @@ class HazeSourceNode(
     log(TAG) { "onAttach. Adding HazeArea: $area" }
     state.addArea(area)
     onObservedReadsChanged()
+    clearHazeAreaLayerOnStop()
   }
 
   override fun onObservedReadsChanged() {
