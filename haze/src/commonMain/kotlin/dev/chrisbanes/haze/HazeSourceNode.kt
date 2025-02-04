@@ -29,9 +29,6 @@ import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlinx.coroutines.launch
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 annotation class ExperimentalHazeApi
@@ -57,7 +54,7 @@ class HazeSourceNode(
 
   override val providedValues = modifierLocalMapOf(ModifierLocalCurrentHazeZIndex to zIndex)
 
-  private val area = HazeArea()
+  internal val area = HazeArea()
 
   var zIndex: Float by mutableStateOf(zIndex)
 
@@ -94,7 +91,6 @@ class HazeSourceNode(
     log(TAG) { "onAttach. Adding HazeArea: $area" }
     state.addArea(area)
     onObservedReadsChanged()
-    observeLifecycle()
   }
 
   override fun onObservedReadsChanged() {
@@ -196,34 +192,12 @@ class HazeSourceNode(
     contentDrawing = false
   }
 
-  private fun HazeArea.releaseLayer() {
+  internal fun HazeArea.releaseLayer() {
     contentLayer?.let { layer ->
       log(TAG) { "Releasing content layer: $layer" }
       currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
     }
     contentLayer = null
-  }
-
-  private fun observeLifecycle() {
-    runCatching { currentValueOf(LocalLifecycleOwner) }
-      .onSuccess { lifecycleOwner ->
-        coroutineScope.launch {
-          lifecycleOwner.lifecycle.currentStateFlow.collect { state ->
-            if (state <= Lifecycle.State.CREATED) {
-              // When the UI host is stopped, release the GraphicsLayer. Android seems to have a issue
-              // tracking layers re-paints after an Activity stop + start. Clearing the layer once
-              // we're no longer visible fixes it 🤷: https://github.com/chrisbanes/haze/issues/497
-              area.releaseLayer()
-            }
-          }
-        }
-      }
-      .onFailure { error ->
-        // This is probably because we're built against an old version of androidx.lifecycle
-        // which doesn't work at runtime on non-Android platforms. Not much we can do here, and
-        // this workaround is for Android anyway.
-        log(TAG) { "Error whilst retrieving LocalLifecycleOwner: $error" }
-      }
   }
 
   private companion object {
@@ -255,3 +229,5 @@ private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
   val factor = 1 + (blurRadius.value / 72)
   return copy(alpha = (alpha * factor).coerceAtMost(1f))
 }
+
+internal expect fun HazeSourceNode.clearHazeAreaLayerOnStop()
