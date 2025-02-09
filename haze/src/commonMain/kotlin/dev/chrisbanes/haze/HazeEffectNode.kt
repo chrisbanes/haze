@@ -264,7 +264,7 @@ class HazeEffectNode(
   }
 
   private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
-    positionOnScreen = coordinates.positionOnScreenCatching()
+    positionOnScreen = coordinates.positionForHaze()
     size = coordinates.size.toSize()
     log(TAG) { "$source: positionOnScreen=$positionOnScreen, size=$size" }
     updateEffect()
