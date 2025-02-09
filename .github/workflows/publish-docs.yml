@@ -78,3 +78,8 @@ jobs:
           HAZE_VERSION: ${{ steps.version.outputs.VERSION_NAME }}
           DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
         run: mike deploy -u --push ${{ steps.version.outputs.VERSION_NAME }} latest
+
+      - name: Delete old doc versions
+        run: |
+          git fetch origin gh-pages --depth=1
+          scripts/delete_old_version_docs.sh
