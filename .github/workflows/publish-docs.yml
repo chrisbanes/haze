@@ -66,15 +66,15 @@ jobs:
           git fetch origin gh-pages --depth=1
 
       - name: Deploy dev docs with mike 🗿
-        env:
-          HAZE_VERSION: ${{ steps.version.outputs.VERSION_NAME }}
-          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
         if: ${{ success() && contains(steps.version.outputs.VERSION_NAME, 'SNAPSHOT') }}
-        run: mike deploy -u --push ${{ steps.version.outputs.VERSION_NAME }} dev
+        env:
+          HAZE_VERSION: dev
+          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
+        run: mike deploy -u --push dev
 
       - name: Deploy release docs with mike 🚀
+        if: ${{ success() && !contains(steps.version.outputs.VERSION_NAME , 'SNAPSHOT') }}
         env:
           HAZE_VERSION: ${{ steps.version.outputs.VERSION_NAME }}
           DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
-        if: ${{ success() && !contains(steps.version.outputs.VERSION_NAME , 'SNAPSHOT') }}
         run: mike deploy -u --push ${{ steps.version.outputs.VERSION_NAME }} latest
