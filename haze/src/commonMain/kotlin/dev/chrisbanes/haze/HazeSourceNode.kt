@@ -130,7 +130,7 @@ class HazeSourceNode(
   }
 
   private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
-    area.positionOnScreen = coordinates.positionOnScreenCatching()
+    area.positionOnScreen = coordinates.positionForHaze()
     area.size = coordinates.size.toSize()
 
     log(TAG) {
