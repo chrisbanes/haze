@@ -37,6 +37,14 @@ package dev.chrisbanes.haze {
     field public static final float tintAlpha = 0.7f;
   }
 
+  public final class HazeDialog_androidKt {
+    method @androidx.compose.runtime.Composable public static void HazeDialog(dev.chrisbanes.haze.HazeState hazeState, kotlin.jvm.functions.Function0<kotlin.Unit> onDismissRequest, optional androidx.compose.ui.window.DialogProperties properties, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+  }
+
+  public final class HazeDialog_skikoKt {
+    method @androidx.compose.runtime.Composable public static void HazeDialog(dev.chrisbanes.haze.HazeState hazeState, kotlin.jvm.functions.Function0<kotlin.Unit> onDismissRequest, optional androidx.compose.ui.window.DialogProperties properties, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+  }
+
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeEffectNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeEffectScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode {
     ctor public HazeEffectNode(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
