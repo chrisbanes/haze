@@ -131,6 +131,15 @@ class HazeEffectNode(
       }
     }
 
+  private var forcedInvalidationTick: Long = 0
+    set(value) {
+      if (value != field) {
+        log(TAG) { "forcedInvalidationTick changed. Current: $field. New: $value" }
+        dirtyTracker += DirtyFields.ForcedInvalidation
+        field = value
+      }
+    }
+
   private val isValid: Boolean
     get() = size.isSpecified && layerSize.isSpecified && areas.isNotEmpty()
 
@@ -363,6 +372,7 @@ class HazeEffectNode(
       .apply { sortBy(HazeArea::zIndex) }
 
     areaOffsets = areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
+    forcedInvalidationTick = areas.sumOf { it.forcedInvalidationTick.toLong() }
 
     invalidateIfNeeded()
   }
@@ -794,7 +804,8 @@ internal object DirtyFields {
   const val Alpha = FallbackTint shl 1
   const val Progressive = Alpha shl 1
   const val Areas = Progressive shl 1
-  const val LayerSize = Areas shl 1
+  const val ForcedInvalidation = Areas shl 1
+  const val LayerSize = ForcedInvalidation shl 1
   const val LayerOffset = LayerSize shl 1
 
   const val RenderEffectAffectingFlags =
@@ -808,7 +819,8 @@ internal object DirtyFields {
       Mask or
       Tints or
       FallbackTint or
-      Progressive
+      Progressive or
+      ForcedInvalidation
 
   const val InvalidateFlags =
     RenderEffectAffectingFlags or // Eventually we'll move this out of invalidation

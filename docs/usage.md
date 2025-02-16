@@ -309,6 +309,12 @@ fun Foreground(modifier: Modifier = Modifier) {
 }
 ```
 
+## Dialogs
+
+You can use Haze with `Dialog`s, to blur dialog backgrounds over content. We supply a [HazeDialog](api/haze/dev.chrisbanes.haze/haze-dialog.html) composable to make this easy to integrate.
+
+A sample is available too: [DialogSample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt).
+
 ## Screenshot testing
 
 Haze support screenshot testing. It is itself heavily screenshot tested, using Roborazzi on both JVM Desktop and Android (Robolectric).
