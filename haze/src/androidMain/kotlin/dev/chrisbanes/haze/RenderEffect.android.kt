@@ -27,42 +27,51 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.concurrent.getOrSet
 import kotlin.math.roundToInt
 
-internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
+internal actual fun HazeEffectNode.createRenderEffect(
+  inputScale: Float,
+  blurRadius: Dp,
+  noiseFactor: Float,
+  tints: List<HazeTint>,
+  tintAlphaModulate: Float,
+  contentSize: Size,
+  mask: Brush?,
+  progressive: HazeProgressive?,
+): RenderEffect? {
   if (Build.VERSION.SDK_INT < 31) return null
 
-  require(params.blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
+  require(blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
 
-  val progressiveShader = params.progressive?.asBrush()?.toShader(params.contentSize)
+  val progressiveShader = progressive?.asBrush()?.toShader(contentSize)
 
   val blur = when {
-    params.blurRadius <= 0.dp -> AndroidRenderEffect.createOffsetEffect(0f, 0f)
+    blurRadius <= 0.dp -> AndroidRenderEffect.createOffsetEffect(0f, 0f)
 
     Build.VERSION.SDK_INT >= 33 && progressiveShader != null -> {
       // If we've been provided with a progressive/gradient blur shader, we need to use
       // our custom blur via a runtime shader
       createBlurImageFilterWithMask(
-        blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() },
-        bounds = params.contentSize.toRect(),
+        blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() },
+        bounds = contentSize.toRect(),
         mask = progressiveShader,
       )
     }
 
     else -> {
       try {
-        val blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() }
+        val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
         AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
       } catch (e: IllegalArgumentException) {
         throw IllegalArgumentException(
           "Error whilst calling RenderEffect.createBlurEffect. " +
-            "This is likely because this device does not support a blur radius of ${params.blurRadius}dp",
+            "This is likely because this device does not support a blur radius of ${blurRadius}dp",
           e,
         )
       }
@@ -70,9 +79,9 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
   }
 
   return blur
-    .withNoise(currentValueOf(LocalContext), params.noiseFactor)
-    .withTints(params.tints, params.contentSize, params.tintAlphaModulate, progressiveShader)
-    .withMask(params.mask, params.contentSize)
+    .withNoise(currentValueOf(LocalContext), noiseFactor)
+    .withTints(tints, contentSize, tintAlphaModulate, progressiveShader)
+    .withMask(mask, contentSize)
     .asComposeRenderEffect()
 }
 
