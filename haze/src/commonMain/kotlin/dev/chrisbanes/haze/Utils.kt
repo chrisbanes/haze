@@ -6,10 +6,13 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
 import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.min
 
 internal fun calculateLength(
   start: Offset,
@@ -37,3 +40,10 @@ internal inline fun <T> unsynchronizedLazy(noinline initializer: () -> T): Lazy<
 }
 
 internal expect fun LayoutCoordinates.positionForHaze(): Offset
+
+internal fun Rect.expandToInclude(other: Rect): Rect = Rect(
+  left = min(left, other.left),
+  top = min(top, other.top),
+  right = max(right, other.right),
+  bottom = max(bottom, other.bottom),
+)

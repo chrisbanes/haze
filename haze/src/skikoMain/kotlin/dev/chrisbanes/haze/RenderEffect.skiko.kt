@@ -6,7 +6,8 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -14,7 +15,6 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
@@ -38,20 +38,19 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     child("noise", NOISE_SHADER)
   }
 
-  val progressiveShader = params.progressive?.asBrush()?.toShader(params.contentSize)
+  val blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() }
+
+  val progressiveShader = params.progressive?.asBrush()?.toShader(params.contentBounds.size)
   val blur = if (progressiveShader != null) {
     // If we've been provided with a progressive/gradient blur shader, we need to use
     // our custom blur via a runtime shader
     createBlurImageFilterWithMask(
-      blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() },
-      bounds = params.contentSize.toRect(),
+      blurRadiusPx = blurRadiusPx,
+      bounds = params.contentBounds,
       mask = progressiveShader,
     )
   } else {
-    createBlurImageFilter(
-      blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() },
-      bounds = params.contentSize.toRect(),
-    )
+    createBlurImageFilter(blurRadiusPx = blurRadiusPx)
   }
 
   return ImageFilter
@@ -60,8 +59,8 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
       shaderNames = arrayOf("content", "blur"),
       inputs = arrayOf(null, blur),
     )
-    .withTints(params.tints, params.tintAlphaModulate, params.contentSize, progressiveShader)
-    .withMask(params.mask, params.contentSize)
+    .withTints(params.tints, params.contentBounds, params.tintAlphaModulate, progressiveShader)
+    .withMask(params.mask, params.contentBounds)
     .asComposeRenderEffect()
 }
 
@@ -71,22 +70,22 @@ private fun ImageFilter.chainWith(imageFilter: ImageFilter): ImageFilter {
 
 private fun ImageFilter.withTints(
   tints: List<HazeTint>,
+  contentBounds: Rect,
   alphaModulate: Float = 1f,
-  size: Size,
-  mask: Shader?,
+  mask: Shader? = null,
 ): ImageFilter = tints.fold(this) { acc, tint ->
-  acc.withTint(tint, alphaModulate, size, mask)
+  acc.withTint(tint, contentBounds, alphaModulate, mask)
 }
 
 private fun ImageFilter.withTint(
   tint: HazeTint,
+  contentBounds: Rect,
   alphaModulate: Float = 1f,
-  size: Size,
   mask: Shader?,
 ): ImageFilter {
   if (!tint.isSpecified) return this
 
-  val tintBrush = tint.brush?.toShader(size)
+  val tintBrush = tint.brush?.toShader(contentBounds.size)
   if (tintBrush != null) {
     val brushEffect = when {
       alphaModulate >= 1f -> {
@@ -111,11 +110,13 @@ private fun ImageFilter.withTint(
           crop = null,
         ),
         blendMode = tint.blendMode.toSkiaBlendMode(),
+        offset = contentBounds.topLeft,
       )
     } else {
       blendWith(
         foreground = brushEffect,
         blendMode = tint.blendMode.toSkiaBlendMode(),
+        offset = contentBounds.topLeft,
       )
     }
   }
@@ -133,6 +134,7 @@ private fun ImageFilter.withTint(
           crop = null,
         ),
         blendMode = tint.blendMode.toSkiaBlendMode(),
+        offset = contentBounds.topLeft,
       )
     } else {
       ImageFilter.makeColorFilter(
@@ -148,12 +150,15 @@ private fun ImageFilter.withTint(
 
 private fun ImageFilter.withMask(
   brush: Brush?,
-  size: Size,
-  offset: Offset = Offset.Zero,
+  contentBounds: Rect,
   blendMode: BlendMode = BlendMode.DST_IN,
 ): ImageFilter {
-  val shader = brush?.toShader(size) ?: return this
-  return blendWith(ImageFilter.makeShader(shader, crop = null), blendMode, offset)
+  val shader = brush?.toShader(contentBounds.size) ?: return this
+  return blendWith(
+    foreground = ImageFilter.makeShader(shader, crop = null),
+    blendMode = blendMode,
+    offset = contentBounds.topLeft,
+  )
 }
 
 private fun ImageFilter.blendWith(
@@ -162,18 +167,23 @@ private fun ImageFilter.blendWith(
   offset: Offset = Offset.Zero,
 ): ImageFilter = ImageFilter.makeBlend(
   blendMode = blendMode,
-  fg = ImageFilter.makeOffset(offset.x, offset.y, foreground, crop = null),
+  fg = when {
+    offset.isUnspecified -> foreground
+    offset == Offset.Zero -> foreground
+    // We need to offset the shader to the bounds
+    else -> ImageFilter.makeOffset(offset.x, offset.y, foreground, crop = null)
+  },
   bg = this,
   crop = null,
 )
 
-private fun createBlurImageFilter(blurRadiusPx: Float, bounds: Rect): ImageFilter {
+private fun createBlurImageFilter(blurRadiusPx: Float, bounds: Rect? = null): ImageFilter {
   val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
   return ImageFilter.makeBlur(
     sigmaX = sigma,
     sigmaY = sigma,
     mode = FilterTileMode.CLAMP,
-    crop = bounds.toIRect(),
+    crop = bounds?.toIRect(),
   )
 }
 
@@ -199,10 +209,7 @@ private fun createBlurImageFilterWithMask(
   return shader(vertical = false).chainWith(shader(vertical = true))
 }
 
-private fun Brush.toShader(size: Size): Shader? = when (this) {
-  is ShaderBrush -> createShader(size)
-  else -> null
-}
+private fun Brush.toShader(size: Size): Shader? = (this as? ShaderBrush)?.createShader(size)
 
 private fun Rect.toIRect(): IRect =
   IRect.makeLTRB(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
