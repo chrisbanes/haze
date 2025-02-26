@@ -75,10 +75,11 @@ class HazeArea {
   var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
 
-  internal val bounds: Rect? get() = when {
-    size.isSpecified && positionOnScreen.isSpecified -> Rect(positionOnScreen, size)
-    else -> null
-  }
+  internal val bounds: Rect?
+    get() = when {
+      size.isSpecified && positionOnScreen.isSpecified -> Rect(positionOnScreen, size)
+      else -> null
+    }
 
   internal var contentDrawing = false
 
@@ -138,10 +139,12 @@ object HazeDefaults {
   /**
    * Default builder for the 'tint' color. Transforms the provided [color].
    */
-  fun tint(color: Color): HazeTint = when {
-    color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
-    else -> color
-  }.let(::HazeTint)
+  fun tint(color: Color): HazeTint = HazeTint(
+    color = when {
+      color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
+      else -> color
+    },
+  )
 
   /**
    * Default [HazeStyle] for usage with [Modifier.hazeSource].

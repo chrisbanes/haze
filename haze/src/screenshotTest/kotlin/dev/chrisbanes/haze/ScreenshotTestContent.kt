@@ -32,7 +32,8 @@ internal fun CreditCardSample(
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   style: HazeStyle = HazeStyle.Unspecified,
   tint: HazeTint = HazeTint.Unspecified,
-  blurRadius: Dp = 8.dp,
+  blurRadius: Dp = Dp.Unspecified,
+  noiseFactor: Float = -1f,
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   blurEnabled: Boolean = HazeDefaults.blurEnabled(),
@@ -84,7 +85,7 @@ internal fun CreditCardSample(
                 this.blurEnabled = blurEnabled
                 this.style = style
                 this.backgroundColor = surfaceColor
-                this.noiseFactor = HazeDefaults.noiseFactor
+                this.noiseFactor = noiseFactor
                 this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
                 this.blurRadius = blurRadius
                 this.mask = mask

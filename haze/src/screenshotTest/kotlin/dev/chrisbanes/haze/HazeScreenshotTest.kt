@@ -22,7 +22,17 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = DefaultTint)
+        CreditCardSample(tint = DefaultTint, blurRadius = 8.dp)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_noStyle() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample()
       }
     }
     captureRoot()
@@ -32,7 +42,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_multiple() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = DefaultTint, numberCards = 3)
+        CreditCardSample(tint = DefaultTint, blurRadius = 8.dp, numberCards = 3)
       }
     }
     captureRoot()
@@ -44,7 +54,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = DefaultTint, blurEnabled = blurEnabled)
+        CreditCardSample(tint = DefaultTint, blurRadius = 8.dp, blurEnabled = blurEnabled)
       }
     }
 
@@ -75,7 +85,7 @@ class HazeScreenshotTest : ScreenshotTest() {
     setContent {
       ScreenshotTheme {
         CompositionLocalProvider(LocalHazeStyle provides OverrideStyle) {
-          CreditCardSample()
+          CreditCardSample(blurRadius = 8.dp)
         }
       }
     }
@@ -86,7 +96,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_transparentTint() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = HazeTint(Color.Transparent))
+        CreditCardSample(blurRadius = 8.dp, tint = HazeTint(Color.Transparent))
       }
     }
     captureRoot()
@@ -106,10 +116,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_mask() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(
-          tint = DefaultTint,
-          mask = VerticalMask,
-        )
+        CreditCardSample(tint = DefaultTint, mask = VerticalMask, blurRadius = 8.dp)
       }
     }
     captureRoot()
@@ -121,7 +128,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = DefaultTint, alpha = alpha)
+        CreditCardSample(tint = DefaultTint, blurRadius = 8.dp, alpha = alpha)
       }
     }
 
@@ -142,6 +149,7 @@ class HazeScreenshotTest : ScreenshotTest() {
       ScreenshotTheme {
         CreditCardSample(
           tint = DefaultTint,
+          blurRadius = 8.dp,
           progressive = HazeProgressive.horizontalGradient(),
         )
       }
@@ -155,6 +163,7 @@ class HazeScreenshotTest : ScreenshotTest() {
       ScreenshotTheme {
         CreditCardSample(
           tint = DefaultTint,
+          blurRadius = 8.dp,
           progressive = HazeProgressive.horizontalGradient(preferPerformance = true),
         )
       }
@@ -168,6 +177,7 @@ class HazeScreenshotTest : ScreenshotTest() {
       ScreenshotTheme {
         CreditCardSample(
           tint = DefaultTint,
+          blurRadius = 8.dp,
           progressive = HazeProgressive.verticalGradient(),
         )
       }
@@ -181,6 +191,7 @@ class HazeScreenshotTest : ScreenshotTest() {
       ScreenshotTheme {
         CreditCardSample(
           tint = DefaultTint,
+          blurRadius = 8.dp,
           progressive = HazeProgressive.verticalGradient(),
           numberCards = 3,
         )
@@ -195,6 +206,7 @@ class HazeScreenshotTest : ScreenshotTest() {
       ScreenshotTheme {
         CreditCardSample(
           tint = DefaultTint,
+          blurRadius = 8.dp,
           progressive = HazeProgressive.RadialGradient(),
         )
       }
@@ -210,7 +222,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = tint)
+        CreditCardSample(tint = tint, blurRadius = 8.dp)
       }
     }
 
@@ -252,7 +264,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = DefaultTint, enabled = enabled)
+        CreditCardSample(tint = DefaultTint, blurRadius = 8.dp, enabled = enabled)
       }
     }
 
@@ -271,7 +283,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   private fun roundedCornerTest(roundedCornerShape: RoundedCornerShape) = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = DefaultTint, shape = roundedCornerShape)
+        CreditCardSample(tint = DefaultTint, blurRadius = 8.dp, shape = roundedCornerShape)
       }
     }
     captureRoot()
@@ -294,7 +306,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(backgroundColors = backgroundColors, tint = DefaultTint)
+        CreditCardSample(backgroundColors = backgroundColors, blurRadius = 8.dp, tint = DefaultTint)
       }
     }
 
@@ -314,7 +326,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_brushTint() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = BrushTint)
+        CreditCardSample(tint = BrushTint, blurRadius = 8.dp)
       }
     }
     captureRoot()
@@ -324,7 +336,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_brushTint_mask() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = BrushTint, mask = VerticalMask)
+        CreditCardSample(tint = BrushTint, blurRadius = 8.dp, mask = VerticalMask)
       }
     }
     captureRoot()
@@ -334,7 +346,11 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_brushTint_progressive() = runScreenshotTest {
     setContent {
       ScreenshotTheme {
-        CreditCardSample(tint = BrushTint, progressive = HazeProgressive.verticalGradient())
+        CreditCardSample(
+          tint = BrushTint,
+          blurRadius = 8.dp,
+          progressive = HazeProgressive.verticalGradient(),
+        )
       }
     }
     captureRoot()
