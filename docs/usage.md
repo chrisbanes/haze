@@ -21,96 +21,15 @@ Box {
     modifier = Modifier
       // We use hazeEffect on anything where we want the background
       // blurred.
-      .hazeEffect(state = hazeState)
+      .hazeEffect(state = hazeState, style = HazeMaterials.ultraThin())
       .fillMaxWidth(),
   )
 }
 ```
-## Deep UI hierarchies
 
-You can pass `HazeState` objects to composables as arguments. For example:
+You will notice that were using a style created by `HazeMaterials.ultraThin()`. The [HazeMaterials](materials.md) are sets of prebuilt styles that are available as an add-on library.
 
-```kotlin hl_lines="3 7 11"
-@Composable
-fun HazeExample(modifier: Modifier = Modifier) {
-    val hazeState = remember { HazeState() }
-
-    Box(modifier = modifier) {
-        Background(
-          hazeState = hazeState,
-          modifier = Modifier.fillMaxSize()
-        )
-        Foreground(
-          hazeState = hazeState,
-          modifier = Modifier.fillMaxSize()
-        )
-    }
-}
-```
-
-You can then use the argument to configure `hazeSource` and `hazeEffect`:
-
-```kotlin hl_lines="4 13-16"
-@OptIn(ExperimentalHazeMaterialsApi::class)
-@Composable
-fun Foreground(
-  hazeState: HazeState,
-  modifier: Modifier = Modifier
-) {
-    Box(modifier = modifier) {
-        Text(
-            text = stringResource(R.string.haze_text),
-            modifier = modifier
-                .align(Alignment.Center)
-                .wrapContentSize()
-                .hazeEffect(
-                    state = hazeState,
-                    style = HazeMaterials.ultraThin()
-                )
-        )
-    }
-}
-```
-
-However, this can problematic in deep hierarchies when you need to pass the `HazeState` instances
-down through many levels. To avoid this you can use a composition local to pass the `HazeState`
-down to the descendants in the hierarchy:
-
-```kotlin hl_lines="1 5 7 12 20 28"
-val LocalHazeState = compositionLocalOf { HazeState() }
-
-@Composable
-fun HazeExample(modifier: Modifier = Modifier) {
-    val hazeState = remember { HazeState() }
-
-    CompositionLocalProvider(LocalHazeState provides hazeState) {
-        Box(modifier = modifier) {
-            Background(modifier = Modifier.fillMaxSize())
-            Foreground(modifier = Modifier.fillMaxSize())
-        }
-    }
-}
-.
-.
-.
-@OptIn(ExperimentalHazeMaterialsApi::class)
-@Composable
-fun Foreground(modifier: Modifier = Modifier) {
-  val hazeState = LocalHazeState.current
-  Box(modifier = modifier) {
-    Text(
-      text = stringResource(R.string.haze_text),
-      modifier = modifier
-        .align(Alignment.Center)
-        .wrapContentSize()
-        .hazeEffect(
-          state = hazeState,
-          style = HazeMaterials.ultraThin()
-        )
-    )
-  }
-}
-```
+If you do not provide an explicit style, the default values will provide basic blurring, but no tinting. It's recommended to use one of the materials linked above, or a custom style which meets your requirements.
 
 ## Styling
 
@@ -306,6 +225,89 @@ CreditCard(
 ```
 
 You'll notice that we're using another parameter here, `key`. This just acts as an ID for the node allowing easier filtering. It has serves no other purpose.
+
+## Deep UI hierarchies
+
+You can pass `HazeState` objects to composables as arguments. For example:
+
+```kotlin hl_lines="3 7 11"
+@Composable
+fun HazeExample(modifier: Modifier = Modifier) {
+    val hazeState = remember { HazeState() }
+
+    Box(modifier = modifier) {
+        Background(
+          hazeState = hazeState,
+          modifier = Modifier.fillMaxSize()
+        )
+        Foreground(
+          hazeState = hazeState,
+          modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+```
+
+You can then use the argument to configure `hazeSource` and `hazeEffect`:
+
+```kotlin hl_lines="4 13-16"
+@OptIn(ExperimentalHazeMaterialsApi::class)
+@Composable
+fun Foreground(
+  hazeState: HazeState,
+  modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier) {
+        Text(
+            text = stringResource(R.string.haze_text),
+            modifier = modifier
+                .align(Alignment.Center)
+                .wrapContentSize()
+                .hazeEffect(
+                    state = hazeState,
+                    style = HazeMaterials.ultraThin()
+                )
+        )
+    }
+}
+```
+
+However, this can problematic in deep hierarchies when you need to pass the `HazeState` instances
+down through many levels. To avoid this you can use a composition local to pass the `HazeState`
+down to the descendants in the hierarchy:
+
+```kotlin hl_lines="1 5 7 12 25"
+val LocalHazeState = compositionLocalOf { HazeState() }
+
+@Composable
+fun HazeExample(modifier: Modifier = Modifier) {
+    val hazeState = remember { HazeState() }
+
+    CompositionLocalProvider(LocalHazeState provides hazeState) {
+        Box(modifier = modifier) {
+            Background(modifier = Modifier.fillMaxSize())
+            Foreground(modifier = Modifier.fillMaxSize())
+        }
+    }
+}
+
+@OptIn(ExperimentalHazeMaterialsApi::class)
+@Composable
+fun Foreground(modifier: Modifier = Modifier) {
+  Box(modifier = modifier) {
+    Text(
+      text = stringResource(R.string.haze_text),
+      modifier = modifier
+        .align(Alignment.Center)
+        .wrapContentSize()
+        .hazeEffect(
+          state = LocalHazeState.current,
+          style = HazeMaterials.ultraThin()
+        )
+    )
+  }
+}
+```
 
 ## Screenshot testing
 

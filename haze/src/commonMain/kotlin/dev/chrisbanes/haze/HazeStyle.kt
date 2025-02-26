@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.Dp
  *  - Value set in this composition local.
  */
 val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> =
-  compositionLocalOf { HazeStyle.Unspecified }
+  compositionLocalOf { HazeDefaults.style(Color.Unspecified) }
 
 /**
  * A holder for the style properties used by Haze.
