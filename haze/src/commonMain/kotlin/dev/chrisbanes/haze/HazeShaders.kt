@@ -26,11 +26,14 @@ internal const val BLUR_SKSL = """
 
   half4 blur(vec2 coord, half radius) {
     half2 directionVec = direction == 0 ? directionHorizontal : directionVertical;
-    half sigma = max(radius / 2, 1.0);
 
-    half weight = gaussian(0.0, sigma);
-    half4 result = weight * content.eval(coord);
-    half weightSum = weight;
+    // Need to use float and vec here for higher precision, otherwise  we see
+    // visually clipping on certain devices (Samsung for example)
+    // https://github.com/chrisbanes/haze/issues/520
+    float sigma = max(radius / 2.0, 1.0);
+    float weight = gaussian(0.0, sigma);
+    vec4 result = weight * content.eval(coord);
+    float weightSum = weight;
 
     // We need to use a constant max size Skia to know the size of the program. We use a large
     // number, along with a break
@@ -38,7 +41,7 @@ internal const val BLUR_SKSL = """
       half halfI = half(i);
       if (halfI > radius) { break; }
 
-      half weight = gaussian(halfI, sigma);
+      float weight = gaussian(halfI, sigma);
       half2 offset = halfI * directionVec;
 
       half2 newCoord = coord - offset;
