@@ -12,19 +12,19 @@ internal const val BLUR_SKSL = """
   uniform shader content;
   // 0 for horizontal pass, 1 for vertical
   uniform int direction;
-  uniform half blurRadius;
-  uniform half4 crop;
+  uniform float blurRadius;
+  uniform vec4 crop;
   uniform shader mask;
 
   const int maxRadius = 150;
   const half2 directionHorizontal = half2(1.0, 0.0);
   const half2 directionVertical = half2(0.0, 1.0);
 
-  half gaussian(half x, half sigma) {
+  float gaussian(float x, float sigma) {
     return exp(-(x * x) / (2.0 * sigma * sigma)) / (2.0 * ${PI.toFloat()} * sigma * sigma);
   }
 
-  half4 blur(vec2 coord, half radius) {
+  vec4 blur(vec2 coord, float radius) {
     half2 directionVec = direction == 0 ? directionHorizontal : directionVertical;
 
     // Need to use float and vec here for higher precision, otherwise  we see
@@ -42,9 +42,9 @@ internal const val BLUR_SKSL = """
       if (halfI > radius) { break; }
 
       float weight = gaussian(halfI, sigma);
-      half2 offset = halfI * directionVec;
+      vec2 offset = halfI * directionVec;
 
-      half2 newCoord = coord - offset;
+      vec2 newCoord = coord - offset;
       if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
         result += weight * content.eval(newCoord);
         weightSum += weight;
@@ -57,12 +57,11 @@ internal const val BLUR_SKSL = """
       }
     }
 
-    result /= weightSum;
-    return result;
+    return result / weightSum;
   }
 
-  half4 main(vec2 coord) {
-    half intensity = mask.eval(coord).a;
+  vec4 main(vec2 coord) {
+    float intensity = mask.eval(coord).a;
     return blur(coord, mix(0.0, blurRadius, intensity));
   }
 """
