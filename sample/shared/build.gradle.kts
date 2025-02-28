@@ -1,6 +1,11 @@
-// Copyright 2023, Christopher Banes and the Haze project contributors
+// Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
+// Copyright 2023, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
 
 plugins {
   id("dev.chrisbanes.android.library")
@@ -44,7 +49,7 @@ kotlin {
       dependsOn(skikoMain)
 
       dependencies {
-        implementation(libs.ktor.cio)
+        implementation(libs.ktor.darwin)
       }
     }
 
@@ -62,6 +67,13 @@ kotlin {
 
     named("jsMain") {
       dependsOn(skikoMain)
+    }
+  }
+
+  targets.withType<KotlinNativeTarget>().configureEach {
+    binaries.framework {
+      isStatic = true
+      baseName = "HazeSamplesKt"
     }
   }
 }
