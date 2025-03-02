@@ -88,7 +88,7 @@ class HazeSourceNode(
   override val shouldAutoInvalidate: Boolean = false
 
   override fun onAttach() {
-    log(TAG) { "onAttach. Adding HazeArea: $area" }
+    HazeLogger.d(TAG) { "onAttach. Adding HazeArea: $area" }
     state.addArea(area)
     onObservedReadsChanged()
     clearHazeAreaLayerOnStop()
@@ -105,7 +105,7 @@ class HazeSourceNode(
     // We increment the compound zIndex at each layer by at least 1
     val compound = (upstream ?: 0f) + zIndex
 
-    log(TAG) {
+    HazeLogger.d(TAG) {
       "updateCompoundZIndex(). Upstream=$upstream, zIndex=$zIndex. Resulting compound=$compound"
     }
 
@@ -133,7 +133,7 @@ class HazeSourceNode(
     area.positionOnScreen = coordinates.positionForHaze()
     area.size = coordinates.size.toSize()
 
-    log(TAG) {
+    HazeLogger.d(TAG) {
       "$source: positionOnScreen=${area.positionOnScreen}, " +
         "size=${area.size}, " +
         "positionOnScreens=${area.positionOnScreen}"
@@ -141,7 +141,7 @@ class HazeSourceNode(
   }
 
   override fun ContentDrawScope.draw() {
-    log(TAG) { "start draw()" }
+    HazeLogger.d(TAG) { "start draw()" }
 
     area.contentDrawing = true
 
@@ -152,38 +152,38 @@ class HazeSourceNode(
         ?.takeUnless { it.isReleased }
         ?: graphicsContext.createGraphicsLayer().also {
           area.contentLayer = it
-          log(TAG) { "Updated contentLayer in HazeArea: $area" }
+          HazeLogger.d(TAG) { "Updated contentLayer in HazeArea: $area" }
         }
 
       // First we draw the composable content into a graphics layer
       contentLayer.record {
         this@draw.drawContent()
-        log(TAG) { "Drawn content into layer: $contentLayer" }
+        HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
       }
 
       // Now we draw `content` into the window canvas
       drawLayer(contentLayer)
-      log(TAG) { "Drawn layer to canvas: $contentLayer" }
+      HazeLogger.d(TAG) { "Drawn layer to canvas: $contentLayer" }
     } else {
-      log(TAG) { "Not using graphics layer, so drawing content direct to canvas" }
+      HazeLogger.d(TAG) { "Not using graphics layer, so drawing content direct to canvas" }
       // If we're not using graphics layers, just call drawContent and return early
       drawContent()
     }
 
     area.contentDrawing = false
 
-    log(TAG) { "end draw()" }
+    HazeLogger.d(TAG) { "end draw()" }
   }
 
   override fun onDetach() {
-    log(TAG) { "onDetach. Removing HazeArea: $area" }
+    HazeLogger.d(TAG) { "onDetach. Removing HazeArea: $area" }
     area.reset()
     area.releaseLayer()
     state.removeArea(area)
   }
 
   override fun onReset() {
-    log(TAG) { "onReset. Resetting HazeArea: $area" }
+    HazeLogger.d(TAG) { "onReset. Resetting HazeArea: $area" }
     area.reset()
   }
 
@@ -195,7 +195,7 @@ class HazeSourceNode(
 
   internal fun HazeArea.releaseLayer() {
     contentLayer?.let { layer ->
-      log(TAG) { "Releasing content layer: $layer" }
+      HazeLogger.d(TAG) { "Releasing content layer: $layer" }
       currentValueOf(LocalGraphicsContext).releaseGraphicsLayer(layer)
     }
     contentLayer = null

@@ -163,6 +163,14 @@ package dev.chrisbanes.haze {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
   }
 
+  public final class HazeLogger {
+    method public void d(String tag, kotlin.jvm.functions.Function0<java.lang.String> message);
+    method public boolean getEnabled();
+    method public void setEnabled(boolean);
+    property public final boolean enabled;
+    field public static final dev.chrisbanes.haze.HazeLogger INSTANCE;
+  }
+
   @androidx.compose.runtime.Immutable public sealed interface HazeProgressive {
     field public static final dev.chrisbanes.haze.HazeProgressive.Companion Companion;
   }

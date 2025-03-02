@@ -22,7 +22,7 @@ class HazeTest {
   fun assertNoLogging() {
     var blockCalled = false
 
-    log("Foo") {
+    HazeLogger.d("Foo") {
       blockCalled = true
       "foo"
     }

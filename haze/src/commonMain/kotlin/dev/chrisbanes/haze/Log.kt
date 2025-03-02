@@ -3,6 +3,22 @@
 
 package dev.chrisbanes.haze
 
-internal const val LOG_ENABLED = false
+import androidx.compose.runtime.snapshots.Snapshot
 
-internal expect fun log(tag: String, message: () -> String)
+object HazeLogger {
+  /**
+   * Whether to print debug log statements to the relevant system logger. Do not build release
+   * artifacts with this enabled. It's purely for debugging purposes.
+   */
+  var enabled: Boolean = false
+
+  fun d(tag: String, message: () -> String) {
+    if (enabled) {
+      Snapshot.withoutReadObservation {
+        platformLog(tag, message())
+      }
+    }
+  }
+}
+
+internal expect inline fun platformLog(tag: String, message: String)
