@@ -94,7 +94,7 @@ private fun HazeEffectNode.drawLinearGradientProgressiveEffectUsingLayers(
       drawLayer(contentLayer)
     }
 
-    log(TAG) {
+    HazeLogger.d(TAG) {
       "drawProgressiveEffect. " +
         "step=$i, " +
         "fraction=$fraction, " +

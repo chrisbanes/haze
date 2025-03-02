@@ -80,7 +80,7 @@ class HazeEffectNode(
   override var blurEnabled: Boolean = HazeDefaults.blurEnabled()
     set(value) {
       if (value != field) {
-        log(TAG) { "blurEnabled changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "blurEnabled changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += DirtyFields.BlurEnabled
       }
@@ -89,7 +89,7 @@ class HazeEffectNode(
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
       if (value != field) {
-        log(TAG) { "inputScale changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "inputScale changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += DirtyFields.InputScale
       }
@@ -98,7 +98,7 @@ class HazeEffectNode(
   internal var compositionLocalStyle: HazeStyle = HazeStyle.Unspecified
     set(value) {
       if (field != value) {
-        log(TAG) { "LocalHazeStyle changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "LocalHazeStyle changed. Current: $field. New: $value" }
         onStyleChanged(field, value)
         field = value
       }
@@ -107,7 +107,7 @@ class HazeEffectNode(
   override var style: HazeStyle = style
     set(value) {
       if (field != value) {
-        log(TAG) { "style changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
         onStyleChanged(field, value)
         field = value
       }
@@ -116,7 +116,7 @@ class HazeEffectNode(
   private var positionOnScreen: Offset = Offset.Unspecified
     set(value) {
       if (value != field) {
-        log(TAG) { "positionOnScreen changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "positionOnScreen changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.ScreenPosition
         field = value
       }
@@ -125,7 +125,7 @@ class HazeEffectNode(
   private var areaOffsets: Map<HazeArea, Offset> = emptyMap()
     set(value) {
       if (value != field) {
-        log(TAG) { "areaOffsets changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "areaOffsets changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.AreaOffsets
         field = value
       }
@@ -134,7 +134,7 @@ class HazeEffectNode(
   private var forcedInvalidationTick: Long = 0
     set(value) {
       if (value != field) {
-        log(TAG) { "forcedInvalidationTick changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "forcedInvalidationTick changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.ForcedInvalidation
         field = value
       }
@@ -146,7 +146,7 @@ class HazeEffectNode(
   internal var size: Size = Size.Unspecified
     set(value) {
       if (value != field) {
-        log(TAG) { "size changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "size changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.Size
         field = value
       }
@@ -155,7 +155,7 @@ class HazeEffectNode(
   private var layerSize: Size = Size.Unspecified
     set(value) {
       if (value != field) {
-        log(TAG) { "layerSize changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "layerSize changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.LayerSize
         field = value
       }
@@ -164,7 +164,7 @@ class HazeEffectNode(
   internal var layerOffset: Offset = Offset.Zero
     set(value) {
       if (value != field) {
-        log(TAG) { "layerOffset changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "layerOffset changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.LayerOffset
         field = value
       }
@@ -173,7 +173,7 @@ class HazeEffectNode(
   override var blurRadius: Dp = Dp.Unspecified
     set(value) {
       if (value != field) {
-        log(TAG) { "blurRadius changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "blurRadius changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.BlurRadius
         field = value
       }
@@ -182,7 +182,7 @@ class HazeEffectNode(
   override var noiseFactor: Float = -1f
     set(value) {
       if (value != field) {
-        log(TAG) { "noiseFactor changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "noiseFactor changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.NoiseFactor
         field = value
       }
@@ -191,7 +191,7 @@ class HazeEffectNode(
   override var mask: Brush? = null
     set(value) {
       if (value != field) {
-        log(TAG) { "mask changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "mask changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.Mask
         field = value
       }
@@ -200,7 +200,7 @@ class HazeEffectNode(
   override var backgroundColor: Color = Color.Unspecified
     set(value) {
       if (value != field) {
-        log(TAG) { "backgroundColor changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "backgroundColor changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.BackgroundColor
         field = value
       }
@@ -209,7 +209,7 @@ class HazeEffectNode(
   override var tints: List<HazeTint> = emptyList()
     set(value) {
       if (value != field) {
-        log(TAG) { "tints changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "tints changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.Tints
         field = value
       }
@@ -218,7 +218,7 @@ class HazeEffectNode(
   override var fallbackTint: HazeTint = HazeTint.Unspecified
     set(value) {
       if (value != field) {
-        log(TAG) { "fallbackTint changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "fallbackTint changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.FallbackTint
         field = value
       }
@@ -227,7 +227,7 @@ class HazeEffectNode(
   override var alpha: Float = 1f
     set(value) {
       if (value != field) {
-        log(TAG) { "alpha changed. Current $field. New: $value" }
+        HazeLogger.d(TAG) { "alpha changed. Current $field. New: $value" }
         dirtyTracker += DirtyFields.Alpha
         field = value
       }
@@ -236,7 +236,7 @@ class HazeEffectNode(
   override var progressive: HazeProgressive? = null
     set(value) {
       if (value != field) {
-        log(TAG) { "progressive changed. Current $field. New: $value" }
+        HazeLogger.d(TAG) { "progressive changed. Current $field. New: $value" }
         dirtyTracker += DirtyFields.Progressive
         field = value
       }
@@ -245,7 +245,7 @@ class HazeEffectNode(
   private var areas: List<HazeArea> = emptyList()
     set(value) {
       if (value != field) {
-        log(TAG) { "backgroundAreas changed. Current $field. New: $value" }
+        HazeLogger.d(TAG) { "backgroundAreas changed. Current $field. New: $value" }
         dirtyTracker += DirtyFields.Areas
         field = value
       }
@@ -254,7 +254,7 @@ class HazeEffectNode(
   override var canDrawArea: ((HazeArea) -> Boolean)? = null
     set(value) {
       if (value != field) {
-        log(TAG) { "canDrawArea changed. Current $field. New: $value" }
+        HazeLogger.d(TAG) { "canDrawArea changed. Current $field. New: $value" }
         field = value
       }
     }
@@ -313,7 +313,7 @@ class HazeEffectNode(
     layerSize = clippedLayerBounds.size
     layerOffset = positionOnScreen - clippedLayerBounds.topLeft
 
-    log(TAG) {
+    HazeLogger.d(TAG) {
       "$source: positionOnScreen=$positionOnScreen, " +
         "size=$size, " +
         "layerSize=$layerSize, " +
@@ -324,7 +324,7 @@ class HazeEffectNode(
   }
 
   override fun ContentDrawScope.draw() {
-    log(TAG) { "-> HazeChild. start draw()" }
+    HazeLogger.d(TAG) { "-> HazeChild. start draw()" }
 
     if (isValid) {
       if (blurEnabled && canUseGraphicLayers()) {
@@ -333,7 +333,7 @@ class HazeEffectNode(
         drawEffectWithScrim()
       }
     } else {
-      log(TAG) { "-> HazeChild. Draw. State not valid, so no need to draw effect." }
+      HazeLogger.d(TAG) { "-> HazeChild. Draw. State not valid, so no need to draw effect." }
     }
 
     // Finally we draw the content
@@ -341,7 +341,7 @@ class HazeEffectNode(
 
     onPostDraw()
 
-    log(TAG) { "-> HazeChild. end draw()" }
+    HazeLogger.d(TAG) { "-> HazeChild. end draw()" }
   }
 
   private fun updateEffect() {
@@ -355,7 +355,7 @@ class HazeEffectNode(
 
     areas = state.areas
       .also {
-        log(TAG) { "Background Areas observing: $it" }
+        HazeLogger.d(TAG) { "Background Areas observing: $it" }
       }
       .asSequence()
       .filter { area ->
@@ -365,7 +365,7 @@ class HazeEffectNode(
           hazeZIndex != null -> area.zIndex < hazeZIndex
           else -> true
         }.also { included ->
-          log(TAG) { "Background Area: $area. Included=$included" }
+          HazeLogger.d(TAG) { "Background Area: $area. Included=$included" }
         }
       }
       .toMutableList()
@@ -412,7 +412,7 @@ class HazeEffectNode(
 
               val areaBounds = Snapshot.withoutReadObservation { area.bounds }
               if (areaBounds == null || !bounds.overlaps(areaBounds)) {
-                log(TAG) { "Area does not overlap us. Skipping... $area" }
+                HazeLogger.d(TAG) { "Area does not overlap us. Skipping... $area" }
                 continue
               }
 
@@ -425,10 +425,10 @@ class HazeEffectNode(
                   ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
 
                 if (areaLayer != null) {
-                  log(TAG) { "Drawing HazeArea GraphicsLayer: $areaLayer" }
+                  HazeLogger.d(TAG) { "Drawing HazeArea GraphicsLayer: $areaLayer" }
                   drawLayer(areaLayer)
                 } else {
-                  log(TAG) { "HazeArea GraphicsLayer is not valid" }
+                  HazeLogger.d(TAG) { "HazeArea GraphicsLayer is not valid" }
                 }
               }
             }
@@ -533,7 +533,7 @@ class HazeEffectNode(
 
   private fun invalidateIfNeeded() {
     val invalidateRequired = dirtyTracker.any(DirtyFields.InvalidateFlags)
-    log(TAG) {
+    HazeLogger.d(TAG) {
       "invalidateRequired=$invalidateRequired. " +
         "Dirty params=${DirtyFields.stringify(dirtyTracker)}"
     }
@@ -737,14 +737,14 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
 )
 
 internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params: RenderEffectParams): RenderEffect? {
-  log(HazeEffectNode.TAG) { "getOrCreateRenderEffect: $params" }
+  HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect: $params" }
   val cached = renderEffectCache[params]
   if (cached != null) {
-    log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
+    HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
     return cached
   }
 
-  log(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
+  HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
   return createRenderEffect(params)
     ?.also { renderEffectCache[params] = it }
 }
