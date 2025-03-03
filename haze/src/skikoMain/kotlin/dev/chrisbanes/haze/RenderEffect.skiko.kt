@@ -164,7 +164,7 @@ private fun ImageFilter.withMask(
 private fun ImageFilter.blendWith(
   foreground: ImageFilter,
   blendMode: BlendMode,
-  offset: Offset = Offset.Zero,
+  offset: Offset,
 ): ImageFilter = ImageFilter.makeBlend(
   blendMode = blendMode,
   fg = when {

@@ -81,7 +81,10 @@ private fun makeBlurSksl(vertical: Boolean): String = """
   }
 
   vec4 main(vec2 coord) {
-    float intensity = mask.eval(coord).a;
+    // Offset the coord for the mask, but coerce it to be at least 0, 0
+    vec2 maskCoord = max(coord - crop.xy, vec2(0.0, 0.0));
+    float intensity = mask.eval(maskCoord).a;
+
     return blur(coord, mix(0.0, blurRadius, intensity));
   }
 """
