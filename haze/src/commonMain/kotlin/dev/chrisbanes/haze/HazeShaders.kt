@@ -3,46 +3,66 @@
 
 package dev.chrisbanes.haze
 
-import kotlin.math.PI
-
 /**
  * Adapted from https://www.shadertoy.com/view/Mtl3Rj
+ *
+ * Uses the GPU-friendly optimizations, see
+ * https://www.rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling
  */
-internal const val BLUR_SKSL = """
+private fun makeBlurSksl(vertical: Boolean): String = """
   uniform shader content;
-  // 0 for horizontal pass, 1 for vertical
-  uniform int direction;
   uniform float blurRadius;
   uniform vec4 crop;
   uniform shader mask;
 
-  const int maxRadius = 150;
-  const half2 directionHorizontal = half2(1.0, 0.0);
-  const half2 directionVertical = half2(0.0, 1.0);
+  const half maxRadius = 150.0;
 
   float gaussian(float x, float sigma) {
-    return exp(-(x * x) / (2.0 * sigma * sigma)) / (2.0 * ${PI.toFloat()} * sigma * sigma);
+    return exp(-(x * x) / (2.0 * sigma * sigma));
   }
 
   vec4 blur(vec2 coord, float radius) {
-    half2 directionVec = direction == 0 ? directionHorizontal : directionVertical;
+    // Truncate the radius
+    half r = floor(radius);
 
-    // Need to use float and vec here for higher precision, otherwise  we see
+    // Need to use float and vec here for higher precision, otherwise we see
     // visually clipping on certain devices (Samsung for example)
     // https://github.com/chrisbanes/haze/issues/520
     float sigma = max(radius / 2.0, 1.0);
-    float weight = gaussian(0.0, sigma);
-    vec4 result = weight * content.eval(coord);
-    float weightSum = weight;
+    float weightSum = 1.0;
+    vec4 result = content.eval(coord);
 
     // We need to use a constant max size Skia to know the size of the program. We use a large
     // number, along with a break
-    for (int i = 1; i <= maxRadius; i++) {
-      half halfI = half(i);
-      if (halfI > radius) { break; }
+    for (half i = 1.0; i < maxRadius; i += 2.0) {
+      // i is always odd.
+      // The algorithm needs pixels exist at the offset of [i] (odd) and [i + 1] (even).
+      // If radius r is even (i > r), we can break safely here, as all the pixels have been calculated;
+      // otherwise (i == r) we need to calculate the pixel at the offset of [r], so break in advance.
+      if (i >= r) { break; }
 
-      float weight = gaussian(halfI, sigma);
-      vec2 offset = halfI * directionVec;
+      float weightL = gaussian(i, sigma);
+      float weightH = gaussian(i + 1.0, sigma);
+      float weight = weightL + weightH;
+      vec2 offset = ${if (vertical) "vec2(0.0, i + weightH / weight)" else "vec2(i + weightH / weight, 0.0)"};
+
+      vec2 newCoord = coord - offset;
+      if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
+        result += weight * content.eval(newCoord);
+        weightSum += weight;
+      }
+
+      newCoord = coord + offset;
+      if (newCoord.x < crop[2] && newCoord.y < crop[3]) {
+        result += weight * content.eval(newCoord);
+        weightSum += weight;
+      }
+    }
+
+    // Check if radius is odd
+    if (r < maxRadius && mod(r, 2.0) == 1.0) {
+      float weight = gaussian(r, sigma);
+      vec2 offset = ${if (vertical) "vec2(0.0, r)" else "vec2(r, 0.0)"};
 
       vec2 newCoord = coord - offset;
       if (newCoord.x >= crop[0] && newCoord.y >= crop[1]) {
@@ -65,3 +85,10 @@ internal const val BLUR_SKSL = """
     return blur(coord, mix(0.0, blurRadius, intensity));
   }
 """
+
+internal val VERTICAL_BLUR_SKSL: String by unsynchronizedLazy {
+  makeBlurSksl(true)
+}
+internal val HORIZONTAL_BLUR_SKSL: String by unsynchronizedLazy {
+  makeBlurSksl(false)
+}
