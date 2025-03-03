@@ -194,9 +194,8 @@ private fun createBlurImageFilterWithMask(
 ): ImageFilter {
   fun shader(vertical: Boolean): ImageFilter {
     return ImageFilter.makeRuntimeShader(
-      RuntimeShaderBuilder(BLUR_SHADER).apply {
+      RuntimeShaderBuilder(if (vertical) VERTICAL_BLUR_SHADER else HORIZONTAL_BLUR_SHADER).apply {
         uniform("blurRadius", blurRadiusPx)
-        uniform("direction", if (vertical) 1 else 0)
         uniform("crop", bounds.left, bounds.top, bounds.right, bounds.bottom)
         child("mask", mask)
       },

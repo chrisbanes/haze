@@ -239,9 +239,8 @@ private fun createBlurImageFilterWithMask(
   mask: Shader,
 ): AndroidRenderEffect {
   fun shader(vertical: Boolean): AndroidRenderEffect {
-    val shader = RuntimeShader(BLUR_SKSL).apply {
+    val shader = RuntimeShader(if (vertical) VERTICAL_BLUR_SKSL else HORIZONTAL_BLUR_SKSL).apply {
       setFloatUniform("blurRadius", blurRadiusPx)
-      setIntUniform("direction", if (vertical) 1 else 0)
       setFloatUniform("crop", bounds.left, bounds.top, bounds.right, bounds.bottom)
       setInputShader("mask", mask)
     }

@@ -37,8 +37,11 @@ private const val SHADER_SKSL = """
   }
 """
 
-internal val BLUR_SHADER: RuntimeEffect by unsynchronizedLazy {
-  RuntimeEffect.makeForShader(BLUR_SKSL)
+internal val VERTICAL_BLUR_SHADER: RuntimeEffect by unsynchronizedLazy {
+  RuntimeEffect.makeForShader(VERTICAL_BLUR_SKSL)
+}
+internal val HORIZONTAL_BLUR_SHADER: RuntimeEffect by unsynchronizedLazy {
+  RuntimeEffect.makeForShader(HORIZONTAL_BLUR_SKSL)
 }
 
 internal val NOISE_SHADER by unsynchronizedLazy {
