@@ -19,7 +19,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -72,7 +71,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
   }
 
   return blur
-    .withNoise(currentValueOf(LocalContext), params.noiseFactor)
+    .withNoise(currentValueOf(LocalContext), params.noiseFactor, progressiveShader)
     .withTints(params.tints, params.contentBounds, params.tintAlphaModulate, progressiveShader)
     .withMask(params.mask, params.contentBounds)
     .asComposeRenderEffect()
@@ -104,11 +103,25 @@ private fun Context.getNoiseTexture(noiseFactor: Float): Bitmap {
 private fun AndroidRenderEffect.withNoise(
   context: Context,
   noiseFactor: Float,
+  mask: Shader? = null,
 ): AndroidRenderEffect = when {
   noiseFactor >= 0.005f -> {
     val noiseShader = BitmapShader(context.getNoiseTexture(noiseFactor), REPEAT, REPEAT)
+    val dst = when {
+      mask != null -> {
+        // If we have a mask, we need to apply it to the noise bitmap shader via a
+        // blend mode
+        AndroidRenderEffect.createBlendModeEffect(
+          AndroidRenderEffect.createShaderEffect(mask), // dst
+          AndroidRenderEffect.createShaderEffect(noiseShader), // src
+          BlendMode.SRC_IN, // blendMode
+        )
+      }
+      else -> AndroidRenderEffect.createShaderEffect(noiseShader)
+    }
+
     AndroidRenderEffect.createBlendModeEffect(
-      AndroidRenderEffect.createShaderEffect(noiseShader), // dst
+      dst, // dst
       this, // src
       BlendMode.DST_ATOP, // blendMode
     )
@@ -161,6 +174,7 @@ private fun AndroidRenderEffect.withTint(
       alphaModulate >= 1f -> {
         AndroidRenderEffect.createShaderEffect(tintBrush)
       }
+
       else -> {
         // If we need to modulate the alpha, we'll need to wrap it in a ColorFilter
         AndroidRenderEffect.createColorFilterEffect(
@@ -201,6 +215,7 @@ private fun AndroidRenderEffect.withTint(
           AndroidRenderEffect.createShaderEffect(mask),
         ),
         blendMode = tint.blendMode.toAndroidBlendMode(),
+        offset = contentBounds.topLeft,
       )
     } else {
       AndroidRenderEffect.createColorFilterEffect(
@@ -217,7 +232,7 @@ private fun AndroidRenderEffect.withTint(
 private fun AndroidRenderEffect.blendWith(
   foreground: AndroidRenderEffect,
   blendMode: BlendMode,
-  offset: Offset = Offset.Zero,
+  offset: Offset,
 ): AndroidRenderEffect = AndroidRenderEffect.createBlendModeEffect(
   /* dst */
   this,
