@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
+import kotlin.math.roundToInt
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 annotation class ExperimentalHazeApi
@@ -140,12 +141,11 @@ class HazeSourceNode(
     }
   }
 
-  override fun ContentDrawScope.draw() {
+  override fun ContentDrawScope.draw() = try {
     HazeLogger.d(TAG) { "start draw()" }
-
     area.contentDrawing = true
 
-    if (canUseGraphicLayers()) {
+    if (canUseGraphicLayers() && size.minDimension.roundToInt() >= 1) {
       val graphicsContext = currentValueOf(LocalGraphicsContext)
 
       val contentLayer = area.contentLayer
@@ -169,9 +169,8 @@ class HazeSourceNode(
       // If we're not using graphics layers, just call drawContent and return early
       drawContent()
     }
-
+  } finally {
     area.contentDrawing = false
-
     HazeLogger.d(TAG) { "end draw()" }
   }
 

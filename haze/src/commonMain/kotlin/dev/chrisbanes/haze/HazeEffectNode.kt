@@ -379,25 +379,25 @@ class HazeEffectNode(
 
   @OptIn(ExperimentalHazeApi::class)
   private fun DrawScope.drawEffectWithGraphicsLayer() {
+    val scaleFactor = calculateInputScaleFactor()
+    val inflatedSize = (layerSize * scaleFactor).roundToIntSize()
+    // This is the topLeft in the inflated bounds where the real are should be at [0,0]
+    val inflatedOffset = layerOffset
+
+    if (inflatedSize.width <= 0 || inflatedSize.height <= 0) {
+      // If we have a 0px dimension we can't do anything so just return
+      return
+    }
+
+    val bg = resolveBackgroundColor()
+    require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
+
     // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
     // The RenderEffect applied will provide the blurring effect.
     val graphicsContext = currentValueOf(LocalGraphicsContext)
     val layer = graphicsContext.createGraphicsLayer()
 
-    // The layer size is usually than the bounds. This is so that we include enough
-    // content around the edges to keep the blurring uniform. Without the extra border,
-    // the blur will naturally fade out at the edges.
-    val scaleFactor = calculateInputScaleFactor()
-    val inflatedSize = layerSize * scaleFactor
-    // This is the topLeft in the inflated bounds where the real are should be at [0,0]
-    val inflatedOffset = layerOffset
-
-    val bg = resolveBackgroundColor()
-    require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
-
-    val bounds = Rect(positionOnScreen, size)
-
-    layer.record(inflatedSize.roundToIntSize()) {
+    layer.record(size = inflatedSize) {
       drawRect(bg)
 
       clipRect {
@@ -410,8 +410,9 @@ class HazeEffectNode(
                   "Alternatively you can use can `canDrawArea` to to filter out parent areas."
               }
 
+              val effectNodeBounds = Rect(positionOnScreen, size)
               val areaBounds = Snapshot.withoutReadObservation { area.bounds }
-              if (areaBounds == null || !bounds.overlaps(areaBounds)) {
+              if (areaBounds == null || !effectNodeBounds.overlaps(areaBounds)) {
                 HazeLogger.d(TAG) { "Area does not overlap us. Skipping... $area" }
                 continue
               }
