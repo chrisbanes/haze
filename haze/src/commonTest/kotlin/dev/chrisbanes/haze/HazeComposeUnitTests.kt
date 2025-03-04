@@ -5,11 +5,13 @@ package dev.chrisbanes.haze
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
@@ -44,5 +46,28 @@ class HazeComposeUnitTests : ContextTest() {
     // Assert that the HazeArea moved to hazeState2
     assertThat(hazeState1.areas).isEmpty()
     assertThat(hazeState2.areas).hasSize(1)
+  }
+
+  @Test
+  fun test_zeroSize() = runComposeUiTest {
+    val hazeState = HazeState()
+
+    setContent {
+      Box {
+        Spacer(
+          Modifier
+            .hazeSource(hazeState)
+            .size(width = 0.dp, height = 30.dp),
+        )
+
+        Spacer(
+          Modifier
+            .hazeEffect(hazeState, HazeDefaults.style(Color.Blue))
+            .size(width = 30.dp, height = 0.dp),
+        )
+      }
+    }
+
+    waitForIdle()
   }
 }
