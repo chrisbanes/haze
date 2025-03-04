@@ -6,10 +6,10 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-internal fun HazeProgressive.asBrush(numStops: Int = 20): Brush? = when (this) {
+internal fun HazeProgressive.asBrush(numStops: Int = 20): Brush = when (this) {
   is HazeProgressive.LinearGradient -> asBrush(numStops)
   is HazeProgressive.RadialGradient -> asBrush(numStops)
-  else -> null
+  is HazeProgressive.Brush -> brush
 }
 
 private fun HazeProgressive.LinearGradient.asBrush(numStops: Int = 20): Brush =

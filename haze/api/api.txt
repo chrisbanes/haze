@@ -175,6 +175,12 @@ package dev.chrisbanes.haze {
     field public static final dev.chrisbanes.haze.HazeProgressive.Companion Companion;
   }
 
+  @kotlin.jvm.JvmInline public static final value class HazeProgressive.Brush implements dev.chrisbanes.haze.HazeProgressive {
+    ctor public HazeProgressive.Brush(androidx.compose.ui.graphics.Brush brush);
+    method public androidx.compose.ui.graphics.Brush getBrush();
+    property public final androidx.compose.ui.graphics.Brush brush;
+  }
+
   public static final class HazeProgressive.Companion {
     method public dev.chrisbanes.haze.HazeProgressive.LinearGradient horizontalGradient(optional androidx.compose.animation.core.Easing easing, optional float startX, optional float startIntensity, optional float endX, optional float endIntensity, optional boolean preferPerformance);
     method public dev.chrisbanes.haze.HazeProgressive.LinearGradient verticalGradient(optional androidx.compose.animation.core.Easing easing, optional float startY, optional float startIntensity, optional float endY, optional float endIntensity, optional boolean preferPerformance);

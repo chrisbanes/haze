@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
+import kotlin.jvm.JvmInline
 
 internal val ModifierLocalCurrentHazeZIndex = modifierLocalOf<Float?> { null }
 
@@ -615,6 +616,16 @@ sealed interface HazeProgressive {
     val radius: Float = Float.POSITIVE_INFINITY,
     val radiusIntensity: Float = 0f,
   ) : HazeProgressive
+
+  /**
+   * A progressive effect which is derived by using the provided [Brush] as an alpha mask.
+   *
+   * This allows custom effects driven from a brush. It could be using a bitmap shader, via
+   * a [ShaderBrush] or something more complex. The RGB values from the brush's pixels will
+   * be ignored, only the alpha values are used.
+   */
+  @JvmInline
+  value class Brush(val brush: androidx.compose.ui.graphics.Brush) : HazeProgressive
 
   companion object {
     /**
