@@ -215,6 +215,22 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_progressive_shader() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(
+          tint = DefaultTint,
+          blurRadius = 8.dp,
+          progressive = HazeProgressive.Brush(
+            Brush.sweepGradient(colors = listOf(Color.Transparent, Color.Black)),
+          ),
+        )
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
   fun creditCard_childTint() = runScreenshotTest {
     var tint by mutableStateOf(
       HazeTint(Color.Magenta.copy(alpha = 0.5f)),
