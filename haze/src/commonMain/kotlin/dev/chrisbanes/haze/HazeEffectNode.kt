@@ -32,14 +32,14 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.modifier.ModifierLocalModifierNode
-import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
+import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalDensity
@@ -50,8 +50,6 @@ import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import kotlin.jvm.JvmInline
-
-internal val ModifierLocalCurrentHazeZIndex = modifierLocalOf<Float?> { null }
 
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeEffect].
@@ -70,8 +68,11 @@ class HazeEffectNode(
   LayoutAwareModifierNode,
   ObserverModifierNode,
   DrawModifierNode,
-  ModifierLocalModifierNode,
+  TraversableNode,
   HazeEffectScope {
+
+  override val traverseKey: Any
+    get() = HazeTraversableNodeKeys.Effect
 
   override val shouldAutoInvalidate: Boolean = false
 
@@ -352,7 +353,8 @@ class HazeEffectNode(
     // effects but were previously showing some
     block?.invoke(this)
 
-    val hazeZIndex = ModifierLocalCurrentHazeZIndex.current
+    val ancestorSourceNode = (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
+      ?.takeIf { it.state == this.state }
 
     areas = state.areas
       .also {
@@ -363,7 +365,7 @@ class HazeEffectNode(
         val filter = canDrawArea
         when {
           filter != null -> filter(area)
-          hazeZIndex != null -> area.zIndex < hazeZIndex
+          ancestorSourceNode != null -> area.zIndex < ancestorSourceNode.zIndex
           else -> true
         }.also { included ->
           HazeLogger.d(TAG) { "Background Area: $area. Included=$included" }

@@ -158,7 +158,7 @@ interface HazeEffectScope {
    * A block which controls whether this [hazeEffect] should draw the given [HazeArea].
    *
    * When null, the default behavior is that this effect will only draw areas with a
-   * [HazeArea.zIndex] less than [ModifierLocalCurrentHazeZIndex].
+   * [HazeArea.zIndex] the nearest ancestor [HazeSourceNode].
    */
   @ExperimentalHazeApi
   var canDrawArea: ((HazeArea) -> Boolean)?
