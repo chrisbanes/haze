@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -688,6 +689,18 @@ sealed interface HazeProgressive {
       end = Offset(endX, 0f),
       endIntensity = endIntensity,
       preferPerformance = preferPerformance,
+    )
+
+    /**
+     * Helper function for building a [HazeProgressive.Brush] with a [Shader]. The block is
+     * provided with the size of the content, allowing you to setup the shader as required.
+     */
+    inline fun forShader(
+      crossinline block: (Size) -> Shader,
+    ): Brush = Brush(
+      object : ShaderBrush() {
+        override fun createShader(size: Size): Shader = block(size)
+      },
     )
   }
 }

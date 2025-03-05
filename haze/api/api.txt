@@ -182,6 +182,7 @@ package dev.chrisbanes.haze {
   }
 
   public static final class HazeProgressive.Companion {
+    method public inline androidx.compose.ui.graphics.Brush forShader(kotlin.jvm.functions.Function1<? super androidx.compose.ui.geometry.Size,? extends android.graphics.Shader> block);
     method public dev.chrisbanes.haze.HazeProgressive.LinearGradient horizontalGradient(optional androidx.compose.animation.core.Easing easing, optional float startX, optional float startIntensity, optional float endX, optional float endIntensity, optional boolean preferPerformance);
     method public dev.chrisbanes.haze.HazeProgressive.LinearGradient verticalGradient(optional androidx.compose.animation.core.Easing easing, optional float startY, optional float startIntensity, optional float endY, optional float endIntensity, optional boolean preferPerformance);
   }
