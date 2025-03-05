@@ -6,7 +6,7 @@ package dev.chrisbanes.haze
 internal open class Pool<T>(private val maxSize: Int) {
   private val pool = mutableListOf<T>()
 
-  fun get(): T? = pool.removeFirstOrNull()
+  fun get(): T? = if (pool.isNotEmpty()) pool.removeAt(0) else null
 
   fun release(instance: T) {
     pool.add(instance)
@@ -15,7 +15,7 @@ internal open class Pool<T>(private val maxSize: Int) {
 
   private fun maintainSize() {
     while (pool.size > maxSize) {
-      pool.removeFirst()
+      pool.removeAt(0)
     }
   }
 }
