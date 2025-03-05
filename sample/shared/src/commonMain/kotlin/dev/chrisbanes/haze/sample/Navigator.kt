@@ -18,7 +18,7 @@ class Navigator {
 
   fun navigateUp() {
     if (backStack.isNotEmpty()) {
-      backStack.removeLast()
+      backStack.removeAt(backStack.lastIndex)
     }
   }
 }
