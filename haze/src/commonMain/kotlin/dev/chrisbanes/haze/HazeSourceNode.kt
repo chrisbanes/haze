@@ -3,9 +3,6 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -16,15 +13,12 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.modifier.ModifierLocalModifierNode
-import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
-import androidx.compose.ui.node.ObserverModifierNode
+import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
@@ -33,6 +27,11 @@ import kotlin.math.roundToInt
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 annotation class ExperimentalHazeApi
+
+internal enum class HazeTraversableNodeKeys {
+  Effect,
+  Source,
+}
 
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeSource].
@@ -50,14 +49,22 @@ class HazeSourceNode(
   GlobalPositionAwareModifierNode,
   LayoutAwareModifierNode,
   DrawModifierNode,
-  ObserverModifierNode,
-  ModifierLocalModifierNode {
+  TraversableNode {
 
-  override val providedValues = modifierLocalMapOf(ModifierLocalCurrentHazeZIndex to zIndex)
+  override val traverseKey: Any
+    get() = HazeTraversableNodeKeys.Source
 
   internal val area = HazeArea()
 
-  var zIndex: Float by mutableStateOf(zIndex)
+  init {
+    area.zIndex = zIndex
+  }
+
+  var zIndex: Float = zIndex
+    set(value) {
+      field = value
+      area.zIndex = value
+    }
 
   var state: HazeState = state
     set(value) {
@@ -91,27 +98,7 @@ class HazeSourceNode(
   override fun onAttach() {
     HazeLogger.d(TAG) { "onAttach. Adding HazeArea: $area" }
     state.addArea(area)
-    onObservedReadsChanged()
     clearHazeAreaLayerOnStop()
-  }
-
-  override fun onObservedReadsChanged() {
-    observeReads {
-      updateCompoundZIndex()
-    }
-  }
-
-  private fun updateCompoundZIndex() {
-    val upstream = ModifierLocalCurrentHazeZIndex.current
-    // We increment the compound zIndex at each layer by at least 1
-    val compound = (upstream ?: 0f) + zIndex
-
-    HazeLogger.d(TAG) {
-      "updateCompoundZIndex(). Upstream=$upstream, zIndex=$zIndex. Resulting compound=$compound"
-    }
-
-    provide(ModifierLocalCurrentHazeZIndex, compound)
-    area.zIndex = compound
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {

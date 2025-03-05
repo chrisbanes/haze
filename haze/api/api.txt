@@ -45,7 +45,7 @@ package dev.chrisbanes.haze {
     method @androidx.compose.runtime.Composable public static void HazeDialog(dev.chrisbanes.haze.HazeState hazeState, kotlin.jvm.functions.Function0<kotlin.Unit> onDismissRequest, optional androidx.compose.ui.window.DialogProperties properties, kotlin.jvm.functions.Function0<kotlin.Unit> content);
   }
 
-  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeEffectNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeEffectScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode {
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeEffectNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeEffectScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {
     ctor public HazeEffectNode(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
     method public float getAlpha();
@@ -62,6 +62,7 @@ package dev.chrisbanes.haze {
     method public dev.chrisbanes.haze.HazeState getState();
     method public dev.chrisbanes.haze.HazeStyle getStyle();
     method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
+    method public Object getTraverseKey();
     method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
     method public void onObservedReadsChanged();
     method public void setAlpha(float);
@@ -93,6 +94,7 @@ package dev.chrisbanes.haze {
     property public final dev.chrisbanes.haze.HazeState state;
     property public dev.chrisbanes.haze.HazeStyle style;
     property public java.util.List<dev.chrisbanes.haze.HazeTint> tints;
+    property public Object traverseKey;
     field public static final String TAG = "HazeEffect";
   }
 
@@ -223,21 +225,21 @@ package dev.chrisbanes.haze {
     property public final float radiusIntensity;
   }
 
-  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeSourceNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode {
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeSourceNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.TraversableNode {
     ctor public HazeSourceNode(dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
     method public Object? getKey();
     method public dev.chrisbanes.haze.HazeState getState();
+    method public Object getTraverseKey();
     method public float getZIndex();
     method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
-    method public void onObservedReadsChanged();
     method public void setKey(Object?);
     method public void setState(dev.chrisbanes.haze.HazeState);
     method public void setZIndex(float);
     property public final Object? key;
-    property public androidx.compose.ui.modifier.ModifierLocalMap providedValues;
     property public boolean shouldAutoInvalidate;
     property public final dev.chrisbanes.haze.HazeState state;
+    property public Object traverseKey;
     property public final float zIndex;
     field public static final String TAG = "HazeSource";
   }
