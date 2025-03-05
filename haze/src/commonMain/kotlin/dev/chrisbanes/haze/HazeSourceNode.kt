@@ -105,9 +105,7 @@ class HazeSourceNode(
     if (invalidateOnHazeAreaPreDraw()) {
       preDrawDisposable = doOnPreDraw {
         HazeLogger.d(TAG) { "onPreDraw" }
-        for (listener in area.preDrawListeners) {
-          listener()
-        }
+        area.preDrawListeners.forEach { it.invoke() }
       }
     }
   }
