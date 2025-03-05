@@ -15,6 +15,7 @@ import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.collection.SieveCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
@@ -81,7 +82,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     .asComposeRenderEffect()
 }
 
-private val noiseTextureCache by unsynchronizedLazy { SimpleLruCache<Long, Bitmap>(3) }
+private val noiseTextureCache by unsynchronizedLazy { SieveCache<Long, Bitmap>(3) }
 
 internal fun Context.getNoiseTexture(noiseFactor: Float, scale: Float = 1f): Bitmap {
   val key = packFloats(noiseFactor, scale)

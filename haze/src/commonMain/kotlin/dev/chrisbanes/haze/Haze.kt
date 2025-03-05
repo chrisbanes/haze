@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.collection.mutableScatterSetOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -92,7 +93,7 @@ class HazeArea {
   var windowId: Any? = null
     internal set
 
-  internal val preDrawListeners = mutableSetOf<OnPreDrawListener>()
+  internal val preDrawListeners = mutableScatterSetOf<OnPreDrawListener>()
 
   /**
    * The content [GraphicsLayer].
