@@ -5,7 +5,6 @@ package dev.chrisbanes.haze.baselineprofile
 
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.uiautomator.By
 import dev.chrisbanes.haze.testutils.navigateToImagesList
 import dev.chrisbanes.haze.testutils.navigateToScaffold
 import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
@@ -30,13 +29,13 @@ class BaselineProfileGenerator {
     device.navigateToImagesList()
     device.repeatedScrolls("lazy_column")
 
-    device.findObject(By.res("back")).click()
+    device.pressBack()
     device.waitForIdle()
 
     device.navigateToScaffoldWithProgressive()
     device.repeatedScrolls("lazy_grid")
 
-    device.findObject(By.res("back")).click()
+    device.pressBack()
     device.waitForIdle()
 
     device.navigateToScaffold()

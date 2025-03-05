@@ -122,7 +122,9 @@ fun Samples(
           },
         ) { contentPadding ->
           LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+              .testTag("sample_list")
+              .fillMaxSize(),
             contentPadding = contentPadding,
           ) {
             items(sortedSamples) { sample ->

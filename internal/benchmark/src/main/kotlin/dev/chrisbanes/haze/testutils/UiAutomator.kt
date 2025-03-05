@@ -17,10 +17,8 @@ import kotlin.time.Duration.Companion.seconds
 internal fun UiDevice.waitForObject(
   selector: BySelector,
   timeout: Duration = 5.seconds,
-): UiObject2 {
-  return waitForObjectOrNull(selector, timeout)
-    ?: error("Object with selector [$selector] not found")
-}
+): UiObject2 = waitForObjectOrNull(selector, timeout)
+  ?: error("Object with selector [$selector] not found")
 
 internal fun UiDevice.waitForObjectOrNull(
   selector: BySelector,
@@ -37,38 +35,44 @@ internal fun <R> UiDevice.wait(condition: SearchCondition<R>, timeout: Duration)
 }
 
 internal fun UiDevice.navigateToImagesList() {
-  waitForObject(By.res("Images List")).click()
+  findItem(By.res("Images List")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffold() {
-  waitForObject(By.res("Scaffold")).click()
+  findItem(By.res("Scaffold")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldScaled() {
-  waitForObject(By.res("Scaffold (input scaled)")).click()
+  findItem(By.res("Scaffold (input scaled)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldWithProgressive() {
-  waitForObject(By.res("Scaffold (progressive blur)")).click()
+  findItem(By.res("Scaffold (progressive blur)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldWithProgressiveScaled() {
-  waitForObject(By.res("Scaffold (progressive blur, input scaled)")).click()
+  findItem(By.res("Scaffold (progressive blur, input scaled)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldWithMask() {
-  waitForObject(By.res("Scaffold (masked)")).click()
+  findItem(By.res("Scaffold (masked)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToCreditCard() {
-  waitForObject(By.res("Credit Card")).click()
+  findItem(By.res("Credit Card")).click()
   waitForIdle()
+}
+
+internal fun UiDevice.findItem(selector: BySelector): UiObject2 {
+  return waitForObject(By.res("sample_list"))
+    .apply { setGestureMarginPercentage(0.1f) }
+    .scrollUntil(Direction.UP, Until.findObject(selector))
 }
 
 internal fun UiDevice.repeatedScrolls(
