@@ -104,10 +104,60 @@ LargeTopAppBar(
 )
 ```
 
-There is two types of progressive effect support in Haze:
+There are a number of different types of progressive effect supported in Haze:
 
-- `HazeProgressive.LinearGradient`: Linear gradients, usually vertical or horizontal but you can set any angle.
-- `HazeProgressive.RadialGradient`: Radial gradients, with a defined center.
+### Linear Gradient
+
+Class documentation: [HazeProgressive.LinearGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-linear-gradient/)
+
+Linear gradients, usually vertical or horizontal, but you can set any angle.
+
+There are a few builder functions on `HazeProgressive`, enabling common use cases: [verticalGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/vertical-gradient.html) and [horizontalGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/horizontal-gradient.html).
+
+```kotlin
+LargeTopAppBar(
+  // ...
+  modifier = Modifier.hazeEffect(hazeState) {
+    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
+  }
+)
+```
+
+### Radial Gradient
+
+Class documentation: [HazeProgressive.RadialGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-radial-gradient/)
+
+A radial gradient, with a defined center and radius.
+
+```kotlin
+LargeTopAppBar(
+  // ...
+  modifier = Modifier.hazeEffect(hazeState) {
+    progressive = HazeProgressive.RadialGradient()
+  }
+)
+```
+
+### Custom Brush
+
+Class documentation: [HazeProgressive.Brush](api/haze/dev.chrisbanes.haze/-haze-progressive/-brush/)
+
+A custom progressive effect, using a given [Brush](https://developer.android.com/develop/ui/compose/graphics/draw/brush) as the alpha mask for the entire effect.
+
+Commonly this will be used to create along with a custom Shader, so we have a builder function to make this easier: [forShader](api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/for-shader.html)
+
+```kotlin
+LargeTopAppBar(
+  // ...
+  modifier = Modifier.hazeEffect(hazeState) {
+    progressive = HazeProgressive.forShader { size ->
+      // TODO: return platform-specific Shader using the given size
+    }
+  }
+)
+```
+
+The Shader class is not commonized in Compose Multiplatform (it's an alias to the platform specific class), therefore you will likely need to use `expect` and `actual` functions to build the relevant shader.
 
 !!! warning "Performance of Progressive"
 
