@@ -5,6 +5,8 @@
 
 package dev.chrisbanes.haze
 
+import androidx.collection.SieveCache
+import androidx.collection.mutableScatterMapOf
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.Immutable
@@ -125,14 +127,7 @@ class HazeEffectNode(
       }
     }
 
-  private var areaOffsets: Map<HazeArea, Offset> = emptyMap()
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "areaOffsets changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.AreaOffsets
-        field = value
-      }
-    }
+  private val areaOffsets = mutableScatterMapOf<HazeArea, Offset>()
 
   private var forcedInvalidationTick: Long = 0
     set(value) {
@@ -375,10 +370,32 @@ class HazeEffectNode(
       .toMutableList()
       .apply { sortBy(HazeArea::zIndex) }
 
-    areaOffsets = areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
+    updateAreaOffsets()
+
     forcedInvalidationTick = areas.sumOf { it.forcedInvalidationTick.toLong() }
 
     invalidateIfNeeded()
+  }
+
+  private fun updateAreaOffsets() {
+    var offsetChanged = false
+    for (area in areas) {
+      val areaOffset = positionOnScreen - area.positionOnScreen
+      if (areaOffsets[area] != areaOffset) {
+        offsetChanged = true
+        break
+      }
+    }
+
+    areaOffsets.clear()
+    for (area in areas) {
+      areaOffsets[area] = positionOnScreen - area.positionOnScreen
+    }
+
+    if (offsetChanged) {
+      HazeLogger.d(TAG) { "areaOffsets changed" }
+      dirtyTracker += DirtyFields.AreaOffsets
+    }
   }
 
   @OptIn(ExperimentalHazeApi::class)
@@ -707,7 +724,9 @@ sealed interface HazeProgressive {
   }
 }
 
-private val renderEffectCache by unsynchronizedLazy { SimpleLruCache<RenderEffectParams, RenderEffect>(10) }
+private val renderEffectCache by unsynchronizedLazy {
+  SieveCache<RenderEffectParams, RenderEffect>(10)
+}
 
 @Poko
 internal class RenderEffectParams(
