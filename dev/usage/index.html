@@ -405,6 +405,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Progressive (aka gradient) blurs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linear-gradient" class="md-nav__link">
+    <span class="md-ellipsis">
+      Linear Gradient
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#radial-gradient" class="md-nav__link">
+    <span class="md-ellipsis">
+      Radial Gradient
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-brush" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom Brush
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -779,6 +812,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Progressive (aka gradient) blurs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linear-gradient" class="md-nav__link">
+    <span class="md-ellipsis">
+      Linear Gradient
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#radial-gradient" class="md-nav__link">
+    <span class="md-ellipsis">
+      Radial Gradient
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-brush" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom Brush
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -949,11 +1015,42 @@
 <span class="w">  </span><span class="p">}</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>There is two types of progressive effect support in Haze:</p>
-<ul>
-<li><code>HazeProgressive.LinearGradient</code>: Linear gradients, usually vertical or horizontal but you can set any angle.</li>
-<li><code>HazeProgressive.RadialGradient</code>: Radial gradients, with a defined center.</li>
-</ul>
+<p>There are a number of different types of progressive effect supported in Haze:</p>
+<h3 id="linear-gradient">Linear Gradient<a class="headerlink" href="#linear-gradient" title="Permanent link">¶</a></h3>
+<p>Class documentation: <a href="api/haze/dev.chrisbanes.haze/-haze-progressive/-linear-gradient/">HazeProgressive.LinearGradient</a></p>
+<p>Linear gradients, usually vertical or horizontal, but you can set any angle.</p>
+<p>There are a few builder functions on <code>HazeProgressive</code>, enabling common use cases: <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/vertical-gradient.html">verticalGradient</a> and <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/horizontal-gradient.html">horizontalGradient</a>.</p>
+<div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span><span class="w"> </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div>
+<h3 id="radial-gradient">Radial Gradient<a class="headerlink" href="#radial-gradient" title="Permanent link">¶</a></h3>
+<p>Class documentation: <a href="api/haze/dev.chrisbanes.haze/-haze-progressive/-radial-gradient/">HazeProgressive.RadialGradient</a></p>
+<p>A radial gradient, with a defined center and radius.</p>
+<div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">RadialGradient</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div>
+<h3 id="custom-brush">Custom Brush<a class="headerlink" href="#custom-brush" title="Permanent link">¶</a></h3>
+<p>Class documentation: <a href="api/haze/dev.chrisbanes.haze/-haze-progressive/-brush/">HazeProgressive.Brush</a></p>
+<p>A custom progressive effect, using a given <a href="https://developer.android.com/develop/ui/compose/graphics/draw/brush">Brush</a> as the alpha mask for the entire effect.</p>
+<p>Commonly this will be used to create along with a custom Shader, so we have a builder function to make this easier: <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/for-shader.html">forShader</a></p>
+<div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">forShader</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">      </span><span class="c1">// TODO: return platform-specific Shader using the given size</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>The Shader class is not commonized in Compose Multiplatform (it's an alias to the platform specific class), therefore you will likely need to use <code>expect</code> and <code>actual</code> functions to build the relevant shader.</p>
 <div class="admonition warning">
 <p class="admonition-title">Performance of Progressive</p>
 <p>Please be aware that using progressive blurring does come with a performance cost. Please see the <a href="../performance/">Performance</a> page for up-to-date benchmarks.</p>
