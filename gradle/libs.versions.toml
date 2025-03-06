@@ -33,7 +33,7 @@ metalava = { id = "me.tylerbwong.gradle.metalava", version.ref = "metalava" }
 poko = { id = "dev.drewhamilton.poko", version = "0.18.2" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.30.0" }
+mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.31.0" }
 
 [libraries]
 androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
