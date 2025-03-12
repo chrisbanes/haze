@@ -16,6 +16,7 @@ import android.graphics.Shader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.collection.SieveCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -84,7 +85,7 @@ internal actual fun DrawScope.canUseGraphicLayers(): Boolean {
   return Build.VERSION.SDK_INT >= 31 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
 }
 
-private val noiseTextureCache by unsynchronizedLazy { SimpleLruCache<Int, Bitmap>(3) }
+private val noiseTextureCache by unsynchronizedLazy { SieveCache<Int, Bitmap>(3) }
 
 private fun Context.getNoiseTexture(noiseFactor: Float): Bitmap {
   val noiseAlphaInt = (noiseFactor * 255).roundToInt().coerceIn(0, 255)
