@@ -30,10 +30,10 @@ private const val SHADER_SKSL = """
     float noiseLuma = dot(n.rgb, vec3(0.2126, 0.7152, 0.0722));
 
     // Calculate our overlay (noise)
-    float overlay = min(1.0, noiseLuma * noiseFactor);
+    float overlay = saturate(noiseLuma * noiseFactor);
 
     // Apply the overlay (noise)
-    return b + ((half4(1.0) - b) * overlay);
+    return mix(b, half4(1.0), overlay);
   }
 """
 

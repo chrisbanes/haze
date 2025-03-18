@@ -34,7 +34,6 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
     uniform("noiseFactor", params.noiseFactor.coerceIn(0f, 1f))
-    child("noise", NOISE_SHADER)
   }
 
   val blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() }
@@ -52,11 +51,25 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     createBlurImageFilter(blurRadiusPx = blurRadiusPx)
   }
 
+  val noise = when {
+    progressiveShader != null -> {
+      ImageFilter.makeBlend(
+        blendMode = BlendMode.SRC_IN,
+        bg = ImageFilter.makeShader(progressiveShader, crop = null),
+        fg = ImageFilter.makeShader(NOISE_SHADER, crop = null),
+        crop = null,
+      )
+    }
+    else -> {
+      ImageFilter.makeShader(NOISE_SHADER, crop = null)
+    }
+  }
+
   return ImageFilter
     .makeRuntimeShader(
       runtimeShaderBuilder = compositeShaderBuilder,
-      shaderNames = arrayOf("content", "blur"),
-      inputs = arrayOf(null, blur),
+      shaderNames = arrayOf("content", "blur", "noise"),
+      inputs = arrayOf(null, blur, noise),
     )
     .withTints(params.tints, params.contentBounds, params.tintAlphaModulate, progressiveShader)
     .withMask(params.mask, params.contentBounds)
@@ -90,6 +103,7 @@ private fun ImageFilter.withTint(
       alphaModulate >= 1f -> {
         ImageFilter.makeShader(tintBrush, crop = null)
       }
+
       else -> {
         // If we need to modulate the alpha, we'll need to wrap it in a ColorFilter
         ImageFilter.makeColorFilter(
@@ -126,10 +140,10 @@ private fun ImageFilter.withTint(
   }
   if (tintColor.alpha >= 0.005f) {
     return if (mask != null) {
-      return blendWith(
+      blendWith(
         foreground = ImageFilter.makeColorFilter(
-          ColorFilter.makeBlend(tintColor.toArgb(), BlendMode.SRC_IN),
-          ImageFilter.makeShader(mask, crop = null),
+          f = ColorFilter.makeBlend(tintColor.toArgb(), BlendMode.SRC_IN),
+          input = ImageFilter.makeShader(mask, crop = null),
           crop = null,
         ),
         blendMode = tint.blendMode.toSkiaBlendMode(),
