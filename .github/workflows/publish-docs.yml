@@ -19,6 +19,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
 
     steps:
       - uses: actions/checkout@v4
@@ -69,14 +71,12 @@ jobs:
         if: ${{ success() && contains(steps.version.outputs.VERSION_NAME, 'SNAPSHOT') }}
         env:
           HAZE_VERSION: dev
-          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
         run: mike deploy -u --push dev
 
       - name: Deploy release docs with mike 🚀
         if: ${{ success() && !contains(steps.version.outputs.VERSION_NAME , 'SNAPSHOT') }}
         env:
           HAZE_VERSION: ${{ steps.version.outputs.VERSION_NAME }}
-          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
         run: mike deploy -u --push ${{ steps.version.outputs.VERSION_NAME }} latest
 
       - name: Delete old doc versions
