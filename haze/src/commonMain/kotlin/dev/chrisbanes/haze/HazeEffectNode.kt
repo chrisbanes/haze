@@ -373,7 +373,7 @@ class HazeEffectNode(
         }
       }
       .toMutableList()
-      .apply { sortBy(HazeArea::zIndex) }
+      .sortBy(HazeArea::zIndex)
 
     areaOffsets = areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
     forcedInvalidationTick = areas.sumOf { it.forcedInvalidationTick.toLong() }
