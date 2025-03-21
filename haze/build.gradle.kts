@@ -42,7 +42,7 @@ kotlin {
       dependencies {
         api(compose.ui)
         implementation(compose.foundation)
-        implementation(libs.androidx.lifecycle.compose)
+        implementation(libs.androidx.collection)
       }
     }
 
@@ -53,6 +53,7 @@ kotlin {
         api(libs.androidx.compose.ui)
         implementation(libs.androidx.compose.foundation)
         implementation(libs.androidx.core)
+        implementation(libs.androidx.lifecycle.compose)
       }
     }
 
