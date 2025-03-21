@@ -15,7 +15,7 @@ ktor = "3.1.1"
 jetpack-compose = "1.7.8"
 metalava = "0.4.0-alpha03"
 robolectric = "4.14.1"
-roborazzi = "1.43.0"
+roborazzi = "1.43.1"
 spotless = "7.0.2"
 
 [plugins]
