@@ -5,11 +5,11 @@ package dev.chrisbanes.haze.sample.android
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
 import dev.chrisbanes.haze.sample.CreditCardSample
-import dev.chrisbanes.haze.sample.Navigator
 
 @Composable
 @Preview
 fun PreviewCardSample() {
-  CreditCardSample(Navigator())
+  CreditCardSample(rememberNavController())
 }

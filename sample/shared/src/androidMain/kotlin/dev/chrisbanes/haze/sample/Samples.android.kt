@@ -5,5 +5,5 @@ package dev.chrisbanes.haze.sample
 
 actual val Samples: List<Sample> = buildList {
   addAll(CommonSamples)
-  add(Sample("ExoPlayer") { ExoPlayerSample(it) })
+  add(Sample(SampleRoute.AndroidExoPlayer, "ExoPlayer") { ExoPlayerSample(it) })
 }
