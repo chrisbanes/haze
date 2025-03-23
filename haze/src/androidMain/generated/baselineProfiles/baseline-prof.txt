@@ -57,7 +57,7 @@ HSPLdev/chrisbanes/haze/HazeDefaults;->style-hhQwkJs$default(Ldev/chrisbanes/haz
 HSPLdev/chrisbanes/haze/HazeDefaults;->style-hhQwkJs(JLdev/chrisbanes/haze/HazeTint;FF)Ldev/chrisbanes/haze/HazeStyle;
 HSPLdev/chrisbanes/haze/HazeDefaults;->tint-8_81llA(J)Ldev/chrisbanes/haze/HazeTint;
 Ldev/chrisbanes/haze/HazeEffectNode;
-HSPLdev/chrisbanes/haze/HazeEffectNode;->$r8$lambda$3BMVCDUjO1_C6FV07o-X4Dn4iKg(Ldev/chrisbanes/haze/HazeEffectNode;Ldev/chrisbanes/haze/HazeSourceNode;Ldev/chrisbanes/haze/HazeArea;)Z
+HSPLdev/chrisbanes/haze/HazeEffectNode;->$r8$lambda$Iy-jl7AQLIuOLSfkSvDHADwFRa4(Ldev/chrisbanes/haze/HazeEffectNode;Ldev/chrisbanes/haze/HazeSourceNode;Ldev/chrisbanes/haze/HazeArea;)Z
 HSPLdev/chrisbanes/haze/HazeEffectNode;->$r8$lambda$qUit-HziLVSbX8PSEmC6ELGYbrI(JFJLdev/chrisbanes/haze/HazeEffectNode;Landroidx/compose/ui/graphics/drawscope/DrawScope;)Lkotlin/Unit;
 HSPLdev/chrisbanes/haze/HazeEffectNode;-><clinit>()V
 HSPLdev/chrisbanes/haze/HazeEffectNode;-><init>(Ldev/chrisbanes/haze/HazeState;Ldev/chrisbanes/haze/HazeStyle;Lkotlin/jvm/functions/Function1;)V
@@ -100,7 +100,7 @@ HSPLdev/chrisbanes/haze/HazeEffectNode;->setAreas(Ljava/util/List;)V
 PLdev/chrisbanes/haze/HazeEffectNode;->setBlock(Lkotlin/jvm/functions/Function1;)V
 HSPLdev/chrisbanes/haze/HazeEffectNode;->setCompositionLocalStyle$haze_release(Ldev/chrisbanes/haze/HazeStyle;)V
 HSPLdev/chrisbanes/haze/HazeEffectNode;->setForcedInvalidationTick(J)V
-PLdev/chrisbanes/haze/HazeEffectNode;->setInputScale(Ldev/chrisbanes/haze/HazeInputScale;)V
+HPLdev/chrisbanes/haze/HazeEffectNode;->setInputScale(Ldev/chrisbanes/haze/HazeInputScale;)V
 HSPLdev/chrisbanes/haze/HazeEffectNode;->setLayerOffset-k-4lQ0M$haze_release(J)V
 HSPLdev/chrisbanes/haze/HazeEffectNode;->setLayerSize-uvyYCjk(J)V
 HSPLdev/chrisbanes/haze/HazeEffectNode;->setPositionOnScreen-k-4lQ0M(J)V
@@ -109,7 +109,7 @@ HSPLdev/chrisbanes/haze/HazeEffectNode;->setSize-uvyYCjk$haze_release(J)V
 PLdev/chrisbanes/haze/HazeEffectNode;->setState(Ldev/chrisbanes/haze/HazeState;)V
 PLdev/chrisbanes/haze/HazeEffectNode;->setStyle(Ldev/chrisbanes/haze/HazeStyle;)V
 HSPLdev/chrisbanes/haze/HazeEffectNode;->update$haze_release()V
-HSPLdev/chrisbanes/haze/HazeEffectNode;->updateEffect$lambda$32(Ldev/chrisbanes/haze/HazeEffectNode;Ldev/chrisbanes/haze/HazeSourceNode;Ldev/chrisbanes/haze/HazeArea;)Z
+HSPLdev/chrisbanes/haze/HazeEffectNode;->updateEffect$lambda$29(Ldev/chrisbanes/haze/HazeEffectNode;Ldev/chrisbanes/haze/HazeSourceNode;Ldev/chrisbanes/haze/HazeArea;)Z
 HSPLdev/chrisbanes/haze/HazeEffectNode;->updateEffect()V
 HSPLdev/chrisbanes/haze/HazeEffectNode;->updateRenderEffectIfDirty()V
 Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda11;
@@ -123,7 +123,7 @@ HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda17;-><init>(Ldev/
 Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda18;
 HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda18;-><init>(Ldev/chrisbanes/haze/HazeEffectNode;J)V
 Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda19;
-HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda19;-><init>(Ljava/lang/String;Ldev/chrisbanes/haze/HazeEffectNode;)V
+HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda19;-><init>(Ljava/lang/String;Landroidx/compose/ui/layout/LayoutCoordinates;Ldev/chrisbanes/haze/HazeEffectNode;)V
 Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda2;
 HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda2;-><init>(Landroidx/compose/ui/graphics/layer/GraphicsLayer;)V
 Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda20;
@@ -139,9 +139,9 @@ Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda28;
 HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda28;-><init>(JFJLdev/chrisbanes/haze/HazeEffectNode;)V
 HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda28;->invoke(Ljava/lang/Object;)Ljava/lang/Object;
 Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda29;
-HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda29;-><init>(Ldev/chrisbanes/haze/HazeEffectNode;J)V
+HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda29;-><init>(Ldev/chrisbanes/haze/HazeArea;Z)V
 Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda30;
-HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda30;-><init>(Ldev/chrisbanes/haze/HazeArea;Z)V
+HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda30;-><init>(Ldev/chrisbanes/haze/HazeEffectNode;J)V
 Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda5;
 HSPLdev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda5;-><init>(Ldev/chrisbanes/haze/HazeEffectNode;Ldev/chrisbanes/haze/HazeStyle;)V
 Ldev/chrisbanes/haze/HazeEffectNode$$ExternalSyntheticLambda7;
@@ -155,7 +155,7 @@ Ldev/chrisbanes/haze/HazeEffectNode$onObservedReadsChanged$1;
 HSPLdev/chrisbanes/haze/HazeEffectNode$onObservedReadsChanged$1;-><init>(Ljava/lang/Object;)V
 HSPLdev/chrisbanes/haze/HazeEffectNode$onObservedReadsChanged$1;->invoke()Ljava/lang/Object;
 HSPLdev/chrisbanes/haze/HazeEffectNode$onObservedReadsChanged$1;->invoke()V
-Ldev/chrisbanes/haze/HazeEffectNode$updateEffect$lambda$33$$inlined$sortBy$1;
+Ldev/chrisbanes/haze/HazeEffectNode$updateEffect$lambda$30$$inlined$sortBy$1;
 Ldev/chrisbanes/haze/HazeEffectNodeElement;
 HSPLdev/chrisbanes/haze/HazeEffectNodeElement;-><init>(Ldev/chrisbanes/haze/HazeState;Ldev/chrisbanes/haze/HazeStyle;Lkotlin/jvm/functions/Function1;)V
 HSPLdev/chrisbanes/haze/HazeEffectNodeElement;->create()Landroidx/compose/ui/Modifier$Node;
@@ -298,8 +298,9 @@ HSPLdev/chrisbanes/haze/HazeSourceNodeKt;->boostAlphaForBlurRadius-l07J4OM(JF)J
 HSPLdev/chrisbanes/haze/HazeSourceNodeKt;->boostForFallback-3ABfNKs(Ldev/chrisbanes/haze/HazeTint;F)Ldev/chrisbanes/haze/HazeTint;
 Ldev/chrisbanes/haze/HazeSourceNode_androidKt;
 HSPLdev/chrisbanes/haze/HazeSourceNode_androidKt;->clearHazeAreaLayerOnStop(Ldev/chrisbanes/haze/HazeSourceNode;)V
+HSPLdev/chrisbanes/haze/HazeSourceNode_androidKt;->findActivityOrNull(Landroid/content/Context;)Landroidx/activity/ComponentActivity;
 Ldev/chrisbanes/haze/HazeSourceNode_androidKt$clearHazeAreaLayerOnStop$1;
-HSPLdev/chrisbanes/haze/HazeSourceNode_androidKt$clearHazeAreaLayerOnStop$1;-><init>(Landroidx/lifecycle/LifecycleOwner;Ldev/chrisbanes/haze/HazeSourceNode;Lkotlin/coroutines/Continuation;)V
+HSPLdev/chrisbanes/haze/HazeSourceNode_androidKt$clearHazeAreaLayerOnStop$1;-><init>(Landroidx/activity/ComponentActivity;Ldev/chrisbanes/haze/HazeSourceNode;Lkotlin/coroutines/Continuation;)V
 HSPLdev/chrisbanes/haze/HazeSourceNode_androidKt$clearHazeAreaLayerOnStop$1;->create(Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Lkotlin/coroutines/Continuation;
 HSPLdev/chrisbanes/haze/HazeSourceNode_androidKt$clearHazeAreaLayerOnStop$1;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
 Ldev/chrisbanes/haze/HazeSourceNode_androidKt$clearHazeAreaLayerOnStop$1$1;
