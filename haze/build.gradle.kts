@@ -121,12 +121,6 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().con
   }
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-  compilerOptions {
-    freeCompilerArgs.add("-Xcontext-receivers")
-  }
-}
-
 poko {
   pokoAnnotation.set("dev/chrisbanes/haze/Poko")
 }
