@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
@@ -42,7 +43,7 @@ import dev.chrisbanes.haze.materials.HazeMaterials
   ExperimentalFoundationApi::class,
 )
 @Composable
-fun ListWithStickyHeaders(navigator: Navigator) {
+fun ListWithStickyHeaders(navController: NavHostController) {
   val hazeState = remember { HazeState() }
   val listState = rememberLazyListState()
 
@@ -53,7 +54,7 @@ fun ListWithStickyHeaders(navigator: Navigator) {
       TopAppBar(
         title = { },
         navigationIcon = {
-          IconButton(onClick = navigator::navigateUp, modifier = Modifier.testTag("back")) {
+          IconButton(onClick = navController::navigateUp, modifier = Modifier.testTag("back")) {
             Icon(Icons.AutoMirrored.Default.ArrowBack, null)
           }
         },

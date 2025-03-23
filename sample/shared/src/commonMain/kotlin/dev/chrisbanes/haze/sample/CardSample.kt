@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -46,7 +47,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 
 @Composable
-fun CreditCardSample(navigator: Navigator) {
+fun CreditCardSample(navController: NavHostController) {
   val hazeState = remember { HazeState() }
 
   Box {
@@ -118,7 +119,7 @@ fun CreditCardSample(navigator: Navigator) {
     }
 
     FloatingActionButton(
-      onClick = navigator::navigateUp,
+      onClick = navController::navigateUp,
       modifier = Modifier
         .windowInsetsPadding(WindowInsets.statusBars)
         .padding(24.dp),

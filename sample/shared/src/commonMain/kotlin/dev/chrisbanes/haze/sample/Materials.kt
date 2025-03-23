@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -38,7 +39,7 @@ import dev.chrisbanes.haze.materials.FluentMaterials
 import dev.chrisbanes.haze.materials.HazeMaterials
 
 @Composable
-fun MaterialsSample(@Suppress("UNUSED_PARAMETER") navigator: Navigator) {
+fun MaterialsSample(navController: NavHostController) {
   val hazeState = remember { HazeState() }
 
   Box {

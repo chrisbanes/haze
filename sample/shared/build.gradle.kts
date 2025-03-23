@@ -4,13 +4,11 @@
 
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
-// Copyright 2023, Christopher Banes and the Haze project contributors
-// SPDX-License-Identifier: Apache-2.0
-
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
+  id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -23,6 +21,9 @@ kotlin {
       dependencies {
         api(projects.haze)
         api(projects.hazeMaterials)
+
+        api(libs.androidx.navigation.compose)
+        api(libs.kotlinx.serialization.json)
 
         implementation(libs.coil.compose)
         implementation(libs.coil.ktor)

@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -37,7 +38,7 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-fun ImagesList(navigator: Navigator) {
+fun ImagesList(navController: NavHostController) {
   MaterialTheme {
     Scaffold(
       topBar = {
@@ -45,7 +46,7 @@ fun ImagesList(navigator: Navigator) {
           title = { Text(text = "Images") },
           navigationIcon = {
             IconButton(
-              onClick = navigator::navigateUp,
+              onClick = navController::navigateUp,
               modifier = Modifier.testTag("back"),
             ) {
               Icon(Icons.AutoMirrored.Filled.ArrowBack, null)

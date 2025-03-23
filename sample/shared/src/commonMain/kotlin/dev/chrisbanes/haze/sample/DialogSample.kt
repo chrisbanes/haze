@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.HazeDialog
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -45,14 +46,14 @@ import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-fun DialogSample(navigator: Navigator) {
+fun DialogSample(navController: NavHostController) {
   Scaffold(
     modifier = Modifier.fillMaxSize(),
     topBar = {
       TopAppBar(
         title = { Text(text = "Haze Dialog sample") },
         navigationIcon = {
-          IconButton(onClick = navigator::navigateUp) {
+          IconButton(onClick = navController::navigateUp) {
             @Suppress("DEPRECATION")
             Icon(Icons.Default.ArrowBack, null)
           }

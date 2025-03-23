@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
@@ -61,7 +62,7 @@ enum class ScaffoldSampleMode {
 )
 @Composable
 fun ScaffoldSample(
-  navigator: Navigator,
+  navController: NavHostController,
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
   inputScale: HazeInputScale = HazeInputScale.Default,
 ) {
@@ -79,7 +80,7 @@ fun ScaffoldSample(
         title = { },
         navigationIcon = {
           IconButton(
-            onClick = navigator::navigateUp,
+            onClick = navController::navigateUp,
             modifier = Modifier.testTag("back"),
           ) {
             Icon(Icons.AutoMirrored.Default.ArrowBack, null)
