@@ -298,29 +298,8 @@ class HazeEffectNode(
     positionOnScreen = coordinates.positionForHaze()
     size = coordinates.size.toSize()
 
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) {
-      resolveBlurRadius().takeOrElse { 0.dp }.toPx()
-    }
-
-    val bounds = Rect(positionOnScreen, size)
-
-    // The rect which covers all areas
-    val areasRect = state.areas.fold(Rect.Zero) { acc, area ->
-      acc.expandToInclude(area.bounds ?: Rect.Zero)
-    }
-
-    // Now we clip the expanded layer bounds, to remove anything areas which
-    // don't overlap any areas
-    val clippedLayerBounds = bounds.inflate(blurRadiusPx).intersect(areasRect)
-
-    layerSize = clippedLayerBounds.size
-    layerOffset = positionOnScreen - clippedLayerBounds.topLeft
-
     HazeLogger.d(TAG) {
-      "$source: positionOnScreen=$positionOnScreen, " +
-        "size=$size, " +
-        "layerSize=$layerSize, " +
-        "layerOffset=$layerOffset"
+      "$source. Coordinates=$coordinates, positionOnScreen=$positionOnScreen, size=$size"
     }
 
     updateEffect()
@@ -377,6 +356,29 @@ class HazeEffectNode(
 
     areaOffsets = areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
     forcedInvalidationTick = areas.sumOf { it.forcedInvalidationTick.toLong() }
+
+    if (size.isSpecified && positionOnScreen.isSpecified) {
+      // The rect which covers all areas
+      val areasRect = areas.fold(Rect.Zero) { acc, area ->
+        acc.expandToInclude(area.bounds ?: Rect.Zero)
+      }
+
+      val blurRadiusPx = with(currentValueOf(LocalDensity)) {
+        resolveBlurRadius().takeOrElse { 0.dp }.toPx()
+      }
+
+      // Now we clip the expanded layer bounds, to remove anything areas which
+      // don't overlap any areas
+      val clippedLayerBounds = Rect(positionOnScreen, size)
+        .inflate(blurRadiusPx)
+        .intersect(areasRect)
+
+      layerSize = clippedLayerBounds.size
+      layerOffset = positionOnScreen - clippedLayerBounds.topLeft
+    } else {
+      layerSize = size
+      layerOffset = Offset.Unspecified
+    }
 
     invalidateIfNeeded()
   }
