@@ -33,13 +33,13 @@ If you do not provide an explicit style, the default values will provide basic b
 
 ## Styling
 
-Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](api/haze/dev.chrisbanes.haze/-haze-style/) class, or the lambda block provided to `hazeEffect`.
+Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](api/haze/dev.chrisbanes.haze/-haze-style/index.html) class, or the lambda block provided to `hazeEffect`.
 
 Styles can be provided in a number of different ways:
 
 - [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
 - The style parameter on [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
-- By setting the relevant property in the optional [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/) lambda `block`, passed into [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
+- By setting the relevant property in the optional [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/index.html) lambda `block`, passed into [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
 
 ### HazeEffectScope
 
@@ -69,7 +69,7 @@ As we a few different ways to set styling properties, it's important to know how
 
 Each styling property (such as `blurRadius`) is resolved seperately, and the order of precedence for each property is as follows, in order:
 
-- Value set in [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/), if specified.
+- Value set in [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/index.html), if specified.
 - Value set in style provided to hazeEffect (or [HazeEffectScope.style](api/haze/dev.chrisbanes.haze/-haze-effect-scope/style.html)), if specified.
 - Value set in the [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
 
@@ -93,7 +93,7 @@ Progressive blurs allow you to provide a visual effect where the blur radius is 
 
 ![type:video](./media/progressive.mp4)
 
-Progressive blurs can be enabled by setting the `progressive` property on [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/). The API is very similar to the Brush gradient APIs, so it should feel familiar.
+Progressive blurs can be enabled by setting the `progressive` property on [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/index.html). The API is very similar to the Brush gradient APIs, so it should feel familiar.
 
 ```kotlin
 LargeTopAppBar(
@@ -108,7 +108,7 @@ There are a number of different types of progressive effect supported in Haze:
 
 ### Linear Gradient
 
-Class documentation: [HazeProgressive.LinearGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-linear-gradient/)
+Class documentation: [HazeProgressive.LinearGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-linear-gradient/index.html)
 
 Linear gradients, usually vertical or horizontal, but you can set any angle.
 
@@ -125,7 +125,7 @@ LargeTopAppBar(
 
 ### Radial Gradient
 
-Class documentation: [HazeProgressive.RadialGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-radial-gradient/)
+Class documentation: [HazeProgressive.RadialGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-radial-gradient/index.html)
 
 A radial gradient, with a defined center and radius.
 
@@ -140,7 +140,7 @@ LargeTopAppBar(
 
 ### Custom Brush
 
-Class documentation: [HazeProgressive.Brush](api/haze/dev.chrisbanes.haze/-haze-progressive/-brush/)
+Class documentation: [HazeProgressive.Brush](api/haze/dev.chrisbanes.haze/-haze-progressive/-brush/index.html)
 
 A custom progressive effect, using a given [Brush](https://developer.android.com/develop/ui/compose/graphics/draw/brush) as the alpha mask for the entire effect.
 
@@ -197,7 +197,7 @@ LargeTopAppBar(
 )
 ```
 
-[HazeInputScale](api/haze/dev.chrisbanes.haze/-haze-input-scale/) has a number of different options:
+[HazeInputScale](api/haze/dev.chrisbanes.haze/-haze-input-scale/index.html) has a number of different options:
 
 - `HazeInputScale.None`: Turns off input scaling (default)
 - `HazeInputScale.Auto`: Turns on input scaling, with automatic values derived underneath.
@@ -361,7 +361,7 @@ fun Foreground(modifier: Modifier = Modifier) {
 
 ## Dialogs
 
-You can use Haze with `Dialog`s, to blur dialog backgrounds over content. We supply a [HazeDialog](api/haze/dev.chrisbanes.haze/haze-dialog.html) composable to make this easy to integrate.
+You can use Haze with `Dialog`s, to blur dialog backgrounds over content. We supply a [HazeDialog](api/haze/dev.chrisbanes.haze/-haze-dialog.html) composable to make this easy to integrate.
 
 A sample is available too: [DialogSample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt).
 
