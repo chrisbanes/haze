@@ -1,42 +1,43 @@
 # Project information
-site_name: 'Haze'
-site_description: 'A blurring modifier for Compose'
-site_author: 'Chris Banes'
-site_url: 'https://chribanes.github.io/haze/'
-edit_uri: 'tree/main/docs/'
+site_name: "Haze"
+site_description: "A blurring modifier for Compose"
+site_author: "Chris Banes"
+site_url: "https://chribanes.github.io/haze/"
+edit_uri: "tree/main/docs/"
 remote_branch: gh-pages
+strict: true
 
 docs_dir: docs
 
-repo_name: 'Haze'
-repo_url: 'https://github.com/chrisbanes/haze'
+repo_name: "Haze"
+repo_url: "https://github.com/chrisbanes/haze"
 
 # Navigation
 nav:
-  - 'Overview': index.md
-  - 'Usage': usage.md
-  - 'Materials': materials.md
-  - 'Performance': performance.md
-  - 'FAQs': faq.md
-  - 'Migrating to 1.0': migrating-1.0.md
-  - 'Recipes': recipes.md
-  - 'API reference': api/
-  - 'Sample code': https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
-  - '🕸️ Sample app (Wasm)': sample/wasm/
-  - '🕸️ Sample app (JS)': sample/js/
+  - "Overview": index.md
+  - "Usage": usage.md
+  - "Materials": materials.md
+  - "Performance": performance.md
+  - "FAQs": faq.md
+  - "Migrating to 1.0": migrating-1.0.md
+  - "Recipes": recipes.md
+  - "API reference": api/index.html
+  - "Sample code": https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
+  - "🕸️ Sample app (Wasm)": sample/wasm/index.html
+  - "🕸️ Sample app (JS)": sample/js/index.html
 
 # Configuration
 theme:
-  name: 'material'
-  language: 'en'
+  name: "material"
+  language: "en"
   icon:
     logo: material/blur-radial
   palette:
-    primary: 'white'
-    accent: 'teal'
+    primary: "white"
+    accent: "teal"
   font:
-    text: 'DM Sans'
-    code: 'DM Mono'
+    text: "DM Sans"
+    code: "DM Mono"
   features:
     - content.tabs.link
     - content.code.copy
@@ -75,7 +76,11 @@ markdown_extensions:
 
 extra:
   versions:
-    haze: !ENV [HAZE_VERSION, 'local-development']
+    haze: !ENV [HAZE_VERSION, "local-development"]
   version:
     provider: mike
     alias: true
+
+validation:
+  unrecognized_links: warn
+  anchors: warn

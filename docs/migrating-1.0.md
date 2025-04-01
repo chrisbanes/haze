@@ -25,7 +25,7 @@ As we're now using a common implementation on all platforms, the Skia-backed pla
 
 #### 🆕 HazeChildScope
 
-- **What:** We now have a parameter on `Modifier.hazeChild` which allow you to provide a lambda block for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`. See [here](usage.md#hazechildscope) for more information.
+- **What:** We now have a parameter on `Modifier.hazeChild` which allow you to provide a lambda block for controlling all of Haze's styling parameters. It is similar to concept to `Modifier.graphicsLayer { ... }`. See [here](usage.md#hazeeffectscope) for more information.
 - **Why:** This has been primarily added to aid animating Haze's styling parameters, in a performant way.
 
 #### Default style functionality on Modifier.haze has been moved
