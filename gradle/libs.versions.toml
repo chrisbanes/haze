@@ -18,7 +18,7 @@ metalava = "0.4.0-alpha03"
 navigation-compose = "2.8.0-alpha10"
 robolectric = "4.14.1"
 roborazzi = "1.43.1"
-spotless = "7.0.2"
+spotless = "7.0.3"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
