@@ -8,30 +8,21 @@ package dev.chrisbanes.haze
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
-import androidx.compose.ui.geometry.toRect
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.takeOrElse
-import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
@@ -44,10 +35,8 @@ import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import kotlin.jvm.JvmInline
@@ -77,8 +66,7 @@ class HazeEffectNode(
 
   override val shouldAutoInvalidate: Boolean = false
 
-  private var renderEffect: RenderEffect? = null
-  private var dirtyTracker = Bitmask()
+  internal var dirtyTracker = Bitmask()
 
   override var blurEnabled: Boolean = HazeDefaults.blurEnabled()
     set(value) {
@@ -116,7 +104,7 @@ class HazeEffectNode(
       }
     }
 
-  private var positionOnScreen: Offset = Offset.Unspecified
+  internal var positionOnScreen: Offset = Offset.Unspecified
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "positionOnScreen changed. Current: $field. New: $value" }
@@ -155,7 +143,7 @@ class HazeEffectNode(
       }
     }
 
-  private var layerSize: Size = Size.Unspecified
+  internal var layerSize: Size = Size.Unspecified
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "layerSize changed. Current: $field. New: $value" }
@@ -245,7 +233,7 @@ class HazeEffectNode(
       }
     }
 
-  private var areas: List<HazeArea> = emptyList()
+  internal var areas: List<HazeArea> = emptyList()
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "backgroundAreas changed. Current $field. New: $value" }
@@ -309,10 +297,8 @@ class HazeEffectNode(
     HazeLogger.d(TAG) { "-> HazeChild. start draw()" }
 
     if (isValid) {
-      if (blurEnabled && canUseGraphicLayers()) {
-        drawEffectWithGraphicsLayer()
-      } else {
-        drawEffectWithScrim()
+      with(selectBlurEffect(this)) {
+        drawEffect(this@HazeEffectNode)
       }
     } else {
       HazeLogger.d(TAG) { "-> HazeChild. Draw. State not valid, so no need to draw effect." }
@@ -381,157 +367,6 @@ class HazeEffectNode(
     }
 
     invalidateIfNeeded()
-  }
-
-  @OptIn(ExperimentalHazeApi::class)
-  private fun DrawScope.drawEffectWithGraphicsLayer() {
-    val scaleFactor = calculateInputScaleFactor()
-    val inflatedSize = (layerSize * scaleFactor).roundToIntSize()
-    // This is the topLeft in the inflated bounds where the real are should be at [0,0]
-    val inflatedOffset = layerOffset
-
-    if (inflatedSize.width <= 0 || inflatedSize.height <= 0) {
-      // If we have a 0px dimension we can't do anything so just return
-      return
-    }
-
-    val bg = resolveBackgroundColor()
-    require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
-
-    // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
-    // The RenderEffect applied will provide the blurring effect.
-    val graphicsContext = currentValueOf(LocalGraphicsContext)
-    val layer = graphicsContext.createGraphicsLayer()
-
-    layer.record(size = inflatedSize) {
-      drawRect(bg)
-
-      clipRect {
-        scale(scale = scaleFactor, pivot = Offset.Zero) {
-          translate(inflatedOffset - positionOnScreen) {
-            for (area in areas) {
-              require(!area.contentDrawing) {
-                "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
-                  "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
-                  "Alternatively you can use can `canDrawArea` to to filter out parent areas."
-              }
-
-              val effectNodeBounds = Rect(positionOnScreen, size)
-              val areaBounds = Snapshot.withoutReadObservation { area.bounds }
-              if (areaBounds == null || !effectNodeBounds.overlaps(areaBounds)) {
-                HazeLogger.d(TAG) { "Area does not overlap us. Skipping... $area" }
-                continue
-              }
-
-              val position = Snapshot.withoutReadObservation { area.positionOnScreen.orZero }
-              translate(position) {
-                // Draw the content into our effect layer. We do want to observe this via snapshot
-                // state
-                val areaLayer = area.contentLayer
-                  ?.takeUnless { it.isReleased }
-                  ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
-
-                if (areaLayer != null) {
-                  HazeLogger.d(TAG) { "Drawing HazeArea GraphicsLayer: $areaLayer" }
-                  drawLayer(areaLayer)
-                } else {
-                  HazeLogger.d(TAG) { "HazeArea GraphicsLayer is not valid" }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    clipRect {
-      translate(-inflatedOffset) {
-        scale(1f / scaleFactor, Offset.Zero) {
-          val p = progressive
-          if (p != null) {
-            drawProgressiveEffect(
-              drawScope = this,
-              progressive = p,
-              contentLayer = layer,
-            )
-          } else {
-            // First make sure that the RenderEffect is updated (if necessary)
-            updateRenderEffectIfDirty()
-
-            layer.renderEffect = renderEffect
-            layer.alpha = alpha
-
-            // Since we included a border around the content, we need to translate so that
-            // we don't see it (but it still affects the RenderEffect)
-            drawLayer(layer)
-          }
-        }
-      }
-    }
-
-    graphicsContext.releaseGraphicsLayer(layer)
-  }
-
-  private fun DrawScope.drawEffectWithScrim() {
-    val scrimTint = resolveFallbackTint().takeIf { it.isSpecified }
-      ?: resolveTints().firstOrNull()?.boostForFallback(resolveBlurRadius().takeOrElse { 0.dp })
-      ?: return
-
-    fun scrim(tint: HazeTint) {
-      val m = mask
-      val p = progressive
-
-      if (tint.brush != null) {
-        val maskingShader = when {
-          m is ShaderBrush -> m.createShader(size)
-          p != null -> (p.asBrush() as? ShaderBrush)?.createShader(size)
-          else -> null
-        }
-
-        if (maskingShader != null) {
-          PaintPool.usePaint { outerPaint ->
-            drawContext.canvas.withSaveLayer(size.toRect(), outerPaint) {
-              drawRect(brush = tint.brush, blendMode = tint.blendMode)
-
-              PaintPool.usePaint { maskPaint ->
-                maskPaint.shader = maskingShader
-                maskPaint.blendMode = BlendMode.DstIn
-                drawContext.canvas.drawRect(size.toRect(), maskPaint)
-              }
-            }
-          }
-        } else {
-          drawRect(brush = tint.brush, blendMode = tint.blendMode)
-        }
-      } else {
-        // This must be a color
-        val progressiveBrush = p?.asBrush()
-        if (m != null) {
-          drawRect(brush = m, colorFilter = ColorFilter.tint(tint.color))
-        } else if (progressiveBrush != null) {
-          drawRect(brush = progressiveBrush, colorFilter = ColorFilter.tint(tint.color))
-        } else {
-          drawRect(color = tint.color, blendMode = tint.blendMode)
-        }
-      }
-    }
-
-    if (alpha != 1f) {
-      PaintPool.usePaint { paint ->
-        paint.alpha = alpha
-        drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-          scrim(scrimTint)
-        }
-      }
-    } else {
-      scrim(scrimTint)
-    }
-  }
-
-  private fun updateRenderEffectIfDirty() {
-    if (renderEffect == null || dirtyTracker.any(DirtyFields.RenderEffectAffectingFlags)) {
-      renderEffect = getOrCreateRenderEffect()
-    }
   }
 
   private fun onPostDraw() {

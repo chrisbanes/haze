@@ -25,8 +25,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
@@ -75,13 +73,6 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     .withTints(params.tints, params.contentBounds, params.tintAlphaModulate, progressiveShader)
     .withMask(params.mask, params.contentBounds)
     .asComposeRenderEffect()
-}
-
-/**
- * This is the technical minimum for blurring to work on Android.
- */
-internal actual fun DrawScope.canUseGraphicLayers(): Boolean {
-  return Build.VERSION.SDK_INT >= 31 && drawContext.canvas.nativeCanvas.isHardwareAccelerated
 }
 
 private val noiseTextureCache by unsynchronizedLazy { SimpleLruCache<Int, Bitmap>(3) }
