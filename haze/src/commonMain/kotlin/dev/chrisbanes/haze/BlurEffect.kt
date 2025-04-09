@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
@@ -26,11 +27,15 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
 
 internal interface BlurEffect {
-  fun DrawScope.drawEffect(node: HazeEffectNode)
+  fun DrawScope.drawEffect()
+  fun cleanup() = Unit
 }
 
-internal object ScrimBlurEffect : BlurEffect {
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
+@OptIn(ExperimentalHazeApi::class)
+internal class ScrimBlurEffect(
+  private val node: HazeEffectNode,
+) : BlurEffect {
+  override fun DrawScope.drawEffect() {
     val scrimTint = node.resolveFallbackTint().takeIf { it.isSpecified }
       ?: node.resolveTints().firstOrNull()
         ?.boostForFallback(node.resolveBlurRadius().takeOrElse { 0.dp })
@@ -40,58 +45,60 @@ internal object ScrimBlurEffect : BlurEffect {
       PaintPool.usePaint { paint ->
         paint.alpha = node.alpha
         drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-          scrim(node, scrimTint)
+          drawScrim(node.mask, node.progressive, scrimTint)
         }
       }
     } else {
-      scrim(node, scrimTint)
-    }
-  }
-
-  private fun DrawScope.scrim(node: HazeEffectNode, tint: HazeTint) {
-    val m = node.mask
-    val p = node.progressive
-
-    if (tint.brush != null) {
-      val maskingShader = when {
-        m is ShaderBrush -> m.createShader(size)
-        p != null -> (p.asBrush() as? ShaderBrush)?.createShader(size)
-        else -> null
-      }
-
-      if (maskingShader != null) {
-        PaintPool.usePaint { outerPaint ->
-          drawContext.canvas.withSaveLayer(size.toRect(), outerPaint) {
-            drawRect(brush = tint.brush, blendMode = tint.blendMode)
-
-            PaintPool.usePaint { maskPaint ->
-              maskPaint.shader = maskingShader
-              maskPaint.blendMode = BlendMode.DstIn
-              drawContext.canvas.drawRect(size.toRect(), maskPaint)
-            }
-          }
-        }
-      } else {
-        drawRect(brush = tint.brush, blendMode = tint.blendMode)
-      }
-    } else {
-      // This must be a color
-      val progressiveBrush = p?.asBrush()
-      if (m != null) {
-        drawRect(brush = m, colorFilter = ColorFilter.tint(tint.color))
-      } else if (progressiveBrush != null) {
-        drawRect(brush = progressiveBrush, colorFilter = ColorFilter.tint(tint.color))
-      } else {
-        drawRect(color = tint.color, blendMode = tint.blendMode)
-      }
+      drawScrim(node.mask, node.progressive, scrimTint)
     }
   }
 }
 
-internal object RenderEffectBlurEffect : BlurEffect {
+internal fun DrawScope.drawScrim(
+  mask: Brush?,
+  progressive: HazeProgressive?,
+  tint: HazeTint,
+) {
+  if (tint.brush != null) {
+    val maskingShader = when {
+      mask is ShaderBrush -> mask.createShader(size)
+      progressive != null -> (progressive.asBrush() as? ShaderBrush)?.createShader(size)
+      else -> null
+    }
+
+    if (maskingShader != null) {
+      PaintPool.usePaint { outerPaint ->
+        drawContext.canvas.withSaveLayer(size.toRect(), outerPaint) {
+          drawRect(brush = tint.brush, blendMode = tint.blendMode)
+
+          PaintPool.usePaint { maskPaint ->
+            maskPaint.shader = maskingShader
+            maskPaint.blendMode = BlendMode.DstIn
+            drawContext.canvas.drawRect(size.toRect(), maskPaint)
+          }
+        }
+      }
+    } else {
+      drawRect(brush = tint.brush, blendMode = tint.blendMode)
+    }
+  } else {
+    if (mask != null) {
+      drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
+    } else if (progressive != null) {
+      drawRect(brush = progressive.asBrush(), colorFilter = ColorFilter.tint(tint.color))
+    } else {
+      drawRect(color = tint.color, blendMode = tint.blendMode)
+    }
+  }
+}
+
+@OptIn(ExperimentalHazeApi::class)
+internal class RenderEffectBlurEffect(
+  private val node: HazeEffectNode,
+) : BlurEffect {
   private var renderEffect: RenderEffect? = null
 
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
+  override fun DrawScope.drawEffect() {
     drawScaledContentLayer(node) { layer ->
       val p = node.progressive
       if (p != null) {

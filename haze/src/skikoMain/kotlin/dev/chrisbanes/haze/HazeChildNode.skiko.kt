@@ -7,6 +7,21 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 
+internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope) {
+  when {
+    blurEnabled -> {
+      if (blurEffect !is RenderEffectBlurEffect) {
+        blurEffect = RenderEffectBlurEffect(this)
+      }
+    }
+    else -> {
+      if (blurEffect !is ScrimBlurEffect) {
+        blurEffect = ScrimBlurEffect(this)
+      }
+    }
+  }
+}
+
 internal actual fun HazeEffectNode.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive,

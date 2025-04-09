@@ -250,6 +250,16 @@ class HazeEffectNode(
       }
     }
 
+  internal var blurEffect: BlurEffect = ScrimBlurEffect(this)
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "blurEffect changed. Current $field. New: $value" }
+        // Cleanup the old value
+        field.cleanup()
+        field = value
+      }
+    }
+
   private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
     if (old?.tints != new?.tints) dirtyTracker += DirtyFields.Tints
     if (old?.fallbackTint != new?.fallbackTint) dirtyTracker += DirtyFields.Tints
@@ -297,9 +307,8 @@ class HazeEffectNode(
     HazeLogger.d(TAG) { "-> HazeChild. start draw()" }
 
     if (isValid) {
-      with(selectBlurEffect(this)) {
-        drawEffect(this@HazeEffectNode)
-      }
+      updateBlurEffectIfNeeded(this)
+      with(blurEffect) { drawEffect() }
     } else {
       HazeLogger.d(TAG) { "-> HazeChild. Draw. State not valid, so no need to draw effect." }
     }
@@ -359,7 +368,10 @@ class HazeEffectNode(
         .inflate(blurRadiusPx)
         .intersect(areasRect)
 
-      layerSize = clippedLayerBounds.size
+      layerSize = Size(
+        width = clippedLayerBounds.width.coerceAtLeast(0f),
+        height = clippedLayerBounds.height.coerceAtLeast(0f),
+      )
       layerOffset = positionOnScreen - clippedLayerBounds.topLeft
     } else {
       layerSize = size
@@ -615,6 +627,8 @@ internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params
 
 internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
 
+internal expect fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope)
+
 internal expect fun HazeEffectNode.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive,
@@ -683,8 +697,7 @@ internal object DirtyFields {
       Mask or
       Tints or
       FallbackTint or
-      Progressive or
-      ForcedInvalidation
+      Progressive
 
   const val InvalidateFlags =
     RenderEffectAffectingFlags or // Eventually we'll move this out of invalidation
@@ -697,7 +710,8 @@ internal object DirtyFields {
       BackgroundColor or
       Progressive or // TODO: only on Android SDK 32-33
       Areas or
-      Alpha
+      Alpha or
+      ForcedInvalidation
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
@@ -717,6 +731,9 @@ internal object DirtyFields {
       if (Alpha in dirtyTracker) add("Alpha")
       if (Progressive in dirtyTracker) add("Progressive")
       if (Areas in dirtyTracker) add("Areas")
+      if (ForcedInvalidation in dirtyTracker) add("ForcedInvalidation")
+      if (LayerSize in dirtyTracker) add("LayerSize")
+      if (LayerOffset in dirtyTracker) add("LayerOffset")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }
