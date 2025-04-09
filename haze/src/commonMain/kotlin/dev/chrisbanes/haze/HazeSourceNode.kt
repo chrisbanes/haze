@@ -132,7 +132,7 @@ class HazeSourceNode(
     HazeLogger.d(TAG) { "start draw()" }
     area.contentDrawing = true
 
-    if (canUseGraphicLayers() && size.minDimension.roundToInt() >= 1) {
+    if (size.minDimension.roundToInt() >= 1) {
       val graphicsContext = currentValueOf(LocalGraphicsContext)
 
       val contentLayer = area.contentLayer
@@ -194,7 +194,7 @@ class HazeSourceNode(
 
 internal expect fun isBlurEnabledByDefault(): Boolean
 
-internal expect fun DrawScope.canUseGraphicLayers(): Boolean
+internal expect fun HazeEffectNode.selectBlurEffect(drawScope: DrawScope): BlurEffect
 
 internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
   if (brush != null) {
