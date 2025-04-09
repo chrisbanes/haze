@@ -40,7 +40,7 @@ internal actual fun HazeEffectNode.selectBlurEffect(drawScope: DrawScope): BlurE
     drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
   return when {
-    blurEnabled && canUseRenderEffect -> RenderEffectBlurEffect
+    blurEnabled -> if (canUseRenderEffect) RenderEffectBlurEffect else RenderScriptBlurEffect
     else -> ScrimBlurEffect
   }
 }

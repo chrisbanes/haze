@@ -123,9 +123,10 @@ internal object RenderEffectBlurEffect : BlurEffect {
 
 internal fun DrawScope.drawScaledContentLayer(
   node: HazeEffectNode,
+  scaleFactor: Float  = node.calculateInputScaleFactor(),
+  releaseLayerOnExit: Boolean = true,
   block: DrawScope.(GraphicsLayer) -> Unit,
 ) {
-  val scaleFactor = node.calculateInputScaleFactor()
   val inflatedSize = (node.layerSize * scaleFactor).roundToIntSize()
   // This is the topLeft in the inflated bounds where the real are should be at [0,0]
   val inflatedOffset = node.layerOffset
@@ -192,5 +193,7 @@ internal fun DrawScope.drawScaledContentLayer(
     }
   }
 
-  graphicsContext.releaseGraphicsLayer(layer)
+  if (releaseLayerOnExit) {
+    graphicsContext.releaseGraphicsLayer(layer)
+  }
 }
