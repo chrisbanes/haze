@@ -250,6 +250,16 @@ class HazeEffectNode(
       }
     }
 
+  internal var blurEffect: BlurEffect = ScrimBlurEffect(this)
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "blurEffect changed. Current $field. New: $value" }
+        // Cleanup the old value
+        field.cleanup()
+        field = value
+      }
+    }
+
   private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
     if (old?.tints != new?.tints) dirtyTracker += DirtyFields.Tints
     if (old?.fallbackTint != new?.fallbackTint) dirtyTracker += DirtyFields.Tints
@@ -297,9 +307,8 @@ class HazeEffectNode(
     HazeLogger.d(TAG) { "-> HazeChild. start draw()" }
 
     if (isValid) {
-      with(selectBlurEffect(this)) {
-        drawEffect(this@HazeEffectNode)
-      }
+      updateBlurEffectInNeeded(this)
+      with(blurEffect) { drawEffect() }
     } else {
       HazeLogger.d(TAG) { "-> HazeChild. Draw. State not valid, so no need to draw effect." }
     }

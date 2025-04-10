@@ -26,11 +26,15 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
 
 internal interface BlurEffect {
-  fun DrawScope.drawEffect(node: HazeEffectNode)
+  fun DrawScope.drawEffect()
+  fun cleanup() = Unit
 }
 
-internal object ScrimBlurEffect : BlurEffect {
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
+@OptIn(ExperimentalHazeApi::class)
+internal class ScrimBlurEffect(
+  private val node: HazeEffectNode,
+) : BlurEffect {
+  override fun DrawScope.drawEffect() {
     val scrimTint = node.resolveFallbackTint().takeIf { it.isSpecified }
       ?: node.resolveTints().firstOrNull()
         ?.boostForFallback(node.resolveBlurRadius().takeOrElse { 0.dp })
@@ -88,10 +92,13 @@ internal object ScrimBlurEffect : BlurEffect {
   }
 }
 
-internal object RenderEffectBlurEffect : BlurEffect {
+@OptIn(ExperimentalHazeApi::class)
+internal class RenderEffectBlurEffect(
+  private val node: HazeEffectNode,
+) : BlurEffect {
   private var renderEffect: RenderEffect? = null
 
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
+  override fun DrawScope.drawEffect() {
     drawScaledContentLayer(node) { layer ->
       val p = node.progressive
       if (p != null) {
@@ -123,7 +130,7 @@ internal object RenderEffectBlurEffect : BlurEffect {
 
 internal fun DrawScope.drawScaledContentLayer(
   node: HazeEffectNode,
-  scaleFactor: Float  = node.calculateInputScaleFactor(),
+  scaleFactor: Float = node.calculateInputScaleFactor(),
   releaseLayerOnExit: Boolean = true,
   block: DrawScope.(GraphicsLayer) -> Unit,
 ) {

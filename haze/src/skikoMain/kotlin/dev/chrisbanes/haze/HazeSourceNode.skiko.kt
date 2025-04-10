@@ -7,7 +7,17 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 
 internal actual fun HazeSourceNode.clearHazeAreaLayerOnStop() = Unit
 
-internal actual fun HazeEffectNode.selectBlurEffect(drawScope: DrawScope): BlurEffect = when {
-  blurEnabled -> RenderEffectBlurEffect
-  else -> ScrimBlurEffect
+internal actual fun HazeEffectNode.updateBlurEffectInNeeded(drawScope: DrawScope) {
+  when {
+    blurEnabled -> {
+      if (blurEffect !is RenderEffectBlurEffect) {
+        blurEffect = RenderEffectBlurEffect(this)
+      }
+    }
+    else -> {
+      if (blurEffect !is ScrimBlurEffect) {
+        blurEffect = ScrimBlurEffect(this)
+      }
+    }
+  }
 }

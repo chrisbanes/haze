@@ -35,12 +35,29 @@ private tailrec fun Context.findActivityOrNull(): ComponentActivity? = when (thi
   else -> null
 }
 
-internal actual fun HazeEffectNode.selectBlurEffect(drawScope: DrawScope): BlurEffect {
+internal actual fun HazeEffectNode.updateBlurEffectInNeeded(drawScope: DrawScope) {
   val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
     drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
-  return when {
-    blurEnabled -> if (canUseRenderEffect) RenderEffectBlurEffect else RenderScriptBlurEffect
-    else -> ScrimBlurEffect
+  when {
+    blurEnabled && canUseRenderEffect -> {
+      if (blurEffect !is RenderEffectBlurEffect) {
+        blurEffect = RenderEffectBlurEffect(this)
+      }
+    }
+
+    blurEnabled && !isRunningOnRobolectric() -> {
+      if (blurEffect !is RenderScriptBlurEffect) {
+        blurEffect = RenderScriptBlurEffect(this)
+      }
+    }
+
+    else -> {
+      if (blurEffect !is ScrimBlurEffect) {
+        blurEffect = ScrimBlurEffect(this)
+      }
+    }
   }
 }
+
+private fun isRunningOnRobolectric(): Boolean = Build.FINGERPRINT == "robolectric"

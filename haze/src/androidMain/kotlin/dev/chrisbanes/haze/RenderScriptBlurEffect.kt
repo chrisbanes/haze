@@ -1,14 +1,20 @@
+// Copyright 2025, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package dev.chrisbanes.haze
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.os.Build
+import android.os.Handler
 import android.os.Looper
 import android.view.Surface
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -19,27 +25,23 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 
-// Consider using a regular class instead of an object,
-// as the RenderScript output has one instance per effect,
-// and the output bitmap is overwritten with each effect node using this RenderScriptBlurEffect.
-object RenderScriptBlurEffect : BlurEffect {
+internal class RenderScriptBlurEffect(
+  private val node: HazeEffectNode,
+) : BlurEffect {
   private var bitmap: ImageBitmap? = null
   private var renderScriptContext: RenderScriptContext? = null
-  private val drawingScope: CanvasDrawScope = CanvasDrawScope()
-  private val mainHandler = android.os.Handler(Looper.getMainLooper())
+  private val drawingScope = CanvasDrawScope()
+  private val mainHandler = Handler(Looper.getMainLooper())
 
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
+  override fun DrawScope.drawEffect() {
     val blurRadiusPx = with(node.currentValueOf(LocalDensity)) { node.resolveBlurRadius().toPx() }
     val scaleFactor = node.calculateInputScaleFactor()
 
-    drawScaledContentLayer(node = node, scaleFactor = scaleFactor, releaseLayerOnExit = false) { layer ->
-      updateBitmap(
-        node = node,
-        blurRadius = blurRadiusPx * scaleFactor,
-        layer = layer,
-      )
+    drawScaledContentLayer(node = node, scaleFactor = scaleFactor) { layer ->
+      updateBitmap(layer = layer, blurRadius = blurRadiusPx * scaleFactor)
 
       bitmap?.let { b ->
         drawImage(b)
@@ -47,76 +49,84 @@ object RenderScriptBlurEffect : BlurEffect {
     }
   }
 
-  private fun updateBitmap(
-    node: HazeEffectNode,
-    blurRadius: Float,
-    layer: GraphicsLayer,
-  ) {
-    if (renderScriptContext == null) {
-      renderScriptContext = RenderScriptContext(
-        context = node.currentValueOf(LocalContext),
-        size = layer.size,
-        onDataReceived = {
-          applyBlur(blurRadius)
-          notifyBitmapUpdated(outputBitmap, node)
-        }
-      )
-    }
-    renderScriptContext?.let { rsc ->
-      // This starts recording data asynchronously into the input Allocation.
-      // Once the drawing process is complete and the surface canvas is unlocked,
-      // the `setOnBufferAvailableListener` is triggered,
-      // and we need to complete the data transfer by calling `ioReceive()` on the Allocation object.
-      layer.renderToSurface(
-        surface = rsc.inputSurface,
+  private fun updateBitmap(layer: GraphicsLayer, blurRadius: Float) {
+    getRenderScriptContext(node.currentValueOf(LocalContext), layer.size, blurRadius)
+      .inputSurface
+      .drawGraphicsLayer(
+        layer = layer,
         density = node.currentValueOf(LocalDensity),
-        drawingScope = drawingScope
+        drawingScope = drawingScope,
       )
-    }
   }
 
-  private fun notifyBitmapUpdated(outputBitmap: Bitmap, node: HazeEffectNode) {
+  private fun onBitmapUpdated(output: Bitmap) {
     mainHandler.post {
       // info: We’re asynchronously processing a bitmap and writing the result into the same instance.
       //       Meanwhile, the UI reads from it and may trigger another processing pass, causing visible tearing.
       // todo: implement simple double buffering or bitmap pooling
-      bitmap = outputBitmap.asImageBitmap()
+      bitmap = output.asImageBitmap()
       node.invalidateDraw()
     }
   }
 
-//  override fun onDetachEffect() {
-//    // todo: need some sort of detach mechanism to clean up resources
-//    renderScriptContext?.release()
-//  }
+  private fun getRenderScriptContext(
+    context: Context,
+    size: IntSize,
+    blurRadius: Float,
+  ): RenderScriptContext {
+    val rs = renderScriptContext
+    if (rs != null && rs.size == size && rs.context == context) return rs
+
+    // Release any existing context
+    rs?.release()
+    // Return a new context and store it
+    return RenderScriptContext(
+      context = context,
+      size = size,
+      onDataReceived = {
+        applyBlur(blurRadius)
+        onBitmapUpdated(outputBitmap)
+      },
+    ).also { renderScriptContext = it }
+  }
+
+  override fun cleanup() {
+    renderScriptContext?.release()
+    bitmap?.asAndroidBitmap()?.recycle()
+  }
 }
 
-private fun GraphicsLayer.renderToSurface(
-  surface: Surface,
+private fun Surface.drawGraphicsLayer(
+  layer: GraphicsLayer,
   density: Density,
   drawingScope: CanvasDrawScope,
-  layoutDirection: LayoutDirection = LayoutDirection.Ltr
+  layoutDirection: LayoutDirection = LayoutDirection.Ltr,
 ) {
-  surface.withSurfaceCanvas { canvas ->
-    canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+  withSurfaceCanvas { surfaceCanvas ->
+    surfaceCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
 
-    drawingScope.draw(
-      density = density,
-      layoutDirection = layoutDirection,
-      canvas = Canvas(canvas),
-      size = Size(canvas.width.toFloat(), canvas.height.toFloat())
-    ) {
-      drawLayer(this@renderToSurface)
+    with(drawingScope) {
+      draw(
+        density = density,
+        layoutDirection = layoutDirection,
+        canvas = Canvas(surfaceCanvas),
+        size = Size(surfaceCanvas.width.toFloat(), surfaceCanvas.height.toFloat()),
+      ) {
+        drawLayer(layer)
+      }
     }
   }
 }
 
 private inline fun Surface.withSurfaceCanvas(block: (android.graphics.Canvas) -> Unit) {
-  val canvas = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+  val canvas = if (Build.VERSION.SDK_INT >= 23) {
     lockHardwareCanvas()
   } else {
     lockCanvas(null)
   }
-  block(canvas)
-  unlockCanvasAndPost(canvas)
+  try {
+    block(canvas)
+  } finally {
+    unlockCanvasAndPost(canvas)
+  }
 }

@@ -148,7 +148,7 @@ class HazeSourceNode(
         HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
       }
 
-      area.forcedInvalidationTick++
+      // area.forcedInvalidationTick++
 
       // Now we draw `content` into the window canvas
       drawLayer(contentLayer)
@@ -196,7 +196,7 @@ class HazeSourceNode(
 
 internal expect fun isBlurEnabledByDefault(): Boolean
 
-internal expect fun HazeEffectNode.selectBlurEffect(drawScope: DrawScope): BlurEffect
+internal expect fun HazeEffectNode.updateBlurEffectInNeeded(drawScope: DrawScope)
 
 internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
   if (brush != null) {
