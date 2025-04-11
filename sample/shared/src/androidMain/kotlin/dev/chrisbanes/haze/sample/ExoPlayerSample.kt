@@ -21,7 +21,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -31,7 +30,7 @@ import dev.chrisbanes.haze.sample.shared.R
 
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
-fun ExoPlayerSample(navController: NavHostController) {
+fun ExoPlayerSample() {
   val hazeState = remember { HazeState() }
 
   val context = LocalContext.current

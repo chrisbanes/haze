@@ -3,7 +3,19 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
+import kotlinx.serialization.Serializable
+
 actual val Samples: List<Sample> = buildList {
   addAll(CommonSamples)
-  add(Sample(SampleRoute.AndroidExoPlayer, "ExoPlayer") { ExoPlayerSample(it) })
+  add(AndroidExoPlayer)
+}
+
+@Serializable
+data object AndroidExoPlayer : Sample {
+  override val title: String = "ExoPlayer"
+  override val content: @Composable (NavHostController) -> Unit = {
+    ExoPlayerSample()
+  }
 }

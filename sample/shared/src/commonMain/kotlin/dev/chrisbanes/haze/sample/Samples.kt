@@ -45,104 +45,161 @@ import dev.chrisbanes.haze.HazeInputScale
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 expect val Samples: List<Sample>
 
 @OptIn(ExperimentalHazeApi::class)
-val CommonSamples = listOf(
-  Sample(SampleRoute.Scaffold, "Scaffold") { ScaffoldSample(it) },
-  Sample(SampleRoute.ScaffoldScaled, "Scaffold (input scaled)") {
-    ScaffoldSample(
-      it,
-      inputScale = HazeInputScale.Auto,
-    )
-  },
-  Sample(SampleRoute.ScaffoldProgressive, "Scaffold (progressive blur)") {
-    ScaffoldSample(
-      it,
-      ScaffoldSampleMode.Progressive,
-    )
-  },
-  Sample(
-    SampleRoute.ScaffoldProgressiveScaled,
-    "Scaffold (progressive blur, input scaled)",
-  ) { ScaffoldSample(it, ScaffoldSampleMode.Progressive, HazeInputScale.Auto) },
-  Sample(SampleRoute.ScaffoldMasked, "Scaffold (masked)") {
-    ScaffoldSample(
-      it,
-      ScaffoldSampleMode.Mask,
-    )
-  },
-  Sample(SampleRoute.ScaffoldMaskedScaled, "Scaffold (masked, input scaled)") {
-    ScaffoldSample(
-      navController = it,
-      mode = ScaffoldSampleMode.Mask,
-      inputScale = HazeInputScale.Auto,
-    )
-  },
-  Sample(SampleRoute.CreditCard, "Credit Card") { CreditCardSample(it) },
-  Sample(SampleRoute.ImageList, "Images List") { ImagesList(it) },
-  Sample(SampleRoute.ListOverImage, "List over Image") { ListOverImage(it) },
-  Sample(SampleRoute.Dialog, "Dialog") { DialogSample(it) },
-  Sample(SampleRoute.Materials, "Materials") { MaterialsSample(it) },
-  Sample(
-    key = SampleRoute.ListWithStickyHeaders,
-    title = "List with Sticky Headers",
-  ) { ListWithStickyHeaders(it) },
-  Sample(SampleRoute.BottomSheet, "Bottom Sheet") { BottomSheet(it) },
+val CommonSamples: List<Sample> = listOf(
+  Sample.Scaffold,
+  Sample.ScaffoldScaled,
+  Sample.ScaffoldProgressive,
+  Sample.ScaffoldProgressiveScaled,
+  Sample.ScaffoldMasked,
+  Sample.ScaffoldMaskedScaled,
+  Sample.CreditCard,
+  Sample.ImageList,
+  Sample.ListOverImage,
+  Sample.Dialog,
+  Sample.Materials,
+  Sample.ListWithStickyHeaders,
+  Sample.BottomSheet,
 )
 
-data class Sample(
-  val key: SampleRoute,
-  val title: String,
-  val content: @Composable (NavHostController) -> Unit,
-)
+@OptIn(ExperimentalHazeApi::class)
+interface Sample { // We should seal this interface, but KMP doesn't support it yet.
+  val title: String
 
-sealed interface SampleRoute {
-  @Serializable
-  data object SamplesList : SampleRoute
+  @Transient
+  val content: @Composable (NavHostController) -> Unit
 
   @Serializable
-  data object Scaffold : SampleRoute
+  data object SamplesList : Sample {
+    override val title: String = "Samples"
+
+    override val content: @Composable (NavHostController) -> Unit
+      get() = { _ -> error("SamplesList should never be called") }
+  }
 
   @Serializable
-  data object ScaffoldScaled : SampleRoute
+  data object Scaffold : Sample {
+    override val title: String = "Scaffold"
+
+    override val content: @Composable (NavHostController) -> Unit = {
+      ScaffoldSample(it)
+    }
+  }
 
   @Serializable
-  data object ScaffoldProgressive : SampleRoute
+  data object ScaffoldScaled : Sample {
+    override val title: String = "Scaffold (input scaled)"
+
+    override val content: @Composable (NavHostController) -> Unit = {
+      ScaffoldSample(
+        it,
+        inputScale = HazeInputScale.Auto,
+      )
+    }
+  }
 
   @Serializable
-  data object ScaffoldProgressiveScaled : SampleRoute
+  data object ScaffoldProgressive : Sample {
+    override val title: String = "Scaffold (progressive blur)"
+
+    override val content: @Composable (NavHostController) -> Unit = {
+      ScaffoldSample(
+        it,
+        mode = ScaffoldSampleMode.Progressive,
+      )
+    }
+  }
 
   @Serializable
-  data object ScaffoldMasked : SampleRoute
+  data object ScaffoldProgressiveScaled : Sample {
+    override val title: String = "Scaffold (progressive blur, input scaled)"
+
+    override val content: @Composable (NavHostController) -> Unit = {
+      ScaffoldSample(
+        it,
+        mode = ScaffoldSampleMode.Progressive,
+        inputScale = HazeInputScale.Auto,
+      )
+    }
+  }
 
   @Serializable
-  data object ScaffoldMaskedScaled : SampleRoute
+  data object ScaffoldMasked : Sample {
+    override val title: String = "Scaffold (masked)"
+
+    override val content: @Composable (NavHostController) -> Unit = {
+      ScaffoldSample(
+        it,
+        mode = ScaffoldSampleMode.Mask,
+      )
+    }
+  }
 
   @Serializable
-  data object CreditCard : SampleRoute
+  data object ScaffoldMaskedScaled : Sample {
+    override val title: String = "Scaffold (masked, input scaled)"
+
+    override val content: @Composable (NavHostController) -> Unit = {
+      ScaffoldSample(
+        it,
+        mode = ScaffoldSampleMode.Mask,
+        inputScale = HazeInputScale.Auto,
+      )
+    }
+  }
 
   @Serializable
-  data object ImageList : SampleRoute
+  data object CreditCard : Sample {
+    override val title: String = "Credit Card"
+
+    override val content: @Composable (NavHostController) -> Unit = { CreditCardSample(it) }
+  }
 
   @Serializable
-  data object ListOverImage : SampleRoute
+  data object ImageList : Sample {
+    override val title: String = "Images List"
+
+    override val content: @Composable (NavHostController) -> Unit = { ImagesList(it) }
+  }
 
   @Serializable
-  data object Dialog : SampleRoute
+  data object ListOverImage : Sample {
+    override val title: String = "List over Image"
+
+    override val content: @Composable (NavHostController) -> Unit = { ListOverImage(it) }
+  }
 
   @Serializable
-  data object Materials : SampleRoute
+  data object Dialog : Sample {
+    override val title: String = "Dialog"
+
+    override val content: @Composable (NavHostController) -> Unit = { DialogSample(it) }
+  }
 
   @Serializable
-  data object ListWithStickyHeaders : SampleRoute
+  data object Materials : Sample {
+    override val title: String = "Materials"
+
+    override val content: @Composable (NavHostController) -> Unit = { MaterialsSample(it) }
+  }
 
   @Serializable
-  data object BottomSheet : SampleRoute
+  data object ListWithStickyHeaders : Sample {
+    override val title: String = "List with Sticky Headers"
+
+    override val content: @Composable (NavHostController) -> Unit = { ListWithStickyHeaders(it) }
+  }
 
   @Serializable
-  data object AndroidExoPlayer : SampleRoute
+  data object BottomSheet : Sample {
+    override val title: String = "Bottom Sheet"
+
+    override val content: @Composable (NavHostController) -> Unit = { BottomSheet(it) }
+  }
 }
 
 @Composable
@@ -193,16 +250,16 @@ fun Samples(
   SamplesTheme {
     NavHost(
       navController = navController,
-      startDestination = SampleRoute.SamplesList,
+      startDestination = Sample.SamplesList,
       modifier = Modifier.testTagsAsResourceId(true),
     ) {
-      composable<SampleRoute.SamplesList> {
+      composable<Sample.SamplesList> {
         val sortedSamples = remember { samples.sortedBy(Sample::title) }
         SamplesList(appTitle, sortedSamples, navController)
       }
 
       samples.forEach { sample ->
-        composable(routeClazz = sample.key::class) {
+        composable(routeClazz = sample::class) {
           sample.content(navController)
         }
       }
@@ -239,7 +296,7 @@ private fun SamplesList(
           modifier = Modifier
             .fillMaxWidth()
             .testTag(sample.title)
-            .clickable { navController.navigate(sample.key) },
+            .clickable { navController.navigate(sample) },
         )
       }
     }
