@@ -74,7 +74,7 @@ internal fun CreditCardSample(
         alpha,
         progressive,
         modifier = Modifier
-          .align(Alignment.Center)
+          .align(Alignment.Center),
       )
     }
   }
@@ -111,7 +111,7 @@ internal fun CreditCardPagerSample(
     HorizontalPager(
       pagerState,
       pageSize = PageSize.Fixed(275.dp),
-      modifier = Modifier.align(Alignment.Center)
+      modifier = Modifier.align(Alignment.Center),
     ) { index ->
       // Our card
       CreditCard(
@@ -129,7 +129,7 @@ internal fun CreditCardPagerSample(
         mask,
         alpha,
         progressive,
-        baseWidth = .9f
+        baseWidth = .9f,
       )
     }
   }
@@ -138,7 +138,7 @@ internal fun CreditCardPagerSample(
 @Composable
 private fun CreditCardBackground(
   hazeState: HazeState,
-  backgroundColors: List<Color>
+  backgroundColors: List<Color>,
 ) {
   Box(
     Modifier
@@ -176,7 +176,7 @@ private fun CreditCard(
   alpha: Float,
   progressive: HazeProgressive?,
   baseWidth: Float = .7f,
-  modifier: Modifier = Modifier
+  modifier: Modifier = Modifier,
 ) {
   Box(
     modifier = modifier
