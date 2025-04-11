@@ -410,6 +410,46 @@ class HazeScreenshotTest : ScreenshotTest() {
     captureRoot()
   }
 
+  @Test
+  fun horizontalPager_quarter() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardPagerSample(.25f, tint = DefaultTint, blurRadius = 8.dp)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun horizontalPager_half() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardPagerSample(.5f, tint = DefaultTint, blurRadius = 8.dp)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun horizontalPager_three_quarters() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardPagerSample(.75f, tint = DefaultTint, blurRadius = 8.dp, numberCards = 3)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun horizontalPager_one_and_three_quarters() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardPagerSample(1.75f, tint = DefaultTint, blurRadius = 8.dp, numberCards = 3)
+      }
+    }
+    captureRoot()
+  }
+
   companion object {
     val DefaultTint = HazeTint(Color.White.copy(alpha = 0.1f))
     val OverrideStyle = HazeStyle(tints = listOf(HazeTint(Color.Red.copy(alpha = 0.5f))))

@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 @Composable
 internal fun CreditCardSample(
@@ -46,23 +50,7 @@ internal fun CreditCardSample(
 
   Box {
     // Background content
-    Box(
-      Modifier
-        .fillMaxSize()
-        .hazeSource(state = hazeState, zIndex = 0f),
-    ) {
-      Spacer(
-        Modifier
-          .fillMaxSize()
-          .background(brush = Brush.linearGradient(colors = backgroundColors)),
-      )
-
-      Text(
-        text = LoremIpsum,
-        color = LocalContentColor.current.copy(alpha = 0.2f),
-        modifier = Modifier.padding(24.dp),
-      )
-    }
+    CreditCardBackground(hazeState, backgroundColors)
 
     val surfaceColor = MaterialTheme.colorScheme.surface
 
@@ -70,37 +58,154 @@ internal fun CreditCardSample(
       // Our card
       val reverseIndex = (numberCards - 1 - index)
 
-      Box(
+      CreditCard(
+        reverseIndex,
+        hazeState,
+        index,
+        shape,
+        enabled,
+        blurEnabled,
+        style,
+        surfaceColor,
+        noiseFactor,
+        tint,
+        blurRadius,
+        mask,
+        alpha,
+        progressive,
         modifier = Modifier
-          .fillMaxWidth(0.7f - (reverseIndex * 0.05f))
-          .aspectRatio(16 / 9f)
-          .align(Alignment.Center)
-          .offset { IntOffset(x = 0, y = reverseIndex * -100) }
-          // We add 1 to the zIndex as the background content is zIndex 0f
-          .hazeSource(hazeState, zIndex = 1f + index)
-          .clip(shape)
-          .then(
-            if (enabled) {
-              Modifier.hazeEffect(state = hazeState) {
-                this.blurEnabled = blurEnabled
-                this.style = style
-                this.backgroundColor = surfaceColor
-                this.noiseFactor = noiseFactor
-                this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
-                this.blurRadius = blurRadius
-                this.mask = mask
-                this.alpha = alpha
-                this.progressive = progressive
-              }
-            } else {
-              Modifier
-            },
-          ),
-      ) {
-        Column(Modifier.padding(32.dp)) {
-          Text("Bank of Haze")
-        }
-      }
+          .align(Alignment.Center),
+      )
+    }
+  }
+}
+
+@Composable
+internal fun CreditCardPagerSample(
+  pagerPosition: Float,
+  backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
+  style: HazeStyle = HazeStyle.Unspecified,
+  tint: HazeTint = HazeTint.Unspecified,
+  blurRadius: Dp = Dp.Unspecified,
+  noiseFactor: Float = -1f,
+  shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+  enabled: Boolean = true,
+  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
+  mask: Brush? = null,
+  progressive: HazeProgressive? = null,
+  alpha: Float = 1f,
+  numberCards: Int = 2,
+) {
+  val hazeState = remember { HazeState() }
+
+  Box {
+    // Background content
+    CreditCardBackground(hazeState, backgroundColors)
+
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val positionIndex = pagerPosition.roundToInt()
+    val pagerState = PagerState(positionIndex, pagerPosition - positionIndex) {
+      numberCards
+    }
+
+    HorizontalPager(
+      pagerState,
+      pageSize = PageSize.Fixed(275.dp),
+      modifier = Modifier.align(Alignment.Center),
+    ) { index ->
+      // Our card
+      CreditCard(
+        0,
+        hazeState,
+        index,
+        shape,
+        enabled,
+        blurEnabled,
+        style,
+        surfaceColor,
+        noiseFactor,
+        tint,
+        blurRadius,
+        mask,
+        alpha,
+        progressive,
+        baseWidth = .9f,
+      )
+    }
+  }
+}
+
+@Composable
+private fun CreditCardBackground(
+  hazeState: HazeState,
+  backgroundColors: List<Color>,
+) {
+  Box(
+    Modifier
+      .fillMaxSize()
+      .hazeSource(state = hazeState, zIndex = 0f),
+  ) {
+    Spacer(
+      Modifier
+        .fillMaxSize()
+        .background(brush = Brush.linearGradient(colors = backgroundColors)),
+    )
+
+    Text(
+      text = LoremIpsum,
+      color = LocalContentColor.current.copy(alpha = 0.2f),
+      modifier = Modifier.padding(24.dp),
+    )
+  }
+}
+
+@Composable
+private fun CreditCard(
+  reverseIndex: Int,
+  hazeState: HazeState,
+  index: Int,
+  shape: RoundedCornerShape,
+  enabled: Boolean,
+  blurEnabled: Boolean,
+  style: HazeStyle,
+  surfaceColor: Color,
+  noiseFactor: Float,
+  tint: HazeTint,
+  blurRadius: Dp,
+  mask: Brush?,
+  alpha: Float,
+  progressive: HazeProgressive?,
+  baseWidth: Float = .7f,
+  modifier: Modifier = Modifier,
+) {
+  Box(
+    modifier = modifier
+      .fillMaxWidth(baseWidth - (reverseIndex * 0.05f))
+      .aspectRatio(16 / 9f)
+      .offset { IntOffset(x = 0, y = reverseIndex * -100) }
+      // We add 1 to the zIndex as the background content is zIndex 0f
+      .hazeSource(hazeState, zIndex = 1f + index)
+      .clip(shape)
+      .then(
+        if (enabled) {
+          Modifier.hazeEffect(state = hazeState) {
+            this.blurEnabled = blurEnabled
+            this.style = style
+            this.backgroundColor = surfaceColor
+            this.noiseFactor = noiseFactor
+            this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
+            this.blurRadius = blurRadius
+            this.mask = mask
+            this.alpha = alpha
+            this.progressive = progressive
+          }
+        } else {
+          Modifier
+        },
+      ),
+  ) {
+    Column(Modifier.padding(32.dp)) {
+      Text("Bank of Haze")
     }
   }
 }

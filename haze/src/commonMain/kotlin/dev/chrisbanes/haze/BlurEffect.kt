@@ -156,7 +156,7 @@ internal fun DrawScope.drawScaledContentLayer(
                 "Alternatively you can use can `canDrawArea` to to filter out parent areas."
             }
 
-            val effectNodeBounds = Rect(node.positionOnScreen, size)
+            val effectNodeBounds = Rect(node.positionOnScreen, node.size)
             val areaBounds = Snapshot.withoutReadObservation { area.bounds }
             if (areaBounds == null || !effectNodeBounds.overlaps(areaBounds)) {
               HazeLogger.d(TAG) { "Area does not overlap us. Skipping... $area" }
