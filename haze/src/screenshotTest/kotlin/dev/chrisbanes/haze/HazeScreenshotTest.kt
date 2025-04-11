@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -405,6 +407,46 @@ class HazeScreenshotTest : ScreenshotTest() {
               .height(56.dp),
           )
         }
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun horizontalPager_quarter() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardPagerSample(.25f, tint = DefaultTint, blurRadius = 8.dp)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun horizontalPager_half() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardPagerSample(.5f, tint = DefaultTint, blurRadius = 8.dp)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun horizontalPager_three_quarters() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardPagerSample(.75f, tint = DefaultTint, blurRadius = 8.dp, numberCards = 3)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun horizontalPager_one_and_three_quarters() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        CreditCardPagerSample(1.75f, tint = DefaultTint, blurRadius = 8.dp, numberCards = 3)
       }
     }
     captureRoot()
