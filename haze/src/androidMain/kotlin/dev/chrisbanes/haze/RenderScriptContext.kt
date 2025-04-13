@@ -39,19 +39,17 @@ internal class RenderScriptContext(
 
     val flags = Allocation.USAGE_SCRIPT or Allocation.USAGE_IO_INPUT
 
-    inputAlloc = Allocation.createTyped(rs, type, flags).apply {
-      setOnBufferAvailableListener { allocation ->
-        allocation.ioReceive()
-        onDataReceived()
-      }
+    inputAlloc = Allocation.createTyped(rs, type, flags)
+    inputAlloc.setOnBufferAvailableListener { allocation ->
+      allocation.ioReceive()
+      onDataReceived()
     }
 
     outputBitmap = createBitmap(size.width, size.height)
     outputAlloc = Allocation.createFromBitmap(rs, outputBitmap)
 
-    blurScript = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs)).apply {
-      setInput(inputAlloc)
-    }
+    blurScript = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs))
+    blurScript.setInput(inputAlloc)
   }
 
   fun applyBlur(blurRadius: Float) {

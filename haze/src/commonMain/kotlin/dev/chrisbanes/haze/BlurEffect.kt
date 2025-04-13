@@ -6,8 +6,10 @@ package dev.chrisbanes.haze
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
@@ -44,50 +46,49 @@ internal class ScrimBlurEffect(
       PaintPool.usePaint { paint ->
         paint.alpha = node.alpha
         drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-          scrim(node, scrimTint)
+          drawScrim(node.mask, node.progressive, scrimTint)
         }
       }
     } else {
-      scrim(node, scrimTint)
+      drawScrim(node.mask, node.progressive, scrimTint)
     }
   }
+}
 
-  private fun DrawScope.scrim(node: HazeEffectNode, tint: HazeTint) {
-    val m = node.mask
-    val p = node.progressive
+internal fun DrawScope.drawScrim(
+  mask: Brush?,
+  progressive: HazeProgressive?,
+  tint: HazeTint,
+) {
+  if (tint.brush != null) {
+    val maskingShader = when {
+      mask is ShaderBrush -> mask.createShader(size)
+      progressive != null -> (progressive.asBrush() as? ShaderBrush)?.createShader(size)
+      else -> null
+    }
 
-    if (tint.brush != null) {
-      val maskingShader = when {
-        m is ShaderBrush -> m.createShader(size)
-        p != null -> (p.asBrush() as? ShaderBrush)?.createShader(size)
-        else -> null
-      }
+    if (maskingShader != null) {
+      PaintPool.usePaint { outerPaint ->
+        drawContext.canvas.withSaveLayer(size.toRect(), outerPaint) {
+          drawRect(brush = tint.brush, blendMode = tint.blendMode)
 
-      if (maskingShader != null) {
-        PaintPool.usePaint { outerPaint ->
-          drawContext.canvas.withSaveLayer(size.toRect(), outerPaint) {
-            drawRect(brush = tint.brush, blendMode = tint.blendMode)
-
-            PaintPool.usePaint { maskPaint ->
-              maskPaint.shader = maskingShader
-              maskPaint.blendMode = BlendMode.DstIn
-              drawContext.canvas.drawRect(size.toRect(), maskPaint)
-            }
+          PaintPool.usePaint { maskPaint ->
+            maskPaint.shader = maskingShader
+            maskPaint.blendMode = BlendMode.DstIn
+            drawContext.canvas.drawRect(size.toRect(), maskPaint)
           }
         }
-      } else {
-        drawRect(brush = tint.brush, blendMode = tint.blendMode)
       }
     } else {
-      // This must be a color
-      val progressiveBrush = p?.asBrush()
-      if (m != null) {
-        drawRect(brush = m, colorFilter = ColorFilter.tint(tint.color))
-      } else if (progressiveBrush != null) {
-        drawRect(brush = progressiveBrush, colorFilter = ColorFilter.tint(tint.color))
-      } else {
-        drawRect(color = tint.color, blendMode = tint.blendMode)
-      }
+      drawRect(brush = tint.brush, blendMode = tint.blendMode)
+    }
+  } else {
+    if (mask != null) {
+      drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
+    } else if (progressive != null) {
+      drawRect(brush = progressive.asBrush(), colorFilter = ColorFilter.tint(tint.color))
+    } else {
+      drawRect(color = tint.color, blendMode = tint.blendMode)
     }
   }
 }
@@ -99,7 +100,7 @@ internal class RenderEffectBlurEffect(
   private var renderEffect: RenderEffect? = null
 
   override fun DrawScope.drawEffect() {
-    drawScaledContentLayer(node) { layer ->
+    createAndDrawScaledContentLayer(node) { layer ->
       val p = node.progressive
       if (p != null) {
         node.drawProgressiveEffect(
@@ -128,19 +129,45 @@ internal class RenderEffectBlurEffect(
   }
 }
 
-internal fun DrawScope.drawScaledContentLayer(
+internal fun DrawScope.createAndDrawScaledContentLayer(
   node: HazeEffectNode,
   scaleFactor: Float = node.calculateInputScaleFactor(),
   releaseLayerOnExit: Boolean = true,
   block: DrawScope.(GraphicsLayer) -> Unit,
 ) {
-  val inflatedSize = (node.layerSize * scaleFactor).roundToIntSize()
-  // This is the topLeft in the inflated bounds where the real are should be at [0,0]
-  val inflatedOffset = node.layerOffset
+  val graphicsContext = node.currentValueOf(LocalGraphicsContext)
 
-  if (inflatedSize.width <= 0 || inflatedSize.height <= 0) {
+  val layer = createScaledContentLayer(
+    node = node,
+    scaleFactor = scaleFactor,
+    layerSize = node.layerSize,
+    layerOffset = node.layerOffset,
+  )
+
+  if (layer != null) {
+    drawScaledContentLayer(
+      offset = -node.layerOffset,
+      scaleFactor = scaleFactor,
+      block = { block(layer) },
+    )
+
+    if (releaseLayerOnExit) {
+      graphicsContext.releaseGraphicsLayer(layer)
+    }
+  }
+}
+
+internal fun DrawScope.createScaledContentLayer(
+  node: HazeEffectNode,
+  scaleFactor: Float,
+  layerSize: Size,
+  layerOffset: Offset,
+): GraphicsLayer? {
+  val scaledSize = (layerSize * scaleFactor).roundToIntSize()
+
+  if (scaledSize.width <= 0 || scaledSize.height <= 0) {
     // If we have a 0px dimension we can't do anything so just return
-    return
+    return null
   }
 
   val bg = node.resolveBackgroundColor()
@@ -151,12 +178,12 @@ internal fun DrawScope.drawScaledContentLayer(
   val graphicsContext = node.currentValueOf(LocalGraphicsContext)
   val layer = graphicsContext.createGraphicsLayer()
 
-  layer.record(size = inflatedSize) {
+  layer.record(size = scaledSize) {
     drawRect(bg)
 
     clipRect {
       scale(scale = scaleFactor, pivot = Offset.Zero) {
-        translate(inflatedOffset - node.positionOnScreen) {
+        translate(layerOffset - node.positionOnScreen) {
           for (area in node.areas) {
             require(!area.contentDrawing) {
               "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
@@ -192,15 +219,19 @@ internal fun DrawScope.drawScaledContentLayer(
     }
   }
 
+  return layer
+}
+
+internal fun DrawScope.drawScaledContentLayer(
+  offset: Offset,
+  scaleFactor: Float,
+  block: DrawScope.() -> Unit,
+) {
   clipRect {
-    translate(-inflatedOffset) {
+    translate(offset) {
       scale(1f / scaleFactor, Offset.Zero) {
-        block(layer)
+        block()
       }
     }
-  }
-
-  if (releaseLayerOnExit) {
-    graphicsContext.releaseGraphicsLayer(layer)
   }
 }

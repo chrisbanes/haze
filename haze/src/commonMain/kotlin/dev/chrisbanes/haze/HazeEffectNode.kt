@@ -692,8 +692,7 @@ internal object DirtyFields {
       Mask or
       Tints or
       FallbackTint or
-      Progressive or
-      ForcedInvalidation
+      Progressive
 
   const val InvalidateFlags =
     RenderEffectAffectingFlags or // Eventually we'll move this out of invalidation
@@ -706,7 +705,8 @@ internal object DirtyFields {
       BackgroundColor or
       Progressive or // TODO: only on Android SDK 32-33
       Areas or
-      Alpha
+      Alpha or
+      ForcedInvalidation
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
@@ -726,6 +726,9 @@ internal object DirtyFields {
       if (Alpha in dirtyTracker) add("Alpha")
       if (Progressive in dirtyTracker) add("Progressive")
       if (Areas in dirtyTracker) add("Areas")
+      if (ForcedInvalidation in dirtyTracker) add("ForcedInvalidation")
+      if (LayerSize in dirtyTracker) add("LayerSize")
+      if (LayerOffset in dirtyTracker) add("LayerOffset")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }
