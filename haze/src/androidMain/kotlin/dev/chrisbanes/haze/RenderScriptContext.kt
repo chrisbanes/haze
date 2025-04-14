@@ -23,32 +23,37 @@ internal class RenderScriptContext(
   val size: IntSize,
 ) {
   private val rs = RenderScript.create(context)
-  private val inputAlloc: Allocation
-  private val outputAlloc: Allocation
   private val blurScript: ScriptIntrinsicBlur
 
-  private val channel = Channel<Unit>(Channel.CONFLATED)
-
-  val outputBitmap: Bitmap
-
+  private val inputAlloc: Allocation
   val inputSurface: Surface
     get() = inputAlloc.surface
 
+  private var outputAlloc: Allocation
+  var outputBitmap: Bitmap
+    private set
+
+  private val channel = Channel<Unit>(Channel.CONFLATED)
+
+  private var isDestroyed = false
+
   init {
-    val type = Type.Builder(rs, Element.U8_4(rs))
-      .setX(size.width)
-      .setY(size.height)
-      .create()
+    val width = size.width.increaseToDivisor(4)
+    val height = size.height.increaseToDivisor(4)
+
+    val type = Type.Builder(rs, Element.U8_4(rs)).setX(width).setY(height).create()
 
     val flags = Allocation.USAGE_SCRIPT or Allocation.USAGE_IO_INPUT
 
     inputAlloc = Allocation.createTyped(rs, type, flags)
     inputAlloc.setOnBufferAvailableListener { allocation ->
-      allocation.ioReceive()
-      channel.trySendBlocking(Unit)
+      if (!isDestroyed) {
+        allocation.ioReceive()
+        channel.trySendBlocking(Unit)
+      }
     }
 
-    outputBitmap = createBitmap(size.width, size.height)
+    outputBitmap = createBitmap(width, height)
     outputAlloc = Allocation.createFromBitmap(rs, outputBitmap)
 
     blurScript = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs))
@@ -56,6 +61,8 @@ internal class RenderScriptContext(
   }
 
   fun applyBlur(blurRadius: Float) {
+    if (isDestroyed) return
+
     blurScript.setRadius(blurRadius.coerceAtMost(25f))
     blurScript.forEach(outputAlloc)
     outputAlloc.copyTo(outputBitmap)
@@ -65,9 +72,10 @@ internal class RenderScriptContext(
 
   fun release() {
     HazeLogger.d(TAG) { "Release resources" }
+    isDestroyed = true
+
     inputAlloc.destroy()
     outputAlloc.destroy()
-    outputBitmap.recycle()
     blurScript.destroy()
     rs.destroy()
   }
@@ -75,4 +83,8 @@ internal class RenderScriptContext(
   private companion object {
     const val TAG = "RenderScriptContext"
   }
+}
+
+private fun Int.increaseToDivisor(divisor: Int): Int {
+  return this + (this % divisor)
 }

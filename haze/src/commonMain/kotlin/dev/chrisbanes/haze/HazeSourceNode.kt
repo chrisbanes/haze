@@ -19,6 +19,7 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
@@ -102,6 +103,8 @@ class HazeSourceNode(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
+    HazeLogger.d(TAG) { "onPlaced: positionOnScreen=${area.positionOnScreen}" }
+
     // If the positionOnScreen has not been placed yet, we use the value on onPlaced,
     // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
     // up to the first draw. We need onGloballyPositioned which tends to happen after
@@ -110,6 +113,10 @@ class HazeSourceNode(
       if (area.positionOnScreen.isUnspecified) {
         onPositioned(coordinates, "onPlaced")
       }
+    }
+
+    if (forceInvalidationOnLayout()) {
+      invalidateDraw()
     }
   }
 
@@ -147,8 +154,6 @@ class HazeSourceNode(
         this@draw.drawContent()
         HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
       }
-
-      area.forcedInvalidationTick++
 
       // Now we draw `content` into the window canvas
       drawLayer(contentLayer)
@@ -220,3 +225,5 @@ private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
 }
 
 internal expect fun HazeSourceNode.clearHazeAreaLayerOnStop()
+
+internal expect fun HazeSourceNode.forceInvalidationOnLayout(): Boolean

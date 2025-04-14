@@ -31,7 +31,6 @@ import kotlinx.coroutines.runBlocking
 
 internal class RenderScriptBlurEffect(
   private val node: HazeEffectNode,
-  private val runBlurBlocking: Boolean = false,
 ) : BlurEffect {
   private var renderScriptContext: RenderScriptContext? = null
   private val drawScope = CanvasDrawScope()
@@ -64,13 +63,19 @@ internal class RenderScriptBlurEffect(
       layerOffset = offset,
     )
     if (scaledLayer != null) {
-      if (runBlurBlocking) {
+      if (drawGraphicsLayer == null) {
+        // If there is no graphics layer yet, then this is the first draw. We'll generate
+        // this blocking, so that the user doesn't see an un-blurred first frame
         runBlocking {
-          updateSurface(scaledLayer, blurRadiusPx)
+          updateSurface(content = scaledLayer, blurRadius = blurRadiusPx)
+          // Release the graphics layer
+          graphicsContext.releaseGraphicsLayer(scaledLayer)
         }
       } else {
         node.coroutineScope.launch(Dispatchers.Main.immediate) {
-          updateSurface(scaledLayer, blurRadiusPx)
+          updateSurface(content = scaledLayer, blurRadius = blurRadiusPx)
+          // Release the graphics layer
+          graphicsContext.releaseGraphicsLayer(scaledLayer)
         }
       }
     }
@@ -110,6 +115,7 @@ internal class RenderScriptBlurEffect(
     rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
     // Wait for the layer to be written to the Surface
     rs.awaitSurfaceWritten()
+
     if (!node.isAttached) return
 
     // Now apply the blur

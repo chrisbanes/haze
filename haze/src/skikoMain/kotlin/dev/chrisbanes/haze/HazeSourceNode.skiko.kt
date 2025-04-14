@@ -21,3 +21,5 @@ internal actual fun HazeEffectNode.updateBlurEffectInNeeded(drawScope: DrawScope
     }
   }
 }
+
+actual fun HazeSourceNode.forceInvalidationOnLayout(): Boolean = false

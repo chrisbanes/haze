@@ -368,7 +368,10 @@ class HazeEffectNode(
         .inflate(blurRadiusPx)
         .intersect(areasRect)
 
-      layerSize = clippedLayerBounds.size
+      layerSize = Size(
+        width = clippedLayerBounds.width.coerceAtLeast(0f),
+        height = clippedLayerBounds.height.coerceAtLeast(0f),
+      )
       layerOffset = positionOnScreen - clippedLayerBounds.topLeft
     } else {
       layerSize = size

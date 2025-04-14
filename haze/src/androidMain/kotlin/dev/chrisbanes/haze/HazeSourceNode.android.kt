@@ -61,3 +61,5 @@ internal actual fun HazeEffectNode.updateBlurEffectInNeeded(drawScope: DrawScope
 }
 
 private fun isRunningOnRobolectric(): Boolean = Build.FINGERPRINT == "robolectric"
+
+actual fun HazeSourceNode.forceInvalidationOnLayout(): Boolean = Build.VERSION.SDK_INT < 32
