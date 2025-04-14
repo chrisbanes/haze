@@ -148,6 +148,8 @@ class HazeSourceNode(
         HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
       }
 
+      area.forcedInvalidationTick++
+
       // Now we draw `content` into the window canvas
       drawLayer(contentLayer)
       HazeLogger.d(TAG) { "Drawn layer to canvas: $contentLayer" }

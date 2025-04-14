@@ -4,7 +4,6 @@
 package dev.chrisbanes.haze
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.os.Build
@@ -20,16 +19,19 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 internal class RenderScriptBlurEffect(
   private val node: HazeEffectNode,
+  private val runBlurBlocking: Boolean = false,
 ) : BlurEffect {
   private var renderScriptContext: RenderScriptContext? = null
   private val drawScope = CanvasDrawScope()
@@ -55,13 +57,22 @@ internal class RenderScriptBlurEffect(
 
     HazeLogger.d(TAG) { "drawEffect. blurRadius=${blurRadiusPx}px. scaleFactor=$scaleFactor" }
 
-    createScaledContentLayer(
+    val scaledLayer = createScaledContentLayer(
       node = node,
       scaleFactor = scaleFactor,
       layerSize = node.layerSize,
       layerOffset = offset,
-    )?.also { content ->
-      updateSurface(content = content, blurRadius = blurRadiusPx)
+    )
+    if (scaledLayer != null) {
+      if (runBlurBlocking) {
+        runBlocking {
+          updateSurface(scaledLayer, blurRadiusPx)
+        }
+      } else {
+        node.coroutineScope.launch(Dispatchers.Main.immediate) {
+          updateSurface(scaledLayer, blurRadiusPx)
+        }
+      }
     }
 
     drawGraphicsLayer?.let { layer ->
@@ -90,20 +101,25 @@ internal class RenderScriptBlurEffect(
     }
   }
 
-  private fun updateSurface(content: GraphicsLayer, blurRadius: Float) {
+  private suspend fun updateSurface(content: GraphicsLayer, blurRadius: Float) {
     val rs = getRenderScriptContext(
       context = node.currentValueOf(LocalContext),
       size = content.size,
-      blurRadius = blurRadius,
     )
+    // Draw the layer (this is async)
     rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
-  }
-
-  private fun onOutputUpdated(output: Bitmap) {
+    // Wait for the layer to be written to the Surface
+    rs.awaitSurfaceWritten()
     if (!node.isAttached) return
 
+    // Now apply the blur
+    rs.applyBlur(blurRadius)
+
+    // Finally draw the updated bitmap to our drawing graphics layer
     val layer = drawGraphicsLayer
       ?: graphicsContext.createGraphicsLayer().also { drawGraphicsLayer = it }
+
+    val output = rs.outputBitmap
 
     layer.record(
       density = density,
@@ -114,31 +130,17 @@ internal class RenderScriptBlurEffect(
     }
 
     HazeLogger.d(TAG) { "Output updated in layer" }
-
-    node.invalidateDraw()
   }
 
-  private fun getRenderScriptContext(
-    context: Context,
-    size: IntSize,
-    blurRadius: Float,
-  ): RenderScriptContext {
+  private fun getRenderScriptContext(context: Context, size: IntSize): RenderScriptContext {
     val rs = renderScriptContext
     if (rs != null && rs.size == size && rs.context == context) return rs
 
     // Release any existing context
     rs?.release()
     // Return a new context and store it
-    return RenderScriptContext(
-      context = context,
-      size = size,
-      onDataReceived = {
-        HazeLogger.d(TAG) { "onDataReceived" }
-        applyBlur(blurRadius)
-        HazeLogger.d(TAG) { "applyBlur(${blurRadius}px) finished" }
-        onOutputUpdated(outputBitmap)
-      },
-    ).also { renderScriptContext = it }
+    return RenderScriptContext(context = context, size = size)
+      .also { renderScriptContext = it }
   }
 
   override fun cleanup() {

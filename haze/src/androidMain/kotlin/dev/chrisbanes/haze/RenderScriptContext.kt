@@ -15,16 +15,19 @@ import android.renderscript.Type
 import android.view.Surface
 import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.createBitmap
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.trySendBlocking
 
 internal class RenderScriptContext(
   val context: Context,
   val size: IntSize,
-  private val onDataReceived: RenderScriptContext.() -> Unit,
 ) {
   private val rs = RenderScript.create(context)
   private val inputAlloc: Allocation
   private val outputAlloc: Allocation
   private val blurScript: ScriptIntrinsicBlur
+
+  private val channel = Channel<Unit>(Channel.CONFLATED)
 
   val outputBitmap: Bitmap
 
@@ -42,7 +45,7 @@ internal class RenderScriptContext(
     inputAlloc = Allocation.createTyped(rs, type, flags)
     inputAlloc.setOnBufferAvailableListener { allocation ->
       allocation.ioReceive()
-      onDataReceived()
+      channel.trySendBlocking(Unit)
     }
 
     outputBitmap = createBitmap(size.width, size.height)
@@ -57,6 +60,8 @@ internal class RenderScriptContext(
     blurScript.forEach(outputAlloc)
     outputAlloc.copyTo(outputBitmap)
   }
+
+  suspend fun awaitSurfaceWritten() = channel.receive()
 
   fun release() {
     HazeLogger.d(TAG) { "Release resources" }
