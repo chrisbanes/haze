@@ -3,23 +3,6 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.graphics.drawscope.DrawScope
-
 internal actual fun HazeSourceNode.clearHazeAreaLayerOnStop() = Unit
-
-internal actual fun HazeEffectNode.updateBlurEffectInNeeded(drawScope: DrawScope) {
-  when {
-    blurEnabled -> {
-      if (blurEffect !is RenderEffectBlurEffect) {
-        blurEffect = RenderEffectBlurEffect(this)
-      }
-    }
-    else -> {
-      if (blurEffect !is ScrimBlurEffect) {
-        blurEffect = ScrimBlurEffect(this)
-      }
-    }
-  }
-}
 
 actual fun HazeSourceNode.forceInvalidationOnLayout(): Boolean = false

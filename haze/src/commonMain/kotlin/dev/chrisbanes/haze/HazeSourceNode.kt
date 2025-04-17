@@ -10,7 +10,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -200,8 +199,6 @@ class HazeSourceNode(
 }
 
 internal expect fun isBlurEnabledByDefault(): Boolean
-
-internal expect fun HazeEffectNode.updateBlurEffectInNeeded(drawScope: DrawScope)
 
 internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
   if (brush != null) {

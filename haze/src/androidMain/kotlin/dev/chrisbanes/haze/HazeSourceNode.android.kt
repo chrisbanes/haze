@@ -7,8 +7,6 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -34,32 +32,5 @@ private tailrec fun Context.findActivityOrNull(): ComponentActivity? = when (thi
   is ContextWrapper -> baseContext.findActivityOrNull()
   else -> null
 }
-
-internal actual fun HazeEffectNode.updateBlurEffectInNeeded(drawScope: DrawScope) {
-  val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
-    drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
-
-  when {
-    blurEnabled && canUseRenderEffect -> {
-      if (blurEffect !is RenderEffectBlurEffect) {
-        blurEffect = RenderEffectBlurEffect(this)
-      }
-    }
-
-    blurEnabled && !isRunningOnRobolectric() -> {
-      if (blurEffect !is RenderScriptBlurEffect) {
-        blurEffect = RenderScriptBlurEffect(this)
-      }
-    }
-
-    else -> {
-      if (blurEffect !is ScrimBlurEffect) {
-        blurEffect = ScrimBlurEffect(this)
-      }
-    }
-  }
-}
-
-private fun isRunningOnRobolectric(): Boolean = Build.FINGERPRINT == "robolectric"
 
 actual fun HazeSourceNode.forceInvalidationOnLayout(): Boolean = Build.VERSION.SDK_INT < 32

@@ -307,7 +307,7 @@ class HazeEffectNode(
     HazeLogger.d(TAG) { "-> HazeChild. start draw()" }
 
     if (isValid) {
-      updateBlurEffectInNeeded(this)
+      updateBlurEffectIfNeeded(this)
       with(blurEffect) { drawEffect() }
     } else {
       HazeLogger.d(TAG) { "-> HazeChild. Draw. State not valid, so no need to draw effect." }
@@ -626,6 +626,8 @@ internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params
 }
 
 internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
+
+internal expect fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope)
 
 internal expect fun HazeEffectNode.drawProgressiveEffect(
   drawScope: DrawScope,

@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.dp
@@ -20,6 +21,31 @@ import kotlin.math.max
 import kotlin.math.min
 
 private const val USE_RUNTIME_SHADER = true
+
+internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope) {
+  val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
+    drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
+
+  when {
+    blurEnabled && canUseRenderEffect -> {
+      if (blurEffect !is RenderEffectBlurEffect) {
+        blurEffect = RenderEffectBlurEffect(this)
+      }
+    }
+
+    blurEnabled && !isRunningOnRobolectric() -> {
+      if (blurEffect !is RenderScriptBlurEffect) {
+        blurEffect = RenderScriptBlurEffect(this)
+      }
+    }
+
+    else -> {
+      if (blurEffect !is ScrimBlurEffect) {
+        blurEffect = ScrimBlurEffect(this)
+      }
+    }
+  }
+}
 
 @RequiresApi(31)
 internal actual fun HazeEffectNode.drawProgressiveEffect(
