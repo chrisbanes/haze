@@ -153,3 +153,5 @@ private fun HazeEffectNode.drawLinearGradientProgressiveEffectUsingLayers(
     graphicsContext.releaseGraphicsLayer(layer)
   }
 }
+
+actual fun HazeEffectNode.invalidateOnHazeAreaLayout(): Boolean = Build.VERSION.SDK_INT < 32

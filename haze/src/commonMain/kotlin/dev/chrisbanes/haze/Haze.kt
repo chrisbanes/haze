@@ -70,6 +70,8 @@ class HazeArea {
   var key: Any? = null
     internal set
 
+  internal val layoutListeners = mutableSetOf<OnLayoutListener>()
+
   /**
    * The content [GraphicsLayer].
    */
@@ -95,6 +97,10 @@ class HazeArea {
     append("contentDrawing=$contentDrawing")
     append(")")
   }
+}
+
+internal fun interface OnLayoutListener {
+  operator fun invoke()
 }
 
 @Deprecated(

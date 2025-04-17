@@ -5,7 +5,6 @@ package dev.chrisbanes.haze
 
 import android.content.Context
 import android.content.ContextWrapper
-import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
@@ -32,5 +31,3 @@ private tailrec fun Context.findActivityOrNull(): ComponentActivity? = when (thi
   is ContextWrapper -> baseContext.findActivityOrNull()
   else -> null
 }
-
-actual fun HazeSourceNode.forceInvalidationOnLayout(): Boolean = Build.VERSION.SDK_INT < 32

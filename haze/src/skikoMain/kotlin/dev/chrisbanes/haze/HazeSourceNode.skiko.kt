@@ -4,5 +4,3 @@
 package dev.chrisbanes.haze
 
 internal actual fun HazeSourceNode.clearHazeAreaLayerOnStop() = Unit
-
-actual fun HazeSourceNode.forceInvalidationOnLayout(): Boolean = false

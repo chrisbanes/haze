@@ -18,7 +18,6 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
@@ -114,9 +113,7 @@ class HazeSourceNode(
       }
     }
 
-    if (forceInvalidationOnLayout()) {
-      invalidateDraw()
-    }
+    area.layoutListeners.forEach(OnLayoutListener::invoke)
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
@@ -222,5 +219,3 @@ private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
 }
 
 internal expect fun HazeSourceNode.clearHazeAreaLayerOnStop()
-
-internal expect fun HazeSourceNode.forceInvalidationOnLayout(): Boolean
