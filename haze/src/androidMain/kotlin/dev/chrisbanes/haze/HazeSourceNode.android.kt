@@ -5,10 +5,7 @@ package dev.chrisbanes.haze
 
 import android.content.Context
 import android.content.ContextWrapper
-import android.os.Build
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -33,14 +30,4 @@ private tailrec fun Context.findActivityOrNull(): ComponentActivity? = when (thi
   is ComponentActivity -> this
   is ContextWrapper -> baseContext.findActivityOrNull()
   else -> null
-}
-
-internal actual fun HazeEffectNode.selectBlurEffect(drawScope: DrawScope): BlurEffect {
-  val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
-    drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
-
-  return when {
-    blurEnabled && canUseRenderEffect -> RenderEffectBlurEffect
-    else -> ScrimBlurEffect
-  }
 }
