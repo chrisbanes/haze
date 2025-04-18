@@ -7,19 +7,18 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.withSaveLayer
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.dp
@@ -43,35 +42,26 @@ internal class ScrimBlurEffect(
       ?: return
 
     withAlpha(alpha = node.alpha, node = node) {
-      drawScrim(tint = scrimTint, mask = node.mask, progressive = node.progressive)
+      drawScrim(tint = scrimTint, node = node, mask = node.mask ?: node.progressive?.asBrush())
     }
   }
 }
 
 internal fun DrawScope.drawScrim(
   tint: HazeTint,
+  node: CompositionLocalConsumerModifierNode,
   size: Size = this.size,
   mask: Brush? = null,
-  progressive: HazeProgressive? = null,
 ) {
   if (tint.brush != null) {
-    val maskingShader = when {
-      mask is ShaderBrush -> mask.createShader(size)
-      progressive != null -> (progressive.asBrush() as? ShaderBrush)?.createShader(size)
-      else -> null
-    }
-
-    if (maskingShader != null) {
-      PaintPool.usePaint { outerPaint ->
-        drawContext.canvas.withSaveLayer(size.toRect(), outerPaint) {
+    if (mask != null) {
+      node.withGraphicsLayer { layer ->
+        layer.compositingStrategy = CompositingStrategy.Offscreen
+        layer.record(size = size.toIntSize()) {
           drawRect(brush = tint.brush, blendMode = tint.blendMode)
-
-          PaintPool.usePaint { maskPaint ->
-            maskPaint.shader = maskingShader
-            maskPaint.blendMode = BlendMode.DstIn
-            drawContext.canvas.drawRect(size.toRect(), maskPaint)
-          }
+          drawRect(brush = mask, blendMode = BlendMode.DstIn)
         }
+        drawLayer(layer)
       }
     } else {
       drawRect(brush = tint.brush, size = size, blendMode = tint.blendMode)
@@ -79,8 +69,6 @@ internal fun DrawScope.drawScrim(
   } else {
     if (mask != null) {
       drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
-    } else if (progressive != null) {
-      drawRect(brush = progressive.asBrush(), colorFilter = ColorFilter.tint(tint.color))
     } else {
       drawRect(color = tint.color, blendMode = tint.blendMode)
     }
