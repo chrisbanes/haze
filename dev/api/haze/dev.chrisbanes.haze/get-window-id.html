@@ -2,7 +2,7 @@
 <html class="no-js">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
-    <title>HazeDialog</title>
+    <title>getWindowId</title>
 <link href="../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../";</script>
     <script>document.documentElement.classList.replace("no-js","js");</script>
     <script>const storage = localStorage.getItem("dokka-dark-mode")
@@ -45,7 +45,8 @@
         </div>
         <div class="navigation-controls">
         <div class="filter-section filter-section_loading" id="filter-section">
-                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":haze:dokkaHtmlPartial/commonMain">common</button>
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":haze:dokkaHtmlPartial/androidMain">android</button>
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":haze:dokkaHtmlPartial/skikoMain">skiko</button>
             <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
                 <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
                 <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
@@ -54,11 +55,18 @@
                             <i class="ui-kit-icon ui-kit-icon_cross"></i>
                         </button>
                     </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":haze:dokkaHtmlPartial/androidMain" data-filter=":haze:dokkaHtmlPartial/androidMain">
+                                <span class="checkbox--icon"></span>
+                                android
+                            </label>
+                        </li>
                         <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
                             <label class="checkbox">
-                                <input type="checkbox" class="checkbox--input" id=":haze:dokkaHtmlPartial/commonMain" data-filter=":haze:dokkaHtmlPartial/commonMain">
+                                <input type="checkbox" class="checkbox--input" id=":haze:dokkaHtmlPartial/skikoMain" data-filter=":haze:dokkaHtmlPartial/skikoMain">
                                 <span class="checkbox--icon"></span>
-                                common
+                                skiko
                             </label>
                         </li>
                 </ul>
@@ -90,12 +98,14 @@
                 </div>
             </div>
             <div id="main">
-<div class="main-content" data-page-type="member" id="content" pageids="haze::dev.chrisbanes.haze//HazeDialog/#dev.chrisbanes.haze.HazeState#kotlin.Function0[kotlin.Unit]#androidx.compose.ui.window.DialogProperties#kotlin.Function0[kotlin.Unit]/PointingToDeclaration//-1073587601">
-  <div class="breadcrumbs"><a href="../index.html">haze</a><span class="delimiter">/</span><a href="index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><span class="current">HazeDialog</span></div>
+<div class="main-content" data-page-type="member" id="content" pageids="haze::dev.chrisbanes.haze//getWindowId/androidx.compose.ui.node.CompositionLocalConsumerModifierNode#/PointingToDeclaration//163962504">
+  <div class="breadcrumbs"><a href="../index.html">haze</a><span class="delimiter">/</span><a href="index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><span class="current">getWindowId</span></div>
   <div class="cover ">
-    <h1 class="cover"><span>Haze</span><wbr><span><span>Dialog</span></span></h1>
+    <h1 class="cover"><span>get</span><wbr><span>Window</span><wbr><span><span>Id</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Composable.html"><span class="token annotation builtin">Composable</span></a></div></div><span class="token keyword">fun </span><a href="-haze-dialog.html"><span class="token function"><strike>HazeDialog</strike></span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">hazeState<span class="token operator">: </span><a href="-haze-state/index.html">HazeState</a><span class="token punctuation">, </span></span><span class="parameter ">onDismissRequest<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token punctuation">, </span></span><span class="parameter ">properties<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/window/DialogProperties.html">DialogProperties</a><span class="token operator"> = </span>DialogProperties()<span class="token punctuation">, </span></span><span class="parameter ">content<span class="token operator">: </span><span><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Composable.html"><span class="token annotation builtin">Composable</span></a>&nbsp;</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="deprecation-content"><h3 class="">Deprecated</h3><p class="paragraph">HazeDialog is no longer necessary, you can use Dialog directly</p><h4 class="">Replace with</h4><div class="sample-container"><pre><code class="monospace block lang-kotlin" theme="idea">import androidx.compose.ui.window.Dialog<br></code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="sample-container"><pre><code class="monospace block lang-kotlin" theme="idea">Dialog(onDismissRequest, properties, content)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div></div>
+  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":haze:dokkaHtmlPartial/androidMain" data-filterable-set=":haze:dokkaHtmlPartial/androidMain" data-active="" data-toggle=":haze:dokkaHtmlPartial/androidMain">android</button><button class="platform-bookmark" data-filterable-current=":haze:dokkaHtmlPartial/skikoMain" data-filterable-set=":haze:dokkaHtmlPartial/skikoMain" data-toggle=":haze:dokkaHtmlPartial/skikoMain">skiko</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":haze:dokkaHtmlPartial/androidMain"><div class="symbol monospace"><span class="token keyword">actual </span><span class="token keyword">fun </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/node/CompositionLocalConsumerModifierNode.html">CompositionLocalConsumerModifierNode</a><span class="token punctuation">.</span><a href="get-window-id.html"><span class="token function">getWindowId</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">?</span></div></div><div class="content sourceset-dependent-content" data-togglable=":haze:dokkaHtmlPartial/skikoMain"><div class="symbol monospace"><span class="token keyword">actual </span><span class="token keyword">fun </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/node/CompositionLocalConsumerModifierNode.html">CompositionLocalConsumerModifierNode</a><span class="token punctuation">.</span><a href="get-window-id.html"><span class="token function">getWindowId</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">?</span></div></div>  </div>
 </div>
     <div class="footer">
         <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
