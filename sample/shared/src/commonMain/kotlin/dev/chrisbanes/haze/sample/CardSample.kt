@@ -40,15 +40,18 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 @Composable
-fun CreditCardSample(navController: NavHostController) {
-  val hazeState = remember { HazeState() }
+fun CreditCardSample(
+  navController: NavHostController,
+  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
+) {
+  val hazeState = rememberHazeState(blurEnabled = blurEnabled)
 
   Box {
     // Background content

@@ -169,6 +169,7 @@ package dev.chrisbanes.haze {
   public final class HazeKt {
     method @Deprecated @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
+    method @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState(optional boolean blurEnabled);
   }
 
   public final class HazeLogger {
@@ -253,7 +254,7 @@ package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
-    ctor public HazeState(boolean blurEnabled);
+    ctor public HazeState(boolean initialBlurEnabled);
     method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
     method public boolean getBlurEnabled();
     method @Deprecated public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();

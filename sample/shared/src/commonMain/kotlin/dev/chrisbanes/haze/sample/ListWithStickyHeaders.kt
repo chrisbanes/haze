@@ -21,7 +21,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -29,12 +28,13 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
+import dev.chrisbanes.haze.rememberHazeState
 
 @OptIn(
   ExperimentalMaterial3Api::class,
@@ -43,8 +43,8 @@ import dev.chrisbanes.haze.materials.HazeMaterials
   ExperimentalFoundationApi::class,
 )
 @Composable
-fun ListWithStickyHeaders(navController: NavHostController) {
-  val hazeState = remember { HazeState() }
+fun ListWithStickyHeaders(navController: NavHostController, blurEnabled: Boolean = HazeDefaults.blurEnabled()) {
+  val hazeState = rememberHazeState(blurEnabled = blurEnabled)
   val listState = rememberLazyListState()
 
   val style = HazeMaterials.regular(MaterialTheme.colorScheme.surface)

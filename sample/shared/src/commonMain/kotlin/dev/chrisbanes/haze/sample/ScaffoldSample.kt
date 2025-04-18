@@ -41,13 +41,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
+import dev.chrisbanes.haze.rememberHazeState
 
 enum class ScaffoldSampleMode {
   Default,
@@ -63,10 +64,11 @@ enum class ScaffoldSampleMode {
 @Composable
 fun ScaffoldSample(
   navController: NavHostController,
+  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
   inputScale: HazeInputScale = HazeInputScale.Default,
 ) {
-  val hazeState = remember { HazeState() }
+  val hazeState = rememberHazeState(blurEnabled = blurEnabled)
   val gridState = rememberLazyGridState()
   val showNavigationBar by remember(gridState) {
     derivedStateOf { gridState.firstVisibleItemIndex == 0 }

@@ -3,11 +3,13 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -22,18 +24,27 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+@Composable
+fun rememberHazeState(blurEnabled: Boolean = HazeDefaults.blurEnabled()): HazeState {
+  return remember {
+    HazeState(initialBlurEnabled = blurEnabled)
+  }.apply {
+    this.blurEnabled = blurEnabled
+  }
+}
+
 @Stable
-class HazeState(blurEnabled: Boolean) {
+class HazeState(initialBlurEnabled: Boolean) {
   private val _areas = mutableStateListOf<HazeArea>()
   val areas: List<HazeArea> get() = _areas.toList()
 
-  constructor(): this(blurEnabled = HazeDefaults.blurEnabled())
+  constructor() : this(initialBlurEnabled = HazeDefaults.blurEnabled())
 
   /**
    * Whether blurring is enabled or not. This can be overridden on each [hazeEffect]
    * via the [HazeEffectScope.blurEnabled] property.
    */
-  var blurEnabled: Boolean by mutableStateOf(blurEnabled)
+  var blurEnabled: Boolean by mutableStateOf(initialBlurEnabled)
 
   internal fun addArea(area: HazeArea) {
     _areas += area

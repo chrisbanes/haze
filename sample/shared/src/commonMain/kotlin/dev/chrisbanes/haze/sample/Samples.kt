@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -20,7 +21,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.navigation.NavBackStackEntry
@@ -45,7 +50,6 @@ import dev.chrisbanes.haze.HazeInputScale
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 expect val Samples: List<Sample>
 
@@ -70,23 +74,26 @@ val CommonSamples: List<Sample> = listOf(
 interface Sample { // We should seal this interface, but KMP doesn't support it yet.
   val title: String
 
-  @Transient
-  val content: @Composable (NavHostController) -> Unit
+  @Composable
+  fun Content(navController: NavHostController, blurEnabled: Boolean)
 
   @Serializable
   data object SamplesList : Sample {
     override val title: String = "Samples"
 
-    override val content: @Composable (NavHostController) -> Unit
-      get() = { _ -> error("SamplesList should never be called") }
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      error("SamplesList should never be called")
+    }
   }
 
   @Serializable
   data object Scaffold : Sample {
     override val title: String = "Scaffold"
 
-    override val content: @Composable (NavHostController) -> Unit = {
-      ScaffoldSample(it)
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      ScaffoldSample(navController = navController, blurEnabled = blurEnabled)
     }
   }
 
@@ -94,9 +101,11 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   data object ScaffoldScaled : Sample {
     override val title: String = "Scaffold (input scaled)"
 
-    override val content: @Composable (NavHostController) -> Unit = {
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       ScaffoldSample(
-        it,
+        navController = navController,
+        blurEnabled = blurEnabled,
         inputScale = HazeInputScale.Auto,
       )
     }
@@ -106,9 +115,11 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   data object ScaffoldProgressive : Sample {
     override val title: String = "Scaffold (progressive blur)"
 
-    override val content: @Composable (NavHostController) -> Unit = {
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       ScaffoldSample(
-        it,
+        navController = navController,
+        blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Progressive,
       )
     }
@@ -118,9 +129,11 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   data object ScaffoldProgressiveScaled : Sample {
     override val title: String = "Scaffold (progressive blur, input scaled)"
 
-    override val content: @Composable (NavHostController) -> Unit = {
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       ScaffoldSample(
-        it,
+        navController = navController,
+        blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Progressive,
         inputScale = HazeInputScale.Auto,
       )
@@ -131,9 +144,11 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   data object ScaffoldMasked : Sample {
     override val title: String = "Scaffold (masked)"
 
-    override val content: @Composable (NavHostController) -> Unit = {
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       ScaffoldSample(
-        it,
+        navController = navController,
+        blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Mask,
       )
     }
@@ -143,9 +158,11 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   data object ScaffoldMaskedScaled : Sample {
     override val title: String = "Scaffold (masked, input scaled)"
 
-    override val content: @Composable (NavHostController) -> Unit = {
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       ScaffoldSample(
-        it,
+        navController = navController,
+        blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Mask,
         inputScale = HazeInputScale.Auto,
       )
@@ -156,49 +173,70 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   data object CreditCard : Sample {
     override val title: String = "Credit Card"
 
-    override val content: @Composable (NavHostController) -> Unit = { CreditCardSample(it) }
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      CreditCardSample(navController = navController, blurEnabled = blurEnabled)
+    }
   }
 
   @Serializable
   data object ImageList : Sample {
     override val title: String = "Images List"
 
-    override val content: @Composable (NavHostController) -> Unit = { ImagesList(it) }
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      ImagesList(navController = navController, blurEnabled = blurEnabled)
+    }
   }
 
   @Serializable
   data object ListOverImage : Sample {
     override val title: String = "List over Image"
 
-    override val content: @Composable (NavHostController) -> Unit = { ListOverImage(it) }
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      ListOverImage(navController, blurEnabled)
+    }
   }
 
   @Serializable
   data object Dialog : Sample {
     override val title: String = "Dialog"
 
-    override val content: @Composable (NavHostController) -> Unit = { DialogSample(it) }
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      DialogSample(navController, blurEnabled)
+    }
   }
 
   @Serializable
   data object Materials : Sample {
     override val title: String = "Materials"
 
-    override val content: @Composable (NavHostController) -> Unit = { MaterialsSample(it) }
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      MaterialsSample(navController, blurEnabled)
+    }
   }
 
   @Serializable
   data object ListWithStickyHeaders : Sample {
     override val title: String = "List with Sticky Headers"
 
-    override val content: @Composable (NavHostController) -> Unit = { ListWithStickyHeaders(it) }
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      ListWithStickyHeaders(navController, blurEnabled)
+    }
   }
 
   @Serializable
   data object BottomSheet : Sample {
     override val title: String = "Bottom Sheet"
 
-    override val content: @Composable (NavHostController) -> Unit = { BottomSheet(it) }
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      BottomSheet(navController, blurEnabled)
+    }
   }
 }
 
@@ -247,6 +285,8 @@ fun Samples(
       .forEach { imageLoader.enqueue(it) }
   }
 
+  var blurEnabled by rememberSaveable { mutableStateOf(false) }
+
   SamplesTheme {
     NavHost(
       navController = navController,
@@ -255,12 +295,18 @@ fun Samples(
     ) {
       composable<Sample.SamplesList> {
         val sortedSamples = remember { samples.sortedBy(Sample::title) }
-        SamplesList(appTitle, sortedSamples, navController)
+        SamplesList(
+          appTitle = appTitle,
+          samples = sortedSamples,
+          navController = navController,
+          forceBlurEnabled = blurEnabled,
+          onForceBlurChanged = { blurEnabled = it },
+        )
       }
 
       samples.forEach { sample ->
         composable(routeClazz = sample::class) {
-          sample.content(navController)
+          sample.Content(navController, blurEnabled = blurEnabled)
         }
       }
     }
@@ -273,12 +319,23 @@ private fun SamplesList(
   appTitle: String,
   samples: List<Sample>,
   navController: NavHostController,
+  forceBlurEnabled: Boolean = false,
+  onForceBlurChanged: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
     topBar = {
       TopAppBar(
         title = { Text(text = appTitle) },
+        actions = {
+          Text("Blur enabled:")
+          Checkbox(
+            checked = forceBlurEnabled,
+            onCheckedChange = onForceBlurChanged,
+            modifier = Modifier
+              .testTag("blur_enabled"),
+          )
+        },
         modifier = Modifier.fillMaxWidth(),
       )
     },
