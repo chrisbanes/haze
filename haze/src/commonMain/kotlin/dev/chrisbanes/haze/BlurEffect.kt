@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -22,8 +23,8 @@ import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
+import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
 
 internal interface BlurEffect {
@@ -41,23 +42,17 @@ internal class ScrimBlurEffect(
         ?.boostForFallback(node.resolveBlurRadius().takeOrElse { 0.dp })
       ?: return
 
-    if (node.alpha != 1f) {
-      PaintPool.usePaint { paint ->
-        paint.alpha = node.alpha
-        drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-          drawScrim(node.mask, node.progressive, scrimTint)
-        }
-      }
-    } else {
-      drawScrim(node.mask, node.progressive, scrimTint)
+    withAlpha(alpha = node.alpha, node = node) {
+      drawScrim(tint = scrimTint, mask = node.mask, progressive = node.progressive)
     }
   }
 }
 
 internal fun DrawScope.drawScrim(
-  mask: Brush?,
-  progressive: HazeProgressive?,
   tint: HazeTint,
+  size: Size = this.size,
+  mask: Brush? = null,
+  progressive: HazeProgressive? = null,
 ) {
   if (tint.brush != null) {
     val maskingShader = when {
@@ -79,7 +74,7 @@ internal fun DrawScope.drawScrim(
         }
       }
     } else {
-      drawRect(brush = tint.brush, blendMode = tint.blendMode)
+      drawRect(brush = tint.brush, size = size, blendMode = tint.blendMode)
     }
   } else {
     if (mask != null) {
@@ -99,7 +94,7 @@ internal class RenderEffectBlurEffect(
   private var renderEffect: RenderEffect? = null
 
   override fun DrawScope.drawEffect() {
-    drawScaledContentLayer(node) { layer ->
+    createAndDrawScaledContentLayer(node) { layer ->
       val p = node.progressive
       if (p != null) {
         node.drawProgressiveEffect(
@@ -128,18 +123,45 @@ internal class RenderEffectBlurEffect(
   }
 }
 
-internal fun DrawScope.drawScaledContentLayer(
+internal fun DrawScope.createAndDrawScaledContentLayer(
   node: HazeEffectNode,
+  scaleFactor: Float = node.calculateInputScaleFactor(),
+  releaseLayerOnExit: Boolean = true,
   block: DrawScope.(GraphicsLayer) -> Unit,
 ) {
-  val scaleFactor = node.calculateInputScaleFactor()
-  val inflatedSize = (node.layerSize * scaleFactor).roundToIntSize()
-  // This is the topLeft in the inflated bounds where the real are should be at [0,0]
-  val inflatedOffset = node.layerOffset
+  val graphicsContext = node.currentValueOf(LocalGraphicsContext)
 
-  if (inflatedSize.width <= 0 || inflatedSize.height <= 0) {
+  val layer = createScaledContentLayer(
+    node = node,
+    scaleFactor = scaleFactor,
+    layerSize = node.layerSize,
+    layerOffset = node.layerOffset,
+  )
+
+  if (layer != null) {
+    drawScaledContent(
+      offset = -node.layerOffset,
+      scaleFactor = scaleFactor,
+      block = { block(layer) },
+    )
+
+    if (releaseLayerOnExit) {
+      graphicsContext.releaseGraphicsLayer(layer)
+    }
+  }
+}
+
+internal fun DrawScope.createScaledContentLayer(
+  node: HazeEffectNode,
+  scaleFactor: Float,
+  layerSize: Size,
+  layerOffset: Offset,
+): GraphicsLayer? {
+  val scaledSize = (layerSize * scaleFactor).toIntSize()
+
+  if (scaledSize.width <= 0 || scaledSize.height <= 0) {
     // If we have a 0px dimension we can't do anything so just return
-    return
+    return null
   }
 
   val bg = node.resolveBackgroundColor()
@@ -150,12 +172,12 @@ internal fun DrawScope.drawScaledContentLayer(
   val graphicsContext = node.currentValueOf(LocalGraphicsContext)
   val layer = graphicsContext.createGraphicsLayer()
 
-  layer.record(size = inflatedSize) {
+  layer.record(size = scaledSize) {
     drawRect(bg)
 
     clipRect {
       scale(scale = scaleFactor, pivot = Offset.Zero) {
-        translate(inflatedOffset - node.positionOnScreen) {
+        translate(layerOffset - node.positionOnScreen) {
           for (area in node.areas) {
             require(!area.contentDrawing) {
               "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
@@ -191,13 +213,19 @@ internal fun DrawScope.drawScaledContentLayer(
     }
   }
 
+  return layer
+}
+
+internal fun DrawScope.drawScaledContent(
+  offset: Offset,
+  scaleFactor: Float,
+  block: DrawScope.() -> Unit,
+) {
   clipRect {
-    translate(-inflatedOffset) {
+    translate(offset) {
       scale(1f / scaleFactor, Offset.Zero) {
-        block(layer)
+        block()
       }
     }
   }
-
-  graphicsContext.releaseGraphicsLayer(layer)
 }

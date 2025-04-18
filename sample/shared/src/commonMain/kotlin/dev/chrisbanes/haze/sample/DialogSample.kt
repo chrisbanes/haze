@@ -35,8 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
-import dev.chrisbanes.haze.HazeDialog
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -66,10 +66,7 @@ fun DialogSample(navController: NavHostController) {
     var showDialog by remember { mutableStateOf(false) }
 
     if (showDialog) {
-      HazeDialog(
-        hazeState = hazeState,
-        onDismissRequest = { showDialog = false },
-      ) {
+      Dialog(onDismissRequest = { showDialog = false }) {
         Surface(
           modifier = Modifier
             .fillMaxWidth()

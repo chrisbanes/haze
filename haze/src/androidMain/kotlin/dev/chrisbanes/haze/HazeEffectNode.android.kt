@@ -33,6 +33,12 @@ internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope
       }
     }
 
+    blurEnabled && !isRunningOnRobolectric() -> {
+      if (blurEffect !is RenderScriptBlurEffect) {
+        blurEffect = RenderScriptBlurEffect(this)
+      }
+    }
+
     else -> {
       if (blurEffect !is ScrimBlurEffect) {
         blurEffect = ScrimBlurEffect(this)
@@ -147,3 +153,12 @@ private fun HazeEffectNode.drawLinearGradientProgressiveEffectUsingLayers(
     graphicsContext.releaseGraphicsLayer(layer)
   }
 }
+
+/**
+ * We need to manually invalidate if the HazeSourceNode 'draws' on certain API levels:
+ *
+ * - API 31: Ideally this wouldn't be necessary, but its been seen that API 31 has a few issues
+ *   with RenderNodes not automatically re-painting. We workaround it by manually invalidating.
+ * - Anything below API 31 does not have RenderEffect so we need to force invalidations.
+ */
+actual fun invalidateOnHazeAreaPreDraw(): Boolean = Build.VERSION.SDK_INT < 32

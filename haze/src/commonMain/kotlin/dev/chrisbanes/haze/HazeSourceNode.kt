@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
+import kotlinx.coroutines.DisposableHandle
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 annotation class ExperimentalHazeApi
@@ -89,6 +90,8 @@ class HazeSourceNode(
     this.key = key
   }
 
+  private var preDrawDisposable: DisposableHandle? = null
+
   /**
    * We manually invalidate when things have changed
    */
@@ -98,9 +101,20 @@ class HazeSourceNode(
     HazeLogger.d(TAG) { "onAttach. Adding HazeArea: $area" }
     state.addArea(area)
     clearHazeAreaLayerOnStop()
+
+    if (invalidateOnHazeAreaPreDraw()) {
+      preDrawDisposable = doOnPreDraw {
+        HazeLogger.d(TAG) { "onPreDraw" }
+        for (listener in area.preDrawListeners) {
+          listener()
+        }
+      }
+    }
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
+    HazeLogger.d(TAG) { "onPlaced: positionOnScreen=${area.positionOnScreen}" }
+
     // If the positionOnScreen has not been placed yet, we use the value on onPlaced,
     // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
     // up to the first draw. We need onGloballyPositioned which tends to happen after
@@ -119,6 +133,7 @@ class HazeSourceNode(
   private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
     area.positionOnScreen = coordinates.positionForHaze()
     area.size = coordinates.size.toSize()
+    area.windowId = getWindowId()
 
     HazeLogger.d(TAG) {
       "$source: positionOnScreen=${area.positionOnScreen}, " +
@@ -162,6 +177,7 @@ class HazeSourceNode(
 
   override fun onDetach() {
     HazeLogger.d(TAG) { "onDetach. Removing HazeArea: $area" }
+    preDrawDisposable?.dispose()
     area.reset()
     area.releaseLayer()
     state.removeArea(area)

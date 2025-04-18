@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 
 /**
  * We only look at window coordinates on Desktop. There's currently no external windows used
@@ -16,3 +17,5 @@ internal actual fun LayoutCoordinates.positionForHaze(): Offset = try {
 } catch (t: Throwable) {
   Offset.Unspecified
 }
+
+actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? = null

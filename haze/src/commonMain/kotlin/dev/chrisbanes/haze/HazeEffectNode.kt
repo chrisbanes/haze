@@ -122,15 +122,6 @@ class HazeEffectNode(
       }
     }
 
-  private var forcedInvalidationTick: Long = 0
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "forcedInvalidationTick changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.ForcedInvalidation
-        field = value
-      }
-    }
-
   private val isValid: Boolean
     get() = size.isSpecified && layerSize.isSpecified && areas.isNotEmpty()
 
@@ -233,11 +224,22 @@ class HazeEffectNode(
       }
     }
 
+  private var windowId: Any? = null
+
   internal var areas: List<HazeArea> = emptyList()
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "backgroundAreas changed. Current $field. New: $value" }
         dirtyTracker += DirtyFields.Areas
+
+        // Remove the layout listener from the current areas
+        for (area in field) {
+          area.preDrawListeners.remove(areaPreDrawListener)
+        }
+        // Re-add the layout listener to all of the new areas
+        for (area in value) {
+          attachPreDrawListenerIfNecessary(area)
+        }
         field = value
       }
     }
@@ -259,6 +261,23 @@ class HazeEffectNode(
         field = value
       }
     }
+
+  private val areaPreDrawListener = OnPreDrawListener { invalidateDraw() }
+
+  /**
+   * We need to use the area pre draw listener in a few situations when blurring is enabled:
+   *
+   * - Globally, if [invalidateOnHazeAreaPreDraw] is set to true. This is mostly for older
+   *   Android versions.
+   * - The source haze node is drawn in a different window to us. In this instance, we won't be
+   *   in the same invalidation scope, so need to force invalidation. This handles cases
+   *   like Dialogs.
+   */
+  private fun attachPreDrawListenerIfNecessary(area: HazeArea) {
+    if (blurEnabled && (invalidateOnHazeAreaPreDraw() || area.windowId != windowId)) {
+      area.preDrawListeners.add(areaPreDrawListener)
+    }
+  }
 
   private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
     if (old?.tints != new?.tints) dirtyTracker += DirtyFields.Tints
@@ -323,13 +342,15 @@ class HazeEffectNode(
 
   private fun updateEffect() {
     compositionLocalStyle = currentValueOf(LocalHazeStyle)
+    windowId = getWindowId()
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
     block?.invoke(this)
 
-    val ancestorSourceNode = (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
-      ?.takeIf { it.state == this.state }
+    val ancestorSourceNode =
+      (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
+        ?.takeIf { it.state == this.state }
 
     areas = state.areas
       .also {
@@ -350,7 +371,6 @@ class HazeEffectNode(
       .apply { sortBy(HazeArea::zIndex) }
 
     areaOffsets = areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
-    forcedInvalidationTick = areas.sumOf { it.forcedInvalidationTick.toLong() }
 
     if (size.isSpecified && positionOnScreen.isSpecified) {
       // The rect which covers all areas
@@ -556,7 +576,9 @@ sealed interface HazeProgressive {
   }
 }
 
-private val renderEffectCache by unsynchronizedLazy { SimpleLruCache<RenderEffectParams, RenderEffect>(10) }
+private val renderEffectCache by unsynchronizedLazy {
+  SimpleLruCache<RenderEffectParams, RenderEffect>(10)
+}
 
 @Poko
 internal class RenderEffectParams(
@@ -635,6 +657,8 @@ internal expect fun HazeEffectNode.drawProgressiveEffect(
   contentLayer: GraphicsLayer,
 )
 
+internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
+
 internal fun HazeEffectNode.resolveBackgroundColor(): Color {
   return backgroundColor
     .takeOrElse { style.backgroundColor }
@@ -682,8 +706,7 @@ internal object DirtyFields {
   const val Alpha = FallbackTint shl 1
   const val Progressive = Alpha shl 1
   const val Areas = Progressive shl 1
-  const val ForcedInvalidation = Areas shl 1
-  const val LayerSize = ForcedInvalidation shl 1
+  const val LayerSize = Areas shl 1
   const val LayerOffset = LayerSize shl 1
 
   const val RenderEffectAffectingFlags =
@@ -710,8 +733,7 @@ internal object DirtyFields {
       BackgroundColor or
       Progressive or // TODO: only on Android SDK 32-33
       Areas or
-      Alpha or
-      ForcedInvalidation
+      Alpha
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
@@ -731,7 +753,6 @@ internal object DirtyFields {
       if (Alpha in dirtyTracker) add("Alpha")
       if (Progressive in dirtyTracker) add("Progressive")
       if (Areas in dirtyTracker) add("Areas")
-      if (ForcedInvalidation in dirtyTracker) add("ForcedInvalidation")
       if (LayerSize in dirtyTracker) add("LayerSize")
       if (LayerOffset in dirtyTracker) add("LayerOffset")
     }

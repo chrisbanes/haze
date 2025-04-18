@@ -11,4 +11,4 @@ import android.os.Build
  *
  * See https://github.com/chrisbanes/haze/issues/77 for more details.
  */
-internal actual fun isBlurEnabledByDefault(): Boolean = Build.VERSION.SDK_INT >= 32
+internal actual fun isBlurEnabledByDefault(): Boolean = Build.VERSION.SDK_INT >= 31
