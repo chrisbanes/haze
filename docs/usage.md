@@ -3,7 +3,7 @@ Haze is implemented through two Compose Modifiers: [Modifier.hazeSource](api/haz
 The most basic usage would be something like:
 
 ``` kotlin hl_lines="1 7-8 17-19"
-val hazeState = remember { HazeState() }
+val hazeState = rememberHazeState()
 
 Box {
   LazyColumn(
@@ -221,7 +221,7 @@ This code to implement this is like below. You can see that the `CreditCard()` n
 
 ``` kotlin
 Box {
-  val hazeState = remember { HazeState() }
+  val hazeState = rememberHazeState()
 
   Background(
     modifier = Modifier
@@ -283,7 +283,7 @@ You can pass `HazeState` objects to composables as arguments. For example:
 ```kotlin hl_lines="3 7 11"
 @Composable
 fun HazeExample(modifier: Modifier = Modifier) {
-    val hazeState = remember { HazeState() }
+    val hazeState = rememberHazeState()
 
     Box(modifier = modifier) {
         Background(
@@ -331,7 +331,7 @@ val LocalHazeState = compositionLocalOf { HazeState() }
 
 @Composable
 fun HazeExample(modifier: Modifier = Modifier) {
-    val hazeState = remember { HazeState() }
+    val hazeState = rememberHazeState()
 
     CompositionLocalProvider(LocalHazeState provides hazeState) {
         Box(modifier = modifier) {
@@ -364,6 +364,19 @@ fun Foreground(modifier: Modifier = Modifier) {
 You can use Haze with `Dialog`s, to blur dialog backgrounds over content. We supply a [HazeDialog](api/haze/dev.chrisbanes.haze/-haze-dialog.html) composable to make this easy to integrate.
 
 A sample is available too: [DialogSample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt).
+
+## Enabling blur
+
+Whether blurring is enabled or not can be controlled in two ways:
+
+- The HazeState: `rememberHazeState(blurEnabled = true)`, 
+- Or on each individual `hazeEffect`:
+
+```kotlin
+Modifier.hazeEffect(...) {
+    blurEnabled = true
+}
+```
 
 ## Screenshot testing
 
