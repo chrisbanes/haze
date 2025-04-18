@@ -93,7 +93,6 @@ fun ScaffoldSample(
         modifier = Modifier
           .hazeEffect(state = hazeState, style = style) {
             this.inputScale = inputScale
-            blurEnabled = true
 
             when (mode) {
               ScaffoldSampleMode.Default -> Unit
