@@ -239,13 +239,15 @@ class HazeEffectNode(
         HazeLogger.d(TAG) { "backgroundAreas changed. Current $field. New: $value" }
         dirtyTracker += DirtyFields.Areas
 
-        // Remove the layout listener from the current areas
-        for (area in field) {
-          area.layoutListeners.remove(layoutListener)
-        }
-        // Re-add the layout listener to all of the areas
-        for (area in value) {
-          area.layoutListeners.add(layoutListener)
+        if (invalidateOnHazeAreaPreDraw()) {
+          // Remove the layout listener from the current areas
+          for (area in field) {
+            area.preDrawListeners.remove(areaPreDrawListener)
+          }
+          // Re-add the layout listener to all of the new areas
+          for (area in value) {
+            area.preDrawListeners.add(areaPreDrawListener)
+          }
         }
 
         field = value
@@ -270,8 +272,8 @@ class HazeEffectNode(
       }
     }
 
-  private val layoutListener = OnLayoutListener {
-    if (invalidateOnHazeAreaLayout()) {
+  private val areaPreDrawListener = OnPreDrawListener {
+    if (invalidateOnHazeAreaPreDraw()) {
       invalidateDraw()
     }
   }
@@ -651,7 +653,7 @@ internal expect fun HazeEffectNode.drawProgressiveEffect(
   contentLayer: GraphicsLayer,
 )
 
-internal expect fun HazeEffectNode.invalidateOnHazeAreaLayout(): Boolean
+internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 
 internal fun HazeEffectNode.resolveBackgroundColor(): Color {
   return backgroundColor

@@ -34,4 +34,4 @@ internal actual fun HazeEffectNode.drawProgressiveEffect(
   drawLayer(contentLayer)
 }
 
-actual fun HazeEffectNode.invalidateOnHazeAreaLayout(): Boolean = false
+actual fun invalidateOnHazeAreaPreDraw(): Boolean = false

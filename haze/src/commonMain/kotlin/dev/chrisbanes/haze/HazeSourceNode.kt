@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
+import kotlinx.coroutines.DisposableHandle
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 annotation class ExperimentalHazeApi
@@ -89,6 +90,8 @@ class HazeSourceNode(
     this.key = key
   }
 
+  private var preDrawDisposable: DisposableHandle? = null
+
   /**
    * We manually invalidate when things have changed
    */
@@ -98,6 +101,15 @@ class HazeSourceNode(
     HazeLogger.d(TAG) { "onAttach. Adding HazeArea: $area" }
     state.addArea(area)
     clearHazeAreaLayerOnStop()
+
+    if (invalidateOnHazeAreaPreDraw()) {
+      preDrawDisposable = doOnPreDraw {
+        HazeLogger.d(TAG) { "onPreDraw" }
+        for (listener in area.preDrawListeners) {
+          listener()
+        }
+      }
+    }
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
@@ -112,8 +124,6 @@ class HazeSourceNode(
         onPositioned(coordinates, "onPlaced")
       }
     }
-
-    area.layoutListeners.forEach(OnLayoutListener::invoke)
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
@@ -166,6 +176,7 @@ class HazeSourceNode(
 
   override fun onDetach() {
     HazeLogger.d(TAG) { "onDetach. Removing HazeArea: $area" }
+    preDrawDisposable?.dispose()
     area.reset()
     area.releaseLayer()
     state.removeArea(area)

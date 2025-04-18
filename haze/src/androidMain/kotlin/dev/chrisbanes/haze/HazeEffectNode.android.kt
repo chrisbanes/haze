@@ -154,4 +154,4 @@ private fun HazeEffectNode.drawLinearGradientProgressiveEffectUsingLayers(
   }
 }
 
-actual fun HazeEffectNode.invalidateOnHazeAreaLayout(): Boolean = Build.VERSION.SDK_INT < 32
+actual fun invalidateOnHazeAreaPreDraw(): Boolean = Build.VERSION.SDK_INT < 32
