@@ -9,7 +9,6 @@ import android.graphics.PorterDuff
 import android.os.Build
 import android.view.Surface
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.asImageBitmap
@@ -17,8 +16,8 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalGraphicsContext
@@ -26,14 +25,19 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 internal class RenderScriptBlurEffect(
   private val node: HazeEffectNode,
 ) : BlurEffect {
   private var renderScriptContext: RenderScriptContext? = null
   private val drawScope = CanvasDrawScope()
+
+  private var currentJob: Job? = null
+  private var drawSkipped: Boolean = false
 
   private var drawGraphicsLayer: GraphicsLayer? = null
   private val graphicsContext: GraphicsContext
@@ -56,28 +60,39 @@ internal class RenderScriptBlurEffect(
 
     HazeLogger.d(TAG) { "drawEffect. blurRadius=${blurRadiusPx}px. scaleFactor=$scaleFactor" }
 
-    val scaledLayer = createScaledContentLayer(
-      node = node,
-      scaleFactor = scaleFactor,
-      layerSize = node.layerSize,
-      layerOffset = offset,
-    )
-    if (scaledLayer != null) {
-      if (drawGraphicsLayer == null) {
-        // If there is no graphics layer yet, then this is the first draw. We'll generate
-        // this blocking, so that the user doesn't see an un-blurred first frame
-        runBlocking {
-          updateSurface(content = scaledLayer, blurRadius = blurRadiusPx)
-          // Release the graphics layer
-          graphicsContext.releaseGraphicsLayer(scaledLayer)
-        }
-      } else {
-        node.coroutineScope.launch(Dispatchers.Main.immediate) {
-          updateSurface(content = scaledLayer, blurRadius = blurRadiusPx)
-          // Release the graphics layer
-          graphicsContext.releaseGraphicsLayer(scaledLayer)
+    if (shouldUpdateLayer()) {
+      drawSkipped = false
+
+      createScaledContentLayer(
+        node = node,
+        scaleFactor = scaleFactor,
+        layerSize = node.layerSize,
+        layerOffset = offset,
+      )?.let { scaledLayer ->
+        if (drawGraphicsLayer == null) {
+          // If there is no graphics layer yet, then this is the first draw. We'll generate
+          // this blocking, so that the user doesn't see an un-blurred first frame
+          runBlocking {
+            updateSurface(content = scaledLayer, blurRadius = blurRadiusPx)
+            // Release the graphics layer
+            graphicsContext.releaseGraphicsLayer(scaledLayer)
+          }
+        } else {
+          currentJob = node.coroutineScope.launch(Dispatchers.Main.immediate) {
+            updateSurface(content = scaledLayer, blurRadius = blurRadiusPx)
+            // Release the graphics layer
+            graphicsContext.releaseGraphicsLayer(scaledLayer)
+
+            if (drawSkipped) {
+              // If any draws were skipped, let's trigger a draw invalidation
+              node.invalidateDraw()
+            }
+          }
         }
       }
+    } else {
+      // Mark this draw as skipped
+      drawSkipped = true
     }
 
     drawGraphicsLayer?.let { layer ->
@@ -88,22 +103,22 @@ internal class RenderScriptBlurEffect(
         layer.alpha = node.alpha
         drawLayer(layer)
 
-        if (node.alpha < 1f) {
-          PaintPool.usePaint { paint ->
-            paint.alpha = node.alpha
-            drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-              for (tint in node.resolveTints()) {
-                drawScrim(mask = node.mask, progressive = node.progressive, tint = tint)
-              }
-            }
-          }
-        } else {
+        withAlpha(node.alpha) {
           for (tint in node.resolveTints()) {
             drawScrim(mask = node.mask, progressive = node.progressive, tint = tint)
           }
         }
       }
     }
+  }
+
+  private fun shouldUpdateLayer(): Boolean = when {
+    // We don't have a layer yet...
+    drawGraphicsLayer == null -> true
+    // No ongoing update, so start an update...
+    currentJob?.isActive != true -> true
+    // Otherwise, there must be a job ongoing, skip this update
+    else -> false
   }
 
   private suspend fun updateSurface(content: GraphicsLayer, blurRadius: Float) {
@@ -118,8 +133,10 @@ internal class RenderScriptBlurEffect(
 
     if (!node.isAttached) return
 
-    // Now apply the blur
-    rs.applyBlur(blurRadius)
+    // Now apply the blur on a background thread
+    withContext(Dispatchers.Default) {
+      rs.applyBlur(blurRadius)
+    }
 
     // Finally draw the updated bitmap to our drawing graphics layer
     val layer = drawGraphicsLayer
@@ -150,6 +167,7 @@ internal class RenderScriptBlurEffect(
   }
 
   override fun cleanup() {
+    currentJob?.cancel()
     drawGraphicsLayer?.let { graphicsContext.releaseGraphicsLayer(it) }
     renderScriptContext?.release()
   }

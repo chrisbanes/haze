@@ -42,14 +42,7 @@ internal class ScrimBlurEffect(
         ?.boostForFallback(node.resolveBlurRadius().takeOrElse { 0.dp })
       ?: return
 
-    if (node.alpha != 1f) {
-      PaintPool.usePaint { paint ->
-        paint.alpha = node.alpha
-        drawContext.canvas.withSaveLayer(size.toRect(), paint) {
-          drawScrim(node.mask, node.progressive, scrimTint)
-        }
-      }
-    } else {
+    withAlpha(node.alpha) {
       drawScrim(node.mask, node.progressive, scrimTint)
     }
   }

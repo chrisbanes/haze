@@ -9,7 +9,6 @@ import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlendMode
 import android.graphics.BlendModeColorFilter
-import android.graphics.Paint
 import android.graphics.RenderEffect as AndroidRenderEffect
 import android.graphics.RuntimeShader
 import android.graphics.Shader
@@ -31,7 +30,7 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import kotlin.concurrent.getOrSet
+import androidx.core.graphics.createBitmap
 import kotlin.math.roundToInt
 
 internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
@@ -78,16 +77,16 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 private val noiseTextureCache by unsynchronizedLazy { SimpleLruCache<Int, Bitmap>(3) }
 
 private fun Context.getNoiseTexture(noiseFactor: Float): Bitmap {
-  val noiseAlphaInt = (noiseFactor * 255).roundToInt().coerceIn(0, 255)
-  val cached = noiseTextureCache[noiseAlphaInt]
+  val key = (noiseFactor * 255).roundToInt().coerceIn(0, 255)
+  val cached = noiseTextureCache[key]
   if (cached != null && !cached.isRecycled) {
     return cached
   }
 
   // We draw the noise with the given opacity
   return BitmapFactory.decodeResource(resources, R.drawable.haze_noise)
-    .transform(alpha = noiseAlphaInt)
-    .also { noiseTextureCache[noiseAlphaInt] = it }
+    .withAlpha(alpha = noiseFactor)
+    .also { noiseTextureCache[key] = it }
 }
 
 @RequiresApi(31)
@@ -268,16 +267,12 @@ private fun AndroidRenderEffect.chainWith(imageFilter: AndroidRenderEffect): And
  * There might be a better way to do this via a [BlendMode], but none of the results looked as
  * good.
  */
-private fun Bitmap.transform(alpha: Int): Bitmap {
-  val paint = paintLocal.getOrSet { Paint() }
-  paint.reset()
+private fun Bitmap.withAlpha(alpha: Float): Bitmap = PaintPool.usePaint { paint ->
   paint.alpha = alpha
 
-  val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+  val bitmap = createBitmap(width, height)
   android.graphics.Canvas(bitmap).apply {
-    drawBitmap(this@transform, 0f, 0f, paint)
+    drawBitmap(this@withAlpha, 0f, 0f, paint.asFrameworkPaint())
   }
   return bitmap
 }
-
-private val paintLocal = ThreadLocal<Paint>()

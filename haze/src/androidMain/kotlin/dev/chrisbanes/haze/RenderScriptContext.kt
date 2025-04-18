@@ -65,7 +65,10 @@ internal class RenderScriptContext(
 
     blurScript.setRadius(blurRadius.coerceAtMost(25f))
     blurScript.forEach(outputAlloc)
-    outputAlloc.copyTo(outputBitmap)
+
+    if (!isDestroyed) {
+      outputAlloc.copyTo(outputBitmap)
+    }
   }
 
   suspend fun awaitSurfaceWritten() = channel.receive()
@@ -74,9 +77,9 @@ internal class RenderScriptContext(
     HazeLogger.d(TAG) { "Release resources" }
     isDestroyed = true
 
+    blurScript.destroy()
     inputAlloc.destroy()
     outputAlloc.destroy()
-    blurScript.destroy()
     rs.destroy()
   }
 

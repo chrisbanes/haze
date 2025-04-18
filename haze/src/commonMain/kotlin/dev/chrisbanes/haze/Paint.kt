@@ -11,9 +11,9 @@ internal fun Pool<Paint>.getOrCreate(): Paint = get() ?: Paint()
 
 internal expect fun Paint.reset()
 
-internal inline fun Pool<Paint>.usePaint(block: (Paint) -> Unit) {
+internal inline fun <R> Pool<Paint>.usePaint(block: (Paint) -> R): R {
   val paint = getOrCreate()
-  try {
+  return try {
     block(paint)
   } finally {
     paint.reset()
