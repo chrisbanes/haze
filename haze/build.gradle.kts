@@ -42,6 +42,7 @@ kotlin {
       dependencies {
         api(compose.ui)
         implementation(compose.foundation)
+        implementation(libs.androidx.collection)
       }
     }
 
