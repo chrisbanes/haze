@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.max
@@ -41,6 +42,8 @@ internal inline fun <T> unsynchronizedLazy(noinline initializer: () -> T): Lazy<
 }
 
 internal expect fun LayoutCoordinates.positionForHaze(): Offset
+
+internal expect fun CompositionLocalConsumerModifierNode.getWindowId(): Any?
 
 internal fun Rect.expandToInclude(other: Rect): Rect = Rect(
   left = min(left, other.left),

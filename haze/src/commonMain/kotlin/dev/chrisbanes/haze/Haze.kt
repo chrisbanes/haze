@@ -6,7 +6,6 @@ package dev.chrisbanes.haze
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -70,6 +69,9 @@ class HazeArea {
   var key: Any? = null
     internal set
 
+  var windowId: Any? = null
+    internal set
+
   internal val preDrawListeners = mutableSetOf<OnPreDrawListener>()
 
   /**
@@ -85,8 +87,6 @@ class HazeArea {
     }
 
   internal var contentDrawing = false
-
-  internal var forcedInvalidationTick by mutableIntStateOf(0)
 
   override fun toString(): String = buildString {
     append("HazeArea(")

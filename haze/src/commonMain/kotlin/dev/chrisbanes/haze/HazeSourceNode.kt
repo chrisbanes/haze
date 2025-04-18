@@ -133,6 +133,7 @@ class HazeSourceNode(
   private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
     area.positionOnScreen = coordinates.positionForHaze()
     area.size = coordinates.size.toSize()
+    area.windowId = getWindowId()
 
     HazeLogger.d(TAG) {
       "$source: positionOnScreen=${area.positionOnScreen}, " +
