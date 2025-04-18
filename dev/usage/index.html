@@ -507,6 +507,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#enabling-blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enabling blur
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#screenshot-testing" class="md-nav__link">
     <span class="md-ellipsis">
       Screenshot testing
@@ -923,6 +932,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#enabling-blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enabling blur
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#screenshot-testing" class="md-nav__link">
     <span class="md-ellipsis">
       Screenshot testing
@@ -954,7 +972,7 @@
 
 <div><p>Haze is implemented through two Compose Modifiers: <a href="../api/haze/dev.chrisbanes.haze/haze-source.html">Modifier.hazeSource</a> and <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</p>
 <p>The most basic usage would be something like:</p>
-<div class="highlight"><pre><span></span><code><span class="hll"><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="hll"><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 </span>
 <span class="n">Box</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">LazyColumn</span><span class="p">(</span>
@@ -1109,7 +1127,7 @@
 <p><img alt="" src="../media/overlap.webp"></p>
 <p>This code to implement this is like below. You can see that the <code>CreditCard()</code> nodes use both the <code>hazeSource</code> and <code>hazeEffect</code> modifiers. <strong>Pay attention to the modifier order here.</strong></p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 
 <span class="w">  </span><span class="n">Background</span><span class="p">(</span>
 <span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
@@ -1159,7 +1177,7 @@
 <p>You can pass <code>HazeState</code> objects to composables as arguments. For example:</p>
 <div class="highlight"><pre><span></span><code><span class="nd">@Composable</span>
 <span class="kd">fun</span><span class="w"> </span><span class="nf">HazeExample</span><span class="p">(</span><span class="n">modifier</span><span class="p">:</span><span class="w"> </span><span class="n">Modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="hll"><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<span class="hll"><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 </span>
 <span class="w">    </span><span class="n">Box</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">Background</span><span class="p">(</span>
@@ -1201,7 +1219,7 @@ down to the descendants in the hierarchy:</p>
 </span>
 <span class="nd">@Composable</span>
 <span class="kd">fun</span><span class="w"> </span><span class="nf">HazeExample</span><span class="p">(</span><span class="n">modifier</span><span class="p">:</span><span class="w"> </span><span class="n">Modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="hll"><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<span class="hll"><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 </span>
 <span class="hll"><span class="w">    </span><span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalHazeState</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 </span><span class="w">        </span><span class="n">Box</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1231,6 +1249,16 @@ down to the descendants in the hierarchy:</p>
 <h2 id="dialogs">Dialogs<a class="headerlink" href="#dialogs" title="Permanent link">¶</a></h2>
 <p>You can use Haze with <code>Dialog</code>s, to blur dialog backgrounds over content. We supply a <a href="../api/haze/dev.chrisbanes.haze/-haze-dialog.html">HazeDialog</a> composable to make this easy to integrate.</p>
 <p>A sample is available too: <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt">DialogSample</a>.</p>
+<h2 id="enabling-blur">Enabling blur<a class="headerlink" href="#enabling-blur" title="Permanent link">¶</a></h2>
+<p>Whether blurring is enabled or not can be controlled in two ways:</p>
+<ul>
+<li>The HazeState: <code>rememberHazeState(blurEnabled = true)</code>, </li>
+<li>Or on each individual <code>hazeEffect</code>:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">blurEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
 <h2 id="screenshot-testing">Screenshot testing<a class="headerlink" href="#screenshot-testing" title="Permanent link">¶</a></h2>
 <p>Haze support screenshot testing. It is itself heavily screenshot tested, using Roborazzi on both JVM Desktop and Android (Robolectric).</p>
 <p>When using Robolectric it is important to take note of what SDK Level you are running against. When running on Android, Haze uses the built-in <a href="https://developer.android.com/reference/android/graphics/RenderEffect#createBlurEffect(float,%20float,%20android.graphics.Shader.TileMode)">RenderEffect.createBlurEffect</a> using the <a href="https://developer.android.com/reference/android/graphics/Shader.TileMode#CLAMP">CLAMP</a> tile mode. This enables the blur effect to work correctly at the edges of the area. Support for the CLAMP tile mode was only added in Robolectric recently, and requires your tests to be running against SDK 35 (or above).</p>

@@ -622,7 +622,7 @@
 <p class="admonition-title">Multiple hazeEffects</p>
 <p>Note: We are using multiple <code>hazeEffect</code>s in this example. You can actually use an abitrary number of <code>hazeEffect</code>s.</p>
 </div>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 
 <span class="n">Scaffold</span><span class="p">(</span>
 <span class="w">  </span><span class="n">topBar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
@@ -662,7 +662,7 @@
 <p>The <code>stickyHeader</code> functionality on <code>LazyColumn</code> and friends is very useful, but unfortunately the limitations of Haze means that blurring the list contents for the header background is tricky.</p>
 <p>Since we can not use <code>Modifier.hazeSource</code> on the <code>LazyColumn</code> and <code>Modifier.hazeEffect</code> on items, as we would get into recursive drawing, we need to get a bit more creative.</p>
 <p>Since we can have multiple nodes using <code>Modifier.hazeSource</code>, we can use the modifier on all non-header items, and then use <code>hazeEffect</code> as normal on the <code>stickyHeader</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">HazeState</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 
 <span class="n">LazyColumn</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">stickyHeader</span><span class="w"> </span><span class="p">{</span>
