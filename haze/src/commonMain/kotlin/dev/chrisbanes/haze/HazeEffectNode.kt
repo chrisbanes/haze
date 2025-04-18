@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -653,12 +652,6 @@ internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params
 internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
 
 internal expect fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope)
-
-internal expect fun HazeEffectNode.drawProgressiveEffect(
-  drawScope: DrawScope,
-  progressive: HazeProgressive,
-  contentLayer: GraphicsLayer,
-)
 
 internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 
