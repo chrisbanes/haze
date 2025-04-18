@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
+import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -47,3 +48,5 @@ internal fun Rect.expandToInclude(other: Rect): Rect = Rect(
   right = max(right, other.right),
   bottom = max(bottom, other.bottom),
 )
+
+internal fun floor(size: Size): Size = Size(width = floor(size.width), height = floor(size.height))

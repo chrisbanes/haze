@@ -23,8 +23,8 @@ import androidx.compose.ui.graphics.withSaveLayer
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
+import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
 
 internal interface BlurEffect {
@@ -42,16 +42,17 @@ internal class ScrimBlurEffect(
         ?.boostForFallback(node.resolveBlurRadius().takeOrElse { 0.dp })
       ?: return
 
-    withAlpha(node.alpha) {
-      drawScrim(node.mask, node.progressive, scrimTint)
+    withAlpha(alpha = node.alpha, node = node) {
+      drawScrim(tint = scrimTint, mask = node.mask, progressive = node.progressive)
     }
   }
 }
 
 internal fun DrawScope.drawScrim(
-  mask: Brush?,
-  progressive: HazeProgressive?,
   tint: HazeTint,
+  size: Size = this.size,
+  mask: Brush? = null,
+  progressive: HazeProgressive? = null,
 ) {
   if (tint.brush != null) {
     val maskingShader = when {
@@ -73,7 +74,7 @@ internal fun DrawScope.drawScrim(
         }
       }
     } else {
-      drawRect(brush = tint.brush, blendMode = tint.blendMode)
+      drawRect(brush = tint.brush, size = size, blendMode = tint.blendMode)
     }
   } else {
     if (mask != null) {
@@ -138,7 +139,7 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
   )
 
   if (layer != null) {
-    drawScaledContentLayer(
+    drawScaledContent(
       offset = -node.layerOffset,
       scaleFactor = scaleFactor,
       block = { block(layer) },
@@ -156,7 +157,7 @@ internal fun DrawScope.createScaledContentLayer(
   layerSize: Size,
   layerOffset: Offset,
 ): GraphicsLayer? {
-  val scaledSize = (layerSize * scaleFactor).roundToIntSize()
+  val scaledSize = (layerSize * scaleFactor).toIntSize()
 
   if (scaledSize.width <= 0 || scaledSize.height <= 0) {
     // If we have a 0px dimension we can't do anything so just return
@@ -215,7 +216,7 @@ internal fun DrawScope.createScaledContentLayer(
   return layer
 }
 
-internal fun DrawScope.drawScaledContentLayer(
+internal fun DrawScope.drawScaledContent(
   offset: Offset,
   scaleFactor: Float,
   block: DrawScope.() -> Unit,

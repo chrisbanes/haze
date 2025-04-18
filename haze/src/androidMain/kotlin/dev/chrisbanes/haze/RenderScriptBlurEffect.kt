@@ -12,11 +12,13 @@ import android.os.Build
 import android.view.Surface
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.node.currentValueOf
@@ -42,9 +44,10 @@ internal class RenderScriptBlurEffect(
   private var currentJob: Job? = null
   private var drawSkipped: Boolean = false
 
-  private var drawGraphicsLayer: GraphicsLayer? = null
   private val graphicsContext: GraphicsContext
     get() = node.currentValueOf(LocalGraphicsContext)
+
+  private val contentLayer: GraphicsLayer = graphicsContext.createGraphicsLayer()
 
   private val density: Density
     get() = node.requireDensity()
@@ -53,8 +56,8 @@ internal class RenderScriptBlurEffect(
     val context = node.currentValueOf(LocalContext)
     val offset = node.layerOffset
     var scaleFactor = node.calculateInputScaleFactor()
-    var blurRadiusPx = scaleFactor * with(density) { node.resolveBlurRadius().toPx() }
 
+    var blurRadiusPx = scaleFactor * with(density) { node.resolveBlurRadius().toPx() }
     if (blurRadiusPx > MAX_BLUR_RADIUS) {
       // RenderScript has a max blur radius (25px), so to create an equivalent visual effect
       // we need to increase the scale factor
@@ -72,20 +75,20 @@ internal class RenderScriptBlurEffect(
         scaleFactor = scaleFactor,
         layerSize = node.layerSize,
         layerOffset = offset,
-      )?.let { scaledLayer ->
-        if (drawGraphicsLayer == null) {
-          // If there is no graphics layer yet, then this is the first draw. We'll generate
+      )?.let { layer ->
+        if (contentLayer.size == IntSize.Zero) {
+          // If the layer is released, or doesn't have a size yet, we'll generate
           // this blocking, so that the user doesn't see an un-blurred first frame
           runBlocking {
-            updateSurface(content = scaledLayer, blurRadius = blurRadiusPx)
+            updateSurface(content = layer, blurRadius = blurRadiusPx)
             // Release the graphics layer
-            graphicsContext.releaseGraphicsLayer(scaledLayer)
+            graphicsContext.releaseGraphicsLayer(layer)
           }
         } else {
           currentJob = node.coroutineScope.launch(Dispatchers.Main.immediate) {
-            updateSurface(content = scaledLayer, blurRadius = blurRadiusPx)
+            updateSurface(content = layer, blurRadius = blurRadiusPx)
             // Release the graphics layer
-            graphicsContext.releaseGraphicsLayer(scaledLayer)
+            graphicsContext.releaseGraphicsLayer(layer)
 
             if (drawSkipped) {
               // If any draws were skipped, let's trigger a draw invalidation
@@ -99,34 +102,55 @@ internal class RenderScriptBlurEffect(
       drawSkipped = true
     }
 
-    drawGraphicsLayer?.let { layer ->
-      drawScaledContentLayer(offset = -offset, scaleFactor = scaleFactor) {
-        // TODO: apply mask or progressive to layer?
+    node.withGraphicsLayer { layer ->
+      layer.alpha = node.alpha
 
-        layer.alpha = node.alpha
-        drawLayer(layer)
+      val mask = node.mask ?: node.progressive?.asBrush()
+      if (mask != null) {
+        // If we have a mask, this needs to be drawn offscreen
+        layer.compositingStrategy = CompositingStrategy.Offscreen
+      }
 
-        withAlpha(node.alpha) {
+      layer.record(size = contentLayer.size) {
+        drawLayer(contentLayer)
+
+        val contentSize = floor(node.size * scaleFactor)
+        val contentOffset = offset * scaleFactor
+
+        translate(contentOffset) {
+          // Draw the noise on top...
           val noiseFactor = node.resolveNoiseFactor()
           if (noiseFactor > 0f) {
             PaintPool.usePaint { paint ->
               val texture = context.getNoiseTexture(noiseFactor)
               paint.shader = BitmapShader(texture, REPEAT, REPEAT)
-              drawContext.canvas.drawRect(size.toRect(), paint)
+              drawContext.canvas.drawRect(contentSize.toRect(), paint)
             }
           }
 
+          // Then the tints...
           for (tint in node.resolveTints()) {
-            drawScrim(mask = node.mask, progressive = node.progressive, tint = tint)
+            drawScrim(tint = tint, mask = node.mask, progressive = node.progressive, size = contentSize)
+          }
+
+          if (mask != null) {
+            HazeLogger.d(TAG) {
+              "Drawing mask. contentSize=$contentSize, offset=$contentOffset, canvas size=$size"
+            }
+            drawRect(brush = mask, size = contentSize, blendMode = BlendMode.DstIn)
           }
         }
+      }
+
+      drawScaledContent(offset = -offset, scaleFactor = scaleFactor) {
+        drawLayer(layer)
       }
     }
   }
 
   private fun shouldUpdateLayer(): Boolean = when {
     // We don't have a layer yet...
-    drawGraphicsLayer == null -> true
+    contentLayer.size == IntSize.Zero -> true
     // No ongoing update, so start an update...
     currentJob?.isActive != true -> true
     // Otherwise, there must be a job ongoing, skip this update
@@ -151,12 +175,9 @@ internal class RenderScriptBlurEffect(
     }
 
     // Finally draw the updated bitmap to our drawing graphics layer
-    val layer = drawGraphicsLayer
-      ?: graphicsContext.createGraphicsLayer().also { drawGraphicsLayer = it }
-
     val output = rs.outputBitmap
 
-    layer.record(
+    contentLayer.record(
       density = density,
       layoutDirection = node.currentValueOf(LocalLayoutDirection),
       size = IntSize(output.width, output.height),
@@ -180,7 +201,7 @@ internal class RenderScriptBlurEffect(
 
   override fun cleanup() {
     currentJob?.cancel()
-    drawGraphicsLayer?.let { graphicsContext.releaseGraphicsLayer(it) }
+    graphicsContext.releaseGraphicsLayer(contentLayer)
     renderScriptContext?.release()
   }
 
