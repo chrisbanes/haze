@@ -10,7 +10,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
@@ -71,42 +70,6 @@ internal fun DrawScope.drawScrim(
       drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
     } else {
       drawRect(color = tint.color, blendMode = tint.blendMode)
-    }
-  }
-}
-
-@OptIn(ExperimentalHazeApi::class)
-internal class RenderEffectBlurEffect(
-  private val node: HazeEffectNode,
-) : BlurEffect {
-  private var renderEffect: RenderEffect? = null
-
-  override fun DrawScope.drawEffect() {
-    createAndDrawScaledContentLayer(node) { layer ->
-      val p = node.progressive
-      if (p != null) {
-        node.drawProgressiveEffect(
-          drawScope = this,
-          progressive = p,
-          contentLayer = layer,
-        )
-      } else {
-        // First make sure that the RenderEffect is updated (if necessary)
-        updateRenderEffectIfDirty(node)
-
-        layer.renderEffect = renderEffect
-        layer.alpha = node.alpha
-
-        // Since we included a border around the content, we need to translate so that
-        // we don't see it (but it still affects the RenderEffect)
-        drawLayer(layer)
-      }
-    }
-  }
-
-  private fun updateRenderEffectIfDirty(node: HazeEffectNode) {
-    if (renderEffect == null || node.dirtyTracker.any(DirtyFields.RenderEffectAffectingFlags)) {
-      renderEffect = node.getOrCreateRenderEffect()
     }
   }
 }
