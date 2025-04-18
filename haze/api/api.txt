@@ -253,12 +253,16 @@ package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
+    ctor public HazeState(boolean blurEnabled);
     method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
+    method public boolean getBlurEnabled();
     method @Deprecated public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
     method @Deprecated public long getPositionOnScreen();
+    method public void setBlurEnabled(boolean);
     method @Deprecated public void setContentLayer(androidx.compose.ui.graphics.layer.GraphicsLayer?);
     method @Deprecated public void setPositionOnScreen(long);
     property public final java.util.List<dev.chrisbanes.haze.HazeArea> areas;
+    property public final boolean blurEnabled;
     property @Deprecated public final androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
     property @Deprecated public final long positionOnScreen;
   }

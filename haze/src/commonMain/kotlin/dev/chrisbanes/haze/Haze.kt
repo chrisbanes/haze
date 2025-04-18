@@ -23,9 +23,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Stable
-class HazeState {
+class HazeState(blurEnabled: Boolean) {
   private val _areas = mutableStateListOf<HazeArea>()
   val areas: List<HazeArea> get() = _areas.toList()
+
+  constructor(): this(blurEnabled = HazeDefaults.blurEnabled())
+
+  /**
+   * Whether blurring is enabled or not. This can be overridden on each [hazeEffect]
+   * via the [HazeEffectScope.blurEnabled] property.
+   */
+  var blurEnabled: Boolean by mutableStateOf(blurEnabled)
 
   internal fun addArea(area: HazeArea) {
     _areas += area
