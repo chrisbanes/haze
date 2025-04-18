@@ -130,7 +130,7 @@ internal class RenderScriptBlurEffect(
 
           // Then the tints...
           for (tint in node.resolveTints()) {
-            drawScrim(tint = tint, mask = node.mask, progressive = node.progressive, size = contentSize)
+            drawScrim(tint = tint, node = node, size = contentSize)
           }
 
           if (mask != null) {
