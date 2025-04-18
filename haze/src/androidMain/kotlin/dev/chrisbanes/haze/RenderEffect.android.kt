@@ -76,7 +76,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 
 private val noiseTextureCache by unsynchronizedLazy { SimpleLruCache<Int, Bitmap>(3) }
 
-private fun Context.getNoiseTexture(noiseFactor: Float): Bitmap {
+internal fun Context.getNoiseTexture(noiseFactor: Float): Bitmap {
   val key = (noiseFactor * 255).roundToInt().coerceIn(0, 255)
   val cached = noiseTextureCache[key]
   if (cached != null && !cached.isRecycled) {

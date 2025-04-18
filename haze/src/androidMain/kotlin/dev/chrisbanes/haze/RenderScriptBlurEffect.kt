@@ -4,11 +4,14 @@
 package dev.chrisbanes.haze
 
 import android.content.Context
+import android.graphics.BitmapShader
 import android.graphics.Color
 import android.graphics.PorterDuff
+import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import android.view.Surface
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.asImageBitmap
@@ -47,6 +50,7 @@ internal class RenderScriptBlurEffect(
     get() = node.requireDensity()
 
   override fun DrawScope.drawEffect() {
+    val context = node.currentValueOf(LocalContext)
     val offset = node.layerOffset
     var scaleFactor = node.calculateInputScaleFactor()
     var blurRadiusPx = scaleFactor * with(density) { node.resolveBlurRadius().toPx() }
@@ -98,12 +102,20 @@ internal class RenderScriptBlurEffect(
     drawGraphicsLayer?.let { layer ->
       drawScaledContentLayer(offset = -offset, scaleFactor = scaleFactor) {
         // TODO: apply mask or progressive to layer?
-        // TODO: draw noise?
 
         layer.alpha = node.alpha
         drawLayer(layer)
 
         withAlpha(node.alpha) {
+          val noiseFactor = node.resolveNoiseFactor()
+          if (noiseFactor > 0f) {
+            PaintPool.usePaint { paint ->
+              val texture = context.getNoiseTexture(noiseFactor)
+              paint.shader = BitmapShader(texture, REPEAT, REPEAT)
+              drawContext.canvas.drawRect(size.toRect(), paint)
+            }
+          }
+
           for (tint in node.resolveTints()) {
             drawScrim(mask = node.mask, progressive = node.progressive, tint = tint)
           }
