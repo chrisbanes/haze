@@ -1,7 +1,7 @@
-// Copyright 2024, Christopher Banes and the Haze project contributors
+// Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze.benchmark
+package dev.chrisbanes.haze
 
 import android.graphics.Point
 import androidx.benchmark.macro.FrameTimingMetric
@@ -9,15 +9,6 @@ import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.uiautomator.By
-import dev.chrisbanes.haze.testutils.navigateToCreditCard
-import dev.chrisbanes.haze.testutils.navigateToImagesList
-import dev.chrisbanes.haze.testutils.navigateToScaffold
-import dev.chrisbanes.haze.testutils.navigateToScaffoldScaled
-import dev.chrisbanes.haze.testutils.navigateToScaffoldWithMask
-import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
-import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressiveScaled
-import dev.chrisbanes.haze.testutils.repeatedScrolls
-import dev.chrisbanes.haze.testutils.waitForObject
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,6 +30,7 @@ class BenchmarkTest {
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {
         startActivityAndWait()
+        device.setBlurEnabled(true)
         device.navigateToImagesList()
       },
     ) {
@@ -55,6 +47,7 @@ class BenchmarkTest {
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {
         startActivityAndWait()
+        device.setBlurEnabled(true)
         device.navigateToScaffold()
       },
     ) {
@@ -71,6 +64,7 @@ class BenchmarkTest {
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {
         startActivityAndWait()
+        device.setBlurEnabled(true)
         device.navigateToScaffoldScaled()
       },
     ) {
@@ -87,6 +81,7 @@ class BenchmarkTest {
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {
         startActivityAndWait()
+        device.setBlurEnabled(true)
         device.navigateToScaffoldWithProgressive()
       },
     ) {
@@ -103,6 +98,7 @@ class BenchmarkTest {
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {
         startActivityAndWait()
+        device.setBlurEnabled(true)
         device.navigateToScaffoldWithProgressiveScaled()
       },
     ) {
@@ -119,6 +115,7 @@ class BenchmarkTest {
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {
         startActivityAndWait()
+        device.setBlurEnabled(true)
         device.navigateToScaffoldWithMask()
       },
     ) {
@@ -135,6 +132,7 @@ class BenchmarkTest {
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {
         startActivityAndWait()
+        device.setBlurEnabled(true)
         device.navigateToCreditCard()
       },
     ) {

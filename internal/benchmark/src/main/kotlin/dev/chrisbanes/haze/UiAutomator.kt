@@ -1,7 +1,7 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze.testutils
+package dev.chrisbanes.haze
 
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
@@ -32,6 +32,14 @@ internal fun UiDevice.waitForObjectOrNull(
 
 internal fun <R> UiDevice.wait(condition: SearchCondition<R>, timeout: Duration): R {
   return wait(condition, timeout.inWholeMilliseconds)
+}
+
+internal fun UiDevice.setBlurEnabled(enabled: Boolean) {
+  val checkbox = findObject(By.res("blur_enabled"))
+  if (checkbox.isChecked != enabled) {
+    checkbox.click()
+    waitForIdle()
+  }
 }
 
 internal fun UiDevice.navigateToImagesList() {
@@ -72,7 +80,7 @@ internal fun UiDevice.navigateToCreditCard() {
 internal fun UiDevice.findItem(selector: BySelector): UiObject2 {
   return waitForObject(By.res("sample_list"))
     .apply { setGestureMarginPercentage(0.1f) }
-    .scrollUntil(Direction.UP, Until.findObject(selector))
+    .scrollUntil(Direction.DOWN, Until.findObject(selector))
 }
 
 internal fun UiDevice.repeatedScrolls(

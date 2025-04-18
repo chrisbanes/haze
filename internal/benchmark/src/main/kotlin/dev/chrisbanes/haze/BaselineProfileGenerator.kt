@@ -1,14 +1,10 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze.baselineprofile
+package dev.chrisbanes.haze
 
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import dev.chrisbanes.haze.testutils.navigateToImagesList
-import dev.chrisbanes.haze.testutils.navigateToScaffold
-import dev.chrisbanes.haze.testutils.navigateToScaffoldWithProgressive
-import dev.chrisbanes.haze.testutils.repeatedScrolls
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,6 +20,9 @@ class BaselineProfileGenerator {
   ) {
     pressHome()
     startActivityAndWait()
+
+    // Force enable blurring
+    device.setBlurEnabled(true)
 
     // Scroll down several times
     device.navigateToImagesList()

@@ -37,16 +37,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
-import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
+import dev.chrisbanes.haze.rememberHazeState
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-fun DialogSample(navController: NavHostController) {
+fun DialogSample(navController: NavHostController, blurEnabled: Boolean = HazeDefaults.blurEnabled()) {
   Scaffold(
     modifier = Modifier.fillMaxSize(),
     topBar = {
@@ -62,7 +63,7 @@ fun DialogSample(navController: NavHostController) {
       )
     },
   ) { innerPadding ->
-    val hazeState = remember { HazeState() }
+    val hazeState = rememberHazeState(blurEnabled = blurEnabled)
     var showDialog by remember { mutableStateOf(false) }
 
     if (showDialog) {

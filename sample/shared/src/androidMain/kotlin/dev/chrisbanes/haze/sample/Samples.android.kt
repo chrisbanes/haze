@@ -15,7 +15,9 @@ actual val Samples: List<Sample> = buildList {
 @Serializable
 data object AndroidExoPlayer : Sample {
   override val title: String = "ExoPlayer"
-  override val content: @Composable (NavHostController) -> Unit = {
-    ExoPlayerSample()
+
+  @Composable
+  override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    ExoPlayerSample(blurEnabled)
   }
 }

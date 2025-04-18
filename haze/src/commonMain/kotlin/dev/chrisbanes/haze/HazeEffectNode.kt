@@ -68,13 +68,16 @@ class HazeEffectNode(
 
   internal var dirtyTracker = Bitmask()
 
-  override var blurEnabled: Boolean = HazeDefaults.blurEnabled()
+  internal var blurEnabledSet: Boolean = false
+  override var blurEnabled: Boolean = state.blurEnabled
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "blurEnabled changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += DirtyFields.BlurEnabled
       }
+      // Mark the set flag, to indicate that this value should take precedence
+      blurEnabledSet = true
     }
 
   override var inputScale: HazeInputScale = HazeInputScale.Default
@@ -274,7 +277,7 @@ class HazeEffectNode(
    *   like Dialogs.
    */
   private fun attachPreDrawListenerIfNecessary(area: HazeArea) {
-    if (blurEnabled && (invalidateOnHazeAreaPreDraw() || area.windowId != windowId)) {
+    if (resolveBlurEnabled() && (invalidateOnHazeAreaPreDraw() || area.windowId != windowId)) {
       area.preDrawListeners.add(areaPreDrawListener)
     }
   }
@@ -688,6 +691,11 @@ internal fun HazeEffectNode.resolveNoiseFactor(): Float {
   return noiseFactor
     .takeOrElse { style.noiseFactor }
     .takeOrElse { compositionLocalStyle.noiseFactor }
+}
+
+internal fun HazeEffectNode.resolveBlurEnabled(): Boolean = when {
+  blurEnabledSet -> blurEnabled
+  else -> state.blurEnabled
 }
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")

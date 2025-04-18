@@ -26,14 +26,16 @@ internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope
   val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
     drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
+  val blur = resolveBlurEnabled()
+
   when {
-    blurEnabled && canUseRenderEffect -> {
+    blur && canUseRenderEffect -> {
       if (blurEffect !is RenderEffectBlurEffect) {
         blurEffect = RenderEffectBlurEffect(this)
       }
     }
 
-    blurEnabled && !isRunningOnRobolectric() -> {
+    blur && !isRunningOnRobolectric() -> {
       if (blurEffect !is RenderScriptBlurEffect) {
         blurEffect = RenderScriptBlurEffect(this)
       }

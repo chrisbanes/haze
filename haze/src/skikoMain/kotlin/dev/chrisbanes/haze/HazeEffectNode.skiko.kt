@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 
 internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope) {
   when {
-    blurEnabled -> {
+    resolveBlurEnabled() -> {
       if (blurEffect !is RenderEffectBlurEffect) {
         blurEffect = RenderEffectBlurEffect(this)
       }
