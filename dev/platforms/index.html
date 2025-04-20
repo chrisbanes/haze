@@ -866,7 +866,7 @@
 
   <h1>Platforms</h1>
 
-<div><p>Haze works on all platforms which <a href="https://www.jetbrains.com/compose-multiplatform/">Compose Multiplatform</a> supports. </p>
+<div><p>Haze works on all platforms which <a href="https://www.jetbrains.com/compose-multiplatform/">Compose Multiplatform</a> supports.</p>
 <div class="admonition note">
 <p class="admonition-title">Compose Multiplatform platforms</p>
 <p>Please note, the list of platforms which Compose Multiplatform (CMP) supports is different to the platforms which Kotlin Multiplatform supports. Please stop raising issues about adding "MacOS" support; it is not supported (directly) by CMP.</p>
@@ -879,7 +879,7 @@
 <p>SDK Levels: 31 &amp; 32</p>
 <p>When running on these versions of Android, Haze needs to use a few workarounds:</p>
 <h4 id="hazeprogressive">HazeProgressive<a class="headerlink" href="#hazeprogressive" title="Permanent link">¶</a></h4>
-<p>Only linear gradient <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/">HazeProgressive</a> effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself. </p>
+<p>Only linear gradient <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/">HazeProgressive</a> effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.</p>
 <p>You can disable this behavior by setting the <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/">preferPerformance</a> property. When set to true, the progressive 'effect' will instead be drawn via a mask:</p>
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
@@ -893,12 +893,12 @@
 </code></pre></div>
 <p>All other progressive types will fallback to using a mask when running on Android 12 &amp; 13.</p>
 <h3 id="android-12-and-below">Android 12 and below<a class="headerlink" href="#android-12-and-below" title="Permanent link">¶</a></h3>
-<p>When running on Android 12 and below, we can not rely on <a href="https://developer.android.com/reference/android/graphics/RenderNode">RenderNode</a> (which <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/layer/GraphicsLayer">GraphicsLayer</a> use internally) re-painting when content changes. For this reason, Haze <em>previously</em> disabled blurring effects on Android 12 by default, as we could not guarantee that it works. </p>
-<p>As of Haze v1.6 and newer though, we have a mechanism allowing Haze to re-enable blurring on Android 12 by default. </p>
+<p>When running on Android 12 and below, we can not rely on <a href="https://developer.android.com/reference/android/graphics/RenderNode">RenderNode</a> (which <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/layer/GraphicsLayer">GraphicsLayer</a> use internally) re-painting when content changes. For this reason, Haze <em>previously</em> disabled blurring effects on Android 12 by default, as we could not guarantee that it works.</p>
+<p>As of Haze v1.6 and newer though, we have a mechanism allowing Haze to re-enable blurring on Android 12 by default.</p>
 <p>This same mechanism is required to enable blurring to work on Android 11 and below too, when enabled (more on that below).</p>
 <details class="info">
 <summary>Manual invalidation mechanism</summary>
-<p>The mechanism involves Haze manually invalidating the graphics layers manually when necessary, using 'pre draw' events. This document is not the place to go deep into 'pre draw' events, but the main point here is that Compose does not send a pre-draw event itself, so Haze needs to use the host view system's listener (via <a href="https://developer.android.com/reference/android/view/ViewTreeObserver">ViewTreeObserver</a>). This means that we are not subscribing to when our particular draw nodes are about to draw, but instead we are called whenever <em>anything</em> is about to be drawn on screen. </p>
+<p>The mechanism involves Haze manually invalidating the graphics layers manually when necessary, using 'pre draw' events. This document is not the place to go deep into 'pre draw' events, but the main point here is that Compose does not send a pre-draw event itself, so Haze needs to use the host view system's listener (via <a href="https://developer.android.com/reference/android/view/ViewTreeObserver">ViewTreeObserver</a>). This means that we are not subscribing to when our particular draw nodes are about to draw, but instead we are called whenever <em>anything</em> is about to be drawn on screen.</p>
 <p>The TL;DR of this section is that the event we listen to is a lot more global than we need. Ideally we would have a way to know when the <code>hazeSource</code> node is about to be drawn (and only when the node is about to be drawn) but that functionality does not exist.</p>
 <p>The downside to this mechanism is that it will trigger more invalidations than what is really needed. We're effectively negating some of the granular invalidations which Compose enables through it's <a href="https://developer.android.com/develop/ui/compose/phases">phasing system</a>. It should not cause your apps any performance issues, but you can disable blurring if necessary. See <a href="../usage/#enabling-blur">docs here</a> for more information.</p>
 </details>
@@ -916,8 +916,8 @@
 <p>Using RenderScript does come with some drawbacks compared to <a href="https://developer.android.com/reference/android/graphics/RenderEffect">RenderEffect</a> which we use on Android 12+. The biggest is that RenderScript and your drawn content are two distinct things, which means that for Haze to blur your composable content, we need to draw it somewhere which RenderScript can read, and then also write to. This results in copying of data, which makes this blurring implementation quite slow.</p>
 <p>As this implementation is slow, it means that processing a frame can easily take longer than our allocated frame budget time. To combat this, Haze uses a background thread to process and blur frames, but this comes with the drawback that content updates will nearly always be a frame (or more) behind. In addition to this, Haze will only ever process one frame at a time. If a new draw is called and Haze is still processing a previous frame, Haze will simply ignore it. This is to ensure that Haze does not unintentionally create a queue of frames, and potentially overwhelm the device.</p>
 <p>To the user the blur effect may look 'laggy' or slow to update, especially when the background content changes a lot. This is the compromise which we have decided to make in Haze, but in my opinion it is more than good enough for the majority of use cases.</p>
-<p><div class="video-container"><video style="width: 50%" loop muted autoplay alt="type:video"><source src="../media/renderscript.mp4" type="video/mp4"></source></video></div></p>
-<p>As mentioned above, blurring on Android 11 and below is not enabled by default. See the <a href="../usage/#enabling-blur">docs here</a> on how to enable it. </p>
+<p><div class="video-container"><video style="width:100%;height:30rem" loop muted autoplay alt="type:video"><source src="../media/renderscript.mp4" type="video/mp4"></source></video></div></p>
+<p>As mentioned above, blurring on Android 11 and below is not enabled by default. See the <a href="../usage/#enabling-blur">docs here</a> on how to enable it.</p>
 <p>One final thing to note is that Haze needs to use the "Manual invalidation mechanism" mentioned above for this to work.</p>
 <div class="admonition info">
 <p class="admonition-title">Thanks</p>
@@ -935,7 +935,7 @@
 <p>The most important thing when running on these platforms is the library versions we're built against. Haze is always built, tested and released against the latest stable version of Compose Multiplatform.</p>
 <p>Other than that, running on a Skiko-backed platform means that Haze is running in its optimal environment.</p>
 <h3 id="using-pre-release-versions-of-compose-multiplatform">Using pre-release versions of Compose Multiplatform<a class="headerlink" href="#using-pre-release-versions-of-compose-multiplatform" title="Permanent link">¶</a></h3>
-<p>We do occassionaly verify against pre-release versions of CMP, but it's not something we guarantee. If you want to use a pre-release version of Compose Multiplatform, then please test it thoroughly.</p></div>
+<p>We do occasionally verify against pre-release versions of CMP, but it's not something we guarantee. If you want to use a pre-release version of Compose Multiplatform, then please test it thoroughly.</p></div>
 
 
 
