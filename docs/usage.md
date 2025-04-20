@@ -369,8 +369,8 @@ A sample is available too: [DialogSample](https://github.com/chrisbanes/haze/blo
 
 Whether blurring is enabled or not can be controlled in two ways:
 
-- The HazeState: `rememberHazeState(blurEnabled = true)`, 
-- Or on each individual `hazeEffect`:
+- The HazeState: `rememberHazeState(blurEnabled = true)`. This affects all modifiers attached to it.
+- On each individual `hazeEffect` like so:
 
 ```kotlin
 Modifier.hazeEffect(...) {

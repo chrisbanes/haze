@@ -16,6 +16,7 @@ repo_url: "https://github.com/chrisbanes/haze"
 nav:
   - "Overview": index.md
   - "Usage": usage.md
+  - "Platforms": platforms.md
   - "Materials": materials.md
   - "Performance": performance.md
   - "FAQs": faq.md
