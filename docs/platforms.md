@@ -1,5 +1,4 @@
-Haze works on all platforms which [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) supports. 
-
+Haze works on all platforms which [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) supports.
 
 !!! note "Compose Multiplatform platforms"
 
@@ -21,7 +20,7 @@ When running on these versions of Android, Haze needs to use a few workarounds:
 
 #### HazeProgressive
 
-Only linear gradient [HazeProgressive](api/haze/dev.chrisbanes.haze/-haze-progressive/index.html) effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself. 
+Only linear gradient [HazeProgressive](api/haze/dev.chrisbanes.haze/-haze-progressive/index.html) effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.
 
 You can disable this behavior by setting the [preferPerformance](api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/index.html) property. When set to true, the progressive 'effect' will instead be drawn via a mask:
 
@@ -41,16 +40,16 @@ All other progressive types will fallback to using a mask when running on Androi
 
 ### Android 12 and below
 
-When running on Android 12 and below, we can not rely on [RenderNode][rendernode] (which [GraphicsLayer][graphicslayer] use internally) re-painting when content changes. For this reason, Haze _previously_ disabled blurring effects on Android 12 by default, as we could not guarantee that it works. 
+When running on Android 12 and below, we can not rely on [RenderNode][rendernode] (which [GraphicsLayer][graphicslayer] use internally) re-painting when content changes. For this reason, Haze _previously_ disabled blurring effects on Android 12 by default, as we could not guarantee that it works.
 
-As of Haze v1.6 and newer though, we have a mechanism allowing Haze to re-enable blurring on Android 12 by default. 
+As of Haze v1.6 and newer though, we have a mechanism allowing Haze to re-enable blurring on Android 12 by default.
 
 This same mechanism is required to enable blurring to work on Android 11 and below too, when enabled (more on that below).
 
 ??? info "Manual invalidation mechanism"
 
-    The mechanism involves Haze manually invalidating the graphics layers manually when necessary, using 'pre draw' events. This document is not the place to go deep into 'pre draw' events, but the main point here is that Compose does not send a pre-draw event itself, so Haze needs to use the host view system's listener (via [ViewTreeObserver](https://developer.android.com/reference/android/view/ViewTreeObserver)). This means that we are not subscribing to when our particular draw nodes are about to draw, but instead we are called whenever _anything_ is about to be drawn on screen. 
-    
+    The mechanism involves Haze manually invalidating the graphics layers manually when necessary, using 'pre draw' events. This document is not the place to go deep into 'pre draw' events, but the main point here is that Compose does not send a pre-draw event itself, so Haze needs to use the host view system's listener (via [ViewTreeObserver](https://developer.android.com/reference/android/view/ViewTreeObserver)). This means that we are not subscribing to when our particular draw nodes are about to draw, but instead we are called whenever _anything_ is about to be drawn on screen.
+
     The TL;DR of this section is that the event we listen to is a lot more global than we need. Ideally we would have a way to know when the `hazeSource` node is about to be drawn (and only when the node is about to be drawn) but that functionality does not exist.
 
     The downside to this mechanism is that it will trigger more invalidations than what is really needed. We're effectively negating some of the granular invalidations which Compose enables through it's [phasing system](https://developer.android.com/develop/ui/compose/phases). It should not cause your apps any performance issues, but you can disable blurring if necessary. See [docs here](usage.md#enabling-blur) for more information.
@@ -79,9 +78,9 @@ As this implementation is slow, it means that processing a frame can easily take
 
 To the user the blur effect may look 'laggy' or slow to update, especially when the background content changes a lot. This is the compromise which we have decided to make in Haze, but in my opinion it is more than good enough for the majority of use cases.
 
-![type:video](media/renderscript.mp4){: style='width: 50%'}
+![type:video](media/renderscript.mp4)
 
-As mentioned above, blurring on Android 11 and below is not enabled by default. See the [docs here](usage.md#enabling-blur) on how to enable it. 
+As mentioned above, blurring on Android 11 and below is not enabled by default. See the [docs here](usage.md#enabling-blur) on how to enable it.
 
 One final thing to note is that Haze needs to use the "Manual invalidation mechanism" mentioned above for this to work.
 
@@ -113,7 +112,7 @@ Other than that, running on a Skiko-backed platform means that Haze is running i
 
 ### Using pre-release versions of Compose Multiplatform
 
- We do occassionaly verify against pre-release versions of CMP, but it's not something we guarantee. If you want to use a pre-release version of Compose Multiplatform, then please test it thoroughly.
+ We do occasionally verify against pre-release versions of CMP, but it's not something we guarantee. If you want to use a pre-release version of Compose Multiplatform, then please test it thoroughly.
 
 
  [rendernode]: https://developer.android.com/reference/android/graphics/RenderNode
