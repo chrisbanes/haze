@@ -306,6 +306,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../platforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Platforms
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../materials/" class="md-nav__link">
         
   
@@ -419,21 +441,6 @@
       What versions of Android does Haze work on?
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="What versions of Android does Haze work on?">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#renderscript" class="md-nav__link">
-    <span class="md-ellipsis">
-      RenderScript
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -626,21 +633,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="What versions of Android does Haze work on?">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#renderscript" class="md-nav__link">
-    <span class="md-ellipsis">
-      RenderScript
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
     </ul>
@@ -666,23 +658,14 @@
 
 <div><h2 id="whats-the-difference-between-this-and-modifierblur">What's the difference between this and Modifier.blur?<a class="headerlink" href="#whats-the-difference-between-this-and-modifierblur" title="Permanent link">¶</a></h2>
 <p>The <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)">Modifier.blur</a> modifier and Haze may sound similar, but what they provide is different.</p>
-<p>Haze provides background blurring, meaning that it will blur content behind, not the content itself. This is what you need to implement glass-like effects. Other than that, Haze provides a whole bunch of other features which you can read about on the <a href="../usage/">Usage</a> page.</p>
+<p>Haze provides background blurring, meaning that it will blur content behind, not the content itself. This is typically required to implement glass-like effects. </p>
+<p>Other than that, Haze provides a whole bunch of other features which you can read about on the <a href="../usage/">Usage</a> page.</p>
 <h2 id="are-the-blur-implementations-the-same-across-different-platforms">Are the blur implementations the same across different platforms?<a class="headerlink" href="#are-the-blur-implementations-the-same-across-different-platforms" title="Permanent link">¶</a></h2>
-<p>In v1.0 onwards, all platforms use the same implementation (mostly).</p>
-<p>In older versions of Haze (older than v1.0), the Android implementation was always built upon <a href="https://developer.android.com/reference/android/graphics/RenderNode">RenderNode</a> and <a href="https://developer.android.com/reference/android/graphics/RenderEffect">RenderEffect</a>. In Compose 1.7.0, we now have access to new GraphicsLayer APIs, which are similar to <a href="https://developer.android.com/reference/android/graphics/RenderNode">RenderNode</a>, but available in <code>commonMain</code> in Compose Multiplatform.</p>
-<p>The migration to <a href="https://duckduckgo.com/?q=graphicslayer+compose&amp;t=osx">GraphicsLayer</a> has resulted in Haze now having a single implementation across all platforms. This helps minimize platform differences and bugs. There are differences in the platform <a href="https://developer.android.com/reference/android/graphics/RenderEffect">RenderEffect</a>s which we use for actual effect though. These are platform specific, and need to use platform APIs, but the way they are written is very similar.</p>
+<p>The short answer to this is yes. The majority of the implementation is the same across all platforms.</p>
+<p>The only differences are in how the blur effect is implemented, especially on Android.</p>
+<p>For most platforms we can use on <a href="https://developer.android.com/reference/android/graphics/RenderEffect">RenderEffects</a> to implement the blurring, but the implementations used are platform specific. All of the platforms implement them in a very similar, its just the platform classes being used which are different.</p>
 <h2 id="what-versions-of-android-does-haze-work-on">What versions of Android does Haze work on?<a class="headerlink" href="#what-versions-of-android-does-haze-work-on" title="Permanent link">¶</a></h2>
-<p>Haze works on all versions of Android, but the effect it uses differs based on the version of Android that it is running on.</p>
-<ul>
-<li>When running on Android 12 and above (API Level 31): Haze utilizes <a href="https://developer.android.com/reference/android/graphics/RenderEffect">RenderEffects</a> for blurring, and is enabled by default.</li>
-<li>When running on older versions of Android: Haze v1.6.0 and newer can now use RenderScript to achieve similar blurring as newer platforms. This is not enabled by default. See the <a href="../usage/#enabling-blur">docs here</a> on how to enable it.</li>
-<li>When blurring is disabled, Haze will use a scrim (translucent overlay).</li>
-</ul>
-<h3 id="renderscript">RenderScript<a class="headerlink" href="#renderscript" title="Permanent link">¶</a></h3>
-<p>The RenderScript implementation, used on devices running Android 11 or older, is new in Haze v1.6.0 and considered experimental. ⚠️</p>
-<p>It attempts to bring a consistent blurring experience as provided by newer platforms, but prioritizes performance over staying in sync with content behind. Using RenderScript means that processing a draw frame can take longer than our allocated frame time. To combat this, Haze uses a background thread to process frames. This means that content updates will nearly always be a frame (or more) behind. </p>
-<p>In addition to this, Haze will skip any new content if it is still processing a previous frame. This is to ensure that Haze does not unintentionally create a queue of frames, and potentially overwhelm the device.</p>
-<p>To the user the blur effect may look 'laggy' or slow to update. This is the compromise Haze makes.</p></div>
+<p>See the <a href="../platforms/">Platforms</a> page for a detailed run down of what is supported on various platforms.</p></div>
 
 
 

@@ -18,7 +18,7 @@
         <link rel="prev" href="..">
       
       
-        <link rel="next" href="../materials/">
+        <link rel="next" href="../platforms/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -528,6 +528,28 @@
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../platforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Platforms
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1252,8 +1274,8 @@ down to the descendants in the hierarchy:</p>
 <h2 id="enabling-blur">Enabling blur<a class="headerlink" href="#enabling-blur" title="Permanent link">¶</a></h2>
 <p>Whether blurring is enabled or not can be controlled in two ways:</p>
 <ul>
-<li>The HazeState: <code>rememberHazeState(blurEnabled = true)</code>, </li>
-<li>Or on each individual <code>hazeEffect</code>:</li>
+<li>The HazeState: <code>rememberHazeState(blurEnabled = true)</code>. This affects all modifiers attached to it.</li>
+<li>On each individual <code>hazeEffect</code> like so:</li>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">blurEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
