@@ -68,7 +68,7 @@ fun ScaffoldSample(
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
   inputScale: HazeInputScale = HazeInputScale.Default,
 ) {
-  val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+  val hazeState = rememberHazeState(blurEnabled = true)
   val gridState = rememberLazyGridState()
   val showNavigationBar by remember(gridState) {
     derivedStateOf { gridState.firstVisibleItemIndex == 0 }

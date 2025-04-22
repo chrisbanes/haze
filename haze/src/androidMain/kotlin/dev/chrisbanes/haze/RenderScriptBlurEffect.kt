@@ -29,6 +29,8 @@ import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import kotlin.time.DurationUnit
+import kotlin.time.measureTimedValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -173,8 +175,10 @@ internal class RenderScriptBlurEffect(
     rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
 
     // Now apply the blur on a background thread
-    val output = rs.process(blurRadius) ?: return
+    val outputResult = measureTimedValue { rs.process(blurRadius) }
+    HazeLogger.d(TAG) { "Blurred layer in ${outputResult.duration.toInt(DurationUnit.MILLISECONDS)}ms" }
 
+    val output = outputResult.value ?: return
     contentLayer.record(
       density = density,
       layoutDirection = node.currentValueOf(LocalLayoutDirection),

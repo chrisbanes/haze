@@ -10,7 +10,7 @@ object HazeLogger {
    * Whether to print debug log statements to the relevant system logger. Do not build release
    * artifacts with this enabled. It's purely for debugging purposes.
    */
-  var enabled: Boolean = false
+  var enabled: Boolean = true
 
   fun d(tag: String, message: () -> String) {
     if (enabled) {

@@ -5,15 +5,15 @@
 
 package dev.chrisbanes.haze
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ColorSpace
 import android.graphics.PixelFormat
 import android.hardware.HardwareBuffer
-import android.media.Image
 import android.media.ImageReader
 import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
@@ -22,6 +22,8 @@ import android.renderscript.Type
 import android.view.Surface
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.unit.IntSize
+import androidx.core.graphics.createBitmap
+import kotlin.system.measureTimeMillis
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withContext
@@ -39,11 +41,17 @@ internal class RenderScriptContext(
     get() = inputAlloc.surface
 
   private var outputAlloc: Allocation
-  private var outputImage: Image? = null
 
-  private val imageReader: ImageReader
+  private var imageReader: ImageReader? = null
+
+  @field:Volatile
+  private var outBmp: Bitmap? = null
+  private val useHwBuffer: Boolean = true
+
+  private val colorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
 
   private val inputContentDrawnChannel = Channel<Unit>(Channel.CONFLATED)
+  private val irHandlerThread = HandlerThread("ImageReaderHandlerThread").apply { start() }
 
   private var isDestroyed = false
 
@@ -51,7 +59,7 @@ internal class RenderScriptContext(
     val width = size.width.increaseToDivisor(4)
     val height = size.height.increaseToDivisor(4)
 
-    val type = Type.Builder(rs, Element.U8_4(rs))
+    val type = Type.Builder(rs, Element.RGBA_8888(rs))
       .setX(width)
       .setY(height)
       .create()
@@ -59,29 +67,33 @@ internal class RenderScriptContext(
     val flags = Allocation.USAGE_SCRIPT or Allocation.USAGE_IO_INPUT
     inputAlloc = Allocation.createTyped(rs, type, flags)
     inputAlloc.setOnBufferAvailableListener { inputContentDrawnChannel.trySend(Unit) }
-
-    @SuppressLint("WrongConstant")
-    imageReader = ImageReader.newInstance(
-      width,
-      height,
-      PixelFormat.RGBA_8888,
-      1,
-      HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or
-        HardwareBuffer.USAGE_GPU_COLOR_OUTPUT or
-        HardwareBuffer.USAGE_CPU_READ_OFTEN or
-        USAGE_RENDERSCRIPT,
-    )
-    imageReader.setOnImageAvailableListener(
-      { imageReader ->
-        outputImage?.close()
-        outputImage = imageReader.acquireNextImage()
-      },
-      null
-    )
-
-    val outputFlags = Allocation.USAGE_SCRIPT or Allocation.USAGE_IO_OUTPUT
-    outputAlloc = Allocation.createTyped(rs, type, outputFlags)
-    outputAlloc.surface = imageReader.surface
+    if (useHwBuffer) {
+      val imageReader = ImageReader.newInstance(
+        width,
+        height,
+        PixelFormat.RGBA_8888,
+        2,
+        HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE
+      )
+      imageReader.setOnImageAvailableListener(
+        { imageReader ->
+          val outputImage = imageReader.acquireLatestImage()
+          outBmp = Bitmap.wrapHardwareBuffer(outputImage.hardwareBuffer!!, colorSpace)
+          outputImage.close()
+          inputContentDrawnChannel.trySend(Unit)
+          HazeLogger.d(TAG) { "Hardware bitmap created" }
+        },
+        Handler(irHandlerThread.looper)
+      )
+      this.imageReader = imageReader
+      // output
+      val outputFlags = Allocation.USAGE_SCRIPT or Allocation.USAGE_IO_OUTPUT
+      outputAlloc = Allocation.createTyped(rs, type, outputFlags)
+      outputAlloc.surface = imageReader.surface
+    } else {
+      outBmp = createBitmap(width, height)
+      outputAlloc = Allocation.createFromBitmap(rs, outBmp)
+    }
 
     blurScript = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs))
     blurScript.setInput(inputAlloc)
@@ -98,15 +110,20 @@ internal class RenderScriptContext(
     withContext(Dispatchers.Default) {
       inputAlloc.ioReceive()
       blurScript.forEach(outputAlloc)
-      outputAlloc.ioSend()
+      if (useHwBuffer) {
+        val waitIoSendMs = measureTimeMillis { outputAlloc.ioSend() }
+        HazeLogger.d(TAG) { "Wait IO send: $waitIoSendMs ms" }
+        val waitIrResultMs = measureTimeMillis {
+          // wait ImageReader to receive and process the result
+          inputContentDrawnChannel.receive()
+        }
+        HazeLogger.d(TAG) { "Wait IR result: $waitIrResultMs ms" }
+      } else {
+        outputAlloc.copyTo(outBmp)
+      }
     }
-
     if (isDestroyed) return null
-
-    return outputImage?.hardwareBuffer?.let { buffer ->
-      HazeLogger.d(TAG) { "Hardware bitmap created" }
-      Bitmap.wrapHardwareBuffer(buffer, ColorSpace.get(ColorSpace.Named.SRGB))
-    }
+    return outBmp
   }
 
   fun release() {
@@ -116,9 +133,9 @@ internal class RenderScriptContext(
     blurScript.destroy()
     inputAlloc.destroy()
 
-    imageReader.close()
-    outputImage?.close()
+    imageReader?.close()
     outputAlloc.destroy()
+    irHandlerThread.quitSafely()
 
     rs.destroy()
   }
