@@ -33,7 +33,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 
 internal class RenderScriptBlurEffect(
   private val node: HazeEffectNode,
@@ -86,9 +85,17 @@ internal class RenderScriptBlurEffect(
           }
         } else {
           currentJob = node.coroutineScope.launch(Dispatchers.Main.immediate) {
+            val startTime = epochTimeMillis()
+
             updateSurface(content = layer, blurRadius = blurRadiusPx)
             // Release the graphics layer
             graphicsContext.releaseGraphicsLayer(layer)
+
+            val timeTaken = epochTimeMillis() - startTime
+
+            HazeLogger.d(TAG) {
+              "updateSurface: Duration = ${timeTaken}ms"
+            }
 
             if (drawSkipped) {
               // If any draws were skipped, let's trigger a draw invalidation
@@ -164,18 +171,9 @@ internal class RenderScriptBlurEffect(
     )
     // Draw the layer (this is async)
     rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
-    // Wait for the layer to be written to the Surface
-    rs.awaitSurfaceWritten()
-
-    if (!node.isAttached) return
 
     // Now apply the blur on a background thread
-    withContext(Dispatchers.Default) {
-      rs.applyBlur(blurRadius)
-    }
-
-    // Finally draw the updated bitmap to our drawing graphics layer
-    val output = rs.outputBitmap
+    val output = rs.process(blurRadius) ?: return
 
     contentLayer.record(
       density = density,
