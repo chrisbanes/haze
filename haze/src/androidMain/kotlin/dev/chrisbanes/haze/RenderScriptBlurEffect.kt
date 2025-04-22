@@ -10,6 +10,7 @@ import android.graphics.PorterDuff
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import android.view.Surface
+import android.view.View
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
@@ -27,12 +28,15 @@ import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 internal class RenderScriptBlurEffect(
@@ -76,26 +80,25 @@ internal class RenderScriptBlurEffect(
         layerSize = node.layerSize,
         layerOffset = offset,
       )?.let { layer ->
-        if (contentLayer.size == IntSize.Zero) {
-          // If the layer is released, or doesn't have a size yet, we'll generate
-          // this blocking, so that the user doesn't see an un-blurred first frame
-          runBlocking {
-            updateSurface(content = layer, blurRadius = blurRadiusPx)
+        currentJob =
+          node.coroutineScope.launch(Dispatchers.Main.immediate, CoroutineStart.UNDISPATCHED) {
+            // Wait for the real content to drawn on screen
+            if (node.isAttached) {
+              node.currentValueOf(LocalView).awaitFrameCommit()
+            }
+            // Now draw the content into the RS Surface
+            if (node.isAttached) {
+              updateSurface(content = layer, blurRadius = blurRadiusPx)
+            }
             // Release the graphics layer
-            graphicsContext.releaseGraphicsLayer(layer)
-          }
-        } else {
-          currentJob = node.coroutineScope.launch(Dispatchers.Main.immediate) {
-            updateSurface(content = layer, blurRadius = blurRadiusPx)
-            // Release the graphics layer
-            graphicsContext.releaseGraphicsLayer(layer)
-
-            if (drawSkipped) {
-              // If any draws were skipped, let's trigger a draw invalidation
+            if (node.isAttached) {
+              graphicsContext.releaseGraphicsLayer(layer)
+            }
+            // If any draws were skipped, let's trigger a draw invalidation
+            if (node.isAttached && drawSkipped) {
               node.invalidateDraw()
             }
           }
-        }
       }
     } else {
       // Mark this draw as skipped
@@ -166,29 +169,25 @@ internal class RenderScriptBlurEffect(
       traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
         // Draw the layer (this is async)
         rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
-        // Wait for the layer to be written to the Surface
-        rs.awaitSurfaceWritten()
       }
 
-      if (!node.isAttached) return@traceAsync
-
       // Now apply the blur on a background thread
-      traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
+      val output = traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
         withContext(Dispatchers.Default) {
-          rs.applyBlur(blurRadius)
+          rs.process(blurRadius)
         }
       }
 
-      trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
-        // Finally draw the updated bitmap to our drawing graphics layer
-        val output = rs.outputBitmap
-
-        contentLayer.record(
-          density = density,
-          layoutDirection = node.currentValueOf(LocalLayoutDirection),
-          size = IntSize(output.width, output.height),
-        ) {
-          drawImage(output.asImageBitmap())
+      if (output != null) {
+        trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
+          // Finally draw the updated bitmap to our drawing graphics layer
+          contentLayer.record(
+            density = density,
+            layoutDirection = node.currentValueOf(LocalLayoutDirection),
+            size = IntSize(output.width, output.height),
+          ) {
+            drawImage(output.asImageBitmap())
+          }
         }
       }
 
@@ -251,5 +250,19 @@ private inline fun Surface.withSurfaceCanvas(block: android.graphics.Canvas.() -
     block(canvas)
   } finally {
     unlockCanvasAndPost(canvas)
+  }
+}
+
+private suspend fun View.awaitFrameCommit() {
+  val vto = viewTreeObserver
+
+  if (Build.VERSION.SDK_INT >= 29) {
+    suspendCoroutine { cont ->
+      vto.registerFrameCommitCallback { cont.resume(Unit) }
+    }
+  } else {
+    suspendCoroutine { cont ->
+      post { cont.resume(Unit) }
+    }
   }
 }
