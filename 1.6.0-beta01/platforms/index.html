@@ -1,0 +1,999 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A blurring modifier for Compose">
+      
+      
+        <meta name="author" content="Chris Banes">
+      
+      
+        <link rel="canonical" href="https://chribanes.github.io/haze/1.6.0-beta01/platforms/">
+      
+      
+        <link rel="prev" href="../usage/">
+      
+      
+        <link rel="next" href="../materials/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
+    
+    
+      
+        <title>Platforms - Haze</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2afb09e1.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=DM+Sans:300,300i,400,400i,700,700i%7CDM+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"DM Sans";--md-code-font:"DM Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+      
+        <meta  property="og:type"  content="website" >
+      
+        <meta  property="og:title"  content="Platforms - Haze" >
+      
+        <meta  property="og:description"  content="A blurring modifier for Compose" >
+      
+        <meta  property="og:image"  content="https://chribanes.github.io/haze/1.6.0-beta01/assets/images/social/platforms.png" >
+      
+        <meta  property="og:image:type"  content="image/png" >
+      
+        <meta  property="og:image:width"  content="1200" >
+      
+        <meta  property="og:image:height"  content="630" >
+      
+        <meta  property="og:url"  content="https://chribanes.github.io/haze/1.6.0-beta01/platforms/" >
+      
+        <meta  name="twitter:card"  content="summary_large_image" >
+      
+        <meta  name="twitter:title"  content="Platforms - Haze" >
+      
+        <meta  name="twitter:description"  content="A blurring modifier for Compose" >
+      
+        <meta  name="twitter:image"  content="https://chribanes.github.io/haze/1.6.0-beta01/assets/images/social/platforms.png" >
+      
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#android" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 13a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0 3.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m5 7.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m0 4a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-6a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5M14 9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m-4-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5m-3 6a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-7a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3.5a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0-4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haze
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Platforms
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 13a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0 3.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m5 7.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m0 4a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-6a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5M14 9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m-4-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5m-3 6a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-7a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3.5a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0-4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg>
+
+    </a>
+    Haze
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Usage
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Platforms
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Platforms
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#android" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Android">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#android-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android 14+
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-12-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android 12 &amp; 13
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Android 12 &amp; 13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hazeprogressive" class="md-nav__link">
+    <span class="md-ellipsis">
+      HazeProgressive
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-12-and-below" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android 12 and below
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-11-and-below" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android 11 and below
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Android 11 and below">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#renderscript-blurring" class="md-nav__link">
+    <span class="md-ellipsis">
+      RenderScript blurring
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#desktop" class="md-nav__link">
+    <span class="md-ellipsis">
+      Desktop
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ios" class="md-nav__link">
+    <span class="md-ellipsis">
+      iOS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#web" class="md-nav__link">
+    <span class="md-ellipsis">
+      Web
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#skiko" class="md-nav__link">
+    <span class="md-ellipsis">
+      Skiko
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Skiko">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-pre-release-versions-of-compose-multiplatform" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using pre-release versions of Compose Multiplatform
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../materials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Materials
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Performance
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    FAQs
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrating-1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Migrating to 1.0
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Recipes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Sample code
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample/wasm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    🕸️ Sample app (Wasm)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample/js/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    🕸️ Sample app (JS)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#android" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Android">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#android-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android 14+
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-12-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android 12 &amp; 13
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Android 12 &amp; 13">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hazeprogressive" class="md-nav__link">
+    <span class="md-ellipsis">
+      HazeProgressive
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-12-and-below" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android 12 and below
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#android-11-and-below" class="md-nav__link">
+    <span class="md-ellipsis">
+      Android 11 and below
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Android 11 and below">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#renderscript-blurring" class="md-nav__link">
+    <span class="md-ellipsis">
+      RenderScript blurring
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#desktop" class="md-nav__link">
+    <span class="md-ellipsis">
+      Desktop
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ios" class="md-nav__link">
+    <span class="md-ellipsis">
+      iOS
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#web" class="md-nav__link">
+    <span class="md-ellipsis">
+      Web
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#skiko" class="md-nav__link">
+    <span class="md-ellipsis">
+      Skiko
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Skiko">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-pre-release-versions-of-compose-multiplatform" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using pre-release versions of Compose Multiplatform
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Platforms</h1>
+
+<div><p>Haze works on all platforms which <a href="https://www.jetbrains.com/compose-multiplatform/">Compose Multiplatform</a> supports.</p>
+<div class="admonition note">
+<p class="admonition-title">Compose Multiplatform platforms</p>
+<p>Please note, the list of platforms which Compose Multiplatform (CMP) supports is different to the platforms which Kotlin Multiplatform supports. Please stop raising issues about adding "MacOS" support; it is not supported (directly) by CMP.</p>
+</div>
+<h2 id="android">Android<a class="headerlink" href="#android" title="Permanent link">¶</a></h2>
+<h3 id="android-14">Android 14+<a class="headerlink" href="#android-14" title="Permanent link">¶</a></h3>
+<p>SDK Levels: 33+</p>
+<p>Haze is in its optimal environment for all use cases when running on recent versions of Android.</p>
+<h3 id="android-12-13">Android 12 &amp; 13<a class="headerlink" href="#android-12-13" title="Permanent link">¶</a></h3>
+<p>SDK Levels: 31 &amp; 32</p>
+<p>When running on these versions of Android, Haze needs to use a few workarounds:</p>
+<h4 id="hazeprogressive">HazeProgressive<a class="headerlink" href="#hazeprogressive" title="Permanent link">¶</a></h4>
+<p>Only linear gradient <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/">HazeProgressive</a> effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.</p>
+<p>You can disable this behavior by setting the <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/">preferPerformance</a> property. When set to true, the progressive 'effect' will instead be drawn via a mask:</p>
+<div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span>
+<span class="w">      </span><span class="c1">// ...</span>
+<span class="hll"><span class="w">      </span><span class="n">preferPerformance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>All other progressive types will fallback to using a mask when running on Android 12 &amp; 13.</p>
+<h3 id="android-12-and-below">Android 12 and below<a class="headerlink" href="#android-12-and-below" title="Permanent link">¶</a></h3>
+<p>When running on Android 12 and below, we can not rely on <a href="https://developer.android.com/reference/android/graphics/RenderNode">RenderNode</a> (which <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/layer/GraphicsLayer">GraphicsLayer</a> use internally) re-painting when content changes. For this reason, Haze <em>previously</em> disabled blurring effects on Android 12 by default, as we could not guarantee that it works.</p>
+<p>As of Haze v1.6 and newer though, we have a mechanism allowing Haze to re-enable blurring on Android 12 by default.</p>
+<p>This same mechanism is required to enable blurring to work on Android 11 and below too, when enabled (more on that below).</p>
+<details class="info">
+<summary>Manual invalidation mechanism</summary>
+<p>The mechanism involves Haze manually invalidating the graphics layers manually when necessary, using 'pre draw' events. This document is not the place to go deep into 'pre draw' events, but the main point here is that Compose does not send a pre-draw event itself, so Haze needs to use the host view system's listener (via <a href="https://developer.android.com/reference/android/view/ViewTreeObserver">ViewTreeObserver</a>). This means that we are not subscribing to when our particular draw nodes are about to draw, but instead we are called whenever <em>anything</em> is about to be drawn on screen.</p>
+<p>The TL;DR of this section is that the event we listen to is a lot more global than we need. Ideally we would have a way to know when the <code>hazeSource</code> node is about to be drawn (and only when the node is about to be drawn) but that functionality does not exist.</p>
+<p>The downside to this mechanism is that it will trigger more invalidations than what is really needed. We're effectively negating some of the granular invalidations which Compose enables through it's <a href="https://developer.android.com/develop/ui/compose/phases">phasing system</a>. It should not cause your apps any performance issues, but you can disable blurring if necessary. See <a href="../usage/#enabling-blur">docs here</a> for more information.</p>
+</details>
+<h3 id="android-11-and-below">Android 11 and below<a class="headerlink" href="#android-11-and-below" title="Permanent link">¶</a></h3>
+<p>SDK Levels: 30 and below</p>
+<p>On Android 11 and below, blurring by default is disabled. When disabled, a scrim (translucent overlay) implementation is used which looks like so:</p>
+<p><img alt="Scrim effect" src="../media/scrim.webp"></p>
+<h4 id="renderscript-blurring">RenderScript blurring<a class="headerlink" href="#renderscript-blurring" title="Permanent link">¶</a></h4>
+<p>🆕 in Haze 1.6 is an implementation of blurring which uses <a href="https://developer.android.com/guide/topics/renderscript/compute">RenderScript</a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Experimental</p>
+<p>Blurring on Android 11 and below is not enabled by default, and is considered experimental.</p>
+<p>We may enable it by default in the future, or we may just remove it all together if it is deemed too unstable. Lots of testing and feedback is required, so please raise issues if you find any problems.</p>
+</div>
+<p>Using RenderScript does come with some drawbacks compared to <a href="https://developer.android.com/reference/android/graphics/RenderEffect">RenderEffect</a> which we use on Android 12+. The biggest is that RenderScript and your drawn content are two distinct things, which means that for Haze to blur your composable content, we need to draw it somewhere which RenderScript can read, and then also write to. This results in copying of data, which makes this blurring implementation quite slow.</p>
+<p>As this implementation is slow, it means that processing a frame can easily take longer than our allocated frame budget time. To combat this, Haze uses a background thread to process and blur frames, but this comes with the drawback that content updates will nearly always be a frame (or more) behind. In addition to this, Haze will only ever process one frame at a time. If a new draw is called and Haze is still processing a previous frame, Haze will simply ignore it. This is to ensure that Haze does not unintentionally create a queue of frames, and potentially overwhelm the device.</p>
+<p>To the user the blur effect may look 'laggy' or slow to update, especially when the background content changes a lot. This is the compromise which we have decided to make in Haze, but in my opinion it is more than good enough for the majority of use cases.</p>
+<p><div class="video-container"><video style="width:100%;height:30rem" loop muted autoplay alt="type:video"><source src="../media/renderscript.mp4" type="video/mp4"></source></video></div></p>
+<p>As mentioned above, blurring on Android 11 and below is not enabled by default. See the <a href="../usage/#enabling-blur">docs here</a> on how to enable it.</p>
+<p>One final thing to note is that Haze needs to use the "Manual invalidation mechanism" mentioned above for this to work.</p>
+<div class="admonition info">
+<p class="admonition-title">Thanks</p>
+<p>Big thanks to <a href="https://github.com/desugar-64">Serhii Yaremych</a> for his help on this, as we have managed to get an optimized 'content write' working. 🚀</p>
+</div>
+<h2 id="desktop">Desktop<a class="headerlink" href="#desktop" title="Permanent link">¶</a></h2>
+<p>Desktop JVM is a Compose Multiplatform target which is built upon <a href="https://github.com/JetBrains/skiko">Skiko</a>, so see the <a href="#skiko">Skiko</a> docs below.</p>
+<h2 id="ios">iOS<a class="headerlink" href="#ios" title="Permanent link">¶</a></h2>
+<p>iOS is a Compose Multiplatform target which is built upon <a href="https://github.com/JetBrains/skiko">Skiko</a>, so see the <a href="#skiko">Skiko</a> docs below.</p>
+<h2 id="web">Web<a class="headerlink" href="#web" title="Permanent link">¶</a></h2>
+<p>Compose for Web is based on Kotlin/Wasm, and is a Compose Multiplatform target which is built upon <a href="https://github.com/JetBrains/skiko">Skiko</a>, so see the <a href="#skiko">Skiko</a> docs below.</p>
+<h2 id="skiko">Skiko<a class="headerlink" href="#skiko" title="Permanent link">¶</a></h2>
+<p>Most of the Compose Multiplatform targets are built on top of <a href="https://github.com/JetBrains/skiko">Skiko</a>, which is a bundled version of the <a href="https://skia.org">Skia Graphics Library</a> with Kotlin bindings.</p>
+<p>As Skiko bundles Skia into the app binaries, this means that the host platform we're running on is not particularly important to Haze. All of that is hopefully handled by the platform integration layers in CMP, Skiko and Skia.</p>
+<p>The most important thing when running on these platforms is the library versions we're built against. Haze is always built, tested and released against the latest stable version of Compose Multiplatform.</p>
+<p>Other than that, running on a Skiko-backed platform means that Haze is running in its optimal environment.</p>
+<h3 id="using-pre-release-versions-of-compose-multiplatform">Using pre-release versions of Compose Multiplatform<a class="headerlink" href="#using-pre-release-versions-of-compose-multiplatform" title="Permanent link">¶</a></h3>
+<p>We do occasionally verify against pre-release versions of CMP, but it's not something we guarantee. If you want to use a pre-release version of Compose Multiplatform, then please test it thoroughly.</p></div>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+    
+  </body>
+</html>
