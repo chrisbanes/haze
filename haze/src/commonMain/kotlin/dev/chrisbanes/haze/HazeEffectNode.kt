@@ -5,6 +5,8 @@
 
 package dev.chrisbanes.haze
 
+import androidx.collection.SieveCache
+import androidx.collection.mutableObjectLongMapOf
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.Immutable
@@ -38,6 +40,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.util.packFloats
+import androidx.compose.ui.util.unpackFloat1
+import androidx.compose.ui.util.unpackFloat2
 import kotlin.jvm.JvmInline
 
 /**
@@ -115,14 +120,7 @@ class HazeEffectNode(
       }
     }
 
-  private var areaOffsets: Map<HazeArea, Offset> = emptyMap()
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "areaOffsets changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.AreaOffsets
-        field = value
-      }
-    }
+  private val areaOffsets = mutableObjectLongMapOf<HazeArea>()
 
   private val isValid: Boolean
     get() = size.isSpecified && layerSize.isSpecified && areas.isNotEmpty()
@@ -372,7 +370,7 @@ class HazeEffectNode(
       .toMutableList()
       .apply { sortBy(HazeArea::zIndex) }
 
-    areaOffsets = areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
+    updateAreaOffsets()
 
     if (size.isSpecified && positionOnScreen.isSpecified) {
       // The rect which covers all areas
@@ -401,6 +399,27 @@ class HazeEffectNode(
     }
 
     invalidateIfNeeded()
+  }
+
+  private fun updateAreaOffsets() {
+    val offsetChanged = areas.any { area ->
+      val areaOffset = positionOnScreen - area.positionOnScreen
+
+      val stored = areaOffsets.getOrElse(area) { packFloats(0f, 0f) }
+      val storedOffset = Offset(unpackFloat1(stored), unpackFloat2(stored))
+
+      areaOffset != storedOffset
+    }
+
+    if (offsetChanged) {
+      areaOffsets.clear()
+      for (area in areas) {
+        areaOffsets[area] = (positionOnScreen - area.positionOnScreen).let { packFloats(it.x, it.y) }
+      }
+
+      HazeLogger.d(TAG) { "areaOffsets changed" }
+      dirtyTracker += DirtyFields.AreaOffsets
+    }
   }
 
   private fun onPostDraw() {
@@ -579,7 +598,7 @@ sealed interface HazeProgressive {
 }
 
 private val renderEffectCache by unsynchronizedLazy {
-  SimpleLruCache<RenderEffectParams, RenderEffect>(10)
+  SieveCache<RenderEffectParams, RenderEffect>(10)
 }
 
 @Poko
