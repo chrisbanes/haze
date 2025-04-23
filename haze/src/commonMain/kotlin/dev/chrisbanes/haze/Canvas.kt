@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isFinite
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -24,13 +25,18 @@ internal inline fun DrawScope.translate(
   }
 }
 
-internal fun CompositionLocalConsumerModifierNode.withGraphicsLayer(block: (GraphicsLayer) -> Unit) {
-  val graphicsContext = currentValueOf(LocalGraphicsContext)
-  val layer = graphicsContext.createGraphicsLayer()
+internal fun CompositionLocalConsumerModifierNode.withGraphicsLayer(
+  block: (GraphicsLayer) -> Unit,
+) {
+  currentValueOf(LocalGraphicsContext).withGraphicsLayer(block)
+}
+
+internal fun GraphicsContext.withGraphicsLayer(block: (GraphicsLayer) -> Unit) {
+  val layer = createGraphicsLayer()
   try {
     block(layer)
   } finally {
-    graphicsContext.releaseGraphicsLayer(layer)
+    releaseGraphicsLayer(layer)
   }
 }
 
