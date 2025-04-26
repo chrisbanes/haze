@@ -11,10 +11,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import kotlin.math.floor
+import kotlin.math.ceil
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 internal fun calculateLength(
   start: Offset,
@@ -52,4 +53,5 @@ internal fun Rect.expandToInclude(other: Rect): Rect = Rect(
   bottom = max(bottom, other.bottom),
 )
 
-internal fun floor(size: Size): Size = Size(width = floor(size.width), height = floor(size.height))
+internal fun ceil(size: Size): Size = Size(width = ceil(size.width), height = ceil(size.height))
+internal fun Offset.round(): Offset = Offset(x.roundToInt().toFloat(), y.roundToInt().toFloat())
