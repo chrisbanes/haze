@@ -586,9 +586,11 @@ private val renderEffectCache by unsynchronizedLazy {
 internal class RenderEffectParams(
   val blurRadius: Dp,
   val noiseFactor: Float,
+  val scale: Float,
+  val contentSize: Size,
+  val contentOffset: Offset,
   val tints: List<HazeTint> = emptyList(),
   val tintAlphaModulate: Float = 1f,
-  val contentBounds: Rect,
   val mask: Brush? = null,
   val progressive: HazeProgressive? = null,
 )
@@ -616,21 +618,23 @@ internal fun HazeEffectNode.calculateInputScaleFactor(
 @OptIn(ExperimentalHazeApi::class)
 internal fun HazeEffectNode.getOrCreateRenderEffect(
   inputScale: Float = calculateInputScaleFactor(),
-  blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp } * inputScale,
+  blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp },
   noiseFactor: Float = resolveNoiseFactor(),
   tints: List<HazeTint> = resolveTints(),
   tintAlphaModulate: Float = 1f,
-  contentSize: Size = this.size * inputScale,
-  contentOffset: Offset = this.layerOffset * inputScale,
+  contentSize: Size = this.size,
+  contentOffset: Offset = this.layerOffset,
   mask: Brush? = this.mask,
   progressive: HazeProgressive? = null,
 ): RenderEffect? = getOrCreateRenderEffect(
   RenderEffectParams(
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
+    scale = inputScale,
     tints = tints,
     tintAlphaModulate = tintAlphaModulate,
-    contentBounds = Rect(contentOffset, contentSize),
+    contentSize = contentSize,
+    contentOffset = contentOffset,
     mask = mask,
     progressive = progressive,
   ),

@@ -27,7 +27,10 @@ import org.jetbrains.skia.RuntimeShaderBuilder
 import org.jetbrains.skia.Shader
 
 internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
-  require(params.blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
+  val blurRadius = params.blurRadius * params.scale
+  require(blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
+  val size = ceil(params.contentSize * params.scale)
+  val offset = (params.contentOffset * params.scale).round()
 
   val compositeShaderBuilder = RuntimeShaderBuilder(RUNTIME_SHADER).apply {
     uniform("noiseFactor", params.noiseFactor.coerceIn(0f, 1f))
@@ -35,13 +38,14 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 
   val blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() }
 
-  val progressiveShader = params.progressive?.asBrush()?.toShader(params.contentBounds.size)
+  val progressiveShader = params.progressive?.asBrush()?.toShader(size)
   val blur = if (progressiveShader != null) {
     // If we've been provided with a progressive/gradient blur shader, we need to use
     // our custom blur via a runtime shader
     createBlurImageFilterWithMask(
       blurRadiusPx = blurRadiusPx,
-      bounds = params.contentBounds,
+      size = size,
+      offset = offset,
       mask = progressiveShader,
     )
   } else {
@@ -68,8 +72,8 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
       shaderNames = arrayOf("content", "blur", "noise"),
       inputs = arrayOf(null, blur, noise),
     )
-    .withTints(params.tints, params.contentBounds, params.tintAlphaModulate, progressiveShader)
-    .withMask(params.mask, params.contentBounds)
+    .withTints(params.tints, size, offset, params.tintAlphaModulate, progressiveShader)
+    .withMask(params.mask, size, offset)
     .asComposeRenderEffect()
 }
 
@@ -79,22 +83,24 @@ private fun ImageFilter.chainWith(imageFilter: ImageFilter): ImageFilter {
 
 private fun ImageFilter.withTints(
   tints: List<HazeTint>,
-  contentBounds: Rect,
+  size: Size,
+  offset: Offset,
   alphaModulate: Float = 1f,
   mask: Shader? = null,
 ): ImageFilter = tints.fold(this) { acc, tint ->
-  acc.withTint(tint, contentBounds, alphaModulate, mask)
+  acc.withTint(tint, size, offset, alphaModulate, mask)
 }
 
 private fun ImageFilter.withTint(
   tint: HazeTint,
-  contentBounds: Rect,
+  size: Size,
+  offset: Offset,
   alphaModulate: Float = 1f,
   mask: Shader?,
 ): ImageFilter {
   if (!tint.isSpecified) return this
 
-  val tintBrush = tint.brush?.toShader(contentBounds.size)
+  val tintBrush = tint.brush?.toShader(size)
   if (tintBrush != null) {
     val brushEffect = when {
       alphaModulate >= 1f -> {
@@ -120,13 +126,13 @@ private fun ImageFilter.withTint(
           crop = null,
         ),
         blendMode = tint.blendMode.toSkiaBlendMode(),
-        offset = contentBounds.topLeft,
+        offset = offset,
       )
     } else {
       blendWith(
         foreground = brushEffect,
         blendMode = tint.blendMode.toSkiaBlendMode(),
-        offset = contentBounds.topLeft,
+        offset = offset,
       )
     }
   }
@@ -144,7 +150,7 @@ private fun ImageFilter.withTint(
           crop = null,
         ),
         blendMode = tint.blendMode.toSkiaBlendMode(),
-        offset = contentBounds.topLeft,
+        offset = offset,
       )
     } else {
       ImageFilter.makeColorFilter(
@@ -160,14 +166,15 @@ private fun ImageFilter.withTint(
 
 private fun ImageFilter.withMask(
   brush: Brush?,
-  contentBounds: Rect,
+  size: Size,
+  offset: Offset,
   blendMode: BlendMode = BlendMode.DST_IN,
 ): ImageFilter {
-  val shader = brush?.toShader(contentBounds.size) ?: return this
+  val shader = brush?.toShader(size) ?: return this
   return blendWith(
     foreground = ImageFilter.makeShader(shader, crop = null),
     blendMode = blendMode,
-    offset = contentBounds.topLeft,
+    offset = offset,
   )
 }
 
@@ -199,14 +206,15 @@ private fun createBlurImageFilter(blurRadiusPx: Float, bounds: Rect? = null): Im
 
 private fun createBlurImageFilterWithMask(
   blurRadiusPx: Float,
-  bounds: Rect,
+  size: Size,
+  offset: Offset,
   mask: Shader,
 ): ImageFilter {
   fun shader(vertical: Boolean): ImageFilter {
     return ImageFilter.makeRuntimeShader(
       RuntimeShaderBuilder(if (vertical) VERTICAL_BLUR_SHADER else HORIZONTAL_BLUR_SHADER).apply {
         uniform("blurRadius", blurRadiusPx)
-        uniform("crop", bounds.left, bounds.top, bounds.right, bounds.bottom)
+        uniform("crop", offset.x, offset.y, offset.x + size.width, offset.y + size.height)
         child("mask", mask)
       },
       shaderNames = arrayOf("content"),

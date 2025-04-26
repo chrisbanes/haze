@@ -114,15 +114,15 @@ internal class RenderScriptBlurEffect(
       layer.record(size = contentLayer.size) {
         drawLayer(contentLayer)
 
-        val contentSize = floor(node.size * scaleFactor)
-        val contentOffset = offset * scaleFactor
+        val contentSize = ceil(node.size * scaleFactor)
+        val contentOffset = (offset * scaleFactor).round()
 
         translate(contentOffset) {
           // Draw the noise on top...
           val noiseFactor = node.resolveNoiseFactor()
           if (noiseFactor > 0f) {
             PaintPool.usePaint { paint ->
-              val texture = context.getNoiseTexture(noiseFactor)
+              val texture = context.getNoiseTexture(noiseFactor, scaleFactor)
               paint.shader = BitmapShader(texture, REPEAT, REPEAT)
               drawContext.canvas.drawRect(contentSize.toRect(), paint)
             }
