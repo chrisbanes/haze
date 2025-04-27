@@ -8,15 +8,20 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
 
 internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope) {
-  val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
-    drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
+  val hwAccelCanvas = drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
   val blur = resolveBlurEnabled()
 
   when {
-    blur && canUseRenderEffect -> {
+    blur && Build.VERSION.SDK_INT >= 31 && hwAccelCanvas -> {
       if (blurEffect !is RenderEffectBlurEffect) {
         blurEffect = RenderEffectBlurEffect(this)
+      }
+    }
+
+    blur && Build.VERSION.SDK_INT >= 29 && hwAccelCanvas -> {
+      if (blurEffect !is OpenGlBlurEffect) {
+        blurEffect = OpenGlBlurEffect(this)
       }
     }
 
