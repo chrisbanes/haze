@@ -50,7 +50,12 @@ internal fun CreditCardSample(
 
   Box {
     // Background content
-    CreditCardBackground(hazeState, backgroundColors)
+    CreditCardBackground(
+      backgroundColors = backgroundColors,
+      modifier = Modifier
+        .fillMaxSize()
+        .hazeSource(state = hazeState, zIndex = 0f),
+    )
 
     val surfaceColor = MaterialTheme.colorScheme.surface
 
@@ -59,24 +64,57 @@ internal fun CreditCardSample(
       val reverseIndex = (numberCards - 1 - index)
 
       CreditCard(
-        reverseIndex,
-        hazeState,
-        index,
-        shape,
-        enabled,
-        blurEnabled,
-        style,
-        surfaceColor,
-        noiseFactor,
-        tint,
-        blurRadius,
-        mask,
-        alpha,
-        progressive,
+        reverseIndex = reverseIndex,
+        hazeState = hazeState,
+        index = index,
+        shape = shape,
+        enabled = enabled,
+        blurEnabled = blurEnabled,
+        style = style,
+        surfaceColor = surfaceColor,
+        noiseFactor = noiseFactor,
+        tint = tint,
+        blurRadius = blurRadius,
+        mask = mask,
+        alpha = alpha,
+        progressive = progressive,
         modifier = Modifier
           .align(Alignment.Center),
       )
     }
+  }
+}
+
+@Composable
+internal fun CreditCardContentBlurring(
+  backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
+  style: HazeStyle = HazeStyle.Unspecified,
+  tint: HazeTint = HazeTint.Unspecified,
+  blurRadius: Dp = Dp.Unspecified,
+  noiseFactor: Float = -1f,
+  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
+  mask: Brush? = null,
+  progressive: HazeProgressive? = null,
+  alpha: Float = 1f,
+) {
+  Box {
+    // Background content
+    CreditCardBackground(
+      backgroundColors = backgroundColors,
+      modifier = Modifier
+        .fillMaxSize()
+        .hazeEffect {
+          this.blurEnabled = blurEnabled
+          this.style = style
+          this.backgroundColor = backgroundColors.first()
+          this.noiseFactor = noiseFactor
+          this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
+          this.blurRadius = blurRadius
+          this.mask = mask
+          this.alpha = alpha
+          this.progressive = progressive
+        },
+    )
   }
 }
 
@@ -100,7 +138,12 @@ internal fun CreditCardPagerSample(
 
   Box {
     // Background content
-    CreditCardBackground(hazeState, backgroundColors)
+    CreditCardBackground(
+      backgroundColors = backgroundColors,
+      modifier = Modifier
+        .fillMaxSize()
+        .hazeSource(state = hazeState, zIndex = 0f),
+    )
 
     val surfaceColor = MaterialTheme.colorScheme.surface
     val positionIndex = pagerPosition.roundToInt()
@@ -115,20 +158,20 @@ internal fun CreditCardPagerSample(
     ) { index ->
       // Our card
       CreditCard(
-        0,
-        hazeState,
-        index,
-        shape,
-        enabled,
-        blurEnabled,
-        style,
-        surfaceColor,
-        noiseFactor,
-        tint,
-        blurRadius,
-        mask,
-        alpha,
-        progressive,
+        reverseIndex = 0,
+        hazeState = hazeState,
+        index = index,
+        shape = shape,
+        enabled = enabled,
+        blurEnabled = blurEnabled,
+        style = style,
+        surfaceColor = surfaceColor,
+        noiseFactor = noiseFactor,
+        tint = tint,
+        blurRadius = blurRadius,
+        mask = mask,
+        alpha = alpha,
+        progressive = progressive,
         baseWidth = .9f,
       )
     }
@@ -137,14 +180,10 @@ internal fun CreditCardPagerSample(
 
 @Composable
 private fun CreditCardBackground(
-  hazeState: HazeState,
   backgroundColors: List<Color>,
+  modifier: Modifier = Modifier,
 ) {
-  Box(
-    Modifier
-      .fillMaxSize()
-      .hazeSource(state = hazeState, zIndex = 0f),
-  ) {
+  Box(modifier = modifier) {
     Spacer(
       Modifier
         .fillMaxSize()
@@ -175,8 +214,8 @@ private fun CreditCard(
   mask: Brush?,
   alpha: Float,
   progressive: HazeProgressive?,
-  baseWidth: Float = .7f,
   modifier: Modifier = Modifier,
+  baseWidth: Float = .7f,
 ) {
   Box(
     modifier = modifier

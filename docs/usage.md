@@ -1,3 +1,6 @@
+
+Haze works has two modes: 'background blurring', and 'foreground blurring', and the way you use them is extremely similar. Most of this page will assume that you wish to use 'background blurring', as it's the most common, but there is a section at the bottom of this page to outline how to perform 'foreground blurring'.
+
 Haze is implemented through two Compose Modifiers: [Modifier.hazeSource](api/haze/dev.chrisbanes.haze/haze-source.html) and [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
 
 The most basic usage would be something like:
@@ -375,6 +378,32 @@ Whether blurring is enabled or not can be controlled in two ways:
 ```kotlin
 Modifier.hazeEffect(...) {
     blurEnabled = true
+}
+```
+
+### Foreground blurring
+
+As mentioned above, Haze also supports foreground blurring, where the content on the layout itself will be blurred by Haze and then drawn. You might be wondering why this is at the bottom of this page? Well nearly everything listed above is also applicable for 'foreground blurring'.
+
+The only difference with foreground blurring is that you do not need to use a `HazeState` or `Modifier.hazeSource`, you only need a `Modifier.hazeEffect`.
+
+To perform foreground blurring on a layout, you can do the following:
+
+```kotlin
+@Composable
+fun HazeExample(modifier: Modifier = Modifier) {
+  Box(modifier = modifier) {
+    Foreground(
+      modifier = Modifier
+        // Note that we do NOT pass in a HazeState
+        .hazeEffect {
+          // Use all of the same features as above
+          tints = // ...
+          progressive = // ...
+        }
+        .fillMaxSize()
+    )
+  }
 }
 ```
 

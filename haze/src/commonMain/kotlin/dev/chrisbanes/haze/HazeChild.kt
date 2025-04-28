@@ -216,10 +216,31 @@ fun Modifier.hazeChild(
 ): Modifier = hazeEffect(state, style, block)
 
 /**
- * Mark this composable as being a Haze child composable.
+ * Draw the 'haze' effect behind the attached node.
  *
- * This will update the given [HazeState] whenever the layout is placed, enabling any layouts using
- * [Modifier.hazeSource] to blur any content behind the host composable.
+ * This version of the modifier is the primary entry for 'background blurring', where the
+ * modifier node will read the attached [HazeArea]s in the given [state], and then draw
+ * those (blurred) as a background. This layout's content will be drawn on top.
+ *
+ * @param state The [HazeState] to observe for background content.
+ * @param style The [HazeStyle] to use on this content. Any specified values in the given
+ * style will override that value from the default style, provided to [hazeSource].
+ * @param block block on HazeChildScope where you define the styling and visual properties.
+ */
+@Stable
+fun Modifier.hazeEffect(
+  state: HazeState?,
+  style: HazeStyle = HazeStyle.Unspecified,
+  block: (HazeEffectScope.() -> Unit)? = null,
+): Modifier = this then HazeEffectNodeElement(state, style, block)
+
+/**
+ * Draw the 'haze' effect, using this node's content as the source.
+ *
+ * This version of the modifier is the entry point for 'content blurring', where the
+ * modifier node will blurred any content drawn into **this** layout node. It is
+ * similar to the `Modifier.blur` modifier available in Compose Foundation, but you get all of
+ * the styling and features which provides on top.
  *
  * @param style The [HazeStyle] to use on this content. Any specified values in the given
  * style will override that value from the default style, provided to [hazeSource].
@@ -227,13 +248,12 @@ fun Modifier.hazeChild(
  */
 @Stable
 fun Modifier.hazeEffect(
-  state: HazeState,
   style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = this then HazeEffectNodeElement(state, style, block)
+): Modifier = this then HazeEffectNodeElement(state = null, style = style, block = block)
 
 private data class HazeEffectNodeElement(
-  val state: HazeState,
+  val state: HazeState?,
   val style: HazeStyle = HazeStyle.Unspecified,
   val block: (HazeEffectScope.() -> Unit)? = null,
 ) : ModifierNodeElement<HazeEffectNode>() {

@@ -22,7 +22,8 @@ package dev.chrisbanes.haze {
 
   public final class HazeChildKt {
     method @Deprecated @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
-    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState? state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
   }
 
   @Deprecated public interface HazeChildScope extends dev.chrisbanes.haze.HazeEffectScope {
@@ -44,7 +45,7 @@ package dev.chrisbanes.haze {
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeEffectNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeEffectScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {
-    ctor public HazeEffectNode(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    ctor public HazeEffectNode(optional dev.chrisbanes.haze.HazeState? state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
     method public float getAlpha();
     method public long getBackgroundColor();
@@ -57,7 +58,7 @@ package dev.chrisbanes.haze {
     method public androidx.compose.ui.graphics.Brush? getMask();
     method public float getNoiseFactor();
     method public dev.chrisbanes.haze.HazeProgressive? getProgressive();
-    method public dev.chrisbanes.haze.HazeState getState();
+    method public dev.chrisbanes.haze.HazeState? getState();
     method public dev.chrisbanes.haze.HazeStyle getStyle();
     method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
     method public Object getTraverseKey();
@@ -74,7 +75,7 @@ package dev.chrisbanes.haze {
     method public void setMask(androidx.compose.ui.graphics.Brush?);
     method public void setNoiseFactor(float);
     method public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
-    method public void setState(dev.chrisbanes.haze.HazeState);
+    method public void setState(dev.chrisbanes.haze.HazeState?);
     method public void setStyle(dev.chrisbanes.haze.HazeStyle);
     method public void setTints(java.util.List<dev.chrisbanes.haze.HazeTint>);
     property public float alpha;
@@ -89,7 +90,7 @@ package dev.chrisbanes.haze {
     property public float noiseFactor;
     property public dev.chrisbanes.haze.HazeProgressive? progressive;
     property public boolean shouldAutoInvalidate;
-    property public final dev.chrisbanes.haze.HazeState state;
+    property public final dev.chrisbanes.haze.HazeState? state;
     property public dev.chrisbanes.haze.HazeStyle style;
     property public java.util.List<dev.chrisbanes.haze.HazeTint> tints;
     property public Object traverseKey;
@@ -324,6 +325,16 @@ package dev.chrisbanes.haze {
   }
 
   @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {
+  }
+
+  public final class Trace_androidKt {
+    method public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
+    method public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
+  }
+
+  public final class Trace_skikoKt {
+    method public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
+    method public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
   }
 
   public final class Utils_androidKt {
