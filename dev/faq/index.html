@@ -658,7 +658,7 @@
 
 <div><h2 id="whats-the-difference-between-this-and-modifierblur">What's the difference between this and Modifier.blur?<a class="headerlink" href="#whats-the-difference-between-this-and-modifierblur" title="Permanent link">¶</a></h2>
 <p>The <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)">Modifier.blur</a> modifier and Haze may sound similar, but what they provide is different.</p>
-<p>Haze provides background blurring, meaning that it will blur content behind, not the content itself. This is typically required to implement glass-like effects. </p>
+<p>Haze primarily provides background blurring, meaning that it will blur content behind, not the content itself. This is typically required to implement glass-like effects. <code>Modifier.blur</code> performs 'foreground blurring' (or content blurring) where the content in the node itself is blurred. Haze can work in this mode too, but it's not the primary goal.</p>
 <p>Other than that, Haze provides a whole bunch of other features which you can read about on the <a href="../usage/">Usage</a> page.</p>
 <h2 id="are-the-blur-implementations-the-same-across-different-platforms">Are the blur implementations the same across different platforms?<a class="headerlink" href="#are-the-blur-implementations-the-same-across-different-platforms" title="Permanent link">¶</a></h2>
 <p>The short answer to this is yes. The majority of the implementation is the same across all platforms.</p>

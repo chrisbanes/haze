@@ -513,6 +513,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Enabling blur">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#foreground-blurring" class="md-nav__link">
+    <span class="md-ellipsis">
+      Foreground blurring
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -960,6 +975,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Enabling blur">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#foreground-blurring" class="md-nav__link">
+    <span class="md-ellipsis">
+      Foreground blurring
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -992,7 +1022,8 @@
 
   <h1>Usage</h1>
 
-<div><p>Haze is implemented through two Compose Modifiers: <a href="../api/haze/dev.chrisbanes.haze/haze-source.html">Modifier.hazeSource</a> and <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</p>
+<div><p>Haze works has two modes: 'background blurring', and 'foreground blurring', and the way you use them is extremely similar. Most of this page will assume that you wish to use 'background blurring', as it's the most common, but there is a section at the bottom of this page to outline how to perform 'foreground blurring'.</p>
+<p>Haze is implemented through two Compose Modifiers: <a href="../api/haze/dev.chrisbanes.haze/haze-source.html">Modifier.hazeSource</a> and <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</p>
 <p>The most basic usage would be something like:</p>
 <div class="highlight"><pre><span></span><code><span class="hll"><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 </span>
@@ -1279,6 +1310,26 @@ down to the descendants in the hierarchy:</p>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">blurEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="foreground-blurring">Foreground blurring<a class="headerlink" href="#foreground-blurring" title="Permanent link">¶</a></h3>
+<p>As mentioned above, Haze also supports foreground blurring, where the content on the layout itself will be blurred by Haze and then drawn. You might be wondering why this is at the bottom of this page? Well nearly everything listed above is also applicable for 'foreground blurring'.</p>
+<p>The only difference with foreground blurring is that you do not need to use a <code>HazeState</code> or <code>Modifier.hazeSource</code>, you only need a <code>Modifier.hazeEffect</code>.</p>
+<p>To perform foreground blurring on a layout, you can do the following:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@Composable</span>
+<span class="kd">fun</span><span class="w"> </span><span class="nf">HazeExample</span><span class="p">(</span><span class="n">modifier</span><span class="p">:</span><span class="w"> </span><span class="n">Modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">Box</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Foreground</span><span class="p">(</span>
+<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">        </span><span class="c1">// Note that we do NOT pass in a HazeState</span>
+<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="c1">// Use all of the same features as above</span>
+<span class="w">          </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="c1">// ...</span>
+<span class="w">          </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="c1">// ...</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">()</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="screenshot-testing">Screenshot testing<a class="headerlink" href="#screenshot-testing" title="Permanent link">¶</a></h2>
