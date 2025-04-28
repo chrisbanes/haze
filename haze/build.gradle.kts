@@ -48,6 +48,7 @@ kotlin {
     androidMain {
       dependencies {
         implementation(libs.androidx.activity)
+        implementation(libs.androidx.tracing)
       }
     }
 
