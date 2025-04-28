@@ -33,10 +33,12 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
+import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
+import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import kotlin.jvm.JvmInline
 
@@ -48,7 +50,7 @@ import kotlin.jvm.JvmInline
  */
 @ExperimentalHazeApi
 class HazeEffectNode(
-  var state: HazeState,
+  var state: HazeState? = null,
   style: HazeStyle = HazeStyle.Unspecified,
   var block: (HazeEffectScope.() -> Unit)? = null,
 ) : Modifier.Node(),
@@ -68,7 +70,7 @@ class HazeEffectNode(
   internal var dirtyTracker = Bitmask()
 
   internal var blurEnabledSet: Boolean = false
-  override var blurEnabled: Boolean = state.blurEnabled
+  override var blurEnabled: Boolean = resolveBlurEnabled()
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "blurEnabled changed. Current: $field. New: $value" }
@@ -123,9 +125,6 @@ class HazeEffectNode(
         field = value
       }
     }
-
-  private val isValid: Boolean
-    get() = size.isSpecified && layerSize.isSpecified && areas.isNotEmpty()
 
   internal var size: Size = Size.Unspecified
     set(value) {
@@ -246,6 +245,8 @@ class HazeEffectNode(
       }
     }
 
+  private val contentDrawArea by lazy { HazeArea() }
+
   override var canDrawArea: ((HazeArea) -> Boolean)? = null
     set(value) {
       if (value != field) {
@@ -327,15 +328,36 @@ class HazeEffectNode(
   override fun ContentDrawScope.draw() {
     HazeLogger.d(TAG) { "-> HazeChild. start draw()" }
 
-    if (isValid) {
-      updateBlurEffectIfNeeded(this)
-      with(blurEffect) { drawEffect() }
+    if (size.isSpecified && layerSize.isSpecified) {
+      if (state != null) {
+        if (areas.isNotEmpty()) {
+          // If the state is not null and we have some areas, let's perform background blurring
+          updateBlurEffectIfNeeded(this)
+          with(blurEffect) { drawEffect() }
+        }
+        // Finally we draw the content over the background
+        drawContent()
+      } else {
+        // Else we're doing content (foreground) blurring, so we need to use our
+        // contentDrawArea
+        val contentLayer = contentDrawArea.contentLayer
+          ?.takeUnless { it.isReleased }
+          ?: requireGraphicsContext().createGraphicsLayer().also {
+            contentDrawArea.contentLayer = it
+            HazeLogger.d(TAG) { "Updated contentLayer in content HazeArea" }
+          }
+        // Record the this node's content into the layer
+        contentLayer.record(size.toIntSize()) {
+          this@draw.drawContent()
+        }
+
+        updateBlurEffectIfNeeded(this)
+        with(blurEffect) { drawEffect() }
+      }
     } else {
       HazeLogger.d(TAG) { "-> HazeChild. Draw. State not valid, so no need to draw effect." }
+      drawContent()
     }
-
-    // Finally we draw the content
-    drawContent()
 
     onPostDraw()
 
@@ -350,31 +372,43 @@ class HazeEffectNode(
     // effects but were previously showing some
     block?.invoke(this)
 
-    val ancestorSourceNode =
-      (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
+    val backgroundBlurring = state != null
+
+    areas = if (backgroundBlurring) {
+      val ancestorSourceNode = (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
         ?.takeIf { it.state == this.state }
 
-    areas = state.areas
-      .also {
-        HazeLogger.d(TAG) { "Background Areas observing: $it" }
-      }
-      .asSequence()
-      .filter { area ->
-        val filter = canDrawArea
-        when {
-          filter != null -> filter(area)
-          ancestorSourceNode != null -> area.zIndex < ancestorSourceNode.zIndex
-          else -> true
-        }.also { included ->
-          HazeLogger.d(TAG) { "Background Area: $area. Included=$included" }
+      state?.areas.orEmpty()
+        .also {
+          HazeLogger.d(TAG) { "Background Areas observing: $it" }
         }
-      }
-      .toMutableList()
-      .apply { sortBy(HazeArea::zIndex) }
+        .asSequence()
+        .filter { area ->
+          val filter = canDrawArea
+          when {
+            filter != null -> filter(area)
+            ancestorSourceNode != null -> area.zIndex < ancestorSourceNode.zIndex
+            else -> true
+          }.also { included ->
+            HazeLogger.d(TAG) { "Background Area: $area. Included=$included" }
+          }
+        }
+        .toMutableList()
+        .apply { sortBy(HazeArea::zIndex) }
+    } else {
+      contentDrawArea.size = size
+      contentDrawArea.positionOnScreen = positionOnScreen
+      contentDrawArea.windowId = windowId
+      listOf(contentDrawArea)
+    }
 
-    areaOffsets = areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
+    areaOffsets = if (areas.isNotEmpty()) {
+      areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
+    } else {
+      emptyMap()
+    }
 
-    if (size.isSpecified && positionOnScreen.isSpecified) {
+    if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && positionOnScreen.isSpecified) {
       // The rect which covers all areas
       val areasRect = areas.fold(Rect.Zero) { acc, area ->
         acc.expandToInclude(area.bounds ?: Rect.Zero)
@@ -397,7 +431,7 @@ class HazeEffectNode(
       layerOffset = positionOnScreen - clippedLayerBounds.topLeft
     } else {
       layerSize = size
-      layerOffset = Offset.Unspecified
+      layerOffset = Offset.Zero
     }
 
     invalidateIfNeeded()
@@ -694,7 +728,8 @@ internal fun HazeEffectNode.resolveNoiseFactor(): Float {
 
 internal fun HazeEffectNode.resolveBlurEnabled(): Boolean = when {
   blurEnabledSet -> blurEnabled
-  else -> state.blurEnabled
+  state != null -> state?.blurEnabled == true
+  else -> HazeDefaults.blurEnabled()
 }
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")

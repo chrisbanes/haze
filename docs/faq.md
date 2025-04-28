@@ -3,7 +3,7 @@
 
 The [Modifier.blur](https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)) modifier and Haze may sound similar, but what they provide is different.
 
-Haze provides background blurring, meaning that it will blur content behind, not the content itself. This is typically required to implement glass-like effects. 
+Haze primarily provides background blurring, meaning that it will blur content behind, not the content itself. This is typically required to implement glass-like effects. `Modifier.blur` performs 'foreground blurring' (or content blurring) where the content in the node itself is blurred. Haze can work in this mode too, but it's not the primary goal.
 
 Other than that, Haze provides a whole bunch of other features which you can read about on the [Usage](usage.md) page.
 
