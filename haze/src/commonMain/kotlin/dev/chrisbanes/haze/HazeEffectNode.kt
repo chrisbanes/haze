@@ -342,7 +342,7 @@ class HazeEffectNode(
     HazeLogger.d(TAG) { "-> HazeChild. end draw()" }
   }
 
-  private fun updateEffect() {
+  private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
     compositionLocalStyle = currentValueOf(LocalHazeStyle)
     windowId = getWindowId()
 
@@ -626,19 +626,21 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
   contentOffset: Offset = this.layerOffset,
   mask: Brush? = this.mask,
   progressive: HazeProgressive? = null,
-): RenderEffect? = getOrCreateRenderEffect(
-  RenderEffectParams(
-    blurRadius = blurRadius,
-    noiseFactor = noiseFactor,
-    scale = inputScale,
-    tints = tints,
-    tintAlphaModulate = tintAlphaModulate,
-    contentSize = contentSize,
-    contentOffset = contentOffset,
-    mask = mask,
-    progressive = progressive,
-  ),
-)
+): RenderEffect? = trace("HazeEffectNode-getOrCreateRenderEffect") {
+  getOrCreateRenderEffect(
+    RenderEffectParams(
+      blurRadius = blurRadius,
+      noiseFactor = noiseFactor,
+      scale = inputScale,
+      tints = tints,
+      tintAlphaModulate = tintAlphaModulate,
+      contentSize = contentSize,
+      contentOffset = contentOffset,
+      mask = mask,
+      progressive = progressive,
+    ),
+  )
+}
 
 internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params: RenderEffectParams): RenderEffect? {
   HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect: $params" }

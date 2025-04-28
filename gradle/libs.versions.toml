@@ -58,6 +58,8 @@ androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-mani
 
 androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
 
+androidx-tracing = "androidx.tracing:tracing-ktx:1.3.0"
+
 assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assertk" }
 
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }

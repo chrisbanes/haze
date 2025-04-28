@@ -158,34 +158,42 @@ internal class RenderScriptBlurEffect(
   }
 
   private suspend fun updateSurface(content: GraphicsLayer, blurRadius: Float) {
-    val rs = getRenderScriptContext(
-      context = node.currentValueOf(LocalContext),
-      size = content.size,
-    )
-    // Draw the layer (this is async)
-    rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
-    // Wait for the layer to be written to the Surface
-    rs.awaitSurfaceWritten()
+    traceAsync("Haze-RenderScriptBlurEffect-updateSurface", 0) {
+      val rs = getRenderScriptContext(
+        context = node.currentValueOf(LocalContext),
+        size = content.size,
+      )
+      traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
+        // Draw the layer (this is async)
+        rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
+        // Wait for the layer to be written to the Surface
+        rs.awaitSurfaceWritten()
+      }
 
-    if (!node.isAttached) return
+      if (!node.isAttached) return@traceAsync
 
-    // Now apply the blur on a background thread
-    withContext(Dispatchers.Default) {
-      rs.applyBlur(blurRadius)
+      // Now apply the blur on a background thread
+      traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
+        withContext(Dispatchers.Default) {
+          rs.applyBlur(blurRadius)
+        }
+      }
+
+      trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
+        // Finally draw the updated bitmap to our drawing graphics layer
+        val output = rs.outputBitmap
+
+        contentLayer.record(
+          density = density,
+          layoutDirection = node.currentValueOf(LocalLayoutDirection),
+          size = IntSize(output.width, output.height),
+        ) {
+          drawImage(output.asImageBitmap())
+        }
+      }
+
+      HazeLogger.d(TAG) { "Output updated in layer" }
     }
-
-    // Finally draw the updated bitmap to our drawing graphics layer
-    val output = rs.outputBitmap
-
-    contentLayer.record(
-      density = density,
-      layoutDirection = node.currentValueOf(LocalLayoutDirection),
-      size = IntSize(output.width, output.height),
-    ) {
-      drawImage(output.asImageBitmap())
-    }
-
-    HazeLogger.d(TAG) { "Output updated in layer" }
   }
 
   private fun getRenderScriptContext(context: Context, size: IntSize): RenderScriptContext {
