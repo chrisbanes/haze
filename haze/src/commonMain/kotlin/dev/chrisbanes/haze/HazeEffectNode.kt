@@ -8,6 +8,7 @@ package dev.chrisbanes.haze
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Offset
@@ -44,6 +45,8 @@ import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.fastFold
+import dev.chrisbanes.haze.HazeProgressive.Companion.horizontalGradient
+import dev.chrisbanes.haze.HazeProgressive.Companion.verticalGradient
 import kotlin.jvm.JvmInline
 
 /**
@@ -323,12 +326,14 @@ class HazeEffectNode(
   override fun onObservedReadsChanged() = observeReads(::updateEffect)
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    // If the positionOnScreen has not been placed yet, we use the value from onPlaced,
+    // If the positionOnScreen has not been placed yet, we use the value on onPlaced,
     // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
-    // up to the first draw. We usually need onGloballyPositioned which tends to happen after
+    // up to the first draw. We need onGloballyPositioned which tends to happen after
     // the first pass
-    if (positionOnScreen.isUnspecified) {
-      onPositioned(coordinates, "onPlaced")
+    Snapshot.withoutReadObservation {
+      if (positionOnScreen.isUnspecified) {
+        onPositioned(coordinates, "onPlaced")
+      }
     }
   }
 
@@ -339,9 +344,10 @@ class HazeEffectNode(
   private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
     positionOnScreen = coordinates.positionForHaze()
     size = coordinates.size.toSize()
+    windowId = getWindowId()
 
     HazeLogger.d(TAG) {
-      "$source. Coordinates=$coordinates, positionOnScreen=$positionOnScreen, size=$size"
+      "$source: positionOnScreen=$positionOnScreen, size=$size"
     }
 
     updateEffect()
