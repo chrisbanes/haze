@@ -142,7 +142,7 @@ internal class RenderScriptBlurEffect(
         }
       }
 
-      drawScaledContent(offset = -offset, scaleFactor = scaleFactor) {
+      drawScaledContent(offset = -offset, scaledSize = size * scaleFactor) {
         drawLayer(layer)
       }
     }
