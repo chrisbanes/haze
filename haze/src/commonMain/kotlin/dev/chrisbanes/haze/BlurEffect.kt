@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
+import kotlin.math.max
 
 internal interface BlurEffect {
   fun DrawScope.drawEffect()
@@ -91,11 +92,9 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
   )
 
   if (layer != null) {
-    drawScaledContent(
-      offset = -node.layerOffset,
-      scaleFactor = scaleFactor,
-      block = { block(layer) },
-    )
+    drawScaledContent(offset = -node.layerOffset, scaledSize = size * scaleFactor) {
+      block(layer)
+    }
 
     if (releaseLayerOnExit) {
       graphicsContext.releaseGraphicsLayer(layer)
@@ -109,9 +108,9 @@ internal fun DrawScope.createScaledContentLayer(
   layerSize: Size,
   layerOffset: Offset,
 ): GraphicsLayer? {
-  val scaledSize = (layerSize * scaleFactor).roundToIntSize()
+  val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
 
-  if (scaledSize.width <= 0 || scaledSize.height <= 0) {
+  if (scaledLayerSize.width <= 0 || scaledLayerSize.height <= 0) {
     // If we have a 0px dimension we can't do anything so just return
     return null
   }
@@ -124,7 +123,7 @@ internal fun DrawScope.createScaledContentLayer(
   val graphicsContext = node.currentValueOf(LocalGraphicsContext)
   val layer = graphicsContext.createGraphicsLayer()
 
-  layer.record(size = scaledSize) {
+  layer.record(size = scaledLayerSize) {
     drawRect(bg)
 
     clipRect {
@@ -170,12 +169,13 @@ internal fun DrawScope.createScaledContentLayer(
 
 internal fun DrawScope.drawScaledContent(
   offset: Offset,
-  scaleFactor: Float,
+  scaledSize: Size,
   block: DrawScope.() -> Unit,
 ) {
+  val scaleFactor = max(size.width / scaledSize.width, size.height / scaledSize.height)
   clipRect {
     translate(offset) {
-      scale(1f / scaleFactor, Offset.Zero) {
+      scale(scale = scaleFactor, pivot = Offset.Zero) {
         block()
       }
     }
