@@ -21,6 +21,7 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
@@ -67,7 +68,7 @@ internal fun DrawScope.drawScrim(
     }
   } else {
     if (mask != null) {
-      drawRect(brush = mask, colorFilter = ColorFilter.tint(tint.color))
+      drawRect(brush = mask, size = size, colorFilter = ColorFilter.tint(tint.color))
     } else {
       drawRect(color = tint.color, blendMode = tint.blendMode)
     }
@@ -108,7 +109,7 @@ internal fun DrawScope.createScaledContentLayer(
   layerSize: Size,
   layerOffset: Offset,
 ): GraphicsLayer? {
-  val scaledSize = (layerSize * scaleFactor).toIntSize()
+  val scaledSize = (layerSize * scaleFactor).roundToIntSize()
 
   if (scaledSize.width <= 0 || scaledSize.height <= 0) {
     // If we have a 0px dimension we can't do anything so just return

@@ -105,7 +105,7 @@ internal class RenderScriptBlurEffect(
     node.withGraphicsLayer { layer ->
       layer.alpha = node.alpha
 
-      val mask = node.mask ?: node.progressive?.asBrush()
+      val mask = node.progressive?.asBrush() ?: node.mask
       if (mask != null) {
         // If we have a mask, this needs to be drawn offscreen
         layer.compositingStrategy = CompositingStrategy.Offscreen
@@ -130,7 +130,7 @@ internal class RenderScriptBlurEffect(
 
           // Then the tints...
           for (tint in node.resolveTints()) {
-            drawScrim(tint = tint, node = node, size = contentSize)
+            drawScrim(tint = tint, node = node, size = contentSize, mask = mask)
           }
 
           if (mask != null) {
