@@ -553,25 +553,19 @@
 
 
 <div><h1 id="using-a-snapshot-version-of-the-library">Using a Snapshot Version of the Library<a class="headerlink" href="#using-a-snapshot-version-of-the-library" title="Permanent link">¶</a></h1>
-<p>If you would like to depend on the cutting edge version of the library, you can use the <a href="https://oss.sonatype.org/content/repositories/snapshots/dev/chrisbanes/haze/">snapshot versions</a> that are published to
-<a href="https://central.sonatype.org/">Sonatype OSSRH</a>'s snapshot repository. These are updated on every commit to <code>main</code>.</p>
+<p>If you would like to depend on the cutting edge version of the library, you can use the <a href="https://central.sonatype.com/service/rest/repository/browse/maven-snapshots/dev/chrisbanes/haze/haze/">snapshot versions</a> that are published to
+<a href="https://central.sonatype.org/">Sonatype Central Repository</a>'s snapshot repository. These are updated on every commit to <code>main</code>.</p>
 <p>To do so:</p>
-<div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="o">{</span>
+<div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// ...</span>
-<span class="w">    </span><span class="n">maven</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="n">url</span><span class="w"> </span><span class="s1">'https://oss.sonatype.org/content/repositories/snapshots'</span><span class="w"> </span><span class="o">}</span>
-<span class="o">}</span>
+<span class="w">    </span><span class="n">maven</span><span class="p">(</span><span class="s">"https://central.sonatype.com/repository/maven-snapshots"</span><span class="p">)</span>
+<span class="p">}</span>
 
-<span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// Check the latest SNAPSHOT version from the link above</span>
-<span class="w">    </span><span class="n">classpath</span><span class="w"> </span><span class="s1">'dev.chrisbanes.haze:haze:XXX-SNAPSHOT'</span>
-<span class="o">}</span>
-</code></pre></div>
-<p>You might see a number of different versioned snapshots. If we use an example:</p>
-<ul>
-<li><code>0.3.0-SNAPSHOT</code> is a build from the <code>main</code> branch, and depends on the latest tagged Jetpack Compose release (i.e. <a href="https://developer.android.com/jetpack/androidx/releases/compose#1.0.0-alpha03">alpha03</a>).</li>
-</ul>
-<p>These builds are updated regularly, but there's no guarantee that we will create one for a given snapshot number.</p>
-<p><em>Note:</em> you might also see versions in the scheme <code>x.x.x.ui-YYYY-SNAPSHOT</code>. These are the same, just using an older suffix.</p></div>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:XXX-SNAPSHOT"</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div></div>
 
 
 
