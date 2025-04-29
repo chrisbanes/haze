@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -350,6 +351,7 @@ class HazeEffectNode(
         contentLayer.record(size.toIntSize()) {
           this@draw.drawContent()
         }
+        drawLayer(contentLayer)
 
         updateBlurEffectIfNeeded(this)
         with(blurEffect) { drawEffect() }
