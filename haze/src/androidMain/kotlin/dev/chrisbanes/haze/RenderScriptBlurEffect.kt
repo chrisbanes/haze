@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toIntSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -111,40 +112,40 @@ internal class RenderScriptBlurEffect(
         layer.compositingStrategy = CompositingStrategy.Offscreen
       }
 
-      layer.record(size = contentLayer.size) {
-        drawLayer(contentLayer)
+      layer.record(size = size.toIntSize()) {
+        drawScaledContent(
+          offset = -offset,
+          scaledSize = size * scaleFactor,
+        ) {
+          drawLayer(contentLayer)
+        }
 
-        val contentSize = ceil(node.size * scaleFactor)
-        val contentOffset = (offset * scaleFactor).round()
-
-        translate(contentOffset) {
-          // Draw the noise on top...
-          val noiseFactor = node.resolveNoiseFactor()
-          if (noiseFactor > 0f) {
-            PaintPool.usePaint { paint ->
-              val texture = context.getNoiseTexture(noiseFactor, scaleFactor)
-              paint.shader = BitmapShader(texture, REPEAT, REPEAT)
-              drawContext.canvas.drawRect(contentSize.toRect(), paint)
-            }
+        // Draw the noise on top...
+        val noiseFactor = node.resolveNoiseFactor()
+        if (noiseFactor > 0f) {
+          PaintPool.usePaint { paint ->
+            paint.isAntiAlias = true
+            val texture = context.getNoiseTexture(noiseFactor)
+            paint.shader = BitmapShader(texture, REPEAT, REPEAT)
+            paint.blendMode = BlendMode.SrcAtop
+            drawContext.canvas.drawRect(size.toRect(), paint)
           }
+        }
 
-          // Then the tints...
-          for (tint in node.resolveTints()) {
-            drawScrim(tint = tint, node = node, size = contentSize, mask = mask)
-          }
+        // Then the tints...
+        for (tint in node.resolveTints()) {
+          drawScrim(tint = tint, node = node, size = size, mask = mask)
+        }
 
-          if (mask != null) {
-            HazeLogger.d(TAG) {
-              "Drawing mask. contentSize=$contentSize, offset=$contentOffset, canvas size=$size"
-            }
-            drawRect(brush = mask, size = contentSize, blendMode = BlendMode.DstIn)
+        if (mask != null) {
+          HazeLogger.d(TAG) {
+            "Drawing mask, canvas size=$size"
           }
+          drawRect(brush = mask, size = size, blendMode = BlendMode.DstIn)
         }
       }
 
-      drawScaledContent(offset = -offset, scaledSize = size * scaleFactor) {
-        drawLayer(layer)
-      }
+      drawLayer(layer)
     }
   }
 

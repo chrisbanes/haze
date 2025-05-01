@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -30,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.packFloats
+import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.withScale
 
@@ -72,7 +74,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
   }
 
   return blur
-    .withNoise(currentValueOf(LocalContext), params.noiseFactor, params.scale, progressiveShader)
+    .withNoise(currentValueOf(LocalContext), params.noiseFactor, progressiveShader)
     .withTints(params.tints, size, offset, params.tintAlphaModulate, progressiveShader)
     .withMask(params.mask, size, offset)
     .asComposeRenderEffect()
@@ -80,7 +82,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 
 private val noiseTextureCache by unsynchronizedLazy { SimpleLruCache<Long, Bitmap>(3) }
 
-internal fun Context.getNoiseTexture(noiseFactor: Float, scale: Float): Bitmap {
+internal fun Context.getNoiseTexture(noiseFactor: Float, scale: Float = 1f): Bitmap {
   val key = packFloats(noiseFactor, scale)
   val cached = noiseTextureCache[key]
   if (cached != null && !cached.isRecycled) {
@@ -97,11 +99,12 @@ internal fun Context.getNoiseTexture(noiseFactor: Float, scale: Float): Bitmap {
 private fun AndroidRenderEffect.withNoise(
   context: Context,
   noiseFactor: Float,
-  scale: Float,
   mask: Shader? = null,
 ): AndroidRenderEffect = when {
   noiseFactor >= 0.005f -> {
-    val noiseShader = BitmapShader(context.getNoiseTexture(noiseFactor, scale), REPEAT, REPEAT)
+    // Ideally we would scale the noise texture to match the input scale, but scaling it
+    // looks terrible.
+    val noiseShader = BitmapShader(context.getNoiseTexture(noiseFactor), REPEAT, REPEAT)
     val dst = when {
       mask != null -> {
         // If we have a mask, we need to apply it to the noise bitmap shader via a
@@ -276,17 +279,17 @@ private fun AndroidRenderEffect.chainWith(imageFilter: AndroidRenderEffect): And
  * There might be a better way to do this via a [BlendMode], but none of the results looked as
  * good.
  */
-private fun Bitmap.transform(alpha: Float, scale: Float): Bitmap = PaintPool.usePaint { paint ->
+private fun Bitmap.transform(alpha: Float, scale: Float = 1f): Bitmap = PaintPool.usePaint { paint ->
   paint.alpha = alpha
+  paint.isAntiAlias = true
+  paint.filterQuality = FilterQuality.High
 
   val scaledWidth = (width * scale).toInt()
   val scaledHeight = (height * scale).toInt()
 
-  val bitmap = createBitmap(scaledWidth, scaledHeight)
-  android.graphics.Canvas(bitmap).apply {
+  return createBitmap(scaledWidth, scaledHeight).applyCanvas {
     withScale(scale, scale) {
       drawBitmap(this@transform, 0f, 0f, paint.asFrameworkPaint())
     }
   }
-  return bitmap
 }
