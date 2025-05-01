@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
+import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -77,6 +78,8 @@ internal class RenderScriptBlurEffect(
         layerSize = node.layerSize,
         layerOffset = offset,
       )?.let { layer ->
+        layer.clip = node.shouldClip()
+
         if (contentLayer.size == IntSize.Zero) {
           // If the layer is released, or doesn't have a size yet, we'll generate
           // this blocking, so that the user doesn't see an un-blurred first frame
@@ -105,6 +108,7 @@ internal class RenderScriptBlurEffect(
 
     node.withGraphicsLayer { layer ->
       layer.alpha = node.alpha
+      layer.clip = node.shouldClip()
 
       val mask = node.progressive?.asBrush() ?: node.mask
       if (mask != null) {
@@ -116,25 +120,32 @@ internal class RenderScriptBlurEffect(
         drawScaledContent(
           offset = -offset,
           scaledSize = size * scaleFactor,
+          clip = node.shouldClip(),
         ) {
           drawLayer(contentLayer)
         }
 
+        val contentLayerSize = contentLayer.size.toSize()
+
         // Draw the noise on top...
         val noiseFactor = node.resolveNoiseFactor()
         if (noiseFactor > 0f) {
-          PaintPool.usePaint { paint ->
-            paint.isAntiAlias = true
-            val texture = context.getNoiseTexture(noiseFactor)
-            paint.shader = BitmapShader(texture, REPEAT, REPEAT)
-            paint.blendMode = BlendMode.SrcAtop
-            drawContext.canvas.drawRect(size.toRect(), paint)
+          translate(offset = -offset) {
+            PaintPool.usePaint { paint ->
+              paint.isAntiAlias = true
+              val texture = context.getNoiseTexture(noiseFactor)
+              paint.shader = BitmapShader(texture, REPEAT, REPEAT)
+              paint.blendMode = BlendMode.SrcAtop
+              drawContext.canvas.drawRect(contentLayerSize.toRect(), paint)
+            }
           }
         }
 
         // Then the tints...
-        for (tint in node.resolveTints()) {
-          drawScrim(tint = tint, node = node, size = size, mask = mask)
+        translate(offset = -offset) {
+          for (tint in node.resolveTints()) {
+            drawScrim(tint = tint, node = node, offset = offset, expandedSize = contentLayerSize, mask = mask)
+          }
         }
 
         if (mask != null) {

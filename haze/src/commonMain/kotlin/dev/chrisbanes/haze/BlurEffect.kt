@@ -9,10 +9,11 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -51,7 +52,8 @@ internal class ScrimBlurEffect(
 internal fun DrawScope.drawScrim(
   tint: HazeTint,
   node: CompositionLocalConsumerModifierNode,
-  size: Size = this.size,
+  offset: Offset = Offset.Zero,
+  expandedSize: Size = this.size,
   mask: Brush? = null,
 ) {
   if (tint.brush != null) {
@@ -62,16 +64,28 @@ internal fun DrawScope.drawScrim(
           drawRect(brush = tint.brush, blendMode = tint.blendMode)
           drawRect(brush = mask, blendMode = BlendMode.DstIn)
         }
-        drawLayer(layer)
+        translate(offset) {
+          drawLayer(layer)
+        }
       }
     } else {
-      drawRect(brush = tint.brush, size = size, blendMode = tint.blendMode)
+      drawRect(
+        brush = tint.brush,
+        topLeft = offset,
+        size = size,
+        blendMode = tint.blendMode,
+      )
     }
   } else {
     if (mask != null) {
-      drawRect(brush = mask, size = size, colorFilter = ColorFilter.tint(tint.color))
+      drawRect(
+        brush = mask,
+        topLeft = offset,
+        size = size,
+        colorFilter = ColorFilter.tint(tint.color),
+      )
     } else {
-      drawRect(color = tint.color, blendMode = tint.blendMode)
+      drawRect(color = tint.color, size = expandedSize, blendMode = tint.blendMode)
     }
   }
 }
@@ -79,6 +93,7 @@ internal fun DrawScope.drawScrim(
 internal fun DrawScope.createAndDrawScaledContentLayer(
   node: HazeEffectNode,
   scaleFactor: Float = node.calculateInputScaleFactor(),
+  clip: Boolean = node.shouldClip(),
   releaseLayerOnExit: Boolean = true,
   block: DrawScope.(GraphicsLayer) -> Unit,
 ) {
@@ -92,7 +107,13 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
   )
 
   if (layer != null) {
-    drawScaledContent(offset = -node.layerOffset, scaledSize = size * scaleFactor) {
+    layer.clip = clip
+
+    drawScaledContent(
+      offset = -node.layerOffset,
+      scaledSize = size * scaleFactor,
+      clip = clip,
+    ) {
       block(layer)
     }
 
@@ -115,48 +136,46 @@ internal fun DrawScope.createScaledContentLayer(
     return null
   }
 
-  val bg = node.resolveBackgroundColor()
-  require(bg.isSpecified) { "backgroundColor not specified. Please provide a color." }
-
   // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
   // The RenderEffect applied will provide the blurring effect.
   val graphicsContext = node.currentValueOf(LocalGraphicsContext)
   val layer = graphicsContext.createGraphicsLayer()
 
   layer.record(size = scaledLayerSize) {
-    drawRect(bg)
+    val bg = node.resolveBackgroundColor()
+    if (bg.isSpecified) {
+      drawRect(bg)
+    }
 
-    clipRect {
-      scale(scale = scaleFactor, pivot = Offset.Zero) {
-        translate(layerOffset - node.positionOnScreen) {
-          for (area in node.areas) {
-            require(!area.contentDrawing) {
-              "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
-                "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
-                "Alternatively you can use can `canDrawArea` to to filter out parent areas."
-            }
+    scale(scale = scaleFactor, pivot = Offset.Zero) {
+      translate(layerOffset - node.positionOnScreen) {
+        for (area in node.areas) {
+          require(!area.contentDrawing) {
+            "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
+              "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
+              "Alternatively you can use can `canDrawArea` to to filter out parent areas."
+          }
 
-            val effectNodeBounds = Rect(node.positionOnScreen, node.size)
-            val areaBounds = Snapshot.withoutReadObservation { area.bounds }
-            if (areaBounds == null || !effectNodeBounds.overlaps(areaBounds)) {
-              HazeLogger.d(TAG) { "Area does not overlap us. Skipping... $area" }
-              continue
-            }
+          val effectNodeBounds = Rect(node.positionOnScreen, node.size)
+          val areaBounds = Snapshot.withoutReadObservation { area.bounds }
+          if (areaBounds == null || !effectNodeBounds.overlaps(areaBounds)) {
+            HazeLogger.d(TAG) { "Area does not overlap us. Skipping... $area" }
+            continue
+          }
 
-            val position = Snapshot.withoutReadObservation { area.positionOnScreen.orZero }
-            translate(position) {
-              // Draw the content into our effect layer. We do want to observe this via snapshot
-              // state
-              val areaLayer = area.contentLayer
-                ?.takeUnless { it.isReleased }
-                ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+          val position = Snapshot.withoutReadObservation { area.positionOnScreen.orZero }
+          translate(position) {
+            // Draw the content into our effect layer. We do want to observe this via snapshot
+            // state
+            val areaLayer = area.contentLayer
+              ?.takeUnless { it.isReleased }
+              ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
 
-              if (areaLayer != null) {
-                HazeLogger.d(TAG) { "Drawing HazeArea GraphicsLayer: $areaLayer" }
-                drawLayer(areaLayer)
-              } else {
-                HazeLogger.d(TAG) { "HazeArea GraphicsLayer is not valid" }
-              }
+            if (areaLayer != null) {
+              HazeLogger.d(TAG) { "Drawing HazeArea GraphicsLayer: $areaLayer" }
+              drawLayer(areaLayer)
+            } else {
+              HazeLogger.d(TAG) { "HazeArea GraphicsLayer is not valid" }
             }
           }
         }
@@ -170,10 +189,11 @@ internal fun DrawScope.createScaledContentLayer(
 internal fun DrawScope.drawScaledContent(
   offset: Offset,
   scaledSize: Size,
+  clip: Boolean = true,
   block: DrawScope.() -> Unit,
 ) {
   val scaleFactor = max(size.width / scaledSize.width, size.height / scaledSize.height)
-  clipRect {
+  optionalClipRect(enabled = clip) {
     translate(offset) {
       scale(scale = scaleFactor, pivot = Offset.Zero) {
         block()
@@ -181,3 +201,20 @@ internal fun DrawScope.drawScaledContent(
     }
   }
 }
+
+private inline fun DrawScope.optionalClipRect(
+  enabled: Boolean,
+  left: Float = 0.0f,
+  top: Float = 0.0f,
+  right: Float = size.width,
+  bottom: Float = size.height,
+  clipOp: ClipOp = ClipOp.Intersect,
+  block: DrawScope.() -> Unit,
+) = withTransform(
+  transformBlock = {
+    if (enabled) {
+      clipRect(left, top, right, bottom, clipOp)
+    }
+  },
+  drawBlock = block,
+)

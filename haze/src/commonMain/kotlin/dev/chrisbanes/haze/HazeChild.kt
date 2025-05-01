@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.ModifierNodeElement
@@ -162,6 +163,28 @@ interface HazeEffectScope {
    */
   @ExperimentalHazeApi
   var canDrawArea: ((HazeArea) -> Boolean)?
+
+  /**
+   * The [BlurredEdgeTreatment] to use when blurring content.
+   *
+   * Defaults to [BlurredEdgeTreatment.Rectangle] (via [HazeDefaults.blurredEdgeTreatment]), which
+   * is nearly always the correct value for when performing background blurring. If you're
+   * performing content (foreground) blurring, it depends on the effect which you're looking for.
+   *
+   * Please note: some platforms do not support all of the treatments available. This value is a
+   * best-effort attempt.
+   */
+  var blurredEdgeTreatment: BlurredEdgeTreatment
+
+  /**
+   * Whether to draw the content behind the blurred effect for foreground blurring. This is
+   * sometimes useful when you're using a mask or progressive effect.
+   *
+   * Defaults to `false` via [HazeDefaults.drawContentBehind].
+   *
+   * This flag has no effect when used with background blurring.
+   */
+  var drawContentBehind: Boolean
 }
 
 /**
@@ -232,7 +255,7 @@ fun Modifier.hazeEffect(
   state: HazeState?,
   style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = this then HazeEffectNodeElement(state, style, block)
+): Modifier = this then HazeEffectNodeElement(state = state, style = style, block = block)
 
 /**
  * Draw the 'haze' effect, using this node's content as the source.

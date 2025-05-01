@@ -82,12 +82,14 @@ data class HazeTint internal constructor(
   val blendMode: BlendMode,
   val brush: Brush?,
 ) {
-  constructor(color: Color, blendMode: BlendMode = BlendMode.SrcOver) : this(color = color, brush = null, blendMode = blendMode)
+  constructor(color: Color, blendMode: BlendMode = DefaultBlendMode) : this(color = color, brush = null, blendMode = blendMode)
 
-  constructor(brush: Brush, blendMode: BlendMode = BlendMode.SrcOver) : this(color = Color.Unspecified, brush = brush, blendMode = blendMode)
+  constructor(brush: Brush, blendMode: BlendMode = DefaultBlendMode) : this(color = Color.Unspecified, brush = brush, blendMode = blendMode)
 
   companion object {
     val Unspecified: HazeTint = HazeTint(Color.Unspecified, BlendMode.SrcOver, null)
+
+    val DefaultBlendMode: BlendMode = BlendMode.SrcOver
   }
 
   val isSpecified: Boolean get() = color.isSpecified || brush != null

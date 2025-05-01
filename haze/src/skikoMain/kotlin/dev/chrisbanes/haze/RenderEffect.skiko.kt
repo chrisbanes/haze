@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -49,7 +50,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
       mask = progressiveShader,
     )
   } else {
-    createBlurImageFilter(blurRadiusPx = blurRadiusPx)
+    createBlurImageFilter(blurRadiusPx, params.blurTileMode.toSkiaTileMode())
   }
 
   val noise = when {
@@ -194,12 +195,16 @@ private fun ImageFilter.blendWith(
   crop = null,
 )
 
-private fun createBlurImageFilter(blurRadiusPx: Float, bounds: Rect? = null): ImageFilter {
+private fun createBlurImageFilter(
+  blurRadiusPx: Float,
+  tileMode: FilterTileMode,
+  bounds: Rect? = null,
+): ImageFilter {
   val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
   return ImageFilter.makeBlur(
     sigmaX = sigma,
     sigmaY = sigma,
-    mode = FilterTileMode.CLAMP,
+    mode = tileMode,
     crop = bounds?.toIRect(),
   )
 }
@@ -230,3 +235,10 @@ private fun Brush.toShader(size: Size): Shader? = (this as? ShaderBrush)?.create
 
 private fun Rect.toIRect(): IRect =
   IRect.makeLTRB(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
+
+private fun TileMode.toSkiaTileMode(): FilterTileMode = when (this) {
+  TileMode.Decal -> FilterTileMode.DECAL
+  TileMode.Mirror -> FilterTileMode.MIRROR
+  TileMode.Repeated -> FilterTileMode.REPEAT
+  else -> FilterTileMode.CLAMP
+}

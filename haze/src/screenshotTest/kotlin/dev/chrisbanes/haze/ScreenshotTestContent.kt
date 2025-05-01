@@ -95,9 +95,10 @@ internal fun CreditCardContentBlurring(
   blurEnabled: Boolean = HazeDefaults.blurEnabled(),
   mask: Brush? = null,
   progressive: HazeProgressive? = null,
+  drawContentBehind: Boolean = HazeDefaults.drawContentBehind,
   alpha: Float = 1f,
 ) {
-  Box {
+  Box(Modifier.background(backgroundColors.first())) {
     // Background content
     CreditCardBackground(
       backgroundColors = backgroundColors,
@@ -113,6 +114,7 @@ internal fun CreditCardContentBlurring(
           this.mask = mask
           this.alpha = alpha
           this.progressive = progressive
+          this.drawContentBehind = drawContentBehind
         },
     )
   }
