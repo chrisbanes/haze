@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.util.fastFold
 import kotlin.jvm.JvmInline
 
 /**
@@ -412,8 +413,8 @@ class HazeEffectNode(
 
     if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && positionOnScreen.isSpecified) {
       // The rect which covers all areas
-      val areasRect = areas.fold(Rect.Zero) { acc, area ->
-        acc.expandToInclude(area.bounds ?: Rect.Zero)
+      val areasRect = areas.fastFold(Rect.Inverted) { acc, area ->
+        area.bounds?.let { acc.expandToInclude(it) } ?: acc
       }
 
       val blurRadiusPx = with(currentValueOf(LocalDensity)) {

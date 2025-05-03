@@ -55,3 +55,11 @@ internal fun Rect.expandToInclude(other: Rect): Rect = Rect(
 
 internal fun ceil(size: Size): Size = Size(width = ceil(size.width), height = ceil(size.height))
 internal fun Offset.round(): Offset = Offset(x.roundToInt().toFloat(), y.roundToInt().toFloat())
+
+internal val Rect.Companion.Inverted: Rect
+  get() = InvertedRect
+
+private val InvertedRect = Rect(
+  topLeft = Offset(x = Float.POSITIVE_INFINITY, y = Float.POSITIVE_INFINITY),
+  bottomRight = Offset(x = Float.NEGATIVE_INFINITY, y = Float.NEGATIVE_INFINITY),
+)
