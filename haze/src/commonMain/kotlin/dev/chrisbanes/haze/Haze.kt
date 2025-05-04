@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -159,6 +160,16 @@ object HazeDefaults {
    * Default alpha used for the tint color. Used by the [tint] function.
    */
   const val tintAlpha: Float = 0.7f
+
+  /**
+   * Default value for [HazeEffectScope.blurredEdgeTreatment]
+   */
+  val blurredEdgeTreatment: BlurredEdgeTreatment = BlurredEdgeTreatment.Rectangle
+
+  /**
+   * Default value for [HazeEffectScope.drawContentBehind]
+   */
+  const val drawContentBehind: Boolean = false
 
   /**
    * Default builder for the 'tint' color. Transforms the provided [color].

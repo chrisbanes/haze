@@ -9,6 +9,7 @@ import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -267,6 +269,24 @@ class HazeEffectNode(
       }
     }
 
+  override var blurredEdgeTreatment: BlurredEdgeTreatment = HazeDefaults.blurredEdgeTreatment
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "blurredEdgeTreatment. Current $field. New: $value" }
+        dirtyTracker += DirtyFields.BlurredEdgeTreatment
+        field = value
+      }
+    }
+
+  override var drawContentBehind: Boolean = HazeDefaults.drawContentBehind
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "drawContentBehind changed. Current $field. New: $value" }
+        dirtyTracker += DirtyFields.DrawContentBehind
+        field = value
+      }
+    }
+
   private val areaPreDrawListener = OnPreDrawListener { invalidateDraw() }
 
   /**
@@ -352,9 +372,11 @@ class HazeEffectNode(
         contentLayer.record(size.toIntSize()) {
           this@draw.drawContent()
         }
-        drawLayer(contentLayer)
-
         updateBlurEffectIfNeeded(this)
+        if (drawContentBehind || blurEffect is ScrimBlurEffect) {
+          // We need to draw the content for scrims
+          drawLayer(contentLayer)
+        }
         with(blurEffect) { drawEffect() }
       }
     } else {
@@ -378,8 +400,9 @@ class HazeEffectNode(
     val backgroundBlurring = state != null
 
     areas = if (backgroundBlurring) {
-      val ancestorSourceNode = (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
-        ?.takeIf { it.state == this.state }
+      val ancestorSourceNode =
+        (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
+          ?.takeIf { it.state == this.state }
 
       state?.areas.orEmpty()
         .also {
@@ -411,6 +434,10 @@ class HazeEffectNode(
       emptyMap()
     }
 
+    val blurRadiusPx = with(currentValueOf(LocalDensity)) {
+      resolveBlurRadius().takeOrElse { 0.dp }.toPx()
+    }
+
     if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && positionOnScreen.isSpecified) {
       // The rect which covers all areas
       val areasRect = areas.fastFold(Rect.Inverted) { acc, area ->
@@ -432,6 +459,12 @@ class HazeEffectNode(
         height = clippedLayerBounds.height.coerceAtLeast(0f),
       )
       layerOffset = positionOnScreen - clippedLayerBounds.topLeft
+    } else if (!backgroundBlurring && size.isSpecified && !shouldClip()) {
+      layerSize = Size(
+        width = size.width + (blurRadiusPx * 2),
+        height = size.height + (blurRadiusPx * 2),
+      )
+      layerOffset = Offset(blurRadiusPx, blurRadiusPx)
     } else {
       layerSize = size
       layerOffset = Offset.Zero
@@ -630,6 +663,7 @@ internal class RenderEffectParams(
   val tintAlphaModulate: Float = 1f,
   val mask: Brush? = null,
   val progressive: HazeProgressive? = null,
+  val blurTileMode: TileMode,
 )
 
 @ExperimentalHazeApi
@@ -652,6 +686,11 @@ internal fun HazeEffectNode.calculateInputScaleFactor(
   }
 }
 
+private fun HazeEffectNode.calculateBlurTileMode(): TileMode = when (blurredEdgeTreatment) {
+  BlurredEdgeTreatment.Unbounded -> TileMode.Decal
+  else -> TileMode.Clamp
+}
+
 @OptIn(ExperimentalHazeApi::class)
 internal fun HazeEffectNode.getOrCreateRenderEffect(
   inputScale: Float = calculateInputScaleFactor(),
@@ -663,6 +702,7 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
   contentOffset: Offset = this.layerOffset,
   mask: Brush? = this.mask,
   progressive: HazeProgressive? = null,
+  blurTileMode: TileMode = calculateBlurTileMode(),
 ): RenderEffect? = trace("HazeEffectNode-getOrCreateRenderEffect") {
   getOrCreateRenderEffect(
     RenderEffectParams(
@@ -675,6 +715,7 @@ internal fun HazeEffectNode.getOrCreateRenderEffect(
       contentOffset = contentOffset,
       mask = mask,
       progressive = progressive,
+      blurTileMode = blurTileMode,
     ),
   )
 }
@@ -735,6 +776,8 @@ internal fun HazeEffectNode.resolveBlurEnabled(): Boolean = when {
   else -> HazeDefaults.blurEnabled()
 }
 
+internal fun HazeEffectNode.shouldClip(): Boolean = blurredEdgeTreatment.shape != null
+
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {
   const val BlurEnabled: Int = 0b1
@@ -753,6 +796,8 @@ internal object DirtyFields {
   const val Areas = Progressive shl 1
   const val LayerSize = Areas shl 1
   const val LayerOffset = LayerSize shl 1
+  const val BlurredEdgeTreatment = LayerOffset shl 1
+  const val DrawContentBehind = BlurredEdgeTreatment shl 1
 
   const val RenderEffectAffectingFlags =
     BlurEnabled or
@@ -765,7 +810,8 @@ internal object DirtyFields {
       Mask or
       Tints or
       FallbackTint or
-      Progressive
+      Progressive or
+      BlurredEdgeTreatment
 
   const val InvalidateFlags =
     RenderEffectAffectingFlags or // Eventually we'll move this out of invalidation
@@ -776,9 +822,11 @@ internal object DirtyFields {
       LayerSize or
       LayerOffset or
       BackgroundColor or
-      Progressive or // TODO: only on Android SDK 32-33
+      Progressive or
       Areas or
-      Alpha
+      Alpha or
+      BlurredEdgeTreatment or
+      DrawContentBehind
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {

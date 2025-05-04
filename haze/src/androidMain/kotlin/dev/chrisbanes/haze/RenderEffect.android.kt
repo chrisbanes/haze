@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.toAndroidTileMode
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
@@ -62,7 +63,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     else -> {
       try {
         val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
-        AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, Shader.TileMode.CLAMP)
+        AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, params.blurTileMode.toAndroidTileMode())
       } catch (e: IllegalArgumentException) {
         throw IllegalArgumentException(
           "Error whilst calling RenderEffect.createBlurEffect. " +

@@ -46,6 +46,7 @@ import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeInputScale
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -68,6 +69,7 @@ val CommonSamples: List<Sample> = listOf(
   Sample.Materials,
   Sample.ListWithStickyHeaders,
   Sample.BottomSheet,
+  Sample.ContentBlurring,
 )
 
 @OptIn(ExperimentalHazeApi::class)
@@ -238,6 +240,16 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
       BottomSheet(navController, blurEnabled)
     }
   }
+
+  @Serializable
+  data object ContentBlurring : Sample {
+    override val title: String = "Content Blurring"
+
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      ContentBlurring(navController, blurEnabled)
+    }
+  }
 }
 
 @Composable
@@ -285,7 +297,7 @@ fun Samples(
       .forEach { imageLoader.enqueue(it) }
   }
 
-  var blurEnabled by rememberSaveable { mutableStateOf(false) }
+  var blurEnabled by rememberSaveable { mutableStateOf(HazeDefaults.blurEnabled()) }
 
   SamplesTheme {
     NavHost(
