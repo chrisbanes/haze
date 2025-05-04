@@ -1,0 +1,17 @@
+on:
+  release:
+    types: [published]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: apexskier/github-release-commenter@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          comment-template: |
+            FYI: This is available in release {release_link}.
