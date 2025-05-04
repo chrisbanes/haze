@@ -31,13 +31,13 @@ class BaselineProfileGenerator {
     device.pressBack()
     device.waitForIdle()
 
-    device.navigateToScaffoldWithProgressive()
+    device.navigateToScaffold()
     device.repeatedScrolls("lazy_grid")
 
     device.pressBack()
     device.waitForIdle()
 
-    device.navigateToScaffold()
-    device.repeatedScrolls("lazy_grid")
+    device.navigateToCreditCard()
+    device.repeatedDrags("credit_card_2")
   }
 }

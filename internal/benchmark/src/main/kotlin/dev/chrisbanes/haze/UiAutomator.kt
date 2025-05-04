@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import android.graphics.Point
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.Direction
@@ -43,41 +44,41 @@ internal fun UiDevice.setBlurEnabled(enabled: Boolean) {
 }
 
 internal fun UiDevice.navigateToImagesList() {
-  findItem(By.res("Images List")).click()
+  findSampleListItem(By.res("Images List")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffold() {
-  findItem(By.res("Scaffold")).click()
+  findSampleListItem(By.res("Scaffold")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldScaled() {
-  findItem(By.res("Scaffold (input scaled)")).click()
+  findSampleListItem(By.res("Scaffold (input scaled)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldWithProgressive() {
-  findItem(By.res("Scaffold (progressive blur)")).click()
+  findSampleListItem(By.res("Scaffold (progressive blur)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldWithProgressiveScaled() {
-  findItem(By.res("Scaffold (progressive blur, input scaled)")).click()
+  findSampleListItem(By.res("Scaffold (progressive blur, input scaled)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldWithMask() {
-  findItem(By.res("Scaffold (masked)")).click()
+  findSampleListItem(By.res("Scaffold (masked)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToCreditCard() {
-  findItem(By.res("Credit Card")).click()
+  findSampleListItem(By.res("Credit Card")).click()
   waitForIdle()
 }
 
-internal fun UiDevice.findItem(selector: BySelector): UiObject2 {
+internal fun UiDevice.findSampleListItem(selector: BySelector): UiObject2 {
   return waitForObject(By.res("sample_list"))
     .apply { setGestureMarginPercentage(0.1f) }
     .scrollUntil(Direction.DOWN, Until.findObject(selector))
@@ -101,6 +102,24 @@ internal fun UiDevice.repeatedScrolls(
       else -> startDirection.opposite()
     }
     node.scroll(direction, 0.8f)
+  }
+}
+
+internal fun UiDevice.repeatedDrags(
+  tag: String,
+  repetitions: Int = 4,
+) {
+  val creditCard = waitForObject(By.res(tag))
+
+  repeat(repetitions) {
+    // Drag it up
+    creditCard.drag(Point(creditCard.visibleCenter.x, (displayHeight * 0.2f).toInt()))
+    // Wait for it to settle back to the middle
+    waitForIdle()
+    // Drag it down
+    creditCard.drag(Point(creditCard.visibleCenter.x, (displayHeight * 0.8f).toInt()))
+    // Wait for it to settle back to the middle
+    waitForIdle()
   }
 }
 
