@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
-import androidx.compose.ui.unit.toSize
+import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -125,7 +125,10 @@ internal class RenderScriptBlurEffect(
           drawLayer(contentLayer)
         }
 
-        val contentLayerSize = contentLayer.size.toSize()
+        val expandedSize = size.expand(
+          expansionWidth = max(offset.x, 0f) * 2,
+          expansionHeight = max(offset.y, 0f) * 2,
+        )
 
         // Draw the noise on top...
         val noiseFactor = node.resolveNoiseFactor()
@@ -136,7 +139,7 @@ internal class RenderScriptBlurEffect(
               val texture = context.getNoiseTexture(noiseFactor)
               paint.shader = BitmapShader(texture, REPEAT, REPEAT)
               paint.blendMode = BlendMode.SrcAtop
-              drawContext.canvas.drawRect(contentLayerSize.toRect(), paint)
+              drawContext.canvas.drawRect(expandedSize.toRect(), paint)
             }
           }
         }
@@ -144,7 +147,7 @@ internal class RenderScriptBlurEffect(
         // Then the tints...
         translate(offset = -offset) {
           for (tint in node.resolveTints()) {
-            drawScrim(tint = tint, node = node, offset = offset, expandedSize = contentLayerSize, mask = mask)
+            drawScrim(tint = tint, node = node, offset = offset, expandedSize = expandedSize, mask = mask)
           }
         }
 
