@@ -28,8 +28,8 @@ internal fun calculateLength(
   return hypot(endX - startX, endY - startY)
 }
 
-internal fun Size.expand(expansion: Float): Size {
-  return Size(width = width + expansion, height = height + expansion)
+internal fun Size.expand(expansionWidth: Float, expansionHeight: Float): Size {
+  return Size(width = width + expansionWidth, height = height + expansionHeight)
 }
 
 internal fun lerp(start: Float, stop: Float, fraction: Float): Float {
