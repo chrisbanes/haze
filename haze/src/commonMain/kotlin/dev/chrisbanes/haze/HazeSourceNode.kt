@@ -113,8 +113,6 @@ class HazeSourceNode(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    HazeLogger.d(TAG) { "onPlaced: positionOnScreen=${area.positionOnScreen}" }
-
     // If the positionOnScreen has not been placed yet, we use the value on onPlaced,
     // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
     // up to the first draw. We need onGloballyPositioned which tends to happen after

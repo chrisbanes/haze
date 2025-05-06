@@ -30,6 +30,7 @@ kotlin {
         implementation(libs.ktor.core)
 
         api(compose.material3)
+        api(libs.compose.material.icons)
       }
     }
 
