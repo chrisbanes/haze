@@ -364,9 +364,7 @@ fun Foreground(modifier: Modifier = Modifier) {
 
 ## Dialogs
 
-You can use Haze with `Dialog`s, to blur dialog backgrounds over content. We supply a [HazeDialog](api/haze/dev.chrisbanes.haze/-haze-dialog.html) composable to make this easy to integrate.
-
-A sample is available too: [DialogSample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt).
+You can use Haze with `Dialog`s, to blur dialog backgrounds over content. A sample is available: [DialogSample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt).
 
 ## Enabling blur
 
