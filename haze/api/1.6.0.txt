@@ -1,0 +1,366 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze {
+
+  @kotlin.RequiresOptIn(message="Experimental Haze API", level=kotlin.RequiresOptIn.Level.WARNING) public @interface ExperimentalHazeApi {
+  }
+
+  @androidx.compose.runtime.Stable public final class HazeArea {
+    ctor public HazeArea();
+    method public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
+    method public Object? getKey();
+    method public long getPositionOnScreen();
+    method public long getSize();
+    method public Object? getWindowId();
+    method public float getZIndex();
+    property public final androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
+    property public final Object? key;
+    property public final long positionOnScreen;
+    property public final long size;
+    property public final Object? windowId;
+    property public final float zIndex;
+  }
+
+  public final class HazeChildKt {
+    method @Deprecated @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState? state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+  }
+
+  @Deprecated public interface HazeChildScope extends dev.chrisbanes.haze.HazeEffectScope {
+  }
+
+  public final class HazeDefaults {
+    method public boolean blurEnabled();
+    method public float getBlurRadius();
+    method public androidx.compose.ui.graphics.Shape getBlurredEdgeTreatment();
+    method public dev.chrisbanes.haze.HazeStyle style(long backgroundColor, optional dev.chrisbanes.haze.HazeTint tint, optional float blurRadius, optional float noiseFactor);
+    method public dev.chrisbanes.haze.HazeTint tint(long color);
+    property public final float blurRadius;
+    property public final androidx.compose.ui.graphics.Shape blurredEdgeTreatment;
+    field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
+    field public static final boolean drawContentBehind = false;
+    field public static final float noiseFactor = 0.15f;
+    field public static final float tintAlpha = 0.7f;
+  }
+
+  public final class HazeDialogKt {
+    method @Deprecated @androidx.compose.runtime.Composable public static void HazeDialog(dev.chrisbanes.haze.HazeState hazeState, kotlin.jvm.functions.Function0<kotlin.Unit> onDismissRequest, optional androidx.compose.ui.window.DialogProperties properties, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeEffectNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeEffectScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {
+    ctor public HazeEffectNode(optional dev.chrisbanes.haze.HazeState? state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
+    method public float getAlpha();
+    method public long getBackgroundColor();
+    method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? getBlock();
+    method public boolean getBlurEnabled();
+    method public float getBlurRadius();
+    method public androidx.compose.ui.graphics.Shape getBlurredEdgeTreatment();
+    method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
+    method public boolean getDrawContentBehind();
+    method public dev.chrisbanes.haze.HazeTint getFallbackTint();
+    method public dev.chrisbanes.haze.HazeInputScale getInputScale();
+    method public androidx.compose.ui.graphics.Brush? getMask();
+    method public float getNoiseFactor();
+    method public dev.chrisbanes.haze.HazeProgressive? getProgressive();
+    method public dev.chrisbanes.haze.HazeState? getState();
+    method public dev.chrisbanes.haze.HazeStyle getStyle();
+    method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
+    method public Object getTraverseKey();
+    method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
+    method public void onObservedReadsChanged();
+    method public void setAlpha(float);
+    method public void setBackgroundColor(long);
+    method public void setBlock(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>?);
+    method public void setBlurEnabled(boolean);
+    method public void setBlurRadius(float);
+    method public void setBlurredEdgeTreatment(androidx.compose.ui.graphics.Shape);
+    method public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
+    method public void setDrawContentBehind(boolean);
+    method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
+    method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
+    method public void setMask(androidx.compose.ui.graphics.Brush?);
+    method public void setNoiseFactor(float);
+    method public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
+    method public void setState(dev.chrisbanes.haze.HazeState?);
+    method public void setStyle(dev.chrisbanes.haze.HazeStyle);
+    method public void setTints(java.util.List<dev.chrisbanes.haze.HazeTint>);
+    property public float alpha;
+    property public long backgroundColor;
+    property public final kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block;
+    property public boolean blurEnabled;
+    property public float blurRadius;
+    property public androidx.compose.ui.graphics.Shape blurredEdgeTreatment;
+    property public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
+    property public boolean drawContentBehind;
+    property public dev.chrisbanes.haze.HazeTint fallbackTint;
+    property public dev.chrisbanes.haze.HazeInputScale inputScale;
+    property public androidx.compose.ui.graphics.Brush? mask;
+    property public float noiseFactor;
+    property public dev.chrisbanes.haze.HazeProgressive? progressive;
+    property public boolean shouldAutoInvalidate;
+    property public final dev.chrisbanes.haze.HazeState? state;
+    property public dev.chrisbanes.haze.HazeStyle style;
+    property public java.util.List<dev.chrisbanes.haze.HazeTint> tints;
+    property public Object traverseKey;
+    field public static final String TAG = "HazeEffect";
+  }
+
+  public final class HazeEffectNode_androidKt {
+    method public static boolean invalidateOnHazeAreaPreDraw();
+  }
+
+  public final class HazeEffectNode_skikoKt {
+    method public static boolean invalidateOnHazeAreaPreDraw();
+  }
+
+  public interface HazeEffectScope {
+    method public float getAlpha();
+    method public long getBackgroundColor();
+    method public boolean getBlurEnabled();
+    method public float getBlurRadius();
+    method public androidx.compose.ui.graphics.Shape getBlurredEdgeTreatment();
+    method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
+    method public boolean getDrawContentBehind();
+    method public dev.chrisbanes.haze.HazeTint getFallbackTint();
+    method public dev.chrisbanes.haze.HazeInputScale getInputScale();
+    method public androidx.compose.ui.graphics.Brush? getMask();
+    method public float getNoiseFactor();
+    method public dev.chrisbanes.haze.HazeProgressive? getProgressive();
+    method public dev.chrisbanes.haze.HazeStyle getStyle();
+    method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
+    method public void setAlpha(float);
+    method public void setBackgroundColor(long);
+    method public void setBlurEnabled(boolean);
+    method public void setBlurRadius(float);
+    method public void setBlurredEdgeTreatment(androidx.compose.ui.graphics.Shape);
+    method public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
+    method public void setDrawContentBehind(boolean);
+    method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
+    method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
+    method public void setMask(androidx.compose.ui.graphics.Brush?);
+    method public void setNoiseFactor(float);
+    method public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
+    method public void setStyle(dev.chrisbanes.haze.HazeStyle);
+    method public void setTints(java.util.List<dev.chrisbanes.haze.HazeTint>);
+    property public abstract float alpha;
+    property public abstract long backgroundColor;
+    property public abstract boolean blurEnabled;
+    property public abstract float blurRadius;
+    property public abstract androidx.compose.ui.graphics.Shape blurredEdgeTreatment;
+    property public abstract kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
+    property public abstract boolean drawContentBehind;
+    property public abstract dev.chrisbanes.haze.HazeTint fallbackTint;
+    property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
+    property public abstract androidx.compose.ui.graphics.Brush? mask;
+    property public abstract float noiseFactor;
+    property public abstract dev.chrisbanes.haze.HazeProgressive? progressive;
+    property public abstract dev.chrisbanes.haze.HazeStyle style;
+    property public abstract java.util.List<dev.chrisbanes.haze.HazeTint> tints;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public sealed interface HazeInputScale {
+    field public static final dev.chrisbanes.haze.HazeInputScale.Companion Companion;
+  }
+
+  public static final class HazeInputScale.Auto implements dev.chrisbanes.haze.HazeInputScale {
+    field public static final dev.chrisbanes.haze.HazeInputScale.Auto INSTANCE;
+  }
+
+  public static final class HazeInputScale.Companion {
+    method public dev.chrisbanes.haze.HazeInputScale getDefault();
+    property @dev.chrisbanes.haze.ExperimentalHazeApi public final dev.chrisbanes.haze.HazeInputScale Default;
+  }
+
+  @kotlin.jvm.JvmInline public static final value class HazeInputScale.Fixed implements dev.chrisbanes.haze.HazeInputScale {
+    ctor public HazeInputScale.Fixed(float scale);
+    method public float getScale();
+    property public final float scale;
+  }
+
+  public static final class HazeInputScale.None implements dev.chrisbanes.haze.HazeInputScale {
+    field public static final dev.chrisbanes.haze.HazeInputScale.None INSTANCE;
+  }
+
+  public final class HazeKt {
+    method @Deprecated @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
+    method @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState(optional boolean blurEnabled);
+  }
+
+  public final class HazeLogger {
+    method public void d(String tag, kotlin.jvm.functions.Function0<java.lang.String> message);
+    method public boolean getEnabled();
+    method public void setEnabled(boolean);
+    property public final boolean enabled;
+    field public static final dev.chrisbanes.haze.HazeLogger INSTANCE;
+  }
+
+  @androidx.compose.runtime.Immutable public sealed interface HazeProgressive {
+    field public static final dev.chrisbanes.haze.HazeProgressive.Companion Companion;
+  }
+
+  @kotlin.jvm.JvmInline public static final value class HazeProgressive.Brush implements dev.chrisbanes.haze.HazeProgressive {
+    ctor public HazeProgressive.Brush(androidx.compose.ui.graphics.Brush brush);
+    method public androidx.compose.ui.graphics.Brush getBrush();
+    property public final androidx.compose.ui.graphics.Brush brush;
+  }
+
+  public static final class HazeProgressive.Companion {
+    method public inline androidx.compose.ui.graphics.Brush forShader(kotlin.jvm.functions.Function1<? super androidx.compose.ui.geometry.Size,? extends android.graphics.Shader> block);
+    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient horizontalGradient(optional androidx.compose.animation.core.Easing easing, optional float startX, optional float startIntensity, optional float endX, optional float endIntensity, optional boolean preferPerformance);
+    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient verticalGradient(optional androidx.compose.animation.core.Easing easing, optional float startY, optional float startIntensity, optional float endY, optional float endIntensity, optional boolean preferPerformance);
+  }
+
+  public static final class HazeProgressive.LinearGradient implements dev.chrisbanes.haze.HazeProgressive {
+    ctor public HazeProgressive.LinearGradient(optional androidx.compose.animation.core.Easing easing, optional long start, optional float startIntensity, optional long end, optional float endIntensity, optional boolean preferPerformance);
+    method public androidx.compose.animation.core.Easing component1();
+    method public long component2-F1C5BW0();
+    method public float component3();
+    method public long component4-F1C5BW0();
+    method public float component5();
+    method public boolean component6();
+    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient copy-E2oHoeU(androidx.compose.animation.core.Easing easing, long start, float startIntensity, long end, float endIntensity, boolean preferPerformance);
+    method public androidx.compose.animation.core.Easing getEasing();
+    method public long getEnd();
+    method public float getEndIntensity();
+    method public boolean getPreferPerformance();
+    method public long getStart();
+    method public float getStartIntensity();
+    property public final androidx.compose.animation.core.Easing easing;
+    property public final long end;
+    property public final float endIntensity;
+    property public final boolean preferPerformance;
+    property public final long start;
+    property public final float startIntensity;
+  }
+
+  @dev.chrisbanes.haze.Poko public static final class HazeProgressive.RadialGradient implements dev.chrisbanes.haze.HazeProgressive {
+    ctor public HazeProgressive.RadialGradient(optional androidx.compose.animation.core.Easing easing, optional long center, optional float centerIntensity, optional float radius, optional float radiusIntensity);
+    method public long getCenter();
+    method public float getCenterIntensity();
+    method public androidx.compose.animation.core.Easing getEasing();
+    method public float getRadius();
+    method public float getRadiusIntensity();
+    property public final long center;
+    property public final float centerIntensity;
+    property public final androidx.compose.animation.core.Easing easing;
+    property public final float radius;
+    property public final float radiusIntensity;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeSourceNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.TraversableNode {
+    ctor public HazeSourceNode(dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
+    method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
+    method public Object? getKey();
+    method public dev.chrisbanes.haze.HazeState getState();
+    method public Object getTraverseKey();
+    method public float getZIndex();
+    method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
+    method public void setKey(Object?);
+    method public void setState(dev.chrisbanes.haze.HazeState);
+    method public void setZIndex(float);
+    property public final Object? key;
+    property public boolean shouldAutoInvalidate;
+    property public final dev.chrisbanes.haze.HazeState state;
+    property public Object traverseKey;
+    property public final float zIndex;
+    field public static final String TAG = "HazeSource";
+  }
+
+  @androidx.compose.runtime.Stable public final class HazeState {
+    ctor public HazeState();
+    ctor public HazeState(boolean initialBlurEnabled);
+    method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
+    method public boolean getBlurEnabled();
+    method @Deprecated public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
+    method @Deprecated public long getPositionOnScreen();
+    method public void setBlurEnabled(boolean);
+    method @Deprecated public void setContentLayer(androidx.compose.ui.graphics.layer.GraphicsLayer?);
+    method @Deprecated public void setPositionOnScreen(long);
+    property public final java.util.List<dev.chrisbanes.haze.HazeArea> areas;
+    property public final boolean blurEnabled;
+    property @Deprecated public final androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
+    property @Deprecated public final long positionOnScreen;
+  }
+
+  @androidx.compose.runtime.Immutable public final class HazeStyle {
+    ctor public HazeStyle(optional long backgroundColor, optional dev.chrisbanes.haze.HazeTint? tint, optional float blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint fallbackTint);
+    ctor public HazeStyle(optional long backgroundColor, optional java.util.List<dev.chrisbanes.haze.HazeTint> tints, optional float blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint fallbackTint);
+    method public long component1-0d7_KjU();
+    method public java.util.List<dev.chrisbanes.haze.HazeTint> component2();
+    method public float component3-D9Ej5fM();
+    method public float component4();
+    method public dev.chrisbanes.haze.HazeTint component5();
+    method public dev.chrisbanes.haze.HazeStyle copy-cq6XJ1M(long backgroundColor, java.util.List<dev.chrisbanes.haze.HazeTint!> tints, float blurRadius, float noiseFactor, dev.chrisbanes.haze.HazeTint fallbackTint);
+    method public long getBackgroundColor();
+    method public float getBlurRadius();
+    method public dev.chrisbanes.haze.HazeTint getFallbackTint();
+    method public float getNoiseFactor();
+    method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
+    property public final long backgroundColor;
+    property public final float blurRadius;
+    property public final dev.chrisbanes.haze.HazeTint fallbackTint;
+    property public final float noiseFactor;
+    property public final java.util.List<dev.chrisbanes.haze.HazeTint> tints;
+    field public static final dev.chrisbanes.haze.HazeStyle.Companion Companion;
+  }
+
+  public static final class HazeStyle.Companion {
+    method public dev.chrisbanes.haze.HazeStyle getUnspecified();
+    property public final dev.chrisbanes.haze.HazeStyle Unspecified;
+  }
+
+  public final class HazeStyleKt {
+    method public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.HazeStyle> getLocalHazeStyle();
+    property public static final androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.HazeStyle> LocalHazeStyle;
+  }
+
+  @androidx.compose.runtime.Stable public final class HazeTint {
+    ctor public HazeTint(androidx.compose.ui.graphics.Brush brush, optional int blendMode);
+    ctor public HazeTint(long color, optional int blendMode);
+    method public long component1-0d7_KjU();
+    method public int component2-0nO6VwU();
+    method public androidx.compose.ui.graphics.Brush? component3();
+    method public dev.chrisbanes.haze.HazeTint copy-39kzsgs(long color, int blendMode, androidx.compose.ui.graphics.Brush? brush);
+    method public int getBlendMode();
+    method public androidx.compose.ui.graphics.Brush? getBrush();
+    method public long getColor();
+    method public boolean isSpecified();
+    property public final int blendMode;
+    property public final androidx.compose.ui.graphics.Brush? brush;
+    property public final long color;
+    property public final boolean isSpecified;
+    field public static final dev.chrisbanes.haze.HazeTint.Companion Companion;
+  }
+
+  public static final class HazeTint.Companion {
+    method public int getDefaultBlendMode();
+    method public dev.chrisbanes.haze.HazeTint getUnspecified();
+    property public final int DefaultBlendMode;
+    property public final dev.chrisbanes.haze.HazeTint Unspecified;
+  }
+
+  @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {
+  }
+
+  public final class Trace_androidKt {
+    method public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
+    method public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
+  }
+
+  public final class Trace_skikoKt {
+    method public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
+    method public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
+  }
+
+  public final class Utils_androidKt {
+    method public static Object? getWindowId(androidx.compose.ui.node.CompositionLocalConsumerModifierNode);
+  }
+
+  public final class Utils_skikoKt {
+    method public static Object? getWindowId(androidx.compose.ui.node.CompositionLocalConsumerModifierNode);
+  }
+
+}
+
