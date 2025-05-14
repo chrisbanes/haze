@@ -5,7 +5,6 @@
 
 package dev.chrisbanes.haze
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.renderscript.Allocation
 import android.renderscript.Element
@@ -19,10 +18,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.trySendBlocking
 
 internal class RenderScriptContext(
-  val context: Context,
+  val rs: RenderScript,
   val size: IntSize,
 ) {
-  private val rs = RenderScript.create(context)
   private val blurScript: ScriptIntrinsicBlur
 
   private val inputAlloc: Allocation

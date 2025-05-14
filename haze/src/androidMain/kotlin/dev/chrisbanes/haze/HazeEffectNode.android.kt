@@ -11,26 +11,33 @@ internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope
   val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
     drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
-  val blur = resolveBlurEnabled()
+  val blurEnabled = resolveBlurEnabled()
 
-  when {
-    blur && canUseRenderEffect -> {
-      if (blurEffect !is RenderEffectBlurEffect) {
-        blurEffect = RenderEffectBlurEffect(this)
-      }
+  if (blurEnabled && canUseRenderEffect) {
+    val newBlurEffect = when (blurEffect) {
+      is RenderEffectBlurEffect -> blurEffect
+      else -> RenderEffectBlurEffect(this)
     }
+    // We have a valid blur effect, so return
+    blurEffect = newBlurEffect
+    return
+  }
 
-    blur && !isRunningOnRobolectric() -> {
-      if (blurEffect !is RenderScriptBlurEffect) {
-        blurEffect = RenderScriptBlurEffect(this)
-      }
+  if (blurEnabled) {
+    val newBlurEffect = when (blurEffect) {
+      is RenderScriptBlurEffect -> blurEffect
+      else -> RenderScriptBlurEffect.createOrNull(this)
     }
+    if (newBlurEffect != null) {
+      // We have a valid blur effect, so return
+      blurEffect = newBlurEffect
+      return
+    }
+  }
 
-    else -> {
-      if (blurEffect !is ScrimBlurEffect) {
-        blurEffect = ScrimBlurEffect(this)
-      }
-    }
+  // If we reach here, this is the fallback case of using a scrim
+  if (blurEffect !is ScrimBlurEffect) {
+    blurEffect = ScrimBlurEffect(this)
   }
 }
 
