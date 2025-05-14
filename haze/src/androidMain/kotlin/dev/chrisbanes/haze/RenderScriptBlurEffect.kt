@@ -1,14 +1,16 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:Suppress("DEPRECATION")
+
 package dev.chrisbanes.haze
 
-import android.content.Context
 import android.graphics.BitmapShader
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
+import android.renderscript.RenderScript
 import android.view.Surface
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
@@ -37,9 +39,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
-internal class RenderScriptBlurEffect(
+internal class RenderScriptBlurEffect private constructor(
   private val node: HazeEffectNode,
 ) : BlurEffect {
+  private val renderScript = RenderScript.create(node.currentValueOf(LocalContext))
   private var renderScriptContext: RenderScriptContext? = null
   private val drawScope = CanvasDrawScope()
 
@@ -174,10 +177,7 @@ internal class RenderScriptBlurEffect(
 
   private suspend fun updateSurface(content: GraphicsLayer, blurRadius: Float) {
     traceAsync("Haze-RenderScriptBlurEffect-updateSurface", 0) {
-      val rs = getRenderScriptContext(
-        context = node.currentValueOf(LocalContext),
-        size = content.size,
-      )
+      val rs = getRenderScriptContext(content.size)
       traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
         // Draw the layer (this is async)
         rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
@@ -211,14 +211,14 @@ internal class RenderScriptBlurEffect(
     }
   }
 
-  private fun getRenderScriptContext(context: Context, size: IntSize): RenderScriptContext {
+  private fun getRenderScriptContext(size: IntSize): RenderScriptContext {
     val rs = renderScriptContext
-    if (rs != null && rs.size == size && rs.context == context) return rs
+    if (rs != null && rs.size == size) return rs
 
     // Release any existing context
     rs?.release()
     // Return a new context and store it
-    return RenderScriptContext(context = context, size = size)
+    return RenderScriptContext(rs = renderScript, size = size)
       .also { renderScriptContext = it }
   }
 
@@ -228,8 +228,19 @@ internal class RenderScriptBlurEffect(
     renderScriptContext?.release()
   }
 
-  companion object {
+  internal companion object {
     const val TAG = "RenderScriptBlurEffect"
+
+    private var isEnabled: Boolean = true
+
+    fun createOrNull(node: HazeEffectNode): RenderScriptBlurEffect? {
+      if (isEnabled) {
+        return runCatching { RenderScriptBlurEffect(node) }
+          .onFailure { isEnabled = false }
+          .getOrNull()
+      }
+      return null
+    }
   }
 }
 
