@@ -40,7 +40,9 @@ val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> =
  * @property noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
  * Anything outside of that range will be clamped.
  * @property fallbackTint The [HazeTint] to use when Haze uses the fallback scrim functionality.
- * In this scenario, the tints provided in [tints] are ignored.
+ * The scrim used whenever [HazeEffectScope.blurEnabled] is resolved to false,
+ * either because the host platform does not support blurring, or it has been manually disabled.
+ * When the fallback tint is used, the tints provided in [tints] are ignored.
  */
 @Immutable
 data class HazeStyle(

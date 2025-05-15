@@ -110,6 +110,11 @@ interface HazeEffectScope {
   /**
    * The [HazeTint] to use when Haze uses the fallback scrim functionality.
    *
+   * The scrim used whenever [blurEnabled] is resolved to false, either because the host
+   * platform does not support blurring, or it has been manually disabled.
+   *
+   * When the fallback tint is used, the tints provided in [tints] are ignored.
+   *
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified
