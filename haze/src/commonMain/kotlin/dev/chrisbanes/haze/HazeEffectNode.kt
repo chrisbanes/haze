@@ -364,7 +364,7 @@ class HazeEffectNode(
           with(blurEffect) { drawEffect() }
         }
         // Finally we draw the content over the background
-        drawContent()
+        drawContentSafely()
       } else {
         // Else we're doing content (foreground) blurring, so we need to use our
         // contentDrawArea
@@ -376,7 +376,7 @@ class HazeEffectNode(
           }
         // Record the this node's content into the layer
         contentLayer.record(size.toIntSize()) {
-          this@draw.drawContent()
+          this@draw.drawContentSafely()
         }
         updateBlurEffectIfNeeded(this)
         if (drawContentBehind || blurEffect is ScrimBlurEffect) {
@@ -387,7 +387,7 @@ class HazeEffectNode(
       }
     } else {
       HazeLogger.d(TAG) { "-> HazeChild. Draw. State not valid, so no need to draw effect." }
-      drawContent()
+      drawContentSafely()
     }
 
     onPostDraw()

@@ -156,7 +156,7 @@ class HazeSourceNode(
 
       // First we draw the composable content into a graphics layer
       contentLayer.record {
-        this@draw.drawContent()
+        this@draw.drawContentSafely()
         HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
       }
 
@@ -166,7 +166,7 @@ class HazeSourceNode(
     } else {
       HazeLogger.d(TAG) { "Not using graphics layer, so drawing content direct to canvas" }
       // If we're not using graphics layers, just call drawContent and return early
-      drawContent()
+      drawContentSafely()
     }
   } finally {
     area.contentDrawing = false

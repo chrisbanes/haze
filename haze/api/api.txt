@@ -189,6 +189,7 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeLogger {
+    method public void d(String tag, Throwable? throwable, kotlin.jvm.functions.Function0<java.lang.String> message);
     method public void d(String tag, kotlin.jvm.functions.Function0<java.lang.String> message);
     method public boolean getEnabled();
     method public void setEnabled(boolean);

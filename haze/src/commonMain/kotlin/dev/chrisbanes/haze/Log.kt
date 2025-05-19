@@ -13,9 +13,22 @@ object HazeLogger {
   var enabled: Boolean = false
 
   fun d(tag: String, message: () -> String) {
+    d(tag = tag, throwable = null, message = message)
+  }
+
+  fun d(tag: String, throwable: Throwable?, message: () -> String) {
     if (enabled) {
       Snapshot.withoutReadObservation {
-        platformLog(tag, message())
+        platformLog(
+          tag = tag,
+          message = buildString {
+            append(message())
+            if (throwable != null) {
+              append(". Throwable: ")
+              append(throwable)
+            }
+          },
+        )
       }
     }
   }
