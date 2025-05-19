@@ -6,15 +6,12 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import kotlin.math.ceil
 import kotlin.math.hypot
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 internal fun calculateLength(
@@ -46,20 +43,5 @@ internal expect fun LayoutCoordinates.positionForHaze(): Offset
 
 internal expect fun CompositionLocalConsumerModifierNode.getWindowId(): Any?
 
-internal fun Rect.expandToInclude(other: Rect): Rect = Rect(
-  left = min(left, other.left),
-  top = min(top, other.top),
-  right = max(right, other.right),
-  bottom = max(bottom, other.bottom),
-)
-
 internal fun ceil(size: Size): Size = Size(width = ceil(size.width), height = ceil(size.height))
 internal fun Offset.round(): Offset = Offset(x.roundToInt().toFloat(), y.roundToInt().toFloat())
-
-internal val Rect.Companion.Inverted: Rect
-  get() = InvertedRect
-
-private val InvertedRect = Rect(
-  topLeft = Offset(x = Float.POSITIVE_INFINITY, y = Float.POSITIVE_INFINITY),
-  bottomRight = Offset(x = Float.NEGATIVE_INFINITY, y = Float.NEGATIVE_INFINITY),
-)

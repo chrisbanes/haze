@@ -37,6 +37,7 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
+import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -44,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
-import androidx.compose.ui.util.fastFold
 import dev.chrisbanes.haze.HazeProgressive.Companion.horizontalGradient
 import dev.chrisbanes.haze.HazeProgressive.Companion.verticalGradient
 import kotlin.jvm.JvmInline
@@ -445,26 +445,13 @@ class HazeEffectNode(
     }
 
     if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && positionOnScreen.isSpecified) {
-      // The rect which covers all areas
-      val areasRect = areas.fastFold(Rect.Inverted) { acc, area ->
-        area.bounds?.let { acc.expandToInclude(it) } ?: acc
-      }
-
-      val blurRadiusPx = with(currentValueOf(LocalDensity)) {
+      val blurRadiusPx = with(requireDensity()) {
         resolveBlurRadius().takeOrElse { 0.dp }.toPx()
       }
+      val inflatedLayerBounds = Rect(positionOnScreen, size).inflate(blurRadiusPx)
 
-      // Now we clip the expanded layer bounds, to remove anything areas which
-      // don't overlap any areas
-      val clippedLayerBounds = Rect(positionOnScreen, size)
-        .inflate(blurRadiusPx)
-        .intersect(areasRect)
-
-      layerSize = Size(
-        width = clippedLayerBounds.width.coerceAtLeast(0f),
-        height = clippedLayerBounds.height.coerceAtLeast(0f),
-      )
-      layerOffset = positionOnScreen - clippedLayerBounds.topLeft
+      layerSize = inflatedLayerBounds.size
+      layerOffset = positionOnScreen - inflatedLayerBounds.topLeft
     } else if (!backgroundBlurring && size.isSpecified && !shouldClip()) {
       layerSize = Size(
         width = size.width + (blurRadiusPx * 2),
