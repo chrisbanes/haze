@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isFinite
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -47,5 +48,18 @@ internal inline fun DrawScope.withAlpha(
     }
   } else {
     block()
+  }
+}
+
+internal fun ContentDrawScope.drawContentSafely() {
+  try {
+    drawContent()
+  } catch (npe: NullPointerException) {
+    // https://github.com/chrisbanes/haze/issues/641
+    HazeLogger.d("ContentDrawScope", npe) {
+      "Error whilst drawing content"
+    }
+  } catch (t: Throwable) {
+    throw t
   }
 }
