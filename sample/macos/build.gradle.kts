@@ -10,12 +10,12 @@ plugins {
 kotlin {
   listOf(
     macosX64(),
-    macosArm64()
+    macosArm64(),
   ).forEach { macosTarget ->
     macosTarget.binaries.executable {
       entryPoint = "dev.chrisbanes.haze.sample.main"
       freeCompilerArgs += listOf(
-        "-linker-option", "-framework", "-linker-option", "Metal"
+        "-linker-option", "-framework", "-linker-option", "Metal",
       )
     }
   }
@@ -33,7 +33,7 @@ compose.desktop {
   nativeApplication {
     targets(
       kotlin.targets.getByName("macosArm64"),
-      kotlin.targets.getByName("macosX64")
+      kotlin.targets.getByName("macosX64"),
     )
   }
 }
