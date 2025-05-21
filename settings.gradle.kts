@@ -65,4 +65,5 @@ include(
   ":sample:android",
   ":sample:desktop",
   ":sample:web",
+  ":sample:macos",
 )
