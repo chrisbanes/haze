@@ -70,6 +70,7 @@ val CommonSamples: List<Sample> = listOf(
   Sample.ListWithStickyHeaders,
   Sample.BottomSheet,
   Sample.ContentBlurring,
+  Sample.Rotation,
 )
 
 @OptIn(ExperimentalHazeApi::class)
@@ -248,6 +249,16 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       ContentBlurring(navController, blurEnabled)
+    }
+  }
+
+  @Serializable
+  data object Rotation : Sample {
+    override val title: String = "Rotation"
+
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      RotationSample(navController, blurEnabled)
     }
   }
 }
