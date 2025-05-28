@@ -354,45 +354,52 @@ class HazeEffectNode(
   }
 
   override fun ContentDrawScope.draw() {
-    HazeLogger.d(TAG) { "-> HazeChild. start draw()" }
+    try {
+      HazeLogger.d(TAG) { "-> start draw()" }
 
-    if (size.isSpecified && layerSize.isSpecified) {
-      if (state != null) {
-        if (areas.isNotEmpty()) {
-          // If the state is not null and we have some areas, let's perform background blurring
+      if (!isAttached) {
+        // This shouldn't happen, but it does...
+        // https://github.com/chrisbanes/haze/issues/665
+        return
+      }
+
+      if (size.isSpecified && layerSize.isSpecified) {
+        if (state != null) {
+          if (areas.isNotEmpty()) {
+            // If the state is not null and we have some areas, let's perform background blurring
+            updateBlurEffectIfNeeded(this)
+            with(blurEffect) { drawEffect() }
+          }
+          // Finally we draw the content over the background
+          drawContentSafely()
+        } else {
+          // Else we're doing content (foreground) blurring, so we need to use our
+          // contentDrawArea
+          val contentLayer = contentDrawArea.contentLayer
+            ?.takeUnless { it.isReleased }
+            ?: requireGraphicsContext().createGraphicsLayer().also {
+              contentDrawArea.contentLayer = it
+              HazeLogger.d(TAG) { "Updated contentLayer in content HazeArea" }
+            }
+          // Record the this node's content into the layer
+          contentLayer.record(size.toIntSize()) {
+            this@draw.drawContentSafely()
+          }
           updateBlurEffectIfNeeded(this)
+          if (drawContentBehind || blurEffect is ScrimBlurEffect) {
+            // We need to draw the content for scrims
+            drawLayer(contentLayer)
+          }
           with(blurEffect) { drawEffect() }
         }
-        // Finally we draw the content over the background
-        drawContentSafely()
       } else {
-        // Else we're doing content (foreground) blurring, so we need to use our
-        // contentDrawArea
-        val contentLayer = contentDrawArea.contentLayer
-          ?.takeUnless { it.isReleased }
-          ?: requireGraphicsContext().createGraphicsLayer().also {
-            contentDrawArea.contentLayer = it
-            HazeLogger.d(TAG) { "Updated contentLayer in content HazeArea" }
-          }
-        // Record the this node's content into the layer
-        contentLayer.record(size.toIntSize()) {
-          this@draw.drawContentSafely()
-        }
-        updateBlurEffectIfNeeded(this)
-        if (drawContentBehind || blurEffect is ScrimBlurEffect) {
-          // We need to draw the content for scrims
-          drawLayer(contentLayer)
-        }
-        with(blurEffect) { drawEffect() }
+        HazeLogger.d(TAG) { "-> State not valid, so no need to draw effect." }
+        drawContentSafely()
       }
-    } else {
-      HazeLogger.d(TAG) { "-> HazeChild. Draw. State not valid, so no need to draw effect." }
-      drawContentSafely()
+    } finally {
+      onPostDraw()
+      HazeLogger.d(TAG) { "-> end draw()" }
     }
-
-    onPostDraw()
-
-    HazeLogger.d(TAG) { "-> HazeChild. end draw()" }
   }
 
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {

@@ -140,37 +140,45 @@ class HazeSourceNode(
     }
   }
 
-  override fun ContentDrawScope.draw() = try {
-    HazeLogger.d(TAG) { "start draw()" }
-    area.contentDrawing = true
+  override fun ContentDrawScope.draw() {
+    try {
+      HazeLogger.d(TAG) { "start draw()" }
+      area.contentDrawing = true
 
-    if (size.minDimension.roundToInt() >= 1) {
-      val graphicsContext = currentValueOf(LocalGraphicsContext)
-
-      val contentLayer = area.contentLayer
-        ?.takeUnless { it.isReleased }
-        ?: graphicsContext.createGraphicsLayer().also {
-          area.contentLayer = it
-          HazeLogger.d(TAG) { "Updated contentLayer in HazeArea: $area" }
-        }
-
-      // First we draw the composable content into a graphics layer
-      contentLayer.record {
-        this@draw.drawContentSafely()
-        HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
+      if (!isAttached) {
+        // This shouldn't happen, but it does...
+        // https://github.com/chrisbanes/haze/issues/665
+        return
       }
 
-      // Now we draw `content` into the window canvas
-      drawLayer(contentLayer)
-      HazeLogger.d(TAG) { "Drawn layer to canvas: $contentLayer" }
-    } else {
-      HazeLogger.d(TAG) { "Not using graphics layer, so drawing content direct to canvas" }
-      // If we're not using graphics layers, just call drawContent and return early
-      drawContentSafely()
+      if (size.minDimension.roundToInt() >= 1) {
+        val graphicsContext = currentValueOf(LocalGraphicsContext)
+
+        val contentLayer = area.contentLayer
+          ?.takeUnless { it.isReleased }
+          ?: graphicsContext.createGraphicsLayer().also {
+            area.contentLayer = it
+            HazeLogger.d(TAG) { "Updated contentLayer in HazeArea: $area" }
+          }
+
+        // First we draw the composable content into a graphics layer
+        contentLayer.record {
+          this@draw.drawContentSafely()
+          HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
+        }
+
+        // Now we draw `content` into the window canvas
+        drawLayer(contentLayer)
+        HazeLogger.d(TAG) { "Drawn layer to canvas: $contentLayer" }
+      } else {
+        HazeLogger.d(TAG) { "Not using graphics layer, so drawing content direct to canvas" }
+        // If we're not using graphics layers, just call drawContent and return early
+        drawContentSafely()
+      }
+    } finally {
+      area.contentDrawing = false
+      HazeLogger.d(TAG) { "end draw()" }
     }
-  } finally {
-    area.contentDrawing = false
-    HazeLogger.d(TAG) { "end draw()" }
   }
 
   override fun onDetach() {
