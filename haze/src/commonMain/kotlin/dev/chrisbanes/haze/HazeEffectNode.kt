@@ -342,6 +342,12 @@ class HazeEffectNode(
   }
 
   private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
+    if (!isAttached) {
+      // This shouldn't happen, but it does...
+      // https://github.com/chrisbanes/haze/issues/665
+      return
+    }
+
     positionOnScreen = coordinates.positionForHaze()
     size = coordinates.size.toSize()
     windowId = getWindowId()
