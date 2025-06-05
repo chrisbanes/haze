@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+import dev.chrisbanes.gradle.addDefaultHazeTargets
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
@@ -16,6 +17,8 @@ android {
 }
 
 kotlin {
+  addDefaultHazeTargets()
+
   sourceSets {
     commonMain {
       dependencies {

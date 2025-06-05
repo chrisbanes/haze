@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
@@ -26,10 +28,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import haze_root.haze_screenshot_tests.generated.resources.Res
+import haze_root.haze_screenshot_tests.generated.resources.photo
 import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun CreditCardSample(
@@ -248,6 +255,66 @@ private fun CreditCard(
     Column(Modifier.padding(32.dp)) {
       Text("Bank of Haze")
     }
+  }
+}
+
+@Composable
+fun OverlayingContent(blurEnabled: Boolean = true) {
+  val hazeState = rememberHazeState(blurEnabled)
+
+  Box(modifier = Modifier.fillMaxSize()) {
+    Spacer(
+      modifier = Modifier
+        .fillMaxSize()
+        .hazeSource(hazeState)
+        .background(
+          brush = Brush.verticalGradient(
+            colors = listOf(Color.Red, Color.Cyan, Color.Blue, Color.Magenta, Color.Red),
+          ),
+        ),
+    )
+
+    Text(
+      text = "Hello, Compose!",
+      style = MaterialTheme.typography.headlineMedium,
+      color = MaterialTheme.colorScheme.onPrimaryContainer,
+      modifier = Modifier
+        .hazeSource(hazeState)
+        .padding(16.dp),
+    )
+
+    Image(
+      painter = painterResource(Res.drawable.photo),
+      contentDescription = null,
+      modifier = Modifier
+        .hazeSource(hazeState)
+        .graphicsLayer {
+          scaleX = 2f
+          scaleY = 2f
+          rotationZ = 45f
+        }
+        .background(
+          brush = Brush.horizontalGradient(
+            colors = listOf(Color.Yellow, Color.Green, Color.Yellow),
+          ),
+        )
+        .align(Alignment.Center)
+        .size(120.dp),
+    )
+
+    Text(
+      text = "Drag Here",
+      color = Color.White,
+      fontSize = 20.sp,
+      style = MaterialTheme.typography.bodyLarge,
+      modifier = Modifier
+        .background(Color(0x1A000000))
+        .hazeEffect(state = hazeState) {
+          blurRadius = 20.dp
+        }
+        .align(Alignment.Center)
+        .padding(16.dp),
+    )
   }
 }
 

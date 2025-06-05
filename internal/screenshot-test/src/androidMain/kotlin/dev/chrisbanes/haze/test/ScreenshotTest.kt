@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.test
 
+import android.content.ContentProvider
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.AndroidComposeUiTest
@@ -15,7 +16,9 @@ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.RoborazziRule
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.roboOutputName
+import org.junit.Before
 import org.junit.Rule
+import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -34,6 +37,12 @@ actual abstract class ScreenshotTest : ContextTest() {
       roborazziOptions = HazeRoborazziDefaults.roborazziOptions,
     ),
   )
+
+  @Before
+  fun fixComposeResources() {
+    val clazz: Class<ContentProvider> = Class.forName("org.jetbrains.compose.resources.AndroidContextProvider") as Class<ContentProvider>
+    Robolectric.setupContentProvider(clazz)
+  }
 }
 
 actual val HazeRoborazziDefaults.outputDirectoryName: String get() = "android"
