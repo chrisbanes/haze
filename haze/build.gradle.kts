@@ -99,7 +99,18 @@ kotlin {
 }
 
 // https://youtrack.jetbrains.com/issue/CMP-4906
-tasks.named("jsBrowserTest").configure {
+tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest> {
+  enabled = false
+}
+
+/**
+ * Disable Mac host and iOS sim tests. They have a high CI cost (mostly linking) but
+ * provide little value over the quicker JVM + Android tests
+ */
+tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest> {
+  enabled = false
+}
+tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeHostTest> {
   enabled = false
 }
 
