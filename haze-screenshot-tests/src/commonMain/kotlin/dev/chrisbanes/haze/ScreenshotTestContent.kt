@@ -29,10 +29,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import haze_root.haze_screenshot_tests.generated.resources.Res
 import haze_root.haze_screenshot_tests.generated.resources.photo
 import kotlin.math.roundToInt
@@ -259,14 +261,20 @@ private fun CreditCard(
 }
 
 @Composable
-fun OverlayingContent(blurEnabled: Boolean = true) {
+fun OverlayingContent(
+  blurEnabled: Boolean = true,
+  topOffset: DpOffset = DpOffset.Zero,
+) {
   val hazeState = rememberHazeState(blurEnabled)
 
-  Box(modifier = Modifier.fillMaxSize()) {
+  Box(
+    modifier = Modifier
+      .fillMaxSize(),
+  ) {
     Spacer(
       modifier = Modifier
-        .fillMaxSize()
         .hazeSource(hazeState)
+        .fillMaxSize()
         .background(
           brush = Brush.verticalGradient(
             colors = listOf(Color.Red, Color.Cyan, Color.Blue, Color.Magenta, Color.Red),
@@ -274,18 +282,10 @@ fun OverlayingContent(blurEnabled: Boolean = true) {
         ),
     )
 
-    Text(
-      text = "Hello, Compose!",
-      style = MaterialTheme.typography.headlineMedium,
-      color = MaterialTheme.colorScheme.onPrimaryContainer,
-      modifier = Modifier
-        .hazeSource(hazeState)
-        .padding(16.dp),
-    )
-
     Image(
       painter = painterResource(Res.drawable.photo),
       contentDescription = null,
+      contentScale = ContentScale.Crop,
       modifier = Modifier
         .hazeSource(hazeState)
         .graphicsLayer {
@@ -293,26 +293,26 @@ fun OverlayingContent(blurEnabled: Boolean = true) {
           scaleY = 2f
           rotationZ = 45f
         }
-        .background(
-          brush = Brush.horizontalGradient(
-            colors = listOf(Color.Yellow, Color.Green, Color.Yellow),
-          ),
-        )
         .align(Alignment.Center)
-        .size(120.dp),
+        .size(100.dp),
     )
 
+    val density = LocalDensity.current
+
     Text(
-      text = "Drag Here",
+      text = "Hi",
       color = Color.White,
-      fontSize = 20.sp,
-      style = MaterialTheme.typography.bodyLarge,
+      style = MaterialTheme.typography.headlineSmall,
       modifier = Modifier
-        .background(Color(0x1A000000))
+        .offset {
+          with(density) {
+            IntOffset(x = topOffset.x.roundToPx(), y = topOffset.y.roundToPx())
+          }
+        }
+        .align(Alignment.Center)
         .hazeEffect(state = hazeState) {
           blurRadius = 20.dp
         }
-        .align(Alignment.Center)
         .padding(16.dp),
     )
   }

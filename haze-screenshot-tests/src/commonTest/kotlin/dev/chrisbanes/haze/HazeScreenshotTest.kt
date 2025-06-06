@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -448,6 +449,31 @@ class HazeScreenshotTest : ScreenshotTest() {
       }
     }
     captureRoot()
+  }
+
+  @Test
+  fun layerTransformations() = runScreenshotTest {
+    var offset by mutableStateOf(DpOffset.Zero)
+
+    setContent {
+      ScreenshotTheme {
+        OverlayingContent(topOffset = offset)
+      }
+    }
+
+    captureRoot("center")
+
+    offset = DpOffset(x = (-128).dp, y = 0.dp)
+    captureRoot("left")
+
+    offset = DpOffset(x = 0.dp, y = (-128).dp)
+    captureRoot("top")
+
+    offset = DpOffset(x = 128.dp, y = 0.dp)
+    captureRoot("right")
+
+    offset = DpOffset(x = 0.dp, y = 128.dp)
+    captureRoot("bottom")
   }
 
   companion object {

@@ -5,7 +5,6 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -154,13 +153,6 @@ internal fun DrawScope.createScaledContentLayer(
             "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
               "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
               "Alternatively you can use can `canDrawArea` to to filter out parent areas."
-          }
-
-          val effectNodeBounds = Rect(node.positionOnScreen, node.size)
-          val areaBounds = Snapshot.withoutReadObservation { area.bounds }
-          if (areaBounds == null || !effectNodeBounds.overlaps(areaBounds)) {
-            HazeLogger.d(TAG) { "Area does not overlap us. Skipping... $area" }
-            continue
           }
 
           val position = Snapshot.withoutReadObservation { area.positionOnScreen.orZero }
