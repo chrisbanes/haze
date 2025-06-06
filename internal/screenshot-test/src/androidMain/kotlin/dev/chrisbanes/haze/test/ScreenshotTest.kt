@@ -40,7 +40,9 @@ actual abstract class ScreenshotTest : ContextTest() {
 
   @Before
   fun fixComposeResources() {
-    val clazz: Class<ContentProvider> = Class.forName("org.jetbrains.compose.resources.AndroidContextProvider") as Class<ContentProvider>
+    @Suppress("UNCHECKED_CAST")
+    val clazz =
+      Class.forName("org.jetbrains.compose.resources.AndroidContextProvider") as Class<ContentProvider>
     Robolectric.setupContentProvider(clazz)
   }
 }
@@ -68,20 +70,21 @@ actual fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit) 
 }
 
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
-private fun <A : ComponentActivity> AndroidComposeUiTest<A>.createScreenshotUiTest() = object : ScreenshotUiTest {
-  override fun setContent(content: @Composable () -> Unit) {
-    this@createScreenshotUiTest.setContent(content)
-  }
-
-  override fun captureRoot(nameSuffix: String?) {
-    val output = when {
-      nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.png"
-      else -> "${roboOutputName()}_$nameSuffix.png"
+private fun <A : ComponentActivity> AndroidComposeUiTest<A>.createScreenshotUiTest() =
+  object : ScreenshotUiTest {
+    override fun setContent(content: @Composable () -> Unit) {
+      this@createScreenshotUiTest.setContent(content)
     }
-    this@createScreenshotUiTest.onRoot().captureRoboImage(output)
-  }
 
-  override fun waitForIdle() {
-    this@createScreenshotUiTest.waitForIdle()
+    override fun captureRoot(nameSuffix: String?) {
+      val output = when {
+        nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.png"
+        else -> "${roboOutputName()}_$nameSuffix.png"
+      }
+      this@createScreenshotUiTest.onRoot().captureRoboImage(output)
+    }
+
+    override fun waitForIdle() {
+      this@createScreenshotUiTest.waitForIdle()
+    }
   }
-}
