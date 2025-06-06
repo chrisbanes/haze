@@ -18,30 +18,32 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
     kotlin {
       applyDefaultHierarchyTemplate()
 
-      jvm()
-      if (pluginManager.hasPlugin("com.android.library")) {
-        androidTarget {
-          publishLibraryVariants("release")
-        }
-      }
-
-      iosX64()
-      iosArm64()
-      iosSimulatorArm64()
-
-      macosX64()
-      macosArm64()
-
-      @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
-      wasmJs {
-        browser()
-      }
-      js(IR) {
-        browser()
-      }
       configureSpotless()
       configureKotlin()
     }
+  }
+}
+
+fun KotlinMultiplatformExtension.addDefaultHazeTargets() {
+  jvm()
+  androidTarget {
+    publishLibraryVariants("release")
+  }
+
+  iosX64()
+  iosArm64()
+  iosSimulatorArm64()
+
+  macosX64()
+  macosArm64()
+
+  @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+  wasmJs {
+    browser()
+  }
+
+  js(IR) {
+    browser()
   }
 }
 

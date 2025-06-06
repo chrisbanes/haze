@@ -14,6 +14,11 @@ android {
 }
 
 kotlin {
+  jvm()
+  androidTarget {
+    publishLibraryVariants("release")
+  }
+
   sourceSets {
     val commonMain by getting {
       dependencies {
@@ -33,7 +38,7 @@ kotlin {
       }
     }
 
-    val androidMain by getting {
+    androidMain {
       dependsOn(commonJvmMain)
 
       dependencies {
@@ -49,7 +54,7 @@ kotlin {
       }
     }
 
-    val jvmMain by getting {
+    jvmMain {
       dependsOn(commonJvmMain)
 
       dependencies {

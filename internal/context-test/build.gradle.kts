@@ -1,6 +1,8 @@
-// Copyright 2024, Christopher Banes and the Haze project contributors
+// Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+
+import dev.chrisbanes.gradle.addDefaultHazeTargets
 
 plugins {
   id("dev.chrisbanes.android.library")
@@ -12,11 +14,14 @@ android {
 }
 
 kotlin {
+  addDefaultHazeTargets()
+
   sourceSets {
-    val androidMain by getting {
+    androidMain {
       dependencies {
         implementation(libs.androidx.test.ext.junit)
-        implementation(libs.robolectric)
+        implementation(libs.androidx.compose.ui.test.manifest)
+        api(libs.robolectric)
       }
     }
   }

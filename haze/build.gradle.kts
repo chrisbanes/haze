@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+import dev.chrisbanes.gradle.addDefaultHazeTargets
 import org.jetbrains.compose.ExperimentalComposeLibrary
 
 plugins {
@@ -12,7 +13,6 @@ plugins {
   id("org.jetbrains.dokka")
   id("com.vanniktech.maven.publish")
   id("dev.chrisbanes.metalava")
-  id("io.github.takahirom.roborazzi")
   id("dev.drewhamilton.poko")
 }
 
@@ -28,15 +28,13 @@ android {
   testOptions {
     unitTests {
       isIncludeAndroidResources = true
-
-      all {
-        it.systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
-      }
     }
   }
 }
 
 kotlin {
+  addDefaultHazeTargets()
+
   sourceSets {
     commonMain {
       dependencies {
@@ -92,20 +90,10 @@ kotlin {
       }
     }
 
-    val screenshotTest by creating {
-      dependsOn(commonTest.get())
-
-      dependencies {
-        implementation(projects.internal.screenshotTest)
-      }
-    }
-
     jvmTest {
-      dependsOn(screenshotTest)
-    }
-
-    androidUnitTest {
-      dependsOn(screenshotTest)
+      dependencies {
+        implementation(compose.desktop.currentOs)
+      }
     }
   }
 }

@@ -1,6 +1,8 @@
-// Copyright 2024, Christopher Banes and the Haze project contributors
+// Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+
+import dev.chrisbanes.gradle.addDefaultHazeTargets
 
 plugins {
   id("dev.chrisbanes.android.library")
@@ -16,6 +18,8 @@ android {
 }
 
 kotlin {
+  addDefaultHazeTargets()
+
   sourceSets {
     commonMain {
       dependencies {
