@@ -1,7 +1,7 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.effect
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
@@ -24,18 +24,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectNode
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
+import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.asBrush
+import dev.chrisbanes.haze.boostForFallback
+import dev.chrisbanes.haze.calculateInputScaleFactor
+import dev.chrisbanes.haze.orZero
+import dev.chrisbanes.haze.resolveBackgroundColor
+import dev.chrisbanes.haze.resolveBlurRadius
+import dev.chrisbanes.haze.resolveFallbackTint
+import dev.chrisbanes.haze.resolveTints
+import dev.chrisbanes.haze.shouldClip
+import dev.chrisbanes.haze.translate
+import dev.chrisbanes.haze.withAlpha
+import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 
-internal interface BlurEffect {
+internal interface VisualEffect {
   fun DrawScope.drawEffect()
   fun cleanup() = Unit
 }
 
 @OptIn(ExperimentalHazeApi::class)
-internal class ScrimBlurEffect(
+internal class ScrimVisualEffect(
   private val node: HazeEffectNode,
-) : BlurEffect {
+) : VisualEffect {
   override fun DrawScope.drawEffect() {
     val scrimTint = node.resolveFallbackTint().takeIf { it.isSpecified }
       ?: node.resolveTints().firstOrNull()

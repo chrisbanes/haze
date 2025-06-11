@@ -26,17 +26,18 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.toAndroidTileMode
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.packFloats
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.withScale
 
-internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
+internal actual fun createRenderEffect(
+  context: PlatformContext,
+  density: Density,
+  params: RenderEffectParams,
+): RenderEffect? {
   if (Build.VERSION.SDK_INT < 31) return null
 
   val blurRadius = params.blurRadius * params.scale
@@ -53,7 +54,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
       // If we've been provided with a progressive/gradient blur shader, we need to use
       // our custom blur via a runtime shader
       createBlurImageFilterWithMask(
-        blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() },
+        blurRadiusPx = with(density) { blurRadius.toPx() },
         size = size,
         offset = offset,
         mask = progressiveShader,
@@ -62,7 +63,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 
     else -> {
       try {
-        val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
+        val blurRadiusPx = with(density) { blurRadius.toPx() }
         AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, params.blurTileMode.toAndroidTileMode())
       } catch (e: IllegalArgumentException) {
         throw IllegalArgumentException(
@@ -75,7 +76,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
   }
 
   return blur
-    .withNoise(currentValueOf(LocalContext), params.noiseFactor, progressiveShader)
+    .withNoise(context, params.noiseFactor, progressiveShader)
     .withTints(params.tints, size, offset, params.tintAlphaModulate, progressiveShader)
     .withMask(params.mask, size, offset)
     .asComposeRenderEffect()
