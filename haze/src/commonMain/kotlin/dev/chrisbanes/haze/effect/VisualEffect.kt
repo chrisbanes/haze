@@ -1,7 +1,7 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.effect
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
@@ -24,26 +25,61 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectNode
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
+import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.asBrush
+import dev.chrisbanes.haze.boostForFallback
+import dev.chrisbanes.haze.orZero
+import dev.chrisbanes.haze.translate
+import dev.chrisbanes.haze.withAlpha
+import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 
-internal interface BlurEffect {
-  fun DrawScope.drawEffect()
-  fun cleanup() = Unit
+internal interface VisualEffect {
+  /**
+   * Draws the effect.
+   */
+  fun DrawScope.drawEffect(node: HazeEffectNode)
+
+  /**
+   * Attaches this effect to the given node.
+   */
+  fun attach(node: HazeEffectNode) = Unit
+
+  fun update() = Unit
+
+  /**
+   * Detaches this effect from its node.
+   */
+  fun detach() = Unit
+
+  fun shouldClip(): Boolean = false
+
+  fun calculateInputScaleFactor(scale: HazeInputScale): Float
+
+  fun needInvalidation(): Boolean
 }
 
 @OptIn(ExperimentalHazeApi::class)
-internal class ScrimBlurEffect(
-  private val node: HazeEffectNode,
-) : BlurEffect {
-  override fun DrawScope.drawEffect() {
-    val scrimTint = node.resolveFallbackTint().takeIf { it.isSpecified }
-      ?: node.resolveTints().firstOrNull()
-        ?.boostForFallback(node.resolveBlurRadius().takeOrElse { 0.dp })
+internal class ScrimBlurVisualEffectDelegate(
+  val blurVisualEffect: BlurVisualEffect,
+) : BlurVisualEffect.Delegate {
+  override fun DrawScope.draw() {
+    val scrimTint = blurVisualEffect.resolveFallbackTint().takeIf { it.isSpecified }
+      ?: blurVisualEffect.resolveTints().firstOrNull()
+        ?.boostForFallback(blurVisualEffect.resolveBlurRadius().takeOrElse { 0.dp })
       ?: return
 
-    withAlpha(alpha = node.alpha, node = node) {
-      drawScrim(tint = scrimTint, node = node, mask = node.mask ?: node.progressive?.asBrush())
+    withAlpha(alpha = blurVisualEffect.alpha, node = blurVisualEffect.requireNode()) {
+      drawScrim(
+        tint = scrimTint,
+        node = blurVisualEffect.requireNode(),
+        mask = blurVisualEffect.mask ?: blurVisualEffect.progressive?.asBrush(),
+      )
     }
   }
 }
@@ -91,8 +127,9 @@ internal fun DrawScope.drawScrim(
 
 internal fun DrawScope.createAndDrawScaledContentLayer(
   node: HazeEffectNode,
-  scaleFactor: Float = node.calculateInputScaleFactor(),
-  clip: Boolean = node.shouldClip(),
+  blurVisualEffect: BlurVisualEffect = node.visualEffect as BlurVisualEffect,
+  scaleFactor: Float = blurVisualEffect.calculateInputScaleFactor(node.inputScale),
+  clip: Boolean = node.visualEffect.shouldClip(),
   releaseLayerOnExit: Boolean = true,
   block: DrawScope.(GraphicsLayer) -> Unit,
 ) {
@@ -103,6 +140,7 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
     scaleFactor = scaleFactor,
     layerSize = node.layerSize,
     layerOffset = node.layerOffset,
+    backgroundColor = blurVisualEffect.resolveBackgroundColor(),
   )
 
   if (layer != null) {
@@ -124,6 +162,7 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
 
 internal fun DrawScope.createScaledContentLayer(
   node: HazeEffectNode,
+  backgroundColor: Color,
   scaleFactor: Float,
   layerSize: Size,
   layerOffset: Offset,
@@ -141,9 +180,8 @@ internal fun DrawScope.createScaledContentLayer(
   val layer = graphicsContext.createGraphicsLayer()
 
   layer.record(size = scaledLayerSize) {
-    val bg = node.resolveBackgroundColor()
-    if (bg.isSpecified) {
-      drawRect(bg)
+    if (backgroundColor.isSpecified) {
+      drawRect(backgroundColor)
     }
 
     scale(scale = scaleFactor, pivot = Offset.Zero) {
