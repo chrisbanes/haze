@@ -3,7 +3,7 @@
 
 @file:Suppress("DEPRECATION")
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.effect
 
 import android.graphics.BitmapShader
 import android.graphics.Color
@@ -32,6 +32,22 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
+import dev.chrisbanes.haze.HazeEffectNode
+import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.PaintPool
+import dev.chrisbanes.haze.asBrush
+import dev.chrisbanes.haze.calculateInputScaleFactor
+import dev.chrisbanes.haze.expand
+import dev.chrisbanes.haze.getNoiseTexture
+import dev.chrisbanes.haze.resolveBlurRadius
+import dev.chrisbanes.haze.resolveNoiseFactor
+import dev.chrisbanes.haze.resolveTints
+import dev.chrisbanes.haze.shouldClip
+import dev.chrisbanes.haze.trace
+import dev.chrisbanes.haze.traceAsync
+import dev.chrisbanes.haze.translate
+import dev.chrisbanes.haze.usePaint
+import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,9 +55,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
-internal class RenderScriptBlurEffect private constructor(
+internal class BlurRenderScriptVisualEffect private constructor(
   private val node: HazeEffectNode,
-) : BlurEffect {
+) : VisualEffect {
   private val renderScript = RenderScript.create(node.currentValueOf(LocalContext))
   private var renderScriptContext: RenderScriptContext? = null
   private val drawScope = CanvasDrawScope()
@@ -233,9 +249,9 @@ internal class RenderScriptBlurEffect private constructor(
 
     private var isEnabled: Boolean = true
 
-    fun createOrNull(node: HazeEffectNode): RenderScriptBlurEffect? {
+    fun createOrNull(node: HazeEffectNode): BlurRenderScriptVisualEffect? {
       if (isEnabled) {
-        return runCatching { RenderScriptBlurEffect(node) }
+        return runCatching { BlurRenderScriptVisualEffect(node) }
           .onFailure { isEnabled = false }
           .getOrNull()
       }

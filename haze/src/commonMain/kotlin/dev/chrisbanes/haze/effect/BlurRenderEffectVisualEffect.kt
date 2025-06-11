@@ -1,7 +1,7 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.effect
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -11,14 +11,21 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.DirtyFields
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectNode
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.calculateLength
+import dev.chrisbanes.haze.getOrCreateRenderEffect
+import dev.chrisbanes.haze.lerp
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
 @OptIn(ExperimentalHazeApi::class)
-internal class RenderEffectBlurEffect(
+internal class BlurRenderEffectVisualEffect(
   internal val node: HazeEffectNode,
-) : BlurEffect {
+) : VisualEffect {
   private var renderEffect: RenderEffect? = null
 
   override fun DrawScope.drawEffect() {
@@ -51,7 +58,7 @@ internal class RenderEffectBlurEffect(
   }
 }
 
-internal expect fun RenderEffectBlurEffect.drawProgressiveEffect(
+internal expect fun BlurRenderEffectVisualEffect.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,

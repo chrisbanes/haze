@@ -6,6 +6,12 @@ package dev.chrisbanes.haze
 import android.os.Build
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.platform.LocalContext
+import dev.chrisbanes.haze.effect.BlurRenderEffectVisualEffect
+import dev.chrisbanes.haze.effect.BlurRenderScriptVisualEffect
+import dev.chrisbanes.haze.effect.ScrimVisualEffect
 
 internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope) {
   val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
@@ -14,30 +20,30 @@ internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope
   val blurEnabled = resolveBlurEnabled()
 
   if (blurEnabled && canUseRenderEffect) {
-    val newBlurEffect = when (blurEffect) {
-      is RenderEffectBlurEffect -> blurEffect
-      else -> RenderEffectBlurEffect(this)
+    val newBlurEffect = when (visualEffect) {
+      is BlurRenderEffectVisualEffect -> visualEffect
+      else -> BlurRenderEffectVisualEffect(this)
     }
     // We have a valid blur effect, so return
-    blurEffect = newBlurEffect
+    visualEffect = newBlurEffect
     return
   }
 
   if (blurEnabled) {
-    val newBlurEffect = when (blurEffect) {
-      is RenderScriptBlurEffect -> blurEffect
-      else -> RenderScriptBlurEffect.createOrNull(this)
+    val newBlurEffect = when (visualEffect) {
+      is BlurRenderScriptVisualEffect -> visualEffect
+      else -> BlurRenderScriptVisualEffect.createOrNull(this)
     }
     if (newBlurEffect != null) {
       // We have a valid blur effect, so return
-      blurEffect = newBlurEffect
+      visualEffect = newBlurEffect
       return
     }
   }
 
   // If we reach here, this is the fallback case of using a scrim
-  if (blurEffect !is ScrimBlurEffect) {
-    blurEffect = ScrimBlurEffect(this)
+  if (visualEffect !is ScrimVisualEffect) {
+    visualEffect = ScrimVisualEffect(this)
   }
 }
 
@@ -49,3 +55,7 @@ internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope
  * - Anything below API 31 does not have RenderEffect so we need to force invalidations.
  */
 actual fun invalidateOnHazeAreaPreDraw(): Boolean = Build.VERSION.SDK_INT < 32
+
+internal actual fun CompositionLocalConsumerModifierNode.requirePlatformContext(): PlatformContext {
+  return currentValueOf(LocalContext)
+}

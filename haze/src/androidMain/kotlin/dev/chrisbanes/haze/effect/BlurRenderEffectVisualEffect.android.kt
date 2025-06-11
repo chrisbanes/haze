@@ -1,7 +1,7 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.effect
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -11,11 +11,20 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
+import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.asBrush
+import dev.chrisbanes.haze.calculateInputScaleFactor
+import dev.chrisbanes.haze.getOrCreateRenderEffect
+import dev.chrisbanes.haze.resolveBlurRadius
+import dev.chrisbanes.haze.resolveNoiseFactor
+import dev.chrisbanes.haze.resolveTints
+import dev.chrisbanes.haze.withGraphicsLayer
 
 private const val USE_RUNTIME_SHADER = true
 
 @RequiresApi(31)
-internal actual fun RenderEffectBlurEffect.drawProgressiveEffect(
+internal actual fun BlurRenderEffectVisualEffect.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,
@@ -48,7 +57,7 @@ internal actual fun RenderEffectBlurEffect.drawProgressiveEffect(
   }
 }
 
-private fun RenderEffectBlurEffect.drawLinearGradientProgressiveEffectUsingLayers(
+private fun BlurRenderEffectVisualEffect.drawLinearGradientProgressiveEffectUsingLayers(
   drawScope: DrawScope,
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,

@@ -3,7 +3,7 @@
 
 @file:Suppress("DEPRECATION")
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.effect
 
 import android.graphics.Bitmap
 import android.renderscript.Allocation
@@ -14,6 +14,7 @@ import android.renderscript.Type
 import android.view.Surface
 import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.createBitmap
+import dev.chrisbanes.haze.HazeLogger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.trySendBlocking
 

@@ -40,6 +40,7 @@ import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
@@ -47,6 +48,8 @@ import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.HazeProgressive.Companion.horizontalGradient
 import dev.chrisbanes.haze.HazeProgressive.Companion.verticalGradient
+import dev.chrisbanes.haze.effect.ScrimVisualEffect
+import dev.chrisbanes.haze.effect.VisualEffect
 import kotlin.jvm.JvmInline
 
 /**
@@ -262,7 +265,7 @@ class HazeEffectNode(
       }
     }
 
-  internal var blurEffect: BlurEffect = ScrimBlurEffect(this)
+  internal var visualEffect: VisualEffect = ScrimVisualEffect(this)
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "blurEffect changed. Current $field. New: $value" }
@@ -374,7 +377,7 @@ class HazeEffectNode(
           if (areas.isNotEmpty()) {
             // If the state is not null and we have some areas, let's perform background blurring
             updateBlurEffectIfNeeded(this)
-            with(blurEffect) { drawEffect() }
+            with(visualEffect) { drawEffect() }
           }
           // Finally we draw the content over the background
           drawContentSafely()
@@ -392,11 +395,11 @@ class HazeEffectNode(
             this@draw.drawContentSafely()
           }
           updateBlurEffectIfNeeded(this)
-          if (drawContentBehind || blurEffect is ScrimBlurEffect) {
+          if (drawContentBehind || visualEffect is ScrimVisualEffect) {
             // We need to draw the content for scrims
             drawLayer(contentLayer)
           }
-          with(blurEffect) { drawEffect() }
+          with(visualEffect) { drawEffect() }
         }
       } else {
         HazeLogger.d(TAG) { "-> State not valid, so no need to draw effect." }
@@ -735,11 +738,17 @@ internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params
   }
 
   HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
-  return createRenderEffect(params)
+  return createRenderEffect(requirePlatformContext(), requireDensity(), params)
     ?.also { renderEffectCache[params] = it }
 }
 
-internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
+internal expect fun CompositionLocalConsumerModifierNode.requirePlatformContext(): PlatformContext
+
+internal expect fun createRenderEffect(
+  context: PlatformContext,
+  density: Density,
+  params: RenderEffectParams,
+): RenderEffect?
 
 internal expect fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope)
 

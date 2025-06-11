@@ -4,20 +4,27 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import dev.chrisbanes.haze.effect.BlurRenderEffectVisualEffect
+import dev.chrisbanes.haze.effect.ScrimVisualEffect
 
 internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope) {
   when {
     resolveBlurEnabled() -> {
-      if (blurEffect !is RenderEffectBlurEffect) {
-        blurEffect = RenderEffectBlurEffect(this)
+      if (visualEffect !is BlurRenderEffectVisualEffect) {
+        visualEffect = BlurRenderEffectVisualEffect(this)
       }
     }
     else -> {
-      if (blurEffect !is ScrimBlurEffect) {
-        blurEffect = ScrimBlurEffect(this)
+      if (visualEffect !is ScrimVisualEffect) {
+        visualEffect = ScrimVisualEffect(this)
       }
     }
   }
 }
 
 actual fun invalidateOnHazeAreaPreDraw(): Boolean = false
+
+internal actual fun CompositionLocalConsumerModifierNode.requirePlatformContext(): PlatformContext {
+  return PlatformContext.INSTANCE
+}
