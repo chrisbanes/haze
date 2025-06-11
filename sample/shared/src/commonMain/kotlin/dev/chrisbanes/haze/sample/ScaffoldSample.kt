@@ -44,6 +44,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -96,16 +97,19 @@ fun ScaffoldSample(
           .hazeEffect(state = hazeState, style = style) {
             this.inputScale = inputScale
 
-            when (mode) {
-              ScaffoldSampleMode.Default -> Unit
-              ScaffoldSampleMode.Progressive -> {
-                progressive = HazeProgressive.verticalGradient(
-                  startIntensity = 1f,
-                  endIntensity = 0f,
-                )
-              }
-              ScaffoldSampleMode.Mask -> {
-                mask = Brush.easedVerticalGradient(EaseIn)
+            blurEffect {
+              when (mode) {
+                ScaffoldSampleMode.Default -> Unit
+                ScaffoldSampleMode.Progressive -> {
+                  progressive = HazeProgressive.verticalGradient(
+                    startIntensity = 1f,
+                    endIntensity = 0f,
+                  )
+                }
+
+                ScaffoldSampleMode.Mask -> {
+                  mask = Brush.easedVerticalGradient(EaseIn)
+                }
               }
             }
           }

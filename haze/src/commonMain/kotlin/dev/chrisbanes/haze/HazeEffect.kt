@@ -5,12 +5,10 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.unit.Dp
+import dev.chrisbanes.haze.effect.BlurEffectConfig
+import dev.chrisbanes.haze.effect.BlurVisualEffect
 import kotlin.jvm.JvmInline
 
 @Deprecated(
@@ -25,114 +23,20 @@ public interface HazeChildScope : HazeEffectScope
 public interface HazeEffectScope {
 
   /**
-   * Whether the blur effect is enabled or not, when running on platforms which support blurring.
+   * The visual effect implementation used by this node. Clients can replace or configure
+   * the effect directly.
    *
-   * When set to `false` a scrim effect will be used. When set to `true`, and running on a platform
-   * which does not support blurring, a scrim effect will be used.
-   *
-   * Defaults to [HazeDefaults.blurEnabled].
+   * Use [blurEffect] to easily configure a [BlurVisualEffect]:
+   * ```
+   * Modifier.hazeEffect(state) {
+   *   blurEffect {
+   *     blurRadius = 20.dp
+   *     tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
+   *   }
+   * }
+   * ```
    */
-  public var blurEnabled: Boolean
-
-  /**
-   * The opacity that the overall effect will drawn with, in the range of 0..1.
-   */
-  public var alpha: Float
-
-  /**
-   * Style set on this specific [HazeEffectNode].
-   *
-   * There are precedence rules to how each styling property is applied. The order of precedence
-   * for each property are as follows:
-   *
-   *  - Property value set in [HazeEffectScope], if specified.
-   *  - Value set here in [HazeEffectScope.style], if specified.
-   *  - Value set in the [LocalHazeStyle] composition local.
-   */
-  public var style: HazeStyle
-
-  /**
-   * Optional alpha mask which allows effects such as fading via a
-   * [Brush.verticalGradient] or similar. This is only applied when [progressive] is null.
-   *
-   * An alpha mask provides a similar effect as that provided as [HazeProgressive], in a more
-   * performant way, but may provide a less pleasing visual result.
-   */
-  public var mask: Brush?
-
-  /**
-   * Color to draw behind the blurred content. Ideally should be opaque
-   * so that the original content is not visible behind. Typically this would be
-   * `MaterialTheme.colorScheme.surface` or similar.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified.
-   *  - [HazeStyle.backgroundColor] value set in [style], if specified.
-   *  - [HazeStyle.backgroundColor] value set in the [LocalHazeStyle] composition local.
-   */
-  public var backgroundColor: Color
-
-  /**
-   * The [HazeTint]s to apply to the blurred content.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if not empty.
-   *  - [HazeStyle.tints] value set in [style], if not empty.
-   *  - [HazeStyle.tints] value set in the [LocalHazeStyle] composition local.
-   */
-  public var tints: List<HazeTint>
-
-  /**
-   * Radius of the blur.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified.
-   *  - [HazeStyle.blurRadius] value set in [style], if specified.
-   *  - [HazeStyle.blurRadius] value set in the [LocalHazeStyle] composition local.
-   */
-  public var blurRadius: Dp
-
-  /**
-   * Amount of noise applied to the content, in the range `0f` to `1f`.
-   * Anything outside of that range will be clamped.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if in the range 0f..1f.
-   *  - [HazeStyle.noiseFactor] value set in [style], if in the range 0f..1f.
-   *  - [HazeStyle.noiseFactor] value set in the [LocalHazeStyle] composition local.
-   */
-  public var noiseFactor: Float
-
-  /**
-   * The [HazeTint] to use when Haze uses the fallback scrim functionality.
-   *
-   * The scrim used whenever [blurEnabled] is resolved to false, either because the host
-   * platform does not support blurring, or it has been manually disabled.
-   *
-   * When the fallback tint is used, the tints provided in [tints] are ignored.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified
-   *  - [HazeStyle.fallbackTint] value set in [style], if specified.
-   *  - [HazeStyle.fallbackTint] value set in the [LocalHazeStyle] composition local.
-   */
-  public var fallbackTint: HazeTint
-
-  /**
-   * Parameters for enabling a progressive (or gradient) blur effect, or null for a uniform
-   * blurring effect. Defaults to null.
-   *
-   * Please note: progressive blurring effects can be expensive, so you should test on a variety
-   * of devices to verify that performance is acceptable for your use case. An alternative and
-   * more performant way to achieve this effect is via the [mask] parameter, at the cost of
-   * visual finesse.
-   */
-  public var progressive: HazeProgressive?
+  public var visualEffect: dev.chrisbanes.haze.effect.VisualEffect
 
   /**
    * The input scale factor, which needs to be in the range 0 < x <= 1.
@@ -170,18 +74,6 @@ public interface HazeEffectScope {
   public var canDrawArea: ((HazeArea) -> Boolean)?
 
   /**
-   * The [BlurredEdgeTreatment] to use when blurring content.
-   *
-   * Defaults to [BlurredEdgeTreatment.Rectangle] (via [HazeDefaults.blurredEdgeTreatment]), which
-   * is nearly always the correct value for when performing background blurring. If you're
-   * performing content (foreground) blurring, it depends on the effect which you're looking for.
-   *
-   * Please note: some platforms do not support all of the treatments available. This value is a
-   * best-effort attempt.
-   */
-  public var blurredEdgeTreatment: BlurredEdgeTreatment
-
-  /**
    * Whether to draw the content behind the blurred effect for foreground blurring. This is
    * sometimes useful when you're using a mask or progressive effect.
    *
@@ -201,12 +93,11 @@ public interface HazeEffectScope {
   public var clipToAreasBounds: Boolean?
 
   /**
-   * Whether the layer should be expanded by the [blurRadius] on all edges. Defaults to enabled.
+   * Whether the layer should be expanded on all edges. Defaults to enabled.
    *
-   * This might sound strange, but when enabled it allows the blurred effect to be more
-   * consistent and realistic on the edges, by being able to capturing more nearby content.
-   * You may wish to disable this if you find that the blurred effect is drawn in unwanted
-   * areas.
+   * This might sound strange, but when enabled it allows effects to be more
+   * consistent and realistic on the edges, by being able to capture more nearby content.
+   * You may wish to disable this if you find that the effect is drawn in unwanted areas.
    */
   public var expandLayerBounds: Boolean?
 
@@ -214,7 +105,7 @@ public interface HazeEffectScope {
    * Force draw invalidation from pre-draw events of contributing [HazeArea]s.
    *
    * When enabled, Haze will register a pre-draw listener and invalidate this effect node
-   * whenever the source areas are about to be drawn. This helps ensure the blur stays in sync
+   * whenever the source areas are about to be drawn. This helps ensure the effect stays in sync
    * with rapidly changing or externally-invalidated content.
    *
    * Haze automatically enables this for scenarios where it knows we need it:
@@ -286,6 +177,37 @@ public fun Modifier.hazeChild(
 ): Modifier = hazeEffect(state, style, block)
 
 /**
+ * Draw the 'haze' effect behind the attached node using a pre-configured [VisualEffect].
+ *
+ * This version allows you to provide a custom [VisualEffect] implementation directly:
+ *
+ * ```
+ * val effect = BlurVisualEffect().apply {
+ *   blurRadius = 20.dp
+ *   tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
+ * }
+ * Modifier.hazeEffect(state, effect = effect)
+ * ```
+ *
+ * @param state The [HazeState] to observe for background content.
+ * @param effect The [VisualEffect] to use. Defaults to a new [BlurVisualEffect].
+ * @param style The [HazeStyle] to use on this content.
+ * @param block Optional configuration block for additional effect scope properties.
+ */
+@Stable
+public fun Modifier.hazeEffect(
+  state: HazeState?,
+  effect: dev.chrisbanes.haze.effect.VisualEffect = BlurVisualEffect(),
+  style: HazeStyle = HazeStyle.Unspecified,
+  block: (HazeEffectScope.() -> Unit)? = null,
+): Modifier = this then HazeEffectNodeElement(
+  state = state,
+  style = style,
+  effect = effect,
+  block = block,
+)
+
+/**
  * Draw the 'haze' effect behind the attached node.
  *
  * This version of the modifier is the primary entry for 'background blurring', where the
@@ -302,7 +224,33 @@ public fun Modifier.hazeEffect(
   state: HazeState?,
   style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = this then HazeEffectNodeElement(state = state, style = style, block = block)
+): Modifier = hazeEffect(
+  state = state,
+  effect = BlurVisualEffect(),
+  style = style,
+  block = block,
+)
+
+/**
+ * Draw the 'haze' effect, using this node's content as the source, with a pre-configured [VisualEffect].
+ *
+ * This version allows you to provide a custom [VisualEffect] implementation directly.
+ *
+ * @param effect The [VisualEffect] to use. Defaults to a new [BlurVisualEffect].
+ * @param style The [HazeStyle] to use on this content.
+ * @param block Optional configuration block for additional effect scope properties.
+ */
+@Stable
+public fun Modifier.hazeEffect(
+  effect: dev.chrisbanes.haze.effect.VisualEffect = BlurVisualEffect(),
+  style: HazeStyle = HazeStyle.Unspecified,
+  block: (HazeEffectScope.() -> Unit)? = null,
+): Modifier = this then HazeEffectNodeElement(
+  state = null,
+  style = style,
+  effect = effect,
+  block = block,
+)
 
 /**
  * Draw the 'haze' effect, using this node's content as the source.
@@ -316,23 +264,45 @@ public fun Modifier.hazeEffect(
  * style will override that value from the default style, provided to [hazeSource].
  * @param block block on HazeChildScope where you define the styling and visual properties.
  */
+@Deprecated(
+  message = "Use overload with explicit effect parameter for better type safety",
+  replaceWith = ReplaceWith(
+    "hazeEffect(effect = BlurVisualEffect(), style = style, block = block)",
+    "dev.chrisbanes.haze.effect.BlurVisualEffect",
+  ),
+  level = DeprecationLevel.HIDDEN,
+)
 @Stable
 public fun Modifier.hazeEffect(
   style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = this then HazeEffectNodeElement(state = null, style = style, block = block)
+): Modifier = hazeEffect(
+  effect = BlurVisualEffect(),
+  style = style,
+  block = block,
+)
 
 private data class HazeEffectNodeElement(
   public val state: HazeState?,
   public val style: HazeStyle = HazeStyle.Unspecified,
+  public val effect: dev.chrisbanes.haze.effect.VisualEffect = BlurVisualEffect(),
   public val block: (HazeEffectScope.() -> Unit)? = null,
 ) : ModifierNodeElement<HazeEffectNode>() {
 
-  override fun create(): HazeEffectNode = HazeEffectNode(state, style, block)
+  override fun create(): HazeEffectNode = HazeEffectNode(
+    state = state,
+    block = block,
+  ).apply {
+    visualEffect = effect
+    // Apply style to BlurVisualEffect if applicable
+    (effect as? dev.chrisbanes.haze.effect.BlurEffectConfig)?.style = style
+  }
 
   override fun update(node: HazeEffectNode) {
     node.state = state
-    node.style = style
+    node.visualEffect = effect
+    // Apply style to BlurVisualEffect if applicable
+    (effect as? dev.chrisbanes.haze.effect.BlurEffectConfig)?.style = style
     node.block = block
     node.update()
   }
@@ -340,4 +310,33 @@ private data class HazeEffectNodeElement(
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeEffect"
   }
+}
+
+/**
+ * Configures the [BlurVisualEffect] for this effect scope, allowing direct access to blur-specific
+ * properties without casting.
+ *
+ * This extension function simplifies configuration when you know you're working with a blur effect:
+ *
+ * ```
+ * Modifier.hazeEffect(state) {
+ *   blurEffect {
+ *     blurRadius = 20.dp
+ *     tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
+ *     noiseFactor = 0.15f
+ *   }
+ * }
+ * ```
+ *
+ * If the current [visualEffect] is not a [BlurVisualEffect], this
+ * function will replace it with a new instance and then configure it.
+ *
+ * @param block Configuration block that receives the [BlurEffectConfig]
+ */
+public inline fun HazeEffectScope.blurEffect(
+  block: BlurEffectConfig.() -> Unit,
+) {
+  val effect = visualEffect as? BlurEffectConfig
+    ?: BlurVisualEffect().also { visualEffect = it }
+  effect.block()
 }

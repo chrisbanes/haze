@@ -1,7 +1,9 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze
+@file:Suppress("NOTHING_TO_INLINE")
+
+package dev.chrisbanes.haze.effect
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -28,14 +30,22 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.toAndroidTileMode
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.PlatformContext
+import dev.chrisbanes.haze.R
+import dev.chrisbanes.haze.asBrush
+import dev.chrisbanes.haze.ceil
+import dev.chrisbanes.haze.round
+import dev.chrisbanes.haze.toAndroidBlendMode
 import kotlin.math.abs
 
-internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
+internal actual fun createRenderEffect(
+  context: PlatformContext,
+  density: Density,
+  params: RenderEffectParams,
+): RenderEffect? {
   if (Build.VERSION.SDK_INT < 31) return null
 
   val blurRadius = params.blurRadius * params.scale
@@ -52,7 +62,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
       // If we've been provided with a progressive/gradient blur shader, we need to use
       // our custom blur via a runtime shader
       createBlurImageFilterWithMask(
-        blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() },
+        blurRadiusPx = with(density) { blurRadius.toPx() },
         size = size,
         offset = offset,
         mask = progressiveShader,
@@ -61,7 +71,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
 
     else -> {
       try {
-        val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
+        val blurRadiusPx = with(density) { blurRadius.toPx() }
         AndroidRenderEffect.createBlurEffect(
           blurRadiusPx,
           blurRadiusPx,
@@ -78,7 +88,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
   }
 
   return blur
-    .withNoise(currentValueOf(LocalContext), params.noiseFactor, progressiveShader, params.scale)
+    .withNoise(context, params.noiseFactor, progressiveShader, params.scale)
     .withTints(params.tints, size, offset, params.tintAlphaModulate, progressiveShader)
     .withMask(params.mask, size, offset)
     .asComposeRenderEffect()
@@ -289,6 +299,6 @@ private fun createBlurImageFilterWithMask(
 }
 
 @RequiresApi(31)
-private fun AndroidRenderEffect.chainWith(imageFilter: AndroidRenderEffect): AndroidRenderEffect {
+private inline fun AndroidRenderEffect.chainWith(imageFilter: AndroidRenderEffect): AndroidRenderEffect {
   return AndroidRenderEffect.createChainEffect(imageFilter, this)
 }

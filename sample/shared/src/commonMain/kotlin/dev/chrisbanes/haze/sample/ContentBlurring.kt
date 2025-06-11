@@ -42,6 +42,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.HazeDefaults
+import dev.chrisbanes.haze.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
@@ -79,6 +80,8 @@ fun ContentBlurring(
     var clipEnabled by remember { mutableStateOf(true) }
     var drawContentBehind by remember { mutableStateOf(false) }
 
+    val style = HazeMaterials.ultraThin()
+
     Box(Modifier.fillMaxSize()) {
       val context = LocalPlatformContext.current
       val url = rememberRandomSampleImageUrl(imageIndex)
@@ -92,15 +95,19 @@ fun ContentBlurring(
         contentScale = ContentScale.Crop,
         contentDescription = null,
         modifier = Modifier
-          .hazeEffect(HazeMaterials.ultraThin()) {
-            backgroundColor = Color.Transparent
-            this.blurEnabled = blurEnabled
-            this.blurredEdgeTreatment = when {
-              clipEnabled -> BlurredEdgeTreatment.Rectangle
-              else -> BlurredEdgeTreatment.Unbounded
-            }
+          .hazeEffect {
             this.drawContentBehind = drawContentBehind
-            this.blurRadius = 100.dp
+
+            blurEffect {
+              this.style = style
+              backgroundColor = Color.Transparent
+              this.blurEnabled = blurEnabled
+              this.blurredEdgeTreatment = when {
+                clipEnabled -> BlurredEdgeTreatment.Rectangle
+                else -> BlurredEdgeTreatment.Unbounded
+              }
+              this.blurRadius = 100.dp
+            }
           }
           .align(Alignment.Center)
           .size(300.dp),

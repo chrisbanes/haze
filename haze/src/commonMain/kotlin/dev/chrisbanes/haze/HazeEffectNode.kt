@@ -6,28 +6,16 @@
 package dev.chrisbanes.haze
 
 import androidx.collection.MutableObjectLongMap
-import androidx.collection.SieveCache
-import androidx.compose.animation.core.EaseIn
-import androidx.compose.animation.core.Easing
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.graphics.Shader
-import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -36,21 +24,12 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.TraversableNode
-import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
-import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
-import dev.chrisbanes.haze.HazeProgressive.Companion.horizontalGradient
-import dev.chrisbanes.haze.HazeProgressive.Companion.verticalGradient
-import kotlin.jvm.JvmInline
 import kotlin.math.max
 import kotlin.math.min
 
@@ -63,7 +42,6 @@ import kotlin.math.min
 @ExperimentalHazeApi
 public class HazeEffectNode(
   public var state: HazeState? = null,
-  style: HazeStyle = HazeStyle.Unspecified,
   public var block: (HazeEffectScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
@@ -81,42 +59,12 @@ public class HazeEffectNode(
 
   internal var dirtyTracker = Bitmask()
 
-  internal var blurEnabledSet: Boolean = false
-  override var blurEnabled: Boolean = resolveBlurEnabled()
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "blurEnabled changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += DirtyFields.BlurEnabled
-      }
-      // Mark the set flag, to indicate that this value should take precedence
-      blurEnabledSet = true
-    }
-
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "inputScale changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += DirtyFields.InputScale
-      }
-    }
-
-  internal var compositionLocalStyle: HazeStyle = HazeStyle.Unspecified
-    set(value) {
-      if (field != value) {
-        HazeLogger.d(TAG) { "LocalHazeStyle changed. Current: $field. New: $value" }
-        onStyleChanged(field, value)
-        field = value
-      }
-    }
-
-  override var style: HazeStyle = style
-    set(value) {
-      if (field != value) {
-        HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
-        onStyleChanged(field, value)
-        field = value
       }
     }
 
@@ -167,78 +115,6 @@ public class HazeEffectNode(
       }
     }
 
-  override var blurRadius: Dp = Dp.Unspecified
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "blurRadius changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.BlurRadius
-        field = value
-      }
-    }
-
-  override var noiseFactor: Float = -1f
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "noiseFactor changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.NoiseFactor
-        field = value
-      }
-    }
-
-  override var mask: Brush? = null
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "mask changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.Mask
-        field = value
-      }
-    }
-
-  override var backgroundColor: Color = Color.Unspecified
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "backgroundColor changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.BackgroundColor
-        field = value
-      }
-    }
-
-  override var tints: List<HazeTint> = emptyList()
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "tints changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.Tints
-        field = value
-      }
-    }
-
-  override var fallbackTint: HazeTint = HazeTint.Unspecified
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "fallbackTint changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.FallbackTint
-        field = value
-      }
-    }
-
-  override var alpha: Float = 1f
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "alpha changed. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.Alpha
-        field = value
-      }
-    }
-
-  override var progressive: HazeProgressive? = null
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "progressive changed. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.Progressive
-        field = value
-      }
-    }
-
   internal var windowId: Any? = null
 
   internal var areas: List<HazeArea> = emptyList()
@@ -269,21 +145,15 @@ public class HazeEffectNode(
       }
     }
 
-  internal var blurEffect: BlurEffect = ScrimBlurEffect(this)
+  public override var visualEffect: dev.chrisbanes.haze.effect.VisualEffect =
+    dev.chrisbanes.haze.effect.BlurVisualEffect()
     set(value) {
       if (value != field) {
-        HazeLogger.d(TAG) { "blurEffect changed. Current $field. New: $value" }
-        // Cleanup the old value
-        field.cleanup()
-        field = value
-      }
-    }
-
-  override var blurredEdgeTreatment: BlurredEdgeTreatment = HazeDefaults.blurredEdgeTreatment
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "blurredEdgeTreatment. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.BlurredEdgeTreatment
+        HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
+        // attach new VisualEffect
+        value.attach(this)
+        // detach old VisualEffect
+        field.detach()
         field = value
       }
     }
@@ -325,20 +195,17 @@ public class HazeEffectNode(
     }
   private val areaPreDrawListener by unsynchronizedLazy { OnPreDrawListener(::invalidateDraw) }
 
-  private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
-    if (old?.tints != new?.tints) dirtyTracker += DirtyFields.Tints
-    if (old?.fallbackTint != new?.fallbackTint) dirtyTracker += DirtyFields.Tints
-    if (old?.backgroundColor != new?.backgroundColor) dirtyTracker += DirtyFields.BackgroundColor
-    if (old?.noiseFactor != new?.noiseFactor) dirtyTracker += DirtyFields.NoiseFactor
-    if (old?.blurRadius != new?.blurRadius) dirtyTracker += DirtyFields.BlurRadius
-  }
-
   internal fun update() {
     onObservedReadsChanged()
   }
 
   override fun onAttach() {
+    visualEffect.attach(this)
     update()
+  }
+
+  override fun onDetach() {
+    visualEffect.detach()
   }
 
   override fun onObservedReadsChanged() {
@@ -399,8 +266,9 @@ public class HazeEffectNode(
         if (state != null) {
           if (areas.isNotEmpty()) {
             // If the state is not null and we have some areas, let's perform background blurring
-            updateBlurEffectIfNeeded(this)
-            with(blurEffect) { drawEffect() }
+            with(visualEffect) {
+              drawEffect(this@HazeEffectNode)
+            }
           }
           // Finally we draw the content over the background
           drawContentSafely()
@@ -417,12 +285,13 @@ public class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
-          updateBlurEffectIfNeeded(this)
-          if (drawContentBehind || blurEffect is ScrimBlurEffect) {
+          if (drawContentBehind) {
             // We need to draw the content for scrims
             drawLayer(contentLayer)
           }
-          with(blurEffect) { drawEffect() }
+          with(visualEffect) {
+            drawEffect(this@HazeEffectNode)
+          }
         }
       } else {
         HazeLogger.d(TAG) { "-> State not valid, so no need to draw effect." }
@@ -435,9 +304,8 @@ public class HazeEffectNode(
   }
 
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
-    if (!isAttached) return@trace
-
-    compositionLocalStyle = currentValueOf(LocalHazeStyle)
+    // Allow the current VisualEffect to update from CompositionLocals/state
+    visualEffect.update()
     windowId = getWindowId()
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
@@ -480,27 +348,19 @@ public class HazeEffectNode(
       listOf(contentDrawArea)
     }
 
+    updateAreaOffsets()
+
     if (shouldUsePreDrawListener()) {
       for (area in areas) {
         area.preDrawListeners += areaPreDrawListener
       }
     }
 
-    updateAreaOffsets()
-
-    val blurRadiusPx = with(currentValueOf(LocalDensity)) {
-      resolveBlurRadius().takeOrElse { 0.dp }.toPx()
-    }
-
     if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && positionOnScreen.isSpecified) {
-      val blurRadiusPx = with(requireDensity()) {
-        resolveBlurRadius().takeOrElse { 0.dp }.toPx()
-      }
-
       // Now we clip the expanded layer bounds, to remove anything areas which
       // don't overlap any areas, and the window bounds
       val clippedLayerBounds = Rect(positionOnScreen, size)
-        .letIf(shouldExpandLayer()) { it.inflate(blurRadiusPx) }
+        .letIf(shouldExpandLayer()) { visualEffect.expandLayerRect(it) }
         .letIf(shouldClipToAreaBounds()) { rect ->
           // Calculate the dimensions which covers all areas...
           var left = Float.POSITIVE_INFINITY
@@ -523,15 +383,16 @@ public class HazeEffectNode(
         height = clippedLayerBounds.height.coerceAtLeast(0f),
       )
       layerOffset = positionOnScreen - clippedLayerBounds.topLeft
-    } else if (!backgroundBlurring && size.isSpecified && !shouldClip()) {
-      layerSize = Size(
-        width = size.width + (blurRadiusPx * 2),
-        height = size.height + (blurRadiusPx * 2),
-      )
-      layerOffset = Offset(blurRadiusPx, blurRadiusPx)
-    } else {
-      layerSize = size
-      layerOffset = Offset.Zero
+    } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip()) {
+      if (shouldExpandLayer()) {
+        val rect = size.toRect()
+        val expanded = visualEffect.expandLayerRect(rect)
+        layerSize = expanded.size
+        layerOffset = rect.topLeft - expanded.topLeft
+      } else {
+        layerSize = size
+        layerOffset = Offset.Zero
+      }
     }
 
     invalidateIfNeeded()
@@ -542,11 +403,15 @@ public class HazeEffectNode(
   }
 
   private fun invalidateIfNeeded() {
-    val invalidateRequired = dirtyTracker.any(DirtyFields.InvalidateFlags)
+    val invalidateRequired =
+      dirtyTracker.any(DirtyFields.InvalidateFlags) ||
+        visualEffect.needInvalidation()
+
     HazeLogger.d(TAG) {
       "invalidateRequired=$invalidateRequired. " +
         "Dirty params=${DirtyFields.stringify(dirtyTracker)}"
     }
+
     if (invalidateRequired) {
       invalidateDraw()
     }
@@ -581,306 +446,15 @@ public class HazeEffectNode(
   }
 }
 
-/**
- * Parameters for applying a progressive blur effect.
- */
-@Immutable
-public sealed interface HazeProgressive {
-
-  /**
-   * A linear gradient effect.
-   *
-   * You may wish to use the convenience builder functions provided in [horizontalGradient] and
-   * [verticalGradient] for more common use cases.
-   *
-   * The [preferPerformance] flag below can be set to tell Haze how to handle the progressive effect
-   * in certain situations:
-   *
-   * * On certain platforms (Android SDK 32), drawing the progressive effect is inefficient.
-   *   When [preferPerformance] is set to true, Haze will use a mask when running on those
-   *   platforms, which is far more performant.
-   *
-   * @param easing - The easing function to use when applying the effect. Defaults to a
-   * linear easing effect.
-   * @param start - Starting position of the gradient. Defaults to [Offset.Zero] which
-   * represents the top-left of the drawing area.
-   * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`.
-   * @param end - Ending position of the gradient. Defaults to
-   * [Offset.Infinite] which represents the bottom-right of the drawing area.
-   * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
-   * @param preferPerformance - Whether Haze should prefer performance (when true), or
-   * quality (when false). See above for more information.
-   */
-  public data class LinearGradient(
-    public val easing: Easing = EaseIn,
-    public val start: Offset = Offset.Zero,
-    public val startIntensity: Float = 0f,
-    public val end: Offset = Offset.Infinite,
-    public val endIntensity: Float = 1f,
-    public val preferPerformance: Boolean = false,
-  ) : HazeProgressive
-
-  /**
-   * A radial gradient effect.
-   *
-   * Platform support:
-   * - Skia backed platforms (iOS, Desktop, etc): ✅
-   * - Android SDK Level 33+: ✅
-   * - Android SDK Level 31-32: Falls back to a mask
-   * - Android SDK Level < 31: Falls back to a scrim
-   *
-   * @param easing - The easing function to use when applying the effect. Defaults to a
-   * linear easing effect.
-   * @param center Center position of the radial gradient circle. If this is set to
-   * [Offset.Unspecified] then the center of the drawing area is used as the center for
-   * the radial gradient. [Float.POSITIVE_INFINITY] can be used for either [Offset.x] or
-   * [Offset.y] to indicate the far right or far bottom of the drawing area respectively.
-   * @param centerIntensity - The intensity of the haze effect at the [center], in the range `0f`..`1f`.
-   * @param radius Radius for the radial gradient. Defaults to positive infinity to indicate
-   * the largest radius that can fit within the bounds of the drawing area.
-   * @param radiusIntensity - The intensity of the haze effect at the [radius], in the range `0f`..`1f`
-   */
-  @Poko
-  public class RadialGradient(
-    public val easing: Easing = EaseIn,
-    public val center: Offset = Offset.Unspecified,
-    public val centerIntensity: Float = 1f,
-    public val radius: Float = Float.POSITIVE_INFINITY,
-    public val radiusIntensity: Float = 0f,
-  ) : HazeProgressive
-
-  /**
-   * A progressive effect which is derived by using the provided [Brush] as an alpha mask.
-   *
-   * This allows custom effects driven from a brush. It could be using a bitmap shader, via
-   * a [ShaderBrush] or something more complex. The RGB values from the brush's pixels will
-   * be ignored, only the alpha values are used.
-   */
-  @JvmInline
-  public value class Brush(public val brush: androidx.compose.ui.graphics.Brush) : HazeProgressive
-
-  public companion object {
-    /**
-     * A vertical gradient effect.
-     *
-     * @param easing - The easing function to use when applying the effect. Defaults to a
-     * linear easing effect.
-     * @param startY - Starting x position of the horizontal gradient. Defaults to 0 which
-     * represents the top of the drawing area.
-     * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`.
-     * @param endY - Ending x position of the horizontal gradient. Defaults to
-     * [Float.POSITIVE_INFINITY] which represents the bottom of the drawing area.
-     * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`.
-     * @param preferPerformance - Whether Haze should prefer performance (when true), or
-     * quality (when false). See [HazeProgressive.LinearGradient]'s documentation for more
-     * information.
-     */
-    public fun verticalGradient(
-      easing: Easing = EaseIn,
-      startY: Float = 0f,
-      startIntensity: Float = 0f,
-      endY: Float = Float.POSITIVE_INFINITY,
-      endIntensity: Float = 1f,
-      preferPerformance: Boolean = false,
-    ): LinearGradient = LinearGradient(
-      easing = easing,
-      start = Offset(0f, startY),
-      startIntensity = startIntensity,
-      end = Offset(0f, endY),
-      endIntensity = endIntensity,
-      preferPerformance = preferPerformance,
-    )
-
-    /**
-     * A horizontal gradient effect.
-     *
-     * @param easing - The easing function to use when applying the effect. Defaults to a
-     * linear easing effect.
-     * @param startX - Starting x position of the horizontal gradient. Defaults to 0 which
-     * represents the left of the drawing area
-     * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`
-     * @param endX - Ending x position of the horizontal gradient. Defaults to
-     * [Float.POSITIVE_INFINITY] which represents the right of the drawing area.
-     * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`.
-     * @param preferPerformance - Whether Haze should prefer performance (when true), or
-     * quality (when false). See [HazeProgressive.LinearGradient]'s documentation for more
-     * information.
-     */
-    public fun horizontalGradient(
-      easing: Easing = EaseIn,
-      startX: Float = 0f,
-      startIntensity: Float = 0f,
-      endX: Float = Float.POSITIVE_INFINITY,
-      endIntensity: Float = 1f,
-      preferPerformance: Boolean = false,
-    ): LinearGradient = LinearGradient(
-      easing = easing,
-      start = Offset(startX, 0f),
-      startIntensity = startIntensity,
-      end = Offset(endX, 0f),
-      endIntensity = endIntensity,
-      preferPerformance = preferPerformance,
-    )
-
-    /**
-     * Helper function for building a [HazeProgressive.Brush] with a [Shader]. The block is
-     * provided with the size of the content, allowing you to setup the shader as required.
-     */
-    public inline fun forShader(
-      crossinline block: (Size) -> Shader,
-    ): Brush = Brush(
-      object : ShaderBrush() {
-        override fun createShader(size: Size): Shader = block(size)
-      },
-    )
-  }
-}
-
-private val renderEffectCache by unsynchronizedLazy {
-  SieveCache<RenderEffectParams, RenderEffect>(10)
-}
-
-@Poko
-internal class RenderEffectParams(
-  val blurRadius: Dp,
-  val noiseFactor: Float,
-  val scale: Float,
-  val contentSize: Size,
-  val contentOffset: Offset,
-  val tints: List<HazeTint> = emptyList(),
-  val tintAlphaModulate: Float = 1f,
-  val mask: Brush? = null,
-  val progressive: HazeProgressive? = null,
-  val blurTileMode: TileMode,
-)
-
-@ExperimentalHazeApi
-internal fun HazeEffectNode.calculateInputScaleFactor(
-  blurRadius: Dp = resolveBlurRadius(),
-): Float = when (val s = inputScale) {
-  HazeInputScale.None -> 1f
-  is HazeInputScale.Fixed -> s.scale
-  HazeInputScale.Auto -> {
-    when {
-      // For small blurRadius values, input scaling is very noticeable therefore we turn it off
-      blurRadius < 7.dp -> 1f
-      // For progressive and masks, we need to keep enough resolution for the lowest intensity.
-      // 0.5f is about right.
-      progressive != null -> 0.5f
-      mask != null -> 0.5f
-      // Otherwise we use 1/3
-      else -> 0.3334f
-    }
-  }
-}
-
-private fun HazeEffectNode.calculateBlurTileMode(): TileMode = when (blurredEdgeTreatment) {
-  BlurredEdgeTreatment.Unbounded -> TileMode.Decal
-  else -> TileMode.Clamp
-}
-
-@OptIn(ExperimentalHazeApi::class)
-internal fun HazeEffectNode.getOrCreateRenderEffect(
-  inputScale: Float = calculateInputScaleFactor(),
-  blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp },
-  noiseFactor: Float = resolveNoiseFactor(),
-  tints: List<HazeTint> = resolveTints(),
-  tintAlphaModulate: Float = 1f,
-  contentSize: Size = this.size,
-  contentOffset: Offset = this.layerOffset,
-  mask: Brush? = this.mask,
-  progressive: HazeProgressive? = null,
-  blurTileMode: TileMode = calculateBlurTileMode(),
-): RenderEffect? = trace("HazeEffectNode-getOrCreateRenderEffect") {
-  getOrCreateRenderEffect(
-    RenderEffectParams(
-      blurRadius = blurRadius,
-      noiseFactor = noiseFactor,
-      scale = inputScale,
-      tints = tints,
-      tintAlphaModulate = tintAlphaModulate,
-      contentSize = contentSize,
-      contentOffset = contentOffset,
-      mask = mask,
-      progressive = progressive,
-      blurTileMode = blurTileMode,
-    ),
-  )
-}
-
-internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params: RenderEffectParams): RenderEffect? {
-  HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect: $params" }
-  val cached = renderEffectCache[params]
-  if (cached != null) {
-    HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
-    return cached
-  }
-
-  HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
-  return createRenderEffect(params)
-    ?.also { renderEffectCache[params] = it }
-}
-
-internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
-
-internal expect fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope)
-
 internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 
-internal fun HazeEffectNode.resolveBackgroundColor(): Color {
-  return backgroundColor
-    .takeOrElse { style.backgroundColor }
-    .takeOrElse { compositionLocalStyle.backgroundColor }
-}
-
-internal fun HazeEffectNode.resolveBlurRadius(): Dp {
-  return blurRadius
-    .takeOrElse { style.blurRadius }
-    .takeOrElse { compositionLocalStyle.blurRadius }
-}
-
-internal fun HazeEffectNode.resolveTints(): List<HazeTint> {
-  return tints.takeIf { it.isNotEmpty() }
-    ?: style.tints.takeIf { it.isNotEmpty() }
-    ?: compositionLocalStyle.tints.takeIf { it.isNotEmpty() }
-    ?: emptyList()
-}
-
-internal fun HazeEffectNode.resolveFallbackTint(): HazeTint {
-  return fallbackTint.takeIf { it.isSpecified }
-    ?: style.fallbackTint.takeIf { it.isSpecified }
-    ?: compositionLocalStyle.fallbackTint
-}
-
-internal fun HazeEffectNode.resolveNoiseFactor(): Float {
-  return noiseFactor
-    .takeOrElse { style.noiseFactor }
-    .takeOrElse { compositionLocalStyle.noiseFactor }
-}
-
-internal fun HazeEffectNode.resolveBlurEnabled(): Boolean = when {
-  blurEnabledSet -> blurEnabled
-  state != null -> state?.blurEnabled == true
-  else -> HazeDefaults.blurEnabled()
-}
-
-internal fun HazeEffectNode.shouldClip(): Boolean = blurredEdgeTreatment.shape != null
-
 internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
-  val param = clipToAreasBounds
-  if (param != null) {
-    return param
-  }
-
-  val bgColor = resolveBackgroundColor()
-  return bgColor.alpha <= 0.9f
+  clipToAreasBounds?.let { return it }
+  return visualEffect.preferClipToAreaBounds()
 }
 
 internal fun HazeEffectNode.shouldExpandLayer(): Boolean {
-  val param = expandLayerBounds
-  if (param != null) {
-    return param
-  }
+  expandLayerBounds?.let { return it }
   return true
 }
 
@@ -894,7 +468,6 @@ internal fun HazeEffectNode.shouldExpandLayer(): Boolean {
  *   like Dialogs.
  */
 internal fun HazeEffectNode.shouldUsePreDrawListener(): Boolean {
-  if (!resolveBlurEnabled()) return false
   if (forceInvalidateOnPreDraw) return true
   if (invalidateOnHazeAreaPreDraw()) return true
   if (areas.any { it.windowId != windowId }) return true

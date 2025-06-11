@@ -114,16 +114,19 @@ internal fun CreditCardContentBlurring(
       modifier = Modifier
         .fillMaxSize()
         .hazeEffect {
-          this.blurEnabled = blurEnabled
-          this.style = style
-          this.backgroundColor = backgroundColors.first()
-          this.noiseFactor = noiseFactor
-          this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
-          this.blurRadius = blurRadius
-          this.mask = mask
-          this.alpha = alpha
-          this.progressive = progressive
           this.drawContentBehind = drawContentBehind
+
+          blurEffect {
+            this.blurEnabled = blurEnabled
+            this.style = style
+            this.backgroundColor = backgroundColors.first()
+            this.noiseFactor = noiseFactor
+            this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
+            this.blurRadius = blurRadius
+            this.mask = mask
+            this.alpha = alpha
+            this.progressive = progressive
+          }
         },
     )
   }
@@ -239,15 +242,17 @@ private fun CreditCard(
       .then(
         if (enabled) {
           Modifier.hazeEffect(state = hazeState) {
-            this.blurEnabled = blurEnabled
-            this.style = style
-            this.backgroundColor = surfaceColor
-            this.noiseFactor = noiseFactor
-            this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
-            this.blurRadius = blurRadius
-            this.mask = mask
-            this.alpha = alpha
-            this.progressive = progressive
+            blurEffect {
+              this.blurEnabled = blurEnabled
+              this.style = style
+              this.backgroundColor = surfaceColor
+              this.noiseFactor = noiseFactor
+              this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
+              this.blurRadius = blurRadius
+              this.mask = mask
+              this.alpha = alpha
+              this.progressive = progressive
+            }
           }
         } else {
           Modifier
@@ -311,7 +316,9 @@ fun OverlayingContent(
         }
         .align(Alignment.Center)
         .hazeEffect(state = hazeState) {
-          blurRadius = 20.dp
+          blurEffect {
+            blurRadius = 20.dp
+          }
         }
         .padding(16.dp),
     )
