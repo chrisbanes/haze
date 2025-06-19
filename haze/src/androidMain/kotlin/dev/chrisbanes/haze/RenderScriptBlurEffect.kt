@@ -187,23 +187,34 @@ internal class RenderScriptBlurEffect private constructor(
 
       if (!node.isAttached) return@traceAsync
 
-      // Now apply the blur on a background thread
-      traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
-        withContext(Dispatchers.Default) {
-          rs.applyBlur(blurRadius)
+      if (blurRadius > 0f) {
+        // Now apply the blur on a background thread
+        traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
+          withContext(Dispatchers.Default) {
+            rs.applyBlur(blurRadius)
+          }
         }
-      }
 
-      trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
-        // Finally draw the updated bitmap to our drawing graphics layer
-        val output = rs.outputBitmap
+        trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
+          // Finally draw the updated bitmap to our drawing graphics layer
+          val output = rs.outputBitmap
 
+          contentLayer.record(
+            density = density,
+            layoutDirection = node.currentValueOf(LocalLayoutDirection),
+            size = IntSize(output.width, output.height),
+          ) {
+            drawImage(output.asImageBitmap())
+          }
+        }
+      } else {
+        // If the blur radius is 0, we just copy the input content into our contentLayer
         contentLayer.record(
           density = density,
           layoutDirection = node.currentValueOf(LocalLayoutDirection),
-          size = IntSize(output.width, output.height),
+          size = content.size,
         ) {
-          drawImage(output.asImageBitmap())
+          drawLayer(content)
         }
       }
 
