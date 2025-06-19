@@ -61,6 +61,7 @@ include(
   ":haze-screenshot-tests",
   ":internal:benchmark",
   ":internal:context-test",
+  ":internal:dokka",
   ":internal:screenshot-test",
   ":sample:shared",
   ":sample:android",

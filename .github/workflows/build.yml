@@ -45,9 +45,9 @@ jobs:
             **/build/outputs/roborazzi/**
 
   deploy:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next'
+    if: github.ref == 'refs/heads/main'
 
-    runs-on: macos-14
+    runs-on: macos-latest
     needs: [ build ]
     timeout-minutes: 30
 
