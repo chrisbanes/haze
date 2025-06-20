@@ -75,6 +75,8 @@ jobs:
       DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
