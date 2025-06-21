@@ -106,14 +106,6 @@ package dev.chrisbanes.haze {
     field public static final String TAG = "HazeEffect";
   }
 
-  public final class HazeEffectNode_androidKt {
-    method public static boolean invalidateOnHazeAreaPreDraw();
-  }
-
-  public final class HazeEffectNode_skikoKt {
-    method public static boolean invalidateOnHazeAreaPreDraw();
-  }
-
   public interface HazeEffectScope {
     method public float getAlpha();
     method public long getBackgroundColor();
@@ -343,24 +335,6 @@ package dev.chrisbanes.haze {
   }
 
   @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {
-  }
-
-  public final class Trace_androidKt {
-    method public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
-    method public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
-  }
-
-  public final class Trace_skikoKt {
-    method public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
-    method public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
-  }
-
-  public final class Utils_androidKt {
-    method public static Object? getWindowId(androidx.compose.ui.node.CompositionLocalConsumerModifierNode);
-  }
-
-  public final class Utils_skikoKt {
-    method public static Object? getWindowId(androidx.compose.ui.node.CompositionLocalConsumerModifierNode);
   }
 
 }

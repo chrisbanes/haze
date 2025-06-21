@@ -20,4 +20,4 @@ internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope
   }
 }
 
-actual fun invalidateOnHazeAreaPreDraw(): Boolean = false
+internal actual fun invalidateOnHazeAreaPreDraw(): Boolean = false

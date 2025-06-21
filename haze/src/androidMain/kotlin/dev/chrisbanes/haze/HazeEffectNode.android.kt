@@ -48,4 +48,4 @@ internal actual fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope
  *   with RenderNodes not automatically re-painting. We workaround it by manually invalidating.
  * - Anything below API 31 does not have RenderEffect so we need to force invalidations.
  */
-actual fun invalidateOnHazeAreaPreDraw(): Boolean = Build.VERSION.SDK_INT < 32
+internal actual fun invalidateOnHazeAreaPreDraw(): Boolean = Build.VERSION.SDK_INT < 32
