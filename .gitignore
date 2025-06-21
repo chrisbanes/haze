@@ -16,6 +16,7 @@ captures
 .idea/modules.xml
 .idea/compiler.xml
 .idea/other.xml
+.idea/kotlinc.xml
 .idea/jarRepositories.xml
 .idea/deploymentTargetDropDown.xml
 .idea/deploymentTargetSelector.xml
