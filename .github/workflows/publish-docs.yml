@@ -62,7 +62,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: docs
-          path: docs/
+          path: |
+            docs/api/
+            docs/sample/
 
   deploy_docs:
     runs-on: macos-latest
@@ -96,6 +98,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: docs
+          path: docs
 
       - name: Configure git for mike
         run: |
