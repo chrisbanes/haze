@@ -18,4 +18,4 @@ internal actual fun LayoutCoordinates.positionForHaze(): Offset = try {
   Offset.Unspecified
 }
 
-actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? = null
+internal actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? = null

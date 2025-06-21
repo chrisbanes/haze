@@ -15,6 +15,6 @@ import androidx.compose.ui.platform.LocalView
  */
 internal actual fun LayoutCoordinates.positionForHaze(): Offset = positionOnScreen()
 
-actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? {
+internal actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? {
   return currentValueOf(LocalView).windowId
 }
