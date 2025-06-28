@@ -3,6 +3,6 @@
 
 package dev.chrisbanes.haze
 
-import kotlinx.datetime.Clock
+internal actual fun epochTimeMillis(): Long = dateNow().toLong()
 
-internal actual fun epochTimeMillis(): Long = Clock.System.now().toEpochMilliseconds()
+private fun dateNow(): Double = js("Date.now()")
