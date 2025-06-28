@@ -68,10 +68,6 @@ kotlin {
 
     wasmJsMain {
       dependsOn(skikoMain)
-
-      dependencies {
-        implementation(libs.kotlinx.datetime)
-      }
     }
 
     jsMain {
