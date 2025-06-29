@@ -3,19 +3,19 @@
 
 package dev.chrisbanes.haze
 
-internal open class Pool<T>(private val maxSize: Int) {
-  private val pool = mutableListOf<T>()
+import androidx.collection.mutableScatterSetOf
 
-  fun get(): T? = if (pool.isNotEmpty()) pool.removeAt(0) else null
+internal class Pool<T>(private val maxSize: Int) {
+  private val pool = mutableScatterSetOf<T>()
 
-  fun release(instance: T) {
-    pool.add(instance)
-    maintainSize()
+  fun get(): T? = when {
+    pool.isNotEmpty() -> pool.first().also(pool::remove)
+    else -> null
   }
 
-  private fun maintainSize() {
-    while (pool.size > maxSize) {
-      pool.removeAt(0)
+  fun release(instance: T) {
+    if (pool.size < maxSize) {
+      pool += instance
     }
   }
 }
