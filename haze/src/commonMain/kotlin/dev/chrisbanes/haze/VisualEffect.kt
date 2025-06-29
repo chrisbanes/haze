@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
@@ -20,32 +21,39 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
-import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
 import kotlin.math.max
 
-internal interface BlurEffect {
-  fun DrawScope.drawEffect()
-  fun cleanup() = Unit
-}
+internal interface VisualEffect {
 
-@OptIn(ExperimentalHazeApi::class)
-internal class ScrimBlurEffect(
-  private val node: HazeEffectNode,
-) : BlurEffect {
-  override fun DrawScope.drawEffect() {
-    val scrimTint = node.resolveFallbackTint().takeIf { it.isSpecified }
-      ?: node.resolveTints().firstOrNull()
-        ?.boostForFallback(node.resolveBlurRadius().takeOrElse { 0.dp })
-      ?: return
+  fun DrawScope.onPreDrawEffect(node: HazeEffectNode) = Unit
 
-    withAlpha(alpha = node.alpha, node = node) {
-      drawScrim(tint = scrimTint, node = node, mask = node.mask ?: node.progressive?.asBrush())
-    }
-  }
+  /**
+   * Draws the effect.
+   */
+  fun DrawScope.drawEffect(node: HazeEffectNode)
+
+  /**
+   * Attaches this effect to the given node.
+   */
+  fun attach(node: HazeEffectNode) = Unit
+
+  fun update() = Unit
+
+  /**
+   * Detaches this effect from its node.
+   */
+  fun detach() = Unit
+
+  fun shouldClip(): Boolean = false
+
+  fun calculateInputScaleFactor(scale: HazeInputScale): Float
+
+  fun needInvalidation(): Boolean
+
+  fun needContentDrawBehind(): Boolean
 }
 
 internal fun DrawScope.drawScrim(
@@ -89,46 +97,60 @@ internal fun DrawScope.drawScrim(
   }
 }
 
-internal fun DrawScope.createAndDrawScaledContentLayer(
-  node: HazeEffectNode,
-  scaleFactor: Float = node.calculateInputScaleFactor(),
-  clip: Boolean = node.shouldClip(),
+internal fun VisualEffect.createAndDrawScaledContentLayer(
+  drawScope: DrawScope,
+  node: CompositionLocalConsumerModifierNode,
+  areas: List<HazeArea>,
+  positionOnScreen: Offset,
+  layerSize: Size,
+  layerOffset: Offset,
+  backgroundColor: Color = Color.Unspecified,
+  scale: Float = 1f,
+  clip: Boolean = shouldClip(),
   releaseLayerOnExit: Boolean = true,
   block: DrawScope.(GraphicsLayer) -> Unit,
 ) {
-  val graphicsContext = node.currentValueOf(LocalGraphicsContext)
+  with(drawScope) {
+    val graphicsContext = node.currentValueOf(LocalGraphicsContext)
 
-  val layer = createScaledContentLayer(
-    node = node,
-    scaleFactor = scaleFactor,
-    layerSize = node.layerSize,
-    layerOffset = node.layerOffset,
-  )
+    val layer = createScaledContentLayer(
+      node = node,
+      areas = areas,
+      scale = scale,
+      layerSize = layerSize,
+      layerOffset = layerOffset,
+      positionOnScreen = positionOnScreen,
+      backgroundColor = backgroundColor,
+    )
 
-  if (layer != null) {
-    layer.clip = clip
+    if (layer != null) {
+      layer.clip = clip
 
-    drawScaledContent(
-      offset = -node.layerOffset,
-      scaledSize = size * scaleFactor,
-      clip = clip,
-    ) {
-      block(layer)
-    }
+      drawScaledContent(
+        offset = -layerOffset,
+        scaledSize = size * scale,
+        clip = clip,
+      ) {
+        block(layer)
+      }
 
-    if (releaseLayerOnExit) {
-      graphicsContext.releaseGraphicsLayer(layer)
+      if (releaseLayerOnExit) {
+        graphicsContext.releaseGraphicsLayer(layer)
+      }
     }
   }
 }
 
 internal fun DrawScope.createScaledContentLayer(
-  node: HazeEffectNode,
-  scaleFactor: Float,
+  node: CompositionLocalConsumerModifierNode,
+  areas: List<HazeArea>,
+  backgroundColor: Color,
+  scale: Float,
+  positionOnScreen: Offset,
   layerSize: Size,
   layerOffset: Offset,
 ): GraphicsLayer? {
-  val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
+  val scaledLayerSize = (layerSize * scale).roundToIntSize()
 
   if (scaledLayerSize.width <= 0 || scaledLayerSize.height <= 0) {
     // If we have a 0px dimension we can't do anything so just return
@@ -141,14 +163,13 @@ internal fun DrawScope.createScaledContentLayer(
   val layer = graphicsContext.createGraphicsLayer()
 
   layer.record(size = scaledLayerSize) {
-    val bg = node.resolveBackgroundColor()
-    if (bg.isSpecified) {
-      drawRect(bg)
+    if (backgroundColor.isSpecified) {
+      drawRect(backgroundColor)
     }
 
-    scale(scale = scaleFactor, pivot = Offset.Zero) {
-      translate(layerOffset - node.positionOnScreen) {
-        for (area in node.areas) {
+    scale(scale = scale, pivot = Offset.Zero) {
+      translate(layerOffset - positionOnScreen) {
+        for (area in areas) {
           require(!area.contentDrawing) {
             "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
               "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +

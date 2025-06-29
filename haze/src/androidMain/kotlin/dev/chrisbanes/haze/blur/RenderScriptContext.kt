@@ -3,7 +3,7 @@
 
 @file:Suppress("DEPRECATION")
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.blur
 
 import android.graphics.Bitmap
 import android.renderscript.Allocation
@@ -14,6 +14,7 @@ import android.renderscript.Type
 import android.view.Surface
 import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.createBitmap
+import dev.chrisbanes.haze.HazeLogger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.trySendBlocking
 
@@ -59,6 +60,9 @@ internal class RenderScriptContext(
   }
 
   fun applyBlur(blurRadius: Float) {
+    require(blurRadius in 1f..25f) {
+      "blurRadius needs to be >= 1 and <= 25"
+    }
     if (isDestroyed) return
 
     blurScript.setRadius(blurRadius.coerceAtMost(25f))

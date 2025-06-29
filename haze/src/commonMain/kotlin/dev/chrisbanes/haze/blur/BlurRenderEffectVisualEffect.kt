@@ -1,7 +1,7 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -11,19 +11,37 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.DirtyFields
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.calculateLength
+import dev.chrisbanes.haze.createAndDrawScaledContentLayer
+import dev.chrisbanes.haze.lerp
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
 @OptIn(ExperimentalHazeApi::class)
-internal class RenderEffectBlurEffect(
-  internal val node: HazeEffectNode,
-) : BlurEffect {
+internal class RenderEffectBlurVisualEffectDelegate(
+  val blurVisualEffect: BlurVisualEffect,
+) : BlurVisualEffect.Delegate {
   private var renderEffect: RenderEffect? = null
 
-  override fun DrawScope.drawEffect() {
-    createAndDrawScaledContentLayer(node) { layer ->
-      val p = node.progressive
+  override fun DrawScope.draw() {
+    val node = blurVisualEffect.requireNode()
+
+    blurVisualEffect.createAndDrawScaledContentLayer(
+      drawScope = this,
+      node = node,
+      scale = blurVisualEffect.calculateInputScaleFactor(node.inputScale),
+      backgroundColor = blurVisualEffect.backgroundColor,
+      areas = node.areas,
+      positionOnScreen = node.positionOnScreen,
+      layerSize = node.layerSize,
+      layerOffset = node.layerOffset,
+      clip = blurVisualEffect.shouldClip(),
+    ) { layer ->
+      val p = blurVisualEffect.progressive
       if (p != null) {
         drawProgressiveEffect(
           drawScope = this,
@@ -32,10 +50,10 @@ internal class RenderEffectBlurEffect(
         )
       } else {
         // First make sure that the RenderEffect is updated (if necessary)
-        updateRenderEffectIfDirty(node)
+        updateRenderEffectIfDirty()
 
         layer.renderEffect = renderEffect
-        layer.alpha = node.alpha
+        layer.alpha = blurVisualEffect.alpha
 
         // Since we included a border around the content, we need to translate so that
         // we don't see it (but it still affects the RenderEffect)
@@ -44,14 +62,14 @@ internal class RenderEffectBlurEffect(
     }
   }
 
-  private fun updateRenderEffectIfDirty(node: HazeEffectNode) {
-    if (renderEffect == null || node.dirtyTracker.any(DirtyFields.RenderEffectAffectingFlags)) {
-      renderEffect = node.getOrCreateRenderEffect()
+  private fun updateRenderEffectIfDirty() {
+    if (renderEffect == null || blurVisualEffect.dirtyTracker.any(DirtyFields.RenderEffectAffectingFlags)) {
+      renderEffect = blurVisualEffect.getOrCreateRenderEffect()
     }
   }
 }
 
-internal expect fun RenderEffectBlurEffect.drawProgressiveEffect(
+internal expect fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,

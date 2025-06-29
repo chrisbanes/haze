@@ -3,7 +3,7 @@
 
 @file:Suppress("DEPRECATION")
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.blur
 
 import android.graphics.BitmapShader
 import android.graphics.Color
@@ -31,7 +31,21 @@ import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
+import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.PaintPool
+import dev.chrisbanes.haze.asBrush
+import dev.chrisbanes.haze.createScaledContentLayer
+import dev.chrisbanes.haze.drawScaledContent
+import dev.chrisbanes.haze.drawScrim
+import dev.chrisbanes.haze.expand
+import dev.chrisbanes.haze.trace
+import dev.chrisbanes.haze.traceAsync
+import dev.chrisbanes.haze.translate
+import dev.chrisbanes.haze.usePaint
+import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,10 +53,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
-internal class RenderScriptBlurEffect private constructor(
-  private val node: HazeEffectNode,
-) : BlurEffect {
-  private val renderScript = RenderScript.create(node.currentValueOf(LocalContext))
+internal class RenderScriptBlurVisualEffectDelegate(
+  private val blurVisualEffect: BlurVisualEffect,
+) : BlurVisualEffect.Delegate {
+
+  private val renderScript = RenderScript.create(
+    blurVisualEffect.requireNode().currentValueOf(LocalContext),
+  )
+
   private var renderScriptContext: RenderScriptContext? = null
   private val drawScope = CanvasDrawScope()
 
@@ -50,19 +68,22 @@ internal class RenderScriptBlurEffect private constructor(
   private var drawSkipped: Boolean = false
 
   private val graphicsContext: GraphicsContext
-    get() = node.currentValueOf(LocalGraphicsContext)
+    get() = blurVisualEffect.requireNode().currentValueOf(LocalGraphicsContext)
 
   private val contentLayer: GraphicsLayer = graphicsContext.createGraphicsLayer()
 
   private val density: Density
-    get() = node.requireDensity()
+    get() = blurVisualEffect.requireNode().requireDensity()
 
-  override fun DrawScope.drawEffect() {
+  override fun DrawScope.draw() {
+    val node = blurVisualEffect.requireNode()
     val context = node.currentValueOf(LocalContext)
     val offset = node.layerOffset
-    var scaleFactor = node.calculateInputScaleFactor()
+    var scaleFactor = blurVisualEffect.calculateInputScaleFactor(node.inputScale)
 
-    var blurRadiusPx = scaleFactor * with(density) { node.resolveBlurRadius().toPx() }
+    var blurRadiusPx = scaleFactor * with(density) {
+      blurVisualEffect.blurRadius.takeOrElse { 0.dp }.toPx()
+    }
     if (blurRadiusPx > MAX_BLUR_RADIUS) {
       // RenderScript has a max blur radius (25px), so to create an equivalent visual effect
       // we need to increase the scale factor
@@ -77,11 +98,14 @@ internal class RenderScriptBlurEffect private constructor(
 
       createScaledContentLayer(
         node = node,
-        scaleFactor = scaleFactor,
+        scale = scaleFactor,
         layerSize = node.layerSize,
         layerOffset = offset,
+        backgroundColor = blurVisualEffect.backgroundColor,
+        areas = node.areas,
+        positionOnScreen = node.positionOnScreen,
       )?.let { layer ->
-        layer.clip = node.shouldClip()
+        layer.clip = node.visualEffect.shouldClip()
 
         if (contentLayer.size == IntSize.Zero) {
           // If the layer is released, or doesn't have a size yet, we'll generate
@@ -110,10 +134,10 @@ internal class RenderScriptBlurEffect private constructor(
     }
 
     node.withGraphicsLayer { layer ->
-      layer.alpha = node.alpha
-      layer.clip = node.shouldClip()
+      layer.alpha = blurVisualEffect.alpha
+      layer.clip = blurVisualEffect.shouldClip()
 
-      val mask = node.progressive?.asBrush() ?: node.mask
+      val mask = blurVisualEffect.progressive?.asBrush() ?: blurVisualEffect.mask
       if (mask != null) {
         // If we have a mask, this needs to be drawn offscreen
         layer.compositingStrategy = CompositingStrategy.Offscreen
@@ -123,7 +147,7 @@ internal class RenderScriptBlurEffect private constructor(
         drawScaledContent(
           offset = -offset,
           scaledSize = size * scaleFactor,
-          clip = node.shouldClip(),
+          clip = node.visualEffect.shouldClip(),
         ) {
           drawLayer(contentLayer)
         }
@@ -134,7 +158,7 @@ internal class RenderScriptBlurEffect private constructor(
         )
 
         // Draw the noise on top...
-        val noiseFactor = node.resolveNoiseFactor()
+        val noiseFactor = blurVisualEffect.noiseFactor
         if (noiseFactor > 0f) {
           translate(offset = -offset) {
             PaintPool.usePaint { paint ->
@@ -149,7 +173,7 @@ internal class RenderScriptBlurEffect private constructor(
 
         // Then the tints...
         translate(offset = -offset) {
-          for (tint in node.resolveTints()) {
+          for (tint in blurVisualEffect.tints) {
             drawScrim(tint = tint, node = node, offset = offset, expandedSize = expandedSize, mask = mask)
           }
         }
@@ -185,7 +209,10 @@ internal class RenderScriptBlurEffect private constructor(
         rs.awaitSurfaceWritten()
       }
 
-      if (!node.isAttached) return@traceAsync
+      val node = blurVisualEffect.attachedNode
+      if (node?.isAttached != true) {
+        return@traceAsync
+      }
 
       if (blurRadius > 0f) {
         // Now apply the blur on a background thread
@@ -233,20 +260,20 @@ internal class RenderScriptBlurEffect private constructor(
       .also { renderScriptContext = it }
   }
 
-  override fun cleanup() {
+  override fun detach() {
     currentJob?.cancel()
     graphicsContext.releaseGraphicsLayer(contentLayer)
     renderScriptContext?.release()
   }
 
   internal companion object {
-    const val TAG = "RenderScriptBlurEffect"
+    const val TAG = "RenderScriptBlurVisualEffectDelegate"
 
     private var isEnabled: Boolean = true
 
-    fun createOrNull(node: HazeEffectNode): RenderScriptBlurEffect? {
+    fun createOrNull(effect: BlurVisualEffect): RenderScriptBlurVisualEffectDelegate? {
       if (isEnabled) {
-        return runCatching { RenderScriptBlurEffect(node) }
+        return runCatching { RenderScriptBlurVisualEffectDelegate(effect) }
           .onFailure { isEnabled = false }
           .getOrNull()
       }

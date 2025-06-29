@@ -1,7 +1,7 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.blur
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -11,19 +11,24 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.HazeEffectNode.Companion.TAG
+import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.asBrush
+import dev.chrisbanes.haze.withGraphicsLayer
 
 private const val USE_RUNTIME_SHADER = true
 
 @RequiresApi(31)
-internal actual fun RenderEffectBlurEffect.drawProgressiveEffect(
+internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,
 ) {
+  val node = blurVisualEffect.attachedNode ?: return
   if (USE_RUNTIME_SHADER && Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
-      contentLayer.renderEffect = node.getOrCreateRenderEffect(progressive = progressive)
-      contentLayer.alpha = node.alpha
+      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(progressive = progressive)
+      contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
       drawLayer(contentLayer)
@@ -39,8 +44,8 @@ internal actual fun RenderEffectBlurEffect.drawProgressiveEffect(
   } else {
     // Otherwise we convert it to a mask
     with(drawScope) {
-      contentLayer.renderEffect = node.getOrCreateRenderEffect(mask = progressive.asBrush())
-      contentLayer.alpha = node.alpha
+      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(mask = progressive.asBrush())
+      contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
       drawLayer(contentLayer)
@@ -48,15 +53,16 @@ internal actual fun RenderEffectBlurEffect.drawProgressiveEffect(
   }
 }
 
-private fun RenderEffectBlurEffect.drawLinearGradientProgressiveEffectUsingLayers(
+private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEffectUsingLayers(
   drawScope: DrawScope,
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
 ) = with(drawScope) {
-  val tints = node.resolveTints()
-  val noiseFactor = node.resolveNoiseFactor()
-  val blurRadius = node.resolveBlurRadius().takeOrElse { 0.dp } *
-    node.calculateInputScaleFactor()
+  val node = blurVisualEffect.attachedNode ?: return
+  val tints = blurVisualEffect.tints
+  val noiseFactor = blurVisualEffect.noiseFactor
+  val blurRadius = blurVisualEffect.blurRadius.takeOrElse { 0.dp } *
+    blurVisualEffect.calculateInputScaleFactor(node.inputScale)
 
   drawProgressiveWithMultipleLayers(progressive) { mask, intensity ->
     node.withGraphicsLayer { layer ->
@@ -68,14 +74,14 @@ private fun RenderEffectBlurEffect.drawLinearGradientProgressiveEffectUsingLayer
         "drawLinearGradientProgressiveEffectUsingLayers. mask=$mask, intensity=$intensity"
       }
 
-      layer.renderEffect = node.getOrCreateRenderEffect(
+      layer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
         blurRadius = blurRadius * intensity,
         noiseFactor = noiseFactor,
         tints = tints,
         tintAlphaModulate = intensity,
         mask = mask,
       )
-      layer.alpha = node.alpha
+      layer.alpha = blurVisualEffect.alpha
 
       // Since we included a border around the content, we need to translate so that
       // we don't see it (but it still affects the RenderEffect)
