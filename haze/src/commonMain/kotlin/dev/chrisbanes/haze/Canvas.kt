@@ -54,12 +54,13 @@ internal inline fun DrawScope.withAlpha(
 internal fun ContentDrawScope.drawContentSafely() {
   try {
     drawContent()
-  } catch (npe: NullPointerException) {
-    // https://github.com/chrisbanes/haze/issues/641
-    HazeLogger.d("ContentDrawScope", npe) {
-      "Error whilst drawing content"
+  } catch (e: Exception) {
+    val message = e.message.orEmpty()
+    // Issues: 641 and 706
+    if ("mViewFlags" in message || "LayoutNode" in message) {
+      HazeLogger.d("ContentDrawScope", e) { "Error whilst drawing content" }
+    } else {
+      throw e
     }
-  } catch (t: Throwable) {
-    throw t
   }
 }
