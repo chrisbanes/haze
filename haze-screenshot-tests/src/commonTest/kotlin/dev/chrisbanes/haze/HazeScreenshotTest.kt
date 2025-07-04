@@ -476,6 +476,18 @@ class HazeScreenshotTest : ScreenshotTest() {
     captureRoot("bottom")
   }
 
+  @Test
+  fun edges() = runScreenshotTest {
+    setContent {
+      ScreenshotTheme {
+        ContentAtEdges(
+          style = HazeDefaults.style(tint = DefaultTint, backgroundColor = Color.Transparent),
+        )
+      }
+    }
+    captureRoot()
+  }
+
   companion object {
     val DefaultTint = HazeTint(Color.White.copy(alpha = 0.1f))
     val OverrideStyle = HazeStyle(tints = listOf(HazeTint(Color.Red.copy(alpha = 0.5f))))

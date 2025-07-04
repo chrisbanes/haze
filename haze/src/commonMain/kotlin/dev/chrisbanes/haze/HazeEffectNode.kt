@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
@@ -119,6 +120,15 @@ class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "positionOnScreen changed. Current: $field. New: $value" }
+        dirtyTracker += DirtyFields.ScreenPosition
+        field = value
+      }
+    }
+
+  internal var rootBoundsOnScreen: Rect = Rect.Zero
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "rootBoundsOnScreen changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.ScreenPosition
         field = value
       }
@@ -352,6 +362,12 @@ class HazeEffectNode(
     size = coordinates.size.toSize()
     windowId = getWindowId()
 
+    val rootLayoutCoords = coordinates.findRootCoordinates()
+    rootBoundsOnScreen = Rect(
+      offset = rootLayoutCoords.positionForHaze(),
+      size = rootLayoutCoords.size.toSize(),
+    )
+
     HazeLogger.d(TAG) {
       "$source: positionOnScreen=$positionOnScreen, size=$size"
     }
@@ -461,10 +477,17 @@ class HazeEffectNode(
       val blurRadiusPx = with(requireDensity()) {
         resolveBlurRadius().takeOrElse { 0.dp }.toPx()
       }
-      val inflatedLayerBounds = Rect(positionOnScreen, size).inflate(blurRadiusPx)
 
-      layerSize = inflatedLayerBounds.size
-      layerOffset = positionOnScreen - inflatedLayerBounds.topLeft
+      // Now we clip the expanded layer bounds by the window bounds
+      val clippedLayerBounds = Rect(positionOnScreen, size)
+        .inflate(blurRadiusPx)
+        .intersect(rootBoundsOnScreen)
+
+      layerSize = Size(
+        width = clippedLayerBounds.width.coerceAtLeast(0f),
+        height = clippedLayerBounds.height.coerceAtLeast(0f),
+      )
+      layerOffset = positionOnScreen - clippedLayerBounds.topLeft
     } else if (!backgroundBlurring && size.isSpecified && !shouldClip()) {
       layerSize = Size(
         width = size.width + (blurRadiusPx * 2),

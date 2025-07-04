@@ -318,6 +318,39 @@ fun OverlayingContent(
   }
 }
 
+@Composable
+fun ContentAtEdges(
+  blurEnabled: Boolean = true,
+  style: HazeStyle = HazeStyle.Unspecified,
+) {
+  val hazeState = rememberHazeState(blurEnabled)
+
+  Box(modifier = Modifier.fillMaxSize()) {
+    Image(
+      painter = painterResource(Res.drawable.photo),
+      contentDescription = null,
+      contentScale = ContentScale.Crop,
+      modifier = Modifier
+        .hazeSource(hazeState)
+        .fillMaxSize(),
+    )
+
+    Box(
+      modifier = Modifier
+        .align(Alignment.BottomCenter)
+        .fillMaxSize()
+        .hazeEffect(state = hazeState, style = style),
+    ) {
+      Text(
+        text = "Content",
+        color = Color.White,
+        style = MaterialTheme.typography.headlineSmall,
+        modifier = Modifier.align(Alignment.Center),
+      )
+    }
+  }
+}
+
 internal val LoremIpsum by lazy {
   """
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras sit amet congue mauris, iaculis accumsan eros. Aliquam pulvinar est ac elit vulputate egestas. Vestibulum consequat libero at sem varius, vitae semper urna rhoncus. Aliquam mollis, ipsum a convallis scelerisque, sem dui consequat leo, in tempor risus est ac mi. Nam vel tellus dolor. Nunc lobortis bibendum fermentum. Mauris sed mollis justo, eu tristique elit. Cras semper augue a tortor tempor, vitae vestibulum eros convallis. Curabitur id justo eget tortor iaculis lobortis. Integer pharetra augue ac elit porta iaculis non vitae libero. Nam eros turpis, suscipit at iaculis vitae, malesuada vel arcu. Donec tincidunt porttitor iaculis. Pellentesque non augue magna. Mauris mattis purus vitae mi maximus, id molestie ipsum facilisis. Donec bibendum gravida dolor nec suscipit. Pellentesque tempus felis iaculis, porta diam sed, tristique tortor.
