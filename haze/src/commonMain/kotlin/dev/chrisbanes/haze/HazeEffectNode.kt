@@ -18,14 +18,10 @@ import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
@@ -37,7 +33,6 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
-import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -47,6 +42,7 @@ import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.HazeProgressive.Companion.horizontalGradient
 import dev.chrisbanes.haze.HazeProgressive.Companion.verticalGradient
+import dev.chrisbanes.haze.blur.BlurVisualEffect
 import kotlin.jvm.JvmInline
 
 /**
@@ -76,42 +72,12 @@ class HazeEffectNode(
 
   internal var dirtyTracker = Bitmask()
 
-  internal var blurEnabledSet: Boolean = false
-  override var blurEnabled: Boolean = resolveBlurEnabled()
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "blurEnabled changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += DirtyFields.BlurEnabled
-      }
-      // Mark the set flag, to indicate that this value should take precedence
-      blurEnabledSet = true
-    }
-
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "inputScale changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += DirtyFields.InputScale
-      }
-    }
-
-  internal var compositionLocalStyle: HazeStyle = HazeStyle.Unspecified
-    set(value) {
-      if (field != value) {
-        HazeLogger.d(TAG) { "LocalHazeStyle changed. Current: $field. New: $value" }
-        onStyleChanged(field, value)
-        field = value
-      }
-    }
-
-  override var style: HazeStyle = style
-    set(value) {
-      if (field != value) {
-        HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
-        onStyleChanged(field, value)
-        field = value
       }
     }
 
@@ -160,76 +126,52 @@ class HazeEffectNode(
       }
     }
 
-  override var blurRadius: Dp = Dp.Unspecified
+  override var blurRadius: Dp
+    get() = requireBlurVisualEffect().blurRadius
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "blurRadius changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.BlurRadius
-        field = value
-      }
+      requireBlurVisualEffect().blurRadius = value
     }
 
-  override var noiseFactor: Float = -1f
+  override var noiseFactor: Float
+    get() = requireBlurVisualEffect().noiseFactor
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "noiseFactor changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.NoiseFactor
-        field = value
-      }
+      requireBlurVisualEffect().noiseFactor = value
     }
 
-  override var mask: Brush? = null
+  override var mask: Brush?
+    get() = requireBlurVisualEffect().mask
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "mask changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.Mask
-        field = value
-      }
+      requireBlurVisualEffect().mask = value
     }
 
-  override var backgroundColor: Color = Color.Unspecified
+  override var backgroundColor: Color
+    get() = requireBlurVisualEffect().backgroundColor
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "backgroundColor changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.BackgroundColor
-        field = value
-      }
+      requireBlurVisualEffect().backgroundColor = value
     }
 
-  override var tints: List<HazeTint> = emptyList()
+  override var tints: List<HazeTint>
+    get() = requireBlurVisualEffect().tints
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "tints changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.Tints
-        field = value
-      }
+      requireBlurVisualEffect().tints = value
     }
 
-  override var fallbackTint: HazeTint = HazeTint.Unspecified
+  override var fallbackTint: HazeTint
+    get() = requireBlurVisualEffect().fallbackTint
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "fallbackTint changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.FallbackTint
-        field = value
-      }
+      requireBlurVisualEffect().fallbackTint = value
     }
 
-  override var alpha: Float = 1f
+  override var alpha: Float
+    get() = requireBlurVisualEffect().alpha
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "alpha changed. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.Alpha
-        field = value
-      }
+      requireBlurVisualEffect().alpha = value
     }
 
-  override var progressive: HazeProgressive? = null
+  override var progressive: HazeProgressive?
+    get() = requireBlurVisualEffect().progressive
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "progressive changed. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.Progressive
-        field = value
-      }
+      requireBlurVisualEffect().progressive = value
     }
 
   private var windowId: Any? = null
@@ -262,23 +204,36 @@ class HazeEffectNode(
       }
     }
 
-  internal var blurEffect: BlurEffect = ScrimBlurEffect(this)
+  internal var visualEffect: VisualEffect = BlurVisualEffect()
     set(value) {
       if (value != field) {
-        HazeLogger.d(TAG) { "blurEffect changed. Current $field. New: $value" }
-        // Cleanup the old value
-        field.cleanup()
+        HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
+        // attach new VisualEffect
+        value.attach(this)
+        // detach old VisualEffect
+        field.detach()
         field = value
       }
     }
 
-  override var blurredEdgeTreatment: BlurredEdgeTreatment = HazeDefaults.blurredEdgeTreatment
+  private fun requireBlurVisualEffect(): BlurVisualEffect = visualEffect as BlurVisualEffect
+
+  override var blurEnabled: Boolean
+    get() = requireBlurVisualEffect().blurEnabled
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "blurredEdgeTreatment. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.BlurredEdgeTreatment
-        field = value
-      }
+      requireBlurVisualEffect().blurEnabled = value
+    }
+
+  override var style: HazeStyle
+    get() = requireBlurVisualEffect().style
+    set(value) {
+      requireBlurVisualEffect().style = value
+    }
+
+  override var blurredEdgeTreatment: BlurredEdgeTreatment
+    get() = requireBlurVisualEffect().blurredEdgeTreatment
+    set(value) {
+      requireBlurVisualEffect().blurredEdgeTreatment = value
     }
 
   override var drawContentBehind: Boolean = HazeDefaults.drawContentBehind
@@ -295,24 +250,20 @@ class HazeEffectNode(
   /**
    * We need to use the area pre draw listener in a few situations when blurring is enabled:
    *
-   * - Globally, if [invalidateOnHazeAreaPreDraw] is set to true. This is mostly for older
+   * - Globally, if [dev.chrisbanes.haze.blur.invalidateOnHazeAreaPreDraw] is set to true. This is mostly for older
    *   Android versions.
    * - The source haze node is drawn in a different window to us. In this instance, we won't be
    *   in the same invalidation scope, so need to force invalidation. This handles cases
    *   like Dialogs.
    */
   private fun attachPreDrawListenerIfNecessary(area: HazeArea) {
-    if (resolveBlurEnabled() && (invalidateOnHazeAreaPreDraw() || area.windowId != windowId)) {
+    if (invalidateOnHazeAreaPreDraw() || area.windowId != windowId) {
       area.preDrawListeners.add(areaPreDrawListener)
     }
   }
 
-  private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
-    if (old?.tints != new?.tints) dirtyTracker += DirtyFields.Tints
-    if (old?.fallbackTint != new?.fallbackTint) dirtyTracker += DirtyFields.Tints
-    if (old?.backgroundColor != new?.backgroundColor) dirtyTracker += DirtyFields.BackgroundColor
-    if (old?.noiseFactor != new?.noiseFactor) dirtyTracker += DirtyFields.NoiseFactor
-    if (old?.blurRadius != new?.blurRadius) dirtyTracker += DirtyFields.BlurRadius
+  init {
+    requireBlurVisualEffect().style = style
   }
 
   internal fun update() {
@@ -320,6 +271,7 @@ class HazeEffectNode(
   }
 
   override fun onAttach() {
+    visualEffect.attach(this)
     update()
   }
 
@@ -369,12 +321,17 @@ class HazeEffectNode(
         return
       }
 
+      with(visualEffect) {
+        onPreDrawEffect(this@HazeEffectNode)
+      }
+
       if (size.isSpecified && layerSize.isSpecified) {
         if (state != null) {
           if (areas.isNotEmpty()) {
             // If the state is not null and we have some areas, let's perform background blurring
-            updateBlurEffectIfNeeded(this)
-            with(blurEffect) { drawEffect() }
+            with(visualEffect) {
+              drawEffect(this@HazeEffectNode)
+            }
           }
           // Finally we draw the content over the background
           drawContentSafely()
@@ -391,12 +348,13 @@ class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
-          updateBlurEffectIfNeeded(this)
-          if (drawContentBehind || blurEffect is ScrimBlurEffect) {
+          if (drawContentBehind || visualEffect.needContentDrawBehind()) {
             // We need to draw the content for scrims
             drawLayer(contentLayer)
           }
-          with(blurEffect) { drawEffect() }
+          with(visualEffect) {
+            drawEffect(this@HazeEffectNode)
+          }
         }
       } else {
         HazeLogger.d(TAG) { "-> State not valid, so no need to draw effect." }
@@ -409,7 +367,7 @@ class HazeEffectNode(
   }
 
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
-    compositionLocalStyle = currentValueOf(LocalHazeStyle)
+    visualEffect.update()
     windowId = getWindowId()
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
@@ -454,18 +412,15 @@ class HazeEffectNode(
     }
 
     val blurRadiusPx = with(currentValueOf(LocalDensity)) {
-      resolveBlurRadius().takeOrElse { 0.dp }.toPx()
+      ((visualEffect as? BlurVisualEffect)?.blurRadius ?: 0.dp).takeOrElse { 0.dp }.toPx()
     }
 
     if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && positionOnScreen.isSpecified) {
-      val blurRadiusPx = with(requireDensity()) {
-        resolveBlurRadius().takeOrElse { 0.dp }.toPx()
-      }
       val inflatedLayerBounds = Rect(positionOnScreen, size).inflate(blurRadiusPx)
 
       layerSize = inflatedLayerBounds.size
       layerOffset = positionOnScreen - inflatedLayerBounds.topLeft
-    } else if (!backgroundBlurring && size.isSpecified && !shouldClip()) {
+    } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip()) {
       layerSize = Size(
         width = size.width + (blurRadiusPx * 2),
         height = size.height + (blurRadiusPx * 2),
@@ -484,11 +439,15 @@ class HazeEffectNode(
   }
 
   private fun invalidateIfNeeded() {
-    val invalidateRequired = dirtyTracker.any(DirtyFields.InvalidateFlags)
+    val invalidateRequired =
+      dirtyTracker.any(DirtyFields.InvalidateFlags) ||
+        visualEffect.needInvalidation()
+
     HazeLogger.d(TAG) {
       "invalidateRequired=$invalidateRequired. " +
         "Dirty params=${DirtyFields.stringify(dirtyTracker)}"
     }
+
     if (invalidateRequired) {
       invalidateDraw()
     }
@@ -654,135 +613,7 @@ sealed interface HazeProgressive {
   }
 }
 
-private val renderEffectCache by unsynchronizedLazy {
-  SimpleLruCache<RenderEffectParams, RenderEffect>(10)
-}
-
-@Poko
-internal class RenderEffectParams(
-  val blurRadius: Dp,
-  val noiseFactor: Float,
-  val scale: Float,
-  val contentSize: Size,
-  val contentOffset: Offset,
-  val tints: List<HazeTint> = emptyList(),
-  val tintAlphaModulate: Float = 1f,
-  val mask: Brush? = null,
-  val progressive: HazeProgressive? = null,
-  val blurTileMode: TileMode,
-)
-
-@ExperimentalHazeApi
-internal fun HazeEffectNode.calculateInputScaleFactor(
-  blurRadius: Dp = resolveBlurRadius(),
-): Float = when (val s = inputScale) {
-  HazeInputScale.None -> 1f
-  is HazeInputScale.Fixed -> s.scale
-  HazeInputScale.Auto -> {
-    when {
-      // For small blurRadius values, input scaling is very noticeable therefore we turn it off
-      blurRadius < 7.dp -> 1f
-      // For progressive and masks, we need to keep enough resolution for the lowest intensity.
-      // 0.5f is about right.
-      progressive != null -> 0.5f
-      mask != null -> 0.5f
-      // Otherwise we use 1/3
-      else -> 0.3334f
-    }
-  }
-}
-
-private fun HazeEffectNode.calculateBlurTileMode(): TileMode = when (blurredEdgeTreatment) {
-  BlurredEdgeTreatment.Unbounded -> TileMode.Decal
-  else -> TileMode.Clamp
-}
-
-@OptIn(ExperimentalHazeApi::class)
-internal fun HazeEffectNode.getOrCreateRenderEffect(
-  inputScale: Float = calculateInputScaleFactor(),
-  blurRadius: Dp = resolveBlurRadius().takeOrElse { 0.dp },
-  noiseFactor: Float = resolveNoiseFactor(),
-  tints: List<HazeTint> = resolveTints(),
-  tintAlphaModulate: Float = 1f,
-  contentSize: Size = this.size,
-  contentOffset: Offset = this.layerOffset,
-  mask: Brush? = this.mask,
-  progressive: HazeProgressive? = null,
-  blurTileMode: TileMode = calculateBlurTileMode(),
-): RenderEffect? = trace("HazeEffectNode-getOrCreateRenderEffect") {
-  getOrCreateRenderEffect(
-    RenderEffectParams(
-      blurRadius = blurRadius,
-      noiseFactor = noiseFactor,
-      scale = inputScale,
-      tints = tints,
-      tintAlphaModulate = tintAlphaModulate,
-      contentSize = contentSize,
-      contentOffset = contentOffset,
-      mask = mask,
-      progressive = progressive,
-      blurTileMode = blurTileMode,
-    ),
-  )
-}
-
-internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params: RenderEffectParams): RenderEffect? {
-  HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect: $params" }
-  val cached = renderEffectCache[params]
-  if (cached != null) {
-    HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
-    return cached
-  }
-
-  HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
-  return createRenderEffect(params)
-    ?.also { renderEffectCache[params] = it }
-}
-
-internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
-
-internal expect fun HazeEffectNode.updateBlurEffectIfNeeded(drawScope: DrawScope)
-
 internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
-
-internal fun HazeEffectNode.resolveBackgroundColor(): Color {
-  return backgroundColor
-    .takeOrElse { style.backgroundColor }
-    .takeOrElse { compositionLocalStyle.backgroundColor }
-}
-
-internal fun HazeEffectNode.resolveBlurRadius(): Dp {
-  return blurRadius
-    .takeOrElse { style.blurRadius }
-    .takeOrElse { compositionLocalStyle.blurRadius }
-}
-
-internal fun HazeEffectNode.resolveTints(): List<HazeTint> {
-  return tints.takeIf { it.isNotEmpty() }
-    ?: style.tints.takeIf { it.isNotEmpty() }
-    ?: compositionLocalStyle.tints.takeIf { it.isNotEmpty() }
-    ?: emptyList()
-}
-
-internal fun HazeEffectNode.resolveFallbackTint(): HazeTint {
-  return fallbackTint.takeIf { it.isSpecified }
-    ?: style.fallbackTint.takeIf { it.isSpecified }
-    ?: compositionLocalStyle.fallbackTint
-}
-
-internal fun HazeEffectNode.resolveNoiseFactor(): Float {
-  return noiseFactor
-    .takeOrElse { style.noiseFactor }
-    .takeOrElse { compositionLocalStyle.noiseFactor }
-}
-
-internal fun HazeEffectNode.resolveBlurEnabled(): Boolean = when {
-  blurEnabledSet -> blurEnabled
-  state != null -> state?.blurEnabled == true
-  else -> HazeDefaults.blurEnabled()
-}
-
-internal fun HazeEffectNode.shouldClip(): Boolean = blurredEdgeTreatment.shape != null
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {

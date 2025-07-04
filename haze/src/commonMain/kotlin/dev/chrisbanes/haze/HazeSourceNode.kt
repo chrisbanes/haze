@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -19,8 +18,6 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
 import kotlinx.coroutines.DisposableHandle
@@ -220,26 +217,5 @@ class HazeSourceNode(
 }
 
 internal expect fun isBlurEnabledByDefault(): Boolean
-
-internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
-  if (brush != null) {
-    // We can't boost brush tints
-    return this
-  }
-
-  // For color, we can boost the alpha
-  val resolved = blurRadius.takeOrElse { HazeDefaults.blurRadius }
-  val boosted = color.boostAlphaForBlurRadius(resolved)
-  return copy(color = boosted)
-}
-
-/**
- * In this implementation, the only tool we have is translucency.
- */
-private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
-  // We treat a blur radius of 72.dp as near 'opaque', and linearly boost using that
-  val factor = 1 + (blurRadius.value / 72)
-  return copy(alpha = (alpha * factor).coerceAtMost(1f))
-}
 
 internal expect fun HazeSourceNode.clearHazeAreaLayerOnStop()

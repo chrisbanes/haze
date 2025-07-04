@@ -1,7 +1,7 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -15,10 +15,14 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.PlatformContext
+import dev.chrisbanes.haze.asBrush
+import dev.chrisbanes.haze.ceil
+import dev.chrisbanes.haze.round
+import dev.chrisbanes.haze.toSkiaBlendMode
 import org.jetbrains.skia.BlendMode
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.FilterTileMode
@@ -27,7 +31,11 @@ import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeShaderBuilder
 import org.jetbrains.skia.Shader
 
-internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
+internal actual fun createBlurRenderEffect(
+  context: PlatformContext,
+  density: Density,
+  params: RenderEffectParams,
+): RenderEffect? {
   val blurRadius = params.blurRadius * params.scale
   require(blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
   val size = ceil(params.contentSize * params.scale)
@@ -37,7 +45,7 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     uniform("noiseFactor", params.noiseFactor.coerceIn(0f, 1f))
   }
 
-  val blurRadiusPx = with(currentValueOf(LocalDensity)) { params.blurRadius.toPx() }
+  val blurRadiusPx = with(density) { params.blurRadius.toPx() }
 
   val progressiveShader = params.progressive?.asBrush()?.toShader(size)
   val blur = if (progressiveShader != null) {

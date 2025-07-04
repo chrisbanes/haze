@@ -1,7 +1,9 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze
+package dev.chrisbanes.haze.blur
+
+import dev.chrisbanes.haze.unsynchronizedLazy
 
 /**
  * Adapted from https://www.shadertoy.com/view/Mtl3Rj
