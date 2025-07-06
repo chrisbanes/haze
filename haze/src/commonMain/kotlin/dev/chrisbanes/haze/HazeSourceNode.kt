@@ -102,12 +102,10 @@ class HazeSourceNode(
     state.addArea(area)
     clearHazeAreaLayerOnStop()
 
-    if (invalidateOnHazeAreaPreDraw()) {
-      preDrawDisposable = doOnPreDraw {
-        HazeLogger.d(TAG) { "onPreDraw" }
-        for (listener in area.preDrawListeners) {
-          listener()
-        }
+    preDrawDisposable = doOnPreDraw {
+      HazeLogger.d(TAG) { "onPreDraw" }
+      for (listener in area.preDrawListeners) {
+        listener()
       }
     }
   }
