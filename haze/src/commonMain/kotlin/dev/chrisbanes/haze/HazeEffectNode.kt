@@ -250,13 +250,13 @@ class HazeEffectNode(
         HazeLogger.d(TAG) { "backgroundAreas changed. Current $field. New: $value" }
         dirtyTracker += DirtyFields.Areas
 
-        // Remove the layout listener from the current areas
+        // Remove the pre-draw listener from the current areas
         for (area in field) {
-          area.preDrawListeners.remove(areaPreDrawListener)
+          area.preDrawListeners -= areaPreDrawListener
         }
-        // Re-add the layout listener to all of the new areas
+        // Add the pre-draw listener to all of the new areas
         for (area in value) {
-          attachPreDrawListenerIfNecessary(area)
+          area.preDrawListeners += areaPreDrawListener
         }
         field = value
       }
@@ -300,8 +300,6 @@ class HazeEffectNode(
       }
     }
 
-  private val areaPreDrawListener = OnPreDrawListener { invalidateDraw() }
-
   /**
    * We need to use the area pre draw listener in a few situations when blurring is enabled:
    *
@@ -311,9 +309,11 @@ class HazeEffectNode(
    *   in the same invalidation scope, so need to force invalidation. This handles cases
    *   like Dialogs.
    */
-  private fun attachPreDrawListenerIfNecessary(area: HazeArea) {
-    if (resolveBlurEnabled() && (invalidateOnHazeAreaPreDraw() || area.windowId != windowId)) {
-      area.preDrawListeners.add(areaPreDrawListener)
+  private val areaPreDrawListener = OnPreDrawListener {
+    if (resolveBlurEnabled()) {
+      if (invalidateOnHazeAreaPreDraw() || areas.any { it.windowId != windowId }) {
+        invalidateDraw()
+      }
     }
   }
 
