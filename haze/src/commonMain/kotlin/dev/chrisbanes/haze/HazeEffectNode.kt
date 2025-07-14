@@ -425,6 +425,8 @@ class HazeEffectNode(
   }
 
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
+    if (!isAttached) return@trace
+
     compositionLocalStyle = currentValueOf(LocalHazeStyle)
     windowId = getWindowId()
 
