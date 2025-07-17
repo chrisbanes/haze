@@ -476,13 +476,28 @@ class HazeEffectNode(
     }
 
     if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && positionOnScreen.isSpecified) {
+      // Calcalate the dimensions which covers all areas...
+      var left = Float.POSITIVE_INFINITY
+      var top = Float.POSITIVE_INFINITY
+      var right = Float.NEGATIVE_INFINITY
+      var bottom = Float.NEGATIVE_INFINITY
+      for (area in areas) {
+        val bounds = area.bounds ?: continue
+        left = minOf(left, bounds.left)
+        top = minOf(top, bounds.top)
+        right = maxOf(right, bounds.right)
+        bottom = maxOf(bottom, bounds.bottom)
+      }
+
       val blurRadiusPx = with(requireDensity()) {
         resolveBlurRadius().takeOrElse { 0.dp }.toPx()
       }
 
-      // Now we clip the expanded layer bounds by the window bounds
+      // Now we clip the expanded layer bounds, to remove anything areas which
+      // don't overlap any areas, and the window bounds
       val clippedLayerBounds = Rect(positionOnScreen, size)
         .inflate(blurRadiusPx)
+        .intersect(left, top, right, bottom)
         .intersect(rootBoundsOnScreen)
 
       layerSize = Size(
