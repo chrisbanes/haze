@@ -49,6 +49,8 @@ import androidx.compose.ui.unit.toSize
 import dev.chrisbanes.haze.HazeProgressive.Companion.horizontalGradient
 import dev.chrisbanes.haze.HazeProgressive.Companion.verticalGradient
 import kotlin.jvm.JvmInline
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeEffect].
@@ -300,6 +302,15 @@ class HazeEffectNode(
       }
     }
 
+  override var clipToAreasBounds: Boolean? = null
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "clipToAreasBounds changed. Current $field. New: $value" }
+        dirtyTracker += DirtyFields.ClipToAreas
+        field = value
+      }
+    }
+
   /**
    * We need to use the area pre draw listener in a few situations when blurring is enabled:
    *
@@ -476,19 +487,6 @@ class HazeEffectNode(
     }
 
     if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && positionOnScreen.isSpecified) {
-      // Calcalate the dimensions which covers all areas...
-      var left = Float.POSITIVE_INFINITY
-      var top = Float.POSITIVE_INFINITY
-      var right = Float.NEGATIVE_INFINITY
-      var bottom = Float.NEGATIVE_INFINITY
-      for (area in areas) {
-        val bounds = area.bounds ?: continue
-        left = minOf(left, bounds.left)
-        top = minOf(top, bounds.top)
-        right = maxOf(right, bounds.right)
-        bottom = maxOf(bottom, bounds.bottom)
-      }
-
       val blurRadiusPx = with(requireDensity()) {
         resolveBlurRadius().takeOrElse { 0.dp }.toPx()
       }
@@ -497,7 +495,21 @@ class HazeEffectNode(
       // don't overlap any areas, and the window bounds
       val clippedLayerBounds = Rect(positionOnScreen, size)
         .inflate(blurRadiusPx)
-        .intersect(left, top, right, bottom)
+        .letIf(shouldClipToAreaBounds()) {
+          // Calculate the dimensions which covers all areas...
+          var left = Float.POSITIVE_INFINITY
+          var top = Float.POSITIVE_INFINITY
+          var right = Float.NEGATIVE_INFINITY
+          var bottom = Float.NEGATIVE_INFINITY
+          for (area in areas) {
+            val bounds = area.bounds ?: continue
+            left = min(left, bounds.left)
+            top = min(top, bounds.top)
+            right = max(right, bounds.right)
+            bottom = max(bottom, bounds.bottom)
+          }
+          it.intersect(left, top, right, bottom)
+        }
         .intersect(rootBoundsOnScreen)
 
       layerSize = Size(
@@ -824,6 +836,16 @@ internal fun HazeEffectNode.resolveBlurEnabled(): Boolean = when {
 
 internal fun HazeEffectNode.shouldClip(): Boolean = blurredEdgeTreatment.shape != null
 
+internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
+  val param = clipToAreasBounds
+  if (param != null) {
+    return param
+  }
+
+  val bgColor = resolveBackgroundColor()
+  return bgColor.alpha <= 0.9f
+}
+
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {
   const val BlurEnabled: Int = 0b1
@@ -844,6 +866,7 @@ internal object DirtyFields {
   const val LayerOffset = LayerSize shl 1
   const val BlurredEdgeTreatment = LayerOffset shl 1
   const val DrawContentBehind = BlurredEdgeTreatment shl 1
+  const val ClipToAreas = DrawContentBehind shl 1
 
   const val RenderEffectAffectingFlags =
     BlurEnabled or
@@ -857,7 +880,8 @@ internal object DirtyFields {
       Tints or
       FallbackTint or
       Progressive or
-      BlurredEdgeTreatment
+      BlurredEdgeTreatment or
+      ClipToAreas
 
   const val InvalidateFlags =
     RenderEffectAffectingFlags or // Eventually we'll move this out of invalidation
@@ -872,7 +896,8 @@ internal object DirtyFields {
       Areas or
       Alpha or
       BlurredEdgeTreatment or
-      DrawContentBehind
+      DrawContentBehind or
+      ClipToAreas
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
