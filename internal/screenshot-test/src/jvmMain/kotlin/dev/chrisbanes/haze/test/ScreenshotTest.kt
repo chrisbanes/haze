@@ -18,8 +18,6 @@ import io.github.takahirom.roborazzi.captureRoboImage
 
 actual abstract class ScreenshotTest : ContextTest()
 
-actual val HazeRoborazziDefaults.outputDirectoryName: String get() = "desktop"
-
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 actual fun ScreenshotTest.runScreenshotTest(
   block: ScreenshotUiTest.() -> Unit,
@@ -30,7 +28,7 @@ actual fun ScreenshotTest.runScreenshotTest(
   ) {
     provideRoborazziContext().apply {
       setRuleOverrideRoborazziOptions(HazeRoborazziDefaults.roborazziOptions)
-      setRuleOverrideOutputDirectory("screenshots/${HazeRoborazziDefaults.outputDirectoryName}")
+      setRuleOverrideOutputDirectory("screenshots/desktop")
     }
     createScreenshotUiTest().block()
   }

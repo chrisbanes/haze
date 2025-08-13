@@ -25,14 +25,4 @@ kotlin {
       }
     }
   }
-
-  targets.configureEach {
-    compilations.configureEach {
-      compileTaskProvider {
-        compilerOptions {
-          freeCompilerArgs.add("-Xexpect-actual-classes")
-        }
-      }
-    }
-  }
 }

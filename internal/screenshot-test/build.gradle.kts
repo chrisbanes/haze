@@ -20,7 +20,7 @@ kotlin {
   }
 
   sourceSets {
-    val commonMain by getting {
+    commonMain {
       dependencies {
         api(projects.internal.contextTest)
 
@@ -30,17 +30,7 @@ kotlin {
       }
     }
 
-    val commonJvmMain by creating {
-      dependsOn(commonMain)
-
-      dependencies {
-        api(libs.roborazzi.core)
-      }
-    }
-
     androidMain {
-      dependsOn(commonJvmMain)
-
       dependencies {
         implementation(libs.androidx.test.ext.junit)
         implementation(libs.androidx.compose.ui.test.manifest)
@@ -49,28 +39,20 @@ kotlin {
 
         implementation(libs.robolectric)
 
+        implementation(libs.roborazzi.core)
+        implementation(libs.roborazzi.android)
         implementation(libs.roborazzi.compose)
         implementation(libs.roborazzi.junit)
       }
     }
 
     jvmMain {
-      dependsOn(commonJvmMain)
-
       dependencies {
         implementation(compose.desktop.currentOs)
         implementation(compose.desktop.uiTestJUnit4)
-        implementation(libs.roborazzi.composedesktop)
-      }
-    }
-  }
 
-  targets.configureEach {
-    compilations.configureEach {
-      compileTaskProvider {
-        compilerOptions {
-          freeCompilerArgs.add("-Xexpect-actual-classes")
-        }
+        implementation(libs.roborazzi.core)
+        implementation(libs.roborazzi.composedesktop)
       }
     }
   }

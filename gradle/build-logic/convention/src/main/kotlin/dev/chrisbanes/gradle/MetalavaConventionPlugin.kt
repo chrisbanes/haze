@@ -23,6 +23,8 @@ class MetalavaConventionPlugin : Plugin<Project> {
           .filter { it.name.contains("test", ignoreCase = true) }
           .flatMap { it.kotlin.sourceDirectories }
       )
+
+      version.set("1.0.0-alpha13")
     }
 
     tasks.named { it.startsWith("metalavaCheckCompatibility") }.configureEach {

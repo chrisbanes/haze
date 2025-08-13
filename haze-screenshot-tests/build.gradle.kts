@@ -31,8 +31,10 @@ android {
 
 kotlin {
   jvm()
-  androidTarget {
-    publishLibraryVariants("release")
+  androidTarget()
+
+  compilerOptions {
+    optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
   }
 
   sourceSets {
@@ -57,11 +59,5 @@ kotlin {
         implementation(projects.internal.screenshotTest)
       }
     }
-  }
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
-  compilerOptions {
-    optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
   }
 }
