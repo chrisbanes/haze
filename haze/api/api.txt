@@ -57,6 +57,7 @@ package dev.chrisbanes.haze {
     method public float getBlurRadius();
     method public androidx.compose.ui.graphics.Shape getBlurredEdgeTreatment();
     method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
+    method public Boolean? getClipToAreasBounds();
     method public boolean getDrawContentBehind();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
@@ -76,6 +77,7 @@ package dev.chrisbanes.haze {
     method public void setBlurRadius(float);
     method public void setBlurredEdgeTreatment(androidx.compose.ui.graphics.Shape);
     method public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
+    method public void setClipToAreasBounds(Boolean?);
     method public void setDrawContentBehind(boolean);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
     method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
@@ -92,6 +94,7 @@ package dev.chrisbanes.haze {
     property public float blurRadius;
     property public androidx.compose.ui.graphics.Shape blurredEdgeTreatment;
     property public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
+    property public Boolean? clipToAreasBounds;
     property public boolean drawContentBehind;
     property public dev.chrisbanes.haze.HazeTint fallbackTint;
     property public dev.chrisbanes.haze.HazeInputScale inputScale;
@@ -113,6 +116,7 @@ package dev.chrisbanes.haze {
     method public float getBlurRadius();
     method public androidx.compose.ui.graphics.Shape getBlurredEdgeTreatment();
     method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
+    method public Boolean? getClipToAreasBounds();
     method public boolean getDrawContentBehind();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
@@ -127,6 +131,7 @@ package dev.chrisbanes.haze {
     method public void setBlurRadius(float);
     method public void setBlurredEdgeTreatment(androidx.compose.ui.graphics.Shape);
     method public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
+    method public void setClipToAreasBounds(Boolean?);
     method public void setDrawContentBehind(boolean);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
     method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
@@ -141,6 +146,7 @@ package dev.chrisbanes.haze {
     property public abstract float blurRadius;
     property public abstract androidx.compose.ui.graphics.Shape blurredEdgeTreatment;
     property public abstract kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
+    property public abstract Boolean? clipToAreasBounds;
     property public abstract boolean drawContentBehind;
     property public abstract dev.chrisbanes.haze.HazeTint fallbackTint;
     property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;

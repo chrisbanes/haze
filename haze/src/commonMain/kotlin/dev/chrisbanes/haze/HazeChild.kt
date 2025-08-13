@@ -190,6 +190,15 @@ interface HazeEffectScope {
    * This flag has no effect when used with background blurring.
    */
   var drawContentBehind: Boolean
+
+  /**
+   * Whether the drawn effect should be clipped to the total bounds which cover all of the
+   * areas provided via the [HazeState.areas].
+   *
+   * This defaults to `null` which means that Haze will decide whether to clip or not depending
+   * on other conditions.
+   */
+  var clipToAreasBounds: Boolean?
 }
 
 /**
