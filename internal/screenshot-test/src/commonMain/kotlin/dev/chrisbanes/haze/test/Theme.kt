@@ -11,11 +11,18 @@ import haze_root.internal.screenshot_test.generated.resources.Res
 import haze_root.internal.screenshot_test.generated.resources.poppins_regular
 import org.jetbrains.compose.resources.Font
 
+internal expect fun useCustomTypography(): Boolean
+
 @Composable
 fun ScreenshotTheme(
   content: @Composable () -> Unit,
 ) {
-  MaterialTheme(typography = Typography) {
+  MaterialTheme(
+    typography = when {
+      useCustomTypography() -> Typography
+      else -> MaterialTheme.typography
+    },
+  ) {
     content()
   }
 }

@@ -103,7 +103,6 @@ playground.xcworkspace
 
 report.xml
 Preview.html
-screenshots/**/*.png
 test_output
 
 *.env*
