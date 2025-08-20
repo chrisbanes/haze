@@ -16,7 +16,7 @@ jetpack-compose = "1.8.2"
 metalava = "0.4.0-alpha03"
 navigation-compose = "2.9.0-alpha17"
 robolectric = "4.15.1"
-roborazzi = "1.47.0"
+roborazzi = "1.49.0"
 spotless = "7.2.1"
 
 [plugins]
