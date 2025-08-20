@@ -14,274 +14,295 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
-import kotlin.test.Test
+import io.kotest.core.spec.style.FunSpec
 
-class HazeContentBlurringScreenshotTest : ScreenshotTest() {
-  @Test
-  fun creditCard() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(tint = DefaultTint, blurRadius = 8.dp)
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
-  fun creditCard_noStyle() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring()
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
-  fun creditCard_blurEnabled() = runScreenshotTest {
-    var blurEnabled by mutableStateOf(HazeDefaults.blurEnabled())
-
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(tint = DefaultTint, blurRadius = 8.dp, blurEnabled = blurEnabled)
-      }
-    }
-
-    waitForIdle()
-    captureRoot("default")
-
-    blurEnabled = false
-    waitForIdle()
-    captureRoot("disabled")
-
-    blurEnabled = true
-    waitForIdle()
-    captureRoot("enabled")
-  }
-
-  @Test
-  fun creditCard_style() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(style = OverrideStyle)
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
-  fun creditCard_compositionLocalStyle() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CompositionLocalProvider(LocalHazeStyle provides OverrideStyle) {
-          CreditCardContentBlurring(blurRadius = 8.dp)
+class HazeContentBlurringScreenshotTest : FunSpec(), ScreenshotTest {
+  init {
+    test("creditCard") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(tint = DefaultTint, blurRadius = 8.dp)
+          }
         }
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
-  fun creditCard_transparentTint() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(blurRadius = 8.dp, tint = HazeTint(Color.Transparent))
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
-  fun creditCard_zeroBlurRadius() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(blurRadius = 0.dp)
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
-  fun creditCard_mask() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(tint = DefaultTint, mask = VerticalMask, blurRadius = 8.dp)
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
-  fun creditCard_alpha() = runScreenshotTest {
-    var alpha by mutableFloatStateOf(0.5f)
-
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(tint = DefaultTint, blurRadius = 8.dp, alpha = alpha)
+        captureRoot()
       }
     }
 
-    captureRoot()
+    test("creditCard_noStyle") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring()
+          }
+        }
+        captureRoot()
+      }
+    }
 
-    alpha = 0.2f
-    waitForIdle()
-    captureRoot("20")
+    test("creditCard_blurEnabled") {
+      runScreenshotTest {
+        var blurEnabled by mutableStateOf(HazeDefaults.blurEnabled())
 
-    alpha = 0.7f
-    waitForIdle()
-    captureRoot("70")
-  }
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(tint = DefaultTint, blurRadius = 8.dp, blurEnabled = blurEnabled)
+          }
+        }
 
-  @Test
-  fun creditCard_progressive_horiz() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(
-          tint = DefaultTint,
-          blurRadius = 8.dp,
-          progressive = HazeProgressive.horizontalGradient(),
+        waitForIdle()
+        captureRoot("default")
+
+        blurEnabled = false
+        waitForIdle()
+        captureRoot("disabled")
+
+        blurEnabled = true
+        waitForIdle()
+        captureRoot("enabled")
+      }
+    }
+
+    test("creditCard_style") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(style = OverrideStyle)
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_compositionLocalStyle") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CompositionLocalProvider(LocalHazeStyle provides OverrideStyle) {
+              CreditCardContentBlurring(blurRadius = 8.dp)
+            }
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_transparentTint") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(blurRadius = 8.dp, tint = HazeTint(Color.Transparent))
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_zeroBlurRadius") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(blurRadius = 0.dp)
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_mask") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(tint = DefaultTint, mask = VerticalMask, blurRadius = 8.dp)
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_alpha") {
+      runScreenshotTest {
+        var alpha by mutableFloatStateOf(0.5f)
+
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(tint = DefaultTint, blurRadius = 8.dp, alpha = alpha)
+          }
+        }
+
+        captureRoot()
+
+        alpha = 0.2f
+        waitForIdle()
+        captureRoot("20")
+
+        alpha = 0.7f
+        waitForIdle()
+        captureRoot("70")
+      }
+    }
+
+    test("creditCard_progressive_horiz") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(
+              tint = DefaultTint,
+              blurRadius = 8.dp,
+              progressive = HazeProgressive.horizontalGradient(),
+            )
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_progressive_horiz_preferMask") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(
+              tint = DefaultTint,
+              blurRadius = 8.dp,
+              progressive = HazeProgressive.horizontalGradient(preferPerformance = true),
+            )
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_progressive_vertical") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(
+              tint = DefaultTint,
+              blurRadius = 8.dp,
+              progressive = HazeProgressive.verticalGradient(),
+            )
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_progressive_radial") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(
+              tint = DefaultTint,
+              blurRadius = 8.dp,
+              progressive = HazeProgressive.RadialGradient(),
+            )
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_progressive_shader") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(
+              tint = DefaultTint,
+              blurRadius = 8.dp,
+              progressive = HazeProgressive.Brush(
+                Brush.sweepGradient(colors = listOf(Color.Transparent, Color.Black)),
+              ),
+            )
+          }
+        }
+        captureRoot()
+      }
+    }
+
+    test("creditCard_childTint") {
+      runScreenshotTest {
+        var tint by mutableStateOf(
+          HazeTint(Color.Magenta.copy(alpha = 0.5f)),
         )
-      }
-    }
-    captureRoot()
-  }
 
-  @Test
-  fun creditCard_progressive_horiz_preferMask() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(
-          tint = DefaultTint,
-          blurRadius = 8.dp,
-          progressive = HazeProgressive.horizontalGradient(preferPerformance = true),
-        )
-      }
-    }
-    captureRoot()
-  }
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(tint = tint, blurRadius = 8.dp)
+          }
+        }
 
-  @Test
-  fun creditCard_progressive_vertical() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(
-          tint = DefaultTint,
-          blurRadius = 8.dp,
-          progressive = HazeProgressive.verticalGradient(),
-        )
-      }
-    }
-    captureRoot()
-  }
+        waitForIdle()
+        captureRoot("magenta")
 
-  @Test
-  fun creditCard_progressive_radial() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(
-          tint = DefaultTint,
-          blurRadius = 8.dp,
-          progressive = HazeProgressive.RadialGradient(),
-        )
-      }
-    }
-    captureRoot()
-  }
+        tint = HazeTint(Color.Yellow.copy(alpha = 0.5f))
+        waitForIdle()
+        captureRoot("yellow")
 
-  @Test
-  fun creditCard_progressive_shader() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(
-          tint = DefaultTint,
-          blurRadius = 8.dp,
-          progressive = HazeProgressive.Brush(
-            Brush.sweepGradient(colors = listOf(Color.Transparent, Color.Black)),
-          ),
-        )
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
-  fun creditCard_childTint() = runScreenshotTest {
-    var tint by mutableStateOf(
-      HazeTint(Color.Magenta.copy(alpha = 0.5f)),
-    )
-
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(tint = tint, blurRadius = 8.dp)
+        tint = HazeTint(Color.Red.copy(alpha = 0.5f))
+        waitForIdle()
+        captureRoot("red")
       }
     }
 
-    waitForIdle()
-    captureRoot("magenta")
+    test("creditCard_sourceContentChange") {
+      runScreenshotTest {
+        var backgroundColors by mutableStateOf(listOf(Color.Blue, Color.Cyan))
 
-    tint = HazeTint(Color.Yellow.copy(alpha = 0.5f))
-    waitForIdle()
-    captureRoot("yellow")
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(backgroundColors = backgroundColors, blurRadius = 8.dp, tint = DefaultTint)
+          }
+        }
 
-    tint = HazeTint(Color.Red.copy(alpha = 0.5f))
-    waitForIdle()
-    captureRoot("red")
-  }
+        waitForIdle()
+        captureRoot("blue")
 
-  @Test
-  fun creditCard_sourceContentChange() = runScreenshotTest {
-    var backgroundColors by mutableStateOf(listOf(Color.Blue, Color.Cyan))
+        backgroundColors = listOf(Color.Yellow, Color.hsl(0.4f, 0.94f, 0.58f))
+        waitForIdle()
+        captureRoot("yellow")
 
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(backgroundColors = backgroundColors, blurRadius = 8.dp, tint = DefaultTint)
+        backgroundColors = listOf(Color.Red, Color.hsl(0.06f, 0.69f, 0.35f))
+        waitForIdle()
+        captureRoot("red")
       }
     }
 
-    waitForIdle()
-    captureRoot("blue")
-
-    backgroundColors = listOf(Color.Yellow, Color.hsl(0.4f, 0.94f, 0.58f))
-    waitForIdle()
-    captureRoot("yellow")
-
-    backgroundColors = listOf(Color.Red, Color.hsl(0.06f, 0.69f, 0.35f))
-    waitForIdle()
-    captureRoot("red")
-  }
-
-  @Test
-  fun creditCard_brushTint() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(tint = BrushTint, blurRadius = 8.dp)
+    test("creditCard_brushTint") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(tint = BrushTint, blurRadius = 8.dp)
+          }
+        }
+        captureRoot()
       }
     }
-    captureRoot()
-  }
 
-  @Test
-  fun creditCard_brushTint_mask() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(tint = BrushTint, blurRadius = 8.dp, mask = VerticalMask)
+    test("creditCard_brushTint_mask") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(tint = BrushTint, blurRadius = 8.dp, mask = VerticalMask)
+          }
+        }
+        captureRoot()
       }
     }
-    captureRoot()
-  }
 
-  @Test
-  fun creditCard_brushTint_progressive() = runScreenshotTest {
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(
-          tint = BrushTint,
-          blurRadius = 8.dp,
-          progressive = HazeProgressive.verticalGradient(),
-        )
+    test("creditCard_brushTint_progressive") {
+      runScreenshotTest {
+        setContent {
+          ScreenshotTheme {
+            CreditCardContentBlurring(
+              tint = BrushTint,
+              blurRadius = 8.dp,
+              progressive = HazeProgressive.verticalGradient(),
+            )
+          }
+        }
+        captureRoot()
       }
     }
-    captureRoot()
   }
 
   companion object {

@@ -18,6 +18,7 @@ kotlin {
   androidTarget {
     publishLibraryVariants("release")
   }
+  iosSimulatorArm64()
 
   sourceSets {
     commonMain {
@@ -27,6 +28,8 @@ kotlin {
         api(compose.components.resources)
         api(compose.foundation)
         api(compose.material3)
+
+        api(libs.kotest.framework.engine)
       }
     }
 
@@ -42,7 +45,6 @@ kotlin {
         implementation(libs.roborazzi.core)
         implementation(libs.roborazzi.android)
         implementation(libs.roborazzi.compose)
-        implementation(libs.roborazzi.junit)
       }
     }
 
@@ -52,7 +54,13 @@ kotlin {
         implementation(compose.desktop.uiTestJUnit4)
 
         implementation(libs.roborazzi.core)
-        implementation(libs.roborazzi.composedesktop)
+        implementation(libs.roborazzi.compose.desktop)
+      }
+    }
+
+    iosMain {
+      dependencies {
+        implementation(libs.roborazzi.compose.ios)
       }
     }
   }

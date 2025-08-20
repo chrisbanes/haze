@@ -8,15 +8,13 @@ plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
+  id("io.kotest")
+  id("com.google.devtools.ksp")
   id("io.github.takahirom.roborazzi")
 }
 
 android {
   namespace = "dev.chrisbanes.haze.screenshots"
-
-  defaultConfig {
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-  }
 
   testOptions {
     unitTests {
@@ -32,6 +30,7 @@ android {
 kotlin {
   jvm()
   androidTarget()
+  iosSimulatorArm64()
 
   compilerOptions {
     optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
@@ -52,6 +51,8 @@ kotlin {
         implementation(kotlin("test"))
         implementation(libs.assertk)
 
+        implementation(libs.kotest.framework.engine)
+
         @OptIn(ExperimentalComposeLibrary::class)
         implementation(compose.uiTest)
 
@@ -60,4 +61,8 @@ kotlin {
       }
     }
   }
+}
+
+roborazzi {
+  outputDir.set(project.layout.projectDirectory.dir("screenshots"))
 }
