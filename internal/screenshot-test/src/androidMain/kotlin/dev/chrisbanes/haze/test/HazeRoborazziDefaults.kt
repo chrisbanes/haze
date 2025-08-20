@@ -14,5 +14,3 @@ object HazeRoborazziDefaults {
     ),
   )
 }
-
-expect val HazeRoborazziDefaults.outputDirectoryName: String

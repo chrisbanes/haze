@@ -33,7 +33,7 @@ actual abstract class ScreenshotTest : ContextTest() {
     composeRule = composeTestRule,
     captureRoot = composeTestRule.onRoot(),
     options = RoborazziRule.Options(
-      outputDirectoryPath = "screenshots/${HazeRoborazziDefaults.outputDirectoryName}",
+      outputDirectoryPath = "screenshots/android",
       roborazziOptions = HazeRoborazziDefaults.roborazziOptions,
     ),
   )
@@ -46,8 +46,6 @@ actual abstract class ScreenshotTest : ContextTest() {
     Robolectric.setupContentProvider(clazz)
   }
 }
-
-actual val HazeRoborazziDefaults.outputDirectoryName: String get() = "android"
 
 @OptIn(ExperimentalTestApi::class)
 actual fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit) {
