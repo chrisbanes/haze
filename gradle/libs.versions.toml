@@ -43,7 +43,7 @@ mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.34.0" }
 
 [libraries]
 androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
-androidx-core = "androidx.core:core-ktx:1.16.0"
+androidx-core = "androidx.core:core-ktx:1.17.0"
 androidx-activity = { module = "androidx.activity:activity", version.ref = "androidx-activity" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "androidx-media3" }
