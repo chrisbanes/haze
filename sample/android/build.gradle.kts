@@ -58,5 +58,7 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   implementation(libs.androidx.compose.ui.preview)
 
+  debugImplementation(libs.leakcanary)
+
   baselineProfile(projects.internal.benchmark)
 }

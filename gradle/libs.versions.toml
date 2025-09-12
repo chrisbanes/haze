@@ -20,6 +20,7 @@ robolectric = "4.15.1"
 roborazzi = "1.50.0"
 spotless = "7.2.1"
 kotest = "6.0.3"
+leakcanary = "2.14"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -87,6 +88,8 @@ roborazzi-compose-desktop = { module = "io.github.takahirom.roborazzi:roborazzi-
 roborazzi-compose-ios = { module = "io.github.takahirom.roborazzi:roborazzi-compose-ios", version.ref = "roborazzi" }
 
 kotest-framework-engine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
+
+leakcanary = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
 
 # Build logic dependencies
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
