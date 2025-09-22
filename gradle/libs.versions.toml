@@ -1,6 +1,6 @@
 [versions]
 agp = "8.13.0"
-androidx-activity = "1.10.1"
+androidx-activity = "1.11.0"
 androidx-benchmark = "1.4.1"
 androidx-media3 = "1.8.0"
 androidx-test-ext-junit = "1.3.0"
@@ -44,7 +44,7 @@ mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.34.0" }
 
 [libraries]
 androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
-androidx-core = "androidx.core:core-ktx:1.16.0"
+androidx-core = "androidx.core:core-ktx:1.17.0"
 androidx-activity = { module = "androidx.activity:activity", version.ref = "androidx-activity" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "androidx-media3" }
