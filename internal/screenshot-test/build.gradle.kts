@@ -29,6 +29,9 @@ kotlin {
         api(compose.foundation)
         api(compose.material3)
 
+        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+        api(compose.uiTest)
+
         api(libs.kotest.framework.engine)
       }
     }
