@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.HazeDefaults
