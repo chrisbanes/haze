@@ -66,6 +66,7 @@ val CommonSamples: List<Sample> = listOf(
   Sample.ImageList,
   Sample.ListOverImage,
   Sample.Dialog,
+  Sample.Popup,
   Sample.Materials,
   Sample.ListWithStickyHeaders,
   Sample.BottomSheet,
@@ -208,6 +209,16 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       DialogSample(navController, blurEnabled)
+    }
+  }
+
+  @Serializable
+  data object Popup : Sample {
+    override val title: String = "Popup"
+
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      PopupSample(navController, blurEnabled)
     }
   }
 
