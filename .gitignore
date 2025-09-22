@@ -24,6 +24,7 @@ captures
 .idea/appInsightsSettings.xml
 .idea/artifacts
 .idea/AndroidProjectSystem.xml
+.idea/deviceManager.xml
 gradle.xml
 *.iml
 ios-app/Tivi/.idea/*
