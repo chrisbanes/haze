@@ -10,7 +10,7 @@ macOS). Documentation assets and the MkDocs site configuration are in `docs/` an
 ## Build, Test, and Development Commands
 
 Use `./gradlew build` for a full multi-platform build and verification. Targeted development builds
-run faster: `./gradlew :haze:assemble` for library artifacts,
+run faster: `./gradlew assembleDebug testDebug` for library artifacts,
 `./gradlew :sample:android:installDebug` to load the Android sample on a connected device, and
 `./gradlew :sample:desktop:run` for the desktop demo. Execute
 `./gradlew :haze-screenshot-tests:test` to validate the screenshot suite.
@@ -18,7 +18,7 @@ run faster: `./gradlew :haze:assemble` for library artifacts,
 ## Coding Style & Naming Conventions
 
 All Kotlin sources use the default JetBrains style (four-space indentation, trailing commas where
-helpful). Spotless with Ktlint enforces formatting; run `./gradlew spotlessApply` before committing.
+helpful). Spotless with ktlint enforces formatting; run `./gradlew spotlessApply` before committing.
 Keep public packages under `dev.chrisbanes.haze.*` and follow PascalCase for composables, camelCase
 for parameters, and `*Defaults` naming for reusable configuration containers.
 
