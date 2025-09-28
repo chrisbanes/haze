@@ -57,6 +57,10 @@ docs/sample
 # Ignore baseline profile files in samples
 sample/**/generated
 
+# Screenshot debug images
+**/screenshots/**_actual.png
+**/screenshots/**_compare.png
+
 ##########################################################################################
 # Imported from https://github.com/github/gitignore/blob/main/Swift.gitignore
 ##########################################################################################
