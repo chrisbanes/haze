@@ -30,7 +30,7 @@ jobs:
           distribution: 'zulu'
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Assemble and check
         run: ./gradlew check assembleDebug -Pandroidx.baselineprofile.skipgeneration
