@@ -136,15 +136,6 @@ class HazeEffectNode(
       }
     }
 
-  private var areaOffsets: Map<HazeArea, Offset> = emptyMap()
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "areaOffsets changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.AreaOffsets
-        field = value
-      }
-    }
-
   internal var size: Size = Size.Unspecified
     set(value) {
       if (value != field) {
@@ -474,12 +465,6 @@ class HazeEffectNode(
       contentDrawArea.positionOnScreen = positionOnScreen
       contentDrawArea.windowId = windowId
       listOf(contentDrawArea)
-    }
-
-    areaOffsets = if (areas.isNotEmpty()) {
-      areas.associateWith { area -> positionOnScreen - area.positionOnScreen }
-    } else {
-      emptyMap()
     }
 
     val blurRadiusPx = with(currentValueOf(LocalDensity)) {
@@ -851,8 +836,7 @@ internal object DirtyFields {
   const val BlurEnabled: Int = 0b1
   const val InputScale = BlurEnabled shl 1
   const val ScreenPosition = InputScale shl 1
-  const val AreaOffsets = ScreenPosition shl 1
-  const val Size = AreaOffsets shl 1
+  const val Size = ScreenPosition shl 1
   const val BlurRadius = Size shl 1
   const val NoiseFactor = BlurRadius shl 1
   const val Mask = NoiseFactor shl 1
@@ -887,7 +871,6 @@ internal object DirtyFields {
     RenderEffectAffectingFlags or // Eventually we'll move this out of invalidation
       BlurEnabled or
       InputScale or
-      AreaOffsets or
       Size or
       LayerSize or
       LayerOffset or
@@ -904,7 +887,6 @@ internal object DirtyFields {
       if (BlurEnabled in dirtyTracker) add("BlurEnabled")
       if (InputScale in dirtyTracker) add("InputScale")
       if (ScreenPosition in dirtyTracker) add("ScreenPosition")
-      if (AreaOffsets in dirtyTracker) add("RelativePosition")
       if (Size in dirtyTracker) add("Size")
       if (LayerSize in dirtyTracker) add("LayerSize")
       if (LayerOffset in dirtyTracker) add("LayerOffset")

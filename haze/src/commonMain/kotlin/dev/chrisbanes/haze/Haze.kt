@@ -37,7 +37,7 @@ fun rememberHazeState(blurEnabled: Boolean = HazeDefaults.blurEnabled()): HazeSt
 @Stable
 class HazeState(initialBlurEnabled: Boolean) {
   private val _areas = mutableStateListOf<HazeArea>()
-  val areas: List<HazeArea> get() = _areas.toList()
+  val areas: List<HazeArea> get() = _areas
 
   constructor() : this(initialBlurEnabled = HazeDefaults.blurEnabled())
 
