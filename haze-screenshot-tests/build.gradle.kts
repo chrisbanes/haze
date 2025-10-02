@@ -21,6 +21,7 @@ android {
       isIncludeAndroidResources = true
 
       all {
+        it.useJUnitPlatform()
         it.systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
       }
     }

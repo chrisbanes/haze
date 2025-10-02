@@ -7,6 +7,7 @@ package dev.chrisbanes.haze
 
 import android.graphics.BitmapShader
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.PorterDuff
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
+import kotlin.math.abs
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -139,8 +141,17 @@ internal class RenderScriptBlurEffect private constructor(
           translate(offset = -offset) {
             PaintPool.usePaint { paint ->
               paint.isAntiAlias = true
-              val texture = context.getNoiseTexture(noiseFactor)
-              paint.shader = BitmapShader(texture, REPEAT, REPEAT)
+              paint.alpha = noiseFactor.coerceIn(0f, 1f)
+              val shader = BitmapShader(context.getNoiseTexture(), REPEAT, REPEAT)
+              val normalizedScale = if (scaleFactor > 0f) scaleFactor else 1f
+              if (abs(normalizedScale - 1f) >= 0.001f) {
+                val matrix = Matrix().apply {
+                  val reciprocal = 1f / normalizedScale
+                  setScale(reciprocal, reciprocal)
+                }
+                shader.setLocalMatrix(matrix)
+              }
+              paint.shader = shader
               paint.blendMode = BlendMode.SrcAtop
               drawContext.canvas.drawRect(expandedSize.toRect(), paint)
             }
