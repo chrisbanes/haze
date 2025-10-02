@@ -24,7 +24,7 @@ import dev.chrisbanes.haze.HazeTint
  * (i.e. for when mixing Compose Multiplatform content alongside WinUI content).
  */
 @ExperimentalHazeMaterialsApi
-object FluentMaterials {
+public object FluentMaterials {
 
   /**
    * A [HazeStyle] which implements a mostly translucent material.
@@ -32,7 +32,7 @@ object FluentMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun thinAcrylic(
+  public fun thinAcrylic(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeStyle = hazeAcrylicMaterial(
     containerColor = if (isDark) {
@@ -58,7 +58,7 @@ object FluentMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun accentAcrylicBase(
+  public fun accentAcrylicBase(
     accentColor: Color = MaterialTheme.colorScheme.primaryContainer,
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeStyle = hazeAcrylicMaterial(
@@ -76,7 +76,7 @@ object FluentMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun accentAcrylicDefault(
+  public fun accentAcrylicDefault(
     accentColor: Color = MaterialTheme.colorScheme.primaryContainer,
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeStyle = hazeAcrylicMaterial(
@@ -94,7 +94,7 @@ object FluentMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun acrylicBase(
+  public fun acrylicBase(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeStyle = hazeAcrylicMaterial(
     containerColor = if (isDark) {
@@ -120,7 +120,7 @@ object FluentMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun acrylicDefault(
+  public fun acrylicDefault(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeStyle = hazeAcrylicMaterial(
     containerColor = if (isDark) {
@@ -146,7 +146,7 @@ object FluentMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun mica(
+  public fun mica(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeStyle = hazeMicaMaterial(
     containerColor = if (isDark) {
@@ -167,7 +167,7 @@ object FluentMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun micaAlt(
+  public fun micaAlt(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeStyle = hazeMicaMaterial(
     containerColor = if (isDark) {

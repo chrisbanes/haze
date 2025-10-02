@@ -59,10 +59,10 @@ import kotlin.math.min
  * to be able to change the API in the future, hence why it is marked as experimental forever.
  */
 @ExperimentalHazeApi
-class HazeEffectNode(
-  var state: HazeState? = null,
+public class HazeEffectNode(
+  public var state: HazeState? = null,
   style: HazeStyle = HazeStyle.Unspecified,
-  var block: (HazeEffectScope.() -> Unit)? = null,
+  public var block: (HazeEffectScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,
@@ -335,7 +335,9 @@ class HazeEffectNode(
     update()
   }
 
-  override fun onObservedReadsChanged() = observeReads(::updateEffect)
+  override fun onObservedReadsChanged() {
+    observeReads(::updateEffect)
+  }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
     // If the positionOnScreen has not been placed yet, we use the value on onPlaced,
@@ -540,7 +542,7 @@ class HazeEffectNode(
  * Parameters for applying a progressive blur effect.
  */
 @Immutable
-sealed interface HazeProgressive {
+public sealed interface HazeProgressive {
 
   /**
    * A linear gradient effect.
@@ -566,13 +568,13 @@ sealed interface HazeProgressive {
    * @param preferPerformance - Whether Haze should prefer performance (when true), or
    * quality (when false). See above for more information.
    */
-  data class LinearGradient(
-    val easing: Easing = EaseIn,
-    val start: Offset = Offset.Zero,
-    val startIntensity: Float = 0f,
-    val end: Offset = Offset.Infinite,
-    val endIntensity: Float = 1f,
-    val preferPerformance: Boolean = false,
+  public data class LinearGradient(
+    public val easing: Easing = EaseIn,
+    public val start: Offset = Offset.Zero,
+    public val startIntensity: Float = 0f,
+    public val end: Offset = Offset.Infinite,
+    public val endIntensity: Float = 1f,
+    public val preferPerformance: Boolean = false,
   ) : HazeProgressive
 
   /**
@@ -596,12 +598,12 @@ sealed interface HazeProgressive {
    * @param radiusIntensity - The intensity of the haze effect at the [radius], in the range `0f`..`1f`
    */
   @Poko
-  class RadialGradient(
-    val easing: Easing = EaseIn,
-    val center: Offset = Offset.Unspecified,
-    val centerIntensity: Float = 1f,
-    val radius: Float = Float.POSITIVE_INFINITY,
-    val radiusIntensity: Float = 0f,
+  public class RadialGradient(
+    public val easing: Easing = EaseIn,
+    public val center: Offset = Offset.Unspecified,
+    public val centerIntensity: Float = 1f,
+    public val radius: Float = Float.POSITIVE_INFINITY,
+    public val radiusIntensity: Float = 0f,
   ) : HazeProgressive
 
   /**
@@ -612,9 +614,9 @@ sealed interface HazeProgressive {
    * be ignored, only the alpha values are used.
    */
   @JvmInline
-  value class Brush(val brush: androidx.compose.ui.graphics.Brush) : HazeProgressive
+  public value class Brush(public val brush: androidx.compose.ui.graphics.Brush) : HazeProgressive
 
-  companion object {
+  public companion object {
     /**
      * A vertical gradient effect.
      *
@@ -630,7 +632,7 @@ sealed interface HazeProgressive {
      * quality (when false). See [HazeProgressive.LinearGradient]'s documentation for more
      * information.
      */
-    fun verticalGradient(
+    public fun verticalGradient(
       easing: Easing = EaseIn,
       startY: Float = 0f,
       startIntensity: Float = 0f,
@@ -661,7 +663,7 @@ sealed interface HazeProgressive {
      * quality (when false). See [HazeProgressive.LinearGradient]'s documentation for more
      * information.
      */
-    fun horizontalGradient(
+    public fun horizontalGradient(
       easing: Easing = EaseIn,
       startX: Float = 0f,
       startIntensity: Float = 0f,
@@ -681,7 +683,7 @@ sealed interface HazeProgressive {
      * Helper function for building a [HazeProgressive.Brush] with a [Shader]. The block is
      * provided with the size of the content, allowing you to setup the shader as required.
      */
-    inline fun forShader(
+    public inline fun forShader(
       crossinline block: (Size) -> Shader,
     ): Brush = Brush(
       object : ShaderBrush() {

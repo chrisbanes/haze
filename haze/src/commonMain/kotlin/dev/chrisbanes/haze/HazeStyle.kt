@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.Dp
  *  - Value set in style provided to [hazeEffect] (or [HazeEffectScope.style]), if specified.
  *  - Value set in this composition local.
  */
-val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> =
+public val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> =
   compositionLocalOf { HazeDefaults.style(Color.Unspecified) }
 
 /**
@@ -45,14 +45,14 @@ val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> =
  * When the fallback tint is used, the tints provided in [tints] are ignored.
  */
 @Immutable
-data class HazeStyle(
-  val backgroundColor: Color = Color.Unspecified,
-  val tints: List<HazeTint> = emptyList(),
-  val blurRadius: Dp = Dp.Unspecified,
-  val noiseFactor: Float = -1f,
-  val fallbackTint: HazeTint = HazeTint.Unspecified,
+public data class HazeStyle(
+  public val backgroundColor: Color = Color.Unspecified,
+  public val tints: List<HazeTint> = emptyList(),
+  public val blurRadius: Dp = Dp.Unspecified,
+  public val noiseFactor: Float = -1f,
+  public val fallbackTint: HazeTint = HazeTint.Unspecified,
 ) {
-  constructor(
+  public constructor(
     backgroundColor: Color = Color.Unspecified,
     tint: HazeTint? = null,
     blurRadius: Dp = Dp.Unspecified,
@@ -66,8 +66,8 @@ data class HazeStyle(
     fallbackTint = fallbackTint,
   )
 
-  companion object {
-    val Unspecified: HazeStyle = HazeStyle(tints = emptyList())
+  public companion object {
+    public val Unspecified: HazeStyle = HazeStyle(tints = emptyList())
   }
 }
 
@@ -79,22 +79,22 @@ data class HazeStyle(
  */
 @ExposedCopyVisibility
 @Stable
-data class HazeTint internal constructor(
-  val color: Color,
-  val blendMode: BlendMode,
-  val brush: Brush?,
+public data class HazeTint internal constructor(
+  public val color: Color,
+  public val blendMode: BlendMode,
+  public val brush: Brush?,
 ) {
-  constructor(color: Color, blendMode: BlendMode = DefaultBlendMode) : this(color = color, brush = null, blendMode = blendMode)
+  public constructor(color: Color, blendMode: BlendMode = DefaultBlendMode) : this(color = color, brush = null, blendMode = blendMode)
 
-  constructor(brush: Brush, blendMode: BlendMode = DefaultBlendMode) : this(color = Color.Unspecified, brush = brush, blendMode = blendMode)
+  public constructor(brush: Brush, blendMode: BlendMode = DefaultBlendMode) : this(color = Color.Unspecified, brush = brush, blendMode = blendMode)
 
-  companion object {
-    val Unspecified: HazeTint = HazeTint(Color.Unspecified, BlendMode.SrcOver, null)
+  public companion object {
+    public val Unspecified: HazeTint = HazeTint(Color.Unspecified, BlendMode.SrcOver, null)
 
-    val DefaultBlendMode: BlendMode = BlendMode.SrcOver
+    public val DefaultBlendMode: BlendMode = BlendMode.SrcOver
   }
 
-  val isSpecified: Boolean get() = color.isSpecified || brush != null
+  public val isSpecified: Boolean get() = color.isSpecified || brush != null
 }
 
 internal inline fun Float.takeOrElse(block: () -> Float): Float =

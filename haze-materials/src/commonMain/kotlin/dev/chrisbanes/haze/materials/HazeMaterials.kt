@@ -16,7 +16,7 @@ import dev.chrisbanes.haze.HazeTint
   message = "Experimental Haze Materials API",
   level = RequiresOptIn.Level.WARNING,
 )
-annotation class ExperimentalHazeMaterialsApi
+public annotation class ExperimentalHazeMaterialsApi
 
 /**
  * A class which contains functions to build [HazeStyle]s which implement 'material-like' styles.
@@ -25,7 +25,7 @@ annotation class ExperimentalHazeMaterialsApi
  *
  * The functions are marked as experimental, as the effects provided are still being tweaked.
  */
-object HazeMaterials {
+public object HazeMaterials {
 
   /**
    * A [HazeStyle] which implements a mostly translucent material.
@@ -33,7 +33,7 @@ object HazeMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun ultraThin(
+  public fun ultraThin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeStyle = hazeMaterial(
     containerColor = containerColor,
@@ -48,7 +48,7 @@ object HazeMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun thin(
+  public fun thin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeStyle = hazeMaterial(
     containerColor = containerColor,
@@ -63,7 +63,7 @@ object HazeMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun regular(
+  public fun regular(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeStyle = hazeMaterial(
     containerColor = containerColor,
@@ -78,7 +78,7 @@ object HazeMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun thick(
+  public fun thick(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeStyle = hazeMaterial(
     containerColor = containerColor,
@@ -92,7 +92,7 @@ object HazeMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun ultraThick(
+  public fun ultraThick(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeStyle = hazeMaterial(
     containerColor = containerColor,

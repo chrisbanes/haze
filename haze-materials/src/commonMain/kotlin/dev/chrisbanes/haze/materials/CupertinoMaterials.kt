@@ -22,7 +22,7 @@ import dev.chrisbanes.haze.HazeTint
  * The primary use case for using these is for when aiming for consistency with native UI
  * (i.e. for when mixing Compose Multiplatform content alongside SwiftUI content).
  */
-object CupertinoMaterials {
+public object CupertinoMaterials {
 
   /**
    * A [HazeStyle] which implements a mostly translucent material.
@@ -30,7 +30,7 @@ object CupertinoMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun ultraThin(
+  public fun ultraThin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeStyle = hazeMaterial(
     containerColor = containerColor,
@@ -47,7 +47,7 @@ object CupertinoMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun thin(
+  public fun thin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeStyle = hazeMaterial(
     containerColor = containerColor,
@@ -64,7 +64,7 @@ object CupertinoMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun regular(
+  public fun regular(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeStyle = hazeMaterial(
     containerColor = containerColor,
@@ -80,7 +80,7 @@ object CupertinoMaterials {
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
-  fun thick(
+  public fun thick(
     containerColor: Color = MaterialTheme.colorScheme.surface,
   ): HazeStyle = hazeMaterial(
     containerColor = containerColor,
