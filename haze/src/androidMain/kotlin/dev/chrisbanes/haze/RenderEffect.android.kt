@@ -9,6 +9,9 @@ import android.graphics.BitmapFactory
 import android.graphics.BitmapShader
 import android.graphics.BlendMode
 import android.graphics.BlendModeColorFilter
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Matrix
 import android.graphics.RenderEffect as AndroidRenderEffect
 import android.graphics.RuntimeShader
 import android.graphics.Shader
@@ -20,7 +23,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -31,10 +33,7 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.packFloats
-import androidx.core.graphics.applyCanvas
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.withScale
+import kotlin.math.abs
 
 internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
   if (Build.VERSION.SDK_INT < 31) return null
@@ -63,7 +62,11 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
     else -> {
       try {
         val blurRadiusPx = with(currentValueOf(LocalDensity)) { blurRadius.toPx() }
-        AndroidRenderEffect.createBlurEffect(blurRadiusPx, blurRadiusPx, params.blurTileMode.toAndroidTileMode())
+        AndroidRenderEffect.createBlurEffect(
+          blurRadiusPx,
+          blurRadiusPx,
+          params.blurTileMode.toAndroidTileMode(),
+        )
       } catch (e: IllegalArgumentException) {
         throw IllegalArgumentException(
           "Error whilst calling RenderEffect.createBlurEffect. " +
@@ -75,25 +78,23 @@ internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(para
   }
 
   return blur
-    .withNoise(currentValueOf(LocalContext), params.noiseFactor, progressiveShader)
+    .withNoise(currentValueOf(LocalContext), params.noiseFactor, progressiveShader, params.scale)
     .withTints(params.tints, size, offset, params.tintAlphaModulate, progressiveShader)
     .withMask(params.mask, size, offset)
     .asComposeRenderEffect()
 }
 
-private val noiseTextureCache by unsynchronizedLazy { SimpleLruCache<Long, Bitmap>(3) }
+private var noiseTexture: Bitmap? = null
 
-internal fun Context.getNoiseTexture(noiseFactor: Float, scale: Float = 1f): Bitmap {
-  val key = packFloats(noiseFactor, scale)
-  val cached = noiseTextureCache[key]
+internal fun Context.getNoiseTexture(): Bitmap {
+  val cached = noiseTexture
   if (cached != null && !cached.isRecycled) {
     return cached
   }
 
-  // We draw the noise with the given opacity
-  return BitmapFactory.decodeResource(resources, R.drawable.haze_noise)
-    .transform(alpha = noiseFactor, scale = scale)
-    .also { noiseTextureCache[key] = it }
+  return BitmapFactory.decodeResource(resources, R.drawable.haze_noise).also { decoded ->
+    noiseTexture = decoded
+  }
 }
 
 @RequiresApi(31)
@@ -101,22 +102,40 @@ private fun AndroidRenderEffect.withNoise(
   context: Context,
   noiseFactor: Float,
   mask: Shader? = null,
+  scale: Float = 1f,
 ): AndroidRenderEffect = when {
   noiseFactor >= 0.005f -> {
-    // Ideally we would scale the noise texture to match the input scale, but scaling it
-    // looks terrible.
-    val noiseShader = BitmapShader(context.getNoiseTexture(noiseFactor), REPEAT, REPEAT)
+    // Apply scaling through the shader matrix so we can reuse the decoded bitmap.
+    val normalizedScale = if (scale > 0f) scale else 1f
+    val noiseShader = BitmapShader(context.getNoiseTexture(), REPEAT, REPEAT).apply {
+      if (abs(normalizedScale - 1f) >= 0.001f) {
+        val matrix = Matrix().apply {
+          val reciprocal = 1f / normalizedScale
+          setScale(reciprocal, reciprocal)
+        }
+        setLocalMatrix(matrix)
+      }
+    }
+    val noiseAlpha = noiseFactor.coerceIn(0f, 1f)
+    val baseNoiseEffect = AndroidRenderEffect.createShaderEffect(noiseShader)
+    val noiseEffect = if (noiseAlpha < 1f) {
+      val matrix = ColorMatrix().apply { setScale(1f, 1f, 1f, noiseAlpha) }
+      AndroidRenderEffect.createColorFilterEffect(ColorMatrixColorFilter(matrix), baseNoiseEffect)
+    } else {
+      baseNoiseEffect
+    }
     val dst = when {
       mask != null -> {
         // If we have a mask, we need to apply it to the noise bitmap shader via a
         // blend mode
         AndroidRenderEffect.createBlendModeEffect(
           AndroidRenderEffect.createShaderEffect(mask), // dst
-          AndroidRenderEffect.createShaderEffect(noiseShader), // src
+          noiseEffect, // src
           BlendMode.SRC_IN, // blendMode
         )
       }
-      else -> AndroidRenderEffect.createShaderEffect(noiseShader)
+
+      else -> noiseEffect
     }
 
     AndroidRenderEffect.createBlendModeEffect(
@@ -272,25 +291,4 @@ private fun createBlurImageFilterWithMask(
 @RequiresApi(31)
 private fun AndroidRenderEffect.chainWith(imageFilter: AndroidRenderEffect): AndroidRenderEffect {
   return AndroidRenderEffect.createChainEffect(imageFilter, this)
-}
-
-/**
- * Returns a copy of the current [Bitmap], drawn with the given [alpha] value.
- *
- * There might be a better way to do this via a [BlendMode], but none of the results looked as
- * good.
- */
-private fun Bitmap.transform(alpha: Float, scale: Float = 1f): Bitmap = PaintPool.usePaint { paint ->
-  paint.alpha = alpha
-  paint.isAntiAlias = true
-  paint.filterQuality = FilterQuality.High
-
-  val scaledWidth = (width * scale).toInt()
-  val scaledHeight = (height * scale).toInt()
-
-  return createBitmap(scaledWidth, scaledHeight).applyCanvas {
-    withScale(scale, scale) {
-      drawBitmap(this@transform, 0f, 0f, paint.asFrameworkPaint())
-    }
-  }
 }
