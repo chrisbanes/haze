@@ -31,7 +31,7 @@ baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-ben
 cacheFixPlugin = { id = "org.gradle.android.cache-fix", version = "3.0.2" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
-dokka = { id = "org.jetbrains.dokka", version = "2.0.0" }
+dokka = { id = "org.jetbrains.dokka", version = "2.1.0" }
 kotest = { id = "io.kotest", version.ref = "kotest" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
