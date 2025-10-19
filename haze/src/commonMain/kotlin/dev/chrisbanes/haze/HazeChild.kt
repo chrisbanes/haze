@@ -20,9 +20,9 @@ import kotlin.jvm.JvmInline
     "dev.chrisbanes.haze.HazeEffectScope",
   ),
 )
-interface HazeChildScope : HazeEffectScope
+public interface HazeChildScope : HazeEffectScope
 
-interface HazeEffectScope {
+public interface HazeEffectScope {
 
   /**
    * Whether the blur effect is enabled or not, when running on platforms which support blurring.
@@ -32,12 +32,12 @@ interface HazeEffectScope {
    *
    * Defaults to [HazeDefaults.blurEnabled].
    */
-  var blurEnabled: Boolean
+  public var blurEnabled: Boolean
 
   /**
    * The opacity that the overall effect will drawn with, in the range of 0..1.
    */
-  var alpha: Float
+  public var alpha: Float
 
   /**
    * Style set on this specific [HazeEffectNode].
@@ -49,7 +49,7 @@ interface HazeEffectScope {
    *  - Value set here in [HazeEffectScope.style], if specified.
    *  - Value set in the [LocalHazeStyle] composition local.
    */
-  var style: HazeStyle
+  public var style: HazeStyle
 
   /**
    * Optional alpha mask which allows effects such as fading via a
@@ -58,7 +58,7 @@ interface HazeEffectScope {
    * An alpha mask provides a similar effect as that provided as [HazeProgressive], in a more
    * performant way, but may provide a less pleasing visual result.
    */
-  var mask: Brush?
+  public var mask: Brush?
 
   /**
    * Color to draw behind the blurred content. Ideally should be opaque
@@ -71,7 +71,7 @@ interface HazeEffectScope {
    *  - [HazeStyle.backgroundColor] value set in [style], if specified.
    *  - [HazeStyle.backgroundColor] value set in the [LocalHazeStyle] composition local.
    */
-  var backgroundColor: Color
+  public var backgroundColor: Color
 
   /**
    * The [HazeTint]s to apply to the blurred content.
@@ -82,7 +82,7 @@ interface HazeEffectScope {
    *  - [HazeStyle.tints] value set in [style], if not empty.
    *  - [HazeStyle.tints] value set in the [LocalHazeStyle] composition local.
    */
-  var tints: List<HazeTint>
+  public var tints: List<HazeTint>
 
   /**
    * Radius of the blur.
@@ -93,7 +93,7 @@ interface HazeEffectScope {
    *  - [HazeStyle.blurRadius] value set in [style], if specified.
    *  - [HazeStyle.blurRadius] value set in the [LocalHazeStyle] composition local.
    */
-  var blurRadius: Dp
+  public var blurRadius: Dp
 
   /**
    * Amount of noise applied to the content, in the range `0f` to `1f`.
@@ -105,7 +105,7 @@ interface HazeEffectScope {
    *  - [HazeStyle.noiseFactor] value set in [style], if in the range 0f..1f.
    *  - [HazeStyle.noiseFactor] value set in the [LocalHazeStyle] composition local.
    */
-  var noiseFactor: Float
+  public var noiseFactor: Float
 
   /**
    * The [HazeTint] to use when Haze uses the fallback scrim functionality.
@@ -121,7 +121,7 @@ interface HazeEffectScope {
    *  - [HazeStyle.fallbackTint] value set in [style], if specified.
    *  - [HazeStyle.fallbackTint] value set in the [LocalHazeStyle] composition local.
    */
-  var fallbackTint: HazeTint
+  public var fallbackTint: HazeTint
 
   /**
    * Parameters for enabling a progressive (or gradient) blur effect, or null for a uniform
@@ -132,7 +132,7 @@ interface HazeEffectScope {
    * more performant way to achieve this effect is via the [mask] parameter, at the cost of
    * visual finesse.
    */
-  var progressive: HazeProgressive?
+  public var progressive: HazeProgressive?
 
   /**
    * The input scale factor, which needs to be in the range 0 < x <= 1.
@@ -158,7 +158,7 @@ interface HazeEffectScope {
    * some point in the future.
    */
   @ExperimentalHazeApi
-  var inputScale: HazeInputScale
+  public var inputScale: HazeInputScale
 
   /**
    * A block which controls whether this [hazeEffect] should draw the given [HazeArea].
@@ -167,7 +167,7 @@ interface HazeEffectScope {
    * [HazeArea.zIndex] the nearest ancestor [HazeSourceNode].
    */
   @ExperimentalHazeApi
-  var canDrawArea: ((HazeArea) -> Boolean)?
+  public var canDrawArea: ((HazeArea) -> Boolean)?
 
   /**
    * The [BlurredEdgeTreatment] to use when blurring content.
@@ -179,7 +179,7 @@ interface HazeEffectScope {
    * Please note: some platforms do not support all of the treatments available. This value is a
    * best-effort attempt.
    */
-  var blurredEdgeTreatment: BlurredEdgeTreatment
+  public var blurredEdgeTreatment: BlurredEdgeTreatment
 
   /**
    * Whether to draw the content behind the blurred effect for foreground blurring. This is
@@ -189,7 +189,7 @@ interface HazeEffectScope {
    *
    * This flag has no effect when used with background blurring.
    */
-  var drawContentBehind: Boolean
+  public var drawContentBehind: Boolean
 
   /**
    * Whether the drawn effect should be clipped to the total bounds which cover all of the
@@ -198,24 +198,24 @@ interface HazeEffectScope {
    * This defaults to `null` which means that Haze will decide whether to clip or not depending
    * on other conditions.
    */
-  var clipToAreasBounds: Boolean?
+  public var clipToAreasBounds: Boolean?
 }
 
 /**
  * Value classes used for [HazeEffectScope.inputScale].
  */
 @ExperimentalHazeApi
-sealed interface HazeInputScale {
+public sealed interface HazeInputScale {
   /**
    * No input scaling. This is functionally the same as `Fixed(1.0f)`
    */
-  data object None : HazeInputScale
+  public data object None : HazeInputScale
 
   /**
    * Automatic input scaling. Haze will attempt to use an appropriate input scale depending on
    * the other settings which have been set. The values used underneath may change in the future.
    */
-  data object Auto : HazeInputScale
+  public data object Auto : HazeInputScale
 
   /**
    * An input scale which uses a fixed scale factor.
@@ -223,7 +223,7 @@ sealed interface HazeInputScale {
    * @param scale The scale factor, in the range 0 < x <= 1.
    */
   @JvmInline
-  value class Fixed(val scale: Float) : HazeInputScale {
+  public value class Fixed(public val scale: Float) : HazeInputScale {
     init {
       require(scale > 0f && scale <= 1f) {
         "scale needs to be in the range 0 < x <= 1f"
@@ -231,13 +231,13 @@ sealed interface HazeInputScale {
     }
   }
 
-  companion object {
+  public companion object {
     /**
      * The default [HazeInputScale] value. Currently this resolves to [HazeInputScale.None] but
      * this may change in the future, probably to [HazeInputScale.Auto].
      */
     @ExperimentalHazeApi
-    val Default: HazeInputScale get() = None
+    public val Default: HazeInputScale get() = None
   }
 }
 
@@ -246,7 +246,7 @@ sealed interface HazeInputScale {
   replaceWith = ReplaceWith("hazeEffect(state, style, block)", "dev.chrisbanes.haze.hazeEffect"),
 )
 @Stable
-fun Modifier.hazeChild(
+public fun Modifier.hazeChild(
   state: HazeState,
   style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeEffectScope.() -> Unit)? = null,
@@ -265,7 +265,7 @@ fun Modifier.hazeChild(
  * @param block block on HazeChildScope where you define the styling and visual properties.
  */
 @Stable
-fun Modifier.hazeEffect(
+public fun Modifier.hazeEffect(
   state: HazeState?,
   style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeEffectScope.() -> Unit)? = null,
@@ -284,15 +284,15 @@ fun Modifier.hazeEffect(
  * @param block block on HazeChildScope where you define the styling and visual properties.
  */
 @Stable
-fun Modifier.hazeEffect(
+public fun Modifier.hazeEffect(
   style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeEffectScope.() -> Unit)? = null,
 ): Modifier = this then HazeEffectNodeElement(state = null, style = style, block = block)
 
 private data class HazeEffectNodeElement(
-  val state: HazeState?,
-  val style: HazeStyle = HazeStyle.Unspecified,
-  val block: (HazeEffectScope.() -> Unit)? = null,
+  public val state: HazeState?,
+  public val style: HazeStyle = HazeStyle.Unspecified,
+  public val block: (HazeEffectScope.() -> Unit)? = null,
 ) : ModifierNodeElement<HazeEffectNode>() {
 
   override fun create(): HazeEffectNode = HazeEffectNode(state, style, block)

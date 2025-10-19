@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun rememberHazeState(blurEnabled: Boolean = HazeDefaults.blurEnabled()): HazeState {
+public fun rememberHazeState(blurEnabled: Boolean = HazeDefaults.blurEnabled()): HazeState {
   return remember {
     HazeState(initialBlurEnabled = blurEnabled)
   }.apply {
@@ -35,17 +35,17 @@ fun rememberHazeState(blurEnabled: Boolean = HazeDefaults.blurEnabled()): HazeSt
 }
 
 @Stable
-class HazeState(initialBlurEnabled: Boolean) {
+public class HazeState public constructor(initialBlurEnabled: Boolean) {
   private val _areas = mutableStateListOf<HazeArea>()
-  val areas: List<HazeArea> get() = _areas
+  public val areas: List<HazeArea> get() = _areas
 
-  constructor() : this(initialBlurEnabled = HazeDefaults.blurEnabled())
+  public constructor() : this(initialBlurEnabled = HazeDefaults.blurEnabled())
 
   /**
    * Whether blurring is enabled or not. This can be overridden on each [hazeEffect]
    * via the [HazeEffectScope.blurEnabled] property.
    */
-  var blurEnabled: Boolean by mutableStateOf(initialBlurEnabled)
+  public var blurEnabled: Boolean by mutableStateOf(initialBlurEnabled)
 
   internal fun addArea(area: HazeArea) {
     _areas += area
@@ -56,7 +56,7 @@ class HazeState(initialBlurEnabled: Boolean) {
   }
 
   @Deprecated("Inspect areas instead")
-  var positionOnScreen: Offset
+  public var positionOnScreen: Offset
     get() = areas.firstOrNull()?.positionOnScreen ?: Offset.Unspecified
     set(value) {
       areas.firstOrNull()?.apply {
@@ -65,7 +65,7 @@ class HazeState(initialBlurEnabled: Boolean) {
     }
 
   @Deprecated("Inspect areas instead")
-  var contentLayer: GraphicsLayer?
+  public var contentLayer: GraphicsLayer?
     get() = areas.firstOrNull()?.contentLayer
     set(value) {
       areas.firstOrNull()?.apply {
@@ -75,21 +75,21 @@ class HazeState(initialBlurEnabled: Boolean) {
 }
 
 @Stable
-class HazeArea {
+public class HazeArea {
 
-  var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
+  public var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
-  var size: Size by mutableStateOf(Size.Unspecified)
+  public var size: Size by mutableStateOf(Size.Unspecified)
     internal set
 
-  var zIndex: Float by mutableFloatStateOf(0f)
+  public var zIndex: Float by mutableFloatStateOf(0f)
     internal set
 
-  var key: Any? = null
+  public var key: Any? = null
     internal set
 
-  var windowId: Any? = null
+  public var windowId: Any? = null
     internal set
 
   internal val preDrawListeners = mutableSetOf<OnPreDrawListener>()
@@ -97,7 +97,7 @@ class HazeArea {
   /**
    * The content [GraphicsLayer].
    */
-  var contentLayer: GraphicsLayer? by mutableStateOf(null)
+  public var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
 
   internal val bounds: Rect?
@@ -108,7 +108,7 @@ class HazeArea {
 
   internal var contentDrawing = false
 
-  override fun toString(): String = buildString {
+  public override fun toString(): String = buildString {
     append("HazeArea(")
     append("positionOnScreen=$positionOnScreen, ")
     append("size=$size, ")
@@ -124,7 +124,7 @@ class HazeArea {
   replaceWith = ReplaceWith("hazeSource(state)", "dev.chrisbanes.haze.hazeSource"),
 )
 @Stable
-fun Modifier.haze(state: HazeState): Modifier = hazeSource(state)
+public fun Modifier.haze(state: HazeState): Modifier = hazeSource(state)
 
 /**
  * Captures background content for [hazeEffect] child nodes, which will be drawn with a blur
@@ -135,7 +135,7 @@ fun Modifier.haze(state: HazeState): Modifier = hazeSource(state)
  * instead.
  */
 @Stable
-fun Modifier.hazeSource(
+public fun Modifier.hazeSource(
   state: HazeState,
   zIndex: Float = 0f,
   key: Any? = null,
@@ -145,36 +145,36 @@ fun Modifier.hazeSource(
  * Default values for the [hazeSource] and [hazeEffect] modifiers.
  */
 @Suppress("ktlint:standard:property-naming")
-object HazeDefaults {
+public object HazeDefaults {
   /**
    * Default blur radius. Larger values produce a stronger blur effect.
    */
-  val blurRadius: Dp = 20.dp
+  public val blurRadius: Dp = 20.dp
 
   /**
    * Noise factor.
    */
-  const val noiseFactor = 0.15f
+  public const val noiseFactor: Float = 0.15f
 
   /**
    * Default alpha used for the tint color. Used by the [tint] function.
    */
-  const val tintAlpha: Float = 0.7f
+  public const val tintAlpha: Float = 0.7f
 
   /**
    * Default value for [HazeEffectScope.blurredEdgeTreatment]
    */
-  val blurredEdgeTreatment: BlurredEdgeTreatment = BlurredEdgeTreatment.Rectangle
+  public val blurredEdgeTreatment: BlurredEdgeTreatment = BlurredEdgeTreatment.Rectangle
 
   /**
    * Default value for [HazeEffectScope.drawContentBehind]
    */
-  const val drawContentBehind: Boolean = false
+  public const val drawContentBehind: Boolean = false
 
   /**
    * Default builder for the 'tint' color. Transforms the provided [color].
    */
-  fun tint(color: Color): HazeTint = HazeTint(
+  public fun tint(color: Color): HazeTint = HazeTint(
     color = when {
       color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
       else -> color
@@ -193,7 +193,7 @@ object HazeDefaults {
    * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
    * Anything outside of that range will be clamped.
    */
-  fun style(
+  public fun style(
     backgroundColor: Color,
     tint: HazeTint = tint(backgroundColor),
     blurRadius: Dp = this.blurRadius,
@@ -210,13 +210,13 @@ object HazeDefaults {
    *
    * The devices excluded by this function may change in the future.
    */
-  fun blurEnabled(): Boolean = isBlurEnabledByDefault()
+  public fun blurEnabled(): Boolean = isBlurEnabledByDefault()
 }
 
 internal data class HazeSourceElement(
-  val state: HazeState,
-  val zIndex: Float = 0f,
-  val key: Any? = null,
+  public val state: HazeState,
+  public val zIndex: Float = 0f,
+  public val key: Any? = null,
 ) : ModifierNodeElement<HazeSourceNode>() {
 
   override fun create(): HazeSourceNode = HazeSourceNode(state = state, zIndex = zIndex, key = key)

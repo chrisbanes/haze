@@ -12,7 +12,7 @@ import androidx.compose.ui.window.DialogProperties
   ReplaceWith("Dialog(onDismissRequest, properties, content)", "androidx.compose.ui.window.Dialog"),
 )
 @Composable
-fun HazeDialog(
+public fun HazeDialog(
   hazeState: HazeState,
   onDismissRequest: () -> Unit,
   properties: DialogProperties = DialogProperties(),

@@ -5,4 +5,4 @@ package dev.chrisbanes.haze
 
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.CLASS)
-annotation class Poko
+public annotation class Poko

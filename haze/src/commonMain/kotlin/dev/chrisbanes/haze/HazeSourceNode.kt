@@ -26,7 +26,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.DisposableHandle
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
-annotation class ExperimentalHazeApi
+public annotation class ExperimentalHazeApi
 
 internal enum class HazeTraversableNodeKeys {
   Effect,
@@ -40,7 +40,7 @@ internal enum class HazeTraversableNodeKeys {
  * to be able to change the API in the future, hence why it is marked as experimental forever.
  */
 @ExperimentalHazeApi
-class HazeSourceNode(
+public class HazeSourceNode(
   state: HazeState,
   zIndex: Float = 0f,
   key: Any? = null,
@@ -60,13 +60,13 @@ class HazeSourceNode(
     area.zIndex = zIndex
   }
 
-  var zIndex: Float = zIndex
+  public var zIndex: Float = zIndex
     set(value) {
       field = value
       area.zIndex = value
     }
 
-  var state: HazeState = state
+  public var state: HazeState = state
     set(value) {
       val attachedToState = area in field.areas
       if (attachedToState) {
@@ -80,7 +80,7 @@ class HazeSourceNode(
       }
     }
 
-  var key: Any?
+  public var key: Any?
     get() = area.key
     set(value) {
       area.key = value

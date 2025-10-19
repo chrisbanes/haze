@@ -5,18 +5,18 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.snapshots.Snapshot
 
-object HazeLogger {
+public object HazeLogger {
   /**
    * Whether to print debug log statements to the relevant system logger. Do not build release
    * artifacts with this enabled. It's purely for debugging purposes.
    */
-  var enabled: Boolean = false
+  public var enabled: Boolean = false
 
-  fun d(tag: String, message: () -> String) {
+  public fun d(tag: String, message: () -> String) {
     d(tag = tag, throwable = null, message = message)
   }
 
-  fun d(tag: String, throwable: Throwable?, message: () -> String) {
+  public fun d(tag: String, throwable: Throwable?, message: () -> String) {
     if (enabled) {
       Snapshot.withoutReadObservation {
         platformLog(
