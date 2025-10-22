@@ -67,3 +67,7 @@ kotlin {
 roborazzi {
   outputDir.set(project.layout.projectDirectory.dir("screenshots"))
 }
+
+tasks.withType<Test> {
+  failOnNoDiscoveredTests.set(false)
+}

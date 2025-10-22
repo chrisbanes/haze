@@ -128,3 +128,7 @@ baselineProfile {
 dependencies {
   baselineProfile(projects.internal.benchmark)
 }
+
+tasks.withType<Test> {
+  failOnNoDiscoveredTests.set(false)
+}
