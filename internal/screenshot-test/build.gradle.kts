@@ -18,7 +18,6 @@ kotlin {
   androidTarget {
     publishLibraryVariants("release")
   }
-  iosSimulatorArm64()
 
   sourceSets {
     commonMain {
@@ -31,8 +30,6 @@ kotlin {
 
         @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
         api(compose.uiTest)
-
-        api(libs.kotest.framework.engine)
       }
     }
 
@@ -48,6 +45,7 @@ kotlin {
         implementation(libs.roborazzi.core)
         implementation(libs.roborazzi.android)
         implementation(libs.roborazzi.compose)
+        implementation(libs.roborazzi.junit)
       }
     }
 
@@ -58,12 +56,6 @@ kotlin {
 
         implementation(libs.roborazzi.core)
         implementation(libs.roborazzi.compose.desktop)
-      }
-    }
-
-    iosMain {
-      dependencies {
-        implementation(libs.roborazzi.compose.ios)
       }
     }
   }
