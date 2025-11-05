@@ -199,6 +199,16 @@ public interface HazeEffectScope {
    * on other conditions.
    */
   public var clipToAreasBounds: Boolean?
+
+  /**
+   * Whether the layer should be expanded by the [blurRadius] on all edges. Defaults to enabled.
+   *
+   * This might sound strange, but when enabled it allows the blurred effect to be more
+   * consistent and realistic on the edges, by being able to capturing more nearby content.
+   * You may wish to disable this if you find that the blurred effect is drawn in unwanted
+   * areas.
+   */
+  public var expandLayerBounds: Boolean?
 }
 
 /**
