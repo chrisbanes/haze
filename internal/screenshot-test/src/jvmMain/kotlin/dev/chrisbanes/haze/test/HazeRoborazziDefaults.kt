@@ -9,8 +9,8 @@ import com.github.takahirom.roborazzi.RoborazziOptions
 object HazeRoborazziDefaults {
   val roborazziOptions = RoborazziOptions(
     compareOptions = RoborazziOptions.CompareOptions(
-      changeThreshold = 0.01f,
-      imageComparator = SimpleImageComparator(maxDistance = 0.075f, hShift = 1, vShift = 1),
+      changeThreshold = 0.0075f, // 0.75%
+      imageComparator = SimpleImageComparator(maxDistance = 0.0075f, hShift = 1, vShift = 1),
     ),
   )
 }
