@@ -302,6 +302,15 @@ public class HazeEffectNode(
       }
     }
 
+  override var expandLayerBounds: Boolean? = null
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "expandLayer changed. Current $field. New: $value" }
+        dirtyTracker += DirtyFields.ExpandLayer
+        field = value
+      }
+    }
+
   /**
    * We need to use the area pre draw listener in a few situations when blurring is enabled:
    *
@@ -481,8 +490,8 @@ public class HazeEffectNode(
       // Now we clip the expanded layer bounds, to remove anything areas which
       // don't overlap any areas, and the window bounds
       val clippedLayerBounds = Rect(positionOnScreen, size)
-        .inflate(blurRadiusPx)
-        .letIf(shouldClipToAreaBounds()) {
+        .letIf(shouldExpandLayer()) { it.inflate(blurRadiusPx) }
+        .letIf(shouldClipToAreaBounds()) { rect ->
           // Calculate the dimensions which covers all areas...
           var left = Float.POSITIVE_INFINITY
           var top = Float.POSITIVE_INFINITY
@@ -495,7 +504,7 @@ public class HazeEffectNode(
             right = max(right, bounds.right)
             bottom = max(bottom, bounds.bottom)
           }
-          it.intersect(left, top, right, bottom)
+          rect.intersect(left, top, right, bottom)
         }
         .intersect(rootBoundsOnScreen)
 
@@ -833,6 +842,14 @@ internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
   return bgColor.alpha <= 0.9f
 }
 
+internal fun HazeEffectNode.shouldExpandLayer(): Boolean {
+  val param = expandLayerBounds
+  if (param != null) {
+    return param
+  }
+  return true
+}
+
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {
   const val BlurEnabled: Int = 0b1
@@ -853,6 +870,7 @@ internal object DirtyFields {
   const val BlurredEdgeTreatment = LayerOffset shl 1
   const val DrawContentBehind = BlurredEdgeTreatment shl 1
   const val ClipToAreas = DrawContentBehind shl 1
+  const val ExpandLayer = ClipToAreas shl 1
 
   const val RenderEffectAffectingFlags =
     BlurEnabled or
@@ -867,7 +885,8 @@ internal object DirtyFields {
       FallbackTint or
       Progressive or
       BlurredEdgeTreatment or
-      ClipToAreas
+      ClipToAreas or
+      ExpandLayer
 
   const val InvalidateFlags =
     RenderEffectAffectingFlags or // Eventually we'll move this out of invalidation
@@ -882,7 +901,8 @@ internal object DirtyFields {
       Alpha or
       BlurredEdgeTreatment or
       DrawContentBehind or
-      ClipToAreas
+      ClipToAreas or
+      ExpandLayer
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
@@ -901,8 +921,7 @@ internal object DirtyFields {
       if (Alpha in dirtyTracker) add("Alpha")
       if (Progressive in dirtyTracker) add("Progressive")
       if (Areas in dirtyTracker) add("Areas")
-      if (LayerSize in dirtyTracker) add("LayerSize")
-      if (LayerOffset in dirtyTracker) add("LayerOffset")
+      if (ExpandLayer in dirtyTracker) add("ExpandLayer")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }

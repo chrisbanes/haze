@@ -56,6 +56,7 @@ package dev.chrisbanes.haze {
     method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
     method public Boolean? getClipToAreasBounds();
     method public boolean getDrawContentBehind();
+    method public Boolean? getExpandLayerBounds();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
     method public androidx.compose.ui.graphics.Brush? getMask();
@@ -73,6 +74,7 @@ package dev.chrisbanes.haze {
     method public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
     method public void setClipToAreasBounds(Boolean?);
     method public void setDrawContentBehind(boolean);
+    method public void setExpandLayerBounds(Boolean?);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
     method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
     method public void setMask(androidx.compose.ui.graphics.Brush?);
@@ -90,6 +92,7 @@ package dev.chrisbanes.haze {
     property public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
     property public Boolean? clipToAreasBounds;
     property public boolean drawContentBehind;
+    property public Boolean? expandLayerBounds;
     property public dev.chrisbanes.haze.HazeTint fallbackTint;
     property public dev.chrisbanes.haze.HazeInputScale inputScale;
     property public androidx.compose.ui.graphics.Brush? mask;
@@ -109,6 +112,7 @@ package dev.chrisbanes.haze {
     method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
     method public Boolean? getClipToAreasBounds();
     method public boolean getDrawContentBehind();
+    method public Boolean? getExpandLayerBounds();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
     method public androidx.compose.ui.graphics.Brush? getMask();
@@ -121,6 +125,7 @@ package dev.chrisbanes.haze {
     method public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
     method public void setClipToAreasBounds(Boolean?);
     method public void setDrawContentBehind(boolean);
+    method public void setExpandLayerBounds(Boolean?);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
     method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
     method public void setMask(androidx.compose.ui.graphics.Brush?);
@@ -136,6 +141,7 @@ package dev.chrisbanes.haze {
     property @dev.chrisbanes.haze.ExperimentalHazeApi public abstract kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
     property public abstract Boolean? clipToAreasBounds;
     property public abstract boolean drawContentBehind;
+    property public abstract Boolean? expandLayerBounds;
     property public abstract dev.chrisbanes.haze.HazeTint fallbackTint;
     property @dev.chrisbanes.haze.ExperimentalHazeApi public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
     property public abstract androidx.compose.ui.graphics.Brush? mask;
