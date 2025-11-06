@@ -235,7 +235,7 @@ public class HazeEffectNode(
       }
     }
 
-  private var windowId: Any? = null
+  internal var windowId: Any? = null
 
   internal var areas: List<HazeArea> = emptyList()
     set(value) {
@@ -311,22 +311,7 @@ public class HazeEffectNode(
       }
     }
 
-  /**
-   * We need to use the area pre draw listener in a few situations when blurring is enabled:
-   *
-   * - Globally, if [invalidateOnHazeAreaPreDraw] is set to true. This is mostly for older
-   *   Android versions.
-   * - The source haze node is drawn in a different window to us. In this instance, we won't be
-   *   in the same invalidation scope, so need to force invalidation. This handles cases
-   *   like Dialogs.
-   */
-  private val areaPreDrawListener = OnPreDrawListener {
-    if (resolveBlurEnabled()) {
-      if (invalidateOnHazeAreaPreDraw() || areas.any { it.windowId != windowId }) {
-        invalidateDraw()
-      }
-    }
-  }
+  private val areaPreDrawListener by unsynchronizedLazy { OnPreDrawListener(::invalidateDraw) }
 
   private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
     if (old?.tints != new?.tints) dirtyTracker += DirtyFields.Tints
@@ -449,6 +434,11 @@ public class HazeEffectNode(
 
     val backgroundBlurring = state != null
 
+    areas.forEach { area ->
+      // Remove our pre draw listener from the current areas
+      area.preDrawListeners -= areaPreDrawListener
+    }
+
     areas = if (backgroundBlurring) {
       val ancestorSourceNode =
         (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
@@ -476,6 +466,12 @@ public class HazeEffectNode(
       contentDrawArea.positionOnScreen = positionOnScreen
       contentDrawArea.windowId = windowId
       listOf(contentDrawArea)
+    }
+
+    if (shouldUsePreDrawListener()) {
+      for (area in areas) {
+        area.preDrawListeners += areaPreDrawListener
+      }
     }
 
     val blurRadiusPx = with(currentValueOf(LocalDensity)) {
@@ -848,6 +844,22 @@ internal fun HazeEffectNode.shouldExpandLayer(): Boolean {
     return param
   }
   return true
+}
+
+/**
+ * We need to use the area pre draw listener in a few situations when blurring is enabled:
+ *
+ * - Globally, if [invalidateOnHazeAreaPreDraw] is set to true. This is mostly for older
+ *   Android versions.
+ * - The source haze node is drawn in a different window to us. In this instance, we won't be
+ *   in the same invalidation scope, so need to force invalidation. This handles cases
+ *   like Dialogs.
+ */
+internal fun HazeEffectNode.shouldUsePreDrawListener(): Boolean {
+  if (!resolveBlurEnabled()) return false
+  if (invalidateOnHazeAreaPreDraw()) return true
+  if (areas.any { it.windowId != windowId }) return true
+  return false
 }
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")

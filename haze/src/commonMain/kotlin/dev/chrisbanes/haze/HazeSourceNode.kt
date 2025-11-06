@@ -16,8 +16,10 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
@@ -49,7 +51,8 @@ public class HazeSourceNode(
   GlobalPositionAwareModifierNode,
   LayoutAwareModifierNode,
   DrawModifierNode,
-  TraversableNode {
+  TraversableNode,
+  ObserverModifierNode {
 
   override val traverseKey: Any
     get() = HazeTraversableNodeKeys.Source
@@ -102,12 +105,34 @@ public class HazeSourceNode(
     state.addArea(area)
     clearHazeAreaLayerOnStop()
 
+    onObservedReadsChanged()
+  }
+
+  override fun onObservedReadsChanged() {
+    observeReads {
+      if (area.preDrawListeners.isNotEmpty()) {
+        enablePreDrawEnabled()
+      } else {
+        disablePreDrawEnabled()
+      }
+    }
+  }
+
+  private fun enablePreDrawEnabled() {
+    // If we already have a disposable, we don't need another listener
+    if (preDrawDisposable != null) return
+
     preDrawDisposable = doOnPreDraw {
       HazeLogger.d(TAG) { "onPreDraw" }
       for (listener in area.preDrawListeners) {
         listener()
       }
     }
+  }
+
+  private fun disablePreDrawEnabled() {
+    preDrawDisposable?.dispose()
+    preDrawDisposable = null
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
