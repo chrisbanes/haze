@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -92,7 +93,7 @@ public class HazeArea {
   public var windowId: Any? = null
     internal set
 
-  internal val preDrawListeners = mutableSetOf<OnPreDrawListener>()
+  internal val preDrawListeners = mutableStateSetOf<OnPreDrawListener>()
 
   /**
    * The content [GraphicsLayer].
