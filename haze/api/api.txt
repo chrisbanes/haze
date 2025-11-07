@@ -58,6 +58,7 @@ package dev.chrisbanes.haze {
     method public boolean getDrawContentBehind();
     method public Boolean? getExpandLayerBounds();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
+    method public boolean getForceInvalidateOnPreDraw();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
     method public androidx.compose.ui.graphics.Brush? getMask();
     method public float getNoiseFactor();
@@ -76,6 +77,7 @@ package dev.chrisbanes.haze {
     method public void setDrawContentBehind(boolean);
     method public void setExpandLayerBounds(Boolean?);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
+    method public void setForceInvalidateOnPreDraw(boolean);
     method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
     method public void setMask(androidx.compose.ui.graphics.Brush?);
     method public void setNoiseFactor(float);
@@ -94,6 +96,7 @@ package dev.chrisbanes.haze {
     property public boolean drawContentBehind;
     property public Boolean? expandLayerBounds;
     property public dev.chrisbanes.haze.HazeTint fallbackTint;
+    property public boolean forceInvalidateOnPreDraw;
     property public dev.chrisbanes.haze.HazeInputScale inputScale;
     property public androidx.compose.ui.graphics.Brush? mask;
     property public float noiseFactor;
@@ -114,6 +117,7 @@ package dev.chrisbanes.haze {
     method public boolean getDrawContentBehind();
     method public Boolean? getExpandLayerBounds();
     method public dev.chrisbanes.haze.HazeTint getFallbackTint();
+    method public boolean getForceInvalidateOnPreDraw();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
     method public androidx.compose.ui.graphics.Brush? getMask();
     method public float getNoiseFactor();
@@ -127,6 +131,7 @@ package dev.chrisbanes.haze {
     method public void setDrawContentBehind(boolean);
     method public void setExpandLayerBounds(Boolean?);
     method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
+    method public void setForceInvalidateOnPreDraw(boolean);
     method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
     method public void setMask(androidx.compose.ui.graphics.Brush?);
     method public void setNoiseFactor(float);
@@ -143,6 +148,7 @@ package dev.chrisbanes.haze {
     property public abstract boolean drawContentBehind;
     property public abstract Boolean? expandLayerBounds;
     property public abstract dev.chrisbanes.haze.HazeTint fallbackTint;
+    property public abstract boolean forceInvalidateOnPreDraw;
     property @dev.chrisbanes.haze.ExperimentalHazeApi public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
     property public abstract androidx.compose.ui.graphics.Brush? mask;
     property public abstract float noiseFactor;

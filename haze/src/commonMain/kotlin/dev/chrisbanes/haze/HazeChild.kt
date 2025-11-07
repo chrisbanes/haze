@@ -209,6 +209,29 @@ public interface HazeEffectScope {
    * areas.
    */
   public var expandLayerBounds: Boolean?
+
+  /**
+   * Force draw invalidation from pre-draw events of contributing [HazeArea]s.
+   *
+   * When enabled, Haze will register a pre-draw listener and invalidate this effect node
+   * whenever the source areas are about to be drawn. This helps ensure the blur stays in sync
+   * with rapidly changing or externally-invalidated content.
+   *
+   * Haze automatically enables this for scenarios where it knows we need it:
+   * - The source content is drawn in a different window than this effect (e.g. Dialogs/Popups),
+   *   so it's outside of this node's normal invalidation scope.
+   * - On some older Android versions where invalidation propagation is less reliable.
+   *
+   * However, there may be other use cases where invalidation does not work as expected, and
+   * the [hazeEffect] looks like it is 'stuck' or out of sync. By setting this flag to `true`,
+   * we use the pre-draw listener to force invalidations, and thus should fix the majority
+   * of issues.
+   *
+   * Notes:
+   * - Only has an effect when blurring is enabled.
+   * - May have a performance cost due to additional invalidations from the pre-draw listener.
+   */
+  public var forceInvalidateOnPreDraw: Boolean
 }
 
 /**
