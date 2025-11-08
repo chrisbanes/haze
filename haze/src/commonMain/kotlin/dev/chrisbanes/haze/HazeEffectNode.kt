@@ -311,6 +311,14 @@ public class HazeEffectNode(
       }
     }
 
+  override var forceInvalidateOnPreDraw: Boolean = false
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "forceInvalidateOnPreDraw changed. Current $field. New: $value" }
+        dirtyTracker += DirtyFields.ForcePreDraw
+        field = value
+      }
+    }
   private val areaPreDrawListener by unsynchronizedLazy { OnPreDrawListener(::invalidateDraw) }
 
   private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
@@ -857,6 +865,7 @@ internal fun HazeEffectNode.shouldExpandLayer(): Boolean {
  */
 internal fun HazeEffectNode.shouldUsePreDrawListener(): Boolean {
   if (!resolveBlurEnabled()) return false
+  if (forceInvalidateOnPreDraw) return true
   if (invalidateOnHazeAreaPreDraw()) return true
   if (areas.any { it.windowId != windowId }) return true
   return false
@@ -883,6 +892,7 @@ internal object DirtyFields {
   const val DrawContentBehind = BlurredEdgeTreatment shl 1
   const val ClipToAreas = DrawContentBehind shl 1
   const val ExpandLayer = ClipToAreas shl 1
+  const val ForcePreDraw = ExpandLayer shl 1
 
   const val RenderEffectAffectingFlags =
     BlurEnabled or
@@ -914,7 +924,8 @@ internal object DirtyFields {
       BlurredEdgeTreatment or
       DrawContentBehind or
       ClipToAreas or
-      ExpandLayer
+      ExpandLayer or
+      ForcePreDraw
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
@@ -934,6 +945,7 @@ internal object DirtyFields {
       if (Progressive in dirtyTracker) add("Progressive")
       if (Areas in dirtyTracker) add("Areas")
       if (ExpandLayer in dirtyTracker) add("ExpandLayer")
+      if (ForcePreDraw in dirtyTracker) add("ForcePreDraw")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }
