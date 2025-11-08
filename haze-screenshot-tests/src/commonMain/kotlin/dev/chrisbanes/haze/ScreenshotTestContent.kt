@@ -312,7 +312,6 @@ fun OverlayingContent(
         .align(Alignment.Center)
         .hazeEffect(state = hazeState) {
           blurRadius = 20.dp
-          forceInvalidateOnPreDraw = true
         }
         .padding(16.dp),
     )

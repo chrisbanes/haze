@@ -5,6 +5,8 @@
 
 package dev.chrisbanes.haze
 
+import androidx.collection.MutableObjectLongMap
+import androidx.collection.SieveCache
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.Immutable
@@ -135,6 +137,8 @@ public class HazeEffectNode(
         field = value
       }
     }
+
+  private val areaOffsets = MutableObjectLongMap<HazeArea>()
 
   internal var size: Size = Size.Unspecified
     set(value) {
@@ -482,6 +486,8 @@ public class HazeEffectNode(
       }
     }
 
+    updateAreaOffsets()
+
     val blurRadiusPx = with(currentValueOf(LocalDensity)) {
       resolveBlurRadius().takeOrElse { 0.dp }.toPx()
     }
@@ -543,6 +549,30 @@ public class HazeEffectNode(
     }
     if (invalidateRequired) {
       invalidateDraw()
+    }
+  }
+
+  private fun updateAreaOffsets() {
+    // Calculate new offsets and detect changes for diff tracking
+    val hasAreaOffsetsChanged = when {
+      areaOffsets.size != areas.size -> true
+      else -> {
+        areas.any { area ->
+          val newOffset = positionOnScreen - area.positionOnScreen
+          !areaOffsets.contains(area) || areaOffsets[area] != newOffset.packedValue
+        }
+      }
+    }
+
+    if (hasAreaOffsetsChanged) {
+      HazeLogger.d(TAG) { "areaOffsets changed" }
+      dirtyTracker += DirtyFields.AreaOffsets
+
+      areaOffsets.clear()
+      areas.forEach { area ->
+        val offset = positionOnScreen - area.positionOnScreen
+        areaOffsets[area] = offset.packedValue
+      }
     }
   }
 
@@ -707,7 +737,7 @@ public sealed interface HazeProgressive {
 }
 
 private val renderEffectCache by unsynchronizedLazy {
-  SimpleLruCache<RenderEffectParams, RenderEffect>(10)
+  SieveCache<RenderEffectParams, RenderEffect>(10)
 }
 
 @Poko
@@ -876,7 +906,8 @@ internal object DirtyFields {
   const val BlurEnabled: Int = 0b1
   const val InputScale = BlurEnabled shl 1
   const val ScreenPosition = InputScale shl 1
-  const val Size = ScreenPosition shl 1
+  const val AreaOffsets = ScreenPosition shl 1
+  const val Size = AreaOffsets shl 1
   const val BlurRadius = Size shl 1
   const val NoiseFactor = BlurRadius shl 1
   const val Mask = NoiseFactor shl 1
@@ -897,6 +928,7 @@ internal object DirtyFields {
   const val RenderEffectAffectingFlags =
     BlurEnabled or
       InputScale or
+      AreaOffsets or
       Size or
       LayerSize or
       LayerOffset or
@@ -915,6 +947,7 @@ internal object DirtyFields {
       BlurEnabled or
       InputScale or
       Size or
+      ScreenPosition or
       LayerSize or
       LayerOffset or
       BackgroundColor or
@@ -932,6 +965,7 @@ internal object DirtyFields {
       if (BlurEnabled in dirtyTracker) add("BlurEnabled")
       if (InputScale in dirtyTracker) add("InputScale")
       if (ScreenPosition in dirtyTracker) add("ScreenPosition")
+      if (AreaOffsets in dirtyTracker) add("RelativePosition")
       if (Size in dirtyTracker) add("Size")
       if (LayerSize in dirtyTracker) add("LayerSize")
       if (LayerOffset in dirtyTracker) add("LayerOffset")
