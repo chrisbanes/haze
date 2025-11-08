@@ -71,6 +71,7 @@ val CommonSamples: List<Sample> = listOf(
   Sample.ListWithStickyHeaders,
   Sample.BottomSheet,
   Sample.ContentBlurring,
+  Sample.LayerTransformations,
 )
 
 @OptIn(ExperimentalHazeApi::class)
@@ -259,6 +260,16 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       ContentBlurring(navController, blurEnabled)
+    }
+  }
+
+  @Serializable
+  data object LayerTransformations : Sample {
+    override val title: String = "Layer Transformations"
+
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      LayerTransformations(blurEnabled = blurEnabled)
     }
   }
 }

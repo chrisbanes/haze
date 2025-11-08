@@ -120,6 +120,10 @@ public class HazeArea {
   }
 }
 
+internal fun interface OnPreDrawListener {
+  operator fun invoke()
+}
+
 @Deprecated(
   message = "Renamed to Modifier.hazeSource()",
   replaceWith = ReplaceWith("hazeSource(state)", "dev.chrisbanes.haze.hazeSource"),
