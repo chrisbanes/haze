@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -25,7 +26,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
-import kotlinx.coroutines.DisposableHandle
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 public annotation class ExperimentalHazeApi
@@ -93,7 +95,7 @@ public class HazeSourceNode(
     this.key = key
   }
 
-  private var preDrawDisposable: DisposableHandle? = null
+  private var preDrawJob: Job? = null
 
   /**
    * We manually invalidate when things have changed
@@ -110,29 +112,30 @@ public class HazeSourceNode(
 
   override fun onObservedReadsChanged() {
     observeReads {
-      if (area.preDrawListeners.isNotEmpty()) {
-        enablePreDrawEnabled()
+      if (area.preDrawListeners.isEmpty()) {
+        disablePreDrawListener()
       } else {
-        disablePreDrawEnabled()
+        enablePreDrawListener()
       }
     }
   }
 
-  private fun enablePreDrawEnabled() {
-    // If we already have a disposable, we don't need another listener
-    if (preDrawDisposable != null) return
+  private fun enablePreDrawListener() {
+    if (preDrawJob?.isActive != true) {
+      preDrawJob = launchPreDraw()
+    }
+  }
 
-    preDrawDisposable = doOnPreDraw {
+  private fun launchPreDraw(): Job = coroutineScope.launch {
+    withFrameNanos {
       HazeLogger.d(TAG) { "onPreDraw" }
-      for (listener in area.preDrawListeners) {
-        listener()
-      }
+      area.preDrawListeners.forEach(OnPreDrawListener::invoke)
     }
   }
 
-  private fun disablePreDrawEnabled() {
-    preDrawDisposable?.dispose()
-    preDrawDisposable = null
+  private fun disablePreDrawListener() {
+    preDrawJob?.cancel()
+    preDrawJob = null
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
@@ -207,12 +210,13 @@ public class HazeSourceNode(
     } finally {
       area.contentDrawing = false
       HazeLogger.d(TAG) { "end draw()" }
+
+      launchPreDraw()
     }
   }
 
   override fun onDetach() {
     HazeLogger.d(TAG) { "onDetach. Removing HazeArea: $area" }
-    preDrawDisposable?.dispose()
     area.reset()
     area.releaseLayer()
     state.removeArea(area)
