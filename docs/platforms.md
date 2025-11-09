@@ -6,13 +6,13 @@ Haze works on all platforms which [Compose Multiplatform](https://www.jetbrains.
 
 ## Android
 
-### Android 14+
+### Android 13+
 
 SDK Levels: 33+
 
 Haze is in its optimal environment for all use cases when running on recent versions of Android.
 
-### Android 12 & 13
+### Android 12 & 12L
 
 SDK Levels: 31 & 32
 
@@ -36,7 +36,7 @@ LargeTopAppBar(
 )
 ```
 
-All other progressive types will fallback to using a mask when running on Android 12 & 13.
+All other progressive types will fallback to using a mask when running on Android 12 & 12L.
 
 ### Android 12 and below
 
