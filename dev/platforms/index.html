@@ -362,22 +362,22 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#android-14" class="md-nav__link">
+  <a href="#android-13" class="md-nav__link">
     <span class="md-ellipsis">
-      Android 14+
+      Android 13+
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#android-12-13" class="md-nav__link">
+  <a href="#android-12-12l" class="md-nav__link">
     <span class="md-ellipsis">
-      Android 12 &amp; 13
+      Android 12 &amp; 12L
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Android 12 &amp; 13">
+    <nav class="md-nav" aria-label="Android 12 &amp; 12L">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -724,22 +724,22 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#android-14" class="md-nav__link">
+  <a href="#android-13" class="md-nav__link">
     <span class="md-ellipsis">
-      Android 14+
+      Android 13+
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#android-12-13" class="md-nav__link">
+  <a href="#android-12-12l" class="md-nav__link">
     <span class="md-ellipsis">
-      Android 12 &amp; 13
+      Android 12 &amp; 12L
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Android 12 &amp; 13">
+    <nav class="md-nav" aria-label="Android 12 &amp; 12L">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -872,10 +872,10 @@
 <p>Please note, the list of platforms which Compose Multiplatform (CMP) supports is different to the platforms which Kotlin Multiplatform supports. Please stop raising issues about adding "MacOS" support; it is not supported (directly) by CMP.</p>
 </div>
 <h2 id="android">Android<a class="headerlink" href="#android" title="Permanent link">¶</a></h2>
-<h3 id="android-14">Android 14+<a class="headerlink" href="#android-14" title="Permanent link">¶</a></h3>
+<h3 id="android-13">Android 13+<a class="headerlink" href="#android-13" title="Permanent link">¶</a></h3>
 <p>SDK Levels: 33+</p>
 <p>Haze is in its optimal environment for all use cases when running on recent versions of Android.</p>
-<h3 id="android-12-13">Android 12 &amp; 13<a class="headerlink" href="#android-12-13" title="Permanent link">¶</a></h3>
+<h3 id="android-12-12l">Android 12 &amp; 12L<a class="headerlink" href="#android-12-12l" title="Permanent link">¶</a></h3>
 <p>SDK Levels: 31 &amp; 32</p>
 <p>When running on these versions of Android, Haze needs to use a few workarounds:</p>
 <h4 id="hazeprogressive">HazeProgressive<a class="headerlink" href="#hazeprogressive" title="Permanent link">¶</a></h4>
@@ -891,7 +891,7 @@
 <span class="w">  </span><span class="p">}</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>All other progressive types will fallback to using a mask when running on Android 12 &amp; 13.</p>
+<p>All other progressive types will fallback to using a mask when running on Android 12 &amp; 12L.</p>
 <h3 id="android-12-and-below">Android 12 and below<a class="headerlink" href="#android-12-and-below" title="Permanent link">¶</a></h3>
 <p>When running on Android 12 and below, we can not rely on <a href="https://developer.android.com/reference/android/graphics/RenderNode">RenderNode</a> (which <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/layer/GraphicsLayer">GraphicsLayer</a> use internally) re-painting when content changes. For this reason, Haze <em>previously</em> disabled blurring effects on Android 12 by default, as we could not guarantee that it works.</p>
 <p>As of Haze v1.6 and newer though, we have a mechanism allowing Haze to re-enable blurring on Android 12 by default.</p>
