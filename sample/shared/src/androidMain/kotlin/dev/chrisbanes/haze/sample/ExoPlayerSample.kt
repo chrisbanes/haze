@@ -21,17 +21,18 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.sample.shared.R
 
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ExoPlayerSample(blurEnabled: Boolean) {
-  val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+  val hazeState = rememberHazeState()
 
   val context = LocalContext.current
 
@@ -66,12 +67,19 @@ fun ExoPlayerSample(blurEnabled: Boolean) {
         .hazeSource(hazeState),
     )
 
+    val style = HazeMaterials.ultraThin()
+
     Spacer(
       Modifier
         .fillMaxSize(0.5f)
         .align(Alignment.Center)
         .clip(MaterialTheme.shapes.large)
-        .hazeEffect(hazeState, HazeMaterials.ultraThin()),
+        .hazeEffect(hazeState) {
+          blurEffect {
+            this.blurEnabled = blurEnabled
+            this.style = style
+          }
+        },
     )
   }
 }

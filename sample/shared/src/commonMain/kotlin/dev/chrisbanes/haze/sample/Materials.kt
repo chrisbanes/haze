@@ -28,20 +28,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.blur.HazeStyle
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.CupertinoMaterials
+import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.blur.materials.FluentMaterials
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.CupertinoMaterials
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.FluentMaterials
-import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
 
 @Composable
-fun MaterialsSample(navController: NavHostController, blurEnabled: Boolean = HazeDefaults.blurEnabled()) {
-  val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+fun MaterialsSample(navController: NavHostController, blurEnabled: Boolean) {
+  val hazeState = rememberHazeState()
 
   Box {
     AsyncImage(
@@ -318,7 +318,12 @@ private fun MaterialsCard(
     Box(
       Modifier
         .fillMaxSize()
-        .hazeEffect(state = state, style = style)
+        .hazeEffect(state = state) {
+          blurEffect {
+            this.blurEnabled = blurEnabled
+            this.style = style
+          }
+        }
         .padding(16.dp),
     ) {
       Text(name)

@@ -16,7 +16,9 @@ kotlin {
 
 dependencies {
   dokka(projects.haze)
+  dokka(projects.hazeBlur)
   dokka(projects.hazeMaterials)
+  dokka(projects.hazeUtils)
 }
 
 android {

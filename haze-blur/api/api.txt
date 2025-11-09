@@ -1,0 +1,154 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze.blur {
+
+  public final class BlurVisualEffect implements dev.chrisbanes.haze.VisualEffect {
+    ctor public BlurVisualEffect();
+    method public void drawEffect(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.HazeEffectNode node);
+    method public float getAlpha();
+    method public boolean getBlurEnabled();
+    method public dev.chrisbanes.haze.blur.HazeTint getFallbackTint();
+    method public androidx.compose.ui.graphics.Brush? getMask();
+    method public float getNoiseFactor();
+    method public dev.chrisbanes.haze.blur.HazeProgressive? getProgressive();
+    method public dev.chrisbanes.haze.blur.HazeStyle getStyle();
+    method public java.util.List<dev.chrisbanes.haze.blur.HazeTint> getTints();
+    method public void setAlpha(float);
+    method public void setBlurEnabled(boolean);
+    method public void setFallbackTint(dev.chrisbanes.haze.blur.HazeTint);
+    method public void setMask(androidx.compose.ui.graphics.Brush?);
+    method public void setNoiseFactor(float);
+    method public void setProgressive(dev.chrisbanes.haze.blur.HazeProgressive?);
+    method public void setStyle(dev.chrisbanes.haze.blur.HazeStyle);
+    method public void setTints(java.util.List<dev.chrisbanes.haze.blur.HazeTint>);
+    property public float alpha;
+    property public androidx.compose.ui.graphics.Color backgroundColor;
+    property public boolean blurEnabled;
+    property public androidx.compose.ui.unit.Dp blurRadius;
+    property public androidx.compose.ui.draw.BlurredEdgeTreatment blurredEdgeTreatment;
+    property public dev.chrisbanes.haze.blur.HazeTint fallbackTint;
+    property public androidx.compose.ui.graphics.Brush? mask;
+    property public float noiseFactor;
+    property public dev.chrisbanes.haze.blur.HazeProgressive? progressive;
+    property public dev.chrisbanes.haze.blur.HazeStyle style;
+    property public java.util.List<dev.chrisbanes.haze.blur.HazeTint> tints;
+    field public static final String TAG = "BlurVisualEffect";
+  }
+
+  public final class HazeBlurDefaults {
+    method public boolean blurEnabled();
+    method public dev.chrisbanes.haze.blur.HazeStyle style(long backgroundColor, optional dev.chrisbanes.haze.blur.HazeTint tint, optional float blurRadius, optional float noiseFactor);
+    method public dev.chrisbanes.haze.blur.HazeTint tint(long color);
+    property public androidx.compose.ui.unit.Dp blurRadius;
+    property public androidx.compose.ui.draw.BlurredEdgeTreatment blurredEdgeTreatment;
+    property public static float noiseFactor;
+    property public static float tintAlpha;
+    field public static final dev.chrisbanes.haze.blur.HazeBlurDefaults INSTANCE;
+    field public static final float noiseFactor = 0.15f;
+    field public static final float tintAlpha = 0.7f;
+  }
+
+  public final class HazeEffectScopeKt {
+    method public static inline void blurEffect(dev.chrisbanes.haze.HazeEffectScope, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.blur.BlurVisualEffect,kotlin.Unit> block);
+  }
+
+  @androidx.compose.runtime.Immutable public sealed interface HazeProgressive {
+    field public static final dev.chrisbanes.haze.blur.HazeProgressive.Companion Companion;
+  }
+
+  @kotlin.jvm.JvmInline public static final value class HazeProgressive.Brush implements dev.chrisbanes.haze.blur.HazeProgressive {
+    ctor @KotlinOnly public HazeProgressive.Brush(androidx.compose.ui.graphics.Brush brush);
+    method public androidx.compose.ui.graphics.Brush getBrush();
+    property public androidx.compose.ui.graphics.Brush brush;
+  }
+
+  public static final class HazeProgressive.Companion {
+    method public inline androidx.compose.ui.graphics.Brush forShader(kotlin.jvm.functions.Function1<? super androidx.compose.ui.geometry.Size,? extends android.graphics.Shader> block);
+    method public dev.chrisbanes.haze.blur.HazeProgressive.LinearGradient horizontalGradient(optional androidx.compose.animation.core.Easing easing, optional float startX, optional float startIntensity, optional float endX, optional float endIntensity, optional boolean preferPerformance);
+    method public dev.chrisbanes.haze.blur.HazeProgressive.LinearGradient verticalGradient(optional androidx.compose.animation.core.Easing easing, optional float startY, optional float startIntensity, optional float endY, optional float endIntensity, optional boolean preferPerformance);
+  }
+
+  public static final class HazeProgressive.LinearGradient implements dev.chrisbanes.haze.blur.HazeProgressive {
+    ctor public HazeProgressive.LinearGradient();
+    ctor @KotlinOnly public HazeProgressive.LinearGradient(optional androidx.compose.animation.core.Easing easing, optional androidx.compose.ui.geometry.Offset start, optional float startIntensity, optional androidx.compose.ui.geometry.Offset end, optional float endIntensity, optional boolean preferPerformance);
+    method public androidx.compose.animation.core.Easing component1();
+    method public float component3();
+    method public float component5();
+    method public boolean component6();
+    method public dev.chrisbanes.haze.blur.HazeProgressive.LinearGradient copy-E2oHoeU(androidx.compose.animation.core.Easing easing, long start, float startIntensity, long end, float endIntensity, boolean preferPerformance);
+    method public androidx.compose.animation.core.Easing getEasing();
+    method public float getEndIntensity();
+    method public boolean getPreferPerformance();
+    method public float getStartIntensity();
+    property public androidx.compose.animation.core.Easing easing;
+    property public androidx.compose.ui.geometry.Offset end;
+    property public float endIntensity;
+    property public boolean preferPerformance;
+    property public androidx.compose.ui.geometry.Offset start;
+    property public float startIntensity;
+  }
+
+  @dev.chrisbanes.haze.Poko public static final class HazeProgressive.RadialGradient implements dev.chrisbanes.haze.blur.HazeProgressive {
+    ctor public HazeProgressive.RadialGradient();
+    ctor @KotlinOnly public HazeProgressive.RadialGradient(optional androidx.compose.animation.core.Easing easing, optional androidx.compose.ui.geometry.Offset center, optional float centerIntensity, optional float radius, optional float radiusIntensity);
+    method public float getCenterIntensity();
+    method public androidx.compose.animation.core.Easing getEasing();
+    method public float getRadius();
+    method public float getRadiusIntensity();
+    property public androidx.compose.ui.geometry.Offset center;
+    property public float centerIntensity;
+    property public androidx.compose.animation.core.Easing easing;
+    property public float radius;
+    property public float radiusIntensity;
+  }
+
+  @androidx.compose.runtime.Immutable public final class HazeStyle {
+    ctor public HazeStyle();
+    ctor @KotlinOnly public HazeStyle(optional androidx.compose.ui.graphics.Color backgroundColor, optional dev.chrisbanes.haze.blur.HazeTint? tint, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.blur.HazeTint fallbackTint);
+    ctor @KotlinOnly public HazeStyle(optional androidx.compose.ui.graphics.Color backgroundColor, optional java.util.List<dev.chrisbanes.haze.blur.HazeTint> tints, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.blur.HazeTint fallbackTint);
+    method public java.util.List<dev.chrisbanes.haze.blur.HazeTint> component2();
+    method public float component4();
+    method public dev.chrisbanes.haze.blur.HazeTint component5();
+    method public dev.chrisbanes.haze.blur.HazeStyle copy-cq6XJ1M(long backgroundColor, java.util.List<dev.chrisbanes.haze.blur.HazeTint!> tints, float blurRadius, float noiseFactor, dev.chrisbanes.haze.blur.HazeTint fallbackTint);
+    method public dev.chrisbanes.haze.blur.HazeTint getFallbackTint();
+    method public float getNoiseFactor();
+    method public java.util.List<dev.chrisbanes.haze.blur.HazeTint> getTints();
+    property public androidx.compose.ui.graphics.Color backgroundColor;
+    property public androidx.compose.ui.unit.Dp blurRadius;
+    property public dev.chrisbanes.haze.blur.HazeTint fallbackTint;
+    property public float noiseFactor;
+    property public java.util.List<dev.chrisbanes.haze.blur.HazeTint> tints;
+    field public static final dev.chrisbanes.haze.blur.HazeStyle.Companion Companion;
+  }
+
+  public static final class HazeStyle.Companion {
+    method public dev.chrisbanes.haze.blur.HazeStyle getUnspecified();
+    property public dev.chrisbanes.haze.blur.HazeStyle Unspecified;
+  }
+
+  public final class HazeStyleKt {
+    method public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeStyle> getLocalHazeStyle();
+    property public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeStyle> LocalHazeStyle;
+  }
+
+  @androidx.compose.runtime.Stable public final class HazeTint {
+    ctor @KotlinOnly public HazeTint(androidx.compose.ui.graphics.Brush brush, optional androidx.compose.ui.graphics.BlendMode blendMode);
+    ctor @KotlinOnly public HazeTint(androidx.compose.ui.graphics.Color color, optional androidx.compose.ui.graphics.BlendMode blendMode);
+    method public androidx.compose.ui.graphics.Brush? component3();
+    method public dev.chrisbanes.haze.blur.HazeTint copy-39kzsgs(long color, int blendMode, androidx.compose.ui.graphics.Brush? brush);
+    method public androidx.compose.ui.graphics.Brush? getBrush();
+    method public boolean isSpecified();
+    property public androidx.compose.ui.graphics.BlendMode blendMode;
+    property public androidx.compose.ui.graphics.Brush? brush;
+    property public androidx.compose.ui.graphics.Color color;
+    property public boolean isSpecified;
+    field public static final dev.chrisbanes.haze.blur.HazeTint.Companion Companion;
+  }
+
+  public static final class HazeTint.Companion {
+    method public dev.chrisbanes.haze.blur.HazeTint getUnspecified();
+    property public androidx.compose.ui.graphics.BlendMode DefaultBlendMode;
+    property public dev.chrisbanes.haze.blur.HazeTint Unspecified;
+  }
+
+}
+

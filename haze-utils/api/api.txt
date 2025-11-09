@@ -1,0 +1,40 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze {
+
+  @dev.chrisbanes.haze.InternalHazeApi @kotlin.jvm.JvmInline public final value class Bitmask {
+    ctor @KotlinOnly public Bitmask(optional int value);
+    method public boolean any(int flag);
+    method public operator boolean contains(int flag);
+    method public boolean isEmpty();
+    method public operator int minus(int flag);
+    method public operator int plus(int flag);
+  }
+
+  @kotlin.RequiresOptIn(message="This is an internal Haze API and should not be used outside of the library. It may be changed or removed without notice.") @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) @kotlin.annotation.Target(allowedTargets={kotlin.annotation.AnnotationTarget.CLASS, kotlin.annotation.AnnotationTarget.FUNCTION, kotlin.annotation.AnnotationTarget.PROPERTY, kotlin.annotation.AnnotationTarget.TYPEALIAS}) public @interface InternalHazeApi {
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public abstract class PlatformContext {
+    field public static final dev.chrisbanes.haze.PlatformContext.Companion Companion;
+    field public static final dev.chrisbanes.haze.PlatformContext INSTANCE;
+  }
+
+  public static final class PlatformContext.Companion {
+    property public dev.chrisbanes.haze.PlatformContext INSTANCE;
+  }
+
+  public final class PlatformContextKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformContext requirePlatformContext(androidx.compose.ui.node.CompositionLocalConsumerModifierNode);
+  }
+
+  public final class Trace_androidKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
+    method @dev.chrisbanes.haze.InternalHazeApi public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
+  }
+
+  public final class Trace_skikoKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
+    method @dev.chrisbanes.haze.InternalHazeApi public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
+  }
+
+}
+

@@ -39,9 +39,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.blur.HazeBlurDefaults
+import dev.chrisbanes.haze.blur.HazeStyle
+import dev.chrisbanes.haze.blur.HazeTint
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -49,9 +50,9 @@ import dev.chrisbanes.haze.rememberHazeState
 @Composable
 fun CreditCardSample(
   navController: NavHostController,
-  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
+  blurEnabled: Boolean = HazeBlurDefaults.blurEnabled(),
 ) {
-  val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+  val hazeState = rememberHazeState()
 
   Box {
     // Background content
@@ -79,7 +80,7 @@ fun CreditCardSample(
       backgroundColor = Color.Black,
       tints = listOf(HazeTint(Color.Yellow.copy(alpha = 0.4f))),
       blurRadius = 8.dp,
-      noiseFactor = HazeDefaults.noiseFactor,
+      noiseFactor = HazeBlurDefaults.noiseFactor,
     )
 
     repeat(3) { index ->
@@ -113,7 +114,12 @@ fun CreditCardSample(
           // We add 1 to the zIndex as the background content is zIndex 0f
           .hazeSource(hazeState, zIndex = 1f + index)
           .clip(RoundedCornerShape(16.dp))
-          .hazeEffect(state = hazeState, style = cardStyle),
+          .hazeEffect(state = hazeState) {
+            blurEffect {
+              this.blurEnabled = blurEnabled
+              style = cardStyle
+            }
+          },
       ) {
         Column(Modifier.padding(32.dp)) {
           Text("Bank of Haze")

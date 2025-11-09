@@ -11,6 +11,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.blur.HazeBlurDefaults
+import dev.chrisbanes.haze.blur.HazeProgressive
+import dev.chrisbanes.haze.blur.HazeStyle
+import dev.chrisbanes.haze.blur.HazeTint
+import dev.chrisbanes.haze.blur.LocalHazeStyle
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -39,7 +44,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_blurEnabled() = runScreenshotTest {
-    var blurEnabled by mutableStateOf(HazeDefaults.blurEnabled())
+    var blurEnabled by mutableStateOf(HazeBlurDefaults.blurEnabled())
 
     setContent {
       ScreenshotTheme {

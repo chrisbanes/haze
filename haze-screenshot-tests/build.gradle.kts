@@ -40,7 +40,7 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        api(projects.haze)
+        api(projects.hazeBlur)
         api(compose.foundation)
         api(compose.material3)
         api(compose.components.resources)

@@ -20,7 +20,6 @@ nav:
   - "Materials": materials.md
   - "Performance": performance.md
   - "FAQs": faq.md
-  - "Migrating to 1.0": migrating-1.0.md
   - "Recipes": recipes.md
   - "API reference": api/index.html
   - "Sample code": https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
