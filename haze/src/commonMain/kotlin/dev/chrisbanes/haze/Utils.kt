@@ -6,11 +6,8 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import kotlin.math.ceil
-import kotlin.math.roundToInt
 
 internal expect fun LayoutCoordinates.positionForHaze(): Offset
 

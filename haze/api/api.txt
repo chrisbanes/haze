@@ -20,13 +20,6 @@ package dev.chrisbanes.haze {
     property public float zIndex;
   }
 
-  @Deprecated public interface HazeChildScope extends dev.chrisbanes.haze.HazeEffectScope {
-  }
-
-  public final class HazeDialogKt {
-    method @Deprecated @androidx.compose.runtime.Composable public static void HazeDialog(dev.chrisbanes.haze.HazeState hazeState, kotlin.jvm.functions.Function0<kotlin.Unit> onDismissRequest, optional androidx.compose.ui.window.DialogProperties properties, kotlin.jvm.functions.Function0<kotlin.Unit> content);
-  }
-
   public final class HazeEffectKt {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState? state, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
@@ -125,7 +118,6 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeKt {
-    method @Deprecated @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
     method @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState();
   }
@@ -162,11 +154,7 @@ package dev.chrisbanes.haze {
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
     method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
-    method @Deprecated public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
-    method @Deprecated public void setContentLayer(androidx.compose.ui.graphics.layer.GraphicsLayer?);
     property public java.util.List<dev.chrisbanes.haze.HazeArea> areas;
-    property @Deprecated public androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
-    property @Deprecated public androidx.compose.ui.geometry.Offset positionOnScreen;
   }
 
   @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {

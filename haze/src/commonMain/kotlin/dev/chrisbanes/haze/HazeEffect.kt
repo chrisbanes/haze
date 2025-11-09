@@ -9,15 +9,6 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import kotlin.jvm.JvmInline
 
-@Deprecated(
-  message = "Renamed to HazeEffectScope",
-  replaceWith = ReplaceWith(
-    "HazeEffectScope",
-    "dev.chrisbanes.haze.HazeEffectScope",
-  ),
-)
-public interface HazeChildScope : HazeEffectScope
-
 public interface HazeEffectScope {
 
   /**

@@ -39,24 +39,6 @@ public class HazeState {
   internal fun removeArea(area: HazeArea) {
     _areas -= area
   }
-
-  @Deprecated("Inspect areas instead")
-  public var positionOnScreen: Offset
-    get() = areas.firstOrNull()?.positionOnScreen ?: Offset.Unspecified
-    set(value) {
-      areas.firstOrNull()?.apply {
-        positionOnScreen = value
-      }
-    }
-
-  @Deprecated("Inspect areas instead")
-  public var contentLayer: GraphicsLayer?
-    get() = areas.firstOrNull()?.contentLayer
-    set(value) {
-      areas.firstOrNull()?.apply {
-        contentLayer = value
-      }
-    }
 }
 
 @Stable
@@ -117,13 +99,6 @@ internal fun HazeArea.reset() {
 internal fun interface OnPreDrawListener {
   operator fun invoke()
 }
-
-@Deprecated(
-  message = "Renamed to Modifier.hazeSource()",
-  replaceWith = ReplaceWith("hazeSource(state)", "dev.chrisbanes.haze.hazeSource"),
-)
-@Stable
-public fun Modifier.haze(state: HazeState): Modifier = hazeSource(state)
 
 /**
  * Captures background content for [hazeEffect] child nodes, which will be drawn with a blur
