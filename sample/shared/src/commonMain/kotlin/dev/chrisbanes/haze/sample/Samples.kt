@@ -46,8 +46,8 @@ import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.blur.HazeBlurDefaults
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlinx.serialization.Serializable
@@ -319,7 +319,7 @@ fun Samples(
       .forEach { imageLoader.enqueue(it) }
   }
 
-  var blurEnabled by rememberSaveable { mutableStateOf(HazeDefaults.blurEnabled()) }
+  var blurEnabled by rememberSaveable { mutableStateOf(HazeBlurDefaults.blurEnabled()) }
 
   SamplesTheme {
     NavHost(

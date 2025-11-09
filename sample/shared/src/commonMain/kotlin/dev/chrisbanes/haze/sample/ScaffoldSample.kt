@@ -41,13 +41,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.blur.HazeProgressive
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
 
 enum class ScaffoldSampleMode {
@@ -64,11 +64,11 @@ enum class ScaffoldSampleMode {
 @Composable
 fun ScaffoldSample(
   navController: NavHostController,
-  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
+  blurEnabled: Boolean,
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
   inputScale: HazeInputScale = HazeInputScale.Default,
 ) {
-  val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+  val hazeState = rememberHazeState()
   val gridState = rememberLazyGridState()
   val showNavigationBar by remember(gridState) {
     derivedStateOf { gridState.firstVisibleItemIndex == 0 }
@@ -93,19 +93,25 @@ fun ScaffoldSample(
           scrolledContainerColor = Color.Transparent,
         ),
         modifier = Modifier
-          .hazeEffect(state = hazeState, style = style) {
+          .hazeEffect(state = hazeState) {
             this.inputScale = inputScale
 
-            when (mode) {
-              ScaffoldSampleMode.Default -> Unit
-              ScaffoldSampleMode.Progressive -> {
-                progressive = HazeProgressive.verticalGradient(
-                  startIntensity = 1f,
-                  endIntensity = 0f,
-                )
-              }
-              ScaffoldSampleMode.Mask -> {
-                mask = Brush.easedVerticalGradient(EaseIn)
+            blurEffect {
+              this.blurEnabled = blurEnabled
+              this.style = style
+
+              when (mode) {
+                ScaffoldSampleMode.Default -> Unit
+                ScaffoldSampleMode.Progressive -> {
+                  progressive = HazeProgressive.verticalGradient(
+                    startIntensity = 1f,
+                    endIntensity = 0f,
+                  )
+                }
+
+                ScaffoldSampleMode.Mask -> {
+                  mask = Brush.easedVerticalGradient(EaseIn)
+                }
               }
             }
           }
@@ -123,8 +129,12 @@ fun ScaffoldSample(
           selectedIndex = selectedIndex,
           onItemClicked = { selectedIndex = it },
           modifier = Modifier
-            .hazeEffect(state = hazeState, style = style) {
+            .hazeEffect(state = hazeState) {
               this.inputScale = inputScale
+              blurEffect {
+                this.blurEnabled = blurEnabled
+                this.style = style
+              }
             }
             .fillMaxWidth(),
         )

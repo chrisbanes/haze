@@ -20,6 +20,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.blur.HazeBlurDefaults
+import dev.chrisbanes.haze.blur.HazeProgressive
+import dev.chrisbanes.haze.blur.HazeStyle
+import dev.chrisbanes.haze.blur.HazeTint
+import dev.chrisbanes.haze.blur.LocalHazeStyle
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -58,7 +64,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_blurEnabled() = runScreenshotTest {
-    var blurEnabled by mutableStateOf(HazeDefaults.blurEnabled())
+    var blurEnabled by mutableStateOf(HazeBlurDefaults.blurEnabled())
 
     setContent {
       ScreenshotTheme {
@@ -393,14 +399,15 @@ class HazeScreenshotTest : ScreenshotTest() {
 
           Box(
             modifier = Modifier
-              .hazeEffect(
-                state = outerHazeState,
-                style = HazeDefaults.style(
-                  backgroundColor = Color.Blue,
-                  tint = DefaultTint,
-                  blurRadius = 8.dp,
-                ),
-              )
+              .hazeEffect(state = outerHazeState) {
+                blurEffect {
+                  style = HazeBlurDefaults.style(
+                    backgroundColor = Color.Blue,
+                    tint = DefaultTint,
+                    blurRadius = 8.dp,
+                  )
+                }
+              }
               .align(Alignment.TopStart)
               .fillMaxWidth()
               .height(56.dp),
@@ -481,7 +488,7 @@ class HazeScreenshotTest : ScreenshotTest() {
     setContent {
       ScreenshotTheme {
         ContentAtEdges(
-          style = HazeDefaults.style(tint = DefaultTint, backgroundColor = Color.Transparent),
+          style = HazeBlurDefaults.style(tint = DefaultTint, backgroundColor = Color.Transparent),
         )
       }
     }

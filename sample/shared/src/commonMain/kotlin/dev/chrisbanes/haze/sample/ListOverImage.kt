@@ -32,16 +32,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.HazeDefaults
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-fun ListOverImage(navController: NavHostController, blurEnabled: Boolean = HazeDefaults.blurEnabled()) {
+fun ListOverImage(navController: NavHostController, blurEnabled: Boolean) {
   var imageIndex by remember { mutableIntStateOf(0) }
 
   MaterialTheme {
@@ -64,7 +64,7 @@ fun ListOverImage(navController: NavHostController, blurEnabled: Boolean = HazeD
       },
       modifier = Modifier.fillMaxSize(),
     ) { contentPadding ->
-      val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+      val hazeState = rememberHazeState()
 
       Box {
         AsyncImage(
@@ -92,11 +92,17 @@ fun ListOverImage(navController: NavHostController, blurEnabled: Boolean = HazeD
                 .fillParentMaxWidth()
                 .height(160.dp),
             ) {
+              val style = HazeMaterials.thin()
               Box(
                 modifier = Modifier
                   .fillMaxSize()
                   .padding(horizontal = 24.dp)
-                  .hazeEffect(state = hazeState, style = HazeMaterials.thin()),
+                  .hazeEffect(state = hazeState) {
+                    blurEffect {
+                      this.blurEnabled = blurEnabled
+                      this.style = style
+                    }
+                  },
               ) {
                 Text(
                   "Item $index",

@@ -57,6 +57,8 @@ rootProject.name = "haze-root"
 
 include(
   ":haze",
+  ":haze-blur",
+  ":haze-utils",
   ":haze-materials",
   ":haze-screenshot-tests",
   ":internal:benchmark",

@@ -36,11 +36,11 @@ If you do not provide an explicit style, the default values will provide basic b
 
 ## Styling
 
-Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](api/haze/dev.chrisbanes.haze/-haze-style/index.html) class, or the lambda block provided to `hazeEffect`.
+Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/index.html) class, or the lambda block provided to `hazeEffect`.
 
 Styles can be provided in a number of different ways:
 
-- [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
+- [LocalHazeStyle](api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html) composition local.
 - The style parameter on [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
 - By setting the relevant property in the optional [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/index.html) lambda `block`, passed into [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
 
@@ -73,8 +73,8 @@ As we a few different ways to set styling properties, it's important to know how
 Each styling property (such as `blurRadius`) is resolved seperately, and the order of precedence for each property is as follows, in order:
 
 - Value set in [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/index.html), if specified.
-- Value set in style provided to hazeEffect (or [HazeEffectScope.style](api/haze/dev.chrisbanes.haze/-haze-effect-scope/style.html)), if specified.
-- Value set in the [LocalHazeStyle](api/haze/dev.chrisbanes.haze/-local-haze-style.html) composition local.
+- Value set in style provided to hazeEffect (or [HazeEffectScope.style](api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/style.html)), if specified.
+- Value set in the [LocalHazeStyle](api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html) composition local.
 
 ### Styling properties
 
@@ -111,11 +111,11 @@ There are a number of different types of progressive effect supported in Haze:
 
 ### Linear Gradient
 
-Class documentation: [HazeProgressive.LinearGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-linear-gradient/index.html)
+Class documentation: [HazeProgressive.LinearGradient](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-linear-gradient/index.html)
 
 Linear gradients, usually vertical or horizontal, but you can set any angle.
 
-There are a few builder functions on `HazeProgressive`, enabling common use cases: [verticalGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/vertical-gradient.html) and [horizontalGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/horizontal-gradient.html).
+There are a few builder functions on `HazeProgressive`, enabling common use cases: [verticalGradient](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/vertical-gradient.html) and [horizontalGradient](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/horizontal-gradient.html).
 
 ```kotlin
 LargeTopAppBar(
@@ -128,7 +128,7 @@ LargeTopAppBar(
 
 ### Radial Gradient
 
-Class documentation: [HazeProgressive.RadialGradient](api/haze/dev.chrisbanes.haze/-haze-progressive/-radial-gradient/index.html)
+Class documentation: [HazeProgressive.RadialGradient](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-radial-gradient/index.html)
 
 A radial gradient, with a defined center and radius.
 
@@ -143,11 +143,11 @@ LargeTopAppBar(
 
 ### Custom Brush
 
-Class documentation: [HazeProgressive.Brush](api/haze/dev.chrisbanes.haze/-haze-progressive/-brush/index.html)
+Class documentation: [HazeProgressive.Brush](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-brush/index.html)
 
 A custom progressive effect, using a given [Brush](https://developer.android.com/develop/ui/compose/graphics/draw/brush) as the alpha mask for the entire effect.
 
-Commonly this will be used to create along with a custom Shader, so we have a builder function to make this easier: [forShader](api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/for-shader.html)
+Commonly this will be used to create along with a custom Shader, so we have a builder function to make this easier: [forShader](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/for-shader.html)
 
 ```kotlin
 LargeTopAppBar(

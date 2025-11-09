@@ -35,16 +35,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.HazeDefaults
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-fun BottomSheet(navController: NavHostController, blurEnabled: Boolean = HazeDefaults.blurEnabled()) {
+fun BottomSheet(navController: NavHostController, blurEnabled: Boolean) {
   var imageIndex by remember { mutableIntStateOf(0) }
 
   Scaffold(
@@ -65,8 +65,8 @@ fun BottomSheet(navController: NavHostController, blurEnabled: Boolean = HazeDef
       )
     },
     modifier = Modifier.fillMaxSize(),
-  ) { contentPadding ->
-    val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+  ) { _ ->
+    val hazeState = rememberHazeState()
 
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -97,9 +97,15 @@ fun BottomSheet(navController: NavHostController, blurEnabled: Boolean = HazeDef
         // Instead, we add it below
         dragHandle = null,
       ) {
+        val style = HazeMaterials.thin()
         Column(
           modifier = Modifier
-            .hazeEffect(state = hazeState, style = HazeMaterials.thin())
+            .hazeEffect(state = hazeState) {
+              blurEffect {
+                this.blurEnabled = blurEnabled
+                this.style = style
+              }
+            }
             .height(400.dp)
             .fillMaxWidth(),
         ) {

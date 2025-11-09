@@ -10,7 +10,9 @@ package dev.chrisbanes.haze {
     method public Object? getKey();
     method public Object? getWindowId();
     method public float getZIndex();
+    method public boolean isContentDrawing();
     property public androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
+    property @dev.chrisbanes.haze.InternalHazeApi public boolean isContentDrawing;
     property public Object? key;
     property public androidx.compose.ui.geometry.Offset positionOnScreen;
     property public androidx.compose.ui.geometry.Size size;
@@ -18,143 +20,78 @@ package dev.chrisbanes.haze {
     property public float zIndex;
   }
 
-  public final class HazeChildKt {
-    method @Deprecated @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeChild(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
-    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState? state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
-    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
-  }
-
-  @Deprecated public interface HazeChildScope extends dev.chrisbanes.haze.HazeEffectScope {
-  }
-
-  public final class HazeDefaults {
-    method public boolean blurEnabled();
-    method public dev.chrisbanes.haze.HazeStyle style(long backgroundColor, optional dev.chrisbanes.haze.HazeTint tint, optional float blurRadius, optional float noiseFactor);
-    method public dev.chrisbanes.haze.HazeTint tint(long color);
-    property public androidx.compose.ui.unit.Dp blurRadius;
-    property public androidx.compose.ui.draw.BlurredEdgeTreatment blurredEdgeTreatment;
-    property public static boolean drawContentBehind;
-    property public static float noiseFactor;
-    property public static float tintAlpha;
-    field public static final dev.chrisbanes.haze.HazeDefaults INSTANCE;
-    field public static final boolean drawContentBehind = false;
-    field public static final float noiseFactor = 0.15f;
-    field public static final float tintAlpha = 0.7f;
-  }
-
-  public final class HazeDialogKt {
-    method @Deprecated @androidx.compose.runtime.Composable public static void HazeDialog(dev.chrisbanes.haze.HazeState hazeState, kotlin.jvm.functions.Function0<kotlin.Unit> onDismissRequest, optional androidx.compose.ui.window.DialogProperties properties, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+  public final class HazeEffectKt {
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState? state, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeEffectNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeEffectScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {
     ctor public HazeEffectNode();
-    ctor public HazeEffectNode(optional dev.chrisbanes.haze.HazeState? state, optional dev.chrisbanes.haze.HazeStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    ctor public HazeEffectNode(optional dev.chrisbanes.haze.HazeState? state, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
-    method public float getAlpha();
+    method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
     method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? getBlock();
-    method public boolean getBlurEnabled();
     method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
     method public Boolean? getClipToAreasBounds();
     method public boolean getDrawContentBehind();
     method public Boolean? getExpandLayerBounds();
-    method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public boolean getForceInvalidateOnPreDraw();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
-    method public androidx.compose.ui.graphics.Brush? getMask();
-    method public float getNoiseFactor();
-    method public dev.chrisbanes.haze.HazeProgressive? getProgressive();
     method public dev.chrisbanes.haze.HazeState? getState();
-    method public dev.chrisbanes.haze.HazeStyle getStyle();
-    method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
     method public Object getTraverseKey();
+    method public dev.chrisbanes.haze.VisualEffect getVisualEffect();
     method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
     method public void onObservedReadsChanged();
-    method public void setAlpha(float);
     method public void setBlock(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>?);
-    method public void setBlurEnabled(boolean);
     method public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
     method public void setClipToAreasBounds(Boolean?);
     method public void setDrawContentBehind(boolean);
     method public void setExpandLayerBounds(Boolean?);
-    method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
     method public void setForceInvalidateOnPreDraw(boolean);
     method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
-    method public void setMask(androidx.compose.ui.graphics.Brush?);
-    method public void setNoiseFactor(float);
-    method public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
     method public void setState(dev.chrisbanes.haze.HazeState?);
-    method public void setStyle(dev.chrisbanes.haze.HazeStyle);
-    method public void setTints(java.util.List<dev.chrisbanes.haze.HazeTint>);
-    property public float alpha;
-    property public androidx.compose.ui.graphics.Color backgroundColor;
+    method public void setVisualEffect(dev.chrisbanes.haze.VisualEffect);
+    property public java.util.List<dev.chrisbanes.haze.HazeArea> areas;
     property public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block;
-    property public boolean blurEnabled;
-    property public androidx.compose.ui.unit.Dp blurRadius;
-    property public androidx.compose.ui.draw.BlurredEdgeTreatment blurredEdgeTreatment;
     property public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
     property public Boolean? clipToAreasBounds;
     property public boolean drawContentBehind;
     property public Boolean? expandLayerBounds;
-    property public dev.chrisbanes.haze.HazeTint fallbackTint;
     property public boolean forceInvalidateOnPreDraw;
     property public dev.chrisbanes.haze.HazeInputScale inputScale;
-    property public androidx.compose.ui.graphics.Brush? mask;
-    property public float noiseFactor;
-    property public dev.chrisbanes.haze.HazeProgressive? progressive;
+    property public androidx.compose.ui.geometry.Offset layerOffset;
+    property public androidx.compose.ui.geometry.Size layerSize;
+    property public androidx.compose.ui.geometry.Offset positionOnScreen;
     property public boolean shouldAutoInvalidate;
+    property public androidx.compose.ui.geometry.Size size;
     property public dev.chrisbanes.haze.HazeState? state;
-    property public dev.chrisbanes.haze.HazeStyle style;
-    property public java.util.List<dev.chrisbanes.haze.HazeTint> tints;
     property public Object traverseKey;
+    property public dev.chrisbanes.haze.VisualEffect visualEffect;
     field public static final String TAG = "HazeEffect";
   }
 
   public interface HazeEffectScope {
-    method public float getAlpha();
-    method public boolean getBlurEnabled();
     method public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
     method public Boolean? getClipToAreasBounds();
     method public boolean getDrawContentBehind();
     method public Boolean? getExpandLayerBounds();
-    method public dev.chrisbanes.haze.HazeTint getFallbackTint();
     method public boolean getForceInvalidateOnPreDraw();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
-    method public androidx.compose.ui.graphics.Brush? getMask();
-    method public float getNoiseFactor();
-    method public dev.chrisbanes.haze.HazeProgressive? getProgressive();
-    method public dev.chrisbanes.haze.HazeStyle getStyle();
-    method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
-    method public void setAlpha(float);
-    method public void setBlurEnabled(boolean);
+    method public dev.chrisbanes.haze.VisualEffect getVisualEffect();
     method public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
     method public void setClipToAreasBounds(Boolean?);
     method public void setDrawContentBehind(boolean);
     method public void setExpandLayerBounds(Boolean?);
-    method public void setFallbackTint(dev.chrisbanes.haze.HazeTint);
     method public void setForceInvalidateOnPreDraw(boolean);
     method public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
-    method public void setMask(androidx.compose.ui.graphics.Brush?);
-    method public void setNoiseFactor(float);
-    method public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
-    method public void setStyle(dev.chrisbanes.haze.HazeStyle);
-    method public void setTints(java.util.List<dev.chrisbanes.haze.HazeTint>);
-    property public abstract float alpha;
-    property public abstract androidx.compose.ui.graphics.Color backgroundColor;
-    property public abstract boolean blurEnabled;
-    property public abstract androidx.compose.ui.unit.Dp blurRadius;
-    property public abstract androidx.compose.ui.draw.BlurredEdgeTreatment blurredEdgeTreatment;
+    method public void setVisualEffect(dev.chrisbanes.haze.VisualEffect);
     property @dev.chrisbanes.haze.ExperimentalHazeApi public abstract kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
     property public abstract Boolean? clipToAreasBounds;
     property public abstract boolean drawContentBehind;
     property public abstract Boolean? expandLayerBounds;
-    property public abstract dev.chrisbanes.haze.HazeTint fallbackTint;
     property public abstract boolean forceInvalidateOnPreDraw;
     property @dev.chrisbanes.haze.ExperimentalHazeApi public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
-    property public abstract androidx.compose.ui.graphics.Brush? mask;
-    property public abstract float noiseFactor;
-    property public abstract dev.chrisbanes.haze.HazeProgressive? progressive;
-    property public abstract dev.chrisbanes.haze.HazeStyle style;
-    property public abstract java.util.List<dev.chrisbanes.haze.HazeTint> tints;
+    property public abstract dev.chrisbanes.haze.VisualEffect visualEffect;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public sealed interface HazeInputScale {
@@ -181,9 +118,8 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeKt {
-    method @Deprecated @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier haze(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
-    method @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState(optional boolean blurEnabled);
+    method @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState();
   }
 
   public final class HazeLogger {
@@ -193,56 +129,6 @@ package dev.chrisbanes.haze {
     method public void setEnabled(boolean);
     property public boolean enabled;
     field public static final dev.chrisbanes.haze.HazeLogger INSTANCE;
-  }
-
-  @androidx.compose.runtime.Immutable public sealed interface HazeProgressive {
-    field public static final dev.chrisbanes.haze.HazeProgressive.Companion Companion;
-  }
-
-  @kotlin.jvm.JvmInline public static final value class HazeProgressive.Brush implements dev.chrisbanes.haze.HazeProgressive {
-    ctor @KotlinOnly public HazeProgressive.Brush(androidx.compose.ui.graphics.Brush brush);
-    method public androidx.compose.ui.graphics.Brush getBrush();
-    property public androidx.compose.ui.graphics.Brush brush;
-  }
-
-  public static final class HazeProgressive.Companion {
-    method public inline androidx.compose.ui.graphics.Brush forShader(kotlin.jvm.functions.Function1<? super androidx.compose.ui.geometry.Size,? extends android.graphics.Shader> block);
-    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient horizontalGradient(optional androidx.compose.animation.core.Easing easing, optional float startX, optional float startIntensity, optional float endX, optional float endIntensity, optional boolean preferPerformance);
-    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient verticalGradient(optional androidx.compose.animation.core.Easing easing, optional float startY, optional float startIntensity, optional float endY, optional float endIntensity, optional boolean preferPerformance);
-  }
-
-  public static final class HazeProgressive.LinearGradient implements dev.chrisbanes.haze.HazeProgressive {
-    ctor public HazeProgressive.LinearGradient();
-    ctor @KotlinOnly public HazeProgressive.LinearGradient(optional androidx.compose.animation.core.Easing easing, optional androidx.compose.ui.geometry.Offset start, optional float startIntensity, optional androidx.compose.ui.geometry.Offset end, optional float endIntensity, optional boolean preferPerformance);
-    method public androidx.compose.animation.core.Easing component1();
-    method public float component3();
-    method public float component5();
-    method public boolean component6();
-    method public dev.chrisbanes.haze.HazeProgressive.LinearGradient copy-E2oHoeU(androidx.compose.animation.core.Easing easing, long start, float startIntensity, long end, float endIntensity, boolean preferPerformance);
-    method public androidx.compose.animation.core.Easing getEasing();
-    method public float getEndIntensity();
-    method public boolean getPreferPerformance();
-    method public float getStartIntensity();
-    property public androidx.compose.animation.core.Easing easing;
-    property public androidx.compose.ui.geometry.Offset end;
-    property public float endIntensity;
-    property public boolean preferPerformance;
-    property public androidx.compose.ui.geometry.Offset start;
-    property public float startIntensity;
-  }
-
-  @dev.chrisbanes.haze.Poko public static final class HazeProgressive.RadialGradient implements dev.chrisbanes.haze.HazeProgressive {
-    ctor public HazeProgressive.RadialGradient();
-    ctor @KotlinOnly public HazeProgressive.RadialGradient(optional androidx.compose.animation.core.Easing easing, optional androidx.compose.ui.geometry.Offset center, optional float centerIntensity, optional float radius, optional float radiusIntensity);
-    method public float getCenterIntensity();
-    method public androidx.compose.animation.core.Easing getEasing();
-    method public float getRadius();
-    method public float getRadiusIntensity();
-    property public androidx.compose.ui.geometry.Offset center;
-    property public float centerIntensity;
-    property public androidx.compose.animation.core.Easing easing;
-    property public float radius;
-    property public float radiusIntensity;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeSourceNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {
@@ -267,68 +153,30 @@ package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
-    ctor public HazeState(boolean initialBlurEnabled);
     method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
-    method public boolean getBlurEnabled();
-    method @Deprecated public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
-    method public void setBlurEnabled(boolean);
-    method @Deprecated public void setContentLayer(androidx.compose.ui.graphics.layer.GraphicsLayer?);
     property public java.util.List<dev.chrisbanes.haze.HazeArea> areas;
-    property public boolean blurEnabled;
-    property @Deprecated public androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
-    property @Deprecated public androidx.compose.ui.geometry.Offset positionOnScreen;
-  }
-
-  @androidx.compose.runtime.Immutable public final class HazeStyle {
-    ctor public HazeStyle();
-    ctor @KotlinOnly public HazeStyle(optional androidx.compose.ui.graphics.Color backgroundColor, optional dev.chrisbanes.haze.HazeTint? tint, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint fallbackTint);
-    ctor @KotlinOnly public HazeStyle(optional androidx.compose.ui.graphics.Color backgroundColor, optional java.util.List<dev.chrisbanes.haze.HazeTint> tints, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.HazeTint fallbackTint);
-    method public java.util.List<dev.chrisbanes.haze.HazeTint> component2();
-    method public float component4();
-    method public dev.chrisbanes.haze.HazeTint component5();
-    method public dev.chrisbanes.haze.HazeStyle copy-cq6XJ1M(long backgroundColor, java.util.List<dev.chrisbanes.haze.HazeTint!> tints, float blurRadius, float noiseFactor, dev.chrisbanes.haze.HazeTint fallbackTint);
-    method public dev.chrisbanes.haze.HazeTint getFallbackTint();
-    method public float getNoiseFactor();
-    method public java.util.List<dev.chrisbanes.haze.HazeTint> getTints();
-    property public androidx.compose.ui.graphics.Color backgroundColor;
-    property public androidx.compose.ui.unit.Dp blurRadius;
-    property public dev.chrisbanes.haze.HazeTint fallbackTint;
-    property public float noiseFactor;
-    property public java.util.List<dev.chrisbanes.haze.HazeTint> tints;
-    field public static final dev.chrisbanes.haze.HazeStyle.Companion Companion;
-  }
-
-  public static final class HazeStyle.Companion {
-    method public dev.chrisbanes.haze.HazeStyle getUnspecified();
-    property public dev.chrisbanes.haze.HazeStyle Unspecified;
-  }
-
-  public final class HazeStyleKt {
-    method public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.HazeStyle> getLocalHazeStyle();
-    property public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.HazeStyle> LocalHazeStyle;
-  }
-
-  @androidx.compose.runtime.Stable public final class HazeTint {
-    ctor @KotlinOnly public HazeTint(androidx.compose.ui.graphics.Brush brush, optional androidx.compose.ui.graphics.BlendMode blendMode);
-    ctor @KotlinOnly public HazeTint(androidx.compose.ui.graphics.Color color, optional androidx.compose.ui.graphics.BlendMode blendMode);
-    method public androidx.compose.ui.graphics.Brush? component3();
-    method public dev.chrisbanes.haze.HazeTint copy-39kzsgs(long color, int blendMode, androidx.compose.ui.graphics.Brush? brush);
-    method public androidx.compose.ui.graphics.Brush? getBrush();
-    method public boolean isSpecified();
-    property public androidx.compose.ui.graphics.BlendMode blendMode;
-    property public androidx.compose.ui.graphics.Brush? brush;
-    property public androidx.compose.ui.graphics.Color color;
-    property public boolean isSpecified;
-    field public static final dev.chrisbanes.haze.HazeTint.Companion Companion;
-  }
-
-  public static final class HazeTint.Companion {
-    method public dev.chrisbanes.haze.HazeTint getUnspecified();
-    property public androidx.compose.ui.graphics.BlendMode DefaultBlendMode;
-    property public dev.chrisbanes.haze.HazeTint Unspecified;
   }
 
   @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {
+  }
+
+  public interface VisualEffect {
+    method public default void attach(dev.chrisbanes.haze.HazeEffectNode node);
+    method public default float calculateInputScaleFactor(dev.chrisbanes.haze.HazeInputScale scale);
+    method public default void detach();
+    method public void drawEffect(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.HazeEffectNode node);
+    method public default androidx.compose.ui.geometry.Rect expandLayerRect(androidx.compose.ui.geometry.Rect rect);
+    method public default boolean needInvalidation();
+    method public default boolean preferClipToAreaBounds();
+    method public default boolean shouldClip();
+    method public default boolean shouldDrawContentBehind(androidx.compose.ui.graphics.drawscope.DrawScope);
+    method public default void update();
+    field public static final dev.chrisbanes.haze.VisualEffect.Companion Companion;
+  }
+
+  public static final class VisualEffect.Companion {
+    method public dev.chrisbanes.haze.VisualEffect getEmpty();
+    property public dev.chrisbanes.haze.VisualEffect Empty;
   }
 
 }

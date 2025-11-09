@@ -40,6 +40,7 @@ kotlin {
     commonMain {
       dependencies {
         api(compose.ui)
+        implementation(projects.hazeUtils)
         implementation(compose.foundation)
         implementation(libs.androidx.collection)
       }
@@ -94,6 +95,11 @@ kotlin {
       }
     }
   }
+
+  compilerOptions {
+    optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
+    optIn.add("dev.chrisbanes.haze.InternalHazeApi")
+  }
 }
 
 // https://youtrack.jetbrains.com/issue/CMP-4906
@@ -110,12 +116,6 @@ tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimu
 }
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeHostTest> {
   enabled = false
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
-  compilerOptions {
-    optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
-  }
 }
 
 poko {

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
@@ -42,7 +41,7 @@ class HazeTest {
             Spacer(
               Modifier
                 .size(30.dp)
-                .hazeEffect(hazeState, HazeDefaults.style(Color.Blue)) {
+                .hazeEffect(hazeState) {
                   canDrawArea = { true }
                 },
             )

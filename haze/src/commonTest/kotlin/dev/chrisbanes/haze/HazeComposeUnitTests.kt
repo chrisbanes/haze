@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
@@ -30,7 +29,7 @@ class HazeComposeUnitTests : ContextTest() {
     setContent {
       Box(Modifier.hazeSource(selectedHazeState.value)) {
         Spacer(
-          Modifier.hazeEffect(selectedHazeState.value, HazeDefaults.style(Color.Blue)),
+          Modifier.hazeEffect(selectedHazeState.value),
         )
       }
     }
@@ -62,7 +61,7 @@ class HazeComposeUnitTests : ContextTest() {
 
         Spacer(
           Modifier
-            .hazeEffect(hazeState, HazeDefaults.style(Color.Blue))
+            .hazeEffect(hazeState)
             .size(width = 30.dp, height = 0.dp),
         )
       }

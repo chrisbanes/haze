@@ -29,16 +29,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.HazeDefaults
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-fun ImagesList(navController: NavHostController, blurEnabled: Boolean = HazeDefaults.blurEnabled()) {
+fun ImagesList(navController: NavHostController, blurEnabled: Boolean) {
   MaterialTheme {
     Scaffold(
       topBar = {
@@ -66,7 +66,7 @@ fun ImagesList(navController: NavHostController, blurEnabled: Boolean = HazeDefa
       ) {
         items(50) { index ->
           key(index) {
-            val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+            val hazeState = rememberHazeState()
 
             Box(
               modifier = Modifier
@@ -82,12 +82,18 @@ fun ImagesList(navController: NavHostController, blurEnabled: Boolean = HazeDefa
                   .fillMaxSize(),
               )
 
+              val style = HazeMaterials.thin()
               Box(
                 modifier = Modifier
                   .fillMaxSize(0.8f)
                   .align(Alignment.Center)
                   .clip(RoundedCornerShape(4.dp))
-                  .hazeEffect(state = hazeState, style = HazeMaterials.thin()),
+                  .hazeEffect(state = hazeState) {
+                    blurEffect {
+                      this.blurEnabled = blurEnabled
+                      this.style = style
+                    }
+                  },
               ) {
                 Text(
                   "Image $index",
