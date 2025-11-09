@@ -16,12 +16,6 @@ internal expect fun LayoutCoordinates.positionForHaze(): Offset
 
 internal expect fun CompositionLocalConsumerModifierNode.getWindowId(): Any?
 
-@InternalHazeApi
-public fun ceil(size: Size): Size = Size(width = ceil(size.width), height = ceil(size.height))
-
-@InternalHazeApi
-public fun Offset.round(): Offset = Offset(x.roundToInt().toFloat(), y.roundToInt().toFloat())
-
 internal inline fun <T> T.letIf(condition: Boolean, block: (T) -> T): T {
   return if (condition) block(this) else this
 }

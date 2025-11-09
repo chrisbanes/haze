@@ -35,8 +35,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
-import dev.chrisbanes.haze.ceil
-import dev.chrisbanes.haze.round
 import kotlin.math.abs
 
 internal actual fun createRenderEffect(

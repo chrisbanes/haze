@@ -20,9 +20,9 @@ When running on these versions of Android, Haze needs to use a few workarounds:
 
 #### HazeProgressive
 
-Only linear gradient [HazeProgressive](api/haze/dev.chrisbanes.haze/-haze-progressive/index.html) effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.
+Only linear gradient [HazeProgressive](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/index.html) effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.
 
-You can disable this behavior by setting the [preferPerformance](api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/index.html) property. When set to true, the progressive 'effect' will instead be drawn via a mask:
+You can disable this behavior by setting the [preferPerformance](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/index.html) property. When set to true, the progressive 'effect' will instead be drawn via a mask:
 
 ```kotlin hl_lines="6"
 LargeTopAppBar(

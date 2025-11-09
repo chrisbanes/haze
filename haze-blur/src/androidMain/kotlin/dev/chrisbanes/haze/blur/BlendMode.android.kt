@@ -6,11 +6,9 @@ package dev.chrisbanes.haze.blur
 import android.graphics.BlendMode as PlatformBlendMode
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.BlendMode
-import dev.chrisbanes.haze.InternalHazeApi
 
-@InternalHazeApi
 @RequiresApi(29)
-public fun BlendMode.toAndroidBlendMode(): PlatformBlendMode = when {
+internal fun BlendMode.toAndroidBlendMode(): PlatformBlendMode = when {
   this == BlendMode.Clear -> PlatformBlendMode.CLEAR
   this == BlendMode.Color -> PlatformBlendMode.COLOR
   this == BlendMode.ColorBurn -> PlatformBlendMode.COLOR_BURN

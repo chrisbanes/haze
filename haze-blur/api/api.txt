@@ -1,10 +1,6 @@
 // Signature format: 4.0
 package dev.chrisbanes.haze.blur {
 
-  public final class BlendMode_androidKt {
-    method @RequiresApi(29) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.BlendMode toAndroidBlendMode(int);
-  }
-
   public final class BlurVisualEffect implements dev.chrisbanes.haze.VisualEffect {
     ctor public BlurVisualEffect();
     method public void drawEffect(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.HazeEffectNode node);
@@ -131,7 +127,6 @@ package dev.chrisbanes.haze.blur {
 
   public final class HazeStyleKt {
     method public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeStyle> getLocalHazeStyle();
-    method @dev.chrisbanes.haze.InternalHazeApi public static inline float takeOrElse(float, kotlin.jvm.functions.Function0<java.lang.Float> block);
     property public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeStyle> LocalHazeStyle;
   }
 

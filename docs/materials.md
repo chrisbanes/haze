@@ -1,4 +1,4 @@
-We provide off of the shelf implementations of [HazeStyle](api/haze/dev.chrisbanes.haze/-haze-style/index.html)s which implement 'materials' of various styles.
+We provide off of the shelf implementations of [HazeStyle](api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/index.html)s which implement 'materials' of various styles.
 
 ## Download
 
@@ -20,7 +20,7 @@ A class which contains functions to build HazeStyles which implement 'material-l
 
 ![](./media/hazematerials.webp)
 
-Class reference: [HazeMaterials](api/haze-materials/dev.chrisbanes.haze.materials/-haze-materials/index.html).
+Class reference: [HazeMaterials](api/haze-materials/dev.chrisbanes.haze.blur.materials/-haze-materials/index.html).
 
 ### CupertinoMaterials
 
@@ -30,7 +30,7 @@ The primary use case for using these is for when aiming for consistency with nat
 
 ![](./media/cupertinomaterials.webp)
 
-Class reference: [CupertinoMaterials](api/haze-materials/dev.chrisbanes.haze.materials/-cupertino-materials/index.html).
+Class reference: [CupertinoMaterials](api/haze-materials/dev.chrisbanes.haze.blur.materials/-cupertino-materials/index.html).
 
 ### FluentMaterials
 
@@ -40,7 +40,7 @@ The primary use case for using these is for when aiming for consistency with nat
 
 ![](./media/fluentmaterials.webp)
 
-Class reference: [FluentMaterials](api/haze-materials/dev.chrisbanes.haze.materials/-fluent-materials/index.html).
+Class reference: [FluentMaterials](api/haze-materials/dev.chrisbanes.haze.blur.materials/-fluent-materials/index.html).
 
 ## Usage
 

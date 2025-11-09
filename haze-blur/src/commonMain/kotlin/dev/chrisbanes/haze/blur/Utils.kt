@@ -5,7 +5,9 @@ package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import kotlin.math.ceil
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 
 internal fun calculateLength(
   start: Offset,
@@ -25,3 +27,7 @@ internal fun Size.expand(expansionWidth: Float, expansionHeight: Float): Size {
 internal fun lerp(start: Float, stop: Float, fraction: Float): Float {
   return start + fraction * (stop - start)
 }
+
+internal fun ceil(size: Size): Size = Size(width = ceil(size.width), height = ceil(size.height))
+
+internal fun Offset.round(): Offset = Offset(x.roundToInt().toFloat(), y.roundToInt().toFloat())

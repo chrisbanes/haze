@@ -172,11 +172,6 @@ package dev.chrisbanes.haze {
   @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {
   }
 
-  public final class UtilsKt {
-    method @dev.chrisbanes.haze.InternalHazeApi public static long ceil(long size);
-    method @dev.chrisbanes.haze.InternalHazeApi public static long round(long);
-  }
-
   public interface VisualEffect {
     method public default void attach(dev.chrisbanes.haze.HazeEffectNode node);
     method public default float calculateInputScaleFactor(dev.chrisbanes.haze.HazeInputScale scale);

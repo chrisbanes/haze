@@ -98,6 +98,5 @@ public data class HazeTint internal constructor(
   public val isSpecified: Boolean get() = color.isSpecified || brush != null
 }
 
-@InternalHazeApi
-public inline fun Float.takeOrElse(block: () -> Float): Float =
+internal inline fun Float.takeOrElse(block: () -> Float): Float =
   if (this in 0f..1f) this else block()
