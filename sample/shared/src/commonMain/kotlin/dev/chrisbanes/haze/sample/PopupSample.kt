@@ -37,17 +37,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.navigation.NavHostController
-import dev.chrisbanes.haze.HazeDefaults
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-fun PopupSample(navController: NavHostController, blurEnabled: Boolean = HazeDefaults.blurEnabled()) {
+fun PopupSample(navController: NavHostController, blurEnabled: Boolean) {
   Scaffold(
     modifier = Modifier.fillMaxSize(),
     topBar = {
@@ -63,7 +63,7 @@ fun PopupSample(navController: NavHostController, blurEnabled: Boolean = HazeDef
       )
     },
   ) { innerPadding ->
-    val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+    val hazeState = rememberHazeState()
     var showPopup by remember { mutableStateOf(false) }
 
     if (showPopup) {
@@ -79,8 +79,14 @@ fun PopupSample(navController: NavHostController, blurEnabled: Boolean = HazeDef
           color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
           contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
+          val style = HazeMaterials.regular()
           Box(
-            Modifier.hazeEffect(state = hazeState, style = HazeMaterials.regular()),
+            Modifier.hazeEffect(state = hazeState) {
+              blurEffect {
+                this.blurEnabled = blurEnabled
+                this.style = style
+              }
+            },
           ) {
             // empty
           }

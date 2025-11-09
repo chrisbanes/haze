@@ -1,15 +1,14 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(InternalHazeApi::class)
+
 package dev.chrisbanes.haze
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -22,8 +21,6 @@ import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -227,12 +224,6 @@ public class HazeSourceNode(
     area.reset()
   }
 
-  private fun HazeArea.reset() {
-    positionOnScreen = Offset.Unspecified
-    size = Size.Unspecified
-    contentDrawing = false
-  }
-
   internal fun HazeArea.releaseLayer() {
     contentLayer?.let { layer ->
       HazeLogger.d(TAG) { "Releasing content layer: $layer" }
@@ -244,29 +235,6 @@ public class HazeSourceNode(
   private companion object {
     const val TAG = "HazeSource"
   }
-}
-
-internal expect fun isBlurEnabledByDefault(): Boolean
-
-internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint {
-  if (brush != null) {
-    // We can't boost brush tints
-    return this
-  }
-
-  // For color, we can boost the alpha
-  val resolved = blurRadius.takeOrElse { HazeDefaults.blurRadius }
-  val boosted = color.boostAlphaForBlurRadius(resolved)
-  return copy(color = boosted)
-}
-
-/**
- * In this implementation, the only tool we have is translucency.
- */
-private fun Color.boostAlphaForBlurRadius(blurRadius: Dp): Color {
-  // We treat a blur radius of 72.dp as near 'opaque', and linearly boost using that
-  val factor = 1 + (blurRadius.value / 72)
-  return copy(alpha = (alpha * factor).coerceAtMost(1f))
 }
 
 internal expect fun HazeSourceNode.clearHazeAreaLayerOnStop()

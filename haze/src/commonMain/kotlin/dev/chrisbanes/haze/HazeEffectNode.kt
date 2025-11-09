@@ -1,7 +1,7 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(ExperimentalHazeApi::class)
+@file:OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 
 package dev.chrisbanes.haze
 
@@ -68,7 +68,7 @@ public class HazeEffectNode(
       }
     }
 
-  internal var positionOnScreen: Offset = Offset.Unspecified
+  private var _positionOnScreen: Offset = Offset.Unspecified
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "positionOnScreen changed. Current: $field. New: $value" }
@@ -76,6 +76,8 @@ public class HazeEffectNode(
         field = value
       }
     }
+
+  public val positionOnScreen: Offset get() = _positionOnScreen
 
   internal var rootBoundsOnScreen: Rect = Rect.Zero
     set(value) {
@@ -88,7 +90,7 @@ public class HazeEffectNode(
 
   private val areaOffsets = MutableObjectLongMap<HazeArea>()
 
-  internal var size: Size = Size.Unspecified
+  private var _size: Size = Size.Unspecified
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "size changed. Current: $field. New: $value" }
@@ -97,7 +99,8 @@ public class HazeEffectNode(
       }
     }
 
-  internal var layerSize: Size = Size.Unspecified
+  public val size: Size get() = _size
+  private var _layerSize: Size = Size.Unspecified
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "layerSize changed. Current: $field. New: $value" }
@@ -106,7 +109,10 @@ public class HazeEffectNode(
       }
     }
 
-  internal var layerOffset: Offset = Offset.Zero
+  public val layerSize: Size
+    get() = _layerSize
+
+  private var _layerOffset: Offset = Offset.Zero
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "layerOffset changed. Current: $field. New: $value" }
@@ -115,9 +121,12 @@ public class HazeEffectNode(
       }
     }
 
+  public val layerOffset: Offset
+    get() = _layerOffset
+
   internal var windowId: Any? = null
 
-  internal var areas: List<HazeArea> = emptyList()
+  private var _areas: List<HazeArea> = emptyList()
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "backgroundAreas changed. Current $field. New: $value" }
@@ -135,6 +144,8 @@ public class HazeEffectNode(
       }
     }
 
+  public val areas: List<HazeArea> get() = _areas
+
   private val contentDrawArea by lazy { HazeArea() }
 
   override var canDrawArea: ((HazeArea) -> Boolean)? = null
@@ -145,20 +156,19 @@ public class HazeEffectNode(
       }
     }
 
-  public override var visualEffect: dev.chrisbanes.haze.effect.VisualEffect =
-    dev.chrisbanes.haze.effect.BlurVisualEffect()
+  public override var visualEffect: VisualEffect = VisualEffect.Empty
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
-        // attach new VisualEffect
-        value.attach(this)
         // detach old VisualEffect
         field.detach()
         field = value
+        // attach new VisualEffect
+        value.attach(this)
       }
     }
 
-  override var drawContentBehind: Boolean = HazeDefaults.drawContentBehind
+  override var drawContentBehind: Boolean = false
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "drawContentBehind changed. Current $field. New: $value" }
@@ -193,7 +203,9 @@ public class HazeEffectNode(
         field = value
       }
     }
-  private val areaPreDrawListener by unsynchronizedLazy { OnPreDrawListener(::invalidateDraw) }
+  private val areaPreDrawListener by lazy(LazyThreadSafetyMode.NONE) {
+    OnPreDrawListener(::invalidateDraw)
+  }
 
   internal fun update() {
     onObservedReadsChanged()
@@ -235,8 +247,8 @@ public class HazeEffectNode(
       return
     }
 
-    positionOnScreen = coordinates.positionForHaze()
-    size = coordinates.size.toSize()
+    _positionOnScreen = coordinates.positionForHaze()
+    _size = coordinates.size.toSize()
     windowId = getWindowId()
 
     val rootLayoutCoords = coordinates.findRootCoordinates()
@@ -262,7 +274,15 @@ public class HazeEffectNode(
         return
       }
 
-      if (size.isSpecified && layerSize.isSpecified) {
+      for (area in areas) {
+        require(!area.isContentDrawing) {
+          "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
+            "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
+            "Alternatively you can use can `canDrawArea` to to filter out parent areas."
+        }
+      }
+
+      if (this@HazeEffectNode.size.isSpecified && this@HazeEffectNode.layerSize.isSpecified) {
         if (state != null) {
           if (areas.isNotEmpty()) {
             // If the state is not null and we have some areas, let's perform background blurring
@@ -285,8 +305,7 @@ public class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
-          if (drawContentBehind) {
-            // We need to draw the content for scrims
+          if (drawContentBehind || with(visualEffect) { shouldDrawContentBehind() }) {
             drawLayer(contentLayer)
           }
           with(visualEffect) {
@@ -314,12 +333,12 @@ public class HazeEffectNode(
 
     val backgroundBlurring = state != null
 
-    areas.forEach { area ->
+    _areas.forEach { area ->
       // Remove our pre draw listener from the current areas
       area.preDrawListeners -= areaPreDrawListener
     }
 
-    areas = if (backgroundBlurring) {
+    _areas = if (backgroundBlurring) {
       val ancestorSourceNode =
         (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
           ?.takeIf { it.state == this.state }
@@ -378,21 +397,19 @@ public class HazeEffectNode(
         }
         .intersect(rootBoundsOnScreen)
 
-      layerSize = Size(
+      _layerSize = Size(
         width = clippedLayerBounds.width.coerceAtLeast(0f),
         height = clippedLayerBounds.height.coerceAtLeast(0f),
       )
-      layerOffset = positionOnScreen - clippedLayerBounds.topLeft
-    } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip()) {
-      if (shouldExpandLayer()) {
-        val rect = size.toRect()
-        val expanded = visualEffect.expandLayerRect(rect)
-        layerSize = expanded.size
-        layerOffset = rect.topLeft - expanded.topLeft
-      } else {
-        layerSize = size
-        layerOffset = Offset.Zero
-      }
+      _layerOffset = positionOnScreen - clippedLayerBounds.topLeft
+    } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
+      val rect = size.toRect()
+      val expanded = visualEffect.expandLayerRect(rect)
+      _layerSize = expanded.size
+      _layerOffset = rect.topLeft - expanded.topLeft
+    } else {
+      _layerSize = size
+      _layerOffset = Offset.Zero
     }
 
     invalidateIfNeeded()
@@ -476,58 +493,25 @@ internal fun HazeEffectNode.shouldUsePreDrawListener(): Boolean {
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {
-  const val BlurEnabled: Int = 0b1
-  const val InputScale = BlurEnabled shl 1
-  const val ScreenPosition = InputScale shl 1
-  const val AreaOffsets = ScreenPosition shl 1
-  const val Size = AreaOffsets shl 1
-  const val BlurRadius = Size shl 1
-  const val NoiseFactor = BlurRadius shl 1
-  const val Mask = NoiseFactor shl 1
-  const val BackgroundColor = Mask shl 1
-  const val Tints = BackgroundColor shl 1
-  const val FallbackTint = Tints shl 1
-  const val Alpha = FallbackTint shl 1
-  const val Progressive = Alpha shl 1
-  const val Areas = Progressive shl 1
-  const val LayerSize = Areas shl 1
-  const val LayerOffset = LayerSize shl 1
-  const val BlurredEdgeTreatment = LayerOffset shl 1
-  const val DrawContentBehind = BlurredEdgeTreatment shl 1
-  const val ClipToAreas = DrawContentBehind shl 1
-  const val ExpandLayer = ClipToAreas shl 1
-  const val ForcePreDraw = ExpandLayer shl 1
+  const val InputScale: Int = 0b1
+  const val ScreenPosition: Int = InputScale shl 1
+  const val AreaOffsets: Int = ScreenPosition shl 1
+  const val Size: Int = AreaOffsets shl 1
+  const val Areas: Int = Size shl 1
+  const val LayerSize: Int = Areas shl 1
+  const val LayerOffset: Int = LayerSize shl 1
+  const val DrawContentBehind: Int = LayerOffset shl 1
+  const val ClipToAreas: Int = DrawContentBehind shl 1
+  const val ExpandLayer: Int = ClipToAreas shl 1
+  const val ForcePreDraw: Int = ExpandLayer shl 1
 
-  const val RenderEffectAffectingFlags =
-    BlurEnabled or
-      InputScale or
-      AreaOffsets or
-      Size or
-      LayerSize or
-      LayerOffset or
-      BlurRadius or
-      NoiseFactor or
-      Mask or
-      Tints or
-      FallbackTint or
-      Progressive or
-      BlurredEdgeTreatment or
-      ClipToAreas or
-      ExpandLayer
-
-  const val InvalidateFlags =
-    RenderEffectAffectingFlags or // Eventually we'll move this out of invalidation
-      BlurEnabled or
-      InputScale or
+  const val InvalidateFlags: Int =
+    InputScale or
       Size or
       ScreenPosition or
       LayerSize or
       LayerOffset or
-      BackgroundColor or
-      Progressive or
       Areas or
-      Alpha or
-      BlurredEdgeTreatment or
       DrawContentBehind or
       ClipToAreas or
       ExpandLayer or
@@ -535,22 +519,15 @@ internal object DirtyFields {
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
-      if (BlurEnabled in dirtyTracker) add("BlurEnabled")
       if (InputScale in dirtyTracker) add("InputScale")
       if (ScreenPosition in dirtyTracker) add("ScreenPosition")
-      if (AreaOffsets in dirtyTracker) add("RelativePosition")
+      if (AreaOffsets in dirtyTracker) add("AreaOffsets")
       if (Size in dirtyTracker) add("Size")
       if (LayerSize in dirtyTracker) add("LayerSize")
       if (LayerOffset in dirtyTracker) add("LayerOffset")
-      if (BlurRadius in dirtyTracker) add("BlurRadius")
-      if (NoiseFactor in dirtyTracker) add("NoiseFactor")
-      if (Mask in dirtyTracker) add("Mask")
-      if (BackgroundColor in dirtyTracker) add("BackgroundColor")
-      if (Tints in dirtyTracker) add("Tints")
-      if (FallbackTint in dirtyTracker) add("FallbackTint")
-      if (Alpha in dirtyTracker) add("Alpha")
-      if (Progressive in dirtyTracker) add("Progressive")
       if (Areas in dirtyTracker) add("Areas")
+      if (DrawContentBehind in dirtyTracker) add("DrawContentBehind")
+      if (ClipToAreas in dirtyTracker) add("ClipToAreas")
       if (ExpandLayer in dirtyTracker) add("ExpandLayer")
       if (ForcePreDraw in dirtyTracker) add("ForcePreDraw")
     }

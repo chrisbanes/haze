@@ -7,8 +7,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
-import dev.chrisbanes.haze.effect.BlurEffectConfig
-import dev.chrisbanes.haze.effect.BlurVisualEffect
 import kotlin.jvm.JvmInline
 
 @Deprecated(
@@ -25,18 +23,8 @@ public interface HazeEffectScope {
   /**
    * The visual effect implementation used by this node. Clients can replace or configure
    * the effect directly.
-   *
-   * Use [blurEffect] to easily configure a [BlurVisualEffect]:
-   * ```
-   * Modifier.hazeEffect(state) {
-   *   blurEffect {
-   *     blurRadius = 20.dp
-   *     tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
-   *   }
-   * }
-   * ```
    */
-  public var visualEffect: dev.chrisbanes.haze.effect.VisualEffect
+  public var visualEffect: VisualEffect
 
   /**
    * The input scale factor, which needs to be in the range 0 < x <= 1.
@@ -75,9 +63,7 @@ public interface HazeEffectScope {
 
   /**
    * Whether to draw the content behind the blurred effect for foreground blurring. This is
-   * sometimes useful when you're using a mask or progressive effect.
-   *
-   * Defaults to `false` via [HazeDefaults.drawContentBehind].
+   * sometimes useful when you're using a mask or progressive effect. Defaults to `false`.
    *
    * This flag has no effect when used with background blurring.
    */
@@ -165,144 +151,49 @@ public sealed interface HazeInputScale {
   }
 }
 
-@Deprecated(
-  message = "Renamed to Modifier.hazeEffect()",
-  replaceWith = ReplaceWith("hazeEffect(state, style, block)", "dev.chrisbanes.haze.hazeEffect"),
-)
-@Stable
-public fun Modifier.hazeChild(
-  state: HazeState,
-  style: HazeStyle = HazeStyle.Unspecified,
-  block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = hazeEffect(state, style, block)
-
 /**
  * Draw the 'haze' effect behind the attached node using a pre-configured [VisualEffect].
  *
- * This version allows you to provide a custom [VisualEffect] implementation directly:
- *
  * ```
- * val effect = BlurVisualEffect().apply {
- *   blurRadius = 20.dp
- *   tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
+ * Modifier.hazeEffect(state, effect = effect) {
+ *   visualEffect = BlurVisualEffect().apply {
+ *     blurRadius = 20.dp
+ *     tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
+ *   }
  * }
- * Modifier.hazeEffect(state, effect = effect)
  * ```
  *
  * @param state The [HazeState] to observe for background content.
- * @param effect The [VisualEffect] to use. Defaults to a new [BlurVisualEffect].
- * @param style The [HazeStyle] to use on this content.
  * @param block Optional configuration block for additional effect scope properties.
  */
 @Stable
 public fun Modifier.hazeEffect(
   state: HazeState?,
-  effect: dev.chrisbanes.haze.effect.VisualEffect = BlurVisualEffect(),
-  style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = this then HazeEffectNodeElement(
-  state = state,
-  style = style,
-  effect = effect,
-  block = block,
-)
-
-/**
- * Draw the 'haze' effect behind the attached node.
- *
- * This version of the modifier is the primary entry for 'background blurring', where the
- * modifier node will read the attached [HazeArea]s in the given [state], and then draw
- * those (blurred) as a background. This layout's content will be drawn on top.
- *
- * @param state The [HazeState] to observe for background content.
- * @param style The [HazeStyle] to use on this content. Any specified values in the given
- * style will override that value from the default style, provided to [hazeSource].
- * @param block block on HazeChildScope where you define the styling and visual properties.
- */
-@Stable
-public fun Modifier.hazeEffect(
-  state: HazeState?,
-  style: HazeStyle = HazeStyle.Unspecified,
-  block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = hazeEffect(
-  state = state,
-  effect = BlurVisualEffect(),
-  style = style,
-  block = block,
-)
+): Modifier = this then HazeEffectNodeElement(state = state, block = block)
 
 /**
  * Draw the 'haze' effect, using this node's content as the source, with a pre-configured [VisualEffect].
  *
- * This version allows you to provide a custom [VisualEffect] implementation directly.
- *
- * @param effect The [VisualEffect] to use. Defaults to a new [BlurVisualEffect].
- * @param style The [HazeStyle] to use on this content.
  * @param block Optional configuration block for additional effect scope properties.
  */
 @Stable
 public fun Modifier.hazeEffect(
-  effect: dev.chrisbanes.haze.effect.VisualEffect = BlurVisualEffect(),
-  style: HazeStyle = HazeStyle.Unspecified,
   block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = this then HazeEffectNodeElement(
-  state = null,
-  style = style,
-  effect = effect,
-  block = block,
-)
-
-/**
- * Draw the 'haze' effect, using this node's content as the source.
- *
- * This version of the modifier is the entry point for 'content blurring', where the
- * modifier node will blurred any content drawn into **this** layout node. It is
- * similar to the `Modifier.blur` modifier available in Compose Foundation, but you get all of
- * the styling and features which provides on top.
- *
- * @param style The [HazeStyle] to use on this content. Any specified values in the given
- * style will override that value from the default style, provided to [hazeSource].
- * @param block block on HazeChildScope where you define the styling and visual properties.
- */
-@Deprecated(
-  message = "Use overload with explicit effect parameter for better type safety",
-  replaceWith = ReplaceWith(
-    "hazeEffect(effect = BlurVisualEffect(), style = style, block = block)",
-    "dev.chrisbanes.haze.effect.BlurVisualEffect",
-  ),
-  level = DeprecationLevel.HIDDEN,
-)
-@Stable
-public fun Modifier.hazeEffect(
-  style: HazeStyle = HazeStyle.Unspecified,
-  block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = hazeEffect(
-  effect = BlurVisualEffect(),
-  style = style,
-  block = block,
-)
+): Modifier = this then HazeEffectNodeElement(state = null, block = block)
 
 private data class HazeEffectNodeElement(
-  public val state: HazeState?,
-  public val style: HazeStyle = HazeStyle.Unspecified,
-  public val effect: dev.chrisbanes.haze.effect.VisualEffect = BlurVisualEffect(),
-  public val block: (HazeEffectScope.() -> Unit)? = null,
+  val state: HazeState?,
+  val block: (HazeEffectScope.() -> Unit)? = null,
 ) : ModifierNodeElement<HazeEffectNode>() {
 
   override fun create(): HazeEffectNode = HazeEffectNode(
     state = state,
     block = block,
-  ).apply {
-    visualEffect = effect
-    // Apply style to BlurVisualEffect if applicable
-    (effect as? dev.chrisbanes.haze.effect.BlurEffectConfig)?.style = style
-  }
+  )
 
   override fun update(node: HazeEffectNode) {
     node.state = state
-    node.visualEffect = effect
-    // Apply style to BlurVisualEffect if applicable
-    (effect as? dev.chrisbanes.haze.effect.BlurEffectConfig)?.style = style
     node.block = block
     node.update()
   }
@@ -310,33 +201,4 @@ private data class HazeEffectNodeElement(
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeEffect"
   }
-}
-
-/**
- * Configures the [BlurVisualEffect] for this effect scope, allowing direct access to blur-specific
- * properties without casting.
- *
- * This extension function simplifies configuration when you know you're working with a blur effect:
- *
- * ```
- * Modifier.hazeEffect(state) {
- *   blurEffect {
- *     blurRadius = 20.dp
- *     tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
- *     noiseFactor = 0.15f
- *   }
- * }
- * ```
- *
- * If the current [visualEffect] is not a [BlurVisualEffect], this
- * function will replace it with a new instance and then configure it.
- *
- * @param block Configuration block that receives the [BlurEffectConfig]
- */
-public inline fun HazeEffectScope.blurEffect(
-  block: BlurEffectConfig.() -> Unit,
-) {
-  val effect = visualEffect as? BlurEffectConfig
-    ?: BlurVisualEffect().also { visualEffect = it }
-  effect.block()
 }

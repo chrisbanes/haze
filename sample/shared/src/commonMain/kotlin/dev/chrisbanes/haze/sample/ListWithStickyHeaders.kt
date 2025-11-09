@@ -28,12 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import dev.chrisbanes.haze.rememberHazeState
 
 @OptIn(
@@ -43,8 +43,8 @@ import dev.chrisbanes.haze.rememberHazeState
   ExperimentalFoundationApi::class,
 )
 @Composable
-fun ListWithStickyHeaders(navController: NavHostController, blurEnabled: Boolean = HazeDefaults.blurEnabled()) {
-  val hazeState = rememberHazeState(blurEnabled = blurEnabled)
+fun ListWithStickyHeaders(navController: NavHostController, blurEnabled: Boolean) {
+  val hazeState = rememberHazeState()
   val listState = rememberLazyListState()
 
   val style = HazeMaterials.regular(MaterialTheme.colorScheme.surface)
@@ -76,8 +76,12 @@ fun ListWithStickyHeaders(navController: NavHostController, blurEnabled: Boolean
           Box(
             modifier = Modifier
               .fillMaxWidth()
-              .hazeEffect(state = hazeState, style = style) {
-                this.inputScale = HazeInputScale.Auto
+              .hazeEffect(state = hazeState) {
+                inputScale = HazeInputScale.Auto
+                blurEffect {
+                  this.blurEnabled = blurEnabled
+                  this.style = style
+                }
               },
           ) {
             Text("Header: $group", modifier = Modifier.padding(16.dp))

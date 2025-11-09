@@ -1,0 +1,27 @@
+// Copyright 2025, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze.blur
+
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import kotlin.math.hypot
+
+internal fun calculateLength(
+  start: Offset,
+  end: Offset,
+  size: Size,
+): Float {
+  val (startX, startY) = start
+  val endX = end.x.coerceAtMost(size.width)
+  val endY = end.y.coerceAtMost(size.height)
+  return hypot(endX - startX, endY - startY)
+}
+
+internal fun Size.expand(expansionWidth: Float, expansionHeight: Float): Size {
+  return Size(width = width + expansionWidth, height = height + expansionHeight)
+}
+
+internal fun lerp(start: Float, stop: Float, fraction: Float): Float {
+  return start + fraction * (stop - start)
+}

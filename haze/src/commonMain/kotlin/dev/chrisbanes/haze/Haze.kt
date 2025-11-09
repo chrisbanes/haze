@@ -1,6 +1,8 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(InternalHazeApi::class)
+
 package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Composable
@@ -13,40 +15,22 @@ import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
 @Composable
-public fun rememberHazeState(blurEnabled: Boolean = HazeDefaults.blurEnabled()): HazeState {
-  return remember {
-    HazeState(initialBlurEnabled = blurEnabled)
-  }.apply {
-    this.blurEnabled = blurEnabled
-  }
-}
+public fun rememberHazeState(): HazeState = remember { HazeState() }
 
 @Stable
-public class HazeState public constructor(initialBlurEnabled: Boolean) {
+public class HazeState {
   private val _areas = mutableStateListOf<HazeArea>()
   public val areas: List<HazeArea> get() = _areas
-
-  public constructor() : this(initialBlurEnabled = HazeDefaults.blurEnabled())
-
-  /**
-   * Whether blurring is enabled or not. This can be overridden on each [hazeEffect]
-   * via the [HazeEffectScope.blurEnabled] property.
-   */
-  public var blurEnabled: Boolean by mutableStateOf(initialBlurEnabled)
 
   internal fun addArea(area: HazeArea) {
     _areas += area
@@ -107,7 +91,11 @@ public class HazeArea {
       else -> null
     }
 
-  internal var contentDrawing = false
+  internal var contentDrawing: Boolean = false
+
+  @InternalHazeApi
+  public val isContentDrawing: Boolean
+    get() = contentDrawing
 
   public override fun toString(): String = buildString {
     append("HazeArea(")
@@ -115,9 +103,15 @@ public class HazeArea {
     append("size=$size, ")
     append("zIndex=$zIndex, ")
     append("contentLayer=$contentLayer, ")
-    append("contentDrawing=$contentDrawing")
+    append("isContentDrawing=$isContentDrawing")
     append(")")
   }
+}
+
+internal fun HazeArea.reset() {
+  positionOnScreen = Offset.Unspecified
+  size = Size.Unspecified
+  contentDrawing = false
 }
 
 internal fun interface OnPreDrawListener {
@@ -146,82 +140,10 @@ public fun Modifier.hazeSource(
   key: Any? = null,
 ): Modifier = this then HazeSourceElement(state, zIndex, key)
 
-/**
- * Default values for the [hazeSource] and [hazeEffect] modifiers.
- */
-@Suppress("ktlint:standard:property-naming")
-public object HazeDefaults {
-  /**
-   * Default blur radius. Larger values produce a stronger blur effect.
-   */
-  public val blurRadius: Dp = 20.dp
-
-  /**
-   * Noise factor.
-   */
-  public const val noiseFactor: Float = 0.15f
-
-  /**
-   * Default alpha used for the tint color. Used by the [tint] function.
-   */
-  public const val tintAlpha: Float = 0.7f
-
-  /**
-   * Default value for [HazeEffectScope.blurredEdgeTreatment]
-   */
-  public val blurredEdgeTreatment: BlurredEdgeTreatment = BlurredEdgeTreatment.Rectangle
-
-  /**
-   * Default value for [HazeEffectScope.drawContentBehind]
-   */
-  public const val drawContentBehind: Boolean = false
-
-  /**
-   * Default builder for the 'tint' color. Transforms the provided [color].
-   */
-  public fun tint(color: Color): HazeTint = HazeTint(
-    color = when {
-      color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
-      else -> color
-    },
-  )
-
-  /**
-   * Default [HazeStyle] for usage with [Modifier.hazeSource].
-   *
-   * @param backgroundColor Color to draw behind the blurred content. Ideally should be opaque
-   * so that the original content is not visible behind. Typically this would be
-   * `MaterialTheme.colorScheme.surface` or similar.
-   * @param tint Default color to tint the blurred content. Should be translucent, otherwise you
-   * will not see the blurred content.
-   * @param blurRadius Radius of the blur.
-   * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
-   * Anything outside of that range will be clamped.
-   */
-  public fun style(
-    backgroundColor: Color,
-    tint: HazeTint = tint(backgroundColor),
-    blurRadius: Dp = this.blurRadius,
-    noiseFactor: Float = this.noiseFactor,
-  ): HazeStyle = HazeStyle(backgroundColor, tint, blurRadius, noiseFactor)
-
-  /**
-   * Default values for [HazeEffectScope.blurEnabled]. This function only returns `true` on
-   * platforms where we know blurring works reliably.
-   *
-   * This is not the same as everywhere where it technically works. The key omission here
-   * is Android SDK Level 31, which is known to have some issues with
-   * RenderNode invalidation.
-   *
-   * The devices excluded by this function may change in the future.
-   */
-  public fun blurEnabled(): Boolean = isBlurEnabledByDefault()
-}
-
 internal data class HazeSourceElement(
-  public val state: HazeState,
-  public val zIndex: Float = 0f,
-  public val key: Any? = null,
+  val state: HazeState,
+  val zIndex: Float = 0f,
+  val key: Any? = null,
 ) : ModifierNodeElement<HazeSourceNode>() {
 
   override fun create(): HazeSourceNode = HazeSourceNode(state = state, zIndex = zIndex, key = key)

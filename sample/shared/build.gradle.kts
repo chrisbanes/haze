@@ -23,6 +23,7 @@ kotlin {
     commonMain {
       dependencies {
         api(projects.haze)
+        api(projects.hazeBlur)
         api(projects.hazeMaterials)
 
         api(libs.androidx.navigation.compose)

@@ -29,7 +29,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.blurEffect
+import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -39,10 +39,10 @@ import kotlin.math.sin
 
 @Composable
 fun LayerTransformations(
-  blurEnabled: Boolean = true,
+  blurEnabled: Boolean,
   topOffset: DpOffset = DpOffset.Zero,
 ) {
-  val hazeState = rememberHazeState(blurEnabled)
+  val hazeState = rememberHazeState()
 
   Box(
     modifier = Modifier
@@ -102,6 +102,7 @@ fun LayerTransformations(
         .align(Alignment.Center)
         .hazeEffect(state = hazeState) {
           blurEffect {
+            this.blurEnabled = blurEnabled
             blurRadius = 20.dp
           }
         }

@@ -35,6 +35,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.blur.HazeBlurDefaults
+import dev.chrisbanes.haze.blur.HazeProgressive
+import dev.chrisbanes.haze.blur.HazeStyle
+import dev.chrisbanes.haze.blur.HazeTint
+import dev.chrisbanes.haze.blur.blurEffect
 import haze_root.haze_screenshot_tests.generated.resources.Res
 import haze_root.haze_screenshot_tests.generated.resources.photo
 import kotlin.math.roundToInt
@@ -49,7 +54,7 @@ internal fun CreditCardSample(
   noiseFactor: Float = -1f,
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
-  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
+  blurEnabled: Boolean = HazeBlurDefaults.blurEnabled(),
   mask: Brush? = null,
   progressive: HazeProgressive? = null,
   alpha: Float = 1f,
@@ -101,10 +106,10 @@ internal fun CreditCardContentBlurring(
   tint: HazeTint = HazeTint.Unspecified,
   blurRadius: Dp = Dp.Unspecified,
   noiseFactor: Float = -1f,
-  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
+  blurEnabled: Boolean = HazeBlurDefaults.blurEnabled(),
   mask: Brush? = null,
   progressive: HazeProgressive? = null,
-  drawContentBehind: Boolean = HazeDefaults.drawContentBehind,
+  drawContentBehind: Boolean = false,
   alpha: Float = 1f,
 ) {
   Box(Modifier.background(backgroundColors.first())) {
@@ -142,7 +147,7 @@ internal fun CreditCardPagerSample(
   noiseFactor: Float = -1f,
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
-  blurEnabled: Boolean = HazeDefaults.blurEnabled(),
+  blurEnabled: Boolean = HazeBlurDefaults.blurEnabled(),
   mask: Brush? = null,
   progressive: HazeProgressive? = null,
   alpha: Float = 1f,
@@ -270,7 +275,7 @@ fun OverlayingContent(
   blurEnabled: Boolean = true,
   topOffset: DpOffset = DpOffset.Zero,
 ) {
-  val hazeState = rememberHazeState(blurEnabled)
+  val hazeState = rememberHazeState()
 
   Box(
     modifier = Modifier
@@ -317,6 +322,7 @@ fun OverlayingContent(
         .align(Alignment.Center)
         .hazeEffect(state = hazeState) {
           blurEffect {
+            this.blurEnabled = blurEnabled
             blurRadius = 20.dp
           }
         }
@@ -330,7 +336,7 @@ fun ContentAtEdges(
   blurEnabled: Boolean = true,
   style: HazeStyle = HazeStyle.Unspecified,
 ) {
-  val hazeState = rememberHazeState(blurEnabled)
+  val hazeState = rememberHazeState()
 
   Box(modifier = Modifier.fillMaxSize()) {
     Image(
@@ -346,7 +352,12 @@ fun ContentAtEdges(
       modifier = Modifier
         .align(Alignment.BottomCenter)
         .fillMaxSize()
-        .hazeEffect(state = hazeState, style = style),
+        .hazeEffect(state = hazeState) {
+          blurEffect {
+            this.blurEnabled = blurEnabled
+            this.style = style
+          }
+        },
     ) {
       Text(
         text = "Content",
