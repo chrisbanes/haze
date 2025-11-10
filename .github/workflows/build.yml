@@ -49,7 +49,7 @@ jobs:
             **/build/outputs/roborazzi/**
 
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next'
 
     runs-on: macos-latest
     needs: [ build ]
