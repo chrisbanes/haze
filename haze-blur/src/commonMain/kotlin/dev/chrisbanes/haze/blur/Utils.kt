@@ -5,6 +5,10 @@ package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.platform.LocalGraphicsContext
+import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.ceil
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -31,3 +35,13 @@ internal fun lerp(start: Float, stop: Float, fraction: Float): Float {
 internal fun ceil(size: Size): Size = Size(width = ceil(size.width), height = ceil(size.height))
 
 internal fun Offset.round(): Offset = Offset(x.roundToInt().toFloat(), y.roundToInt().toFloat())
+
+internal fun VisualEffectContext.withGraphicsLayer(block: (GraphicsLayer) -> Unit) {
+  val graphicsContext = currentValueOf(LocalGraphicsContext)
+  val layer = graphicsContext.createGraphicsLayer()
+  try {
+    block(layer)
+  } finally {
+    graphicsContext.releaseGraphicsLayer(layer)
+  }
+}

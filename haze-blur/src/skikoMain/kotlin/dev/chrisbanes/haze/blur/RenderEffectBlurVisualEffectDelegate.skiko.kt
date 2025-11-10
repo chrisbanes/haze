@@ -6,14 +6,16 @@ package dev.chrisbanes.haze.blur
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import dev.chrisbanes.haze.VisualEffectContext
 
 internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
+  context: VisualEffectContext,
   drawScope: DrawScope,
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,
 ) = with(drawScope) {
-  contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(progressive = progressive)
-  contentLayer.alpha = blurVisualEffect.alpha
+  contentLayer.renderEffect = visualEffect.getOrCreateRenderEffect(context, progressive = progressive)
+  contentLayer.alpha = visualEffect.alpha
 
   // Finally draw the layer
   drawLayer(contentLayer)

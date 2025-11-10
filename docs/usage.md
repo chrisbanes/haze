@@ -405,6 +405,64 @@ fun HazeExample(modifier: Modifier = Modifier) {
 }
 ```
 
+## Custom Visual Effects
+
+Haze supports custom visual effects through the [VisualEffect](api/haze/dev.chrisbanes.haze/-visual-effect/index.html) interface. This allows you to create your own effects beyond the built-in blur effects.
+
+### Creating a Custom Effect
+
+To create a custom effect, implement the `VisualEffect` interface. The key methods are:
+
+- `drawEffect(context: VisualEffectContext)`: Draw your effect using the provided context
+- `update(context: VisualEffectContext)`: Update your effect state from composition locals or other sources
+- `expandLayerRect(rect: Rect, context: VisualEffectContext)`: Optionally expand the layer bounds if your effect needs more space
+
+The [VisualEffectContext](api/haze/dev.chrisbanes.haze/-visual-effect-context/index.html) provides access to:
+
+- `density`: For converting between Dp and Px
+- `size`, `layerSize`, `layerOffset`: Layout metrics
+- `areas`: The content areas to process
+- `currentValueOf(local)`: Read composition locals
+- And more...
+
+### Example Custom Effect
+
+```kotlin
+@OptIn(ExperimentalHazeApi::class)
+class CustomVisualEffect : VisualEffect {
+  override fun update(context: VisualEffectContext) {
+    // Read composition locals or update state
+    val style = context.currentValueOf(LocalHazeStyle)
+  }
+
+  override fun DrawScope.drawEffect(context: VisualEffectContext) {
+    // Draw your custom effect
+    drawRect(
+      color = Color.Red.copy(alpha = 0.5f),
+      size = context.size
+    )
+  }
+
+  override fun expandLayerRect(rect: Rect, context: VisualEffectContext): Rect {
+    // Optionally expand the layer bounds
+    return rect.inflate(10f)
+  }
+}
+```
+
+### Using a Custom Effect
+
+You can use your custom effect with `hazeEffect`:
+
+```kotlin
+Modifier.hazeEffect(state = hazeState) {
+  visualEffect = CustomVisualEffect()
+}
+```
+
+!!! note "Context vs Node"
+    Previous versions of Haze required effects to store a reference to `HazeEffectNode`. The new `VisualEffectContext` API provides a cleaner way to access the environment without storing node references. The old node-based API is deprecated but still available for backward compatibility.
+
 ## Screenshot testing
 
 Haze support screenshot testing. It is itself heavily screenshot tested, using Roborazzi on both JVM Desktop and Android (Robolectric).

@@ -163,20 +163,39 @@ package dev.chrisbanes.haze {
   public interface VisualEffect {
     method public default void attach(dev.chrisbanes.haze.HazeEffectNode node);
     method public default float calculateInputScaleFactor(dev.chrisbanes.haze.HazeInputScale scale);
+    method @dev.chrisbanes.haze.ExperimentalHazeApi public default float calculateInputScaleFactor(dev.chrisbanes.haze.VisualEffectContext context);
     method public default void detach();
-    method public void drawEffect(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.HazeEffectNode node);
-    method public default androidx.compose.ui.geometry.Rect expandLayerRect(androidx.compose.ui.geometry.Rect rect);
+    method @dev.chrisbanes.haze.ExperimentalHazeApi public void drawEffect(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
+    method @dev.chrisbanes.haze.ExperimentalHazeApi public default androidx.compose.ui.geometry.Rect expandLayerRect(androidx.compose.ui.geometry.Rect rect, dev.chrisbanes.haze.VisualEffectContext context);
     method public default boolean needInvalidation();
     method public default boolean preferClipToAreaBounds();
     method public default boolean shouldClip();
     method public default boolean shouldDrawContentBehind(androidx.compose.ui.graphics.drawscope.DrawScope);
-    method public default void update();
+    method @dev.chrisbanes.haze.ExperimentalHazeApi public default void update(dev.chrisbanes.haze.VisualEffectContext context);
     field public static final dev.chrisbanes.haze.VisualEffect.Companion Companion;
   }
 
   public static final class VisualEffect.Companion {
     method public dev.chrisbanes.haze.VisualEffect getEmpty();
     property public dev.chrisbanes.haze.VisualEffect Empty;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public interface VisualEffectContext {
+    method public <T> T currentValueOf(androidx.compose.runtime.ProvidableCompositionLocal<T> local);
+    method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
+    method public androidx.compose.ui.unit.Density getDensity();
+    method public dev.chrisbanes.haze.HazeInputScale getInputScale();
+    method public dev.chrisbanes.haze.HazeEffectNode getNode();
+    method public dev.chrisbanes.haze.PlatformContext getPlatformContext();
+    property public abstract java.util.List<dev.chrisbanes.haze.HazeArea> areas;
+    property public abstract androidx.compose.ui.unit.Density density;
+    property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
+    property public abstract androidx.compose.ui.geometry.Offset layerOffset;
+    property public abstract androidx.compose.ui.geometry.Size layerSize;
+    property public abstract dev.chrisbanes.haze.HazeEffectNode node;
+    property public abstract dev.chrisbanes.haze.PlatformContext platformContext;
+    property public abstract androidx.compose.ui.geometry.Offset positionOnScreen;
+    property public abstract androidx.compose.ui.geometry.Size size;
   }
 
 }

@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalGraphicsContext
+import dev.chrisbanes.haze.VisualEffectContext
 
 internal inline fun DrawScope.translate(
   offset: Offset,
@@ -36,11 +37,11 @@ internal fun CompositionLocalConsumerModifierNode.withGraphicsLayer(block: (Grap
 
 internal inline fun DrawScope.withAlpha(
   alpha: Float,
-  node: CompositionLocalConsumerModifierNode,
+  context: VisualEffectContext,
   crossinline block: DrawScope.() -> Unit,
 ) {
   if (alpha < 1f) {
-    node.withGraphicsLayer { layer ->
+    context.withGraphicsLayer { layer ->
       layer.alpha = alpha
       layer.record { block() }
       drawLayer(layer)

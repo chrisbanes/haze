@@ -4,18 +4,22 @@
 package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import dev.chrisbanes.haze.VisualEffectContext
 
-internal actual fun BlurVisualEffect.updateDelegate(drawScope: DrawScope) {
+internal actual fun BlurVisualEffect.updateDelegate(
+  drawScope: DrawScope,
+  context: VisualEffectContext,
+) {
   when {
     blurEnabled -> {
       if (delegate !is RenderEffectBlurVisualEffectDelegate) {
-        delegate = RenderEffectBlurVisualEffectDelegate(this)
+        updateDelegate(RenderEffectBlurVisualEffectDelegate(this), context)
       }
     }
 
     else -> {
       if (delegate !is ScrimBlurVisualEffectDelegate) {
-        delegate = ScrimBlurVisualEffectDelegate(this)
+        updateDelegate(ScrimBlurVisualEffectDelegate(this), context)
       }
     }
   }

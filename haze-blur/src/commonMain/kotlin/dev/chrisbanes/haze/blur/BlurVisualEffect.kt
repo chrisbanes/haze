@@ -12,17 +12,17 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.Bitmask
-import dev.chrisbanes.haze.HazeEffectNode
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.VisualEffect
+import dev.chrisbanes.haze.VisualEffectContext
 
 /**
  * A [VisualEffect] implementation that applies blur effects to content.
@@ -45,57 +45,48 @@ import dev.chrisbanes.haze.VisualEffect
  * }
  * ```
  */
+@OptIn(ExperimentalHazeApi::class)
 public class BlurVisualEffect : VisualEffect {
 
-  internal var attachedNode: HazeEffectNode? = null
-    private set
-
   internal var delegate: Delegate = ScrimBlurVisualEffectDelegate(this)
-    set(value) {
+    private set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "delegate changed. Current $field. New: $value" }
-        // attach new delegate
-        value.attach()
-        // detach old delegate
-        field.detach()
         field = value
       }
     }
 
-  override fun attach(node: HazeEffectNode) {
-    attachedNode = node
+  internal fun updateDelegate(delegate: Delegate, context: VisualEffectContext) {
+    // detach old delegate
+    this.delegate.detach(context)
+    // attach new delegate
+    delegate.attach(context)
+    // Update prop
+    this.delegate = delegate
   }
 
-  override fun update() {
-    val node = requireNode()
-    compositionLocalStyle = node.currentValueOf(LocalHazeStyle)
+  override fun update(context: VisualEffectContext) {
+    compositionLocalStyle = context.currentValueOf(LocalHazeStyle)
   }
 
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
-    updateDelegate(this)
+  override fun DrawScope.drawEffect(context: VisualEffectContext) {
+    updateDelegate(this, context)
 
     try {
-      with(delegate) { draw() }
+      with(delegate) { draw(context) }
     } finally {
       resetDirtyTracker()
     }
   }
 
-  override fun detach() {
-    attachedNode = null
-  }
-
-  override fun DrawScope.shouldDrawContentBehind(): Boolean {
-    updateDelegate(this)
+  override fun DrawScope.shouldDrawContentBehind(context: VisualEffectContext): Boolean {
+    updateDelegate(this, context)
     return delegate is ScrimBlurVisualEffectDelegate
   }
 
   override fun shouldClip(): Boolean = blurredEdgeTreatment.shape != null
 
-  internal fun requireNode(): HazeEffectNode = attachedNode ?: error("VisualEffect is not attached")
-
-  internal var dirtyTracker: Bitmask = Bitmask()
-    private set
+  private var dirtyTracker: Bitmask = Bitmask()
 
   private fun resetDirtyTracker() {
     dirtyTracker = Bitmask()
@@ -329,20 +320,22 @@ public class BlurVisualEffect : VisualEffect {
       }
     }
 
-  public override fun calculateInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
-    is HazeInputScale.None -> 1f
-    is HazeInputScale.Fixed -> scale.scale
-    HazeInputScale.Auto -> {
-      val blurRadius = blurRadius.takeOrElse { 0.dp }
-      when {
-        // For small blurRadius values, input scaling is very noticeable therefore we turn it off
-        blurRadius < 7.dp -> 1f
-        // For progressive and masks, we need to keep enough resolution for the lowest intensity.
-        // 0.5f is about right.
-        progressive != null -> 0.5f
-        mask != null -> 0.5f
-        // Otherwise we use 1/3
-        else -> 0.3334f
+  override fun calculateInputScaleFactor(context: VisualEffectContext): Float {
+    return when (val scale = context.inputScale) {
+      is HazeInputScale.None -> 1f
+      is HazeInputScale.Fixed -> scale.scale
+      HazeInputScale.Auto -> {
+        val blurRadius = blurRadius.takeOrElse { 0.dp }
+        when {
+          // For small blurRadius values, input scaling is very noticeable therefore we turn it off
+          blurRadius < 7.dp -> 1f
+          // For progressive and masks, we need to keep enough resolution for the lowest intensity.
+          // 0.5f is about right.
+          progressive != null -> 0.5f
+          mask != null -> 0.5f
+          // Otherwise we use 1/3
+          else -> 0.3334f
+        }
       }
     }
   }
@@ -353,8 +346,8 @@ public class BlurVisualEffect : VisualEffect {
     return backgroundColor.isSpecified && backgroundColor.alpha < 0.9f
   }
 
-  override fun expandLayerRect(rect: Rect): Rect {
-    val blurRadiusPx = with(requireNode().requireDensity()) {
+  override fun expandLayerRect(rect: Rect, context: VisualEffectContext): Rect {
+    val blurRadiusPx = with(context.density) {
       blurRadius.takeOrElse { 0.dp }.toPx()
     }
     return when {
@@ -372,9 +365,9 @@ public class BlurVisualEffect : VisualEffect {
   }
 
   internal interface Delegate {
-    fun attach() = Unit
-    fun DrawScope.draw()
-    fun detach() = Unit
+    fun attach(context: VisualEffectContext) = Unit
+    fun DrawScope.draw(context: VisualEffectContext)
+    fun detach(context: VisualEffectContext) = Unit
   }
 
   internal companion object {
@@ -382,7 +375,7 @@ public class BlurVisualEffect : VisualEffect {
   }
 }
 
-internal expect fun BlurVisualEffect.updateDelegate(drawScope: DrawScope)
+internal expect fun BlurVisualEffect.updateDelegate(drawScope: DrawScope, context: VisualEffectContext)
 
 internal expect fun createRenderEffect(
   context: PlatformContext,

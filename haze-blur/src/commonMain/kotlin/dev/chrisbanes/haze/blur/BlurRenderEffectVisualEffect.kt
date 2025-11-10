@@ -13,31 +13,33 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RenderEffectBlurVisualEffectDelegate(
-  val blurVisualEffect: BlurVisualEffect,
+  internal val visualEffect: BlurVisualEffect,
 ) : BlurVisualEffect.Delegate {
   private var renderEffect: RenderEffect? = null
 
-  override fun DrawScope.draw() {
-    createAndDrawScaledContentLayer(node = blurVisualEffect.requireNode()) { layer ->
-      val p = blurVisualEffect.progressive
+  override fun DrawScope.draw(context: VisualEffectContext) {
+    createAndDrawScaledContentLayer(
+      context = context,
+      clip = visualEffect.shouldClip(),
+      scaleFactor = visualEffect.calculateInputScaleFactor(context),
+      backgroundColor = visualEffect.backgroundColor,
+    ) { layer ->
+      val p = visualEffect.progressive
       if (p != null) {
-        drawProgressiveEffect(
-          drawScope = this,
-          progressive = p,
-          contentLayer = layer,
-        )
+        drawProgressiveEffect(context = context, drawScope = this, progressive = p, contentLayer = layer)
       } else {
         // First make sure that the RenderEffect is updated (if necessary)
-        updateRenderEffectIfDirty()
+        updateRenderEffectIfDirty(context)
 
         layer.renderEffect = renderEffect
-        layer.alpha = blurVisualEffect.alpha
+        layer.alpha = visualEffect.alpha
 
         // Since we included a border around the content, we need to translate so that
         // we don't see it (but it still affects the RenderEffect)
@@ -46,12 +48,12 @@ internal class RenderEffectBlurVisualEffectDelegate(
     }
   }
 
-  private fun updateRenderEffectIfDirty() {
+  private fun updateRenderEffectIfDirty(context: VisualEffectContext) {
     // Always resolve the current RenderEffect using the memoized cache keyed by params.
     // This ensures that changes coming from either the effect itself OR the hosting node
     // (e.g., size, layer offset, input scale, etc.) will be reflected without relying on
     // the effect's local dirty flags only.
-    renderEffect = blurVisualEffect.getOrCreateRenderEffect()
+    renderEffect = visualEffect.getOrCreateRenderEffect(context)
   }
 
   companion object {
@@ -60,6 +62,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
 }
 
 internal expect fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
+  context: VisualEffectContext,
   drawScope: DrawScope,
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,

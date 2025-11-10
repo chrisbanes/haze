@@ -59,6 +59,8 @@ public class HazeEffectNode(
 
   internal var dirtyTracker = Bitmask()
 
+  private val visualEffectContext by lazy(LazyThreadSafetyMode.NONE) { NodeVisualEffectContext(this) }
+
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
       if (value != field) {
@@ -287,7 +289,7 @@ public class HazeEffectNode(
           if (areas.isNotEmpty()) {
             // If the state is not null and we have some areas, let's perform background blurring
             with(visualEffect) {
-              drawEffect(this@HazeEffectNode)
+              drawEffect(visualEffectContext)
             }
           }
           // Finally we draw the content over the background
@@ -305,11 +307,11 @@ public class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
-          if (drawContentBehind || with(visualEffect) { shouldDrawContentBehind() }) {
+          if (drawContentBehind || with(visualEffect) { shouldDrawContentBehind(visualEffectContext) }) {
             drawLayer(contentLayer)
           }
           with(visualEffect) {
-            drawEffect(this@HazeEffectNode)
+            drawEffect(visualEffectContext)
           }
         }
       } else {
@@ -324,7 +326,7 @@ public class HazeEffectNode(
 
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
     // Allow the current VisualEffect to update from CompositionLocals/state
-    visualEffect.update()
+    visualEffect.update(visualEffectContext)
     windowId = getWindowId()
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
@@ -379,7 +381,7 @@ public class HazeEffectNode(
       // Now we clip the expanded layer bounds, to remove anything areas which
       // don't overlap any areas, and the window bounds
       val clippedLayerBounds = Rect(positionOnScreen, size)
-        .letIf(shouldExpandLayer()) { visualEffect.expandLayerRect(it) }
+        .letIf(shouldExpandLayer()) { visualEffect.expandLayerRect(it, visualEffectContext) }
         .letIf(shouldClipToAreaBounds()) { rect ->
           // Calculate the dimensions which covers all areas...
           var left = Float.POSITIVE_INFINITY
@@ -404,7 +406,7 @@ public class HazeEffectNode(
       _layerOffset = positionOnScreen - clippedLayerBounds.topLeft
     } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
       val rect = size.toRect()
-      val expanded = visualEffect.expandLayerRect(rect)
+      val expanded = visualEffect.expandLayerRect(rect, visualEffectContext)
       _layerSize = expanded.size
       _layerOffset = rect.topLeft - expanded.topLeft
     } else {

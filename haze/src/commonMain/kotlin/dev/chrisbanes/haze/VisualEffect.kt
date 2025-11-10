@@ -8,30 +8,46 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 
 public interface VisualEffect {
   /**
-   * Draws the effect.
+   * Draws the effect using the provided [context].
+   *
+   * Implementations should use properties from [VisualEffectContext] rather than storing
+   * references to [HazeEffectNode].
    */
-  public fun DrawScope.drawEffect(node: HazeEffectNode)
+  public fun DrawScope.drawEffect(context: VisualEffectContext)
 
   /**
    * Attaches this effect to the given node.
    */
   public fun attach(node: HazeEffectNode): Unit = Unit
 
-  public fun update(): Unit = Unit
+  /**
+   * Called when the effect should update its state from composition locals or other sources.
+   *
+   * Implementations should use [VisualEffectContext] to read composition locals and other state.
+   */
+  public fun update(context: VisualEffectContext): Unit = Unit
 
   /**
    * Detaches this effect from its node.
    */
   public fun detach(): Unit = Unit
 
-  public fun DrawScope.shouldDrawContentBehind(): Boolean = false
+  public fun DrawScope.shouldDrawContentBehind(context: VisualEffectContext): Boolean = false
 
   public fun shouldClip(): Boolean = false
 
-  public fun calculateInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
-    is HazeInputScale.None -> 1f
-    is HazeInputScale.Fixed -> scale.scale
-    HazeInputScale.Auto -> 1f
+  /**
+   * Calculates the input scale factor to use for this effect given the provided [context].
+   *
+   * Implementations should use properties from [VisualEffectContext] rather than storing
+   * references to [HazeEffectNode].
+   */
+  public fun calculateInputScaleFactor(context: VisualEffectContext): Float {
+    return when (val scale = context.inputScale) {
+      is HazeInputScale.None -> 1f
+      is HazeInputScale.Fixed -> scale.scale
+      HazeInputScale.Auto -> 1f
+    }
   }
 
   public fun needInvalidation(): Boolean = false
@@ -39,10 +55,15 @@ public interface VisualEffect {
   public fun preferClipToAreaBounds(): Boolean = false
 
   /**
+   * Expands the layer rect for this effect using the provided [context].
+   *
+   * Implementations should use properties from [VisualEffectContext] rather than storing
+   * references to [HazeEffectNode].
+   *
    * The resulting rect should be in the same coordinate system of the passed in rect. i.e. the
    * content at [x,y] of [rect] should be the same content of the resulting rect.
    */
-  public fun expandLayerRect(rect: Rect): Rect = rect
+  public fun expandLayerRect(rect: Rect, context: VisualEffectContext): Rect = rect
 
   public companion object {
     /**
@@ -53,8 +74,9 @@ public interface VisualEffect {
   }
 }
 
+@OptIn(ExperimentalHazeApi::class)
 private object EmptyVisualEffect : VisualEffect {
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
+  override fun DrawScope.drawEffect(context: VisualEffectContext) {
     // No-op
   }
 }
