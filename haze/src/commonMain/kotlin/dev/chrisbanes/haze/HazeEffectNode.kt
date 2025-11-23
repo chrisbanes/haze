@@ -5,8 +5,8 @@
 
 package dev.chrisbanes.haze
 
+import androidx.collection.LruCache
 import androidx.collection.MutableObjectLongMap
-import androidx.collection.SieveCache
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.Immutable
@@ -737,7 +737,7 @@ public sealed interface HazeProgressive {
 }
 
 private val renderEffectCache by unsynchronizedLazy {
-  SieveCache<RenderEffectParams, RenderEffect>(10)
+  LruCache<RenderEffectParams, RenderEffect>(50)
 }
 
 @Poko
@@ -818,7 +818,7 @@ internal fun CompositionLocalConsumerModifierNode.getOrCreateRenderEffect(params
 
   HazeLogger.d(HazeEffectNode.TAG) { "getOrCreateRenderEffect. Creating: $params" }
   return createRenderEffect(params)
-    ?.also { renderEffectCache[params] = it }
+    ?.also { renderEffectCache.put(params, it) }
 }
 
 internal expect fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect?
