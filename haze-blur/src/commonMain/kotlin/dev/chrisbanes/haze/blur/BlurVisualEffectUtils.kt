@@ -5,7 +5,7 @@
 
 package dev.chrisbanes.haze.blur
 
-import androidx.collection.SieveCache
+import androidx.collection.LruCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -63,7 +63,7 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
 }
 
 private val renderEffectCache by lazy(mode = LazyThreadSafetyMode.NONE) {
-  SieveCache<RenderEffectParams, RenderEffect>(maxSize = 10)
+  LruCache<RenderEffectParams, RenderEffect>(maxSize = 50)
 }
 
 @Poko
@@ -93,5 +93,7 @@ private fun getOrCreateRenderEffect(node: HazeEffectNode, params: RenderEffectPa
     context = node.requirePlatformContext(),
     density = node.requireDensity(),
     params = params,
-  )?.also { renderEffectCache[params] = it }
+  )?.also { effect ->
+    renderEffectCache.put(params, effect)
+  }
 }
