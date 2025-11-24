@@ -33,10 +33,20 @@ locally before opening a PR, and regenerate snapshots with
 ## Commit & Pull Request Guidelines
 
 Commit history favors imperative subjects with optional scope notes and auto-linked PR numbers (
-e.g., “Update plugin … (#772)”). Keep commits focused, include configuration updates when they
+e.g., "Update plugin … (#772)"). Keep commits focused, include configuration updates when they
 affect generated artifacts, and ensure Spotless has been applied. Pull requests should describe
 motivation, mention affected modules, link GitHub issues when relevant, and attach updated
 screenshots for UI-facing changes.
+
+## Changelog Maintenance
+
+The project maintains `CHANGELOG.md` following the [Keep a Changelog](https://keepachangelog.com)
+format. When preparing releases, update the changelog with entries from GitHub releases. Changes
+should be categorized under standard headings: Added, Changed, Fixed, Deprecated, Removed, and
+Security. Each version entry includes the release date in `YYYY-MM-DD` format, links to pull
+requests, and contributor acknowledgments. The changelog can be regenerated or updated using the
+GitHub REST API to fetch release notes: `curl -s
+"https://api.github.com/repos/chrisbanes/haze/releases?per_page=100"`.
 
 ## Security & Configuration Notes
 

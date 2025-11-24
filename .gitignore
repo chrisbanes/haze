@@ -27,8 +27,6 @@ captures
 .idea/deviceManager.xml
 gradle.xml
 *.iml
-ios-app/Tivi/.idea/*
-.fleet
 
 # General
 .DS_Store
@@ -53,6 +51,7 @@ site/
 .cache/
 docs/api
 docs/sample
+docs/changelog.md
 
 # Ignore baseline profile files in samples
 sample/**/generated
