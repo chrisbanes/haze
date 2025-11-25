@@ -114,14 +114,14 @@ jobs:
       - name: Deploy dev docs with mike 🗿
         if: ${{ success() && contains(steps.version.outputs.VERSION_NAME, 'SNAPSHOT') }}
         env:
-          HAZE_VERSION: dev
-        run: mike deploy -u --push dev
+          HAZE_VERSION: "dev (v2)"
+        run: mike deploy -u --push "$HAZE_VERSION"
 
       - name: Deploy release docs with mike 🚀
         if: ${{ success() && !contains(steps.version.outputs.VERSION_NAME , 'SNAPSHOT') }}
         env:
           HAZE_VERSION: ${{ steps.version.outputs.VERSION_NAME }}
-        run: mike deploy -u --push ${{ steps.version.outputs.VERSION_NAME }} latest
+        run: mike deploy -u --push "$HAZE_VERSION" latest
 
       - name: Delete old doc versions
         run: |
