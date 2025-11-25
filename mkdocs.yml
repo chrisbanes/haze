@@ -21,6 +21,7 @@ nav:
   - "Performance": performance.md
   - "FAQs": faq.md
   - "Recipes": recipes.md
+  - "Changelog": changelog.md
   - "API reference": api/index.html
   - "Sample code": https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
   - "🕸️ Sample app (Wasm)": sample/wasm/index.html
@@ -73,6 +74,10 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.magiclink
+  - mdx_gh_links:
+      user: "chrisbanes"
+      repo: "haze"
 
 extra:
   versions:

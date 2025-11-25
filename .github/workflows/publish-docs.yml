@@ -43,25 +43,12 @@ jobs:
         run: |
           brew install cairo freetype libffi libjpeg libpng zlib
           python3 -m pip install --upgrade pip
-          python3 -m pip install mkdocs mkdocs-material mkdocs-video "mkdocs-material[imaging]" mike
+          python3 -m pip install mkdocs mkdocs-material mkdocs-video "mkdocs-material[imaging]" mike mdx-gh-links
 
       - uses: gradle/actions/setup-gradle@v5
 
-      - run: |
-          ./gradlew \
-              :internal:dokka:dokkaGenerate \
-              :sample:web:wasmJsBrowserDistribution \
-              :sample:web:jsBrowserDistribution
-
-      - name: Copy Dokka and samples output to docs
-        run: |
-          cp -r internal/dokka/build/dokka/html/ docs/api/
-          mkdir -p docs/sample
-          cp -r sample/web/build/dist/wasmJs/productionExecutable/ docs/sample/wasm/
-          cp -r sample/web/build/dist/js/productionExecutable/ docs/sample/js/
-
       - name: Build docs
-        run: mkdocs build
+        run: ./scripts/build_docs.sh build
 
       - name: Upload docs
         uses: actions/upload-artifact@v5
