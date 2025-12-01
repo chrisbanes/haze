@@ -54,9 +54,9 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: docs
+          retention-days: 1
           path: |
-            docs/api/
-            docs/sample/
+            docs/
 
   deploy_docs:
     runs-on: macos-latest
