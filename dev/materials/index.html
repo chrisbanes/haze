@@ -517,6 +517,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../migrating-1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../recipes/" class="md-nav__link">
         
   
@@ -525,6 +552,33 @@
     
   
     Recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
   
 
     
@@ -752,7 +806,7 @@
 
   <h1>Materials</h1>
 
-<div><p>We provide off of the shelf implementations of <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/">HazeStyle</a>s which implement 'materials' of various styles.</p>
+<div><p>We provide off of the shelf implementations of <a href="../api/haze/dev.chrisbanes.haze/-haze-style/">HazeStyle</a>s which implement 'materials' of various styles.</p>
 <h2 id="download">Download<a class="headerlink" href="#download" title="Permanent link">¶</a></h2>
 <p><a href="https://search.maven.org/search?q=g:dev.chrisbanes.haze"><img alt="Maven Central" src="https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze-materials"></a></p>
 <div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="p">{</span>
@@ -766,17 +820,17 @@
 <h3 id="hazematerials">HazeMaterials<a class="headerlink" href="#hazematerials" title="Permanent link">¶</a></h3>
 <p>A class which contains functions to build HazeStyles which implement 'material-like' styles. It is inspired by the material APIs available in SwiftUI, but it makes no attempt to provide the exact effects provided in iOS (unlike <a href="#cupertinomaterials">CuperintoMaterials</a> below).</p>
 <p><img alt="" src="../media/hazematerials.webp"></p>
-<p>Class reference: <a href="../api/haze-materials/dev.chrisbanes.haze.blur.materials/-haze-materials/">HazeMaterials</a>.</p>
+<p>Class reference: <a href="../api/haze-materials/dev.chrisbanes.haze.materials/-haze-materials/">HazeMaterials</a>.</p>
 <h3 id="cupertinomaterials">CupertinoMaterials<a class="headerlink" href="#cupertinomaterials" title="Permanent link">¶</a></h3>
 <p>A class which contains functions to build HazeStyles which implement 'material' styles similar to those available on Apple platforms. The values used are taken from the <a href="https://www.figma.com/community/file/1385659531316001292">iOS 18 Figma</a> file published by Apple.</p>
 <p>The primary use case for using these is for when aiming for consistency with native UI (i.e. for when mixing Compose Multiplatform content alongside SwiftUI content).</p>
 <p><img alt="" src="../media/cupertinomaterials.webp"></p>
-<p>Class reference: <a href="../api/haze-materials/dev.chrisbanes.haze.blur.materials/-cupertino-materials/">CupertinoMaterials</a>.</p>
+<p>Class reference: <a href="../api/haze-materials/dev.chrisbanes.haze.materials/-cupertino-materials/">CupertinoMaterials</a>.</p>
 <h3 id="fluentmaterials">FluentMaterials<a class="headerlink" href="#fluentmaterials" title="Permanent link">¶</a></h3>
 <p>These implement 'material' styles similar to those available on Windows platforms. The values used are taken from the WinUI 3 Figma file published by Microsoft.</p>
 <p>The primary use case for using these is for when aiming for consistency with native UI (i.e. for when mixing Compose Multiplatform content alongside WinUI content).</p>
 <p><img alt="" src="../media/fluentmaterials.webp"></p>
-<p>Class reference: <a href="../api/haze-materials/dev.chrisbanes.haze.blur.materials/-fluent-materials/">FluentMaterials</a>.</p>
+<p>Class reference: <a href="../api/haze-materials/dev.chrisbanes.haze.materials/-fluent-materials/">FluentMaterials</a>.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h2>
 <p>All of these are provided through functions on the relevant materials class, with each function providing a different level of material.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="w"> </span><span class="p">{</span>

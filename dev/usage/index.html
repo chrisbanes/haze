@@ -706,6 +706,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../migrating-1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../recipes/" class="md-nav__link">
         
   
@@ -714,6 +741,33 @@
     
   
     Recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
   
 
     
@@ -1159,10 +1213,10 @@
 <p>You will notice that were using a style created by <code>HazeMaterials.ultraThin()</code>. The <a href="../materials/">HazeMaterials</a> are sets of prebuilt styles that are available as an add-on library.</p>
 <p>If you do not provide an explicit style, the default values will provide basic blurring, but no tinting. It's recommended to use one of the materials linked above, or a custom style which meets your requirements.</p>
 <h2 id="styling">Styling<a class="headerlink" href="#styling" title="Permanent link">¶</a></h2>
-<p>Haze has support for customizing the resulting effect, which is performed via the <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/">HazeStyle</a> class, or the lambda block provided to <code>hazeEffect</code>.</p>
+<p>Haze has support for customizing the resulting effect, which is performed via the <a href="../api/haze/dev.chrisbanes.haze/-haze-style/">HazeStyle</a> class, or the lambda block provided to <code>hazeEffect</code>.</p>
 <p>Styles can be provided in a number of different ways:</p>
 <ul>
-<li><a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
+<li><a href="../api/haze/dev.chrisbanes.haze/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
 <li>The style parameter on <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</li>
 <li>By setting the relevant property in the optional <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-scope/">HazeEffectScope</a> lambda <code>block</code>, passed into <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</li>
 </ul>
@@ -1188,8 +1242,8 @@
 <p>Each styling property (such as <code>blurRadius</code>) is resolved seperately, and the order of precedence for each property is as follows, in order:</p>
 <ul>
 <li>Value set in <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-scope/">HazeEffectScope</a>, if specified.</li>
-<li>Value set in style provided to hazeEffect (or <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/style.html">HazeEffectScope.style</a>), if specified.</li>
-<li>Value set in the <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
+<li>Value set in style provided to hazeEffect (or <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-scope/style.html">HazeEffectScope.style</a>), if specified.</li>
+<li>Value set in the <a href="../api/haze/dev.chrisbanes.haze/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
 </ul>
 <h3 id="styling-properties">Styling properties<a class="headerlink" href="#styling-properties" title="Permanent link">¶</a></h3>
 <h4 id="blur-radius">Blur Radius<a class="headerlink" href="#blur-radius" title="Permanent link">¶</a></h4>
@@ -1211,9 +1265,9 @@
 </code></pre></div>
 <p>There are a number of different types of progressive effect supported in Haze:</p>
 <h3 id="linear-gradient">Linear Gradient<a class="headerlink" href="#linear-gradient" title="Permanent link">¶</a></h3>
-<p>Class documentation: <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-linear-gradient/">HazeProgressive.LinearGradient</a></p>
+<p>Class documentation: <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-linear-gradient/">HazeProgressive.LinearGradient</a></p>
 <p>Linear gradients, usually vertical or horizontal, but you can set any angle.</p>
-<p>There are a few builder functions on <code>HazeProgressive</code>, enabling common use cases: <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/vertical-gradient.html">verticalGradient</a> and <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/horizontal-gradient.html">horizontalGradient</a>.</p>
+<p>There are a few builder functions on <code>HazeProgressive</code>, enabling common use cases: <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/vertical-gradient.html">verticalGradient</a> and <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/horizontal-gradient.html">horizontalGradient</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1222,7 +1276,7 @@
 <span class="p">)</span>
 </code></pre></div>
 <h3 id="radial-gradient">Radial Gradient<a class="headerlink" href="#radial-gradient" title="Permanent link">¶</a></h3>
-<p>Class documentation: <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-radial-gradient/">HazeProgressive.RadialGradient</a></p>
+<p>Class documentation: <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-radial-gradient/">HazeProgressive.RadialGradient</a></p>
 <p>A radial gradient, with a defined center and radius.</p>
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
@@ -1232,9 +1286,9 @@
 <span class="p">)</span>
 </code></pre></div>
 <h3 id="custom-brush">Custom Brush<a class="headerlink" href="#custom-brush" title="Permanent link">¶</a></h3>
-<p>Class documentation: <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-brush/">HazeProgressive.Brush</a></p>
+<p>Class documentation: <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-brush/">HazeProgressive.Brush</a></p>
 <p>A custom progressive effect, using a given <a href="https://developer.android.com/develop/ui/compose/graphics/draw/brush">Brush</a> as the alpha mask for the entire effect.</p>
-<p>Commonly this will be used to create along with a custom Shader, so we have a builder function to make this easier: <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/for-shader.html">forShader</a></p>
+<p>Commonly this will be used to create along with a custom Shader, so we have a builder function to make this easier: <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/for-shader.html">forShader</a></p>
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>

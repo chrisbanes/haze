@@ -612,6 +612,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../migrating-1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../recipes/" class="md-nav__link">
         
   
@@ -620,6 +647,33 @@
     
   
     Recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
   
 
     
@@ -955,8 +1009,8 @@
 <p>SDK Levels: 31 &amp; 32</p>
 <p>When running on these versions of Android, Haze needs to use a few workarounds:</p>
 <h4 id="hazeprogressive">HazeProgressive<a class="headerlink" href="#hazeprogressive" title="Permanent link">¶</a></h4>
-<p>Only linear gradient <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/">HazeProgressive</a> effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.</p>
-<p>You can disable this behavior by setting the <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/">preferPerformance</a> property. When set to true, the progressive 'effect' will instead be drawn via a mask:</p>
+<p>Only linear gradient <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/">HazeProgressive</a> effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.</p>
+<p>You can disable this behavior by setting the <a href="../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/">preferPerformance</a> property. When set to true, the progressive 'effect' will instead be drawn via a mask:</p>
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
