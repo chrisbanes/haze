@@ -18,13 +18,19 @@ Box {
     // todo
   }
 
+  val hazeStyle = HazeMaterials.ultraThin()
+
   LargeTopAppBar(
     // Need to make app bar transparent to see the content behind
     colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
     modifier = Modifier
       // We use hazeEffect on anything where we want the background
       // blurred.
-      .hazeEffect(state = hazeState, style = HazeMaterials.ultraThin())
+      .hazeEffect(state = hazeState) {
+        blurEffect {
+          style = hazeStyle
+        }
+      }
       .fillMaxWidth(),
   )
 }
@@ -38,10 +44,12 @@ If you do not provide an explicit style, the default values will provide basic b
 
 Haze has support for customizing the resulting effect, which is performed via the [HazeStyle](api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/index.html) class, or the lambda block provided to `hazeEffect`.
 
+In Haze v2, blur functionality is implemented through the [BlurVisualEffect](api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/index.html) class, which is configured using the `blurEffect {}` extension function within the `hazeEffect` block.
+
 Styles can be provided in a number of different ways:
 
 - [LocalHazeStyle](api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html) composition local.
-- The style parameter on [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
+- By setting the `style` property inside the `blurEffect {}` block within [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
 - By setting the relevant property in the optional [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/index.html) lambda `block`, passed into [Modifier.hazeEffect](api/haze/dev.chrisbanes.haze/haze-effect.html).
 
 ### HazeEffectScope
@@ -55,12 +63,14 @@ FooAppBar(
   ...
   modifier = Modifier
     .hazeEffect(state = hazeState) {
-      alpha = if (listState.firstVisibleItemIndex == 0) {
-        listState.layoutInfo.visibleItemsInfo.first().let {
-          (it.offset / it.size.height.toFloat()).absoluteValue
+      blurEffect {
+        alpha = if (listState.firstVisibleItemIndex == 0) {
+          listState.layoutInfo.visibleItemsInfo.first().let {
+            (it.offset / it.size.height.toFloat()).absoluteValue
+          }
+        } else {
+          alpha = 1f
         }
-      } else {
-        alpha = 1f
       }
     },
 )
@@ -72,8 +82,8 @@ As we a few different ways to set styling properties, it's important to know how
 
 Each styling property (such as `blurRadius`) is resolved seperately, and the order of precedence for each property is as follows, in order:
 
-- Value set in [HazeEffectScope](api/haze/dev.chrisbanes.haze/-haze-effect-scope/index.html), if specified.
-- Value set in style provided to hazeEffect (or [HazeEffectScope.style](api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/style.html)), if specified.
+- Value set in [BlurVisualEffect](api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/index.html) via the `blurEffect {}` block, if specified.
+- Value set in the `style` property within `blurEffect {}` (or [BlurVisualEffect.style](api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/style.html)), if specified.
 - Value set in the [LocalHazeStyle](api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html) composition local.
 
 ### Styling properties
@@ -102,7 +112,9 @@ Progressive blurs can be enabled by setting the `progressive` property on [HazeE
 LargeTopAppBar(
   // ...
   modifier = Modifier.hazeEffect(hazeState) {
-    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
+    blurEffect {
+      progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
+    }
   }
 )
 ```
@@ -121,7 +133,9 @@ There are a few builder functions on `HazeProgressive`, enabling common use case
 LargeTopAppBar(
   // ...
   modifier = Modifier.hazeEffect(hazeState) {
-    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
+    blurEffect {
+      progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
+    }
   }
 )
 ```
@@ -136,7 +150,9 @@ A radial gradient, with a defined center and radius.
 LargeTopAppBar(
   // ...
   modifier = Modifier.hazeEffect(hazeState) {
-    progressive = HazeProgressive.RadialGradient()
+    blurEffect {
+      progressive = HazeProgressive.RadialGradient()
+    }
   }
 )
 ```
@@ -153,8 +169,10 @@ Commonly this will be used to create along with a custom Shader, so we have a bu
 LargeTopAppBar(
   // ...
   modifier = Modifier.hazeEffect(hazeState) {
-    progressive = HazeProgressive.forShader { size ->
-      // TODO: return platform-specific Shader using the given size
+    blurEffect {
+      progressive = HazeProgressive.forShader { size ->
+        // TODO: return platform-specific Shader using the given size
+      }
     }
   }
 )
@@ -176,7 +194,9 @@ You can provide any [Brush](https://developer.android.com/develop/ui/compose/gra
 LargeTopAppBar(
   // ...
   modifier = Modifier.hazeEffect(hazeState) {
-    mask = Brush.verticalGradient(...)
+    blurEffect {
+      mask = Brush.verticalGradient(...)
+    }
   }
 )
 ```
@@ -311,15 +331,17 @@ fun Foreground(
   modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
+        val hazeStyle = HazeMaterials.ultraThin()
         Text(
             text = stringResource(R.string.haze_text),
             modifier = modifier
                 .align(Alignment.Center)
                 .wrapContentSize()
-                .hazeEffect(
-                    state = hazeState,
-                    style = HazeMaterials.ultraThin()
-                )
+                .hazeEffect(state = hazeState) {
+                    blurEffect {
+                        style = hazeStyle
+                    }
+                }
         )
     }
 }
@@ -348,15 +370,17 @@ fun HazeExample(modifier: Modifier = Modifier) {
 @Composable
 fun Foreground(modifier: Modifier = Modifier) {
   Box(modifier = modifier) {
+    val hazeStyle = HazeMaterials.ultraThin()
     Text(
       text = stringResource(R.string.haze_text),
       modifier = modifier
         .align(Alignment.Center)
         .wrapContentSize()
-        .hazeEffect(
-          state = LocalHazeState.current,
-          style = HazeMaterials.ultraThin()
-        )
+        .hazeEffect(state = LocalHazeState.current) {
+          blurEffect {
+            style = hazeStyle
+          }
+        }
     )
   }
 }
@@ -364,18 +388,62 @@ fun Foreground(modifier: Modifier = Modifier) {
 
 ## Dialogs
 
-You can use Haze with `Dialog`s, to blur dialog backgrounds over content. A sample is available: [DialogSample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt).
+You can use Haze with `Dialog`s, to blur dialog backgrounds over content.
+
+!!! warning "Tints with Dialogs"
+
+    When using Haze with dialogs, you cannot use the `tints` property within `blurEffect {}`, as the tint will display a scrim over the background content instead of being applied to the dialog itself. Instead, you need to set a translucent background color on the dialog content.
+
+Here's a complete example:
+
+```kotlin
+val hazeState = rememberHazeState()
+var showDialog by remember { mutableStateOf(false) }
+
+if (showDialog) {
+  Dialog(onDismissRequest = { showDialog = false }) {
+    Surface(
+      modifier = Modifier
+        .fillMaxWidth()
+        .fillMaxHeight(fraction = .5f),
+      shape = MaterialTheme.shapes.extraLarge,
+      // Set a translucent background instead of using tints
+      color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
+      contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+      Box(
+        Modifier.hazeEffect(state = hazeState) {
+          blurEffect {
+            style = HazeMaterials.regular()
+          }
+        },
+      ) {
+        // Dialog content
+      }
+    }
+  }
+}
+
+// Background content with hazeSource
+LazyVerticalGrid(
+  modifier = Modifier.hazeSource(state = hazeState),
+  // ...
+) {
+  // ...
+}
+```
+
+A complete sample is available: [DialogSample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt).
 
 ## Enabling blur
 
-Whether blurring is enabled or not can be controlled in two ways:
-
-- The HazeState: `rememberHazeState(blurEnabled = true)`. This affects all modifiers attached to it.
-- On each individual `hazeEffect` like so:
+Whether blurring is enabled or not can be controlled on each individual `hazeEffect` like so:
 
 ```kotlin
 Modifier.hazeEffect(...) {
-    blurEnabled = true
+    blurEffect {
+        blurEnabled = true
+    }
 }
 ```
 
@@ -395,9 +463,11 @@ fun HazeExample(modifier: Modifier = Modifier) {
       modifier = Modifier
         // Note that we do NOT pass in a HazeState
         .hazeEffect {
-          // Use all of the same features as above
-          tints = // ...
-          progressive = // ...
+          blurEffect {
+            // Use all of the same features as above
+            tints = // ...
+            progressive = // ...
+          }
         }
         .fillMaxSize()
     )

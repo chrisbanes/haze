@@ -25,6 +25,7 @@ captures
 .idea/artifacts
 .idea/AndroidProjectSystem.xml
 .idea/deviceManager.xml
+.idea/markdown.xml
 gradle.xml
 *.iml
 
