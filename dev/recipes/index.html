@@ -18,7 +18,7 @@
         <link rel="prev" href="../faq/">
       
       
-        <link rel="next" href="../changelog/">
+        <link rel="next" href="../migrating-2.0/">
       
       
         
@@ -505,6 +505,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../migrating-2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Haze 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../changelog/" class="md-nav__link">
         
   
@@ -715,7 +742,11 @@
 <span class="w">      </span><span class="c1">// Need to make app bar transparent to see the content behind</span>
 <span class="w">      </span><span class="n">colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TopAppBarDefaults</span><span class="p">.</span><span class="na">largeTopAppBarColors</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">),</span>
 <span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
-<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span>
+<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
 <span class="w">        </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">(),</span>
 <span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="cm">/* todo */</span>
@@ -725,7 +756,11 @@
 <span class="w">    </span><span class="n">NavigationBar</span><span class="p">(</span>
 <span class="w">      </span><span class="n">containerColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">,</span>
 <span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
-<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span>
+<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
 <span class="w">        </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">(),</span>
 <span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="cm">/* todo */</span>
@@ -753,7 +788,11 @@
 <span class="w">  </span><span class="n">stickyHeader</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">Header</span><span class="p">(</span>
 <span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
-<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
 <span class="w">    </span><span class="p">)</span>
 <span class="w">  </span><span class="p">}</span>
 

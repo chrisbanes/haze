@@ -733,6 +733,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../migrating-2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Haze 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../changelog/" class="md-nav__link">
         
   
@@ -1172,14 +1199,20 @@
 <span class="w">    </span><span class="c1">// todo</span>
 <span class="w">  </span><span class="p">}</span>
 
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
+
 <span class="w">  </span><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">    </span><span class="c1">// Need to make app bar transparent to see the content behind</span>
-<span class="w">    </span><span class="n">colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TopAppBarDefaults</span><span class="p">.</span><span class="na">largeTopAppBarColors</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">),</span>
-<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
-<span class="hll"><span class="w">      </span><span class="c1">// We use hazeEffect on anything where we want the background</span>
-</span><span class="hll"><span class="w">      </span><span class="c1">// blurred.</span>
-</span><span class="hll"><span class="w">      </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">())</span>
-</span><span class="w">      </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">(),</span>
+<span class="hll"><span class="w">    </span><span class="n">colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TopAppBarDefaults</span><span class="p">.</span><span class="na">largeTopAppBarColors</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">),</span>
+</span><span class="hll"><span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+</span><span class="hll"><span class="w">      </span><span class="c1">// We use hazeEffect on anything where we want the background</span>
+</span><span class="w">      </span><span class="c1">// blurred.</span>
+<span class="w">      </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeStyle</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">(),</span>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1187,10 +1220,11 @@
 <p>If you do not provide an explicit style, the default values will provide basic blurring, but no tinting. It's recommended to use one of the materials linked above, or a custom style which meets your requirements.</p>
 <h2 id="styling">Styling<a class="headerlink" href="#styling" title="Permanent link">¶</a></h2>
 <p>Haze has support for customizing the resulting effect, which is performed via the <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/">HazeStyle</a> class, or the lambda block provided to <code>hazeEffect</code>.</p>
+<p>In Haze v2, blur functionality is implemented through the <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/">BlurVisualEffect</a> class, which is configured using the <code>blurEffect {}</code> extension function within the <code>hazeEffect</code> block.</p>
 <p>Styles can be provided in a number of different ways:</p>
 <ul>
 <li><a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
-<li>The style parameter on <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</li>
+<li>By setting the <code>style</code> property inside the <code>blurEffect {}</code> block within <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</li>
 <li>By setting the relevant property in the optional <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-scope/">HazeEffectScope</a> lambda <code>block</code>, passed into <a href="../api/haze/dev.chrisbanes.haze/haze-effect.html">Modifier.hazeEffect</a>.</li>
 </ul>
 <h3 id="hazeeffectscope">HazeEffectScope<a class="headerlink" href="#hazeeffectscope" title="Permanent link">¶</a></h3>
@@ -1200,12 +1234,14 @@
 <span class="w">  </span><span class="p">...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">listState</span><span class="p">.</span><span class="na">firstVisibleItemIndex</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="m">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">listState</span><span class="p">.</span><span class="na">layoutInfo</span><span class="p">.</span><span class="na">visibleItemsInfo</span><span class="p">.</span><span class="na">first</span><span class="p">().</span><span class="na">let</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="p">(</span><span class="nb">it</span><span class="p">.</span><span class="na">offset</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">it</span><span class="p">.</span><span class="na">size</span><span class="p">.</span><span class="na">height</span><span class="p">.</span><span class="na">toFloat</span><span class="p">()).</span><span class="na">absoluteValue</span>
+<span class="w">      </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">listState</span><span class="p">.</span><span class="na">firstVisibleItemIndex</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="m">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">listState</span><span class="p">.</span><span class="na">layoutInfo</span><span class="p">.</span><span class="na">visibleItemsInfo</span><span class="p">.</span><span class="na">first</span><span class="p">().</span><span class="na">let</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="p">(</span><span class="nb">it</span><span class="p">.</span><span class="na">offset</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">it</span><span class="p">.</span><span class="na">size</span><span class="p">.</span><span class="na">height</span><span class="p">.</span><span class="na">toFloat</span><span class="p">()).</span><span class="na">absoluteValue</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span>
 <span class="w">        </span><span class="p">}</span>
-<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">},</span>
 <span class="p">)</span>
@@ -1214,8 +1250,8 @@
 <p>As we a few different ways to set styling properties, it's important to know how the final values are resolved.</p>
 <p>Each styling property (such as <code>blurRadius</code>) is resolved seperately, and the order of precedence for each property is as follows, in order:</p>
 <ul>
-<li>Value set in <a href="../api/haze/dev.chrisbanes.haze/-haze-effect-scope/">HazeEffectScope</a>, if specified.</li>
-<li>Value set in style provided to hazeEffect (or <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/style.html">HazeEffectScope.style</a>), if specified.</li>
+<li>Value set in <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/">BlurVisualEffect</a> via the <code>blurEffect {}</code> block, if specified.</li>
+<li>Value set in the <code>style</code> property within <code>blurEffect {}</code> (or <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/style.html">BlurVisualEffect.style</a>), if specified.</li>
 <li>Value set in the <a href="../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html">LocalHazeStyle</a> composition local.</li>
 </ul>
 <h3 id="styling-properties">Styling properties<a class="headerlink" href="#styling-properties" title="Permanent link">¶</a></h3>
@@ -1232,7 +1268,9 @@
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span><span class="w"> </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span><span class="w"> </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -1244,7 +1282,9 @@
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span><span class="w"> </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span><span class="w"> </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -1254,7 +1294,9 @@
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">RadialGradient</span><span class="p">()</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">RadialGradient</span><span class="p">()</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -1265,8 +1307,10 @@
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">forShader</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">-&gt;</span>
-<span class="w">      </span><span class="c1">// TODO: return platform-specific Shader using the given size</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">forShader</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">        </span><span class="c1">// TODO: return platform-specific Shader using the given size</span>
+<span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">)</span>
@@ -1282,7 +1326,9 @@
 <div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="c1">// ...</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Brush</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Brush</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -1387,16 +1433,18 @@
 </span><span class="w">  </span><span class="n">modifier</span><span class="p">:</span><span class="w"> </span><span class="n">Modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
 <span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">Box</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
 <span class="w">        </span><span class="n">Text</span><span class="p">(</span>
 <span class="w">            </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stringResource</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">string</span><span class="p">.</span><span class="na">haze_text</span><span class="p">),</span>
 <span class="w">            </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span>
 <span class="w">                </span><span class="p">.</span><span class="na">align</span><span class="p">(</span><span class="n">Alignment</span><span class="p">.</span><span class="na">Center</span><span class="p">)</span>
-<span class="w">                </span><span class="p">.</span><span class="na">wrapContentSize</span><span class="p">()</span>
-<span class="hll"><span class="w">                </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
-</span><span class="hll"><span class="w">                    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
-</span><span class="hll"><span class="w">                    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
-</span><span class="hll"><span class="w">                </span><span class="p">)</span>
-</span><span class="w">        </span><span class="p">)</span>
+<span class="hll"><span class="w">                </span><span class="p">.</span><span class="na">wrapContentSize</span><span class="p">()</span>
+</span><span class="hll"><span class="w">                </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span class="hll"><span class="w">                    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+</span><span class="hll"><span class="w">                        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeStyle</span>
+</span><span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">        </span><span class="p">)</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1421,29 +1469,70 @@ down to the descendants in the hierarchy:</p>
 <span class="nd">@Composable</span>
 <span class="kd">fun</span><span class="w"> </span><span class="nf">Foreground</span><span class="p">(</span><span class="n">modifier</span><span class="p">:</span><span class="w"> </span><span class="n">Modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">Box</span><span class="p">(</span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">hazeStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
 <span class="w">    </span><span class="n">Text</span><span class="p">(</span>
 <span class="w">      </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stringResource</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">string</span><span class="p">.</span><span class="na">haze_text</span><span class="p">),</span>
 <span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modifier</span>
 <span class="w">        </span><span class="p">.</span><span class="na">align</span><span class="p">(</span><span class="n">Alignment</span><span class="p">.</span><span class="na">Center</span><span class="p">)</span>
 <span class="w">        </span><span class="p">.</span><span class="na">wrapContentSize</span><span class="p">()</span>
-<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
-<span class="hll"><span class="w">          </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LocalHazeState</span><span class="p">.</span><span class="na">current</span><span class="p">,</span>
-</span><span class="w">          </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
-<span class="w">        </span><span class="p">)</span>
+<span class="hll"><span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LocalHazeState</span><span class="p">.</span><span class="na">current</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span class="w">          </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeStyle</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">)</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="dialogs">Dialogs<a class="headerlink" href="#dialogs" title="Permanent link">¶</a></h2>
-<p>You can use Haze with <code>Dialog</code>s, to blur dialog backgrounds over content. A sample is available: <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt">DialogSample</a>.</p>
+<p>You can use Haze with <code>Dialog</code>s, to blur dialog backgrounds over content.</p>
+<div class="admonition warning">
+<p class="admonition-title">Tints with Dialogs</p>
+<p>When using Haze with dialogs, you cannot use the <code>tints</code> property within <code>blurEffect {}</code>, as the tint will display a scrim over the background content instead of being applied to the dialog itself. Instead, you need to set a translucent background color on the dialog content.</p>
+</div>
+<p>Here's a complete example:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
+<span class="kd">var</span><span class="w"> </span><span class="nv">showDialog</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">mutableStateOf</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">showDialog</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">Dialog</span><span class="p">(</span><span class="n">onDismissRequest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">showDialog</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Surface</span><span class="p">(</span>
+<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">        </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">()</span>
+<span class="w">        </span><span class="p">.</span><span class="na">fillMaxHeight</span><span class="p">(</span><span class="n">fraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="m">5f</span><span class="p">),</span>
+<span class="w">      </span><span class="n">shape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MaterialTheme</span><span class="p">.</span><span class="na">shapes</span><span class="p">.</span><span class="na">extraLarge</span><span class="p">,</span>
+<span class="w">      </span><span class="c1">// Set a translucent background instead of using tints</span>
+<span class="w">      </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MaterialTheme</span><span class="p">.</span><span class="na">colorScheme</span><span class="p">.</span><span class="na">surface</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">),</span>
+<span class="w">      </span><span class="n">contentColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MaterialTheme</span><span class="p">.</span><span class="na">colorScheme</span><span class="p">.</span><span class="na">onSurface</span><span class="p">,</span>
+<span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">Box</span><span class="p">(</span>
+<span class="w">        </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">regular</span><span class="p">()</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">      </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Dialog content</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// Background content with hazeSource</span>
+<span class="n">LazyVerticalGrid</span><span class="p">(</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>A complete sample is available: <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt">DialogSample</a>.</p>
 <h2 id="enabling-blur">Enabling blur<a class="headerlink" href="#enabling-blur" title="Permanent link">¶</a></h2>
-<p>Whether blurring is enabled or not can be controlled in two ways:</p>
-<ul>
-<li>The HazeState: <code>rememberHazeState(blurEnabled = true)</code>. This affects all modifiers attached to it.</li>
-<li>On each individual <code>hazeEffect</code> like so:</li>
-</ul>
+<p>Whether blurring is enabled or not can be controlled on each individual <code>hazeEffect</code> like so:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">blurEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">blurEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="foreground-blurring">Foreground blurring<a class="headerlink" href="#foreground-blurring" title="Permanent link">¶</a></h3>
@@ -1457,9 +1546,11 @@ down to the descendants in the hierarchy:</p>
 <span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
 <span class="w">        </span><span class="c1">// Note that we do NOT pass in a HazeState</span>
 <span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="c1">// Use all of the same features as above</span>
-<span class="w">          </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="c1">// ...</span>
-<span class="w">          </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="c1">// ...</span>
+<span class="w">          </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Use all of the same features as above</span>
+<span class="w">            </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="c1">// ...</span>
+<span class="w">            </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="c1">// ...</span>
+<span class="w">          </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">        </span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">()</span>
 <span class="w">    </span><span class="p">)</span>

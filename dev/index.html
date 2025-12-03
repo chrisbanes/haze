@@ -514,6 +514,33 @@
   
   
     <li class="md-nav__item">
+      <a href="migrating-2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Haze 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="changelog/" class="md-nav__link">
         
   
@@ -763,9 +790,17 @@
 <span class="p">}</span>
 
 <span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Core library. Usually don't need this...</span>
 <span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:&lt;version&gt;"</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c1">// For blur effects:</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:&lt;version&gt;"</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Blur Module Required</p>
+<p>Starting with Haze 2.0, blur functionality has been extracted to a separate <code>haze-blur</code> module. If you want to use blur effects (which most users do), you need to switch to the <code>haze-blur</code> dependency. The core <code>haze</code> module provides the base infrastructure for visual effects.</p>
+</div>
 <h2 id="acknowledgements">Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permanent link">¶</a></h2>
 <p>In previous versions, the Skia-backed implementation (used on iOS and Desktop) was heavily influenced by <a href="https://www.pushing-pixels.org">Kirill Grouchnikov</a>'s explorations on Compose Desktop. He wrote about it in his <a href="https://www.pushing-pixels.org/2022/04/09/shader-based-render-effects-in-compose-desktop-with-skia.html">Shader based render effects in Compose Desktop with Skia</a> blog post.</p>
 <p>The Android implementation was inspired by the techniques documented by <a href="https://twitter.com/chethaase">Chet Haase</a> and <a href="https://twitter.com/nadewad">Nader Jawad</a> in the <a href="https://medium.com/androiddevelopers/rendernode-for-bigger-better-blurs-ced9f108c7e2">RenderNode for Bigger, Better Blurs</a> blog post.</p>

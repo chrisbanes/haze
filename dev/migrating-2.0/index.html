@@ -1,0 +1,1447 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A blurring modifier for Compose">
+      
+      
+        <meta name="author" content="Chris Banes">
+      
+      
+        <link rel="canonical" href="https://chribanes.github.io/haze/dev/migrating-2.0/">
+      
+      
+        <link rel="prev" href="../recipes/">
+      
+      
+        <link rel="next" href="../changelog/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Migrating to Haze 2.0 - Haze</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=DM+Sans:300,300i,400,400i,700,700i%7CDM+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"DM Sans";--md-code-font:"DM Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Migrating to Haze 2.0 - Haze" />
+<meta property="og:description" content="A blurring modifier for Compose" />
+<meta property="og:image" content="https://chribanes.github.io/haze/dev/assets/images/social/migrating-2.0.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://chribanes.github.io/haze/dev/migrating-2.0/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="Migrating to Haze 2.0 - Haze" />
+<meta property="twitter:description" content="A blurring modifier for Compose" />
+<meta property="twitter:image" content="https://chribanes.github.io/haze/dev/assets/images/social/migrating-2.0.png" />
+</head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#migrating-to-haze-20" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 13a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0 3.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m5 7.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m0 4a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-6a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5M14 9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m-4-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5m-3 6a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-7a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3.5a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0-4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haze
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Migrating to Haze 2.0
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 13a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0 3.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m5 7.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m0 4a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-6a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5M14 9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m-4-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5m-3 6a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-7a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3.5a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0-4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg>
+
+    </a>
+    Haze
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../platforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platforms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../materials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Materials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Haze 2.0
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Haze 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview-of-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview of Changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dependency Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#add-the-haze-blur-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Add the haze-blur Module
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update Imports
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Migration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Migration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-blur-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Blur Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-material-styles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Material Styles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#progressive-blurs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Progressive Blurs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#masking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Masking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enablingdisabling-blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling/Disabling Blur
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#foreground-blurring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Foreground Blurring
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complete-api-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete API Mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-by-step-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step-by-Step Migration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#understanding-the-new-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understanding the New Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Help
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sample code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample/wasm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🕸️ Sample app (Wasm)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample/js/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🕸️ Sample app (JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview-of-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview of Changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dependency Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#add-the-haze-blur-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Add the haze-blur Module
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update Imports
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Migration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Migration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-blur-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Blur Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-material-styles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using Material Styles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#progressive-blurs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Progressive Blurs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#masking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Masking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enablingdisabling-blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling/Disabling Blur
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#foreground-blurring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Foreground Blurring
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complete-api-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete API Mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-by-step-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step-by-Step Migration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#understanding-the-new-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understanding the New Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Help
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<div><h1 id="migrating-to-haze-20">Migrating to Haze 2.0<a class="headerlink" href="#migrating-to-haze-20" title="Permanent link">¶</a></h1>
+<p>Haze 2.0 introduces a major architectural refactor that improves modularity and extensibility by introducing a pluggable visual effects system. While this is a breaking change, the migration path is straightforward and the core usage patterns remain familiar.</p>
+<h2 id="overview-of-changes">Overview of Changes<a class="headerlink" href="#overview-of-changes" title="Permanent link">¶</a></h2>
+<p>The primary change in v2 is the extraction of blur functionality from the core <code>haze</code> module into a separate <code>haze-blur</code> module. This is part of a new architecture that introduces the <code>VisualEffect</code> interface, allowing Haze to support different types of visual effects beyond just blurring.</p>
+<p><strong>Key Changes:</strong></p>
+<ul>
+<li><strong>New module dependency:</strong> Blur functionality now requires the <code>haze-blur</code> module</li>
+<li><strong>API nesting:</strong> All blur properties now require a <code>blurEffect {}</code> wrapper</li>
+<li><strong>Package changes:</strong> Blur-related classes moved to <code>dev.chrisbanes.haze.blur</code> package</li>
+<li><strong>Removed APIs:</strong> <code>rememberHazeState(blurEnabled)</code> parameter removed</li>
+</ul>
+<p><strong>What Hasn't Changed:</strong></p>
+<ul>
+<li>Core modifiers (<code>hazeSource</code>, <code>hazeEffect</code>) signatures remain the same</li>
+<li><code>HazeState</code> core API unchanged</li>
+<li>Platform support unchanged</li>
+<li>Performance characteristics unchanged</li>
+<li><code>HazeEffectScope</code> properties like <code>inputScale</code>, <code>drawContentBehind</code>, <code>canDrawArea</code> unchanged</li>
+</ul>
+<h2 id="dependency-changes">Dependency Changes<a class="headerlink" href="#dependency-changes" title="Permanent link">¶</a></h2>
+<h3 id="add-the-haze-blur-module">Add the haze-blur Module<a class="headerlink" href="#add-the-haze-blur-module" title="Permanent link">¶</a></h3>
+<p>In addition to the core <code>haze</code> module, you now need to explicitly add the <code>haze-blur</code> module to use blur effects:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0"</span><span class="p">)</span>
+<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0"</span><span class="p">)</span><span class="w"> </span><span class="c1">// NEW in v2</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="update-imports">Update Imports<a class="headerlink" href="#update-imports" title="Permanent link">¶</a></h3>
+<p>Several blur-related classes have moved to the <code>dev.chrisbanes.haze.blur</code> package:</p>
+<p><strong>V1 imports:</strong>
+</p><div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.HazeStyle</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.HazeTint</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.HazeProgressive</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.LocalHazeStyle</span>
+</code></pre></div>
+<p><strong>V2 imports:</strong>
+</p><div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeStyle</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeTint</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeProgressive</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.LocalHazeStyle</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.blurEffect</span><span class="w"> </span><span class="c1">// NEW: extension function</span>
+</code></pre></div>
+<h2 id="api-migration">API Migration<a class="headerlink" href="#api-migration" title="Permanent link">¶</a></h2>
+<h3 id="basic-blur-configuration">Basic Blur Configuration<a class="headerlink" href="#basic-blur-configuration" title="Permanent link">¶</a></h3>
+<p>All blur-related properties that were previously set directly on <code>HazeEffectScope</code> now need to be wrapped in a <code>blurEffect {}</code> block.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked id="__tabbed_1_1" name="__tabbed_1" type="radio"><input id="__tabbed_1_2" name="__tabbed_1" type="radio"><div class="tabbed-labels"><label for="__tabbed_1_1">v1</label><label for="__tabbed_1_2">v2</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span>
+<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">)))</span>
+<span class="w">  </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.15f</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span><span class="w">  </span><span class="c1">// NEW: wrap blur properties</span>
+<span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span>
+<span class="w">    </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">)))</span>
+<span class="w">    </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.15f</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="using-material-styles">Using Material Styles<a class="headerlink" href="#using-material-styles" title="Permanent link">¶</a></h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked id="__tabbed_2_1" name="__tabbed_2" type="radio"><input id="__tabbed_2_2" name="__tabbed_2" type="radio"><div class="tabbed-labels"><label for="__tabbed_2_1">v1</label><label for="__tabbed_2_2">v2</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">())</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">ultraThin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ultraThin</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="progressive-blurs">Progressive Blurs<a class="headerlink" href="#progressive-blurs" title="Permanent link">¶</a></h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked id="__tabbed_3_1" name="__tabbed_3" type="radio"><input id="__tabbed_3_2" name="__tabbed_3" type="radio"><div class="tabbed-labels"><label for="__tabbed_3_1">v1</label><label for="__tabbed_3_2">v2</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span><span class="w"> </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span><span class="w"> </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="masking">Masking<a class="headerlink" href="#masking" title="Permanent link">¶</a></h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked id="__tabbed_4_1" name="__tabbed_4" type="radio"><input id="__tabbed_4_2" name="__tabbed_4" type="radio"><div class="tabbed-labels"><label for="__tabbed_4_1">v1</label><label for="__tabbed_4_2">v2</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Brush</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Brush</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="enablingdisabling-blur">Enabling/Disabling Blur<a class="headerlink" href="#enablingdisabling-blur" title="Permanent link">¶</a></h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked id="__tabbed_5_1" name="__tabbed_5" type="radio"><input id="__tabbed_5_2" name="__tabbed_5" type="radio"><div class="tabbed-labels"><label for="__tabbed_5_1">v1</label><label for="__tabbed_5_2">v2</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="c1">// At the state level (REMOVED in v2)</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">(</span><span class="n">blurEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">)</span>
+
+<span class="c1">// At the effect level</span>
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="c1">// At the state level - parameter removed</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
+
+<span class="c1">// At the effect level - now inside blurEffect {}</span>
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">blurEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="foreground-blurring">Foreground Blurring<a class="headerlink" href="#foreground-blurring" title="Permanent link">¶</a></h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked id="__tabbed_6_1" name="__tabbed_6" type="radio"><input id="__tabbed_6_2" name="__tabbed_6" type="radio"><div class="tabbed-labels"><label for="__tabbed_6_1">v1</label><label for="__tabbed_6_2">v2</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">)))</span>
+<span class="w">  </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">)))</span>
+<span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<h2 id="complete-api-mapping">Complete API Mapping<a class="headerlink" href="#complete-api-mapping" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>V1 Location</th>
+<th>V2 Location</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HazeEffectScope.blurRadius</code></td>
+<td><code>BlurVisualEffect.blurRadius</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.tints</code></td>
+<td><code>BlurVisualEffect.tints</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.noiseFactor</code></td>
+<td><code>BlurVisualEffect.noiseFactor</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.progressive</code></td>
+<td><code>BlurVisualEffect.progressive</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.mask</code></td>
+<td><code>BlurVisualEffect.mask</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.style</code></td>
+<td><code>BlurVisualEffect.style</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.backgroundColor</code></td>
+<td><code>BlurVisualEffect.backgroundColor</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.blurredEdgeTreatment</code></td>
+<td><code>BlurVisualEffect.blurredEdgeTreatment</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.fallbackTint</code></td>
+<td><code>BlurVisualEffect.fallbackTint</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.alpha</code></td>
+<td><code>BlurVisualEffect.alpha</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.blurEnabled</code></td>
+<td><code>BlurVisualEffect.blurEnabled</code></td>
+<td>Inside <code>blurEffect {}</code></td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.inputScale</code></td>
+<td><code>HazeEffectScope.inputScale</code></td>
+<td><strong>Unchanged</strong> - still on scope</td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.drawContentBehind</code></td>
+<td><code>HazeEffectScope.drawContentBehind</code></td>
+<td><strong>Unchanged</strong> - still on scope</td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.clipToAreasBounds</code></td>
+<td><code>HazeEffectScope.clipToAreasBounds</code></td>
+<td><strong>Unchanged</strong> - still on scope</td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.canDrawArea</code></td>
+<td><code>HazeEffectScope.canDrawArea</code></td>
+<td><strong>Unchanged</strong> - still on scope</td>
+</tr>
+<tr>
+<td><code>rememberHazeState(blurEnabled)</code></td>
+<td><em>Removed</em></td>
+<td>Use <code>blurEffect { blurEnabled = ... }</code></td>
+</tr>
+<tr>
+<td><code>dev.chrisbanes.haze.HazeStyle</code></td>
+<td><code>dev.chrisbanes.haze.blur.HazeStyle</code></td>
+<td>Package change</td>
+</tr>
+<tr>
+<td><code>dev.chrisbanes.haze.HazeTint</code></td>
+<td><code>dev.chrisbanes.haze.blur.HazeTint</code></td>
+<td>Package change</td>
+</tr>
+<tr>
+<td><code>dev.chrisbanes.haze.HazeProgressive</code></td>
+<td><code>dev.chrisbanes.haze.blur.HazeProgressive</code></td>
+<td>Package change</td>
+</tr>
+<tr>
+<td><code>dev.chrisbanes.haze.LocalHazeStyle</code></td>
+<td><code>dev.chrisbanes.haze.blur.LocalHazeStyle</code></td>
+<td>Package change</td>
+</tr>
+</tbody>
+</table>
+<h2 id="step-by-step-migration">Step-by-Step Migration<a class="headerlink" href="#step-by-step-migration" title="Permanent link">¶</a></h2>
+<ol>
+<li>
+<p><strong>Update dependencies</strong> in your <code>build.gradle.kts</code>:
+   </p><div class="highlight"><pre><span></span><code><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0"</span><span class="p">)</span>
+<span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0"</span><span class="p">)</span><span class="w"> </span><span class="c1">// Add this</span>
+</code></pre></div>
+</li>
+<li>
+<p><strong>Update imports</strong> for blur-related classes:</p>
+</li>
+<li>Change <code>dev.chrisbanes.haze.HazeStyle</code> → <code>dev.chrisbanes.haze.blur.HazeStyle</code></li>
+<li>Change <code>dev.chrisbanes.haze.HazeTint</code> → <code>dev.chrisbanes.haze.blur.HazeTint</code></li>
+<li>Change <code>dev.chrisbanes.haze.HazeProgressive</code> → <code>dev.chrisbanes.haze.blur.HazeProgressive</code></li>
+<li>Change <code>dev.chrisbanes.haze.LocalHazeStyle</code> → <code>dev.chrisbanes.haze.blur.LocalHazeStyle</code></li>
+<li>
+<p>Add <code>import dev.chrisbanes.haze.blur.blurEffect</code></p>
+</li>
+<li>
+<p><strong>Wrap blur properties</strong> in <code>blurEffect {}</code>:</p>
+</li>
+<li>Find all <code>Modifier.hazeEffect { ... }</code> blocks</li>
+<li>Wrap blur-related properties in <code>blurEffect { ... }</code></li>
+<li>
+<p>Leave <code>inputScale</code>, <code>drawContentBehind</code>, <code>clipToAreasBounds</code>, <code>canDrawArea</code> outside the <code>blurEffect {}</code> block</p>
+</li>
+<li>
+<p><strong>Update <code>rememberHazeState()</code> calls</strong>:</p>
+</li>
+<li>Remove <code>blurEnabled</code> parameter if present</li>
+<li>
+<p>Move blur enabling logic to <code>blurEffect { blurEnabled = ... }</code> if needed</p>
+</li>
+<li>
+<p><strong>Update Material style usage</strong>:</p>
+</li>
+<li>Change <code>hazeEffect(state, style = ...)</code> to <code>hazeEffect(state) { blurEffect { style = ... } }</code></li>
+</ol>
+<h2 id="understanding-the-new-architecture">Understanding the New Architecture<a class="headerlink" href="#understanding-the-new-architecture" title="Permanent link">¶</a></h2>
+<p>The v2 architecture introduces the <code>VisualEffect</code> interface, which allows Haze to support different types of visual effects:</p>
+<ul>
+<li><strong><code>VisualEffect</code></strong> - Core interface for all visual effects (in <code>haze</code> module)</li>
+<li><strong><code>BlurVisualEffect</code></strong> - Implementation for blur effects (in <code>haze-blur</code> module)</li>
+<li><strong><code>HazeEffectScope.visualEffect</code></strong> - Property that holds the current effect</li>
+</ul>
+<p>The <code>blurEffect {}</code> extension function is a convenience API that creates and configures a <code>BlurVisualEffect</code> instance. Under the hood, it sets the <code>visualEffect</code> property on <code>HazeEffectScope</code>.</p>
+<p>This architecture enables:</p>
+<ul>
+<li>Better separation of concerns</li>
+<li>Potential for custom visual effects in the future</li>
+<li>Smaller core module for users who don't need blur</li>
+<li>More maintainable and testable code</li>
+</ul>
+<h2 id="getting-help">Getting Help<a class="headerlink" href="#getting-help" title="Permanent link">¶</a></h2>
+<p>If you encounter issues during migration:</p>
+<ul>
+<li>Check the <a href="https://github.com/chrisbanes/haze/discussions">GitHub Discussions</a></li>
+<li>Review the <a href="../usage/">updated usage documentation</a></li>
+<li>See working examples in the <a href="https://github.com/chrisbanes/haze/tree/main/sample">sample app</a></li>
+<li>File an issue on <a href="https://github.com/chrisbanes/haze/issues">GitHub</a></li>
+</ul></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
