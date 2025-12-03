@@ -26,9 +26,17 @@ repositories {
 }
 
 dependencies {
+    // Core library. Usually don't need this...
     implementation("dev.chrisbanes.haze:haze:<version>")
+    
+    // For blur effects:
+    implementation("dev.chrisbanes.haze:haze-blur:<version>")
 }
 ```
+
+!!! info "Blur Module Required"
+
+    Starting with Haze 2.0, blur functionality has been extracted to a separate `haze-blur` module. If you want to use blur effects (which most users do), you need to switch to the `haze-blur` dependency. The core `haze` module provides the base infrastructure for visual effects.
 
 ## Acknowledgements
 

@@ -21,6 +21,7 @@ nav:
   - "Performance": performance.md
   - "FAQs": faq.md
   - "Recipes": recipes.md
+  - "Migrating to Haze 2.0": migrating-2.0.md
   - "Changelog": changelog.md
   - "API reference": api/index.html
   - "Sample code": https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
@@ -68,7 +69,8 @@ markdown_extensions:
       permalink: true
   - pymdownx.betterem
   - pymdownx.superfences
-  - pymdownx.tabbed
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.details
   - pymdownx.tilde
   - pymdownx.emoji:

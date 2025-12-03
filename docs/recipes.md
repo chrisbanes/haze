@@ -15,7 +15,11 @@ Scaffold(
       // Need to make app bar transparent to see the content behind
       colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
       modifier = Modifier
-        .hazeEffect(state = hazeState)
+        .hazeEffect(state = hazeState) {
+          blurEffect {
+            style = HazeMaterials.thin()
+          }
+        }
         .fillMaxWidth(),
     ) {
       /* todo */
@@ -25,7 +29,11 @@ Scaffold(
     NavigationBar(
       containerColor = Color.Transparent,
       modifier = Modifier
-        .hazeEffect(state = hazeState)
+        .hazeEffect(state = hazeState) {
+          blurEffect {
+            style = HazeMaterials.thin()
+          }
+        }
         .fillMaxWidth(),
     ) {
       /* todo */
@@ -59,7 +67,11 @@ LazyColumn(...) {
   stickyHeader {
     Header(
       modifier = Modifier
-        .hazeEffect(state = hazeState),
+        .hazeEffect(state = hazeState) {
+          blurEffect {
+            style = HazeMaterials.thin()
+          }
+        },
     )
   }
 

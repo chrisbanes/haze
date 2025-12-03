@@ -46,7 +46,7 @@ Class reference: [FluentMaterials](api/haze-materials/dev.chrisbanes.haze.blur.m
 
 All of these are provided through functions on the relevant materials class, with each function providing a different level of material.
 
-``` kotlin hl_lines="8"
+``` kotlin hl_lines="8-10"
 Box {
   // rest of sample from above
 
@@ -54,8 +54,11 @@ Box {
     modifier = Modifier
       .hazeEffect(
         ...
-        style = HazeMaterials.thin(),
-      ),
+      ) {
+        blurEffect {
+          style = HazeMaterials.thin()
+        }
+      },
   )
 }
 ```
