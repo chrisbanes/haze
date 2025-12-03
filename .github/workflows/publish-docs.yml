@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - v1
     tags:
       - '*'
   pull_request:
@@ -61,7 +60,7 @@ jobs:
   deploy_docs:
     runs-on: macos-latest
     needs: build_docs
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
