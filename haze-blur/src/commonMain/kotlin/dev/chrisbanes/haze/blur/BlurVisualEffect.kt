@@ -71,7 +71,7 @@ public class BlurVisualEffect : VisualEffect {
     compositionLocalStyle = node.currentValueOf(LocalHazeStyle)
   }
 
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
+  override fun DrawScope.draw(node: HazeEffectNode) {
     updateDelegate(this)
 
     try {
@@ -347,13 +347,13 @@ public class BlurVisualEffect : VisualEffect {
     }
   }
 
-  override fun needInvalidation(): Boolean = dirtyTracker.any(DirtyFields.InvalidateFlags)
+  override fun requireInvalidation(): Boolean = dirtyTracker.any(DirtyFields.InvalidateFlags)
 
   override fun preferClipToAreaBounds(): Boolean {
     return backgroundColor.isSpecified && backgroundColor.alpha < 0.9f
   }
 
-  override fun expandLayerRect(rect: Rect): Rect {
+  override fun calculateLayerBounds(rect: Rect): Rect {
     val blurRadiusPx = with(requireNode().requireDensity()) {
       blurRadius.takeOrElse { 0.dp }.toPx()
     }

@@ -287,7 +287,7 @@ public class HazeEffectNode(
           if (areas.isNotEmpty()) {
             // If the state is not null and we have some areas, let's perform background blurring
             with(visualEffect) {
-              drawEffect(this@HazeEffectNode)
+              draw(this@HazeEffectNode)
             }
           }
           // Finally we draw the content over the background
@@ -309,7 +309,7 @@ public class HazeEffectNode(
             drawLayer(contentLayer)
           }
           with(visualEffect) {
-            drawEffect(this@HazeEffectNode)
+            draw(this@HazeEffectNode)
           }
         }
       } else {
@@ -379,7 +379,7 @@ public class HazeEffectNode(
       // Now we clip the expanded layer bounds, to remove anything areas which
       // don't overlap any areas, and the window bounds
       val clippedLayerBounds = Rect(positionOnScreen, size)
-        .letIf(shouldExpandLayer()) { visualEffect.expandLayerRect(it) }
+        .letIf(shouldExpandLayer()) { visualEffect.calculateLayerBounds(it) }
         .letIf(shouldClipToAreaBounds()) { rect ->
           // Calculate the dimensions which covers all areas...
           var left = Float.POSITIVE_INFINITY
@@ -404,7 +404,7 @@ public class HazeEffectNode(
       _layerOffset = positionOnScreen - clippedLayerBounds.topLeft
     } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
       val rect = size.toRect()
-      val expanded = visualEffect.expandLayerRect(rect)
+      val expanded = visualEffect.calculateLayerBounds(rect)
       _layerSize = expanded.size
       _layerOffset = rect.topLeft - expanded.topLeft
     } else {
@@ -422,7 +422,7 @@ public class HazeEffectNode(
   private fun invalidateIfNeeded() {
     val invalidateRequired =
       dirtyTracker.any(DirtyFields.InvalidateFlags) ||
-        visualEffect.needInvalidation()
+        visualEffect.requireInvalidation()
 
     HazeLogger.d(TAG) {
       "invalidateRequired=$invalidateRequired. " +

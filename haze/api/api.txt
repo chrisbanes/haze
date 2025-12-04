@@ -160,14 +160,14 @@ package dev.chrisbanes.haze {
   @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {
   }
 
-  public interface VisualEffect {
+  @dev.chrisbanes.haze.ExperimentalHazeApi public interface VisualEffect {
     method public default void attach(dev.chrisbanes.haze.HazeEffectNode node);
     method public default float calculateInputScaleFactor(dev.chrisbanes.haze.HazeInputScale scale);
+    method public default androidx.compose.ui.geometry.Rect calculateLayerBounds(androidx.compose.ui.geometry.Rect rect);
     method public default void detach();
-    method public void drawEffect(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.HazeEffectNode node);
-    method public default androidx.compose.ui.geometry.Rect expandLayerRect(androidx.compose.ui.geometry.Rect rect);
-    method public default boolean needInvalidation();
+    method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.HazeEffectNode node);
     method public default boolean preferClipToAreaBounds();
+    method public default boolean requireInvalidation();
     method public default boolean shouldClip();
     method public default boolean shouldDrawContentBehind(androidx.compose.ui.graphics.drawscope.DrawScope);
     method public default void update();

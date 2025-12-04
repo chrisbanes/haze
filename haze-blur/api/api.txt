@@ -3,7 +3,7 @@ package dev.chrisbanes.haze.blur {
 
   public final class BlurVisualEffect implements dev.chrisbanes.haze.VisualEffect {
     ctor public BlurVisualEffect();
-    method public void drawEffect(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.HazeEffectNode node);
+    method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.HazeEffectNode node);
     method public float getAlpha();
     method public boolean getBlurEnabled();
     method public dev.chrisbanes.haze.blur.HazeTint getFallbackTint();

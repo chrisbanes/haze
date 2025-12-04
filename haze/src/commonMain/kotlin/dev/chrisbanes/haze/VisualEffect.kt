@@ -6,11 +6,12 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 
+@ExperimentalHazeApi
 public interface VisualEffect {
   /**
    * Draws the effect.
    */
-  public fun DrawScope.drawEffect(node: HazeEffectNode)
+  public fun DrawScope.draw(node: HazeEffectNode)
 
   /**
    * Attaches this effect to the given node.
@@ -34,7 +35,7 @@ public interface VisualEffect {
     HazeInputScale.Auto -> 1f
   }
 
-  public fun needInvalidation(): Boolean = false
+  public fun requireInvalidation(): Boolean = false
 
   public fun preferClipToAreaBounds(): Boolean = false
 
@@ -42,7 +43,7 @@ public interface VisualEffect {
    * The resulting rect should be in the same coordinate system of the passed in rect. i.e. the
    * content at [x,y] of [rect] should be the same content of the resulting rect.
    */
-  public fun expandLayerRect(rect: Rect): Rect = rect
+  public fun calculateLayerBounds(rect: Rect): Rect = rect
 
   public companion object {
     /**
@@ -54,7 +55,7 @@ public interface VisualEffect {
 }
 
 private object EmptyVisualEffect : VisualEffect {
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
+  override fun DrawScope.draw(node: HazeEffectNode) {
     // No-op
   }
 }
