@@ -45,9 +45,6 @@ import dev.chrisbanes.haze.VisualEffectContext
  */
 public class BlurVisualEffect : VisualEffect {
 
-  internal var attachedContext: VisualEffectContext? = null
-    private set
-
   internal var delegate: Delegate = ScrimBlurVisualEffectDelegate(this)
     set(value) {
       if (value != field) {
@@ -60,37 +57,26 @@ public class BlurVisualEffect : VisualEffect {
       }
     }
 
-  override fun attach(context: VisualEffectContext) {
-    attachedContext = context
-  }
-
   override fun update(context: VisualEffectContext) {
     compositionLocalStyle = context.currentValueOf(LocalHazeStyle)
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
-    updateDelegate(this)
+    updateDelegate(context, this)
 
     try {
-      with(delegate) { draw() }
+      with(delegate) { draw(context) }
     } finally {
       resetDirtyTracker()
     }
   }
 
-  override fun detach() {
-    attachedContext = null
-  }
-
-  override fun DrawScope.shouldDrawContentBehind(): Boolean {
-    updateDelegate(this)
+  override fun DrawScope.shouldDrawContentBehind(context: VisualEffectContext): Boolean {
+    updateDelegate(context, this)
     return delegate is ScrimBlurVisualEffectDelegate
   }
 
   override fun shouldClip(): Boolean = blurredEdgeTreatment.shape != null
-
-  internal fun requireContext(): VisualEffectContext =
-    attachedContext ?: error("VisualEffect is not attached")
 
   internal var dirtyTracker: Bitmask = Bitmask()
     private set
@@ -351,8 +337,8 @@ public class BlurVisualEffect : VisualEffect {
     return backgroundColor.isSpecified && backgroundColor.alpha < 0.9f
   }
 
-  override fun calculateLayerBounds(rect: Rect): Rect {
-    val blurRadiusPx = with(requireContext().requireDensity()) {
+  override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
+    val blurRadiusPx = with(density) {
       blurRadius.takeOrElse { 0.dp }.toPx()
     }
     return when {
@@ -371,7 +357,7 @@ public class BlurVisualEffect : VisualEffect {
 
   internal interface Delegate {
     fun attach() = Unit
-    fun DrawScope.draw()
+    fun DrawScope.draw(context: VisualEffectContext)
     fun detach() = Unit
   }
 
@@ -380,7 +366,7 @@ public class BlurVisualEffect : VisualEffect {
   }
 }
 
-internal expect fun BlurVisualEffect.updateDelegate(drawScope: DrawScope)
+internal expect fun BlurVisualEffect.updateDelegate(context: VisualEffectContext, drawScope: DrawScope)
 
 internal expect fun createRenderEffect(
   context: PlatformContext,

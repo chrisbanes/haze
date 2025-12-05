@@ -163,13 +163,13 @@ package dev.chrisbanes.haze {
   @dev.chrisbanes.haze.ExperimentalHazeApi public interface VisualEffect {
     method public default void attach(dev.chrisbanes.haze.VisualEffectContext context);
     method public default float calculateInputScaleFactor(dev.chrisbanes.haze.HazeInputScale scale);
-    method public default androidx.compose.ui.geometry.Rect calculateLayerBounds(androidx.compose.ui.geometry.Rect rect);
+    method public default androidx.compose.ui.geometry.Rect calculateLayerBounds(androidx.compose.ui.geometry.Rect rect, androidx.compose.ui.unit.Density density);
     method public default void detach();
     method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
     method public default boolean preferClipToAreaBounds();
     method public default boolean requireInvalidation();
     method public default boolean shouldClip();
-    method public default boolean shouldDrawContentBehind(androidx.compose.ui.graphics.drawscope.DrawScope);
+    method public default boolean shouldDrawContentBehind(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
     method public default void update(dev.chrisbanes.haze.VisualEffectContext context);
     field public static final dev.chrisbanes.haze.VisualEffect.Companion Companion;
   }
@@ -182,6 +182,7 @@ package dev.chrisbanes.haze {
   @dev.chrisbanes.haze.ExperimentalHazeApi public interface VisualEffectContext {
     method public <T> T currentValueOf(androidx.compose.runtime.CompositionLocal<T> local);
     method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
+    method public kotlinx.coroutines.CoroutineScope getCoroutineScope();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
     method public androidx.compose.ui.geometry.Rect getRootBoundsOnScreen();
     method public dev.chrisbanes.haze.HazeState? getState();
@@ -192,6 +193,7 @@ package dev.chrisbanes.haze {
     method public androidx.compose.ui.graphics.GraphicsContext requireGraphicsContext();
     method @dev.chrisbanes.haze.InternalHazeApi public dev.chrisbanes.haze.PlatformContext requirePlatformContext();
     property public abstract java.util.List<dev.chrisbanes.haze.HazeArea> areas;
+    property public abstract kotlinx.coroutines.CoroutineScope coroutineScope;
     property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
     property public abstract androidx.compose.ui.geometry.Offset layerOffset;
     property public abstract androidx.compose.ui.geometry.Size layerSize;
@@ -204,9 +206,7 @@ package dev.chrisbanes.haze {
   }
 
   public final class VisualEffectContextKt {
-    method public static kotlinx.coroutines.CoroutineScope getCoroutineScope(dev.chrisbanes.haze.VisualEffectContext);
     method @dev.chrisbanes.haze.ExperimentalHazeApi public static inline <R> R withGraphicsLayer(dev.chrisbanes.haze.VisualEffectContext, kotlin.jvm.functions.Function1<? super androidx.compose.ui.graphics.layer.GraphicsLayer,? extends R> block);
-    property @dev.chrisbanes.haze.ExperimentalHazeApi public static kotlinx.coroutines.CoroutineScope dev.chrisbanes.haze.VisualEffectContext.coroutineScope;
   }
 
 }

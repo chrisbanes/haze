@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.unit.Density
 
 /**
  * A visual effect that can be applied to content behind or in front of a composable.
@@ -49,8 +50,11 @@ public interface VisualEffect {
   /**
    * Returns whether the content should be drawn behind the effect for foreground blurring.
    * This is called during drawing to determine draw order.
+   *
+   * @param context The context providing access to geometry, configuration, and platform
+   * capabilities.
    */
-  public fun DrawScope.shouldDrawContentBehind(): Boolean = false
+  public fun DrawScope.shouldDrawContentBehind(context: VisualEffectContext): Boolean = false
 
   /**
    * Returns whether the effect output should be clipped to the node bounds.
@@ -86,9 +90,10 @@ public interface VisualEffect {
    * i.e. the content at [x,y] of [rect] should be the same content of the resulting rect.
    *
    * @param rect The original bounds rect.
+   * @param density The density to use for pixel conversions.
    * @return The expanded bounds required for the effect.
    */
-  public fun calculateLayerBounds(rect: Rect): Rect = rect
+  public fun calculateLayerBounds(rect: Rect, density: Density): Rect = rect
 
   public companion object {
     /**

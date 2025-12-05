@@ -111,6 +111,11 @@ public interface VisualEffectContext {
   public fun requireGraphicsContext(): GraphicsContext
 
   /**
+   * CoroutineScope to launch coroutines from
+   */
+  public val coroutineScope: CoroutineScope
+
+  /**
    * Requests a redraw of the effect.
    */
   public fun invalidateDraw()
@@ -137,6 +142,7 @@ internal class HazeEffectNodeVisualEffectContext(
 
   override val visualEffect: VisualEffect get() = node.visualEffect
 
+  override val coroutineScope: CoroutineScope get() = node.coroutineScope
   override fun requirePlatformContext(): PlatformContext = node.requirePlatformContext()
   override fun requireDensity(): Density = node.requireDensity()
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = node.currentValueOf(local)
@@ -162,23 +168,3 @@ public inline fun <R> VisualEffectContext.withGraphicsLayer(block: (GraphicsLaye
     graphicsContext.releaseGraphicsLayer(layer)
   }
 }
-
-/**
- * Returns the [CoroutineScope] associated with this context for launching async operations.
- *
- * This extension is only available when the context wraps a [HazeEffectNode].
- */
-@ExperimentalHazeApi
-public val VisualEffectContext.coroutineScope: CoroutineScope
-  get() = when (this) {
-    is HazeEffectNodeVisualEffectContext -> internalCoroutineScope
-    else -> error("coroutineScope is only available for HazeEffectNode-backed contexts")
-  }
-
-@OptIn(ExperimentalHazeApi::class)
-private val HazeEffectNodeVisualEffectContext.internalCoroutineScope: CoroutineScope
-  get() {
-    // Access the node's coroutineScope via reflection or internal accessor
-    // For now, we'll use an internal accessor that we'll add to HazeEffectNode
-    return node.coroutineScope
-  }

@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.withGraphicsLayer
 
 @OptIn(InternalHazeApi::class)
@@ -25,11 +26,11 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,
+  context: VisualEffectContext,
 ) {
-  val context = blurVisualEffect.attachedContext ?: return
   if (USE_RUNTIME_SHADER && Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
-      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(progressive = progressive)
+      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(context = context, progressive = progressive)
       contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
@@ -42,11 +43,12 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
       drawScope = drawScope,
       progressive = progressive,
       contentLayer = contentLayer,
+      context = context,
     )
   } else {
     // Otherwise we convert it to a mask
     with(drawScope) {
-      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(mask = progressive.asBrush())
+      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(context = context, mask = progressive.asBrush())
       contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
@@ -59,8 +61,8 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   drawScope: DrawScope,
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
+  context: VisualEffectContext,
 ) = with(drawScope) {
-  val context = blurVisualEffect.attachedContext ?: return
   val tints = blurVisualEffect.tints
   val noiseFactor = blurVisualEffect.noiseFactor
   val blurRadius = blurVisualEffect.blurRadius.takeOrElse { 0.dp } *
@@ -77,6 +79,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
       }
 
       layer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
+        context = context,
         blurRadius = blurRadius * intensity,
         noiseFactor = noiseFactor,
         tints = tints,

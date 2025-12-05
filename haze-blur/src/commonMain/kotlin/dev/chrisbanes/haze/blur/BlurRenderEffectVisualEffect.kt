@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -23,18 +24,19 @@ internal class RenderEffectBlurVisualEffectDelegate(
 ) : BlurVisualEffect.Delegate {
   private var renderEffect: RenderEffect? = null
 
-  override fun DrawScope.draw() {
-    createAndDrawScaledContentLayer(context = blurVisualEffect.requireContext()) { layer ->
+  override fun DrawScope.draw(context: VisualEffectContext) {
+    createAndDrawScaledContentLayer(context = context) { layer ->
       val p = blurVisualEffect.progressive
       if (p != null) {
         drawProgressiveEffect(
           drawScope = this,
           progressive = p,
           contentLayer = layer,
+          context = context,
         )
       } else {
         // First make sure that the RenderEffect is updated (if necessary)
-        updateRenderEffectIfDirty()
+        updateRenderEffectIfDirty(context)
 
         layer.renderEffect = renderEffect
         layer.alpha = blurVisualEffect.alpha
@@ -46,12 +48,12 @@ internal class RenderEffectBlurVisualEffectDelegate(
     }
   }
 
-  private fun updateRenderEffectIfDirty() {
+  private fun updateRenderEffectIfDirty(context: VisualEffectContext) {
     // Always resolve the current RenderEffect using the memoized cache keyed by params.
     // This ensures that changes coming from either the effect itself OR the hosting node
     // (e.g., size, layer offset, input scale, etc.) will be reflected without relying on
     // the effect's local dirty flags only.
-    renderEffect = blurVisualEffect.getOrCreateRenderEffect()
+    renderEffect = blurVisualEffect.getOrCreateRenderEffect(context)
   }
 
   companion object {
@@ -63,6 +65,7 @@ internal expect fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,
+  context: VisualEffectContext,
 )
 
 internal fun DrawScope.drawProgressiveWithMultipleLayers(

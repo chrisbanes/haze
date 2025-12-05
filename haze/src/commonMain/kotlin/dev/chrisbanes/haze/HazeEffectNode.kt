@@ -27,6 +27,7 @@ import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
+import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
@@ -309,7 +310,7 @@ public class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
-          if (drawContentBehind || with(visualEffect) { shouldDrawContentBehind() }) {
+          if (drawContentBehind || with(visualEffect) { shouldDrawContentBehind(visualEffectContext) }) {
             drawLayer(contentLayer)
           }
           with(visualEffect) {
@@ -383,7 +384,7 @@ public class HazeEffectNode(
       // Now we clip the expanded layer bounds, to remove anything areas which
       // don't overlap any areas, and the window bounds
       val clippedLayerBounds = Rect(positionOnScreen, size)
-        .letIf(shouldExpandLayer()) { visualEffect.calculateLayerBounds(it) }
+        .letIf(shouldExpandLayer()) { visualEffect.calculateLayerBounds(it, requireDensity()) }
         .letIf(shouldClipToAreaBounds()) { rect ->
           // Calculate the dimensions which covers all areas...
           var left = Float.POSITIVE_INFINITY
@@ -408,7 +409,7 @@ public class HazeEffectNode(
       _layerOffset = positionOnScreen - clippedLayerBounds.topLeft
     } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
       val rect = size.toRect()
-      val expanded = visualEffect.calculateLayerBounds(rect)
+      val expanded = visualEffect.calculateLayerBounds(rect, requireDensity())
       _layerSize = expanded.size
       _layerOffset = rect.topLeft - expanded.topLeft
     } else {
