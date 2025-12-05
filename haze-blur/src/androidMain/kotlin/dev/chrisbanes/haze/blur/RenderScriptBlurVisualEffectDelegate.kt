@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 @file:Suppress("DEPRECATION")
-@file:OptIn(InternalHazeApi::class)
+@file:OptIn(InternalHazeApi::class, ExperimentalHazeApi::class)
 
 package dev.chrisbanes.haze.blur
 
@@ -25,21 +25,19 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.node.invalidateDraw
-import androidx.compose.ui.node.requireDensity
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.traceAsync
+import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.abs
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
@@ -50,11 +48,11 @@ import kotlinx.coroutines.withContext
 
 internal class RenderScriptBlurVisualEffectDelegate(
   private val blurVisualEffect: BlurVisualEffect,
+  private val graphicsContext: GraphicsContext,
+  androidContext: android.content.Context,
 ) : BlurVisualEffect.Delegate {
 
-  private val renderScript = RenderScript.create(
-    blurVisualEffect.requireNode().currentValueOf(LocalContext),
-  )
+  private val renderScript = RenderScript.create(androidContext)
 
   private var renderScriptContext: RenderScriptContext? = null
   private val drawScope = CanvasDrawScope()
@@ -62,19 +60,13 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private var currentJob: Job? = null
   private var drawSkipped: Boolean = false
 
-  private val graphicsContext: GraphicsContext
-    get() = blurVisualEffect.requireNode().currentValueOf(LocalGraphicsContext)
-
   private val contentLayer: GraphicsLayer = graphicsContext.createGraphicsLayer()
 
-  private val density: Density
-    get() = blurVisualEffect.requireNode().requireDensity()
-
-  override fun DrawScope.draw() {
-    val node = blurVisualEffect.requireNode()
-    val context = node.currentValueOf(LocalContext)
-    val offset = node.layerOffset
-    var scaleFactor = blurVisualEffect.calculateInputScaleFactor(node.inputScale)
+  override fun DrawScope.draw(context: VisualEffectContext) {
+    val density = context.requireDensity()
+    val androidContext = context.requirePlatformContext()
+    val offset = context.layerOffset
+    var scaleFactor = blurVisualEffect.calculateInputScaleFactor(context.inputScale)
 
     var blurRadiusPx = scaleFactor * with(density) {
       blurVisualEffect.blurRadius.takeOrElse { 0.dp }.toPx()
@@ -92,31 +84,31 @@ internal class RenderScriptBlurVisualEffectDelegate(
       drawSkipped = false
 
       createScaledContentLayer(
-        node = node,
+        context = context,
         scaleFactor = scaleFactor,
-        layerSize = node.layerSize,
+        layerSize = context.layerSize,
         layerOffset = offset,
         backgroundColor = blurVisualEffect.backgroundColor,
       )?.let { layer ->
-        layer.clip = node.visualEffect.shouldClip()
+        layer.clip = context.visualEffect.shouldClip()
 
         if (contentLayer.size == IntSize.Zero) {
           // If the layer is released, or doesn't have a size yet, we'll generate
           // this blocking, so that the user doesn't see an un-blurred first frame
           runBlocking {
-            updateSurface(content = layer, blurRadius = blurRadiusPx)
+            updateSurface(content = layer, blurRadius = blurRadiusPx, context = context, density = density)
             // Release the graphics layer
             graphicsContext.releaseGraphicsLayer(layer)
           }
         } else {
-          currentJob = node.coroutineScope.launch(Dispatchers.Main.immediate) {
-            updateSurface(content = layer, blurRadius = blurRadiusPx)
+          currentJob = context.coroutineScope.launch(Dispatchers.Main.immediate) {
+            updateSurface(content = layer, blurRadius = blurRadiusPx, context = context, density = density)
             // Release the graphics layer
             graphicsContext.releaseGraphicsLayer(layer)
 
             if (drawSkipped) {
               // If any draws were skipped, let's trigger a draw invalidation
-              node.invalidateDraw()
+              context.invalidateDraw()
             }
           }
         }
@@ -126,7 +118,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
       drawSkipped = true
     }
 
-    node.withGraphicsLayer { layer ->
+    context.withGraphicsLayer { layer ->
       layer.alpha = blurVisualEffect.alpha
       layer.clip = blurVisualEffect.shouldClip()
 
@@ -140,7 +132,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
         drawScaledContent(
           offset = -offset,
           scaledSize = size * scaleFactor,
-          clip = node.visualEffect.shouldClip(),
+          clip = context.visualEffect.shouldClip(),
         ) {
           drawLayer(contentLayer)
         }
@@ -157,7 +149,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
             PaintPool.usePaint { paint ->
               paint.isAntiAlias = true
               paint.alpha = noiseFactor.coerceIn(0f, 1f)
-              val shader = BitmapShader(context.getNoiseTexture(), REPEAT, REPEAT)
+              val shader = BitmapShader(androidContext.getNoiseTexture(), REPEAT, REPEAT)
               val normalizedScale = if (scaleFactor > 0f) scaleFactor else 1f
               if (abs(normalizedScale - 1f) >= 0.001f) {
                 val matrix = Matrix().apply {
@@ -176,7 +168,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
         // Then the tints...
         translate(offset = -offset) {
           for (tint in blurVisualEffect.tints) {
-            drawScrim(tint = tint, node = node, offset = offset, expandedSize = expandedSize, mask = mask)
+            drawScrim(tint = tint, context = context, offset = offset, expandedSize = expandedSize, mask = mask)
           }
         }
 
@@ -201,7 +193,12 @@ internal class RenderScriptBlurVisualEffectDelegate(
     else -> false
   }
 
-  private suspend fun updateSurface(content: GraphicsLayer, blurRadius: Float) {
+  private suspend fun updateSurface(
+    content: GraphicsLayer,
+    blurRadius: Float,
+    context: VisualEffectContext,
+    density: Density,
+  ) {
     traceAsync("Haze-RenderScriptBlurEffect-updateSurface", 0) {
       val rs = getRenderScriptContext(content.size)
       traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
@@ -209,11 +206,6 @@ internal class RenderScriptBlurVisualEffectDelegate(
         rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
         // Wait for the layer to be written to the Surface
         rs.awaitSurfaceWritten()
-      }
-
-      val node = blurVisualEffect.attachedNode
-      if (node?.isAttached != true) {
-        return@traceAsync
       }
 
       if (blurRadius > 0f) {
@@ -230,7 +222,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
           contentLayer.record(
             density = density,
-            layoutDirection = node.currentValueOf(LocalLayoutDirection),
+            layoutDirection = context.currentValueOf(LocalLayoutDirection),
             size = IntSize(output.width, output.height),
           ) {
             drawImage(output.asImageBitmap())
@@ -240,7 +232,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
         // If the blur radius is 0, we just copy the input content into our contentLayer
         contentLayer.record(
           density = density,
-          layoutDirection = node.currentValueOf(LocalLayoutDirection),
+          layoutDirection = context.currentValueOf(LocalLayoutDirection),
           size = content.size,
         ) {
           drawLayer(content)
@@ -273,9 +265,15 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
     private var isEnabled: Boolean = true
 
-    fun createOrNull(effect: BlurVisualEffect): RenderScriptBlurVisualEffectDelegate? {
+    fun createOrNull(effect: BlurVisualEffect, context: VisualEffectContext): RenderScriptBlurVisualEffectDelegate? {
       if (isEnabled) {
-        return runCatching { RenderScriptBlurVisualEffectDelegate(effect) }
+        return runCatching {
+          RenderScriptBlurVisualEffectDelegate(
+            blurVisualEffect = effect,
+            graphicsContext = context.requireGraphicsContext(),
+            androidContext = context.requirePlatformContext(),
+          )
+        }
           .onFailure { isEnabled = false }
           .getOrNull()
       }

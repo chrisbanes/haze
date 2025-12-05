@@ -8,21 +8,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.VisualEffectContext
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class ScrimBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
 ) : BlurVisualEffect.Delegate {
-  override fun DrawScope.draw() {
+  override fun DrawScope.draw(context: VisualEffectContext) {
     val scrimTint = blurVisualEffect.fallbackTint.takeIf { it.isSpecified }
       ?: blurVisualEffect.tints.firstOrNull()
         ?.boostForFallback(blurVisualEffect.blurRadius.takeOrElse { 0.dp })
       ?: return
 
-    withAlpha(alpha = blurVisualEffect.alpha, node = blurVisualEffect.requireNode()) {
+    withAlpha(alpha = blurVisualEffect.alpha, context = context) {
       drawScrim(
         tint = scrimTint,
-        node = blurVisualEffect.requireNode(),
+        context = context,
         mask = blurVisualEffect.mask ?: blurVisualEffect.progressive?.asBrush(),
       )
     }

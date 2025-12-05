@@ -6,8 +6,12 @@ package dev.chrisbanes.haze.blur
 import android.os.Build
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
+import dev.chrisbanes.haze.VisualEffectContext
 
-internal actual fun BlurVisualEffect.updateDelegate(drawScope: DrawScope) {
+internal actual fun BlurVisualEffect.updateDelegate(
+  context: VisualEffectContext,
+  drawScope: DrawScope,
+) {
   val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
     drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
@@ -26,7 +30,7 @@ internal actual fun BlurVisualEffect.updateDelegate(drawScope: DrawScope) {
   if (blurEnabled) {
     val newDelegate = when (delegate) {
       is RenderScriptBlurVisualEffectDelegate -> delegate
-      else -> RenderScriptBlurVisualEffectDelegate.createOrNull(this)
+      else -> RenderScriptBlurVisualEffectDelegate.createOrNull(this, context)
     }
     if (newDelegate != null) {
       // We have a valid blur effect, so return

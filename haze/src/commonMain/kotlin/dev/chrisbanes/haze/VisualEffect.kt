@@ -5,44 +5,95 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.unit.Density
 
+/**
+ * A visual effect that can be applied to content behind or in front of a composable.
+ *
+ * Implementations receive a [VisualEffectContext] during their lifecycle which provides
+ * access to geometry, configuration, and platform capabilities without direct coupling
+ * to the underlying node implementation.
+ */
+@ExperimentalHazeApi
 public interface VisualEffect {
   /**
    * Draws the effect.
+   *
+   * @param context The context providing access to geometry, configuration, and platform
+   * capabilities for rendering the effect.
    */
-  public fun DrawScope.drawEffect(node: HazeEffectNode)
+  public fun DrawScope.draw(context: VisualEffectContext)
 
   /**
-   * Attaches this effect to the given node.
+   * Called when this effect is attached to a context.
+   *
+   * Use this to initialize any resources or state needed for the effect.
+   *
+   * @param context The context this effect is being attached to.
    */
-  public fun attach(node: HazeEffectNode): Unit = Unit
-
-  public fun update(): Unit = Unit
+  public fun attach(context: VisualEffectContext): Unit = Unit
 
   /**
-   * Detaches this effect from its node.
+   * Called when the effect should update its state from composition locals or other sources.
+   *
+   * @param context The context providing access to composition locals and other state.
+   */
+  public fun update(context: VisualEffectContext): Unit = Unit
+
+  /**
+   * Called when this effect is detached from its context.
+   *
+   * Use this to release any resources acquired during [attach].
    */
   public fun detach(): Unit = Unit
 
-  public fun DrawScope.shouldDrawContentBehind(): Boolean = false
+  /**
+   * Returns whether the content should be drawn behind the effect for foreground blurring.
+   * This is called during drawing to determine draw order.
+   *
+   * @param context The context providing access to geometry, configuration, and platform
+   * capabilities.
+   */
+  public fun DrawScope.shouldDrawContentBehind(context: VisualEffectContext): Boolean = false
 
+  /**
+   * Returns whether the effect output should be clipped to the node bounds.
+   */
   public fun shouldClip(): Boolean = false
 
+  /**
+   * Calculates the input scale factor based on the given scale configuration.
+   *
+   * @param scale The scale configuration.
+   * @return The calculated scale factor to apply.
+   */
   public fun calculateInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
     is HazeInputScale.None -> 1f
     is HazeInputScale.Fixed -> scale.scale
     HazeInputScale.Auto -> 1f
   }
 
-  public fun needInvalidation(): Boolean = false
+  /**
+   * Returns whether the effect requires draw invalidation.
+   */
+  public fun requireInvalidation(): Boolean = false
 
+  /**
+   * Returns whether the effect prefers to clip to area bounds.
+   */
   public fun preferClipToAreaBounds(): Boolean = false
 
   /**
-   * The resulting rect should be in the same coordinate system of the passed in rect. i.e. the
-   * content at [x,y] of [rect] should be the same content of the resulting rect.
+   * Calculates the layer bounds required for this effect.
+   *
+   * The resulting rect should be in the same coordinate system as the passed in rect.
+   * i.e. the content at [x,y] of [rect] should be the same content of the resulting rect.
+   *
+   * @param rect The original bounds rect.
+   * @param density The density to use for pixel conversions.
+   * @return The expanded bounds required for the effect.
    */
-  public fun expandLayerRect(rect: Rect): Rect = rect
+  public fun calculateLayerBounds(rect: Rect, density: Density): Rect = rect
 
   public companion object {
     /**
@@ -54,7 +105,7 @@ public interface VisualEffect {
 }
 
 private object EmptyVisualEffect : VisualEffect {
-  override fun DrawScope.drawEffect(node: HazeEffectNode) {
+  override fun DrawScope.draw(context: VisualEffectContext) {
     // No-op
   }
 }

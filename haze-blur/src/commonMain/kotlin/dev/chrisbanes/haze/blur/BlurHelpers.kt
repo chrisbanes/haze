@@ -21,21 +21,19 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeEffectNode
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 
 @OptIn(InternalHazeApi::class)
 internal fun DrawScope.drawScrim(
   tint: HazeTint,
-  node: CompositionLocalConsumerModifierNode,
+  context: VisualEffectContext,
   offset: Offset = Offset.Zero,
   expandedSize: Size = this.size,
   mask: Brush? = null,
@@ -43,7 +41,7 @@ internal fun DrawScope.drawScrim(
   val tintBrush = tint.brush
   if (tintBrush != null) {
     if (mask != null) {
-      node.withGraphicsLayer { layer ->
+      context.withGraphicsLayer { layer ->
         layer.compositingStrategy = CompositingStrategy.Offscreen
         layer.record(size = size.toIntSize()) {
           drawRect(brush = tintBrush, blendMode = tint.blendMode)
@@ -76,21 +74,21 @@ internal fun DrawScope.drawScrim(
 }
 
 internal fun DrawScope.createAndDrawScaledContentLayer(
-  node: HazeEffectNode,
+  context: VisualEffectContext,
   releaseLayerOnExit: Boolean = true,
   block: DrawScope.(GraphicsLayer) -> Unit,
 ) {
-  val graphicsContext = node.currentValueOf(LocalGraphicsContext)
+  val graphicsContext = context.requireGraphicsContext()
 
-  val effect = node.visualEffect
-  val scaleFactor = effect.calculateInputScaleFactor(node.inputScale)
+  val effect = context.visualEffect
+  val scaleFactor = effect.calculateInputScaleFactor(context.inputScale)
   val clip = effect.shouldClip()
 
   val layer = createScaledContentLayer(
-    node = node,
+    context = context,
     scaleFactor = scaleFactor,
-    layerSize = node.layerSize,
-    layerOffset = node.layerOffset,
+    layerSize = context.layerSize,
+    layerOffset = context.layerOffset,
     backgroundColor = (effect as? BlurVisualEffect)?.backgroundColor ?: Color.Transparent,
   )
 
@@ -98,7 +96,7 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
     layer.clip = clip
 
     drawScaledContent(
-      offset = -node.layerOffset,
+      offset = -context.layerOffset,
       scaledSize = size * scaleFactor,
       clip = clip,
     ) {
@@ -112,7 +110,7 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
 }
 
 internal fun DrawScope.createScaledContentLayer(
-  node: HazeEffectNode,
+  context: VisualEffectContext,
   backgroundColor: Color,
   scaleFactor: Float,
   layerSize: Size,
@@ -127,7 +125,7 @@ internal fun DrawScope.createScaledContentLayer(
 
   // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
   // The RenderEffect applied will provide the blurring effect.
-  val graphicsContext = node.currentValueOf(LocalGraphicsContext)
+  val graphicsContext = context.requireGraphicsContext()
   val layer = graphicsContext.createGraphicsLayer()
 
   layer.record(size = scaledLayerSize) {
@@ -136,8 +134,8 @@ internal fun DrawScope.createScaledContentLayer(
     }
 
     scale(scale = scaleFactor, pivot = Offset.Zero) {
-      translate(layerOffset - node.positionOnScreen) {
-        for (area in node.areas) {
+      translate(layerOffset - context.positionOnScreen) {
+        for (area in context.areas) {
           val position = Snapshot.withoutReadObservation {
             area.positionOnScreen.takeOrElse { Offset.Zero }
           }

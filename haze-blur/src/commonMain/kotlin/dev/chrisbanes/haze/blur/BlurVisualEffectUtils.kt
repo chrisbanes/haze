@@ -11,16 +11,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeEffectNode
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
-import dev.chrisbanes.haze.requirePlatformContext
+import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.trace
 
 /**
@@ -33,20 +31,20 @@ internal fun BlurVisualEffect.calculateBlurTileMode(): TileMode = when (blurredE
 
 @OptIn(ExperimentalHazeApi::class)
 internal fun BlurVisualEffect.getOrCreateRenderEffect(
-  node: HazeEffectNode = requireNode(),
-  inputScale: Float = calculateInputScaleFactor(node.inputScale),
+  context: VisualEffectContext,
+  inputScale: Float = calculateInputScaleFactor(context.inputScale),
   blurRadius: Dp = this.blurRadius.takeOrElse { 0.dp },
   noiseFactor: Float = this.noiseFactor,
   tints: List<HazeTint> = this.tints,
   tintAlphaModulate: Float = 1f,
-  contentSize: Size = node.size,
-  contentOffset: Offset = node.layerOffset,
+  contentSize: Size = context.size,
+  contentOffset: Offset = context.layerOffset,
   mask: Brush? = this.mask,
   progressive: HazeProgressive? = null,
   blurTileMode: TileMode = calculateBlurTileMode(),
 ): RenderEffect? = trace("HazeEffectNode-getOrCreateRenderEffect") {
   getOrCreateRenderEffect(
-    node = node,
+    context = context,
     params = RenderEffectParams(
       blurRadius = blurRadius,
       noiseFactor = noiseFactor,
@@ -80,7 +78,8 @@ internal class RenderEffectParams(
   val blurTileMode: TileMode,
 )
 
-private fun getOrCreateRenderEffect(node: HazeEffectNode, params: RenderEffectParams): RenderEffect? {
+@OptIn(ExperimentalHazeApi::class)
+private fun getOrCreateRenderEffect(context: VisualEffectContext, params: RenderEffectParams): RenderEffect? {
   HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect: $params" }
   val cached = renderEffectCache[params]
   if (cached != null) {
@@ -90,8 +89,8 @@ private fun getOrCreateRenderEffect(node: HazeEffectNode, params: RenderEffectPa
 
   HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect. Creating: $params" }
   return createRenderEffect(
-    context = node.requirePlatformContext(),
-    density = node.requireDensity(),
+    context = context.requirePlatformContext(),
+    density = context.requireDensity(),
     params = params,
   )?.also { effect ->
     renderEffectCache.put(params, effect)

@@ -7,11 +7,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isFinite
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
-import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.platform.LocalGraphicsContext
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.withGraphicsLayer
 
 internal inline fun DrawScope.translate(
   offset: Offset,
@@ -24,23 +23,14 @@ internal inline fun DrawScope.translate(
   }
 }
 
-internal fun CompositionLocalConsumerModifierNode.withGraphicsLayer(block: (GraphicsLayer) -> Unit) {
-  val graphicsContext = currentValueOf(LocalGraphicsContext)
-  val layer = graphicsContext.createGraphicsLayer()
-  try {
-    block(layer)
-  } finally {
-    graphicsContext.releaseGraphicsLayer(layer)
-  }
-}
-
+@OptIn(ExperimentalHazeApi::class)
 internal inline fun DrawScope.withAlpha(
   alpha: Float,
-  node: CompositionLocalConsumerModifierNode,
+  context: VisualEffectContext,
   crossinline block: DrawScope.() -> Unit,
 ) {
   if (alpha < 1f) {
-    node.withGraphicsLayer { layer ->
+    context.withGraphicsLayer { layer ->
       layer.alpha = alpha
       layer.record { block() }
       drawLayer(layer)
