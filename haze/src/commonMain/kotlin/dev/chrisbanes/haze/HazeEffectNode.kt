@@ -126,6 +126,10 @@ public class HazeEffectNode(
 
   internal var windowId: Any? = null
 
+  internal val visualEffectContext: VisualEffectContext by lazy(LazyThreadSafetyMode.NONE) {
+    HazeEffectNodeVisualEffectContext(this)
+  }
+
   private var _areas: List<HazeArea> = emptyList()
     set(value) {
       if (value != field) {
@@ -164,7 +168,7 @@ public class HazeEffectNode(
         field.detach()
         field = value
         // attach new VisualEffect
-        value.attach(this)
+        value.attach(visualEffectContext)
       }
     }
 
@@ -212,7 +216,7 @@ public class HazeEffectNode(
   }
 
   override fun onAttach() {
-    visualEffect.attach(this)
+    visualEffect.attach(visualEffectContext)
     update()
   }
 
@@ -287,7 +291,7 @@ public class HazeEffectNode(
           if (areas.isNotEmpty()) {
             // If the state is not null and we have some areas, let's perform background blurring
             with(visualEffect) {
-              draw(this@HazeEffectNode)
+              draw(visualEffectContext)
             }
           }
           // Finally we draw the content over the background
@@ -309,7 +313,7 @@ public class HazeEffectNode(
             drawLayer(contentLayer)
           }
           with(visualEffect) {
-            draw(this@HazeEffectNode)
+            draw(visualEffectContext)
           }
         }
       } else {
@@ -324,7 +328,7 @@ public class HazeEffectNode(
 
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
     // Allow the current VisualEffect to update from CompositionLocals/state
-    visualEffect.update()
+    visualEffect.update(visualEffectContext)
     windowId = getWindowId()
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero

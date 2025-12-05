@@ -1,7 +1,7 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(InternalHazeApi::class)
+@file:OptIn(InternalHazeApi::class, ExperimentalHazeApi::class)
 
 package dev.chrisbanes.haze.blur
 
@@ -12,8 +12,10 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.withGraphicsLayer
 
 @OptIn(InternalHazeApi::class)
 private const val USE_RUNTIME_SHADER = true
@@ -24,7 +26,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,
 ) {
-  val node = blurVisualEffect.attachedNode ?: return
+  val context = blurVisualEffect.attachedContext ?: return
   if (USE_RUNTIME_SHADER && Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
       contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(progressive = progressive)
@@ -58,14 +60,14 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   progressive: HazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
 ) = with(drawScope) {
-  val node = blurVisualEffect.attachedNode ?: return
+  val context = blurVisualEffect.attachedContext ?: return
   val tints = blurVisualEffect.tints
   val noiseFactor = blurVisualEffect.noiseFactor
   val blurRadius = blurVisualEffect.blurRadius.takeOrElse { 0.dp } *
-    blurVisualEffect.calculateInputScaleFactor(node.inputScale)
+    blurVisualEffect.calculateInputScaleFactor(context.inputScale)
 
   drawProgressiveWithMultipleLayers(progressive) { mask, intensity ->
-    node.withGraphicsLayer { layer ->
+    context.withGraphicsLayer { layer ->
       layer.record(contentLayer.size) {
         drawLayer(contentLayer)
       }

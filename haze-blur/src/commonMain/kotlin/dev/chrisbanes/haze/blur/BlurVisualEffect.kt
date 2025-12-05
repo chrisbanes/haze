@@ -11,18 +11,16 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.takeOrElse
-import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.Bitmask
-import dev.chrisbanes.haze.HazeEffectNode
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.VisualEffect
+import dev.chrisbanes.haze.VisualEffectContext
 
 /**
  * A [VisualEffect] implementation that applies blur effects to content.
@@ -47,7 +45,7 @@ import dev.chrisbanes.haze.VisualEffect
  */
 public class BlurVisualEffect : VisualEffect {
 
-  internal var attachedNode: HazeEffectNode? = null
+  internal var attachedContext: VisualEffectContext? = null
     private set
 
   internal var delegate: Delegate = ScrimBlurVisualEffectDelegate(this)
@@ -62,16 +60,15 @@ public class BlurVisualEffect : VisualEffect {
       }
     }
 
-  override fun attach(node: HazeEffectNode) {
-    attachedNode = node
+  override fun attach(context: VisualEffectContext) {
+    attachedContext = context
   }
 
-  override fun update() {
-    val node = requireNode()
-    compositionLocalStyle = node.currentValueOf(LocalHazeStyle)
+  override fun update(context: VisualEffectContext) {
+    compositionLocalStyle = context.currentValueOf(LocalHazeStyle)
   }
 
-  override fun DrawScope.draw(node: HazeEffectNode) {
+  override fun DrawScope.draw(context: VisualEffectContext) {
     updateDelegate(this)
 
     try {
@@ -82,7 +79,7 @@ public class BlurVisualEffect : VisualEffect {
   }
 
   override fun detach() {
-    attachedNode = null
+    attachedContext = null
   }
 
   override fun DrawScope.shouldDrawContentBehind(): Boolean {
@@ -92,7 +89,8 @@ public class BlurVisualEffect : VisualEffect {
 
   override fun shouldClip(): Boolean = blurredEdgeTreatment.shape != null
 
-  internal fun requireNode(): HazeEffectNode = attachedNode ?: error("VisualEffect is not attached")
+  internal fun requireContext(): VisualEffectContext =
+    attachedContext ?: error("VisualEffect is not attached")
 
   internal var dirtyTracker: Bitmask = Bitmask()
     private set
@@ -354,7 +352,7 @@ public class BlurVisualEffect : VisualEffect {
   }
 
   override fun calculateLayerBounds(rect: Rect): Rect {
-    val blurRadiusPx = with(requireNode().requireDensity()) {
+    val blurRadiusPx = with(requireContext().requireDensity()) {
       blurRadius.takeOrElse { 0.dp }.toPx()
     }
     return when {

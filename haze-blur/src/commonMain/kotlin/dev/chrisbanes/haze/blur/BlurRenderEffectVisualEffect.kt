@@ -24,7 +24,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
   private var renderEffect: RenderEffect? = null
 
   override fun DrawScope.draw() {
-    createAndDrawScaledContentLayer(node = blurVisualEffect.requireNode()) { layer ->
+    createAndDrawScaledContentLayer(context = blurVisualEffect.requireContext()) { layer ->
       val p = blurVisualEffect.progressive
       if (p != null) {
         drawProgressiveEffect(

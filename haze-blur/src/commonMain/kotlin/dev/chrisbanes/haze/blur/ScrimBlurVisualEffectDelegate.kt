@@ -19,10 +19,10 @@ internal class ScrimBlurVisualEffectDelegate(
         ?.boostForFallback(blurVisualEffect.blurRadius.takeOrElse { 0.dp })
       ?: return
 
-    withAlpha(alpha = blurVisualEffect.alpha, node = blurVisualEffect.requireNode()) {
+    withAlpha(alpha = blurVisualEffect.alpha, context = blurVisualEffect.requireContext()) {
       drawScrim(
         tint = scrimTint,
-        node = blurVisualEffect.requireNode(),
+        context = blurVisualEffect.requireContext(),
         mask = blurVisualEffect.mask ?: blurVisualEffect.progressive?.asBrush(),
       )
     }
