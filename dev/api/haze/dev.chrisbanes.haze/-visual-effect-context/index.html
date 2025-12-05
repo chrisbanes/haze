@@ -1,0 +1,386 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>VisualEffectContext</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Haze
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":haze/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":haze/commonMain" data-filter=":haze/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Haze
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="haze::dev.chrisbanes.haze/VisualEffectContext///PointingToDeclaration//-907335505">
+  <div class="breadcrumbs"><a href="../../index.html">haze</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><span class="current">VisualEffectContext</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Visual</span><wbr><span>Effect</span><wbr><span><span>Context</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="index.html">VisualEffectContext</a></div><p class="paragraph">Context provided to <a href="../-visual-effect/index.html">VisualEffect</a> implementations during their lifecycle.</p><p class="paragraph">This interface abstracts away the underlying node implementation, providing effects with all the geometry, configuration, and accessor capabilities they need without direct coupling to <a href="../-haze-effect-node/index.html">HazeEffectNode</a>.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button><button class="section-tab" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION,EXTENSION_PROPERTY,EXTENSION_FUNCTION">Members &amp; Extensions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="2030194468%2FProperties%2F-907335505" anchor-label="areas" id="2030194468%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="areas.html"><span><span>areas</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2030194468%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="areas.html">areas</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-haze-area/index.html">HazeArea</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The list of <a href="../-haze-area/index.html">HazeArea</a>s that this effect should process.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="669780308%2FProperties%2F-907335505" anchor-label="coroutineScope" id="669780308%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="coroutine-scope.html"><span>coroutine</span><wbr><span><span>Scope</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="669780308%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="coroutine-scope.html">coroutineScope</a><span class="token operator">: </span><span data-unresolved-link="kotlinx.coroutines/CoroutineScope///PointingToDeclaration/">CoroutineScope</span></div><div class="brief "><p class="paragraph">CoroutineScope to launch coroutines from</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1856139792%2FProperties%2F-907335505" anchor-label="inputScale" id="1856139792%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="input-scale.html"><span>input</span><wbr><span><span>Scale</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1856139792%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="input-scale.html">inputScale</a><span class="token operator">: </span><a href="../-haze-input-scale/index.html">HazeInputScale</a></div><div class="brief "><p class="paragraph">The input scale factor configuration for this effect.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="864511846%2FProperties%2F-907335505" anchor-label="layerOffset" id="864511846%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="layer-offset.html"><span>layer</span><wbr><span><span>Offset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="864511846%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="layer-offset.html">layerOffset</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Offset.html">Offset</a></div><div class="brief "><p class="paragraph">The offset of the graphics layer relative to the effect node's position.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1255634248%2FProperties%2F-907335505" anchor-label="layerSize" id="-1255634248%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="layer-size.html"><span>layer</span><wbr><span><span>Size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1255634248%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="layer-size.html">layerSize</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Size.html">Size</a></div><div class="brief "><p class="paragraph">The size of the graphics layer used for rendering the effect. This may differ from <a href="size.html">size</a> when layer bounds are expanded.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-516498820%2FProperties%2F-907335505" anchor-label="positionOnScreen" id="-516498820%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="position-on-screen.html"><span>position</span><wbr><span>On</span><wbr><span><span>Screen</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-516498820%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="position-on-screen.html">positionOnScreen</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Offset.html">Offset</a></div><div class="brief "><p class="paragraph">The position of the effect node on screen.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1558280814%2FProperties%2F-907335505" anchor-label="rootBoundsOnScreen" id="1558280814%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="root-bounds-on-screen.html"><span>root</span><wbr><span>Bounds</span><wbr><span>On</span><wbr><span><span>Screen</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1558280814%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="root-bounds-on-screen.html">rootBoundsOnScreen</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Rect.html">Rect</a></div><div class="brief "><p class="paragraph">The bounds of the root layout coordinates on screen.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-366718193%2FProperties%2F-907335505" anchor-label="size" id="-366718193%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="size.html"><span><span>size</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-366718193%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="size.html">size</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Size.html">Size</a></div><div class="brief "><p class="paragraph">The size of the effect node.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1000586873%2FProperties%2F-907335505" anchor-label="state" id="1000586873%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="state.html"><span><span>state</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1000586873%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="state.html">state</a><span class="token operator">: </span><a href="../-haze-state/index.html">HazeState</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">The <a href="../-haze-state/index.html">HazeState</a> associated with this effect, if any. When non-null, the effect operates in background blur mode. When null, the effect operates in content (foreground) blur mode.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-457506529%2FProperties%2F-907335505" anchor-label="visualEffect" id="-457506529%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="visual-effect.html"><span>visual</span><wbr><span><span>Effect</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-457506529%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="visual-effect.html">visualEffect</a><span class="token operator">: </span><a href="../-visual-effect/index.html">VisualEffect</a></div><div class="brief "><p class="paragraph">The <a href="../-visual-effect/index.html">VisualEffect</a> currently attached to this context.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1917975461%2FProperties%2F-907335505" anchor-label="windowId" id="1917975461%2FProperties%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="window-id.html"><span>window</span><wbr><span><span>Id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1917975461%2FProperties%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">val </span><a href="window-id.html">windowId</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">An identifier for the window containing this effect, used for cross-window invalidation tracking.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="883319109%2FFunctions%2F-907335505" anchor-label="currentValueOf" id="883319109%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="current-value-of.html"><span>current</span><wbr><span>Value</span><wbr><span><span>Of</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="883319109%2FFunctions%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="current-value-of.html">T</a><span class="token operator">&gt; </span><a href="current-value-of.html"><span class="token function">currentValueOf</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">local<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/CompositionLocal.html">CompositionLocal</a><span class="token operator">&lt;</span><a href="current-value-of.html">T</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="current-value-of.html">T</a></div><div class="brief "><p class="paragraph">Returns the current value of the given <a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/CompositionLocal.html">CompositionLocal</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1355190287%2FFunctions%2F-907335505" anchor-label="invalidateDraw" id="-1355190287%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="invalidate-draw.html"><span>invalidate</span><wbr><span><span>Draw</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1355190287%2FFunctions%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="invalidate-draw.html"><span class="token function">invalidateDraw</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Requests a redraw of the effect.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="946793933%2FFunctions%2F-907335505" anchor-label="requireDensity" id="946793933%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="require-density.html"><span>require</span><wbr><span><span>Density</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="946793933%2FFunctions%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="require-density.html"><span class="token function">requireDensity</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Density.html">Density</a></div><div class="brief "><p class="paragraph">Returns the current <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Density.html">Density</a> for pixel-to-dp conversions.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1567738479%2FFunctions%2F-907335505" anchor-label="requireGraphicsContext" id="-1567738479%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="require-graphics-context.html"><span>require</span><wbr><span>Graphics</span><wbr><span><span>Context</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1567738479%2FFunctions%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="require-graphics-context.html"><span class="token function">requireGraphicsContext</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/GraphicsContext.html">GraphicsContext</a></div><div class="brief "><p class="paragraph">Returns the <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/GraphicsContext.html">GraphicsContext</a> for creating and managing graphics layers.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1838764921%2FFunctions%2F-907335505" anchor-label="requirePlatformContext" id="1838764921%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="require-platform-context.html"><span>require</span><wbr><span>Platform</span><wbr><span><span>Context</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1838764921%2FFunctions%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="require-platform-context.html"><span class="token function">requirePlatformContext</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../haze-utils/dev.chrisbanes.haze/-platform-context/index.html">PlatformContext</a></div><div class="brief "><p class="paragraph">Returns the platform-specific context required for certain rendering operations.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-129117096%2FFunctions%2F-907335505" anchor-label="withGraphicsLayer" id="-129117096%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../with-graphics-layer.html"><span>with</span><wbr><span>Graphics</span><wbr><span><span>Layer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-129117096%2FFunctions%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="../with-graphics-layer.html">R</a><span class="token operator">&gt; </span><a href="index.html">VisualEffectContext</a><span class="token punctuation">.</span><a href="../with-graphics-layer.html"><span class="token function">withGraphicsLayer</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">block<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/layer/GraphicsLayer.html">GraphicsLayer</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../with-graphics-layer.html">R</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../with-graphics-layer.html">R</a></div><div class="brief "><p class="paragraph">Provides a <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/layer/GraphicsLayer.html">GraphicsLayer</a> for temporary use within the <a href="../with-graphics-layer.html">block</a>, automatically releasing it when done.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2025 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

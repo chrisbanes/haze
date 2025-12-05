@@ -94,7 +94,7 @@
   <div class="breadcrumbs"><a href="../../index.html">haze</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><span class="current">VisualEffect</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Visual</span><wbr><span><span>Effect</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="index.html">VisualEffect</a></div></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="index.html">VisualEffect</a></div><p class="paragraph">A visual effect that can be applied to content behind or in front of a composable.</p><p class="paragraph">Implementations receive a <a href="../-visual-effect-context/index.html">VisualEffectContext</a> during their lifecycle which provides access to geometry, configuration, and platform capabilities without direct coupling to the underlying node implementation.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
@@ -120,17 +120,17 @@
       </div>
       <div data-togglable="FUNCTION">
         <h2 class="tableheader">Functions</h2>
-        <div class="table"><a data-name="1009607556%2FFunctions%2F-907335505" anchor-label="attach" id="1009607556%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+        <div class="table"><a data-name="1250954121%2FFunctions%2F-907335505" anchor-label="attach" id="1250954121%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="attach.html"><span><span>attach</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1009607556%2FFunctions%2F-907335505"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1250954121%2FFunctions%2F-907335505"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="attach.html"><span class="token function">attach</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">node<span class="token operator">: </span><a href="../-haze-effect-node/index.html">HazeEffectNode</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Attaches this effect to the given node.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="attach.html"><span class="token function">attach</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../-visual-effect-context/index.html">VisualEffectContext</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Called when this effect is attached to a context.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -145,7 +145,22 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="calculate-input-scale-factor.html"><span class="token function">calculateInputScaleFactor</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">scale<span class="token operator">: </span><a href="../-haze-input-scale/index.html">HazeInputScale</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="calculate-input-scale-factor.html"><span class="token function">calculateInputScaleFactor</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">scale<span class="token operator">: </span><a href="../-haze-input-scale/index.html">HazeInputScale</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Calculates the input scale factor based on the given scale configuration.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="453865192%2FFunctions%2F-907335505" anchor-label="calculateLayerBounds" id="453865192%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="calculate-layer-bounds.html"><span>calculate</span><wbr><span>Layer</span><wbr><span><span>Bounds</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="453865192%2FFunctions%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="calculate-layer-bounds.html"><span class="token function">calculateLayerBounds</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">rect<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Rect.html">Rect</a><span class="token punctuation">, </span></span><span class="parameter ">density<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Density.html">Density</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Rect.html">Rect</a></div><div class="brief "><p class="paragraph">Calculates the layer bounds required for this effect.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -160,52 +175,22 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="detach.html"><span class="token function">detach</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Detaches this effect from its node.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="detach.html"><span class="token function">detach</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Called when this effect is detached from its context.</p></div></div></div>
                 </div>
               </div>
             </div>
           </div>
-<a data-name="1408089372%2FFunctions%2F-907335505" anchor-label="drawEffect" id="1408089372%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+<a data-name="722922944%2FFunctions%2F-907335505" anchor-label="draw" id="722922944%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
-                  <div><a href="draw-effect.html"><span>draw</span><wbr><span><span>Effect</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1408089372%2FFunctions%2F-907335505"></span>
+                  <div><a href="draw.html"><span><span>draw</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="722922944%2FFunctions%2F-907335505"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/drawscope/DrawScope.html">DrawScope</a><span class="token punctuation">.</span><a href="draw-effect.html"><span class="token function">drawEffect</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">node<span class="token operator">: </span><a href="../-haze-effect-node/index.html">HazeEffectNode</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Draws the effect.</p></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-<a data-name="-623105001%2FFunctions%2F-907335505" anchor-label="expandLayerRect" id="-623105001%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
-          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="expand-layer-rect.html"><span>expand</span><wbr><span>Layer</span><wbr><span><span>Rect</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-623105001%2FFunctions%2F-907335505"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="expand-layer-rect.html"><span class="token function">expandLayerRect</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">rect<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Rect.html">Rect</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Rect.html">Rect</a></div><div class="brief "><p class="paragraph">The resulting rect should be in the same coordinate system of the passed in rect. i.e. the content at x,y of <a href="expand-layer-rect.html">rect</a> should be the same content of the resulting rect.</p></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-<a data-name="-1627663609%2FFunctions%2F-907335505" anchor-label="needInvalidation" id="-1627663609%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
-          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="need-invalidation.html"><span>need</span><wbr><span><span>Invalidation</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1627663609%2FFunctions%2F-907335505"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="need-invalidation.html"><span class="token function">needInvalidation</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/drawscope/DrawScope.html">DrawScope</a><span class="token punctuation">.</span><a href="draw.html"><span class="token function">draw</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../-visual-effect-context/index.html">VisualEffectContext</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Draws the effect.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -220,7 +205,22 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="prefer-clip-to-area-bounds.html"><span class="token function">preferClipToAreaBounds</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="prefer-clip-to-area-bounds.html"><span class="token function">preferClipToAreaBounds</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Returns whether the effect prefers to clip to area bounds.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-708265188%2FFunctions%2F-907335505" anchor-label="requireInvalidation" id="-708265188%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="require-invalidation.html"><span>require</span><wbr><span><span>Invalidation</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-708265188%2FFunctions%2F-907335505"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="require-invalidation.html"><span class="token function">requireInvalidation</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Returns whether the effect requires draw invalidation.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -235,37 +235,37 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="should-clip.html"><span class="token function">shouldClip</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="should-clip.html"><span class="token function">shouldClip</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Returns whether the effect output should be clipped to the node bounds.</p></div></div></div>
                 </div>
               </div>
             </div>
           </div>
-<a data-name="-1107168469%2FFunctions%2F-907335505" anchor-label="shouldDrawContentBehind" id="-1107168469%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+<a data-name="-1314436812%2FFunctions%2F-907335505" anchor-label="shouldDrawContentBehind" id="-1314436812%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="should-draw-content-behind.html"><span>should</span><wbr><span>Draw</span><wbr><span>Content</span><wbr><span><span>Behind</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1107168469%2FFunctions%2F-907335505"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1314436812%2FFunctions%2F-907335505"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/drawscope/DrawScope.html">DrawScope</a><span class="token punctuation">.</span><a href="should-draw-content-behind.html"><span class="token function">shouldDrawContentBehind</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/drawscope/DrawScope.html">DrawScope</a><span class="token punctuation">.</span><a href="should-draw-content-behind.html"><span class="token function">shouldDrawContentBehind</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../-visual-effect-context/index.html">VisualEffectContext</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Returns whether the content should be drawn behind the effect for foreground blurring. This is called during drawing to determine draw order.</p></div></div></div>
                 </div>
               </div>
             </div>
           </div>
-<a data-name="2071245938%2FFunctions%2F-907335505" anchor-label="update" id="2071245938%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
+<a data-name="1406875149%2FFunctions%2F-907335505" anchor-label="update" id="1406875149%2FFunctions%2F-907335505" data-filterable-set=":haze/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze/commonMain" data-filterable-set=":haze/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="update.html"><span><span>update</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2071245938%2FFunctions%2F-907335505"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1406875149%2FFunctions%2F-907335505"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="update.html"><span class="token function">update</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="update.html"><span class="token function">update</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../-visual-effect-context/index.html">VisualEffectContext</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Called when the effect should update its state from composition locals or other sources.</p></div></div></div>
                 </div>
               </div>
             </div>
