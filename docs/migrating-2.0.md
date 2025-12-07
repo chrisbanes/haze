@@ -219,29 +219,34 @@ All blur-related properties that were previously set directly on `HazeEffectScop
 
 ## Step-by-Step Migration
 
-1. **Update dependencies** in your `build.gradle.kts`:
+**Update dependencies** in your `build.gradle.kts`:
+
    ```kotlin
    implementation("dev.chrisbanes.haze:haze:2.0.0")
    implementation("dev.chrisbanes.haze:haze-blur:2.0.0") // Add this
    ```
 
-2. **Update imports** for blur-related classes:
-   - Change `dev.chrisbanes.haze.HazeStyle` → `dev.chrisbanes.haze.blur.HazeStyle`
-   - Change `dev.chrisbanes.haze.HazeTint` → `dev.chrisbanes.haze.blur.HazeTint`
-   - Change `dev.chrisbanes.haze.HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
-   - Change `dev.chrisbanes.haze.LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeStyle`
-   - Add `import dev.chrisbanes.haze.blur.blurEffect`
+**Update imports** for blur-related classes:
 
-3. **Wrap blur properties** in `blurEffect {}`:
+  - Change `dev.chrisbanes.haze.HazeStyle` → `dev.chrisbanes.haze.blur.HazeStyle`
+  - Change `dev.chrisbanes.haze.HazeTint` → `dev.chrisbanes.haze.blur.HazeTint`
+  - Change `dev.chrisbanes.haze.HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
+  - Change `dev.chrisbanes.haze.LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeStyle`
+  - Add `import dev.chrisbanes.haze.blur.blurEffect`
+
+**Wrap blur properties** in `blurEffect {}`:
+
    - Find all `Modifier.hazeEffect { ... }` blocks
    - Wrap blur-related properties in `blurEffect { ... }`
    - Leave `inputScale`, `drawContentBehind`, `clipToAreasBounds`, `canDrawArea` outside the `blurEffect {}` block
 
-4. **Update `rememberHazeState()` calls**:
+**Update `rememberHazeState()` calls**:
+
    - Remove `blurEnabled` parameter if present
    - Move blur enabling logic to `blurEffect { blurEnabled = ... }` if needed
 
-5. **Update Material style usage**:
+**Update Material style usage**:
+
    - Change `hazeEffect(state, style = ...)` to `hazeEffect(state) { blurEffect { style = ... } }`
 
 ## Understanding the New Architecture

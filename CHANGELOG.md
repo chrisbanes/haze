@@ -7,40 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 2.0.0 WIP <small>TBD</small> { id="2.0.0" }
 
+Major architectural refactor introducing a pluggable visual effects system for improved modularity and extensibility.
+
 ### Highlights
 
-This is a major architectural refactor that introduces a pluggable visual effects system, improving modularity and extensibility.
+#### New `VisualEffect` Interface
 
-#### 🏗️ New Architecture: VisualEffect Interface
+Haze now uses a `VisualEffect` interface that separates the core effect infrastructure from specific effect implementations. This enables better separation of concerns, a smaller core module, and potential for custom visual effects in the future.
 
-Haze now uses a `VisualEffect` interface that separates the core effect infrastructure from specific effect implementations. This enables:
-- Better separation of concerns
-- Smaller core module for users who don't need blur effects
-- Potential for custom visual effects in the future
-- More maintainable and testable code
+#### New `haze-blur` Module
 
-#### 📦 New Module: haze-blur
-
-All blur functionality has been extracted from the core `haze` module into a separate `haze-blur` module. If you want to use blur effects (which most users do), you'll need to add both dependencies:
+All blur functionality has been extracted from the core `haze` module into a separate `haze-blur` module:
 
 ```kotlin
 implementation("dev.chrisbanes.haze:haze:2.0.0")
 implementation("dev.chrisbanes.haze:haze-blur:2.0.0")
 ```
 
-#### 🔄 API Changes: blurEffect wrapper
+#### New `blurEffect {}` API
 
-All blur-related properties now require a `blurEffect {}` wrapper when configuring effects:
+All blur-related properties now require a `blurEffect {}` wrapper:
 
-**Before (v1.x):**
-```kotlin
-Modifier.hazeEffect(state = hazeState) {
-  blurRadius = 20.dp
-  tints = listOf(HazeTint(...))
-}
-```
-
-**After (v2.0):**
 ```kotlin
 Modifier.hazeEffect(state = hazeState) {
   blurEffect {
@@ -52,41 +39,18 @@ Modifier.hazeEffect(state = hazeState) {
 
 ### Breaking Changes
 
-* **New Module Dependency:** Blur functionality now requires the `haze-blur` module
-* **API Nesting:** All blur properties (blurRadius, tints, style, noiseFactor, progressive, mask, etc.) now require `blurEffect {}` wrapper
-* **Package Changes:** Blur-related classes moved to `dev.chrisbanes.haze.blur` package:
+- **New module dependency:** Blur functionality now requires the `haze-blur` module
+- **API nesting:** Blur properties (`blurRadius`, `tints`, `style`, `noiseFactor`, `progressive`, `mask`, etc.) now require `blurEffect {}` wrapper
+- **Package changes:** Blur classes moved to `dev.chrisbanes.haze.blur` package:
   - `HazeStyle` → `dev.chrisbanes.haze.blur.HazeStyle`
   - `HazeTint` → `dev.chrisbanes.haze.blur.HazeTint`
   - `HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
   - `LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeStyle`
-* **Removed APIs:**
-  - `rememberHazeState(blurEnabled)` parameter removed (use `blurEffect { blurEnabled = ... }` instead)
-  - `HazeDialog` composable removed
+- **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed (use `blurEffect { blurEnabled = ... }`)
 
-### Added
-
-* Introduce `VisualEffect` interface for pluggable visual effects
-* Add `BlurVisualEffect` class implementing blur functionality
-* Add `blurEffect {}` extension function for configuring blur effects
-* Add new `haze-blur` module for blur-specific functionality
-* Add comprehensive migration guide at [docs/migrating-2.0.md](https://chrisbanes.github.io/haze/migrating-2.0/)
-
-### Changed
-
-* Extract blur functionality from core `haze` module to `haze-blur` module
-* `HazeEffectScope` now has `visualEffect` property instead of individual blur properties
-* Blur-related classes moved to `dev.chrisbanes.haze.blur` package
-* Updated all documentation with v2 API examples and migration guidance
-
-### Migration Guide
+### Migration
 
 For detailed migration instructions, see the [Migration Guide](https://chrisbanes.github.io/haze/migrating-2.0/).
-
-**Quick Steps:**
-1. Add `haze-blur` dependency
-2. Update imports for blur-related classes
-3. Wrap blur properties in `blurEffect {}` blocks
-4. Update `rememberHazeState()` calls (remove `blurEnabled` parameter)
 
 **Full Changelog**: https://github.com/chrisbanes/haze/compare/1.7.1...2.0.0
 
