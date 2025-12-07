@@ -1326,43 +1326,33 @@
 </tbody>
 </table>
 <h2 id="step-by-step-migration">Step-by-Step Migration<a class="headerlink" href="#step-by-step-migration" title="Permanent link">¶</a></h2>
-<ol>
-<li>
-<p><strong>Update dependencies</strong> in your <code>build.gradle.kts</code>:
-   </p><div class="highlight"><pre><span></span><code><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0"</span><span class="p">)</span>
+<p><strong>Update dependencies</strong> in your <code>build.gradle.kts</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0"</span><span class="p">)</span>
 <span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0"</span><span class="p">)</span><span class="w"> </span><span class="c1">// Add this</span>
 </code></pre></div>
-</li>
-<li>
 <p><strong>Update imports</strong> for blur-related classes:</p>
-</li>
+<ul>
 <li>Change <code>dev.chrisbanes.haze.HazeStyle</code> → <code>dev.chrisbanes.haze.blur.HazeStyle</code></li>
 <li>Change <code>dev.chrisbanes.haze.HazeTint</code> → <code>dev.chrisbanes.haze.blur.HazeTint</code></li>
 <li>Change <code>dev.chrisbanes.haze.HazeProgressive</code> → <code>dev.chrisbanes.haze.blur.HazeProgressive</code></li>
 <li>Change <code>dev.chrisbanes.haze.LocalHazeStyle</code> → <code>dev.chrisbanes.haze.blur.LocalHazeStyle</code></li>
-<li>
-<p>Add <code>import dev.chrisbanes.haze.blur.blurEffect</code></p>
-</li>
-<li>
+<li>Add <code>import dev.chrisbanes.haze.blur.blurEffect</code></li>
+</ul>
 <p><strong>Wrap blur properties</strong> in <code>blurEffect {}</code>:</p>
-</li>
+<ul>
 <li>Find all <code>Modifier.hazeEffect { ... }</code> blocks</li>
 <li>Wrap blur-related properties in <code>blurEffect { ... }</code></li>
-<li>
-<p>Leave <code>inputScale</code>, <code>drawContentBehind</code>, <code>clipToAreasBounds</code>, <code>canDrawArea</code> outside the <code>blurEffect {}</code> block</p>
-</li>
-<li>
+<li>Leave <code>inputScale</code>, <code>drawContentBehind</code>, <code>clipToAreasBounds</code>, <code>canDrawArea</code> outside the <code>blurEffect {}</code> block</li>
+</ul>
 <p><strong>Update <code>rememberHazeState()</code> calls</strong>:</p>
-</li>
+<ul>
 <li>Remove <code>blurEnabled</code> parameter if present</li>
-<li>
-<p>Move blur enabling logic to <code>blurEffect { blurEnabled = ... }</code> if needed</p>
-</li>
-<li>
+<li>Move blur enabling logic to <code>blurEffect { blurEnabled = ... }</code> if needed</li>
+</ul>
 <p><strong>Update Material style usage</strong>:</p>
-</li>
+<ul>
 <li>Change <code>hazeEffect(state, style = ...)</code> to <code>hazeEffect(state) { blurEffect { style = ... } }</code></li>
-</ol>
+</ul>
 <h2 id="understanding-the-new-architecture">Understanding the New Architecture<a class="headerlink" href="#understanding-the-new-architecture" title="Permanent link">¶</a></h2>
 <p>The v2 architecture introduces the <code>VisualEffect</code> interface, which allows Haze to support different types of visual effects:</p>
 <ul>
