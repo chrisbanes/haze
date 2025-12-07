@@ -7,7 +7,6 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.takeOrElse
@@ -18,7 +17,6 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
-import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 
@@ -367,9 +365,3 @@ public class BlurVisualEffect : VisualEffect {
 }
 
 internal expect fun BlurVisualEffect.updateDelegate(context: VisualEffectContext, drawScope: DrawScope)
-
-internal expect fun createRenderEffect(
-  context: PlatformContext,
-  density: Density,
-  params: RenderEffectParams,
-): RenderEffect?
