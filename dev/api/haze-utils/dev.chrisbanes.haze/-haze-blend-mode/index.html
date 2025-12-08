@@ -1,0 +1,631 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>HazeBlendMode</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Haze
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true" data-filter=":haze-utils/androidMain">android</button>
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":haze-utils/commonMain">common</button>
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":haze-utils/skikoMain">skiko</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":haze-utils/androidMain" data-filter=":haze-utils/androidMain">
+                                <span class="checkbox--icon"></span>
+                                android
+                            </label>
+                        </li>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":haze-utils/commonMain" data-filter=":haze-utils/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":haze-utils/skikoMain" data-filter=":haze-utils/skikoMain">
+                                <span class="checkbox--icon"></span>
+                                skiko
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Haze
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="haze-utils::dev.chrisbanes.haze/HazeBlendMode///PointingToDeclaration//-1085491821">
+  <div class="breadcrumbs"><a href="../../index.html">haze-utils</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze</a><span class="delimiter">/</span><span class="current">HazeBlendMode</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Haze</span><wbr><span>Blend</span><wbr><span><span>Mode</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">sealed </span><span class="token keyword">interface </span><a href="index.html">HazeBlendMode</a></div><p class="paragraph">Sealed interface representing supported blend modes for platform operations.</p><h4 class="tableheader">Inheritors</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-clear/index.html">Clear</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-src/index.html">Src</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-dst/index.html">Dst</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-src-over/index.html">SrcOver</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-dst-over/index.html">DstOver</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-src-in/index.html">SrcIn</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-dst-in/index.html">DstIn</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-src-out/index.html">SrcOut</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-dst-out/index.html">DstOut</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-src-atop/index.html">SrcAtop</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-dst-atop/index.html">DstAtop</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-xor/index.html">Xor</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-plus/index.html">Plus</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-modulate/index.html">Modulate</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-screen/index.html">Screen</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-overlay/index.html">Overlay</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-darken/index.html">Darken</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-lighten/index.html">Lighten</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-color-dodge/index.html">ColorDodge</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-color-burn/index.html">ColorBurn</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-hardlight/index.html">Hardlight</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-softlight/index.html">Softlight</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-difference/index.html">Difference</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-exclusion/index.html">Exclusion</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-multiply/index.html">Multiply</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-hue/index.html">Hue</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-saturation/index.html">Saturation</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-color/index.html">Color</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-luminosity/index.html">Luminosity</a></div></span></div><div></div></div></div></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button><button class="section-tab" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION,EXTENSION_PROPERTY,EXTENSION_FUNCTION">Members &amp; Extensions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="1149172926%2FClasslikes%2F-1085491821" anchor-label="Clear" id="1149172926%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-clear/index.html"><span><span>Clear</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1149172926%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-clear/index.html">Clear</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2023016552%2FClasslikes%2F-1085491821" anchor-label="Color" id="2023016552%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-color/index.html"><span><span>Color</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2023016552%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-color/index.html">Color</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1689209305%2FClasslikes%2F-1085491821" anchor-label="ColorBurn" id="1689209305%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-color-burn/index.html"><span>Color</span><wbr><span><span>Burn</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1689209305%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-color-burn/index.html">ColorBurn</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1599455875%2FClasslikes%2F-1085491821" anchor-label="ColorDodge" id="1599455875%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-color-dodge/index.html"><span>Color</span><wbr><span><span>Dodge</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1599455875%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-color-dodge/index.html">ColorDodge</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="441231327%2FClasslikes%2F-1085491821" anchor-label="Companion" id="441231327%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="441231327%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-488330376%2FClasslikes%2F-1085491821" anchor-label="Darken" id="-488330376%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-darken/index.html"><span><span>Darken</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-488330376%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-darken/index.html">Darken</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1884616806%2FClasslikes%2F-1085491821" anchor-label="Difference" id="-1884616806%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-difference/index.html"><span><span>Difference</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1884616806%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-difference/index.html">Difference</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-446248250%2FClasslikes%2F-1085491821" anchor-label="Dst" id="-446248250%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-dst/index.html"><span><span>Dst</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-446248250%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-dst/index.html">Dst</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2004579666%2FClasslikes%2F-1085491821" anchor-label="DstAtop" id="2004579666%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-dst-atop/index.html"><span>Dst</span><wbr><span><span>Atop</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2004579666%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-dst-atop/index.html">DstAtop</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="463173601%2FClasslikes%2F-1085491821" anchor-label="DstIn" id="463173601%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-dst-in/index.html"><span>Dst</span><wbr><span><span>In</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="463173601%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-dst-in/index.html">DstIn</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1963674098%2FClasslikes%2F-1085491821" anchor-label="DstOut" id="-1963674098%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-dst-out/index.html"><span>Dst</span><wbr><span><span>Out</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1963674098%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-dst-out/index.html">DstOut</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1644429778%2FClasslikes%2F-1085491821" anchor-label="DstOver" id="1644429778%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-dst-over/index.html"><span>Dst</span><wbr><span><span>Over</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1644429778%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-dst-over/index.html">DstOver</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="933825373%2FClasslikes%2F-1085491821" anchor-label="Exclusion" id="933825373%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-exclusion/index.html"><span><span>Exclusion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="933825373%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-exclusion/index.html">Exclusion</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-381589312%2FClasslikes%2F-1085491821" anchor-label="Hardlight" id="-381589312%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-hardlight/index.html"><span><span>Hardlight</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-381589312%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-hardlight/index.html">Hardlight</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-7263501%2FClasslikes%2F-1085491821" anchor-label="Hue" id="-7263501%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-hue/index.html"><span><span>Hue</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-7263501%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-hue/index.html">Hue</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-378573684%2FClasslikes%2F-1085491821" anchor-label="Lighten" id="-378573684%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-lighten/index.html"><span><span>Lighten</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-378573684%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-lighten/index.html">Lighten</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-382462058%2FClasslikes%2F-1085491821" anchor-label="Luminosity" id="-382462058%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-luminosity/index.html"><span><span>Luminosity</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-382462058%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-luminosity/index.html">Luminosity</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-387149058%2FClasslikes%2F-1085491821" anchor-label="Modulate" id="-387149058%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-modulate/index.html"><span><span>Modulate</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-387149058%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-modulate/index.html">Modulate</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1150721517%2FClasslikes%2F-1085491821" anchor-label="Multiply" id="-1150721517%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-multiply/index.html"><span><span>Multiply</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1150721517%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-multiply/index.html">Multiply</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-702414437%2FClasslikes%2F-1085491821" anchor-label="Overlay" id="-702414437%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-overlay/index.html"><span><span>Overlay</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-702414437%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-overlay/index.html">Overlay</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1442143837%2FClasslikes%2F-1085491821" anchor-label="Plus" id="1442143837%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-plus/index.html"><span><span>Plus</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1442143837%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-plus/index.html">Plus</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="107274917%2FClasslikes%2F-1085491821" anchor-label="Saturation" id="107274917%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-saturation/index.html"><span><span>Saturation</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="107274917%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-saturation/index.html">Saturation</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2029752907%2FClasslikes%2F-1085491821" anchor-label="Screen" id="2029752907%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-screen/index.html"><span><span>Screen</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2029752907%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-screen/index.html">Screen</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1471456191%2FClasslikes%2F-1085491821" anchor-label="Softlight" id="1471456191%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-softlight/index.html"><span><span>Softlight</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1471456191%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-softlight/index.html">Softlight</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1461279865%2FClasslikes%2F-1085491821" anchor-label="Src" id="-1461279865%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-src/index.html"><span><span>Src</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1461279865%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-src/index.html">Src</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1374619027%2FClasslikes%2F-1085491821" anchor-label="SrcAtop" id="1374619027%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-src-atop/index.html"><span>Src</span><wbr><span><span>Atop</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1374619027%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-src-atop/index.html">SrcAtop</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-24632222%2FClasslikes%2F-1085491821" anchor-label="SrcIn" id="-24632222%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-src-in/index.html"><span>Src</span><wbr><span><span>In</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-24632222%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-src-in/index.html">SrcIn</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="94214573%2FClasslikes%2F-1085491821" anchor-label="SrcOut" id="94214573%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-src-out/index.html"><span>Src</span><wbr><span><span>Out</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="94214573%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-src-out/index.html">SrcOut</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1014469139%2FClasslikes%2F-1085491821" anchor-label="SrcOver" id="1014469139%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-src-over/index.html"><span>Src</span><wbr><span><span>Over</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1014469139%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-src-over/index.html">SrcOver</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-859540240%2FClasslikes%2F-1085491821" anchor-label="Xor" id="-859540240%2FClasslikes%2F-1085491821" data-filterable-set=":haze-utils/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/commonMain" data-filterable-set=":haze-utils/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-xor/index.html"><span><span>Xor</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-859540240%2FClasslikes%2F-1085491821"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-xor/index.html">Xor</a> : <a href="index.html">HazeBlendMode</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="EXTENSION_FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-623806713%2FFunctions%2F-1686557209" anchor-label="toAndroidBlendMode" id="-623806713%2FFunctions%2F-1686557209" data-filterable-set=":haze-utils/androidMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/androidMain" data-filterable-set=":haze-utils/androidMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../to-android-blend-mode.html"><span>to</span><wbr><span>Android</span><wbr><span>Blend</span><wbr><span><span>Mode</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-623806713%2FFunctions%2F-1686557209"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":haze-utils/androidMain" data-filterable-set=":haze-utils/androidMain" data-active="" data-toggle=":haze-utils/androidMain">android</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/androidMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/annotation/RequiresApi.html"><span class="token annotation builtin">RequiresApi</span></a><span class="token punctuation">(</span><span>value<span class="token operator"> = </span><span class="breakable-word"><span class="token constant">29</span></span></span><wbr><span class="token punctuation">)</span></div></div><span class="token keyword">fun </span><a href="index.html">HazeBlendMode</a><span class="token punctuation">.</span><a href="../to-android-blend-mode.html"><span class="token function">toAndroidBlendMode</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/graphics/BlendMode.html">BlendMode</a></div><div class="brief "><p class="paragraph">Converts a <a href="index.html">HazeBlendMode</a> to Android's <a href="https://developer.android.com/reference/kotlin/android/graphics/BlendMode.html">BlendMode</a>.</p></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="984308682%2FFunctions%2F1477021323" anchor-label="toSkiaBlendMode" id="984308682%2FFunctions%2F1477021323" data-filterable-set=":haze-utils/skikoMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-utils/skikoMain" data-filterable-set=":haze-utils/skikoMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../to-skia-blend-mode.html"><span>to</span><wbr><span>Skia</span><wbr><span>Blend</span><wbr><span><span>Mode</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="984308682%2FFunctions%2F1477021323"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted  with-platform-tabs" data-platform-hinted="data-platform-hinted">
+                    <div class="platform-bookmarks-row" data-toggle-list="data-toggle-list"><button class="platform-bookmark" data-filterable-current=":haze-utils/skikoMain" data-filterable-set=":haze-utils/skikoMain" data-active="" data-toggle=":haze-utils/skikoMain">skiko</button></div>
+<div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-utils/skikoMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="index.html">HazeBlendMode</a><span class="token punctuation">.</span><a href="../to-skia-blend-mode.html"><span class="token function">toSkiaBlendMode</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="org.jetbrains.skia/BlendMode///PointingToDeclaration/">BlendMode</span></div><div class="brief "><p class="paragraph">Converts a <a href="index.html">HazeBlendMode</a> to Skia's <span data-unresolved-link="org.jetbrains.skia/BlendMode///PointingToDeclaration/">BlendMode</span>.</p></div></div>                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2025 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
