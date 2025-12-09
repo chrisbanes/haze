@@ -8,7 +8,7 @@ import dev.chrisbanes.haze.InternalHazeApi
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 @OptIn(InternalHazeApi::class)
-internal object DirtyFields {
+internal object BlurDirtyFields {
   const val BlurEnabled: Int = 0b1
   const val BlurRadius: Int = BlurEnabled shl 1
   const val NoiseFactor: Int = BlurRadius shl 1
