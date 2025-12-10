@@ -36,6 +36,12 @@ public interface VisualEffect {
   /**
    * Called when the effect should update its state from composition locals or other sources.
    *
+   * You can safely read snapshot state in this function. When any snapshot state read in this
+   * function is mutated, this function will be re-invoked.
+   *
+   * Commonly, this function will need to call [VisualEffectContext.invalidateDraw] when it detects
+   * a scenario where the effect needs to be re-drawn.
+   *
    * @param context The context providing access to composition locals and other state.
    */
   public fun update(context: VisualEffectContext): Unit = Unit

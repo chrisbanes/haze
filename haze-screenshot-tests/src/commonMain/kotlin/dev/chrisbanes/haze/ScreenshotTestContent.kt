@@ -31,15 +31,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.blur.HazeBlurDefaults
-import dev.chrisbanes.haze.blur.HazeProgressive
-import dev.chrisbanes.haze.blur.HazeStyle
-import dev.chrisbanes.haze.blur.HazeTint
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.BlurVisualEffect
 import haze_root.haze_screenshot_tests.generated.resources.Res
 import haze_root.haze_screenshot_tests.generated.resources.photo
 import kotlin.math.roundToInt
@@ -47,17 +42,10 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun CreditCardSample(
+  visualEffect: BlurVisualEffect,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
-  style: HazeStyle = HazeStyle.Unspecified,
-  tint: HazeTint = HazeTint.Unspecified,
-  blurRadius: Dp = Dp.Unspecified,
-  noiseFactor: Float = -1f,
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
-  blurEnabled: Boolean = HazeBlurDefaults.blurEnabled(),
-  mask: Brush? = null,
-  progressive: HazeProgressive? = null,
-  alpha: Float = 1f,
   numberCards: Int = 1,
 ) {
   val hazeState = remember { HazeState() }
@@ -71,8 +59,6 @@ internal fun CreditCardSample(
         .hazeSource(state = hazeState, zIndex = 0f),
     )
 
-    val surfaceColor = MaterialTheme.colorScheme.surface
-
     repeat(numberCards) { index ->
       // Our card
       val reverseIndex = (numberCards - 1 - index)
@@ -83,15 +69,7 @@ internal fun CreditCardSample(
         index = index,
         shape = shape,
         enabled = enabled,
-        blurEnabled = blurEnabled,
-        style = style,
-        surfaceColor = surfaceColor,
-        noiseFactor = noiseFactor,
-        tint = tint,
-        blurRadius = blurRadius,
-        mask = mask,
-        alpha = alpha,
-        progressive = progressive,
+        visualEffect = visualEffect,
         modifier = Modifier
           .align(Alignment.Center),
       )
@@ -101,16 +79,9 @@ internal fun CreditCardSample(
 
 @Composable
 internal fun CreditCardContentBlurring(
+  visualEffect: BlurVisualEffect,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
-  style: HazeStyle = HazeStyle.Unspecified,
-  tint: HazeTint = HazeTint.Unspecified,
-  blurRadius: Dp = Dp.Unspecified,
-  noiseFactor: Float = -1f,
-  blurEnabled: Boolean = HazeBlurDefaults.blurEnabled(),
-  mask: Brush? = null,
-  progressive: HazeProgressive? = null,
   drawContentBehind: Boolean = false,
-  alpha: Float = 1f,
 ) {
   Box(Modifier.background(backgroundColors.first())) {
     // Background content
@@ -120,18 +91,7 @@ internal fun CreditCardContentBlurring(
         .fillMaxSize()
         .hazeEffect {
           this.drawContentBehind = drawContentBehind
-
-          blurEffect {
-            this.blurEnabled = blurEnabled
-            this.style = style
-            this.backgroundColor = backgroundColors.first()
-            this.noiseFactor = noiseFactor
-            this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
-            this.blurRadius = blurRadius
-            this.mask = mask
-            this.alpha = alpha
-            this.progressive = progressive
-          }
+          this.visualEffect = visualEffect
         },
     )
   }
@@ -139,18 +99,11 @@ internal fun CreditCardContentBlurring(
 
 @Composable
 internal fun CreditCardPagerSample(
+  visualEffect: BlurVisualEffect,
   pagerPosition: Float,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
-  style: HazeStyle = HazeStyle.Unspecified,
-  tint: HazeTint = HazeTint.Unspecified,
-  blurRadius: Dp = Dp.Unspecified,
-  noiseFactor: Float = -1f,
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
-  blurEnabled: Boolean = HazeBlurDefaults.blurEnabled(),
-  mask: Brush? = null,
-  progressive: HazeProgressive? = null,
-  alpha: Float = 1f,
   numberCards: Int = 2,
 ) {
   val hazeState = remember { HazeState() }
@@ -163,8 +116,6 @@ internal fun CreditCardPagerSample(
         .fillMaxSize()
         .hazeSource(state = hazeState, zIndex = 0f),
     )
-
-    val surfaceColor = MaterialTheme.colorScheme.surface
     val positionIndex = pagerPosition.roundToInt()
     val pagerState = PagerState(positionIndex, pagerPosition - positionIndex) {
       numberCards
@@ -182,16 +133,8 @@ internal fun CreditCardPagerSample(
         index = index,
         shape = shape,
         enabled = enabled,
-        blurEnabled = blurEnabled,
-        style = style,
-        surfaceColor = surfaceColor,
-        noiseFactor = noiseFactor,
-        tint = tint,
-        blurRadius = blurRadius,
-        mask = mask,
-        alpha = alpha,
-        progressive = progressive,
-        baseWidth = .9f,
+        visualEffect = visualEffect,
+        baseWidth = 0.9f,
       )
     }
   }
@@ -224,15 +167,7 @@ private fun CreditCard(
   index: Int,
   shape: RoundedCornerShape,
   enabled: Boolean,
-  blurEnabled: Boolean,
-  style: HazeStyle,
-  surfaceColor: Color,
-  noiseFactor: Float,
-  tint: HazeTint,
-  blurRadius: Dp,
-  mask: Brush?,
-  alpha: Float,
-  progressive: HazeProgressive?,
+  visualEffect: BlurVisualEffect,
   modifier: Modifier = Modifier,
   baseWidth: Float = .7f,
 ) {
@@ -247,17 +182,7 @@ private fun CreditCard(
       .then(
         if (enabled) {
           Modifier.hazeEffect(state = hazeState) {
-            blurEffect {
-              this.blurEnabled = blurEnabled
-              this.style = style
-              this.backgroundColor = surfaceColor
-              this.noiseFactor = noiseFactor
-              this.tints = listOfNotNull(tint.takeIf(HazeTint::isSpecified))
-              this.blurRadius = blurRadius
-              this.mask = mask
-              this.alpha = alpha
-              this.progressive = progressive
-            }
+            this.visualEffect = visualEffect
           }
         } else {
           Modifier
@@ -272,7 +197,7 @@ private fun CreditCard(
 
 @Composable
 fun OverlayingContent(
-  blurEnabled: Boolean = true,
+  visualEffect: BlurVisualEffect,
   topOffset: DpOffset = DpOffset.Zero,
 ) {
   val hazeState = rememberHazeState()
@@ -321,10 +246,7 @@ fun OverlayingContent(
         }
         .align(Alignment.Center)
         .hazeEffect(state = hazeState) {
-          blurEffect {
-            this.blurEnabled = blurEnabled
-            blurRadius = 20.dp
-          }
+          this.visualEffect = visualEffect
         }
         .padding(16.dp),
     )
@@ -332,10 +254,7 @@ fun OverlayingContent(
 }
 
 @Composable
-fun ContentAtEdges(
-  blurEnabled: Boolean = true,
-  style: HazeStyle = HazeStyle.Unspecified,
-) {
+fun ContentAtEdges(visualEffect: BlurVisualEffect) {
   val hazeState = rememberHazeState()
 
   Box(modifier = Modifier.fillMaxSize()) {
@@ -353,10 +272,7 @@ fun ContentAtEdges(
         .align(Alignment.BottomCenter)
         .fillMaxSize()
         .hazeEffect(state = hazeState) {
-          blurEffect {
-            this.blurEnabled = blurEnabled
-            this.style = style
-          }
+          this.visualEffect = visualEffect
         },
     ) {
       Text(

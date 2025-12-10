@@ -3,6 +3,9 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -43,6 +46,9 @@ import dev.chrisbanes.haze.VisualEffectContext
  */
 public class BlurVisualEffect : VisualEffect {
 
+  internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
+    private set
+
   internal var delegate: Delegate = ScrimBlurVisualEffectDelegate(this)
     set(value) {
       if (value != field) {
@@ -57,6 +63,10 @@ public class BlurVisualEffect : VisualEffect {
 
   override fun update(context: VisualEffectContext) {
     compositionLocalStyle = context.currentValueOf(LocalHazeStyle)
+
+    if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
+      context.invalidateDraw()
+    }
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
@@ -75,9 +85,6 @@ public class BlurVisualEffect : VisualEffect {
   }
 
   override fun shouldClip(): Boolean = blurredEdgeTreatment.shape != null
-
-  internal var dirtyTracker: Bitmask = Bitmask()
-    private set
 
   private fun resetDirtyTracker() {
     dirtyTracker = Bitmask()
@@ -99,7 +106,7 @@ public class BlurVisualEffect : VisualEffect {
       if (_blurEnabled == null || value != _blurEnabled) {
         HazeLogger.d(TAG) { "blurEnabled changed. Current: $_blurEnabled. New: $value" }
         _blurEnabled = value
-        dirtyTracker += DirtyFields.BlurEnabled
+        dirtyTracker += BlurDirtyFields.BlurEnabled
       }
     }
 
@@ -120,8 +127,9 @@ public class BlurVisualEffect : VisualEffect {
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "blurRadius changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += DirtyFields.BlurRadius
+        dirtyTracker += BlurDirtyFields.BlurRadius
       }
     }
 
@@ -143,8 +151,9 @@ public class BlurVisualEffect : VisualEffect {
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "noiseFactor changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += DirtyFields.NoiseFactor
+        dirtyTracker += BlurDirtyFields.NoiseFactor
       }
     }
 
@@ -158,8 +167,9 @@ public class BlurVisualEffect : VisualEffect {
   public var mask: Brush? = null
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "mask changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += DirtyFields.Mask
+        dirtyTracker += BlurDirtyFields.Mask
       }
     }
 
@@ -182,8 +192,9 @@ public class BlurVisualEffect : VisualEffect {
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "backgroundColor changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += DirtyFields.BackgroundColor
+        dirtyTracker += BlurDirtyFields.BackgroundColor
       }
     }
 
@@ -205,8 +216,9 @@ public class BlurVisualEffect : VisualEffect {
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "tints changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += DirtyFields.Tints
+        dirtyTracker += BlurDirtyFields.Tints
       }
     }
 
@@ -232,8 +244,9 @@ public class BlurVisualEffect : VisualEffect {
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "fallbackTint changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += DirtyFields.FallbackTint
+        dirtyTracker += BlurDirtyFields.FallbackTint
       }
     }
 
@@ -243,8 +256,9 @@ public class BlurVisualEffect : VisualEffect {
   public var alpha: Float = 1f
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "alpha changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += DirtyFields.Alpha
+        dirtyTracker += BlurDirtyFields.Alpha
       }
     }
 
@@ -260,8 +274,9 @@ public class BlurVisualEffect : VisualEffect {
   public var progressive: HazeProgressive? = null
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "progressive changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += DirtyFields.Progressive
+        dirtyTracker += BlurDirtyFields.Progressive
       }
     }
 
@@ -278,8 +293,9 @@ public class BlurVisualEffect : VisualEffect {
   public var blurredEdgeTreatment: BlurredEdgeTreatment = HazeBlurDefaults.blurredEdgeTreatment
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "blurredEdgeTreatment changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += DirtyFields.BlurredEdgeTreatment
+        dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
       }
     }
 
@@ -329,7 +345,7 @@ public class BlurVisualEffect : VisualEffect {
     }
   }
 
-  override fun requireInvalidation(): Boolean = dirtyTracker.any(DirtyFields.InvalidateFlags)
+  override fun requireInvalidation(): Boolean = dirtyTracker.any(BlurDirtyFields.InvalidateFlags)
 
   override fun preferClipToAreaBounds(): Boolean {
     return backgroundColor.isSpecified && backgroundColor.alpha < 0.9f
@@ -346,11 +362,11 @@ public class BlurVisualEffect : VisualEffect {
   }
 
   private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
-    if (old?.tints != new?.tints) dirtyTracker += DirtyFields.Tints
-    if (old?.fallbackTint != new?.fallbackTint) dirtyTracker += DirtyFields.Tints
-    if (old?.backgroundColor != new?.backgroundColor) dirtyTracker += DirtyFields.BackgroundColor
-    if (old?.noiseFactor != new?.noiseFactor) dirtyTracker += DirtyFields.NoiseFactor
-    if (old?.blurRadius != new?.blurRadius) dirtyTracker += DirtyFields.BlurRadius
+    if (old?.tints != new?.tints) dirtyTracker += BlurDirtyFields.Tints
+    if (old?.fallbackTint != new?.fallbackTint) dirtyTracker += BlurDirtyFields.Tints
+    if (old?.backgroundColor != new?.backgroundColor) dirtyTracker += BlurDirtyFields.BackgroundColor
+    if (old?.noiseFactor != new?.noiseFactor) dirtyTracker += BlurDirtyFields.NoiseFactor
+    if (old?.blurRadius != new?.blurRadius) dirtyTracker += BlurDirtyFields.BlurRadius
   }
 
   internal interface Delegate {
