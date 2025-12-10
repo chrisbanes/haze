@@ -7,6 +7,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.TileMode
@@ -52,14 +53,14 @@ public actual fun createColorFilterImageFilter(
 
 @InternalHazeApi
 public actual fun createBlurImageFilter(
-  sigmaX: Float,
-  sigmaY: Float,
+  radiusX: Float,
+  radiusY: Float,
   tileMode: TileMode,
   input: PlatformRenderEffect?,
   crop: Rect?,
 ): PlatformRenderEffect = ImageFilter.makeBlur(
-  sigmaX = sigmaX,
-  sigmaY = sigmaY,
+  sigmaX = BlurEffect.convertRadiusToSigma(radiusX),
+  sigmaY = BlurEffect.convertRadiusToSigma(radiusY),
   mode = when (tileMode) {
     TileMode.Clamp -> FilterTileMode.CLAMP
     TileMode.Repeated -> FilterTileMode.REPEAT
