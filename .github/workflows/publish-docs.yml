@@ -42,7 +42,7 @@ jobs:
         run: |
           brew install cairo freetype libffi libjpeg libpng zlib
           python3 -m pip install --upgrade pip
-          python3 -m pip install mkdocs mkdocs-material mkdocs-video "mkdocs-material[imaging]" mike mdx-gh-links
+          python3 -m pip install -r pip-requirements.txt
 
       - uses: gradle/actions/setup-gradle@v5
 
@@ -79,7 +79,7 @@ jobs:
         run: |
           brew install cairo freetype libffi libjpeg libpng zlib
           python3 -m pip install --upgrade pip
-          python3 -m pip install mkdocs mkdocs-material mkdocs-video "mkdocs-material[imaging]" mike mdx-gh-links
+          python3 -m pip install -r pip-requirements.txt
 
       - name: Get Docs Version
         run: cat gradle.properties | grep --color=never VERSION_NAME >> $GITHUB_OUTPUT
