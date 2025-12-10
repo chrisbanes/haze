@@ -5,15 +5,19 @@
          <lastmod>2025-12-10</lastmod>
     </url>
     <url>
+         <loc>https://chribanes.github.io/haze/dev/architecture/</loc>
+         <lastmod>2025-12-10</lastmod>
+    </url>
+    <url>
          <loc>https://chribanes.github.io/haze/dev/changelog/</loc>
          <lastmod>2025-12-10</lastmod>
     </url>
     <url>
-         <loc>https://chribanes.github.io/haze/dev/faq/</loc>
+         <loc>https://chribanes.github.io/haze/dev/core-concepts/</loc>
          <lastmod>2025-12-10</lastmod>
     </url>
     <url>
-         <loc>https://chribanes.github.io/haze/dev/materials/</loc>
+         <loc>https://chribanes.github.io/haze/dev/custom-effects/</loc>
          <lastmod>2025-12-10</lastmod>
     </url>
     <url>
@@ -25,19 +29,31 @@
          <lastmod>2025-12-10</lastmod>
     </url>
     <url>
-         <loc>https://chribanes.github.io/haze/dev/platforms/</loc>
-         <lastmod>2025-12-10</lastmod>
-    </url>
-    <url>
          <loc>https://chribanes.github.io/haze/dev/recipes/</loc>
          <lastmod>2025-12-10</lastmod>
     </url>
     <url>
-         <loc>https://chribanes.github.io/haze/dev/usage/</loc>
+         <loc>https://chribanes.github.io/haze/dev/using-snapshot-version/</loc>
          <lastmod>2025-12-10</lastmod>
     </url>
     <url>
-         <loc>https://chribanes.github.io/haze/dev/using-snapshot-version/</loc>
+         <loc>https://chribanes.github.io/haze/dev/blur/</loc>
+         <lastmod>2025-12-10</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/dev/blur/faq/</loc>
+         <lastmod>2025-12-10</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/dev/blur/materials/</loc>
+         <lastmod>2025-12-10</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/dev/blur/platforms/</loc>
+         <lastmod>2025-12-10</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/dev/blur/usage/</loc>
          <lastmod>2025-12-10</lastmod>
     </url>
 </urlset>

@@ -12,31 +12,31 @@
         <meta name="author" content="Chris Banes">
       
       
-        <link rel="canonical" href="https://chribanes.github.io/haze/dev/performance/">
+        <link rel="canonical" href="https://chribanes.github.io/haze/dev/blur/materials/">
       
       
-        <link rel="prev" href="../custom-effects/">
+        <link rel="prev" href="../usage/">
       
       
-        <link rel="next" href="../recipes/">
+        <link rel="next" href="../faq/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
     
     
       
-        <title>Performance - Haze</title>
+        <title>Materials - Haze</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -55,7 +55,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -63,17 +63,17 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Performance - Haze" />
+<meta property="og:title" content="Materials - Haze" />
 <meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="og:image" content="https://chribanes.github.io/haze/dev/assets/images/social/performance.png" />
+<meta property="og:image" content="https://chribanes.github.io/haze/dev/assets/images/social/blur/materials.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://chribanes.github.io/haze/dev/performance/" />
+<meta property="og:url" content="https://chribanes.github.io/haze/dev/blur/materials/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Performance - Haze" />
+<meta property="twitter:title" content="Materials - Haze" />
 <meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="twitter:image" content="https://chribanes.github.io/haze/dev/assets/images/social/performance.png" />
+<meta property="twitter:image" content="https://chribanes.github.io/haze/dev/assets/images/social/blur/materials.png" />
 </head>
   
   
@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#input-scale" class="md-skip">
+        <a href="#blur-materials" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+    <a href="../.." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 13a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0 3.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m5 7.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m0 4a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-6a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5M14 9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m-4-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5m-3 6a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-7a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3.5a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0-4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg>
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Performance
+              Materials
             
           </span>
         </div>
@@ -221,7 +221,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+    <a href="../.." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 13a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0 3.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m5 7.5a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m0 4a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-6a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5M14 9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m-4-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5m-3 6a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m-3-7a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5m3 3.5a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1m0-4a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg>
@@ -251,7 +251,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -278,7 +278,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -305,7 +305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../core-concepts/" class="md-nav__link">
+      <a href="../../core-concepts/" class="md-nav__link">
         
   
   
@@ -329,18 +329,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
@@ -361,7 +363,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -379,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../blur/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -407,7 +409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../blur/usage/" class="md-nav__link">
+      <a href="../usage/" class="md-nav__link">
         
   
   
@@ -432,10 +434,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../blur/materials/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Materials
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -451,6 +480,132 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Download
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hazematerials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HazeMaterials
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HazeMaterials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cupertinomaterials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CupertinoMaterials
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CupertinoMaterials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#usage_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fluentmaterials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FluentMaterials
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FluentMaterials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#usage_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-styles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Styles
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -463,7 +618,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../blur/faq/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
@@ -491,7 +646,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../blur/platforms/" class="md-nav__link">
+      <a href="../platforms/" class="md-nav__link">
         
   
   
@@ -526,7 +681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../custom-effects/" class="md-nav__link">
+      <a href="../../custom-effects/" class="md-nav__link">
         
   
   
@@ -550,35 +705,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Performance
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../performance/" class="md-nav__link">
         
   
   
@@ -594,74 +724,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#input-scale" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Input Scale
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#benchmarks" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Benchmarks
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Benchmarks">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#cost-of-haze" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cost of Haze
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cost-of-features" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cost of features
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -673,7 +735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../recipes/" class="md-nav__link">
+      <a href="../../recipes/" class="md-nav__link">
         
   
   
@@ -700,7 +762,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../migrating-2.0/" class="md-nav__link">
+      <a href="../../migrating-2.0/" class="md-nav__link">
         
   
   
@@ -727,7 +789,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -754,7 +816,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/" class="md-nav__link">
+      <a href="../../api/" class="md-nav__link">
         
   
   
@@ -808,7 +870,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sample/wasm/" class="md-nav__link">
+      <a href="../../sample/wasm/" class="md-nav__link">
         
   
   
@@ -835,7 +897,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sample/js/" class="md-nav__link">
+      <a href="../../sample/js/" class="md-nav__link">
         
   
   
@@ -872,6 +934,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -880,10 +944,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#input-scale" class="md-nav__link">
+  <a href="#download" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Input Scale
+        Download
       
     </span>
   </a>
@@ -891,33 +955,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#benchmarks" class="md-nav__link">
+  <a href="#hazematerials" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Benchmarks
+        HazeMaterials
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Benchmarks">
+    <nav class="md-nav" aria-label="HazeMaterials">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#cost-of-haze" class="md-nav__link">
+  <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cost of Haze
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cost-of-features" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cost of features
+        Usage
       
     </span>
   </a>
@@ -926,6 +979,73 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cupertinomaterials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CupertinoMaterials
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CupertinoMaterials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#usage_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fluentmaterials" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FluentMaterials
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FluentMaterials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#usage_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-styles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Styles
+      
+    </span>
+  </a>
   
 </li>
       
@@ -949,113 +1069,79 @@
   
 
 
-  <h1>Performance</h1>
+<div><h1 id="blur-materials">Blur Materials<a class="headerlink" href="#blur-materials" title="Permanent link">¶</a></h1>
+<p>Pre-built blur style implementations that match common design systems.</p>
+<h2 id="download">Download<a class="headerlink" href="#download" title="Permanent link">¶</a></h2>
+<p><a href="https://search.maven.org/search?q=g:dev.chrisbanes.haze"><img alt="Maven Central" src="https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze-materials"></a></p>
+<div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">mavenCentral</span><span class="p">()</span>
+<span class="p">}</span>
 
-<div><p>Real-time blurring is a non-trivial operation, especially for mobile devices, so developers are rightly worried about the performance impact of using something like Haze.</p>
-<p>Haze tries to use the most performant mechanism possible on each platform, which can basically be simplified into 2: <code>RenderEffect</code> on Android, and using Skia's <code>ImageFilter</code>s directly on iOS and Desktop.</p>
-<h2 id="input-scale">Input Scale<a class="headerlink" href="#input-scale" title="Permanent link">¶</a></h2>
-<p>You can provide an input scale value which determines how much the content is scaled in both the x and y dimensions, allowing the blur effect to be potentially applied over scaled-down content (and thus less pixels), before being scaled back up and drawn at the original size. You can find more information on how to use this <a href="../blur/usage/#input-scale">here</a>.</p>
-<p>In terms of the performance benefit which scaling provides, it's fairly small. In our Android benchmark tests, using an <code>inputScale</code> set to <code>0.5</code> reduced the <em>cost of Haze</em> by <strong>5-20%</strong>. You can read more about this below.</p>
-<div class="admonition abstract">
-<p class="admonition-title">Cost of Haze</p>
-<p>Just to call out: the percentage that I mentioned is a reduction in the cost of Haze, not the total frame duration. Haze itself introduces a cost, which you can read more about below. The reduction in total frame duration duration will be in the region of 3-5%.</p>
-</div>
-<h2 id="benchmarks">Benchmarks<a class="headerlink" href="#benchmarks" title="Permanent link">¶</a></h2>
-<p>To quantify performance, we have a number of <a href="https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview">Macrobenchmark tests</a> to measure Haze's effect on drawing performance on Android. We'll be using these on every major release to ensure that we do not unwittingly regress performance.</p>
-<p>Anyway, in the words of Jerry Maguire, "Show Me The Money"...</p>
-<p>We currently have 4 benchmark scenarios, each of them is one of the samples in the sample app, and picked to cover different things:</p>
-<ul>
-<li><strong>Scaffold</strong>. The simple example, where the app bar and bottom navigation bar are blurred, with a scrollable list. This example uses rectangular haze areas.</li>
-<li><strong>Scaffold, with progressive</strong>. Same as Scaffold, but using a progressive blur.</li>
-<li><strong>Images List</strong>. Each item in the list has it's own <code>hazeSource</code> and <code>hazeEffect</code>. As each item has it's own <code>hazeSource</code>, the internal haze state does not change all that much (the list item content moves, but the <code>hazeEffect</code> doesn't in terms of local coordinates). This is more about multiple testing <code>RenderNode</code>s. This example uses rounded rectangle haze areas (i.e. we use <code>clipPath</code>).</li>
-<li><strong>Credit Card</strong>. A simple example, where the user can drag the <code>hazeEffect</code>. This tests how fast Haze's internal state invalidates and propogates to the <code>RenderNode</code>s. This example uses rounded rectangle haze areas like 'Images List'.</li>
-</ul>
-<div class="admonition abstract">
-<p class="admonition-title">Test setup</p>
-<p>All of the tests were ran with 16 iterations on a Pixel 6, running the latest version of Android available.</p>
-</div>
-<p>As with all benchmark tests, the results are only true for the exact things being tested. Using Haze in your own applications may result in different performance characteristics, so it is wise to write your own performance tests to validate the impact to your apps. Benchmark tests will always have variability in them too, so don't take the numbers listed below as exact values. Look at them more as a guide.</p>
-<p>The numbers listed below the P90 frame durations in milliseconds, which tend to be a good indicator of frames where a user interaction is happening (scrolling, etc). However, as these are the P90 values, these indicate the longest 10% frame durations, and thus are (probably) not indicitive of the performance which users see most of the time. It all depends on the distribution of the frame durations, but we're quickly getting into entry-level statistics, which is beyond what we're trying to document here.</p>
-<h4 id="cost-of-haze">Cost of Haze<a class="headerlink" href="#cost-of-haze" title="Permanent link">¶</a></h4>
-<p>We can also measure the rough cost of using Haze in the same samples. Here we've ran the same tests, with Haze being completely disabled:</p>
-<table>
-<thead>
-<tr>
-<th>Test</th>
-<th>1.0.x (disabled)</th>
-<th>1.0.x</th>
-<th>Difference</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Scaffold</td>
-<td>7.5 ms</td>
-<td>9.7 ms</td>
-<td>+29%</td>
-</tr>
-<tr>
-<td>Images List</td>
-<td>6.6 ms</td>
-<td>9.6 ms</td>
-<td>+45%</td>
-</tr>
-<tr>
-<td>Credit Card</td>
-<td>6.6 ms</td>
-<td>13.1 ms</td>
-<td>+98%</td>
-</tr>
-</tbody>
-</table>
-<h4 id="cost-of-features">Cost of features<a class="headerlink" href="#cost-of-features" title="Permanent link">¶</a></h4>
-<p>We can also measure the rough cost of using features, such as input scale, progressive and masking:</p>
-<table>
-<thead>
-<tr>
-<th>Test</th>
-<th>P90 frame duration (ms)</th>
-<th>Difference (in Haze cost)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Scaffold</td>
-<td>9.7 ms</td>
-<td>-</td>
-</tr>
-<tr>
-<td>Scaffold (inputScale = 0.5)</td>
-<td>9.6 ms</td>
-<td>-5%</td>
-</tr>
-<tr>
-<td>Scaffold (masked)</td>
-<td>9.8 ms</td>
-<td>+5%</td>
-</tr>
-<tr>
-<td>Scaffold (progressive)</td>
-<td>9.7 ms</td>
-<td>0%</td>
-</tr>
-<tr>
-<td>Scaffold (progressive, inputScale = 0.5)</td>
-<td>9.4 ms</td>
-<td>-14%</td>
-</tr>
-</tbody>
-</table>
-<p>The values are all very close, with the differences easily being within a margin of error, so don't use these differences as exact values (especially with the variability that we mentioned above). I think there's two big take aways here though:</p>
-<ul>
-<li>Masking has a negligible effect on frame durations.</li>
-<li>Progessive has a negligible effect on frame durations, when using using our custom blur shader (Android SDK 34+, all other platforms).</li>
-<li>Input Scale has a small but positive effect on frame duration.</li>
-</ul>
-<div class="admonition example">
-<p class="admonition-title">Full results</p>
-<p>For those interested, you can find the full results in this <a href="https://docs.google.com/spreadsheets/d/1wZ9pbX0HDIa08ITwYy7BrYYwOq2sX-HUyAMQlcb3dI4/edit?usp=sharing">spreadsheet</a>.</p>
-</div></div>
+<span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-materials:&lt;version&gt;"</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="hazematerials">HazeMaterials<a class="headerlink" href="#hazematerials" title="Permanent link">¶</a></h2>
+<p>Implementations of Material Design blur styles, inspired by SwiftUI Material APIs. These don't attempt to replicate exact iOS effects, but rather provide pleasant blur styles compatible with Material Design.</p>
+<p><img alt="" src="../../media/hazematerials.webp"></p>
+<p>Class reference: <a href="../../api/haze-materials/dev.chrisbanes.haze.blur.materials/-haze-materials/">HazeMaterials</a>.</p>
+<h3 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">LazyColumn</span><span class="p">(</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span>
+<span class="w">  </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// content</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">TopAppBar</span><span class="p">(</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Available levels: <code>thin()</code>, <code>regular()</code>, <code>thick()</code>, and more.</p>
+<h2 id="cupertinomaterials">CupertinoMaterials<a class="headerlink" href="#cupertinomaterials" title="Permanent link">¶</a></h2>
+<p>Blur styles matching Apple platforms (iOS, macOS). Values are taken from the <a href="https://www.figma.com/community/file/1385659531316001292">iOS 18 Figma</a> file published by Apple.</p>
+<p>Use these for consistency when mixing Compose Multiplatform with SwiftUI.</p>
+<p><img alt="" src="../../media/cupertinomaterials.webp"></p>
+<p>Class reference: <a href="../../api/haze-materials/dev.chrisbanes.haze.blur.materials/-cupertino-materials/">CupertinoMaterials</a>.</p>
+<h3 id="usage_1">Usage<a class="headerlink" href="#usage_1" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CupertinoMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="fluentmaterials">FluentMaterials<a class="headerlink" href="#fluentmaterials" title="Permanent link">¶</a></h2>
+<p>Blur styles matching Windows platforms (WinUI 3). Values are taken from the WinUI 3 Figma file published by Microsoft.</p>
+<p>Use these for consistency when mixing Compose Multiplatform with WinUI.</p>
+<p><img alt="" src="../../media/fluentmaterials.webp"></p>
+<p>Class reference: <a href="../../api/haze-materials/dev.chrisbanes.haze.blur.materials/-fluent-materials/">FluentMaterials</a>.</p>
+<h3 id="usage_2">Usage<a class="headerlink" href="#usage_2" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FluentMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="custom-styles">Custom Styles<a class="headerlink" href="#custom-styles" title="Permanent link">¶</a></h2>
+<p>To create custom blur styles, use the <a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/">HazeStyle</a> data class:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">customStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeStyle</span><span class="p">(</span>
+<span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">15.</span><span class="n">dp</span><span class="p">,</span>
+<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">)),</span>
+<span class="w">  </span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.1f</span>
+<span class="p">)</span>
+
+<span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">customStyle</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Or set properties directly in the <code>blurEffect</code> block:</p>
+<div class="highlight"><pre><span></span><code><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">15.</span><span class="n">dp</span>
+<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">))</span>
+<span class="w">  </span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.1f</span>
+<span class="p">}</span>
+</code></pre></div></div>
 
 
 
@@ -1107,10 +1193,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.tabs.link", "content.code.copy"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
       
     
   </body>
