@@ -6,14 +6,18 @@ package dev.chrisbanes.haze.liquidglass {
   }
 
   public final class LiquidGlassDefaults {
-    method public float ambientResponse();
-    method public float blurRadius();
-    method public float depth();
-    method public float edgeSoftness();
-    method public float refractionStrength();
-    method public float specularIntensity();
-    method public long tint();
+    property public static float ambientResponse;
+    property public androidx.compose.ui.unit.Dp blurRadius;
+    property public static float depth;
+    property public androidx.compose.ui.unit.Dp edgeSoftness;
+    property public static float refractionStrength;
+    property public static float specularIntensity;
+    property public androidx.compose.ui.graphics.Color tint;
     field public static final dev.chrisbanes.haze.liquidglass.LiquidGlassDefaults INSTANCE;
+    field public static final float ambientResponse = 0.5f;
+    field public static final float depth = 0.4f;
+    field public static final float refractionStrength = 0.7f;
+    field public static final float specularIntensity = 0.4f;
   }
 
   @androidx.compose.runtime.Immutable public final class LiquidGlassStyle {
