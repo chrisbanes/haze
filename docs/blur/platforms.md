@@ -20,9 +20,9 @@ When running on these versions of Android, Haze needs to use a few workarounds:
 
 #### HazeProgressive
 
-Only linear gradient [HazeProgressive](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/index.html) effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.
+Only linear gradient [HazeProgressive](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/index.html) effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.
 
-You can disable this behavior by setting the [preferPerformance](api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/index.html) property. When set to true, the progressive 'effect' will instead be drawn via a mask:
+You can disable this behavior by setting the [preferPerformance](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/index.html) property. When set to true, the progressive 'effect' will instead be drawn via a mask:
 
 ```kotlin hl_lines="6"
 LargeTopAppBar(
@@ -60,7 +60,7 @@ SDK Levels: 30 and below
 
 On Android 11 and below, blurring by default is disabled. When disabled, a scrim (translucent overlay) implementation is used which looks like so:
 
-![Scrim effect](media/scrim.webp)
+![Scrim effect](../media/scrim.webp)
 
 #### RenderScript blurring
 
@@ -78,7 +78,7 @@ As this implementation is slow, it means that processing a frame can easily take
 
 To the user the blur effect may look 'laggy' or slow to update, especially when the background content changes a lot. This is the compromise which we have decided to make in Haze, but in my opinion it is more than good enough for the majority of use cases.
 
-![type:video](media/renderscript.mp4)
+![type:video](../media/renderscript.mp4)
 
 As mentioned above, blurring on Android 11 and below is not enabled by default. See the [docs here](usage.md#enabling-blur) on how to enable it.
 

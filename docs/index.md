@@ -1,4 +1,4 @@
-Haze is a library providing a 'glassmorphism' style blur for Compose.
+Haze is a library providing visual effects (such as blur) for Compose Multiplatform.
 
 ![type:video](./media/desktop-small.mp4)
 
@@ -34,9 +34,11 @@ dependencies {
 }
 ```
 
-!!! info "Blur Module Required"
+!!! info "Using Effects"
 
-    Starting with Haze 2.0, blur functionality has been extracted to a separate `haze-blur` module. If you want to use blur effects (which most users do), you need to switch to the `haze-blur` dependency. The core `haze` module provides the base infrastructure for visual effects.
+    Haze v2 uses a modular architecture where effects are provided as separate modules. The core `haze` module provides the infrastructure, while effects like blur are in dedicated modules (e.g., `haze-blur`). If you want to use blur effects, you need the `haze-blur` dependency. The core `haze` module alone provides just the base infrastructure for visual effects.
+
+    See [Architecture](architecture.md) for more details about the effect system.
 
 ## Acknowledgements
 

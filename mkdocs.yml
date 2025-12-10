@@ -1,6 +1,6 @@
 # Project information
 site_name: "Haze"
-site_description: "A blurring modifier for Compose"
+site_description: "Visual effects (blur and more) for Compose Multiplatform"
 site_author: "Chris Banes"
 site_url: "https://chribanes.github.io/haze/"
 edit_uri: "tree/main/docs/"
@@ -15,11 +15,16 @@ repo_url: "https://github.com/chrisbanes/haze"
 # Navigation
 nav:
   - "Overview": index.md
-  - "Usage": usage.md
-  - "Platforms": platforms.md
-  - "Materials": materials.md
+  - "Architecture": architecture.md
+  - "Core Concepts": core-concepts.md
+  - "Blur":
+    - "Overview": blur/index.md
+    - "Usage": blur/usage.md
+    - "Materials": blur/materials.md
+    - "FAQs": blur/faq.md
+    - "Platforms": blur/platforms.md
+  - "Custom Effects": custom-effects.md
   - "Performance": performance.md
-  - "FAQs": faq.md
   - "Recipes": recipes.md
   - "Migrating to Haze 2.0": migrating-2.0.md
   - "Changelog": changelog.md
@@ -57,6 +62,12 @@ plugins:
       css_style:
         width: "100%"
         height: "30rem"
+  - redirects:
+      redirect_maps:
+        'materials.md': 'blur/materials.md'
+        'usage.md': 'blur/usage.md'
+        'faq.md': 'blur/faq.md'
+        'platforms.md': 'blur/platforms.md'
 
 # Extensions
 markdown_extensions:

@@ -4,7 +4,7 @@ Haze tries to use the most performant mechanism possible on each platform, which
 
 ## Input Scale
 
-You can provide an input scale value which determines how much the content is scaled in both the x and y dimensions, allowing the blur effect to be potentially applied over scaled-down content (and thus less pixels), before being scaled back up and drawn at the original size. You can find more information on how to use this [here](usage.md#input-scale).
+You can provide an input scale value which determines how much the content is scaled in both the x and y dimensions, allowing the blur effect to be potentially applied over scaled-down content (and thus less pixels), before being scaled back up and drawn at the original size. You can find more information on how to use this [here](blur/usage.md#input-scale).
 
 In terms of the performance benefit which scaling provides, it's fairly small. In our Android benchmark tests, using an `inputScale` set to `0.5` reduced the _cost of Haze_ by **5-20%**. You can read more about this below.
 

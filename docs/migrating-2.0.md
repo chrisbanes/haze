@@ -271,6 +271,6 @@ This architecture enables:
 If you encounter issues during migration:
 
 - Check the [GitHub Discussions](https://github.com/chrisbanes/haze/discussions)
-- Review the [updated usage documentation](usage.md)
+- Review the [updated usage documentation](blur/usage.md)
 - See working examples in the [sample app](https://github.com/chrisbanes/haze/tree/main/sample)
 - File an issue on [GitHub](https://github.com/chrisbanes/haze/issues)
