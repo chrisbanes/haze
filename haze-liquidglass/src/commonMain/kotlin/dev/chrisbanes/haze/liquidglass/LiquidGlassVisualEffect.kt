@@ -90,7 +90,7 @@ public class LiquidGlassVisualEffect : VisualEffect {
    */
   public var refractionStrength: Float
     get() = _refractionStrength.takeOrElse { style.refractionStrength }.takeOrElse {
-      LiquidGlassDefaults.refractionStrength()
+      LiquidGlassDefaults.refractionStrength
     }
     set(value) {
       if (value != _refractionStrength) {
@@ -104,7 +104,7 @@ public class LiquidGlassVisualEffect : VisualEffect {
    */
   public var specularIntensity: Float
     get() = _specularIntensity.takeOrElse { style.specularIntensity }
-      .takeOrElse { LiquidGlassDefaults.specularIntensity() }
+      .takeOrElse { LiquidGlassDefaults.specularIntensity }
     set(value) {
       if (value != _specularIntensity) {
         _specularIntensity = value
@@ -116,7 +116,7 @@ public class LiquidGlassVisualEffect : VisualEffect {
    * Depth perception factor (0 = flat, 1 = deep layered glass).
    */
   public var depth: Float
-    get() = _depth.takeOrElse { style.depth }.takeOrElse { LiquidGlassDefaults.depth() }
+    get() = _depth.takeOrElse { style.depth }.takeOrElse { LiquidGlassDefaults.depth }
     set(value) {
       if (value != _depth) {
         _depth = value
@@ -129,7 +129,7 @@ public class LiquidGlassVisualEffect : VisualEffect {
    */
   public var ambientResponse: Float
     get() = _ambientResponse.takeOrElse { style.ambientResponse }.takeOrElse {
-      LiquidGlassDefaults.ambientResponse()
+      LiquidGlassDefaults.ambientResponse
     }
     set(value) {
       if (value != _ambientResponse) {
@@ -142,7 +142,7 @@ public class LiquidGlassVisualEffect : VisualEffect {
    * Glass tint applied to the refracted content.
    */
   public var tint: Color
-    get() = _tint.takeOrElse { style.tint }.takeOrElse { LiquidGlassDefaults.tint() }
+    get() = _tint.takeOrElse { style.tint }.takeOrElse { LiquidGlassDefaults.tint }
     set(value) {
       if (value != _tint) {
         _tint = value
@@ -155,7 +155,7 @@ public class LiquidGlassVisualEffect : VisualEffect {
    */
   public var edgeSoftness: Dp
     get() = _edgeSoftness.takeOrElse { style.edgeSoftness }.takeOrElse {
-      LiquidGlassDefaults.edgeSoftness()
+      LiquidGlassDefaults.edgeSoftness
     }
     set(value) {
       if (value != _edgeSoftness) {
@@ -181,7 +181,7 @@ public class LiquidGlassVisualEffect : VisualEffect {
    */
   public var blurRadius: Dp
     get() = _blurRadius.takeOrElse { style.blurRadius }.takeOrElse {
-      LiquidGlassDefaults.blurRadius()
+      LiquidGlassDefaults.blurRadius
     }
     set(value) {
       if (value != _blurRadius) {
