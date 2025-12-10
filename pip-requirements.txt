@@ -1,0 +1,7 @@
+mkdocs
+mkdocs-material
+mkdocs-material[imaging]
+mkdocs-redirects
+mkdocs-video
+mike
+mdx-gh-links
