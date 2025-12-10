@@ -24,6 +24,7 @@ kotlin {
       dependencies {
         api(projects.haze)
         api(projects.hazeBlur)
+        api(projects.hazeLiquidglass)
         api(projects.hazeMaterials)
 
         api(libs.androidx.navigation.compose)
