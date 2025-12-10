@@ -5,7 +5,6 @@
 
 package dev.chrisbanes.haze.blur
 
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Shader
 import dev.chrisbanes.haze.HazeBlendMode
 import dev.chrisbanes.haze.InternalHazeApi
@@ -68,6 +67,5 @@ internal actual fun createBlurRenderEffect(
   blurRadiusPx: Float,
   params: RenderEffectParams,
 ): PlatformRenderEffect {
-  val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
-  return createBlurImageFilter(sigmaX = sigma, sigmaY = sigma, tileMode = params.blurTileMode)
+  return createBlurImageFilter(radiusX = blurRadiusPx, radiusY = blurRadiusPx, tileMode = params.blurTileMode)
 }

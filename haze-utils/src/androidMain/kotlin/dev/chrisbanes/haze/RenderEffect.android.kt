@@ -50,20 +50,20 @@ public actual fun createColorFilterImageFilter(
 @RequiresApi(31)
 @InternalHazeApi
 public actual fun createBlurImageFilter(
-  sigmaX: Float,
-  sigmaY: Float,
+  radiusX: Float,
+  radiusY: Float,
   tileMode: TileMode,
   input: PlatformRenderEffect?,
   crop: Rect?,
 ): PlatformRenderEffect {
-  val tileModeAndroid = when (tileMode) {
+  val edgeTreatment = when (tileMode) {
     TileMode.Clamp -> Shader.TileMode.CLAMP
     TileMode.Repeated -> Shader.TileMode.REPEAT
     TileMode.Mirror -> Shader.TileMode.MIRROR
     TileMode.Decal -> Shader.TileMode.DECAL
     else -> Shader.TileMode.CLAMP
   }
-  val blurEffect = RenderEffect.createBlurEffect(sigmaX, sigmaY, tileModeAndroid)
+  val blurEffect = RenderEffect.createBlurEffect(radiusX, radiusY, edgeTreatment)
   return if (input != null) {
     RenderEffect.createChainEffect(blurEffect, input)
   } else {

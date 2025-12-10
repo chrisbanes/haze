@@ -55,11 +55,13 @@ public expect fun createColorFilterImageFilter(
 
 /**
  * Creates a blur [PlatformRenderEffect].
+ * @param radiusX Blur radius in the X direction (pixels)
+ * @param radiusY Blur radius in the Y direction (pixels)
  */
 @InternalHazeApi
 public expect fun createBlurImageFilter(
-  sigmaX: Float,
-  sigmaY: Float,
+  radiusX: Float,
+  radiusY: Float,
   tileMode: TileMode,
   input: PlatformRenderEffect? = null,
   crop: Rect? = null,
