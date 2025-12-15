@@ -9,7 +9,7 @@ import dev.chrisbanes.haze.HazeEffectScope
  * Configures a [LiquidGlassVisualEffect] for this effect scope.
  */
 public inline fun HazeEffectScope.liquidGlassEffect(
-  block: LiquidGlassVisualEffect.() -> Unit,
+  block: LiquidGlassVisualEffect.() -> Unit = {},
 ) {
   val effect = visualEffect as? LiquidGlassVisualEffect ?: LiquidGlassVisualEffect()
   visualEffect = effect

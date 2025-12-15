@@ -281,7 +281,7 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
-      LiquidGlassSample(navController = navController)
+      LiquidGlassCreditCardSample(navController = navController)
     }
   }
 

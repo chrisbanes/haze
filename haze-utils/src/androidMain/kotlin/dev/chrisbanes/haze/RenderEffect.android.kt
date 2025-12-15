@@ -55,7 +55,11 @@ public actual fun createBlurImageFilter(
   tileMode: TileMode,
   input: PlatformRenderEffect?,
   crop: Rect?,
-): PlatformRenderEffect {
+): PlatformRenderEffect? {
+  if (radiusX <= 0f && radiusY <= 0f) {
+    return null
+  }
+
   val edgeTreatment = when (tileMode) {
     TileMode.Clamp -> Shader.TileMode.CLAMP
     TileMode.Repeated -> Shader.TileMode.REPEAT

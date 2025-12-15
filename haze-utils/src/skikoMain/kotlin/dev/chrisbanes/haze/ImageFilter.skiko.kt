@@ -58,19 +58,25 @@ public actual fun createBlurImageFilter(
   tileMode: TileMode,
   input: PlatformRenderEffect?,
   crop: Rect?,
-): PlatformRenderEffect = ImageFilter.makeBlur(
-  sigmaX = BlurEffect.convertRadiusToSigma(radiusX),
-  sigmaY = BlurEffect.convertRadiusToSigma(radiusY),
-  mode = when (tileMode) {
-    TileMode.Clamp -> FilterTileMode.CLAMP
-    TileMode.Repeated -> FilterTileMode.REPEAT
-    TileMode.Mirror -> FilterTileMode.MIRROR
-    TileMode.Decal -> FilterTileMode.DECAL
-    else -> FilterTileMode.CLAMP
-  },
-  input = input,
-  crop = crop?.toIRect(),
-)
+): PlatformRenderEffect? {
+  if (radiusX <= 0f && radiusY <= 0f) {
+    return null
+  }
+
+  return ImageFilter.makeBlur(
+    sigmaX = BlurEffect.convertRadiusToSigma(radiusX),
+    sigmaY = BlurEffect.convertRadiusToSigma(radiusY),
+    mode = when (tileMode) {
+      TileMode.Clamp -> FilterTileMode.CLAMP
+      TileMode.Repeated -> FilterTileMode.REPEAT
+      TileMode.Mirror -> FilterTileMode.MIRROR
+      TileMode.Decal -> FilterTileMode.DECAL
+      else -> FilterTileMode.CLAMP
+    },
+    input = input,
+    crop = crop?.toIRect(),
+  )
+}
 
 @InternalHazeApi
 public actual fun createOffsetImageFilter(

@@ -65,7 +65,7 @@ public expect fun createBlurImageFilter(
   tileMode: TileMode,
   input: PlatformRenderEffect? = null,
   crop: Rect? = null,
-): PlatformRenderEffect
+): PlatformRenderEffect?
 
 /**
  * Creates an offset [PlatformRenderEffect].
