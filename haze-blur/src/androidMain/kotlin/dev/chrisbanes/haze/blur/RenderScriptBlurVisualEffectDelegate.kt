@@ -43,7 +43,6 @@ import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 internal class RenderScriptBlurVisualEffectDelegate(
@@ -92,24 +91,19 @@ internal class RenderScriptBlurVisualEffectDelegate(
       )?.let { layer ->
         layer.clip = context.visualEffect.shouldClip()
 
-        if (contentLayer.size == IntSize.Zero) {
-          // If the layer is released, or doesn't have a size yet, we'll generate
-          // this blocking, so that the user doesn't see an un-blurred first frame
-          runBlocking {
-            updateSurface(content = layer, blurRadius = blurRadiusPx, context = context, density = density)
-            // Release the graphics layer
-            graphicsContext.releaseGraphicsLayer(layer)
-          }
-        } else {
-          currentJob = context.coroutineScope.launch(Dispatchers.Main.immediate) {
-            updateSurface(content = layer, blurRadius = blurRadiusPx, context = context, density = density)
-            // Release the graphics layer
-            graphicsContext.releaseGraphicsLayer(layer)
+        currentJob = context.coroutineScope.launch(Dispatchers.Main.immediate) {
+          updateSurface(
+            content = layer,
+            blurRadius = blurRadiusPx,
+            context = context,
+            density = density,
+          )
+          // Release the graphics layer
+          graphicsContext.releaseGraphicsLayer(layer)
 
-            if (drawSkipped) {
-              // If any draws were skipped, let's trigger a draw invalidation
-              context.invalidateDraw()
-            }
+          if (drawSkipped) {
+            // If any draws were skipped, let's trigger a draw invalidation
+            context.invalidateDraw()
           }
         }
       }
@@ -168,7 +162,13 @@ internal class RenderScriptBlurVisualEffectDelegate(
         // Then the tints...
         translate(offset = -offset) {
           for (tint in blurVisualEffect.tints) {
-            drawScrim(tint = tint, context = context, offset = offset, expandedSize = expandedSize, mask = mask)
+            drawScrim(
+              tint = tint,
+              context = context,
+              offset = offset,
+              expandedSize = expandedSize,
+              mask = mask,
+            )
           }
         }
 
@@ -265,7 +265,10 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
     private var isEnabled: Boolean = true
 
-    fun createOrNull(effect: BlurVisualEffect, context: VisualEffectContext): RenderScriptBlurVisualEffectDelegate? {
+    fun createOrNull(
+      effect: BlurVisualEffect,
+      context: VisualEffectContext,
+    ): RenderScriptBlurVisualEffectDelegate? {
       if (isEnabled) {
         return runCatching {
           RenderScriptBlurVisualEffectDelegate(
