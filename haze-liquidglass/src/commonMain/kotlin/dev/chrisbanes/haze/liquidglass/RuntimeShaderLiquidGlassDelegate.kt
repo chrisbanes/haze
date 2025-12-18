@@ -16,7 +16,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asComposeRenderEffect
-import dev.chrisbanes.haze.createBlurImageFilter
+import dev.chrisbanes.haze.createBlurRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 
@@ -56,7 +56,7 @@ internal class RuntimeShaderLiquidGlassDelegate(
 
   private fun buildRenderEffect(params: RenderParams): RenderEffect {
     // Create blur effect for the blurred content input
-    val blurEffect = createBlurImageFilter(
+    val blurEffect = createBlurRenderEffect(
       radiusX = params.blurRadiusPx,
       radiusY = params.blurRadiusPx,
       tileMode = TileMode.Clamp,

@@ -8,9 +8,9 @@ package dev.chrisbanes.haze
 
 import android.graphics.ColorFilter
 import android.graphics.RenderEffect
-import android.graphics.Shader
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asComposeRenderEffect
 
@@ -22,14 +22,17 @@ public actual typealias PlatformColorFilter = ColorFilter
 
 @RequiresApi(31)
 @InternalHazeApi
-public actual fun createShaderImageFilter(shader: Shader, crop: Rect?): PlatformRenderEffect {
+public actual fun createShaderRenderEffect(
+  shader: Shader,
+  crop: Rect?,
+): PlatformRenderEffect {
   // Android RenderEffect.createShaderEffect doesn't support crop
   return RenderEffect.createShaderEffect(shader)
 }
 
 @RequiresApi(31)
 @InternalHazeApi
-public actual fun createBlendImageFilter(
+public actual fun createBlendRenderEffect(
   blendMode: HazeBlendMode,
   background: PlatformRenderEffect,
   foreground: PlatformRenderEffect,
@@ -38,7 +41,7 @@ public actual fun createBlendImageFilter(
 
 @RequiresApi(31)
 @InternalHazeApi
-public actual fun createColorFilterImageFilter(
+public actual fun createColorFilterRenderEffect(
   colorFilter: PlatformColorFilter,
   input: PlatformRenderEffect?,
   crop: Rect?,
@@ -49,7 +52,7 @@ public actual fun createColorFilterImageFilter(
 
 @RequiresApi(31)
 @InternalHazeApi
-public actual fun createBlurImageFilter(
+public actual fun createBlurRenderEffect(
   radiusX: Float,
   radiusY: Float,
   tileMode: TileMode,
@@ -67,17 +70,28 @@ public actual fun createBlurImageFilter(
     TileMode.Decal -> Shader.TileMode.DECAL
     else -> Shader.TileMode.CLAMP
   }
-  val blurEffect = RenderEffect.createBlurEffect(radiusX, radiusY, edgeTreatment)
-  return if (input != null) {
-    RenderEffect.createChainEffect(blurEffect, input)
-  } else {
-    blurEffect
+
+  return try {
+    // On Android we use the native blur effect directly for better performance
+    val blurEffect = RenderEffect.createBlurEffect(radiusX, radiusY, edgeTreatment)
+    if (input != null) {
+      RenderEffect.createChainEffect(blurEffect, input)
+    } else {
+      blurEffect
+    }
+  } catch (e: IllegalArgumentException) {
+    throw IllegalArgumentException(
+      "Error whilst creating blur effect. " +
+        "This is likely because this device does not support a blur radius of" +
+        " x=${radiusX}px, y=${radiusY}px",
+      e,
+    )
   }
 }
 
 @RequiresApi(31)
 @InternalHazeApi
-public actual fun createOffsetImageFilter(
+public actual fun createOffsetRenderEffect(
   offsetX: Float,
   offsetY: Float,
   input: PlatformRenderEffect?,

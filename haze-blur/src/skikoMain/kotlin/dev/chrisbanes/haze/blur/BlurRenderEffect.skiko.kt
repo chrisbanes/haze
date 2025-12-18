@@ -10,11 +10,10 @@ import dev.chrisbanes.haze.HazeBlendMode
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
-import dev.chrisbanes.haze.createBlendImageFilter
-import dev.chrisbanes.haze.createBlurImageFilter
-import dev.chrisbanes.haze.createColorFilterImageFilter
+import dev.chrisbanes.haze.createBlendRenderEffect
+import dev.chrisbanes.haze.createColorFilterRenderEffect
 import dev.chrisbanes.haze.createFractalNoiseShader
-import dev.chrisbanes.haze.createShaderImageFilter
+import dev.chrisbanes.haze.createShaderRenderEffect
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.ColorMatrix
 
@@ -33,7 +32,7 @@ internal actual fun createNoiseEffect(
   mask: Shader?,
   scale: Float,
 ): PlatformRenderEffect {
-  val source = createShaderImageFilter(NOISE_SHADER)
+  val source = createShaderRenderEffect(NOISE_SHADER)
 
   val noiseEffect = if (noiseFactor < 1f) {
     val matrix = ColorMatrix(
@@ -43,16 +42,16 @@ internal actual fun createNoiseEffect(
       0f, 0f, 0f, noiseFactor, 0f,
     )
 
-    createColorFilterImageFilter(ColorFilter.makeMatrix(matrix), source)
+    createColorFilterRenderEffect(ColorFilter.makeMatrix(matrix), source)
   } else {
     source
   }
 
   return when {
     mask != null -> {
-      createBlendImageFilter(
+      createBlendRenderEffect(
         blendMode = HazeBlendMode.SrcIn,
-        background = createShaderImageFilter(mask),
+        background = createShaderRenderEffect(mask),
         foreground = noiseEffect,
       )
     }
@@ -61,11 +60,4 @@ internal actual fun createNoiseEffect(
       noiseEffect
     }
   }
-}
-
-internal actual fun createBlurRenderEffect(
-  blurRadiusPx: Float,
-  params: RenderEffectParams,
-): PlatformRenderEffect {
-  return createBlurImageFilter(radiusX = blurRadiusPx, radiusY = blurRadiusPx, tileMode = params.blurTileMode)
 }

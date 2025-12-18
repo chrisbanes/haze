@@ -2,7 +2,7 @@
 package dev.chrisbanes.haze.liquidglass {
 
   public final class HazeEffectScopeKt {
-    method public static inline void liquidGlassEffect(dev.chrisbanes.haze.HazeEffectScope, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect,kotlin.Unit> block);
+    method public static inline void liquidGlassEffect(dev.chrisbanes.haze.HazeEffectScope, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect,kotlin.Unit> block);
   }
 
   public final class LiquidGlassDefaults {
