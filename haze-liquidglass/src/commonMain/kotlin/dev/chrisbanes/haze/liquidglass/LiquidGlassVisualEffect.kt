@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.liquidglass
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -59,7 +60,7 @@ public class LiquidGlassVisualEffect : VisualEffect {
     }
   }
 
-  override fun shouldClip(): Boolean = edgeSoftness > 0.dp
+  override fun shouldClip(): Boolean = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
 
   override fun calculateInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
     is HazeInputScale.None -> 1f
@@ -84,6 +85,9 @@ public class LiquidGlassVisualEffect : VisualEffect {
   private var _lightPosition: Offset = Offset.Unspecified
   private var _tint: Color = Color.Unspecified
   private var _blurRadius: Dp = Dp.Unspecified
+  private var _refractionHeight: Float = Float.NaN
+  private var _chromaticAberrationStrength: Float = Float.NaN
+  private var _shape: RoundedCornerShape? = null
 
   /**
    * Strength of refractive distortion, in the range `0f..1f`.
@@ -191,6 +195,45 @@ public class LiquidGlassVisualEffect : VisualEffect {
     }
 
   /**
+   * Height of the refraction zone expressed as a fraction of the smallest dimension (0f..1f).
+   */
+  public var refractionHeight: Float
+    get() = _refractionHeight.takeOrElse { style.refractionHeight }.takeOrElse {
+      LiquidGlassDefaults.refractionHeight
+    }
+    set(value) {
+      if (value != _refractionHeight) {
+        _refractionHeight = value
+        dirtyTracker += LiquidGlassDirtyFields.RefractionHeight
+      }
+    }
+
+  /**
+   * Strength of chromatic aberration. TODO: expand to configurable channel/spread controls.
+   */
+  public var chromaticAberrationStrength: Float
+    get() = _chromaticAberrationStrength.takeOrElse { style.chromaticAberrationStrength }
+      .takeOrElse { LiquidGlassDefaults.chromaticAberrationStrength }
+    set(value) {
+      if (value != _chromaticAberrationStrength) {
+        _chromaticAberrationStrength = value
+        dirtyTracker += LiquidGlassDirtyFields.ChromaticAberration
+      }
+    }
+
+  /**
+   * Shape applied to the glass. Defaults to a rectangle (all radii zero).
+   */
+  public var shape: RoundedCornerShape
+    get() = _shape ?: style.shape ?: LiquidGlassDefaults.shape
+    set(value) {
+      if (value != _shape) {
+        _shape = value
+        dirtyTracker += LiquidGlassDirtyFields.Shape
+      }
+    }
+
+  /**
    * Overall opacity for the effect.
    */
   public var alpha: Float = 1f
@@ -213,7 +256,7 @@ public class LiquidGlassVisualEffect : VisualEffect {
       }
     }
 
-  override fun preferClipToAreaBounds(): Boolean = edgeSoftness <= 0.dp
+  override fun preferClipToAreaBounds(): Boolean = edgeSoftness <= 0.dp && shape.hasZeroCornerRadii()
 
   internal interface Delegate {
     fun attach() = Unit
@@ -250,6 +293,15 @@ public class LiquidGlassVisualEffect : VisualEffect {
     if (old.blurRadius != new.blurRadius) {
       dirtyTracker += LiquidGlassDirtyFields.BlurRadius
     }
+    if (old.refractionHeight != new.refractionHeight) {
+      dirtyTracker += LiquidGlassDirtyFields.RefractionHeight
+    }
+    if (old.chromaticAberrationStrength != new.chromaticAberrationStrength) {
+      dirtyTracker += LiquidGlassDirtyFields.ChromaticAberration
+    }
+    if (old.shape != new.shape) {
+      dirtyTracker += LiquidGlassDirtyFields.Shape
+    }
   }
 
   internal companion object {
@@ -261,6 +313,8 @@ internal expect fun LiquidGlassVisualEffect.updateDelegate(
   context: VisualEffectContext,
   drawScope: DrawScope,
 )
+
+private fun RoundedCornerShape.hasZeroCornerRadii(): Boolean = this == LiquidGlassDefaults.shape
 
 private inline fun Float.takeOrElse(default: () -> Float): Float {
   return if (this.isNaN()) default() else this

@@ -8,6 +8,7 @@ package dev.chrisbanes.haze
 
 import android.graphics.ColorFilter
 import android.graphics.RenderEffect
+import android.graphics.Shader as AndroidShader
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Shader
@@ -64,11 +65,11 @@ public actual fun createBlurRenderEffect(
   }
 
   val edgeTreatment = when (tileMode) {
-    TileMode.Clamp -> Shader.TileMode.CLAMP
-    TileMode.Repeated -> Shader.TileMode.REPEAT
-    TileMode.Mirror -> Shader.TileMode.MIRROR
-    TileMode.Decal -> Shader.TileMode.DECAL
-    else -> Shader.TileMode.CLAMP
+    TileMode.Clamp -> AndroidShader.TileMode.CLAMP
+    TileMode.Repeated -> AndroidShader.TileMode.REPEAT
+    TileMode.Mirror -> AndroidShader.TileMode.MIRROR
+    TileMode.Decal -> AndroidShader.TileMode.DECAL
+    else -> AndroidShader.TileMode.CLAMP
   }
 
   return try {

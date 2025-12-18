@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.liquidglass
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -19,6 +20,9 @@ public data class LiquidGlassStyle(
   val edgeSoftness: Dp = Dp.Unspecified,
   val lightPosition: Offset = Offset.Unspecified,
   val blurRadius: Dp = Dp.Unspecified,
+  val refractionHeight: Float = Float.NaN,
+  val chromaticAberrationStrength: Float = Float.NaN,
+  val shape: RoundedCornerShape? = null,
 ) {
   public companion object {
     public val Unspecified: LiquidGlassStyle = LiquidGlassStyle()

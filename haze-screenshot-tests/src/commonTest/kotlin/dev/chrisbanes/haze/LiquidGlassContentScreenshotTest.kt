@@ -149,6 +149,58 @@ class LiquidGlassContentScreenshotTest : ScreenshotTest() {
     captureRoot("orange")
   }
 
+  @Test
+  fun creditCard_shape_refractionHeight() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      refractionStrength = 0.7f
+      refractionHeight = 0.3f
+      depth = 0.45f
+      specularIntensity = 0.6f
+      edgeSoftness = 10.dp
+      shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp)
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardContentBlurring(
+          visualEffect = visualEffect,
+          backgroundColors = listOf(Color(0xFF1E88E5), Color(0xFF00ACC1)),
+        )
+      }
+    }
+
+    captureRoot("rounded")
+
+    visualEffect.refractionHeight = 0.16f
+    waitForIdle()
+    captureRoot("shallow")
+  }
+
+  @Test
+  fun creditCard_chromatic() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      refractionStrength = 0.8f
+      chromaticAberrationStrength = 0.22f
+      depth = 0.5f
+      ambientResponse = 0.7f
+      edgeSoftness = 14.dp
+      shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardContentBlurring(
+          visualEffect = visualEffect,
+          backgroundColors = listOf(Color(0xFF7E57C2), Color(0xFF26C6DA)),
+        )
+      }
+    }
+
+    captureRoot()
+  }
+
   companion object {
     val DefaultTint = Color.White.copy(alpha = 0.1f)
 

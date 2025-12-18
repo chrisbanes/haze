@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.liquidglass
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -17,4 +18,7 @@ public object LiquidGlassDefaults {
   public val tint: Color = Color.White.copy(alpha = 0.12f) // Glass tint opacity
   public val edgeSoftness: Dp = 12.dp // Smooth edge falloff
   public val blurRadius: Dp = 4.dp // Blur radius for glass depth effect
+  public const val refractionHeight: Float = 0.25f // Fraction of min dimension used for refraction
+  public const val chromaticAberrationStrength: Float = 0f // 0 = off, 1 = strong dispersion
+  public val shape: RoundedCornerShape = RoundedCornerShape(0.dp)
 }

@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
@@ -28,18 +29,30 @@ internal class RuntimeShaderLiquidGlassDelegate(
   private var lastParams: RenderParams? = null
 
   override fun DrawScope.draw(context: VisualEffectContext) {
+    val density = context.requireDensity()
+    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
+    val scaleFactor = effect.calculateInputScaleFactor(context.inputScale)
+    val layerSize = context.layerSize * scaleFactor
     createAndDrawScaledContentLayer(context) {
+      val layerRadii = effect.shape.toCornerRadiiPx(
+        layerSize = layerSize,
+        density = density,
+        layoutDirection = layoutDirection,
+      )
       val params = RenderParams(
-        layerSize = context.layerSize * effect.calculateInputScaleFactor(context.inputScale),
+        layerSize = layerSize,
         refractionStrength = effect.refractionStrength.coerceIn(0f, 1f),
         specularIntensity = effect.specularIntensity.coerceIn(0f, 1f),
         depth = effect.depth.coerceIn(0f, 1f),
         ambientResponse = effect.ambientResponse.coerceIn(0f, 1f),
         tint = effect.tint,
-        edgeSoftnessPx = with(context.requireDensity()) { effect.edgeSoftness.toPx() },
-        blurRadiusPx = with(context.requireDensity()) { effect.blurRadius.toPx() },
+        edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() },
+        blurRadiusPx = with(density) { effect.blurRadius.toPx() },
+        refractionHeightPx = effect.refractionHeight.coerceIn(0f, 1f) * layerSize.minDimension,
+        chromaticAberrationStrength = effect.chromaticAberrationStrength.coerceIn(0f, 1f),
+        cornerRadii = layerRadii,
         lightPosition = effect.lightPosition.takeOrElse {
-          context.layerSize.center * effect.calculateInputScaleFactor(context.inputScale)
+          context.layerSize.center * scaleFactor
         },
       )
 
@@ -73,6 +86,15 @@ internal class RuntimeShaderLiquidGlassDelegate(
       setFloatUniform("depth", params.depth)
       setFloatUniform("ambientResponse", params.ambientResponse)
       setFloatUniform("edgeSoftness", params.edgeSoftnessPx)
+      setFloatUniform("refractionHeight", params.refractionHeightPx)
+      setFloatUniform("chromaticAberrationStrength", params.chromaticAberrationStrength)
+      setFloatUniform(
+        "cornerRadii",
+        params.cornerRadii.topLeft,
+        params.cornerRadii.topRight,
+        params.cornerRadii.bottomRight,
+        params.cornerRadii.bottomLeft,
+      )
       setFloatUniform("lightPosition", params.lightPosition.x, params.lightPosition.y)
       setFloatUniform(
         "tintColor",
@@ -93,6 +115,9 @@ internal class RuntimeShaderLiquidGlassDelegate(
     val tint: Color,
     val edgeSoftnessPx: Float,
     val blurRadiusPx: Float,
+    val refractionHeightPx: Float,
+    val chromaticAberrationStrength: Float,
+    val cornerRadii: CornerRadii,
     val lightPosition: Offset,
   )
 

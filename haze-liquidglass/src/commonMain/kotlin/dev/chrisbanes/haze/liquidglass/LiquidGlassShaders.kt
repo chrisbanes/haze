@@ -18,7 +18,10 @@ internal object LiquidGlassShaders {
     uniform float depth;
     uniform float ambientResponse;
     uniform float edgeSoftness;
+    uniform float refractionHeight;
+    uniform float chromaticAberrationStrength;
     uniform float2 lightPosition;
+    uniform vec4 cornerRadii; // topLeft, topRight, bottomRight, bottomLeft
     uniform vec4 tintColor;
 
     float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
@@ -27,60 +30,81 @@ internal object LiquidGlassShaders {
       return clamp(coord, vec2(0.5, 0.5), layerSize - vec2(0.5, 0.5));
     }
 
-    // Bezel width as fraction of smallest dimension
-    const float BEZEL_WIDTH_RATIO = 0.25;
-
-    // Circle map - displacement profile
-    // Creates a smooth curve from edge to interior
     float circleMap(float x) {
       return 1.0 - sqrt(max(0.0, 1.0 - x * x));
     }
 
-    // Compute displacement vector
-    vec2 computeDisplacement(vec2 coord, float refractionHeight) {
-      // Distance from each edge
-      vec2 distFromEdge = min(coord, layerSize - coord);
-      float minDistFromEdge = min(distFromEdge.x, distFromEdge.y);
+    float distanceToRoundedRect(vec2 coord) {
+      float width = layerSize.x;
+      float height = layerSize.y;
 
-      // If we're beyond the refraction zone, no displacement
-      if (minDistFromEdge >= refractionHeight) {
-        return vec2(0.0);
+      float tl = cornerRadii.x;
+      float tr = cornerRadii.y;
+      float br = cornerRadii.z;
+      float bl = cornerRadii.w;
+
+      if (coord.x < tl && coord.y < tl) {
+        vec2 c = vec2(tl, tl);
+        return max(tl - length(coord - c), 0.0);
+      }
+      if (coord.x > width - tr && coord.y < tr) {
+        vec2 c = vec2(width - tr, tr);
+        return max(tr - length(coord - c), 0.0);
+      }
+      if (coord.x > width - br && coord.y > height - br) {
+        vec2 c = vec2(width - br, height - br);
+        return max(br - length(coord - c), 0.0);
+      }
+      if (coord.x < bl && coord.y > height - bl) {
+        vec2 c = vec2(bl, height - bl);
+        return max(bl - length(coord - c), 0.0);
       }
 
-      // Calculate displacement magnitude using circle map
-      // Maps distance (0=edge to 1=interior) to displacement amount
-      float normalizedDist = clamp(minDistFromEdge / refractionHeight, 0.0, 1.0);
-      float displacementMagnitude = circleMap(1.0 - normalizedDist);
-
-      // Determine gradient direction (perpendicular to nearest edge, pointing inward)
-      vec2 grad;
-      if (distFromEdge.x < distFromEdge.y) {
-        // Closer to left/right edge
-        grad = vec2(coord.x < layerSize.x * 0.5 ? 1.0 : -1.0, 0.0);
-      } else {
-        // Closer to top/bottom edge
-        grad = vec2(0.0, coord.y < layerSize.y * 0.5 ? 1.0 : -1.0);
-      }
-
-      return displacementMagnitude * grad;
+      float distLeft = coord.x;
+      float distRight = width - coord.x;
+      float distTop = coord.y;
+      float distBottom = height - coord.y;
+      return max(min(min(distLeft, distRight), min(distTop, distBottom)), 0.0);
     }
 
-    vec3 computeShapeNormal(vec2 coord) {
-      // For lighting calculations, compute normal from displacement gradient
-      float bezelWidth = min(layerSize.x, layerSize.y) * BEZEL_WIDTH_RATIO;
-      vec2 displacement = computeDisplacement(coord, bezelWidth);
+    vec2 inwardNormal(vec2 coord) {
+      float width = layerSize.x;
+      float height = layerSize.y;
 
-      // If no displacement, return flat normal
-      if (length(displacement) < 0.001) {
-        return vec3(0.0, 0.0, 1.0);
+      float tl = cornerRadii.x;
+      float tr = cornerRadii.y;
+      float br = cornerRadii.z;
+      float bl = cornerRadii.w;
+
+      if (coord.x < tl && coord.y < tl) {
+        vec2 c = vec2(tl, tl);
+        vec2 dir = c - coord;
+        return normalize(dir + vec2(1e-4));
+      }
+      if (coord.x > width - tr && coord.y < tr) {
+        vec2 c = vec2(width - tr, tr);
+        vec2 dir = c - coord;
+        return normalize(dir + vec2(1e-4));
+      }
+      if (coord.x > width - br && coord.y > height - br) {
+        vec2 c = vec2(width - br, height - br);
+        vec2 dir = c - coord;
+        return normalize(dir + vec2(1e-4));
+      }
+      if (coord.x < bl && coord.y > height - bl) {
+        vec2 c = vec2(bl, height - bl);
+        vec2 dir = c - coord;
+        return normalize(dir + vec2(1e-4));
       }
 
-      // Approximate normal from displacement direction
-      return normalize(vec3(displacement, 0.5));
+      float dx = (width - 2.0 * coord.x);
+      float dy = (height - 2.0 * coord.y);
+      vec2 n = vec2(dx, dy);
+      if (dot(n, n) < 1e-8) n = vec2(0.0, 1.0);
+      return normalize(n);
     }
 
     vec3 computeContentNormal(vec2 coord) {
-      // Add subtle content-based distortion for texture
       float l = luma(content.eval(clampCoord(coord + vec2(1.0, 0.0))).rgb);
       float r = luma(content.eval(clampCoord(coord - vec2(1.0, 0.0))).rgb);
       float t = luma(content.eval(clampCoord(coord + vec2(0.0, 1.0))).rgb);
@@ -89,59 +113,58 @@ internal object LiquidGlassShaders {
       return normalize(vec3(grad, 1.0));
     }
 
-    vec3 computeNormal(vec2 coord) {
-      // Blend shape-based normals (primary) with content-based normals (subtle texture)
-      vec3 shapeNormal = computeShapeNormal(coord);
+    vec3 computeNormal(vec2 coord, vec2 shapeNormal2D) {
+      vec3 shapeNormal = normalize(vec3(shapeNormal2D, 0.5));
       vec3 contentNormal = computeContentNormal(coord);
-      // Use mostly shape normal, with a hint of content-based distortion
       return normalize(mix(shapeNormal, contentNormal, 0.15));
     }
 
-    float edgeMask(vec2 coord) {
+    float edgeMask(vec2 coord, float distToEdge) {
       if (edgeSoftness <= 0.0) return 1.0;
-      vec2 dist = min(coord, layerSize - coord);
-      float e = min(dist.x, dist.y) / max(edgeSoftness, 0.0001);
+      float e = distToEdge / max(edgeSoftness, 0.0001);
       return clamp(e, 0.0, 1.0);
     }
 
+    vec4 sampleChroma(vec2 coord, vec2 chromaOffset) {
+      if (chromaticAberrationStrength <= 0.0001) return content.eval(clampCoord(coord));
+      vec2 forward = clampCoord(coord + chromaOffset);
+      vec2 backward = clampCoord(coord - chromaOffset);
+      vec4 base = content.eval(clampCoord(coord));
+      return vec4(content.eval(forward).r, base.g, content.eval(backward).b, base.a);
+    }
+
     vec4 main(vec2 coord) {
-      // Get base color
       vec4 base = content.eval(coord);
 
-      // Compute normal for lighting calculations
-      vec3 normal = computeNormal(coord);
+      float distToEdge = distanceToRoundedRect(coord);
+      vec2 normal2D = inwardNormal(coord);
 
-      // Apply refraction displacement
-      float bezelWidth = min(layerSize.x, layerSize.y) * BEZEL_WIDTH_RATIO;
-      vec2 baseDisplacement = computeDisplacement(coord, bezelWidth);
-      vec2 displacement = baseDisplacement * refractionStrength * bezelWidth;
+      float refractionZone = max(refractionHeight, 0.0001);
+      float normalizedDist = clamp(distToEdge / refractionZone, 0.0, 1.0);
+      float displacementMagnitude = distToEdge >= refractionZone ? 0.0 : circleMap(1.0 - normalizedDist);
+      vec2 displacement = normal2D * displacementMagnitude * refractionZone * refractionStrength;
+
       vec2 refractCoord = clampCoord(coord + displacement);
 
-      // Sample refracted content
-      vec4 refracted = content.eval(refractCoord);
-
-      // Sample blurred content at refracted position
+      vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5;
+      vec4 refracted = sampleChroma(refractCoord, chromaOffset);
       vec4 blurred = blurredContent.eval(refractCoord);
 
-      // Mix depth: blend between base and blurred based on depth parameter
-      vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));
+      vec3 normal = computeNormal(coord, normal2D);
 
-      // Apply tint
+      vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));
       vec3 tinted = mix(mixedColor, tintColor.rgb, tintColor.a);
 
-      // Add specular highlights
       vec2 lightDir2D = normalize(lightPosition - coord);
       vec3 lightDir = normalize(vec3(lightDir2D, 1.0));
       float spec = pow(max(dot(normal, lightDir), 0.0), 24.0) * specularIntensity;
 
-      // Apply Fresnel ambient lighting
       float fresnel = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0);
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
 
-      vec3 finalColor = tinted * ambient + spec;
+      vec3 finalColor = mix(tinted, refracted.rgb, refractionStrength) * ambient + spec;
 
-      // Apply edge softness mask
-      float edge = edgeMask(coord);
+      float edge = edgeMask(coord, distToEdge);
       return vec4(finalColor, base.a) * edge;
     }
     """

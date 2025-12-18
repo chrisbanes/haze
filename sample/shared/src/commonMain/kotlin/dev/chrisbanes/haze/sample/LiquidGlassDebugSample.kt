@@ -138,6 +138,29 @@ fun LiquidGlassDebugSample(navController: NavHostController) {
           ambientResponse = 0.8f
           depth = 0.6f
           edgeSoftness = 16.dp
+          refractionHeight = 0.28f
+          shape = RoundedCornerShape(16.dp)
+        }
+      }
+
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+      ) {
+        TestCard(
+          hazeState = hazeState,
+          title = "5. Rounded + Chroma",
+          modifier = Modifier.weight(1f),
+        ) {
+          tint = Color.White.copy(alpha = 0.18f)
+          refractionStrength = 0.85f
+          specularIntensity = 0.75f
+          ambientResponse = 0.7f
+          depth = 0.55f
+          edgeSoftness = 14.dp
+          shape = RoundedCornerShape(24.dp)
+          refractionHeight = 0.35f
+          chromaticAberrationStrength = 0.22f
         }
       }
     }

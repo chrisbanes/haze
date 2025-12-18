@@ -76,6 +76,8 @@ fun LiquidGlassCreditCardSample(navController: NavHostController) {
       val cardOffset = remember { mutableFloatStateOf(0f) }
       val draggableState = rememberDraggableState { cardOffset.value += it }
 
+      val shape = RoundedCornerShape(16.dp)
+
       Box(
         modifier = Modifier
           .testTag("credit_card_$index")
@@ -100,11 +102,10 @@ fun LiquidGlassCreditCardSample(navController: NavHostController) {
           )
           // We add 1 to the zIndex as the background content is zIndex 0f
           .hazeSource(hazeState, zIndex = 1f + index)
-          .clip(RoundedCornerShape(16.dp))
+          .clip(shape)
           .hazeEffect(state = hazeState) {
             liquidGlassEffect {
-              this.refractionStrength = 0.9f
-              blurRadius = 0.dp
+              this.shape = shape
             }
           },
       ) {

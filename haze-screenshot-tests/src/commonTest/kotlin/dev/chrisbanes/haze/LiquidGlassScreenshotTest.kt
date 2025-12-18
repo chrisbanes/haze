@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -196,6 +197,54 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
     enabled = true
     waitForIdle()
     captureRoot("re_enabled")
+  }
+
+  @Test
+  fun creditCard_shape_refractionHeight() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      refractionStrength = 0.7f
+      refractionHeight = 0.32f
+      depth = 0.45f
+      specularIntensity = 0.6f
+      shape = RoundedCornerShape(24.dp)
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(24.dp))
+      }
+    }
+
+    captureRoot("rounded")
+
+    visualEffect.refractionHeight = 0.18f
+    waitForIdle()
+    captureRoot("shallow")
+  }
+
+  @Test
+  fun creditCard_chromaticAberration() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      refractionStrength = 0.8f
+      chromaticAberrationStrength = 0.0f
+      depth = 0.4f
+      edgeSoftness = 14.dp
+      shape = RoundedCornerShape(20.dp)
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(20.dp))
+      }
+    }
+
+    captureRoot("off")
+
+    visualEffect.chromaticAberrationStrength = 0.24f
+    waitForIdle()
+    captureRoot("on")
   }
 
   companion object {
