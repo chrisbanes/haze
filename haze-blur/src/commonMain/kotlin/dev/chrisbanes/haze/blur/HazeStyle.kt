@@ -10,6 +10,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 
@@ -86,7 +87,7 @@ public sealed interface HazeTint {
   /**
    * Optional color filter to apply to the tint.
    */
-  public val colorFilter: androidx.compose.ui.graphics.ColorFilter?
+  public val colorFilter: ColorFilter?
 
   /**
    * Whether this tint is specified (not [Unspecified]).
@@ -100,7 +101,7 @@ public sealed interface HazeTint {
   public data class Color(
     public val color: androidx.compose.ui.graphics.Color,
     override val blendMode: BlendMode = DefaultBlendMode,
-    override val colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+    override val colorFilter: ColorFilter? = null,
   ) : HazeTint {
     override val isSpecified: Boolean get() = color.isSpecified
   }
@@ -112,7 +113,7 @@ public sealed interface HazeTint {
   public data class Brush(
     public val brush: androidx.compose.ui.graphics.Brush,
     override val blendMode: BlendMode = DefaultBlendMode,
-    override val colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+    override val colorFilter: ColorFilter? = null,
   ) : HazeTint {
     override val isSpecified: Boolean get() = true
   }
@@ -123,7 +124,7 @@ public sealed interface HazeTint {
      */
     public val Unspecified: HazeTint = object : HazeTint {
       override val blendMode: BlendMode = BlendMode.SrcOver
-      override val colorFilter: androidx.compose.ui.graphics.ColorFilter? = null
+      override val colorFilter: ColorFilter? = null
       override val isSpecified: Boolean = false
     }
 
@@ -144,7 +145,7 @@ public sealed interface HazeTint {
 public fun HazeTint(
   color: androidx.compose.ui.graphics.Color,
   blendMode: BlendMode = HazeTint.DefaultBlendMode,
-  colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+  colorFilter: ColorFilter? = null,
 ): HazeTint = HazeTint.Color(color, blendMode, colorFilter)
 
 /**
@@ -157,7 +158,7 @@ public fun HazeTint(
 public fun HazeTint(
   brush: androidx.compose.ui.graphics.Brush,
   blendMode: BlendMode = HazeTint.DefaultBlendMode,
-  colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+  colorFilter: ColorFilter? = null,
 ): HazeTint = HazeTint.Brush(brush, blendMode, colorFilter)
 
 internal inline fun Float.takeOrElse(block: () -> Float): Float =
