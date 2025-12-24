@@ -16,13 +16,13 @@ internal class ScrimBlurVisualEffectDelegate(
 ) : BlurVisualEffect.Delegate {
   override fun DrawScope.draw(context: VisualEffectContext) {
     val scrimTint = blurVisualEffect.fallbackTint.takeIf { it.isSpecified }
-      ?: blurVisualEffect.tints.firstOrNull()
+      ?: blurVisualEffect.colorEffects.firstOrNull()
         ?.boostForFallback(blurVisualEffect.blurRadius.takeOrElse { 0.dp })
       ?: return
 
     withAlpha(alpha = blurVisualEffect.alpha, context = context) {
       drawScrim(
-        tint = scrimTint,
+        colorEffect = scrimTint,
         context = context,
         mask = blurVisualEffect.mask ?: blurVisualEffect.progressive?.asBrush(),
       )

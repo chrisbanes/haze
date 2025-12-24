@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.ColorFilter
 
 /**
  * Converts a Compose [ColorFilter] to a platform [PlatformColorFilter].
- * 
+ *
  * This is a platform-specific conversion that accesses the internal
  * nativeColorFilter property.
  */

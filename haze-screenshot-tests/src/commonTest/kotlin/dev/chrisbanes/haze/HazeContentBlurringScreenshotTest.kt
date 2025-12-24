@@ -11,9 +11,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.BlurVisualEffect
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.HazeProgressive
 import dev.chrisbanes.haze.blur.HazeStyle
-import dev.chrisbanes.haze.blur.HazeTint
 import dev.chrisbanes.haze.blur.LocalHazeStyle
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -24,7 +24,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
     }
     setContent {
@@ -49,7 +49,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_blurEnabled() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
     }
 
@@ -103,7 +103,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   fun creditCard_transparentTint() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
       blurRadius = 8.dp
-      tints = listOf(HazeTint(Color.Transparent))
+      colorEffects = listOf(HazeColorEffect.tint(Color.Transparent, HazeColorEffect.DefaultBlendMode))
     }
     setContent {
       ScreenshotTheme {
@@ -129,7 +129,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_mask() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
       mask = VerticalMask
     }
@@ -144,7 +144,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_alpha() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
       alpha = 0.5f
     }
@@ -169,7 +169,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_progressive_horiz() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
       progressive = HazeProgressive.horizontalGradient()
     }
@@ -184,7 +184,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_progressive_horiz_preferMask() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
       progressive = HazeProgressive.horizontalGradient(preferPerformance = true)
     }
@@ -199,7 +199,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_progressive_vertical() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
       progressive = HazeProgressive.verticalGradient()
     }
@@ -214,7 +214,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_progressive_radial() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
       progressive = HazeProgressive.RadialGradient()
     }
@@ -229,7 +229,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_progressive_shader() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
       progressive = HazeProgressive.Brush(
         Brush.sweepGradient(colors = listOf(Color.Transparent, Color.Black)),
@@ -246,7 +246,12 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_childTint() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(HazeTint(Color.Magenta.copy(alpha = 0.5f)))
+      colorEffects = listOf(
+        HazeColorEffect.tint(
+          Color.Magenta.copy(alpha = 0.5f),
+          HazeColorEffect.DefaultBlendMode,
+        ),
+      )
       blurRadius = 8.dp
     }
 
@@ -259,11 +264,21 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
     waitForIdle()
     captureRoot("magenta")
 
-    blurVisualEffect.tints = listOf(HazeTint(Color.Yellow.copy(alpha = 0.5f)))
+    blurVisualEffect.colorEffects = listOf(
+      HazeColorEffect.tint(
+        Color.Yellow.copy(alpha = 0.5f),
+        HazeColorEffect.DefaultBlendMode,
+      ),
+    )
     waitForIdle()
     captureRoot("yellow")
 
-    blurVisualEffect.tints = listOf(HazeTint(Color.Red.copy(alpha = 0.5f)))
+    blurVisualEffect.colorEffects = listOf(
+      HazeColorEffect.tint(
+        Color.Red.copy(alpha = 0.5f),
+        HazeColorEffect.DefaultBlendMode,
+      ),
+    )
     waitForIdle()
     captureRoot("red")
   }
@@ -271,7 +286,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_sourceContentChange() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(DefaultTint)
+      colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
     }
     var backgroundColors by mutableStateOf(listOf(Color.Blue, Color.Cyan))
@@ -297,7 +312,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_brushTint() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(BrushTint)
+      colorEffects = listOf(BrushTint)
       blurRadius = 8.dp
     }
     setContent {
@@ -311,7 +326,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_brushTint_mask() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(BrushTint)
+      colorEffects = listOf(BrushTint)
       blurRadius = 8.dp
       mask = VerticalMask
     }
@@ -326,7 +341,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_brushTint_progressive() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
-      tints = listOf(BrushTint)
+      colorEffects = listOf(BrushTint)
       blurRadius = 8.dp
       progressive = HazeProgressive.verticalGradient()
     }
@@ -339,16 +354,27 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   }
 
   companion object {
-    val DefaultTint = HazeTint(Color.White.copy(alpha = 0.1f))
-    val OverrideStyle = HazeStyle(tints = listOf(HazeTint(Color.Red.copy(alpha = 0.5f))))
+    val DefaultTint = HazeColorEffect.tint(
+      Color.White.copy(alpha = 0.1f),
+      HazeColorEffect.DefaultBlendMode,
+    )
+    val OverrideStyle = HazeStyle(
+      colorEffects = listOf(
+        HazeColorEffect.tint(
+          Color.Red.copy(alpha = 0.5f),
+          HazeColorEffect.DefaultBlendMode,
+        ),
+      ),
+    )
 
-    val BrushTint = HazeTint(
+    val BrushTint = HazeColorEffect.tint(
       brush = Brush.radialGradient(
         colors = listOf(
           Color.Yellow.copy(alpha = 0.5f),
           Color.Red.copy(alpha = 0.5f),
         ),
       ),
+      blendMode = HazeColorEffect.DefaultBlendMode,
     )
 
     val VerticalMask = Brush.verticalGradient(

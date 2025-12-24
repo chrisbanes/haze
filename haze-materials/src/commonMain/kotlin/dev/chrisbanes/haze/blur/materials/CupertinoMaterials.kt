@@ -10,8 +10,8 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.HazeStyle
-import dev.chrisbanes.haze.blur.HazeTint
 
 /**
  * A class which contains functions to build [dev.chrisbanes.haze.blur.HazeStyle]s which implement 'material' styles similar
@@ -102,12 +102,15 @@ public object CupertinoMaterials {
   ): HazeStyle = HazeStyle(
     blurRadius = 24.dp,
     backgroundColor = MaterialTheme.colorScheme.surface,
-    tints = listOf(
-      HazeTint(
+    colorEffects = listOf(
+      HazeColorEffect.tint(
         color = if (isDark) darkBackgroundColor else lightBackgroundColor,
         blendMode = if (isDark) BlendMode.Overlay else BlendMode.ColorDodge,
       ),
-      HazeTint(color = if (isDark) darkForegroundColor else lightForegroundColor),
+      HazeColorEffect.tint(
+        color = if (isDark) darkForegroundColor else lightForegroundColor,
+        blendMode = HazeColorEffect.DefaultBlendMode,
+      ),
     ),
   )
 }

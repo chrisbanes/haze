@@ -204,21 +204,21 @@ public class BlurVisualEffect : VisualEffect {
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if not empty.
-   *  - [HazeStyle.tints] value set in [style], if not empty.
-   *  - [HazeStyle.tints] value set in the [LocalHazeStyle] composition local.
+   *  - [HazeStyle.colorEffects] value set in [style], if not empty.
+   *  - [HazeStyle.colorEffects] value set in the [LocalHazeStyle] composition local.
    */
-  public var tints: List<HazeTint> = emptyList()
+  public var colorEffects: List<HazeColorEffect> = emptyList()
     get() {
       return field.takeIf { it.isNotEmpty() }
-        ?: style.tints.takeIf { it.isNotEmpty() }
-        ?: compositionLocalStyle.tints.takeIf { it.isNotEmpty() }
+        ?: style.colorEffects.takeIf { it.isNotEmpty() }
+        ?: compositionLocalStyle.colorEffects.takeIf { it.isNotEmpty() }
         ?: emptyList()
     }
     set(value) {
       if (value != field) {
-        HazeLogger.d(TAG) { "tints changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "colorEffects changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += BlurDirtyFields.Tints
+        dirtyTracker += BlurDirtyFields.ColorEffects
       }
     }
 
@@ -228,25 +228,25 @@ public class BlurVisualEffect : VisualEffect {
    * The scrim used whenever [blurEnabled] is resolved to false, either because the host
    * platform does not support blurring, or it has been manually disabled.
    *
-   * When the fallback tint is used, the tints provided in [tints] are ignored.
+   * When the fallback tint is used, the tints provided in [colorEffects] are ignored.
    *
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified
-   *  - [HazeStyle.fallbackTint] value set in [style], if specified.
-   *  - [HazeStyle.fallbackTint] value set in the [LocalHazeStyle] composition local.
+   *  - [HazeStyle.fallbackColorEffect] value set in [style], if specified.
+   *  - [HazeStyle.fallbackColorEffect] value set in the [LocalHazeStyle] composition local.
    */
-  public var fallbackTint: HazeTint = HazeTint.Unspecified
+  public var fallbackTint: HazeColorEffect = HazeColorEffect.Unspecified
     get() {
       return field.takeIf { it.isSpecified }
-        ?: style.fallbackTint.takeIf { it.isSpecified }
-        ?: compositionLocalStyle.fallbackTint
+        ?: style.fallbackColorEffect.takeIf { it.isSpecified }
+        ?: compositionLocalStyle.fallbackColorEffect
     }
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "fallbackTint changed. Current: $field. New: $value" }
         field = value
-        dirtyTracker += BlurDirtyFields.FallbackTint
+        dirtyTracker += BlurDirtyFields.FallbackColorEffect
       }
     }
 
@@ -362,8 +362,8 @@ public class BlurVisualEffect : VisualEffect {
   }
 
   private fun onStyleChanged(old: HazeStyle?, new: HazeStyle?) {
-    if (old?.tints != new?.tints) dirtyTracker += BlurDirtyFields.Tints
-    if (old?.fallbackTint != new?.fallbackTint) dirtyTracker += BlurDirtyFields.Tints
+    if (old?.colorEffects != new?.colorEffects) dirtyTracker += BlurDirtyFields.ColorEffects
+    if (old?.fallbackColorEffect != new?.fallbackColorEffect) dirtyTracker += BlurDirtyFields.ColorEffects
     if (old?.backgroundColor != new?.backgroundColor) dirtyTracker += BlurDirtyFields.BackgroundColor
     if (old?.noiseFactor != new?.noiseFactor) dirtyTracker += BlurDirtyFields.NoiseFactor
     if (old?.blurRadius != new?.blurRadius) dirtyTracker += BlurDirtyFields.BlurRadius

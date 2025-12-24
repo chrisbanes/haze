@@ -63,7 +63,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   contentLayer: GraphicsLayer,
   context: VisualEffectContext,
 ) = with(drawScope) {
-  val tints = blurVisualEffect.tints
+  val colorEffects = blurVisualEffect.colorEffects
   val noiseFactor = blurVisualEffect.noiseFactor
   val blurRadius = blurVisualEffect.blurRadius.takeOrElse { 0.dp } *
     blurVisualEffect.calculateInputScaleFactor(context.inputScale)
@@ -82,8 +82,8 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
         context = context,
         blurRadius = blurRadius * intensity,
         noiseFactor = noiseFactor,
-        tints = tints,
-        tintAlphaModulate = intensity,
+        colorEffects = colorEffects,
+        colorEffectsAlphaModulate = intensity,
         mask = mask,
       )
       layer.alpha = blurVisualEffect.alpha

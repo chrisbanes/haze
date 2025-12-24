@@ -11,8 +11,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.HazeStyle
-import dev.chrisbanes.haze.blur.HazeTint
 
 /**
  * A class which contains functions to build [HazeStyle]s which implement 'material' styles similar
@@ -198,21 +198,21 @@ public object FluentMaterials {
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
     backgroundColor = containerColor,
-    tints = listOf(
-      HazeTint(
+    colorEffects = listOf(
+      HazeColorEffect.tint(
         color = containerColor.copy(
           alpha = if (isDark) darkTintOpacity else lightTintOpacity,
         ),
         blendMode = BlendMode.Color,
       ),
-      HazeTint(
+      HazeColorEffect.tint(
         color = containerColor.copy(
           alpha = if (isDark) darkLuminosityOpacity else lightLuminosityOpacity,
         ),
         blendMode = BlendMode.Luminosity,
       ),
     ),
-    fallbackTint = HazeTint(fallbackColor),
+    fallbackColorEffect = HazeColorEffect.tint(fallbackColor),
   )
 
   @ReadOnlyComposable

@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.HazeStyle
-import dev.chrisbanes.haze.blur.HazeTint
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -78,7 +78,7 @@ fun CreditCardSample(
 
     val cardStyle = HazeStyle(
       backgroundColor = Color.Black,
-      tints = listOf(HazeTint(Color.Yellow.copy(alpha = 0.4f))),
+      colorEffects = listOf(HazeColorEffect.tint(Color.Yellow.copy(alpha = 0.4f))),
       blurRadius = 8.dp,
       noiseFactor = HazeBlurDefaults.noiseFactor,
     )

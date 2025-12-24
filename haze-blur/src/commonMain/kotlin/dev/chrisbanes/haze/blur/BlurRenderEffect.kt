@@ -8,6 +8,7 @@ package dev.chrisbanes.haze.blur
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
@@ -32,6 +33,7 @@ import dev.chrisbanes.haze.createShaderImageFilter
 import dev.chrisbanes.haze.isRuntimeShaderRenderEffectSupported
 import dev.chrisbanes.haze.then
 import dev.chrisbanes.haze.toHazeBlendMode
+import dev.chrisbanes.haze.toPlatformColorFilter
 
 private val VERTICAL_BLUR_SHADER by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(HazeBlurShaders.VERTICAL_BLUR_SKSL)
@@ -68,7 +70,7 @@ internal fun createRenderEffect(
 
   return blur
     .blendForeground(foreground = noise, blendMode = HazeBlendMode.Softlight)
-    .withTints(params.tints, size, offset, params.tintAlphaModulate, progressiveShader)
+    .withTints(params.colorEffects, size, offset, params.colorEffectsAlphaModulate, progressiveShader)
     .withMask(params.mask, size, offset)
     .asComposeRenderEffect()
 }
@@ -122,7 +124,7 @@ private fun PlatformRenderEffect.withColorEffect(
 
 /**
  * Applies a brush-based tint with optional mask.
- * 
+ *
  * Order: brush → alphaModulate → mask → blend
  */
 private fun PlatformRenderEffect.withBrushTint(
@@ -157,7 +159,7 @@ private fun PlatformRenderEffect.withBrushTint(
 
 /**
  * Applies a color-based tint with optional mask.
- * 
+ *
  * Order: color → alphaModulate → mask → blend
  */
 private fun PlatformRenderEffect.withColorTint(
@@ -170,11 +172,11 @@ private fun PlatformRenderEffect.withColorTint(
     alphaModulate < 1f -> effect.color.copy(alpha = effect.color.alpha * alphaModulate)
     else -> effect.color
   }
-  
+
   if (tintColor.alpha < 0.005f) return this
 
   val colorEffect = createBlendColorFilter(tintColor.toArgb(), effect.blendMode.toHazeBlendMode())
-  
+
   val effectWithMask = if (mask != null) {
     createColorFilterImageFilter(
       colorFilter = createBlendColorFilter(tintColor.toArgb(), HazeBlendMode.SrcIn),
@@ -200,7 +202,7 @@ private fun PlatformRenderEffect.withColorTint(
 
 /**
  * Applies a color filter effect with optional mask.
- * 
+ *
  * Order: colorFilter → mask → blend
  */
 private fun PlatformRenderEffect.withColorFilter(

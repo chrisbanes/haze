@@ -9,8 +9,8 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.HazeStyle
-import dev.chrisbanes.haze.blur.HazeTint
 import dev.chrisbanes.haze.blur.materials.HazeMaterials.regular
 import dev.chrisbanes.haze.blur.materials.HazeMaterials.thick
 import dev.chrisbanes.haze.blur.materials.HazeMaterials.thin
@@ -112,8 +112,9 @@ public object HazeMaterials {
   ): HazeStyle = HazeStyle(
     blurRadius = 24.dp,
     backgroundColor = containerColor,
-    tint = HazeTint(
+    colorEffect = HazeColorEffect.tint(
       containerColor.copy(alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha),
+      HazeColorEffect.DefaultBlendMode,
     ),
   )
 }

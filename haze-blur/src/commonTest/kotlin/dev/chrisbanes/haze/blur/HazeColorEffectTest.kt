@@ -138,16 +138,19 @@ class HazeColorEffectTest {
   @Test
   @Suppress("DEPRECATION")
   fun backwardCompatibility_HazeTint_typeAlias() {
-    val effect: HazeTint = HazeTint(Color.Red)
+    val effect: HazeColorEffect = HazeColorEffect.tint(Color.Red, HazeColorEffect.DefaultBlendMode)
     assertTrue(effect is HazeColorEffect)
   }
 
   @Test
   @Suppress("DEPRECATION")
   fun backwardCompatibility_HazeTint_factoryFunction() {
-    val colorEffect = HazeTint(Color.Red)
-    val brushEffect = HazeTint(Brush.verticalGradient(listOf(Color.Red, Color.Blue)))
-    
+    val colorEffect = HazeColorEffect.tint(Color.Red, HazeColorEffect.DefaultBlendMode)
+    val brushEffect = HazeColorEffect.tint(
+      Brush.verticalGradient(listOf(Color.Red, Color.Blue)),
+      HazeColorEffect.DefaultBlendMode,
+    )
+
     assertTrue(colorEffect.isSpecified)
     assertTrue(brushEffect.isSpecified)
   }
