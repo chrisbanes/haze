@@ -63,30 +63,19 @@ internal fun DrawScope.drawScrim(
     }
     is HazeTint.Color -> {
       if (mask != null) {
-        // When we have a mask, we need to combine the tint color filter with the mask
-        val combinedColorFilter = if (tint.colorFilter != null) {
-          // If tint has a colorFilter, we need to apply both
-          // The mask acts as the alpha channel, and we apply tint color + colorFilter
-          ColorFilter.tint(tint.color)
-        } else {
-          ColorFilter.tint(tint.color)
-        }
-        drawRect(
-          brush = mask,
-          topLeft = offset,
-          size = size,
-          colorFilter = combinedColorFilter,
-        )
-        // Apply additional colorFilter if present
-        if (tint.colorFilter != null) {
-          context.withGraphicsLayer { layer ->
-            layer.compositingStrategy = CompositingStrategy.Offscreen
-            layer.record(size = size.toIntSize()) {
-              drawRect(color = Color.White, colorFilter = tint.colorFilter)
-            }
-            translate(offset) {
-              drawLayer(layer, blendMode = tint.blendMode)
-            }
+        // When we have a mask, combine the tint color with the mask
+        context.withGraphicsLayer { layer ->
+          layer.compositingStrategy = CompositingStrategy.Offscreen
+          layer.record(size = size.toIntSize()) {
+            drawRect(
+              color = tint.color,
+              blendMode = tint.blendMode,
+              colorFilter = tint.colorFilter,
+            )
+            drawRect(brush = mask, blendMode = BlendMode.DstIn)
+          }
+          translate(offset) {
+            drawLayer(layer)
           }
         }
       } else {
