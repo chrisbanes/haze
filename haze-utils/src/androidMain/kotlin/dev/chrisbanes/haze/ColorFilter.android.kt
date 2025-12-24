@@ -8,26 +8,13 @@ package dev.chrisbanes.haze
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asAndroidColorFilter
 
 /**
  * Converts a Compose [ColorFilter] to an Android platform [PlatformColorFilter].
- * 
- * Uses reflection to access the internal nativeColorFilter property since
- * Compose doesn't provide a public API for this conversion.
  */
 @RequiresApi(Build.VERSION_CODES.Q)
 @InternalHazeApi
 public actual fun ColorFilter.toPlatformColorFilter(): PlatformColorFilter {
-  return try {
-    // Try to access nativeColorFilter via reflection
-    val nativeField = ColorFilter::class.java.getDeclaredField("nativeColorFilter")
-    nativeField.isAccessible = true
-    nativeField.get(this) as PlatformColorFilter
-  } catch (e: NoSuchFieldException) {
-    throw IllegalStateException("Unable to convert ColorFilter: nativeColorFilter field not found", e)
-  } catch (e: IllegalAccessException) {
-    throw IllegalStateException("Unable to convert ColorFilter: cannot access nativeColorFilter", e)
-  } catch (e: ClassCastException) {
-    throw IllegalStateException("Unable to convert ColorFilter: unexpected type", e)
-  }
+  return asAndroidColorFilter()
 }

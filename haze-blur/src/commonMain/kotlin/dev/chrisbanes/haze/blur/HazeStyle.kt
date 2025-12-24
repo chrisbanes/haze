@@ -142,6 +142,13 @@ public sealed interface HazeTint {
  * @param blendMode The blend mode to use. Defaults to [HazeTint.DefaultBlendMode].
  * @param colorFilter Optional color filter to apply.
  */
+@Deprecated(
+  message = "HazeTint has been renamed to HazeColorEffect. Use HazeColorEffect(color, blendMode, colorFilter) instead.",
+  replaceWith = ReplaceWith(
+    expression = "HazeColorEffect(color, blendMode, colorFilter)",
+    imports = ["dev.chrisbanes.haze.blur.HazeColorEffect"],
+  ),
+)
 public fun HazeTint(
   color: androidx.compose.ui.graphics.Color,
   blendMode: BlendMode = HazeTint.DefaultBlendMode,
@@ -155,6 +162,13 @@ public fun HazeTint(
  * @param blendMode The blend mode to use. Defaults to [HazeTint.DefaultBlendMode].
  * @param colorFilter Optional color filter to apply.
  */
+@Deprecated(
+  message = "HazeTint has been renamed to HazeColorEffect. Use HazeColorEffect(brush, blendMode, colorFilter) instead.",
+  replaceWith = ReplaceWith(
+    expression = "HazeColorEffect(brush, blendMode, colorFilter)",
+    imports = ["dev.chrisbanes.haze.blur.HazeColorEffect"],
+  ),
+)
 public fun HazeTint(
   brush: androidx.compose.ui.graphics.Brush,
   blendMode: BlendMode = HazeTint.DefaultBlendMode,

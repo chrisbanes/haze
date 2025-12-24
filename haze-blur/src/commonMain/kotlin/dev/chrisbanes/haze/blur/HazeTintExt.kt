@@ -18,7 +18,6 @@ internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint = when (this) {
     val boosted = color.boostAlphaForBlurRadius(resolved)
     copy(color = boosted)
   }
-  else -> this
 }
 
 /**
