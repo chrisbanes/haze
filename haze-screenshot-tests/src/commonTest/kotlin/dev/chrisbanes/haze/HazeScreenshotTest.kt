@@ -480,9 +480,8 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_colorFilter_tint() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
       tints = listOf(
-        HazeTint(
-          color = Color.White.copy(alpha = 0.1f),
-          colorFilter = ColorFilter.tint(Color.Cyan, BlendMode.Modulate),
+        HazeColorEffect.colorFilter(
+          ColorFilter.tint(Color.Cyan, BlendMode.Modulate),
         ),
       )
       blurRadius = 8.dp
@@ -500,9 +499,8 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_colorFilter_colorMatrix() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
       tints = listOf(
-        HazeTint(
-          color = Color.White.copy(alpha = 0.2f),
-          colorFilter = ColorFilter.colorMatrix(
+        HazeColorEffect.colorFilter(
+          ColorFilter.colorMatrix(
             ColorMatrix().apply {
               // Increase saturation
               val saturation = 1.5f
@@ -538,9 +536,8 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun creditCard_colorFilter_lighting() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
       tints = listOf(
-        HazeTint(
-          color = Color.White.copy(alpha = 0.1f),
-          colorFilter = ColorFilter.lighting(
+        HazeColorEffect.colorFilter(
+          ColorFilter.lighting(
             multiply = Color(0xFF8080FF),
             add = Color(0x00000000),
           ),
