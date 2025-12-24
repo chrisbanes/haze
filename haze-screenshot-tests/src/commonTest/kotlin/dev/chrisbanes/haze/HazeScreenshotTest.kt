@@ -15,8 +15,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.BlurVisualEffect
@@ -463,6 +466,87 @@ class HazeScreenshotTest : ScreenshotTest() {
       tints = listOf(BrushTint)
       blurRadius = 8.dp
       progressive = HazeProgressive.verticalGradient()
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(visualEffect = blurVisualEffect)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_colorFilter_tint() = runScreenshotTest {
+    val blurVisualEffect = BlurVisualEffect().apply {
+      tints = listOf(
+        HazeTint(
+          color = Color.White.copy(alpha = 0.1f),
+          colorFilter = ColorFilter.tint(Color.Cyan, BlendMode.Modulate),
+        ),
+      )
+      blurRadius = 8.dp
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(visualEffect = blurVisualEffect)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_colorFilter_colorMatrix() = runScreenshotTest {
+    val blurVisualEffect = BlurVisualEffect().apply {
+      tints = listOf(
+        HazeTint(
+          color = Color.White.copy(alpha = 0.2f),
+          colorFilter = ColorFilter.colorMatrix(
+            ColorMatrix().apply {
+              // Increase saturation
+              val saturation = 1.5f
+              val invSat = 1f - saturation
+              val lumR = 0.213f
+              val lumG = 0.715f
+              val lumB = 0.072f
+              
+              set(
+                floatArrayOf(
+                  lumR * invSat + saturation, lumG * invSat, lumB * invSat, 0f, 0f,
+                  lumR * invSat, lumG * invSat + saturation, lumB * invSat, 0f, 0f,
+                  lumR * invSat, lumG * invSat, lumB * invSat + saturation, 0f, 0f,
+                  0f, 0f, 0f, 1f, 0f,
+                ),
+              )
+            },
+          ),
+        ),
+      )
+      blurRadius = 8.dp
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(visualEffect = blurVisualEffect)
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_colorFilter_lighting() = runScreenshotTest {
+    val blurVisualEffect = BlurVisualEffect().apply {
+      tints = listOf(
+        HazeTint(
+          color = Color.White.copy(alpha = 0.1f),
+          colorFilter = ColorFilter.lighting(
+            multiply = Color(0xFF8080FF),
+            add = Color(0x00000000),
+          ),
+        ),
+      )
+      blurRadius = 8.dp
     }
 
     setContent {
