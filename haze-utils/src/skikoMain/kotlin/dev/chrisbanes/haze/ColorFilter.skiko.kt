@@ -6,6 +6,8 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.ColorFilter
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
 
 /**
  * Converts a Compose [ColorFilter] to a Skia platform [PlatformColorFilter].
@@ -14,14 +16,17 @@ import androidx.compose.ui.graphics.ColorFilter
  * Compose doesn't provide a public API for this conversion.
  */
 @InternalHazeApi
-public fun ColorFilter.toAndroidColorFilter(): PlatformColorFilter {
+public actual fun ColorFilter.toPlatformColorFilter(): PlatformColorFilter {
   return try {
-    // Try to access nativeColorFilter via reflection
-    val nativeField = ColorFilter::class.java.getDeclaredField("nativeColorFilter")
-    nativeField.isAccessible = true
-    nativeField.get(this) as PlatformColorFilter
+    // Use Kotlin reflection for better Kotlin/Native compatibility
+    val nativeProperty = ColorFilter::class.memberProperties
+      .firstOrNull { it.name == "nativeColorFilter" }
+      ?: throw NoSuchFieldException("nativeColorFilter property not found")
+    
+    nativeProperty.isAccessible = true
+    nativeProperty.get(this) as PlatformColorFilter
   } catch (e: NoSuchFieldException) {
-    throw IllegalStateException("Unable to convert ColorFilter: nativeColorFilter field not found", e)
+    throw IllegalStateException("Unable to convert ColorFilter: nativeColorFilter property not found", e)
   } catch (e: IllegalAccessException) {
     throw IllegalStateException("Unable to convert ColorFilter: cannot access nativeColorFilter", e)
   } catch (e: ClassCastException) {

@@ -31,6 +31,17 @@ import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 
 @OptIn(InternalHazeApi::class)
+/**
+ * Draws a scrim tint with optional mask and colorFilter.
+ * 
+ * Rendering order: content → tint (color/brush) → colorFilter → mask → alpha → blendMode
+ * 
+ * @param tint The tint to draw (color, brush, or unspecified)
+ * @param context The visual effect context
+ * @param offset Offset to translate the scrim by
+ * @param expandedSize Size for drawing (defaults to canvas size)
+ * @param mask Optional brush mask to apply to the tint
+ */
 internal fun DrawScope.drawScrim(
   tint: HazeTint,
   context: VisualEffectContext,

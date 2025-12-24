@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.ColorFilter
  */
 @RequiresApi(Build.VERSION_CODES.Q)
 @InternalHazeApi
-public fun ColorFilter.toAndroidColorFilter(): PlatformColorFilter {
+public actual fun ColorFilter.toPlatformColorFilter(): PlatformColorFilter {
   return try {
     // Try to access nativeColorFilter via reflection
     val nativeField = ColorFilter::class.java.getDeclaredField("nativeColorFilter")
