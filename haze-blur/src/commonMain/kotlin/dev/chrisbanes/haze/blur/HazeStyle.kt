@@ -73,107 +73,141 @@ public data class HazeStyle(
 }
 
 /**
- * Describes a 'tint' drawn by the haze effect.
+ * Describes a color effect applied by the haze effect.
  *
- * This is a sealed interface with concrete implementations for color-based and brush-based tints.
+ * This is a sealed interface with concrete implementations for color filters and tints.
+ * Follows the Compose UI model where ColorFilter is a top-level effect.
  */
 @Stable
-public sealed interface HazeTint {
+public sealed interface HazeColorEffect {
   /**
-   * The blend mode to use when drawing the tint.
+   * The blend mode to use when applying the effect.
    */
   public val blendMode: BlendMode
 
   /**
-   * Optional color filter to apply to the tint.
-   */
-  public val colorFilter: ColorFilter?
-
-  /**
-   * Whether this tint is specified (not [Unspecified]).
+   * Whether this effect is specified (not [Unspecified]).
    */
   public val isSpecified: Boolean
 
   /**
-   * A color-based tint.
+   * A color filter effect.
    */
   @Immutable
-  public data class Color(
+  public data class ColorFilter(
+    public val colorFilter: androidx.compose.ui.graphics.ColorFilter,
+    override val blendMode: BlendMode = DefaultBlendMode,
+  ) : HazeColorEffect {
+    override val isSpecified: Boolean get() = true
+  }
+
+  /**
+   * A color-based tint effect.
+   */
+  @Immutable
+  public data class TintColor(
     public val color: androidx.compose.ui.graphics.Color,
     override val blendMode: BlendMode = DefaultBlendMode,
-    override val colorFilter: ColorFilter? = null,
-  ) : HazeTint {
+  ) : HazeColorEffect {
     override val isSpecified: Boolean get() = color.isSpecified
   }
 
   /**
-   * A brush-based tint.
+   * A brush-based tint effect.
    */
   @Immutable
-  public data class Brush(
+  public data class TintBrush(
     public val brush: androidx.compose.ui.graphics.Brush,
     override val blendMode: BlendMode = DefaultBlendMode,
-    override val colorFilter: ColorFilter? = null,
-  ) : HazeTint {
+  ) : HazeColorEffect {
     override val isSpecified: Boolean get() = true
   }
 
   public companion object {
     /**
-     * An unspecified tint. When used, no tint will be applied.
+     * An unspecified color effect. When used, no effect will be applied.
      */
-    public val Unspecified: HazeTint = object : HazeTint {
+    public val Unspecified: HazeColorEffect = object : HazeColorEffect {
       override val blendMode: BlendMode = BlendMode.SrcOver
-      override val colorFilter: ColorFilter? = null
       override val isSpecified: Boolean = false
     }
 
     /**
-     * Default blend mode for tints.
+     * Default blend mode for effects.
      */
     public val DefaultBlendMode: BlendMode = BlendMode.SrcOver
+
+    /**
+     * Creates a color filter effect.
+     */
+    public fun colorFilter(
+      colorFilter: androidx.compose.ui.graphics.ColorFilter,
+      blendMode: BlendMode = DefaultBlendMode,
+    ): HazeColorEffect = ColorFilter(colorFilter, blendMode)
+
+    /**
+     * Creates a color-based tint effect.
+     */
+    public fun tint(
+      color: androidx.compose.ui.graphics.Color,
+      blendMode: BlendMode = DefaultBlendMode,
+    ): HazeColorEffect = TintColor(color, blendMode)
+
+    /**
+     * Creates a brush-based tint effect.
+     */
+    public fun tint(
+      brush: androidx.compose.ui.graphics.Brush,
+      blendMode: BlendMode = DefaultBlendMode,
+    ): HazeColorEffect = TintBrush(brush, blendMode)
   }
 }
 
+// Type alias for backward compatibility
+@Deprecated(
+  message = "HazeTint has been renamed to HazeColorEffect",
+  replaceWith = ReplaceWith(
+    expression = "HazeColorEffect",
+    imports = ["dev.chrisbanes.haze.blur.HazeColorEffect"],
+  ),
+)
+public typealias HazeTint = HazeColorEffect
+
 /**
- * Creates a color-based [HazeTint].
+ * Creates a color-based tint effect.
  *
  * @param color The color to tint with.
- * @param blendMode The blend mode to use. Defaults to [HazeTint.DefaultBlendMode].
- * @param colorFilter Optional color filter to apply.
+ * @param blendMode The blend mode to use. Defaults to [HazeColorEffect.DefaultBlendMode].
  */
 @Deprecated(
-  message = "HazeTint has been renamed to HazeColorEffect. Use HazeColorEffect(color, blendMode, colorFilter) instead.",
+  message = "Use HazeColorEffect.tint(color, blendMode) instead",
   replaceWith = ReplaceWith(
-    expression = "HazeColorEffect(color, blendMode, colorFilter)",
+    expression = "HazeColorEffect.tint(color, blendMode)",
     imports = ["dev.chrisbanes.haze.blur.HazeColorEffect"],
   ),
 )
 public fun HazeTint(
   color: androidx.compose.ui.graphics.Color,
-  blendMode: BlendMode = HazeTint.DefaultBlendMode,
-  colorFilter: ColorFilter? = null,
-): HazeTint = HazeTint.Color(color, blendMode, colorFilter)
+  blendMode: BlendMode = HazeColorEffect.DefaultBlendMode,
+): HazeColorEffect = HazeColorEffect.tint(color, blendMode)
 
 /**
- * Creates a brush-based [HazeTint].
+ * Creates a brush-based tint effect.
  *
  * @param brush The brush to tint with.
- * @param blendMode The blend mode to use. Defaults to [HazeTint.DefaultBlendMode].
- * @param colorFilter Optional color filter to apply.
+ * @param blendMode The blend mode to use. Defaults to [HazeColorEffect.DefaultBlendMode].
  */
 @Deprecated(
-  message = "HazeTint has been renamed to HazeColorEffect. Use HazeColorEffect(brush, blendMode, colorFilter) instead.",
+  message = "Use HazeColorEffect.tint(brush, blendMode) instead",
   replaceWith = ReplaceWith(
-    expression = "HazeColorEffect(brush, blendMode, colorFilter)",
+    expression = "HazeColorEffect.tint(brush, blendMode)",
     imports = ["dev.chrisbanes.haze.blur.HazeColorEffect"],
   ),
 )
 public fun HazeTint(
   brush: androidx.compose.ui.graphics.Brush,
-  blendMode: BlendMode = HazeTint.DefaultBlendMode,
-  colorFilter: ColorFilter? = null,
-): HazeTint = HazeTint.Brush(brush, blendMode, colorFilter)
+  blendMode: BlendMode = HazeColorEffect.DefaultBlendMode,
+): HazeColorEffect = HazeColorEffect.tint(brush, blendMode)
 
 internal inline fun Float.takeOrElse(block: () -> Float): Float =
   if (this in 0f..1f) this else block()

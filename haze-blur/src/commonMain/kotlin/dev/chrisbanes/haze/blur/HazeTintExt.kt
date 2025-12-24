@@ -7,16 +7,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
 
-internal fun HazeTint.boostForFallback(blurRadius: Dp): HazeTint = when (this) {
-  is HazeTint.Brush -> {
+internal fun HazeColorEffect.boostForFallback(blurRadius: Dp): HazeColorEffect = when (this) {
+  is HazeColorEffect.TintBrush -> {
     // We can't boost brush tints
     this
   }
-  is HazeTint.Color -> {
+  is HazeColorEffect.TintColor -> {
     // For color, we can boost the alpha
     val resolved = blurRadius.takeOrElse { HazeBlurDefaults.blurRadius }
     val boosted = color.boostAlphaForBlurRadius(resolved)
     copy(color = boosted)
+  }
+  is HazeColorEffect.ColorFilter -> {
+    // Can't boost color filters
+    this
   }
 }
 

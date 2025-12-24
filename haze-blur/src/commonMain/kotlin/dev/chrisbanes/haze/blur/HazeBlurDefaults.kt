@@ -40,7 +40,7 @@ public object HazeBlurDefaults {
   /**
    * Default builder for the 'tint' color. Transforms the provided [color].
    */
-  public fun tint(color: Color): HazeTint = HazeTint(
+  public fun tint(color: Color): HazeColorEffect = HazeColorEffect.tint(
     color = when {
       color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
       else -> color
@@ -61,7 +61,7 @@ public object HazeBlurDefaults {
    */
   public fun style(
     backgroundColor: Color,
-    tint: HazeTint = tint(backgroundColor),
+    tint: HazeColorEffect = tint(backgroundColor),
     blurRadius: Dp = this.blurRadius,
     noiseFactor: Float = this.noiseFactor,
   ): HazeStyle = HazeStyle(backgroundColor, tint, blurRadius, noiseFactor)

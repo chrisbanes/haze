@@ -32,30 +32,30 @@ import kotlin.math.max
 
 @OptIn(InternalHazeApi::class)
 /**
- * Draws a scrim tint with optional mask and colorFilter.
+ * Draws a color effect with optional mask.
  * 
- * Rendering order: content → tint (color/brush) → colorFilter → mask → alpha → blendMode
+ * Rendering order: content → color effect → mask → alpha → blendMode
  * 
- * @param tint The tint to draw (color, brush, or unspecified)
+ * @param effect The color effect to draw (tint color, tint brush, color filter, or unspecified)
  * @param context The visual effect context
- * @param offset Offset to translate the scrim by
+ * @param offset Offset to translate the effect by
  * @param expandedSize Size for drawing (defaults to canvas size)
- * @param mask Optional brush mask to apply to the tint
+ * @param mask Optional brush mask to apply to the effect
  */
 internal fun DrawScope.drawScrim(
-  tint: HazeTint,
+  effect: HazeColorEffect,
   context: VisualEffectContext,
   offset: Offset = Offset.Zero,
   expandedSize: Size = this.size,
   mask: Brush? = null,
 ) {
-  when (tint) {
-    is HazeTint.Brush -> {
+  when (effect) {
+    is HazeColorEffect.TintBrush -> {
       if (mask != null) {
         context.withGraphicsLayer { layer ->
           layer.compositingStrategy = CompositingStrategy.Offscreen
           layer.record(size = size.toIntSize()) {
-            drawRect(brush = tint.brush, blendMode = tint.blendMode, colorFilter = tint.colorFilter)
+            drawRect(brush = effect.brush, blendMode = effect.blendMode)
             drawRect(brush = mask, blendMode = BlendMode.DstIn)
           }
           translate(offset) {
@@ -64,24 +64,22 @@ internal fun DrawScope.drawScrim(
         }
       } else {
         drawRect(
-          brush = tint.brush,
+          brush = effect.brush,
           topLeft = offset,
           size = size,
-          blendMode = tint.blendMode,
-          colorFilter = tint.colorFilter,
+          blendMode = effect.blendMode,
         )
       }
     }
-    is HazeTint.Color -> {
+    is HazeColorEffect.TintColor -> {
       if (mask != null) {
         // When we have a mask, combine the tint color with the mask
         context.withGraphicsLayer { layer ->
           layer.compositingStrategy = CompositingStrategy.Offscreen
           layer.record(size = size.toIntSize()) {
             drawRect(
-              color = tint.color,
-              blendMode = tint.blendMode,
-              colorFilter = tint.colorFilter,
+              color = effect.color,
+              blendMode = effect.blendMode,
             )
             drawRect(brush = mask, blendMode = BlendMode.DstIn)
           }
@@ -91,10 +89,33 @@ internal fun DrawScope.drawScrim(
         }
       } else {
         drawRect(
-          color = tint.color,
+          color = effect.color,
           size = expandedSize,
-          blendMode = tint.blendMode,
-          colorFilter = tint.colorFilter,
+          blendMode = effect.blendMode,
+        )
+      }
+    }
+    is HazeColorEffect.ColorFilter -> {
+      if (mask != null) {
+        context.withGraphicsLayer { layer ->
+          layer.compositingStrategy = CompositingStrategy.Offscreen
+          layer.record(size = size.toIntSize()) {
+            drawRect(
+              color = Color.White,
+              colorFilter = effect.colorFilter,
+            )
+            drawRect(brush = mask, blendMode = BlendMode.DstIn)
+          }
+          translate(offset) {
+            drawLayer(layer, blendMode = effect.blendMode)
+          }
+        }
+      } else {
+        drawRect(
+          color = Color.White,
+          size = expandedSize,
+          colorFilter = effect.colorFilter,
+          blendMode = effect.blendMode,
         )
       }
     }
