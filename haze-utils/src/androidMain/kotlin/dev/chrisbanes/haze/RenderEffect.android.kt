@@ -22,10 +22,7 @@ public actual typealias PlatformColorFilter = ColorFilter
 
 @RequiresApi(31)
 @InternalHazeApi
-public actual fun createShaderImageFilter(
-  shader: androidx.compose.ui.graphics.Shader,
-  crop: Rect?,
-): PlatformRenderEffect {
+public actual fun createShaderImageFilter(shader: Shader, crop: Rect?): PlatformRenderEffect {
   // Android RenderEffect.createShaderEffect doesn't support crop
   return RenderEffect.createShaderEffect(shader)
 }
