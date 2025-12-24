@@ -11,11 +11,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.HazeStyle
 
 /**
- * A class which contains functions to build [HazeStyle]s which implement 'material' styles similar
+ * A class which contains functions to build [HazeBlurStyle]s which implement 'material' styles similar
  * to those available on Windows platforms. The values used are taken from the
  * [WinUI 3 Figma](https://www.figma.com/community/file/1159947337437047524) file published by
  * Microsoft.
@@ -27,14 +27,14 @@ import dev.chrisbanes.haze.blur.HazeStyle
 public object FluentMaterials {
 
   /**
-   * A [HazeStyle] which implements a mostly translucent material.
+   * A [HazeBlurStyle] which implements a mostly translucent material.
    */
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun thinAcrylic(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
-  ): HazeStyle = hazeAcrylicMaterial(
+  ): HazeBlurStyle = hazeAcrylicMaterial(
     containerColor = if (isDark) {
       Color(0x545454)
     } else {
@@ -53,7 +53,7 @@ public object FluentMaterials {
   )
 
   /**
-   * A [HazeStyle] which implements a translucent material used for the most translucent layer with accent color.
+   * A [HazeBlurStyle] which implements a translucent material used for the most translucent layer with accent color.
    */
   @ExperimentalHazeMaterialsApi
   @Composable
@@ -61,7 +61,7 @@ public object FluentMaterials {
   public fun accentAcrylicBase(
     accentColor: Color = MaterialTheme.colorScheme.primaryContainer,
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
-  ): HazeStyle = hazeAcrylicMaterial(
+  ): HazeBlurStyle = hazeAcrylicMaterial(
     containerColor = accentColor,
     isDark = isDark,
     lightTintOpacity = 0.8f,
@@ -71,7 +71,7 @@ public object FluentMaterials {
   )
 
   /**
-   * A [HazeStyle] which implements a translucent material used for the popup container background with accent color.
+   * A [HazeBlurStyle] which implements a translucent material used for the popup container background with accent color.
    */
   @ExperimentalHazeMaterialsApi
   @Composable
@@ -79,7 +79,7 @@ public object FluentMaterials {
   public fun accentAcrylicDefault(
     accentColor: Color = MaterialTheme.colorScheme.primaryContainer,
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
-  ): HazeStyle = hazeAcrylicMaterial(
+  ): HazeBlurStyle = hazeAcrylicMaterial(
     containerColor = accentColor,
     isDark = isDark,
     lightTintOpacity = 0.8f,
@@ -89,14 +89,14 @@ public object FluentMaterials {
   )
 
   /**
-   * A [HazeStyle] which implements a translucent material used for the most translucent layer.
+   * A [HazeBlurStyle] which implements a translucent material used for the most translucent layer.
    */
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun acrylicBase(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
-  ): HazeStyle = hazeAcrylicMaterial(
+  ): HazeBlurStyle = hazeAcrylicMaterial(
     containerColor = if (isDark) {
       Color(0x202020)
     } else {
@@ -115,14 +115,14 @@ public object FluentMaterials {
   )
 
   /**
-   * A [HazeStyle] which implements a translucent material used for the popup container background.
+   * A [HazeBlurStyle] which implements a translucent material used for the popup container background.
    */
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun acrylicDefault(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
-  ): HazeStyle = hazeAcrylicMaterial(
+  ): HazeBlurStyle = hazeAcrylicMaterial(
     containerColor = if (isDark) {
       Color(0x2C2C2C)
     } else {
@@ -141,14 +141,14 @@ public object FluentMaterials {
   )
 
   /**
-   * A [HazeStyle] which implements a translucent application background material.
+   * A [HazeBlurStyle] which implements a translucent application background material.
    */
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun mica(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
-  ): HazeStyle = hazeMicaMaterial(
+  ): HazeBlurStyle = hazeMicaMaterial(
     containerColor = if (isDark) {
       Color(0x202020)
     } else {
@@ -162,14 +162,14 @@ public object FluentMaterials {
   )
 
   /**
-   * A [HazeStyle] which implements a translucent application background material used for the tab experience.
+   * A [HazeBlurStyle] which implements a translucent application background material used for the tab experience.
    */
   @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun micaAlt(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
-  ): HazeStyle = hazeMicaMaterial(
+  ): HazeBlurStyle = hazeMicaMaterial(
     containerColor = if (isDark) {
       Color(0x0A0A0A)
     } else {
@@ -194,7 +194,7 @@ public object FluentMaterials {
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
     darkLuminosityOpacity: Float,
-  ): HazeStyle = HazeStyle(
+  ): HazeBlurStyle = HazeBlurStyle(
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
     backgroundColor = containerColor,
@@ -225,7 +225,7 @@ public object FluentMaterials {
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
     darkLuminosityOpacity: Float,
-  ): HazeStyle = hazeMaterial(
+  ): HazeBlurStyle = hazeMaterial(
     containerColor = containerColor,
     fallbackColor = fallbackColor,
     isDark = isDark,
@@ -247,7 +247,7 @@ public object FluentMaterials {
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
     darkLuminosityOpacity: Float,
-  ): HazeStyle = hazeMaterial(
+  ): HazeBlurStyle = hazeMaterial(
     containerColor = containerColor,
     fallbackColor = fallbackColor,
     isDark = isDark,

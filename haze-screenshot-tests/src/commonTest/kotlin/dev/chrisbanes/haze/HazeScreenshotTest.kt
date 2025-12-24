@@ -24,10 +24,10 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.BlurVisualEffect
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.HazeProgressive
-import dev.chrisbanes.haze.blur.HazeStyle
-import dev.chrisbanes.haze.blur.LocalHazeStyle
+import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -131,7 +131,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CompositionLocalProvider(LocalHazeStyle provides OverrideStyle) {
+        CompositionLocalProvider(LocalHazeBlurStyle provides OverrideStyle) {
           CreditCardSample(visualEffect = blurVisualEffect)
         }
       }
@@ -709,7 +709,7 @@ class HazeScreenshotTest : ScreenshotTest() {
       Color.White.copy(alpha = 0.1f),
       HazeColorEffect.DefaultBlendMode,
     )
-    val OverrideStyle = HazeStyle(
+    val OverrideStyle = HazeBlurStyle(
       colorEffects = listOf(
         HazeColorEffect.tint(
           Color.Red.copy(alpha = 0.5f),

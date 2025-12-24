@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 
 /**
- * A [ProvidableCompositionLocal] which provides the default [HazeStyle] for all [dev.chrisbanes.haze.hazeEffect]
+ * A [ProvidableCompositionLocal] which provides the default [HazeBlurStyle] for all [dev.chrisbanes.haze.hazeEffect]
  * layout nodes placed within this composition local's content.
  *
  * There are precedence rules to how each styling property is applied. The order of precedence
@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.Dp
  *  - Value set in style provided to [dev.chrisbanes.haze.hazeEffect] (or [dev.chrisbanes.haze.HazeEffectScope.style]), if specified.
  *  - Value set in this composition local.
  */
-public val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> =
+public val LocalHazeBlurStyle: ProvidableCompositionLocal<HazeBlurStyle> =
   compositionLocalOf { HazeBlurDefaults.style(Color.Unspecified) }
 
 /**
@@ -45,7 +45,7 @@ public val LocalHazeStyle: ProvidableCompositionLocal<HazeStyle> =
  * When the fallback tint is used, the tints provided in [colorEffects] are ignored.
  */
 @Immutable
-public data class HazeStyle(
+public data class HazeBlurStyle(
   public val backgroundColor: Color = Color.Unspecified,
   public val colorEffects: List<HazeColorEffect> = emptyList(),
   public val blurRadius: Dp = Dp.Unspecified,
@@ -67,9 +67,27 @@ public data class HazeStyle(
   )
 
   public companion object {
-    public val Unspecified: HazeStyle = HazeStyle(colorEffects = emptyList())
+    public val Unspecified: HazeBlurStyle = HazeBlurStyle(colorEffects = emptyList())
   }
 }
+
+@Deprecated(
+  message = "HazeStyle has been renamed to HazeBlurStyle",
+  replaceWith = ReplaceWith(
+    expression = "HazeBlurStyle",
+    imports = ["dev.chrisbanes.haze.blur.HazeBlurStyle"],
+  ),
+)
+public typealias HazeStyle = HazeBlurStyle
+
+@Deprecated(
+  message = "LocalHazeStyle has been renamed to LocalHazeBlurStyle",
+  replaceWith = ReplaceWith(
+    expression = "LocalHazeBlurStyle",
+    imports = ["dev.chrisbanes.haze.blur.LocalHazeBlurStyle"],
+  ),
+)
+public val LocalHazeStyle: ProvidableCompositionLocal<HazeBlurStyle> get() = LocalHazeBlurStyle
 
 /**
  * Describes a color effect applied by the haze effect.
