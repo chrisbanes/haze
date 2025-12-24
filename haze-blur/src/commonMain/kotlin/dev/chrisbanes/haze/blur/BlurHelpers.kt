@@ -38,37 +38,68 @@ internal fun DrawScope.drawScrim(
   expandedSize: Size = this.size,
   mask: Brush? = null,
 ) {
-  val tintBrush = tint.brush
-  if (tintBrush != null) {
-    if (mask != null) {
-      context.withGraphicsLayer { layer ->
-        layer.compositingStrategy = CompositingStrategy.Offscreen
-        layer.record(size = size.toIntSize()) {
-          drawRect(brush = tintBrush, blendMode = tint.blendMode)
-          drawRect(brush = mask, blendMode = BlendMode.DstIn)
+  when (tint) {
+    is HazeTint.Brush -> {
+      if (mask != null) {
+        context.withGraphicsLayer { layer ->
+          layer.compositingStrategy = CompositingStrategy.Offscreen
+          layer.record(size = size.toIntSize()) {
+            drawRect(brush = tint.brush, blendMode = tint.blendMode, colorFilter = tint.colorFilter)
+            drawRect(brush = mask, blendMode = BlendMode.DstIn)
+          }
+          translate(offset) {
+            drawLayer(layer)
+          }
         }
-        translate(offset) {
-          drawLayer(layer)
-        }
+      } else {
+        drawRect(
+          brush = tint.brush,
+          topLeft = offset,
+          size = size,
+          blendMode = tint.blendMode,
+          colorFilter = tint.colorFilter,
+        )
       }
-    } else {
-      drawRect(
-        brush = tintBrush,
-        topLeft = offset,
-        size = size,
-        blendMode = tint.blendMode,
-      )
     }
-  } else {
-    if (mask != null) {
-      drawRect(
-        brush = mask,
-        topLeft = offset,
-        size = size,
-        colorFilter = ColorFilter.tint(tint.color),
-      )
-    } else {
-      drawRect(color = tint.color, size = expandedSize, blendMode = tint.blendMode)
+    is HazeTint.Color -> {
+      if (mask != null) {
+        // When we have a mask, we need to combine the tint color filter with the mask
+        val combinedColorFilter = if (tint.colorFilter != null) {
+          // If tint has a colorFilter, we need to apply both
+          // The mask acts as the alpha channel, and we apply tint color + colorFilter
+          ColorFilter.tint(tint.color)
+        } else {
+          ColorFilter.tint(tint.color)
+        }
+        drawRect(
+          brush = mask,
+          topLeft = offset,
+          size = size,
+          colorFilter = combinedColorFilter,
+        )
+        // Apply additional colorFilter if present
+        if (tint.colorFilter != null) {
+          context.withGraphicsLayer { layer ->
+            layer.compositingStrategy = CompositingStrategy.Offscreen
+            layer.record(size = size.toIntSize()) {
+              drawRect(color = Color.White, colorFilter = tint.colorFilter)
+            }
+            translate(offset) {
+              drawLayer(layer, blendMode = tint.blendMode)
+            }
+          }
+        }
+      } else {
+        drawRect(
+          color = tint.color,
+          size = expandedSize,
+          blendMode = tint.blendMode,
+          colorFilter = tint.colorFilter,
+        )
+      }
+    }
+    else -> {
+      // Unspecified - do nothing
     }
   }
 }

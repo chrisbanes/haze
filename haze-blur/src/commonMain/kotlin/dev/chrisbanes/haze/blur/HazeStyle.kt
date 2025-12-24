@@ -74,28 +74,91 @@ public data class HazeStyle(
 /**
  * Describes a 'tint' drawn by the haze effect.
  *
- * Ideally this class would be a sealed class, but unfortunately that would require breaking the
- * API so we need to use this merged class for v1.x.
+ * This is a sealed interface with concrete implementations for color-based and brush-based tints.
  */
-@ExposedCopyVisibility
 @Stable
-public data class HazeTint internal constructor(
-  public val color: Color,
-  public val blendMode: BlendMode,
-  public val brush: Brush?,
-) {
-  public constructor(color: Color, blendMode: BlendMode = DefaultBlendMode) : this(color = color, brush = null, blendMode = blendMode)
+public sealed interface HazeTint {
+  /**
+   * The blend mode to use when drawing the tint.
+   */
+  public val blendMode: BlendMode
 
-  public constructor(brush: Brush, blendMode: BlendMode = DefaultBlendMode) : this(color = Color.Unspecified, brush = brush, blendMode = blendMode)
+  /**
+   * Optional color filter to apply to the tint.
+   */
+  public val colorFilter: androidx.compose.ui.graphics.ColorFilter?
 
-  public companion object {
-    public val Unspecified: HazeTint = HazeTint(Color.Unspecified, BlendMode.SrcOver, null)
+  /**
+   * Whether this tint is specified (not [Unspecified]).
+   */
+  public val isSpecified: Boolean
 
-    public val DefaultBlendMode: BlendMode = BlendMode.SrcOver
+  /**
+   * A color-based tint.
+   */
+  @Immutable
+  public data class Color(
+    public val color: androidx.compose.ui.graphics.Color,
+    override val blendMode: BlendMode = DefaultBlendMode,
+    override val colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+  ) : HazeTint {
+    override val isSpecified: Boolean get() = color.isSpecified
   }
 
-  public val isSpecified: Boolean get() = color.isSpecified || brush != null
+  /**
+   * A brush-based tint.
+   */
+  @Immutable
+  public data class Brush(
+    public val brush: androidx.compose.ui.graphics.Brush,
+    override val blendMode: BlendMode = DefaultBlendMode,
+    override val colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+  ) : HazeTint {
+    override val isSpecified: Boolean get() = true
+  }
+
+  public companion object {
+    /**
+     * An unspecified tint. When used, no tint will be applied.
+     */
+    public val Unspecified: HazeTint = object : HazeTint {
+      override val blendMode: BlendMode = BlendMode.SrcOver
+      override val colorFilter: androidx.compose.ui.graphics.ColorFilter? = null
+      override val isSpecified: Boolean = false
+    }
+
+    /**
+     * Default blend mode for tints.
+     */
+    public val DefaultBlendMode: BlendMode = BlendMode.SrcOver
+  }
 }
+
+/**
+ * Creates a color-based [HazeTint].
+ *
+ * @param color The color to tint with.
+ * @param blendMode The blend mode to use. Defaults to [HazeTint.DefaultBlendMode].
+ * @param colorFilter Optional color filter to apply.
+ */
+public fun HazeTint(
+  color: androidx.compose.ui.graphics.Color,
+  blendMode: BlendMode = HazeTint.DefaultBlendMode,
+  colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+): HazeTint = HazeTint.Color(color, blendMode, colorFilter)
+
+/**
+ * Creates a brush-based [HazeTint].
+ *
+ * @param brush The brush to tint with.
+ * @param blendMode The blend mode to use. Defaults to [HazeTint.DefaultBlendMode].
+ * @param colorFilter Optional color filter to apply.
+ */
+public fun HazeTint(
+  brush: androidx.compose.ui.graphics.Brush,
+  blendMode: BlendMode = HazeTint.DefaultBlendMode,
+  colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+): HazeTint = HazeTint.Brush(brush, blendMode, colorFilter)
 
 internal inline fun Float.takeOrElse(block: () -> Float): Float =
   if (this in 0f..1f) this else block()

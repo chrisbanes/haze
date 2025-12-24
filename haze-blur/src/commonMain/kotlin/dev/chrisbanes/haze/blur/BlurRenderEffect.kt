@@ -112,63 +112,106 @@ private fun PlatformRenderEffect.withTint(
 ): PlatformRenderEffect {
   if (!tint.isSpecified) return this
 
-  val tintBrush = tint.brush?.toShader(size)
-  if (tintBrush != null) {
-    val brushEffect = if (alphaModulate >= 1f) {
-      createShaderImageFilter(tintBrush)
-    } else {
-      // If we need to modulate the alpha, we'll need to wrap it in a ColorFilter
-      createColorFilterImageFilter(
-        colorFilter = createBlendColorFilter(
-          color = Color.Black.copy(alpha = alphaModulate).toArgb(),
-          blendMode = HazeBlendMode.SrcIn,
-        ),
-        input = createShaderImageFilter(tintBrush),
-      )
-    }
+  return when (tint) {
+    is HazeTint.Brush -> {
+      val tintBrush = tint.brush.toShader(size)
+      if (tintBrush != null) {
+        val brushEffect = if (alphaModulate >= 1f) {
+          createShaderImageFilter(tintBrush)
+        } else {
+          // If we need to modulate the alpha, we'll need to wrap it in a ColorFilter
+          createColorFilterImageFilter(
+            colorFilter = createBlendColorFilter(
+              color = Color.Black.copy(alpha = alphaModulate).toArgb(),
+              blendMode = HazeBlendMode.SrcIn,
+            ),
+            input = createShaderImageFilter(tintBrush),
+          )
+        }
 
-    return if (mask != null) {
-      blendForeground(
-        foreground = createBlendImageFilter(
-          blendMode = HazeBlendMode.SrcIn,
-          background = createShaderImageFilter(mask),
-          foreground = brushEffect,
-        ),
-        blendMode = tint.blendMode.toHazeBlendMode(),
-        offset = offset,
-      )
-    } else {
-      blendForeground(
-        foreground = brushEffect,
-        blendMode = tint.blendMode.toHazeBlendMode(),
-        offset = offset,
-      )
-    }
-  }
+        val effectWithMask = if (mask != null) {
+          createBlendImageFilter(
+            blendMode = HazeBlendMode.SrcIn,
+            background = createShaderImageFilter(mask),
+            foreground = brushEffect,
+          )
+        } else {
+          brushEffect
+        }
 
-  val tintColor = when {
-    alphaModulate < 1f -> tint.color.copy(alpha = tint.color.alpha * alphaModulate)
-    else -> tint.color
-  }
-  if (tintColor.alpha >= 0.005f) {
-    return if (mask != null) {
-      blendForeground(
-        foreground = createColorFilterImageFilter(
-          colorFilter = createBlendColorFilter(tintColor.toArgb(), HazeBlendMode.SrcIn),
-          input = createShaderImageFilter(mask),
-        ),
-        blendMode = tint.blendMode.toHazeBlendMode(),
-        offset = offset,
-      )
-    } else {
-      createColorFilterImageFilter(
-        colorFilter = createBlendColorFilter(tintColor.toArgb(), tint.blendMode.toHazeBlendMode()),
-        input = this,
-      )
-    }
-  }
+        // Apply the tint's colorFilter if present
+        val effectWithColorFilter = if (tint.colorFilter != null) {
+          createColorFilterImageFilter(
+            colorFilter = tint.colorFilter.toAndroidColorFilter(),
+            input = effectWithMask,
+          )
+        } else {
+          effectWithMask
+        }
 
-  return this
+        blendForeground(
+          foreground = effectWithColorFilter,
+          blendMode = tint.blendMode.toHazeBlendMode(),
+          offset = offset,
+        )
+      } else {
+        this
+      }
+    }
+    is HazeTint.Color -> {
+      val tintColor = when {
+        alphaModulate < 1f -> tint.color.copy(alpha = tint.color.alpha * alphaModulate)
+        else -> tint.color
+      }
+      if (tintColor.alpha >= 0.005f) {
+        val colorEffect = createBlendColorFilter(tintColor.toArgb(), tint.blendMode.toHazeBlendMode())
+        
+        val effectWithMask = if (mask != null) {
+          createColorFilterImageFilter(
+            colorFilter = createBlendColorFilter(tintColor.toArgb(), HazeBlendMode.SrcIn),
+            input = createShaderImageFilter(mask),
+          )
+        } else {
+          createColorFilterImageFilter(
+            colorFilter = colorEffect,
+            input = this,
+          )
+        }
+
+        // Apply the tint's colorFilter if present
+        if (tint.colorFilter != null) {
+          if (mask != null) {
+            blendForeground(
+              foreground = createColorFilterImageFilter(
+                colorFilter = tint.colorFilter.toAndroidColorFilter(),
+                input = effectWithMask,
+              ),
+              blendMode = tint.blendMode.toHazeBlendMode(),
+              offset = offset,
+            )
+          } else {
+            createColorFilterImageFilter(
+              colorFilter = tint.colorFilter.toAndroidColorFilter(),
+              input = effectWithMask,
+            )
+          }
+        } else {
+          if (mask != null) {
+            blendForeground(
+              foreground = effectWithMask,
+              blendMode = tint.blendMode.toHazeBlendMode(),
+              offset = offset,
+            )
+          } else {
+            effectWithMask
+          }
+        }
+      } else {
+        this
+      }
+    }
+    else -> this
+  }
 }
 
 private fun PlatformRenderEffect.withMask(
