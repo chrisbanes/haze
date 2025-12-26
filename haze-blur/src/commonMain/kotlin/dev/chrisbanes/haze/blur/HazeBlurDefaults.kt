@@ -3,14 +3,12 @@
 
 package dev.chrisbanes.haze.blur
 
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.HazeBlurDefaults.tint
-import dev.chrisbanes.haze.hazeSource
 
 /**
  * Default values for the [BlurVisualEffect].
@@ -40,7 +38,7 @@ public object HazeBlurDefaults {
   /**
    * Default builder for the 'tint' color. Transforms the provided [color].
    */
-  public fun tint(color: Color): HazeTint = HazeTint(
+  public fun tint(color: Color): HazeColorEffect = HazeColorEffect.tint(
     color = when {
       color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
       else -> color
@@ -48,7 +46,7 @@ public object HazeBlurDefaults {
   )
 
   /**
-   * Default [dev.chrisbanes.haze.blur.HazeStyle] for usage with [Modifier.hazeSource].
+   * Default [dev.chrisbanes.haze.blur.HazeBlurStyle] for usage with [BlurVisualEffect].
    *
    * @param backgroundColor Color to draw behind the blurred content. Ideally should be opaque
    * so that the original content is not visible behind. Typically this would be
@@ -61,10 +59,10 @@ public object HazeBlurDefaults {
    */
   public fun style(
     backgroundColor: Color,
-    tint: HazeTint = tint(backgroundColor),
+    tint: HazeColorEffect = tint(backgroundColor),
     blurRadius: Dp = this.blurRadius,
     noiseFactor: Float = this.noiseFactor,
-  ): HazeStyle = HazeStyle(backgroundColor, tint, blurRadius, noiseFactor)
+  ): HazeBlurStyle = HazeBlurStyle(backgroundColor, tint, blurRadius, noiseFactor)
 
   /**
    * Default values for [BlurVisualEffect.blurEnabled]. This function only returns `true` on

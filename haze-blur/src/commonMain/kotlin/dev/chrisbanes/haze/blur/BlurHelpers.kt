@@ -7,13 +7,14 @@ package dev.chrisbanes.haze.blur
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -31,44 +32,89 @@ import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 
 @OptIn(InternalHazeApi::class)
-internal fun DrawScope.drawScrim(
-  tint: HazeTint,
-  context: VisualEffectContext,
-  offset: Offset = Offset.Zero,
-  expandedSize: Size = this.size,
-  mask: Brush? = null,
-) {
-  val tintBrush = tint.brush
-  if (tintBrush != null) {
-    if (mask != null) {
-      context.withGraphicsLayer { layer ->
-        layer.compositingStrategy = CompositingStrategy.Offscreen
-        layer.record(size = size.toIntSize()) {
-          drawRect(brush = tintBrush, blendMode = tint.blendMode)
-          drawRect(brush = mask, blendMode = BlendMode.DstIn)
+/**
+ * Draws a color effect with optional mask.
+ *
+ * Rendering order: content → color effect → mask → alpha → blendMode
+ *
+ * @param colorEffect The color effect to draw (tint color, tint brush, color filter, or unspecified)
+ * @param context The visual effect context
+ * @param offset Offset to translate the effect by
+ * @param expandedSize Size for drawing (defaults to canvas size)
+ * @param mask Optional brush mask to apply to the effect
+ */
+internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: VisualEffectContext, offset: Offset = Offset.Zero, expandedSize: Size = this.size, mask: Brush? = null) {
+  when (colorEffect) {
+    is HazeColorEffect.TintBrush -> {
+      if (mask != null) {
+        context.withGraphicsLayer { layer ->
+          layer.compositingStrategy = CompositingStrategy.Offscreen
+          layer.record(size = size.toIntSize()) {
+            drawRect(brush = colorEffect.brush, blendMode = colorEffect.blendMode)
+            drawRect(brush = mask, blendMode = BlendMode.DstIn)
+          }
+          translate(offset) {
+            drawLayer(layer)
+          }
         }
-        translate(offset) {
-          drawLayer(layer)
-        }
+      } else {
+        drawRect(
+          brush = colorEffect.brush,
+          topLeft = offset,
+          size = size,
+          blendMode = colorEffect.blendMode,
+        )
       }
-    } else {
-      drawRect(
-        brush = tintBrush,
-        topLeft = offset,
-        size = size,
-        blendMode = tint.blendMode,
-      )
     }
-  } else {
-    if (mask != null) {
-      drawRect(
-        brush = mask,
-        topLeft = offset,
-        size = size,
-        colorFilter = ColorFilter.tint(tint.color),
-      )
-    } else {
-      drawRect(color = tint.color, size = expandedSize, blendMode = tint.blendMode)
+    is HazeColorEffect.TintColor -> {
+      if (mask != null) {
+        // When we have a mask, combine the tint color with the mask
+        context.withGraphicsLayer { layer ->
+          layer.compositingStrategy = CompositingStrategy.Offscreen
+          layer.record(size = size.toIntSize()) {
+            drawRect(color = colorEffect.color, blendMode = colorEffect.blendMode)
+            drawRect(brush = mask, blendMode = BlendMode.DstIn)
+          }
+          translate(offset) {
+            drawLayer(layer)
+          }
+        }
+      } else {
+        drawRect(
+          color = colorEffect.color,
+          size = expandedSize,
+          blendMode = colorEffect.blendMode,
+        )
+      }
+    }
+    is HazeColorEffect.ColorFilter -> {
+      if (mask != null) {
+        context.withGraphicsLayer { layer ->
+          layer.compositingStrategy = CompositingStrategy.Offscreen
+          layer.record(size = size.toIntSize()) {
+            drawRect(color = Color.White, colorFilter = colorEffect.colorFilter)
+            drawRect(brush = mask, blendMode = BlendMode.DstIn)
+          }
+          translate(offset) {
+            val canvas = drawContext.canvas
+            val paint = Paint().apply { blendMode = colorEffect.blendMode }
+            val bounds = Rect(Offset.Zero, size)
+            canvas.saveLayer(bounds, paint)
+            drawLayer(layer)
+            canvas.restore()
+          }
+        }
+      } else {
+        drawRect(
+          color = Color.White,
+          size = expandedSize,
+          colorFilter = colorEffect.colorFilter,
+          blendMode = colorEffect.blendMode,
+        )
+      }
+    }
+    else -> {
+      // Unspecified - do nothing
     }
   }
 }

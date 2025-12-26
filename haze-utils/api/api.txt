@@ -22,6 +22,14 @@ package dev.chrisbanes.haze {
     method @dev.chrisbanes.haze.InternalHazeApi public static org.jetbrains.skia.BlendMode toSkiaBlendMode(dev.chrisbanes.haze.HazeBlendMode);
   }
 
+  public final class ColorFilter_androidKt {
+    method @RequiresApi(android.os.Build.VERSION_CODES.Q) @dev.chrisbanes.haze.InternalHazeApi public static org.jetbrains.skia.ColorFilter toPlatformColorFilter(androidx.compose.ui.graphics.ColorFilter);
+  }
+
+  public final class ColorFilter_skikoKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static org.jetbrains.skia.ColorFilter toPlatformColorFilter(androidx.compose.ui.graphics.ColorFilter);
+  }
+
   @dev.chrisbanes.haze.InternalHazeApi public sealed interface HazeBlendMode {
     field public static final dev.chrisbanes.haze.HazeBlendMode.Companion Companion;
   }

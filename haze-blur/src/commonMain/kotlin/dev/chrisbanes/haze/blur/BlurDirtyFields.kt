@@ -14,9 +14,9 @@ internal object BlurDirtyFields {
   const val NoiseFactor: Int = BlurRadius shl 1
   const val Mask: Int = NoiseFactor shl 1
   const val BackgroundColor: Int = Mask shl 1
-  const val Tints: Int = BackgroundColor shl 1
-  const val FallbackTint: Int = Tints shl 1
-  const val Alpha: Int = FallbackTint shl 1
+  const val ColorEffects: Int = BackgroundColor shl 1
+  const val FallbackColorEffect: Int = ColorEffects shl 1
+  const val Alpha: Int = FallbackColorEffect shl 1
   const val Progressive: Int = Alpha shl 1
   const val BlurredEdgeTreatment: Int = Progressive shl 1
 
@@ -25,8 +25,8 @@ internal object BlurDirtyFields {
       BlurRadius or
       NoiseFactor or
       Mask or
-      Tints or
-      FallbackTint or
+      ColorEffects or
+      FallbackColorEffect or
       Progressive or
       BlurredEdgeTreatment
 
@@ -45,8 +45,8 @@ internal object BlurDirtyFields {
       if (NoiseFactor in dirtyTracker) add("NoiseFactor")
       if (Mask in dirtyTracker) add("Mask")
       if (BackgroundColor in dirtyTracker) add("BackgroundColor")
-      if (Tints in dirtyTracker) add("Tints")
-      if (FallbackTint in dirtyTracker) add("FallbackTint")
+      if (ColorEffects in dirtyTracker) add("Tints")
+      if (FallbackColorEffect in dirtyTracker) add("FallbackTint")
       if (Alpha in dirtyTracker) add("Alpha")
       if (Progressive in dirtyTracker) add("Progressive")
       if (BlurredEdgeTreatment in dirtyTracker) add("BlurredEdgeTreatment")

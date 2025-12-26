@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeStyle
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.materials.CupertinoMaterials
 import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
@@ -304,7 +304,7 @@ private fun MaterialsCard(
   name: String,
   shape: Shape,
   state: HazeState,
-  style: HazeStyle,
+  style: HazeBlurStyle,
   modifier: Modifier = Modifier,
 ) {
   Card(
