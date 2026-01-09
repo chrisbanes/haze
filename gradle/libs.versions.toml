@@ -35,7 +35,7 @@ dokka = { id = "org.jetbrains.dokka", version = "2.1.0" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 metalava = { id = "me.tylerbwong.gradle.metalava", version.ref = "metalava" }
-poko = { id = "dev.drewhamilton.poko", version = "0.20.2" }
+poko = { id = "dev.drewhamilton.poko", version = "0.21.1" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.35.0" }
