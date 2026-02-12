@@ -34,7 +34,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.blur.BlurVisualEffect
 import haze_root.haze_screenshot_tests.generated.resources.Res
 import haze_root.haze_screenshot_tests.generated.resources.photo
 import kotlin.math.roundToInt
@@ -42,7 +41,7 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun CreditCardSample(
-  visualEffect: BlurVisualEffect,
+  visualEffect: VisualEffect,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
@@ -79,7 +78,7 @@ internal fun CreditCardSample(
 
 @Composable
 internal fun CreditCardContentBlurring(
-  visualEffect: BlurVisualEffect,
+  visualEffect: VisualEffect,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   drawContentBehind: Boolean = false,
 ) {
@@ -99,7 +98,7 @@ internal fun CreditCardContentBlurring(
 
 @Composable
 internal fun CreditCardPagerSample(
-  visualEffect: BlurVisualEffect,
+  visualEffect: VisualEffect,
   pagerPosition: Float,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
@@ -167,7 +166,7 @@ private fun CreditCard(
   index: Int,
   shape: RoundedCornerShape,
   enabled: Boolean,
-  visualEffect: BlurVisualEffect,
+  visualEffect: VisualEffect,
   modifier: Modifier = Modifier,
   baseWidth: Float = .7f,
 ) {
@@ -197,7 +196,7 @@ private fun CreditCard(
 
 @Composable
 fun OverlayingContent(
-  visualEffect: BlurVisualEffect,
+  visualEffect: VisualEffect,
   topOffset: DpOffset = DpOffset.Zero,
 ) {
   val hazeState = rememberHazeState()
@@ -254,7 +253,7 @@ fun OverlayingContent(
 }
 
 @Composable
-fun ContentAtEdges(visualEffect: BlurVisualEffect) {
+fun ContentAtEdges(visualEffect: VisualEffect) {
   val hazeState = rememberHazeState()
 
   Box(modifier = Modifier.fillMaxSize()) {
