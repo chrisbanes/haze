@@ -19,7 +19,7 @@ metalava = "0.4.0-alpha03"
 navigation-compose = "2.9.1"
 robolectric = "4.16"
 roborazzi = "1.58.0"
-spotless = "8.1.0"
+spotless = "8.2.1"
 leakcanary = "2.14"
 
 [plugins]
