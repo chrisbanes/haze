@@ -4,7 +4,8 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.skiaPaint
 
 internal actual fun Paint.reset() {
-  asFrameworkPaint().reset()
+  skiaPaint.reset()
 }

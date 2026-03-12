@@ -1,7 +1,12 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
+
 package dev.chrisbanes.haze
+
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.InternalComposeUiApi
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -26,6 +31,16 @@ import org.jetbrains.skia.IRect
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeShaderBuilder
 import org.jetbrains.skia.Shader
+
+// In CMP 1.11+, Shader is a wrapper type. This unwraps the underlying Skia shader.
+private val androidx.compose.ui.graphics.Shader.skiaShader: Shader
+  get() = try {
+    @Suppress("UNCHECKED_CAST")
+    javaClass.getMethod("getSkiaShader").invoke(this) as Shader
+  } catch (e: Exception) {
+    @Suppress("UNCHECKED_CAST")
+    this as Shader
+  }
 
 internal actual fun CompositionLocalConsumerModifierNode.createRenderEffect(params: RenderEffectParams): RenderEffect? {
   val blurRadius = params.blurRadius * params.scale
@@ -231,7 +246,8 @@ private fun createBlurImageFilterWithMask(
   return shader(vertical = false).chainWith(shader(vertical = true))
 }
 
-private fun Brush.toShader(size: Size): Shader? = (this as? ShaderBrush)?.createShader(size)
+@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+private fun Brush.toShader(size: Size): Shader? = (this as? ShaderBrush)?.createShader(size)?.skiaShader
 
 private fun Rect.toIRect(): IRect =
   IRect.makeLTRB(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
