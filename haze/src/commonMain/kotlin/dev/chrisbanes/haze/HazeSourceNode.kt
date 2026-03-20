@@ -158,7 +158,7 @@ public class HazeSourceNode(
       return
     }
 
-    area.position = coordinates.positionForHaze()
+    area.position = coordinates.positionForHaze(state.resolvedStrategy)
     area.size = coordinates.size.toSize()
     area.windowId = getWindowId()
 
