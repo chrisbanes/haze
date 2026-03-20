@@ -10,10 +10,7 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalView
 
-/**
- * We use positionOnScreen on Android, to support dialogs, popup windows, etc.
- */
-internal actual fun LayoutCoordinates.positionForHaze(): Offset = positionOnScreen()
+internal actual fun LayoutCoordinates.positionForHazeScreen(): Offset = positionOnScreen()
 
 internal actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? {
   return currentValueOf(LocalView).windowId
