@@ -3,14 +3,9 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalView
-
-internal actual fun LayoutCoordinates.positionForHazeScreen(): Offset = positionOnScreen()
 
 internal actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? {
   return currentValueOf(LocalView).windowId
