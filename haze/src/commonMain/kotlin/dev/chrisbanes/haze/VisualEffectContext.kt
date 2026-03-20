@@ -129,7 +129,7 @@ internal class HazeEffectNodeVisualEffectContext(
   internal val node: HazeEffectNode,
 ) : VisualEffectContext {
 
-  override val positionOnScreen: Offset get() = node.positionOnScreen
+  override val positionOnScreen: Offset get() = node.position
   override val size: Size get() = node.size
   override val layerSize: Size get() = node.layerSize
   override val layerOffset: Offset get() = node.layerOffset
