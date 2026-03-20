@@ -822,6 +822,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#position-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Position Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#understanding-the-new-architecture" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1168,6 +1179,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#position-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Position Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#understanding-the-new-architecture" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1219,11 +1241,12 @@
 <li><strong>API nesting:</strong> All blur properties now require a <code>blurEffect {}</code> wrapper</li>
 <li><strong>Package changes:</strong> Blur-related classes moved to <code>dev.chrisbanes.haze.blur</code> package</li>
 <li><strong>Removed APIs:</strong> <code>rememberHazeState(blurEnabled)</code> parameter removed</li>
+<li><strong>Position strategy:</strong> New <code>HazePositionStrategy</code> configuration on <code>HazeState</code></li>
+<li><strong>Renames:</strong> <code>HazeArea.positionOnScreen</code> → <code>position</code>, <code>VisualEffectContext.positionOnScreen</code> → <code>position</code>, <code>VisualEffectContext.rootBoundsOnScreen</code> → <code>rootBounds</code></li>
 </ul>
 <p><strong>What Hasn't Changed:</strong></p>
 <ul>
 <li>Core modifiers (<code>hazeSource</code>, <code>hazeEffect</code>) signatures remain the same</li>
-<li><code>HazeState</code> core API unchanged</li>
 <li>Platform support unchanged</li>
 <li>Performance characteristics unchanged</li>
 <li><code>HazeEffectScope</code> properties like <code>inputScale</code>, <code>drawContentBehind</code>, <code>canDrawArea</code> unchanged</li>
@@ -1471,6 +1494,31 @@
 <td>Use <code>blurEffect { blurEnabled = ... }</code></td>
 </tr>
 <tr>
+<td><code>HazeArea.positionOnScreen</code></td>
+<td><code>HazeArea.position</code></td>
+<td>Renamed</td>
+</tr>
+<tr>
+<td><code>VisualEffectContext.positionOnScreen</code></td>
+<td><code>VisualEffectContext.position</code></td>
+<td>Renamed</td>
+</tr>
+<tr>
+<td><code>VisualEffectContext.rootBoundsOnScreen</code></td>
+<td><code>VisualEffectContext.rootBounds</code></td>
+<td>Renamed</td>
+</tr>
+<tr>
+<td><em>N/A</em></td>
+<td><code>HazeState.positionStrategy</code></td>
+<td>New — configurable position calculation</td>
+</tr>
+<tr>
+<td><em>N/A</em></td>
+<td><code>rememberHazeState(positionStrategy)</code></td>
+<td>New parameter, defaults to <code>Auto</code></td>
+</tr>
+<tr>
 <td><code>dev.chrisbanes.haze.HazeStyle</code></td>
 <td><code>dev.chrisbanes.haze.blur.HazeStyle</code></td>
 <td>Package change</td>
@@ -1520,6 +1568,27 @@
 <ul>
 <li>Change <code>hazeEffect(state, style = ...)</code> to <code>hazeEffect(state) { blurEffect { style = ... } }</code></li>
 </ul>
+<h2 id="position-strategy">Position Strategy<a class="headerlink" href="#position-strategy" title="Permanent link">¶</a></h2>
+<p>V2 introduces a configurable position calculation strategy that fixes blur misalignment in split-window modes (e.g. Huawei Parallel Space). In most cases, no action is needed — the default <code>Auto</code> strategy handles everything.</p>
+<p><strong>If you use <code>HazeArea.positionOnScreen</code></strong> in custom effects, rename to <code>position</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// v1</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">pos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">area</span><span class="p">.</span><span class="na">positionOnScreen</span>
+
+<span class="c1">// v2</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">pos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">area</span><span class="p">.</span><span class="na">position</span>
+</code></pre></div>
+<p><strong>If you implement custom <code>VisualEffect</code>s</strong>, update <code>VisualEffectContext</code> references:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// v1</span>
+<span class="n">context</span><span class="p">.</span><span class="na">positionOnScreen</span>
+<span class="n">context</span><span class="p">.</span><span class="na">rootBoundsOnScreen</span>
+
+<span class="c1">// v2</span>
+<span class="n">context</span><span class="p">.</span><span class="na">position</span>
+<span class="n">context</span><span class="p">.</span><span class="na">rootBounds</span>
+</code></pre></div>
+<p><strong>If you need to force screen coordinates</strong> (e.g. for a custom cross-window setup):</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">(</span><span class="n">positionStrategy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePositionStrategy</span><span class="p">.</span><span class="na">Screen</span><span class="p">)</span>
+</code></pre></div>
 <h2 id="understanding-the-new-architecture">Understanding the New Architecture<a class="headerlink" href="#understanding-the-new-architecture" title="Permanent link">¶</a></h2>
 <p>The v2 architecture introduces the <code>VisualEffect</code> interface, which allows Haze to support different types of visual effects:</p>
 <ul>

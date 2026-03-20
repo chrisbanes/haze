@@ -554,6 +554,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#position-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Position Strategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Position Strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-override" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual override
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#screenshot-testing" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1242,6 +1281,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#position-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Position Strategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Position Strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-override" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual override
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#screenshot-testing" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1461,6 +1539,49 @@
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
+<h2 id="position-strategy">Position Strategy<a class="headerlink" href="#position-strategy" title="Permanent link">¶</a></h2>
+<p>Haze needs to calculate the position of source and effect nodes to align the blur correctly. By default, <code>HazeState</code> uses <code>HazePositionStrategy.Auto</code>, which works for most scenarios without any configuration.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span><span class="w"> </span><span class="c1">// Auto strategy (default)</span>
+</code></pre></div>
+<h3 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Same window</strong>: Haze uses root-relative coordinates (<code>positionInRoot()</code>). This is the most common case and the most performant.</li>
+<li><strong>Cross-window</strong> (dialogs, popups): Haze automatically detects when source and effect are in different windows and promotes to screen-level coordinates.</li>
+</ul>
+<h3 id="manual-override">Manual override<a class="headerlink" href="#manual-override" title="Permanent link">¶</a></h3>
+<p>In rare cases you may want to force a specific strategy:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Force root-relative coordinates (same-window only)</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">(</span><span class="n">positionStrategy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePositionStrategy</span><span class="p">.</span><span class="na">Local</span><span class="p">)</span>
+
+<span class="c1">// Force screen-level coordinates</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">(</span><span class="n">positionStrategy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePositionStrategy</span><span class="p">.</span><span class="na">Screen</span><span class="p">)</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Coordinates</th>
+<th>Use case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Auto</code></td>
+<td>Adapts automatically</td>
+<td>Default — handles everything</td>
+</tr>
+<tr>
+<td><code>Local</code></td>
+<td><code>positionInRoot()</code></td>
+<td>Same-window; immune to split-window offset issues</td>
+</tr>
+<tr>
+<td><code>Screen</code></td>
+<td><code>positionOnScreen()</code></td>
+<td>Cross-window setups</td>
+</tr>
+</tbody>
+</table>
 <h2 id="screenshot-testing">Screenshot Testing<a class="headerlink" href="#screenshot-testing" title="Permanent link">¶</a></h2>
 <p>Haze supports screenshot testing with platform-specific considerations:</p>
 <h3 id="android-with-robolectric">Android with Robolectric<a class="headerlink" href="#android-with-robolectric" title="Permanent link">¶</a></h3>
