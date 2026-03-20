@@ -224,6 +224,37 @@ Box {
 }
 ```
 
+## Position Strategy
+
+Haze needs to calculate the position of source and effect nodes to align the blur correctly. By default, `HazeState` uses `HazePositionStrategy.Auto`, which works for most scenarios without any configuration.
+
+```kotlin
+val hazeState = rememberHazeState() // Auto strategy (default)
+```
+
+### How it works
+
+- **Same window**: Haze uses root-relative coordinates (`positionInRoot()`), which correctly handles split-window modes like Huawei Parallel Space.
+- **Cross-window** (dialogs, popups): Haze automatically detects when source and effect are in different windows and promotes to screen-level coordinates.
+
+### Manual override
+
+In rare cases you may want to force a specific strategy:
+
+```kotlin
+// Force root-relative coordinates (same-window only)
+val hazeState = rememberHazeState(positionStrategy = HazePositionStrategy.Local)
+
+// Force screen-level coordinates
+val hazeState = rememberHazeState(positionStrategy = HazePositionStrategy.Screen)
+```
+
+| Strategy | Coordinates | Use case |
+|----------|-------------|----------|
+| `Auto` | Adapts automatically | Default — handles everything |
+| `Local` | `positionInRoot()` | Same-window only, split-window safe |
+| `Screen` | `positionOnScreen()` | Cross-window setups |
+
 ## Screenshot Testing
 
 Haze supports screenshot testing with platform-specific considerations:
