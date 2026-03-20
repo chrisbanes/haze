@@ -92,6 +92,8 @@ public class HazeSourceNode(
     this.key = key
   }
 
+  private var lastCoordinates: LayoutCoordinates? = null
+
   private var preDrawJob: Job? = null
 
   /**
@@ -109,6 +111,13 @@ public class HazeSourceNode(
 
   override fun onObservedReadsChanged() {
     observeReads {
+      // Observe resolvedStrategy so that when it changes (e.g. Auto promotes to Screen),
+      // we recompute the area's position using the new strategy.
+      val strategy = state.resolvedStrategy
+      lastCoordinates?.let { coords ->
+        area.position = coords.positionForHaze(strategy)
+      }
+
       if (area.preDrawListeners.isEmpty()) {
         disablePreDrawListener()
       } else {
@@ -136,12 +145,12 @@ public class HazeSourceNode(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    // If the positionOnScreen has not been placed yet, we use the value on onPlaced,
+    // If the position has not been placed yet, we use the value on onPlaced,
     // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
     // up to the first draw. We need onGloballyPositioned which tends to happen after
     // the first pass
     Snapshot.withoutReadObservation {
-      if (area.positionOnScreen.isUnspecified) {
+      if (area.position.isUnspecified) {
         onPositioned(coordinates, "onPlaced")
       }
     }
@@ -158,14 +167,13 @@ public class HazeSourceNode(
       return
     }
 
-    area.positionOnScreen = coordinates.positionForHaze()
+    lastCoordinates = coordinates
+    area.position = coordinates.positionForHaze(state.resolvedStrategy)
     area.size = coordinates.size.toSize()
     area.windowId = getWindowId()
 
     HazeLogger.d(TAG) {
-      "$source: positionOnScreen=${area.positionOnScreen}, " +
-        "size=${area.size}, " +
-        "positionOnScreens=${area.positionOnScreen}"
+      "$source: position=${area.position}, size=${area.size}"
     }
   }
 

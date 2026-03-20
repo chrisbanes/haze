@@ -7,9 +7,20 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 
-internal expect fun LayoutCoordinates.positionForHaze(): Offset
+internal fun LayoutCoordinates.positionForHaze(
+  strategy: HazePositionStrategy,
+): Offset = when (strategy) {
+  HazePositionStrategy.Local, HazePositionStrategy.Auto -> positionInRoot()
+  HazePositionStrategy.Screen -> try {
+    positionOnScreen()
+  } catch (_: Exception) {
+    Offset.Unspecified
+  }
+}
 
 internal expect fun CompositionLocalConsumerModifierNode.getWindowId(): Any?
 

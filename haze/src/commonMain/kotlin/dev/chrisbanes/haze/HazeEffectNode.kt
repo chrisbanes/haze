@@ -69,21 +69,21 @@ public class HazeEffectNode(
       }
     }
 
-  private var _positionOnScreen: Offset = Offset.Unspecified
+  private var _position: Offset = Offset.Unspecified
     set(value) {
       if (value != field) {
-        HazeLogger.d(TAG) { "positionOnScreen changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "position changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.ScreenPosition
         field = value
       }
     }
 
-  public val positionOnScreen: Offset get() = _positionOnScreen
+  public val position: Offset get() = _position
 
-  internal var rootBoundsOnScreen: Rect = Rect.Zero
+  internal var rootBounds: Rect = Rect.Zero
     set(value) {
       if (value != field) {
-        HazeLogger.d(TAG) { "rootBoundsOnScreen changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "rootBounds changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.ScreenPosition
         field = value
       }
@@ -230,12 +230,12 @@ public class HazeEffectNode(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    // If the positionOnScreen has not been placed yet, we use the value on onPlaced,
+    // If the position has not been placed yet, we use the value on onPlaced,
     // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
     // up to the first draw. We need onGloballyPositioned which tends to happen after
     // the first pass
     Snapshot.withoutReadObservation {
-      if (positionOnScreen.isUnspecified) {
+      if (position.isUnspecified) {
         onPositioned(coordinates, "onPlaced")
       }
     }
@@ -252,18 +252,19 @@ public class HazeEffectNode(
       return
     }
 
-    _positionOnScreen = coordinates.positionForHaze()
+    val resolvedStrategy = state?.resolvedStrategy ?: HazePositionStrategy.Local
+    _position = coordinates.positionForHaze(resolvedStrategy)
     _size = coordinates.size.toSize()
     windowId = getWindowId()
 
     val rootLayoutCoords = coordinates.findRootCoordinates()
-    rootBoundsOnScreen = Rect(
-      offset = rootLayoutCoords.positionForHaze(),
+    rootBounds = Rect(
+      offset = rootLayoutCoords.positionForHaze(resolvedStrategy),
       size = rootLayoutCoords.size.toSize(),
     )
 
     HazeLogger.d(TAG) {
-      "$source: positionOnScreen=$positionOnScreen, size=$size"
+      "$source: position=$position, size=$size"
     }
 
     updateEffect()
@@ -332,6 +333,12 @@ public class HazeEffectNode(
     visualEffect.update(visualEffectContext)
     windowId = getWindowId()
 
+    // Read positionStrategy and resolvedStrategy to establish snapshot observation.
+    // When the user changes positionStrategy, or Auto promotion changes resolvedStrategy,
+    // this triggers updateEffect() to re-run via onObservedReadsChanged().
+    state?.positionStrategy
+    state?.resolvedStrategy
+
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
     block?.invoke(this)
@@ -367,9 +374,25 @@ public class HazeEffectNode(
         .apply { sortBy(HazeArea::zIndex) }
     } else {
       contentDrawArea.size = size
-      contentDrawArea.positionOnScreen = positionOnScreen
+      contentDrawArea.position = position
       contentDrawArea.windowId = windowId
       listOf(contentDrawArea)
+    }
+
+    // Auto-promote position strategy when cross-window is detected
+    state?.let { hazeState ->
+      val newResolved = resolvePositionStrategy(
+        configured = hazeState.positionStrategy,
+        areas = _areas,
+        windowId = windowId,
+      )
+      if (hazeState.resolvedStrategy != newResolved) {
+        hazeState.resolvedStrategy = newResolved
+        // Strategy changes trigger source nodes to recompute area positions via state reads.
+        // Exit now to avoid mixing coordinate systems in this frame.
+        invalidateIfNeeded()
+        return@trace
+      }
     }
 
     updateAreaOffsets()
@@ -380,10 +403,10 @@ public class HazeEffectNode(
       }
     }
 
-    if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && positionOnScreen.isSpecified) {
+    if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
       // Now we clip the expanded layer bounds, to remove anything areas which
       // don't overlap any areas, and the window bounds
-      val clippedLayerBounds = Rect(positionOnScreen, size)
+      val clippedLayerBounds = Rect(position, size)
         .letIf(shouldExpandLayer()) { visualEffect.calculateLayerBounds(it, requireDensity()) }
         .letIf(shouldClipToAreaBounds()) { rect ->
           // Calculate the dimensions which covers all areas...
@@ -400,13 +423,13 @@ public class HazeEffectNode(
           }
           rect.intersect(left, top, right, bottom)
         }
-        .intersect(rootBoundsOnScreen)
+        .intersect(rootBounds)
 
       _layerSize = Size(
         width = clippedLayerBounds.width.coerceAtLeast(0f),
         height = clippedLayerBounds.height.coerceAtLeast(0f),
       )
-      _layerOffset = positionOnScreen - clippedLayerBounds.topLeft
+      _layerOffset = position - clippedLayerBounds.topLeft
     } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
       val rect = size.toRect()
       val expanded = visualEffect.calculateLayerBounds(rect, requireDensity())
@@ -445,7 +468,7 @@ public class HazeEffectNode(
       areaOffsets.size != areas.size -> true
       else -> {
         areas.any { area ->
-          val newOffset = positionOnScreen - area.positionOnScreen
+          val newOffset = position - area.position
           !areaOffsets.contains(area) || areaOffsets[area] != newOffset.packedValue
         }
       }
@@ -457,7 +480,7 @@ public class HazeEffectNode(
 
       areaOffsets.clear()
       areas.forEach { area ->
-        val offset = positionOnScreen - area.positionOnScreen
+        val offset = position - area.position
         areaOffsets[area] = offset.packedValue
       }
     }

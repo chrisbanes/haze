@@ -14,7 +14,7 @@ package dev.chrisbanes.haze {
     property public androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
     property @dev.chrisbanes.haze.InternalHazeApi public boolean isContentDrawing;
     property public Object? key;
-    property public androidx.compose.ui.geometry.Offset positionOnScreen;
+    property public androidx.compose.ui.geometry.Offset position;
     property public androidx.compose.ui.geometry.Size size;
     property public Object? windowId;
     property public float zIndex;
@@ -61,7 +61,7 @@ package dev.chrisbanes.haze {
     property public dev.chrisbanes.haze.HazeInputScale inputScale;
     property public androidx.compose.ui.geometry.Offset layerOffset;
     property public androidx.compose.ui.geometry.Size layerSize;
-    property public androidx.compose.ui.geometry.Offset positionOnScreen;
+    property public androidx.compose.ui.geometry.Offset position;
     property public boolean shouldAutoInvalidate;
     property public androidx.compose.ui.geometry.Size size;
     property public dev.chrisbanes.haze.HazeState? state;
@@ -119,7 +119,7 @@ package dev.chrisbanes.haze {
 
   public final class HazeKt {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
-    method @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState();
+    method @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState(optional dev.chrisbanes.haze.HazePositionStrategy positionStrategy);
   }
 
   public final class HazeLogger {
@@ -129,6 +129,12 @@ package dev.chrisbanes.haze {
     method public void setEnabled(boolean);
     property public boolean enabled;
     field public static final dev.chrisbanes.haze.HazeLogger INSTANCE;
+  }
+
+  public enum HazePositionStrategy {
+    enum_constant public static final dev.chrisbanes.haze.HazePositionStrategy Auto;
+    enum_constant public static final dev.chrisbanes.haze.HazePositionStrategy Local;
+    enum_constant public static final dev.chrisbanes.haze.HazePositionStrategy Screen;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeSourceNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {
@@ -154,7 +160,10 @@ package dev.chrisbanes.haze {
   @androidx.compose.runtime.Stable public final class HazeState {
     ctor public HazeState();
     method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
+    method public dev.chrisbanes.haze.HazePositionStrategy getPositionStrategy();
+    method public void setPositionStrategy(dev.chrisbanes.haze.HazePositionStrategy);
     property public java.util.List<dev.chrisbanes.haze.HazeArea> areas;
+    property public dev.chrisbanes.haze.HazePositionStrategy positionStrategy;
   }
 
   @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {
@@ -184,7 +193,7 @@ package dev.chrisbanes.haze {
     method public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
     method public kotlinx.coroutines.CoroutineScope getCoroutineScope();
     method public dev.chrisbanes.haze.HazeInputScale getInputScale();
-    method public androidx.compose.ui.geometry.Rect getRootBoundsOnScreen();
+    method public androidx.compose.ui.geometry.Rect getRootBounds();
     method public dev.chrisbanes.haze.HazeState? getState();
     method public dev.chrisbanes.haze.VisualEffect getVisualEffect();
     method public Object? getWindowId();
@@ -197,8 +206,8 @@ package dev.chrisbanes.haze {
     property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
     property public abstract androidx.compose.ui.geometry.Offset layerOffset;
     property public abstract androidx.compose.ui.geometry.Size layerSize;
-    property public abstract androidx.compose.ui.geometry.Offset positionOnScreen;
-    property public abstract androidx.compose.ui.geometry.Rect rootBoundsOnScreen;
+    property public abstract androidx.compose.ui.geometry.Offset position;
+    property public abstract androidx.compose.ui.geometry.Rect rootBounds;
     property public abstract androidx.compose.ui.geometry.Size size;
     property public abstract dev.chrisbanes.haze.HazeState? state;
     property public abstract dev.chrisbanes.haze.VisualEffect visualEffect;

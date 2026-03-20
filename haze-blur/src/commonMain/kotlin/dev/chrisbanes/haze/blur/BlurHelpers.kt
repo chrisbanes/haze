@@ -180,10 +180,10 @@ internal fun DrawScope.createScaledContentLayer(
     }
 
     scale(scale = scaleFactor, pivot = Offset.Zero) {
-      translate(layerOffset - context.positionOnScreen) {
+      translate(layerOffset - context.position) {
         for (area in context.areas) {
           val position = Snapshot.withoutReadObservation {
-            area.positionOnScreen.takeOrElse { Offset.Zero }
+            area.position.takeOrElse { Offset.Zero }
           }
           translate(position) {
             // Draw the content into our effect layer. We do want to observe this via snapshot

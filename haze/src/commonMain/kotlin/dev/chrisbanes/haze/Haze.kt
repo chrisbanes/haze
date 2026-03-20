@@ -25,10 +25,18 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 
 @Composable
-public fun rememberHazeState(): HazeState = remember { HazeState() }
+public fun rememberHazeState(
+  positionStrategy: HazePositionStrategy = HazePositionStrategy.Auto,
+): HazeState = remember { HazeState() }.apply {
+  this.positionStrategy = positionStrategy
+}
 
 @Stable
 public class HazeState {
+  public var positionStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Auto)
+
+  internal var resolvedStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Local)
+
   private val _areas = mutableStateListOf<HazeArea>()
   public val areas: List<HazeArea> get() = _areas
 
@@ -41,10 +49,25 @@ public class HazeState {
   }
 }
 
+internal fun resolvePositionStrategy(
+  configured: HazePositionStrategy,
+  areas: List<HazeArea>,
+  windowId: Any?,
+): HazePositionStrategy = when (configured) {
+  HazePositionStrategy.Auto -> {
+    if (areas.any { it.windowId != null && it.windowId != windowId }) {
+      HazePositionStrategy.Screen
+    } else {
+      HazePositionStrategy.Local
+    }
+  }
+  else -> configured
+}
+
 @Stable
 public class HazeArea {
 
-  public var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
+  public var position: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
   public var size: Size by mutableStateOf(Size.Unspecified)
@@ -69,7 +92,7 @@ public class HazeArea {
 
   internal val bounds: Rect?
     get() = when {
-      size.isSpecified && positionOnScreen.isSpecified -> Rect(positionOnScreen, size)
+      size.isSpecified && position.isSpecified -> Rect(position, size)
       else -> null
     }
 
@@ -81,7 +104,7 @@ public class HazeArea {
 
   public override fun toString(): String = buildString {
     append("HazeArea(")
-    append("positionOnScreen=$positionOnScreen, ")
+    append("position=$position, ")
     append("size=$size, ")
     append("zIndex=$zIndex, ")
     append("contentLayer=$contentLayer, ")
@@ -91,7 +114,7 @@ public class HazeArea {
 }
 
 internal fun HazeArea.reset() {
-  positionOnScreen = Offset.Unspecified
+  position = Offset.Unspecified
   size = Size.Unspecified
   contentDrawing = false
 }
