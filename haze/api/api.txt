@@ -131,19 +131,10 @@ package dev.chrisbanes.haze {
     field public static final dev.chrisbanes.haze.HazeLogger INSTANCE;
   }
 
-  @androidx.compose.runtime.Stable public sealed interface HazePositionStrategy {
-  }
-
-  public static final class HazePositionStrategy.Auto implements dev.chrisbanes.haze.HazePositionStrategy {
-    field public static final dev.chrisbanes.haze.HazePositionStrategy.Auto INSTANCE;
-  }
-
-  public static final class HazePositionStrategy.Local implements dev.chrisbanes.haze.HazePositionStrategy {
-    field public static final dev.chrisbanes.haze.HazePositionStrategy.Local INSTANCE;
-  }
-
-  public static final class HazePositionStrategy.Screen implements dev.chrisbanes.haze.HazePositionStrategy {
-    field public static final dev.chrisbanes.haze.HazePositionStrategy.Screen INSTANCE;
+  public enum HazePositionStrategy {
+    enum_constant public static final dev.chrisbanes.haze.HazePositionStrategy Auto;
+    enum_constant public static final dev.chrisbanes.haze.HazePositionStrategy Local;
+    enum_constant public static final dev.chrisbanes.haze.HazePositionStrategy Screen;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeSourceNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {

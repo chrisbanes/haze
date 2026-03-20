@@ -12,11 +12,12 @@ The primary change in v2 is the extraction of blur functionality from the core `
 - **API nesting:** All blur properties now require a `blurEffect {}` wrapper
 - **Package changes:** Blur-related classes moved to `dev.chrisbanes.haze.blur` package
 - **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed
+- **Position strategy:** New `HazePositionStrategy` configuration on `HazeState`
+- **Renames:** `HazeArea.positionOnScreen` → `position`, `VisualEffectContext.positionOnScreen` → `position`, `VisualEffectContext.rootBoundsOnScreen` → `rootBounds`
 
 **What Hasn't Changed:**
 
 - Core modifiers (`hazeSource`, `hazeEffect`) signatures remain the same
-- `HazeState` core API unchanged
 - Platform support unchanged
 - Performance characteristics unchanged
 - `HazeEffectScope` properties like `inputScale`, `drawContentBehind`, `canDrawArea` unchanged
@@ -212,6 +213,11 @@ All blur-related properties that were previously set directly on `HazeEffectScop
 | `HazeEffectScope.clipToAreasBounds` | `HazeEffectScope.clipToAreasBounds` | **Unchanged** - still on scope |
 | `HazeEffectScope.canDrawArea` | `HazeEffectScope.canDrawArea` | **Unchanged** - still on scope |
 | `rememberHazeState(blurEnabled)` | *Removed* | Use `blurEffect { blurEnabled = ... }` |
+| `HazeArea.positionOnScreen` | `HazeArea.position` | Renamed |
+| `VisualEffectContext.positionOnScreen` | `VisualEffectContext.position` | Renamed |
+| `VisualEffectContext.rootBoundsOnScreen` | `VisualEffectContext.rootBounds` | Renamed |
+| *N/A* | `HazeState.positionStrategy` | New — configurable position calculation |
+| *N/A* | `rememberHazeState(positionStrategy)` | New parameter, defaults to `Auto` |
 | `dev.chrisbanes.haze.HazeStyle` | `dev.chrisbanes.haze.blur.HazeStyle` | Package change |
 | `dev.chrisbanes.haze.HazeTint` | `dev.chrisbanes.haze.blur.HazeTint` | Package change |
 | `dev.chrisbanes.haze.HazeProgressive` | `dev.chrisbanes.haze.blur.HazeProgressive` | Package change |
@@ -248,6 +254,38 @@ All blur-related properties that were previously set directly on `HazeEffectScop
 **Update Material style usage**:
 
    - Change `hazeEffect(state, style = ...)` to `hazeEffect(state) { blurEffect { style = ... } }`
+
+## Position Strategy
+
+V2 introduces a configurable position calculation strategy that fixes blur misalignment in split-window modes (e.g. Huawei Parallel Space). In most cases, no action is needed — the default `Auto` strategy handles everything.
+
+**If you use `HazeArea.positionOnScreen`** in custom effects, rename to `position`:
+
+```kotlin
+// v1
+val pos = area.positionOnScreen
+
+// v2
+val pos = area.position
+```
+
+**If you implement custom `VisualEffect`s**, update `VisualEffectContext` references:
+
+```kotlin
+// v1
+context.positionOnScreen
+context.rootBoundsOnScreen
+
+// v2
+context.position
+context.rootBounds
+```
+
+**If you need to force screen coordinates** (e.g. for a custom cross-window setup):
+
+```kotlin
+val state = rememberHazeState(positionStrategy = HazePositionStrategy.Screen)
+```
 
 ## Understanding the New Architecture
 

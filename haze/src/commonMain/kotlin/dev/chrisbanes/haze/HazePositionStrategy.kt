@@ -3,15 +3,12 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.runtime.Stable
-
 /**
  * Strategy for how Haze calculates positions of source and effect nodes.
  *
  * @see HazeState.positionStrategy
  */
-@Stable
-public sealed interface HazePositionStrategy {
+public enum class HazePositionStrategy {
   /**
    * Uses `positionInRoot()` coordinates.
    *
@@ -21,7 +18,7 @@ public sealed interface HazePositionStrategy {
    *
    * Does **not** work for cross-window scenarios like dialogs or popups.
    */
-  public data object Local : HazePositionStrategy
+  Local,
 
   /**
    * Uses screen-level coordinates (`positionOnScreen()` on Android,
@@ -29,12 +26,12 @@ public sealed interface HazePositionStrategy {
    *
    * Required when source and effect are in different windows (e.g. dialogs, popups).
    */
-  public data object Screen : HazePositionStrategy
+  Screen,
 
   /**
    * The default strategy. Uses [Local] coordinates, but automatically promotes to
    * [Screen] when it detects that source areas are in a different window than the
    * effect node.
    */
-  public data object Auto : HazePositionStrategy
+  Auto,
 }
