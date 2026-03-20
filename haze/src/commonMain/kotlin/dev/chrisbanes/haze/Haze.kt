@@ -52,7 +52,7 @@ public class HazeState {
 @Stable
 public class HazeArea {
 
-  public var positionOnScreen: Offset by mutableStateOf(Offset.Unspecified)
+  public var position: Offset by mutableStateOf(Offset.Unspecified)
     internal set
 
   public var size: Size by mutableStateOf(Size.Unspecified)
@@ -77,7 +77,7 @@ public class HazeArea {
 
   internal val bounds: Rect?
     get() = when {
-      size.isSpecified && positionOnScreen.isSpecified -> Rect(positionOnScreen, size)
+      size.isSpecified && position.isSpecified -> Rect(position, size)
       else -> null
     }
 
@@ -89,7 +89,7 @@ public class HazeArea {
 
   public override fun toString(): String = buildString {
     append("HazeArea(")
-    append("positionOnScreen=$positionOnScreen, ")
+    append("position=$position, ")
     append("size=$size, ")
     append("zIndex=$zIndex, ")
     append("contentLayer=$contentLayer, ")
@@ -99,7 +99,7 @@ public class HazeArea {
 }
 
 internal fun HazeArea.reset() {
-  positionOnScreen = Offset.Unspecified
+  position = Offset.Unspecified
   size = Size.Unspecified
   contentDrawing = false
 }

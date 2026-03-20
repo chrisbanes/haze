@@ -367,7 +367,7 @@ public class HazeEffectNode(
         .apply { sortBy(HazeArea::zIndex) }
     } else {
       contentDrawArea.size = size
-      contentDrawArea.positionOnScreen = positionOnScreen
+      contentDrawArea.position = positionOnScreen
       contentDrawArea.windowId = windowId
       listOf(contentDrawArea)
     }
@@ -445,7 +445,7 @@ public class HazeEffectNode(
       areaOffsets.size != areas.size -> true
       else -> {
         areas.any { area ->
-          val newOffset = positionOnScreen - area.positionOnScreen
+          val newOffset = positionOnScreen - area.position
           !areaOffsets.contains(area) || areaOffsets[area] != newOffset.packedValue
         }
       }
@@ -457,7 +457,7 @@ public class HazeEffectNode(
 
       areaOffsets.clear()
       areas.forEach { area ->
-        val offset = positionOnScreen - area.positionOnScreen
+        val offset = positionOnScreen - area.position
         areaOffsets[area] = offset.packedValue
       }
     }
