@@ -163,9 +163,7 @@ public class HazeSourceNode(
     area.windowId = getWindowId()
 
     HazeLogger.d(TAG) {
-      "$source: position=${area.position}, " +
-        "size=${area.size}, " +
-        "position=${area.position}"
+      "$source: position=${area.position}, size=${area.size}"
     }
   }
 

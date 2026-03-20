@@ -52,7 +52,7 @@ public interface VisualEffectContext {
   /**
    * The bounds of the root layout coordinates on screen.
    */
-  public val rootBoundsOnScreen: Rect
+  public val rootBounds: Rect
 
   // ==================== Configuration ====================
 
@@ -133,7 +133,7 @@ internal class HazeEffectNodeVisualEffectContext(
   override val size: Size get() = node.size
   override val layerSize: Size get() = node.layerSize
   override val layerOffset: Offset get() = node.layerOffset
-  override val rootBoundsOnScreen: Rect get() = node.rootBoundsOnScreen
+  override val rootBounds: Rect get() = node.rootBounds
 
   override val inputScale: HazeInputScale get() = node.inputScale
   override val windowId: Any? get() = node.windowId

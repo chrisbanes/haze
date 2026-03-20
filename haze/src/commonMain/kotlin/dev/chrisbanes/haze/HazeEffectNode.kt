@@ -80,10 +80,10 @@ public class HazeEffectNode(
 
   public val position: Offset get() = _position
 
-  internal var rootBoundsOnScreen: Rect = Rect.Zero
+  internal var rootBounds: Rect = Rect.Zero
     set(value) {
       if (value != field) {
-        HazeLogger.d(TAG) { "rootBoundsOnScreen changed. Current: $field. New: $value" }
+        HazeLogger.d(TAG) { "rootBounds changed. Current: $field. New: $value" }
         dirtyTracker += DirtyFields.ScreenPosition
         field = value
       }
@@ -258,7 +258,7 @@ public class HazeEffectNode(
     windowId = getWindowId()
 
     val rootLayoutCoords = coordinates.findRootCoordinates()
-    rootBoundsOnScreen = Rect(
+    rootBounds = Rect(
       offset = rootLayoutCoords.positionForHaze(resolvedStrategy),
       size = rootLayoutCoords.size.toSize(),
     )
@@ -418,7 +418,7 @@ public class HazeEffectNode(
           }
           rect.intersect(left, top, right, bottom)
         }
-        .intersect(rootBoundsOnScreen)
+        .intersect(rootBounds)
 
       _layerSize = Size(
         width = clippedLayerBounds.width.coerceAtLeast(0f),
