@@ -234,7 +234,7 @@ val hazeState = rememberHazeState() // Auto strategy (default)
 
 ### How it works
 
-- **Same window**: Haze uses root-relative coordinates (`positionInRoot()`), which correctly handles split-window modes like Huawei Parallel Space.
+- **Same window**: Haze uses root-relative coordinates (`positionInRoot()`). This is the most common case and the most performant.
 - **Cross-window** (dialogs, popups): Haze automatically detects when source and effect are in different windows and promotes to screen-level coordinates.
 
 ### Manual override

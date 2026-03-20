@@ -17,6 +17,11 @@ internal fun LayoutCoordinates.positionForHaze(
   HazePositionStrategy.Screen -> positionForHazeScreen()
 }
 
+/**
+ * Returns screen-level coordinates. This is `expect`/`actual` because the appropriate API
+ * differs by platform: Android uses `positionOnScreen()` while Skiko uses `positionInWindow()`
+ * (there is no screen concept on desktop).
+ */
 internal expect fun LayoutCoordinates.positionForHazeScreen(): Offset
 
 internal expect fun CompositionLocalConsumerModifierNode.getWindowId(): Any?
