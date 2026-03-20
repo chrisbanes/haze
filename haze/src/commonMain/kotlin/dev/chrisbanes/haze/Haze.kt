@@ -25,10 +25,18 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 
 @Composable
-public fun rememberHazeState(): HazeState = remember { HazeState() }
+public fun rememberHazeState(
+  positionStrategy: HazePositionStrategy = HazePositionStrategy.Auto,
+): HazeState = remember { HazeState() }.apply {
+  this.positionStrategy = positionStrategy
+}
 
 @Stable
 public class HazeState {
+  public var positionStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Auto)
+
+  internal var resolvedStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Local)
+
   private val _areas = mutableStateListOf<HazeArea>()
   public val areas: List<HazeArea> get() = _areas
 
