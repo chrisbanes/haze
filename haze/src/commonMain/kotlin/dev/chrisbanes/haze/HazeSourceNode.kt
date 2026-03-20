@@ -92,6 +92,8 @@ public class HazeSourceNode(
     this.key = key
   }
 
+  private var lastCoordinates: LayoutCoordinates? = null
+
   private var preDrawJob: Job? = null
 
   /**
@@ -109,6 +111,13 @@ public class HazeSourceNode(
 
   override fun onObservedReadsChanged() {
     observeReads {
+      // Observe resolvedStrategy so that when it changes (e.g. Auto promotes to Screen),
+      // we recompute the area's position using the new strategy.
+      val strategy = state.resolvedStrategy
+      lastCoordinates?.let { coords ->
+        area.position = coords.positionForHaze(strategy)
+      }
+
       if (area.preDrawListeners.isEmpty()) {
         disablePreDrawListener()
       } else {
@@ -158,6 +167,7 @@ public class HazeSourceNode(
       return
     }
 
+    lastCoordinates = coordinates
     area.position = coordinates.positionForHaze(state.resolvedStrategy)
     area.size = coordinates.size.toSize()
     area.windowId = getWindowId()

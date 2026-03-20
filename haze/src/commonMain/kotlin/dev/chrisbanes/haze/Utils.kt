@@ -15,7 +15,11 @@ internal fun LayoutCoordinates.positionForHaze(
   strategy: HazePositionStrategy,
 ): Offset = when (strategy) {
   HazePositionStrategy.Local, HazePositionStrategy.Auto -> positionInRoot()
-  HazePositionStrategy.Screen -> positionOnScreen()
+  HazePositionStrategy.Screen -> try {
+    positionOnScreen()
+  } catch (_: Throwable) {
+    Offset.Unspecified
+  }
 }
 
 internal expect fun CompositionLocalConsumerModifierNode.getWindowId(): Any?

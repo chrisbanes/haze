@@ -125,6 +125,8 @@ public class HazeEffectNode(
   public val layerOffset: Offset
     get() = _layerOffset
 
+  private var lastCoordinates: LayoutCoordinates? = null
+
   internal var windowId: Any? = null
 
   internal val visualEffectContext: VisualEffectContext by lazy(LazyThreadSafetyMode.NONE) {
@@ -251,6 +253,8 @@ public class HazeEffectNode(
       // https://github.com/chrisbanes/haze/issues/665
       return
     }
+
+    lastCoordinates = coordinates
 
     val resolvedStrategy = state?.resolvedStrategy ?: HazePositionStrategy.Local
     _position = coordinates.positionForHaze(resolvedStrategy)
@@ -387,6 +391,17 @@ public class HazeEffectNode(
       }
       if (hazeState.resolvedStrategy != newResolved) {
         hazeState.resolvedStrategy = newResolved
+
+        // Recompute our own position with the new strategy so that
+        // updateAreaOffsets() below uses correct values
+        lastCoordinates?.let { coords ->
+          _position = coords.positionForHaze(newResolved)
+          val rootLayoutCoords = coords.findRootCoordinates()
+          rootBounds = Rect(
+            offset = rootLayoutCoords.positionForHaze(newResolved),
+            size = rootLayoutCoords.size.toSize(),
+          )
+        }
       }
     }
 

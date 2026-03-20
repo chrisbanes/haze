@@ -21,8 +21,7 @@ public enum class HazePositionStrategy {
   Local,
 
   /**
-   * Uses screen-level coordinates (`positionOnScreen()` on Android,
-   * `positionInWindow()` on Desktop/Skiko).
+   * Uses screen-level coordinates (`positionOnScreen()`) on all platforms.
    *
    * Required when source and effect are in different windows (e.g. dialogs, popups).
    */
