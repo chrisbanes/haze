@@ -333,6 +333,12 @@ public class HazeEffectNode(
     visualEffect.update(visualEffectContext)
     windowId = getWindowId()
 
+    // Read positionStrategy and resolvedStrategy to establish snapshot observation.
+    // When the user changes positionStrategy, or Auto promotion changes resolvedStrategy,
+    // this triggers updateEffect() to re-run via onObservedReadsChanged().
+    state?.positionStrategy
+    state?.resolvedStrategy
+
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
     block?.invoke(this)

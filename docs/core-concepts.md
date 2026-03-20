@@ -252,7 +252,7 @@ val hazeState = rememberHazeState(positionStrategy = HazePositionStrategy.Screen
 | Strategy | Coordinates | Use case |
 |----------|-------------|----------|
 | `Auto` | Adapts automatically | Default — handles everything |
-| `Local` | `positionInRoot()` | Same-window only, split-window safe |
+| `Local` | `positionInRoot()` | Same-window; immune to split-window offset issues |
 | `Screen` | `positionOnScreen()` | Cross-window setups |
 
 ## Screenshot Testing
