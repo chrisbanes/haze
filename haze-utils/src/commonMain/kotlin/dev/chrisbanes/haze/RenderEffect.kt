@@ -30,13 +30,13 @@ public expect class PlatformColorFilter
  * Creates a [PlatformRenderEffect] from a shader.
  */
 @InternalHazeApi
-public expect fun createShaderImageFilter(shader: Shader, crop: Rect? = null): PlatformRenderEffect
+public expect fun createShaderRenderEffect(shader: Shader, crop: Rect? = null): PlatformRenderEffect
 
 /**
  * Creates a blend [PlatformRenderEffect] from two render effects.
  */
 @InternalHazeApi
-public expect fun createBlendImageFilter(
+public expect fun createBlendRenderEffect(
   blendMode: HazeBlendMode,
   background: PlatformRenderEffect,
   foreground: PlatformRenderEffect,
@@ -47,7 +47,7 @@ public expect fun createBlendImageFilter(
  * Creates a color filter [PlatformRenderEffect].
  */
 @InternalHazeApi
-public expect fun createColorFilterImageFilter(
+public expect fun createColorFilterRenderEffect(
   colorFilter: PlatformColorFilter,
   input: PlatformRenderEffect? = null,
   crop: Rect? = null,
@@ -55,21 +55,23 @@ public expect fun createColorFilterImageFilter(
 
 /**
  * Creates a blur [PlatformRenderEffect].
+ * @param radiusX Blur radius in the X direction (pixels)
+ * @param radiusY Blur radius in the Y direction (pixels)
  */
 @InternalHazeApi
-public expect fun createBlurImageFilter(
-  sigmaX: Float,
-  sigmaY: Float,
+public expect fun createBlurRenderEffect(
+  radiusX: Float,
+  radiusY: Float,
   tileMode: TileMode,
   input: PlatformRenderEffect? = null,
   crop: Rect? = null,
-): PlatformRenderEffect
+): PlatformRenderEffect?
 
 /**
  * Creates an offset [PlatformRenderEffect].
  */
 @InternalHazeApi
-public expect fun createOffsetImageFilter(
+public expect fun createOffsetRenderEffect(
   offsetX: Float,
   offsetY: Float,
   input: PlatformRenderEffect? = null,
@@ -90,13 +92,13 @@ public fun PlatformRenderEffect.blendForeground(
   foreground: PlatformRenderEffect,
   blendMode: HazeBlendMode,
   offset: Offset = Offset.Unspecified,
-): PlatformRenderEffect = createBlendImageFilter(
+): PlatformRenderEffect = createBlendRenderEffect(
   blendMode = blendMode,
   background = this,
   foreground = when {
     offset.isUnspecified -> foreground
     offset == Offset.Zero -> foreground
-    else -> createOffsetImageFilter(offset.x, offset.y, foreground)
+    else -> createOffsetRenderEffect(offset.x, offset.y, foreground)
   },
 )
 

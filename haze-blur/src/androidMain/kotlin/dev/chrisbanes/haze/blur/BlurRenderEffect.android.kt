@@ -17,13 +17,12 @@ import android.graphics.RenderEffect as AndroidRenderEffect
 import android.graphics.Shader.TileMode.REPEAT
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Shader
-import androidx.compose.ui.graphics.toAndroidTileMode
 import dev.chrisbanes.haze.HazeBlendMode
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
-import dev.chrisbanes.haze.createBlendImageFilter
-import dev.chrisbanes.haze.createShaderImageFilter
+import dev.chrisbanes.haze.createBlendRenderEffect
+import dev.chrisbanes.haze.createShaderRenderEffect
 import kotlin.math.abs
 
 private var noiseTexture: Bitmap? = null
@@ -70,37 +69,12 @@ internal actual fun createNoiseEffect(
   return when {
     mask != null -> {
       // If we have a mask, we need to apply it to the noise bitmap shader via a blend mode
-      createBlendImageFilter(
+      createBlendRenderEffect(
         blendMode = HazeBlendMode.SrcIn,
-        background = createShaderImageFilter(mask),
+        background = createShaderRenderEffect(mask),
         foreground = noiseEffect,
       )
     }
     else -> noiseEffect
-  }
-}
-
-@RequiresApi(31)
-internal actual fun createBlurRenderEffect(
-  blurRadiusPx: Float,
-  params: RenderEffectParams,
-): PlatformRenderEffect {
-  if (blurRadiusPx <= 0f) {
-    return AndroidRenderEffect.createOffsetEffect(0f, 0f)
-  }
-
-  return try {
-    // On Android we use the native blur effect directly for better performance
-    AndroidRenderEffect.createBlurEffect(
-      blurRadiusPx,
-      blurRadiusPx,
-      params.blurTileMode.toAndroidTileMode(),
-    )
-  } catch (e: IllegalArgumentException) {
-    throw IllegalArgumentException(
-      "Error whilst creating blur effect. " +
-        "This is likely because this device does not support a blur radius of ${params.blurRadius}dp",
-      e,
-    )
   }
 }

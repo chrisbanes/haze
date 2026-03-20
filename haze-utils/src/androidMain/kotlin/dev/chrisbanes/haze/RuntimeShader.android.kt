@@ -40,22 +40,14 @@ public actual fun createRuntimeShaderRenderEffect(
   val provider = AndroidRuntimeShaderUniformProvider(shader)
   uniforms(provider)
 
-  // Android's createRuntimeShaderEffect only supports a single "content" input
-  // For multiple inputs, we need to chain them differently
-  // Find the content shader (the one that should be passed to createRuntimeShaderEffect)
-  val contentIndex = shaderNames.indexOf("content")
-  val contentShaderName = if (contentIndex >= 0) shaderNames[contentIndex] else shaderNames.firstOrNull() ?: "content"
-
-  // Set other inputs as child shaders
-  shaderNames.forEachIndexed { index, name ->
-    if (name != contentShaderName && index < inputs.size) {
-      val input = inputs[index]
-      // Note: Android doesn't support RenderEffect as child shader directly
-      // This is a limitation - we handle it specially in haze-blur
-    }
+  // Chain all input RenderEffects together using .then()
+  val chainedInput = inputs.filterNotNull().reduceOrNull { acc, input ->
+    acc.then(input)
   }
 
-  return RenderEffect.createRuntimeShaderEffect(shader, contentShaderName)
+  return RenderEffect.createRuntimeShaderEffect(shader, "content").let { content ->
+    chainedInput?.then(content) ?: content
+  }
 }
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
