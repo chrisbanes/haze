@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
+import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -68,5 +69,53 @@ class HazeComposeUnitTests : ContextTest() {
     }
 
     waitForIdle()
+  }
+
+  @Test
+  fun testDefaultPositionStrategyIsAuto() {
+    val state = HazeState()
+    assertThat(state.positionStrategy).isEqualTo(HazePositionStrategy.Auto)
+    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
+  }
+
+  @Test
+  fun testExplicitLocalStrategy() = runComposeUiTest {
+    val state = HazeState().apply {
+      positionStrategy = HazePositionStrategy.Local
+    }
+    setContent {
+      Box(Modifier.hazeSource(state)) {
+        Spacer(Modifier.hazeEffect(state).size(30.dp))
+      }
+    }
+    waitForIdle()
+    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
+  }
+
+  @Test
+  fun testExplicitScreenStrategy() = runComposeUiTest {
+    val state = HazeState().apply {
+      positionStrategy = HazePositionStrategy.Screen
+    }
+    setContent {
+      Box(Modifier.hazeSource(state)) {
+        Spacer(Modifier.hazeEffect(state).size(30.dp))
+      }
+    }
+    waitForIdle()
+    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Screen)
+  }
+
+  @Test
+  fun testAutoStrategyResolvesToLocalInSameWindow() = runComposeUiTest {
+    val state = HazeState()
+    setContent {
+      Box(Modifier.hazeSource(state)) {
+        Spacer(Modifier.hazeEffect(state).size(30.dp))
+      }
+    }
+    waitForIdle()
+    // Same window, so Auto should resolve to Local
+    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
   }
 }
