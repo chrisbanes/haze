@@ -49,6 +49,21 @@ public class HazeState {
   }
 }
 
+internal fun resolvePositionStrategy(
+  configured: HazePositionStrategy,
+  areas: List<HazeArea>,
+  windowId: Any?,
+): HazePositionStrategy = when (configured) {
+  HazePositionStrategy.Auto -> {
+    if (areas.any { it.windowId != null && it.windowId != windowId }) {
+      HazePositionStrategy.Screen
+    } else {
+      HazePositionStrategy.Local
+    }
+  }
+  else -> configured
+}
+
 @Stable
 public class HazeArea {
 

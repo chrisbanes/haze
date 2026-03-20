@@ -17,7 +17,7 @@ internal fun LayoutCoordinates.positionForHaze(
   HazePositionStrategy.Local, HazePositionStrategy.Auto -> positionInRoot()
   HazePositionStrategy.Screen -> try {
     positionOnScreen()
-  } catch (_: Throwable) {
+  } catch (_: Exception) {
     Offset.Unspecified
   }
 }

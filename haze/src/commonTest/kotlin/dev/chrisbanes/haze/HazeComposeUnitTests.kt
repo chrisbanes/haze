@@ -118,4 +118,17 @@ class HazeComposeUnitTests : ContextTest() {
     // Same window, so Auto should resolve to Local
     assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
   }
+
+  @Test
+  fun testResolvePositionStrategy_autoPromotesToScreenForCrossWindow() {
+    val area = HazeArea().apply { windowId = "dialog-window" }
+
+    val resolved = resolvePositionStrategy(
+      configured = HazePositionStrategy.Auto,
+      areas = listOf(area),
+      windowId = "host-window",
+    )
+
+    assertThat(resolved).isEqualTo(HazePositionStrategy.Screen)
+  }
 }

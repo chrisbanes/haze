@@ -125,8 +125,6 @@ public class HazeEffectNode(
   public val layerOffset: Offset
     get() = _layerOffset
 
-  private var lastCoordinates: LayoutCoordinates? = null
-
   internal var windowId: Any? = null
 
   internal val visualEffectContext: VisualEffectContext by lazy(LazyThreadSafetyMode.NONE) {
@@ -254,8 +252,6 @@ public class HazeEffectNode(
       return
     }
 
-    lastCoordinates = coordinates
-
     val resolvedStrategy = state?.resolvedStrategy ?: HazePositionStrategy.Local
     _position = coordinates.positionForHaze(resolvedStrategy)
     _size = coordinates.size.toSize()
@@ -379,29 +375,17 @@ public class HazeEffectNode(
 
     // Auto-promote position strategy when cross-window is detected
     state?.let { hazeState ->
-      val newResolved = when (hazeState.positionStrategy) {
-        HazePositionStrategy.Auto -> {
-          if (_areas.any { it.windowId != null && it.windowId != windowId }) {
-            HazePositionStrategy.Screen
-          } else {
-            HazePositionStrategy.Local
-          }
-        }
-        else -> hazeState.positionStrategy
-      }
+      val newResolved = resolvePositionStrategy(
+        configured = hazeState.positionStrategy,
+        areas = _areas,
+        windowId = windowId,
+      )
       if (hazeState.resolvedStrategy != newResolved) {
         hazeState.resolvedStrategy = newResolved
-
-        // Recompute our own position with the new strategy so that
-        // updateAreaOffsets() below uses correct values
-        lastCoordinates?.let { coords ->
-          _position = coords.positionForHaze(newResolved)
-          val rootLayoutCoords = coords.findRootCoordinates()
-          rootBounds = Rect(
-            offset = rootLayoutCoords.positionForHaze(newResolved),
-            size = rootLayoutCoords.size.toSize(),
-          )
-        }
+        // Strategy changes trigger source nodes to recompute area positions via state reads.
+        // Exit now to avoid mixing coordinate systems in this frame.
+        invalidateIfNeeded()
+        return@trace
       }
     }
 
