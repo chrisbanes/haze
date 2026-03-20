@@ -29,9 +29,9 @@ public interface VisualEffectContext {
   // ==================== Geometry ====================
 
   /**
-   * The position of the effect node on screen.
+   * The position of the effect node.
    */
-  public val positionOnScreen: Offset
+  public val position: Offset
 
   /**
    * The size of the effect node.
@@ -129,7 +129,7 @@ internal class HazeEffectNodeVisualEffectContext(
   internal val node: HazeEffectNode,
 ) : VisualEffectContext {
 
-  override val positionOnScreen: Offset get() = node.position
+  override val position: Offset get() = node.position
   override val size: Size get() = node.size
   override val layerSize: Size get() = node.layerSize
   override val layerOffset: Offset get() = node.layerOffset
