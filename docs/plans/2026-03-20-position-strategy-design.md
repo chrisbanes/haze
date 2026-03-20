@@ -105,7 +105,7 @@ When `HazeEffectNode` detects cross-window and the strategy is `Auto`, it needs 
 1. Rename to `position` — cleaner but API-breaking.
 2. Keep `positionOnScreen` and document that it's the "position used for offset calculation" regardless of actual coordinate space.
 
-Recommendation: rename to `position`. This is a v2/major change opportunity.
+Decision: rename to `position`. This is v2 so the API break is acceptable.
 
 ## Files changed
 
