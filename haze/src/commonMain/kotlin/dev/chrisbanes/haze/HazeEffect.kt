@@ -40,7 +40,6 @@ public interface HazeEffectScope {
    * This feature is experimental as it's unclear how much gain it provides. It may be removed
    * some point in the future.
    */
-  @ExperimentalHazeApi
   public var inputScale: HazeInputScale
 
   /**
@@ -105,7 +104,6 @@ public interface HazeEffectScope {
 /**
  * Value classes used for [HazeEffectScope.inputScale].
  */
-@ExperimentalHazeApi
 public sealed interface HazeInputScale {
   /**
    * No input scaling. This is functionally the same as `Fixed(1.0f)`
@@ -136,7 +134,6 @@ public sealed interface HazeInputScale {
     /**
      * The default [HazeInputScale] value. Resolves to [HazeInputScale.Auto].
      */
-    @ExperimentalHazeApi
     public val Default: HazeInputScale get() = Auto
   }
 }

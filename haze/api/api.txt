@@ -90,11 +90,11 @@ package dev.chrisbanes.haze {
     property public abstract boolean drawContentBehind;
     property public abstract Boolean? expandLayerBounds;
     property public abstract boolean forceInvalidateOnPreDraw;
-    property @dev.chrisbanes.haze.ExperimentalHazeApi public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
+    property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
     property public abstract dev.chrisbanes.haze.VisualEffect visualEffect;
   }
 
-  @dev.chrisbanes.haze.ExperimentalHazeApi public sealed interface HazeInputScale {
+  public sealed interface HazeInputScale {
     field public static final dev.chrisbanes.haze.HazeInputScale.Companion Companion;
   }
 
@@ -104,7 +104,7 @@ package dev.chrisbanes.haze {
 
   public static final class HazeInputScale.Companion {
     method public dev.chrisbanes.haze.HazeInputScale getDefault();
-    property @dev.chrisbanes.haze.ExperimentalHazeApi public dev.chrisbanes.haze.HazeInputScale Default;
+    property public dev.chrisbanes.haze.HazeInputScale Default;
   }
 
   @kotlin.jvm.JvmInline public static final value class HazeInputScale.Fixed implements dev.chrisbanes.haze.HazeInputScale {
