@@ -78,8 +78,8 @@ Controls the resolution at which the effect source content is rendered. This is 
 
 Options:
 
-- `HazeInputScale.None`: No scaling
-- `HazeInputScale.Auto`: Automatic scaling with platform defaults (default)
+- `HazeInputScale.None`: No scaling (default)
+- `HazeInputScale.Auto`: Automatic scaling with platform defaults
 - `HazeInputScale.Fixed(value)`: Fixed scaling factor (0.0 to 1.0)
 
 #### drawContentBehind

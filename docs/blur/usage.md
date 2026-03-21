@@ -237,8 +237,8 @@ TopAppBar(
 
 [HazeInputScale](../api/haze/dev.chrisbanes.haze/-haze-input-scale/index.html) options:
 
-- `HazeInputScale.None`: No scaling
-- `HazeInputScale.Auto`: Automatic scaling with platform defaults (default)
+- `HazeInputScale.None`: No scaling (default)
+- `HazeInputScale.Auto`: Automatic scaling with platform defaults
 - `HazeInputScale.Fixed(...)`: Custom scaling factor (0.0 to 1.0)
 
 Values less than 1.0 improve performance at the cost of quality. Common values:

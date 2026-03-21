@@ -132,9 +132,9 @@ public sealed interface HazeInputScale {
 
   public companion object {
     /**
-     * The default [HazeInputScale] value. Resolves to [HazeInputScale.Auto].
+     * The default [HazeInputScale] value. Resolves to [HazeInputScale.None].
      */
-    public val Default: HazeInputScale get() = Auto
+    public val Default: HazeInputScale get() = None
   }
 }
 
