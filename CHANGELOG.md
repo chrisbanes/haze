@@ -5,7 +5,7 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.0 WIP <small>TBD</small> { id="2.0.0" }
+## 2.0.0-alpha01 <small>2026-03-21</small> { id="2.0.0-alpha01" }
 
 Major architectural refactor introducing a pluggable visual effects system for improved modularity and extensibility.
 
@@ -20,8 +20,8 @@ Haze now uses a `VisualEffect` interface that separates the core effect infrastr
 All blur functionality has been extracted from the core `haze` module into a separate `haze-blur` module:
 
 ```kotlin
-implementation("dev.chrisbanes.haze:haze:2.0.0")
-implementation("dev.chrisbanes.haze:haze-blur:2.0.0")
+implementation("dev.chrisbanes.haze:haze:2.0.0-alpha01")
+implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha01")
 ```
 
 #### New `blurEffect {}` API
@@ -37,6 +37,10 @@ Modifier.hazeEffect(state = hazeState) {
 }
 ```
 
+#### Configurable `HazePositionStrategy`
+
+New `positionStrategy` parameter on `rememberHazeState()` to control how effect positions are calculated, fixing split-window blur misalignment scenarios.
+
 ### Breaking Changes
 
 - **New module dependency:** Blur functionality now requires the `haze-blur` module
@@ -47,12 +51,19 @@ Modifier.hazeEffect(state = hazeState) {
   - `HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
   - `LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeStyle`
 - **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed (use `blurEffect { blurEnabled = ... }`)
+- **Internal API renames:** `create*ImageFilter` functions renamed to `create*RenderEffect` (only affects custom effect authors using `@InternalHazeApi`)
+- **Dropped targets:** `iosX64` and `macosX64` targets removed, following Compose Multiplatform 1.11. These Intel-based targets are no longer supported upstream.
+
+### Key Dependencies
+
+- Kotlin 2.3.20
+- Compose Multiplatform 1.11.0-alpha04
 
 ### Migration
 
 For detailed migration instructions, see the [Migration Guide](https://chrisbanes.github.io/haze/migrating-2.0/).
 
-**Full Changelog**: https://github.com/chrisbanes/haze/compare/1.7.1...2.0.0
+**Full Changelog**: https://github.com/chrisbanes/haze/compare/1.7.1...2.0.0-alpha01
 
 ## 1.7.1 <small>2025-11-24</small> { id="1.7.1" }
 

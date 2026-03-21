@@ -37,10 +37,9 @@ public interface HazeEffectScope {
    * will likely be visually perceptible different to no scaling, but depending on the styling
    * parameters will still look pleasing to the user.
    *
-   * This feature is experimental as it's unclear how much gain it provides. It may be removed
-   * some point in the future.
+   * The exact performance and quality trade-off of using [inputScale] can vary between devices
+   * and use cases, so you should benchmark it in the context of your own app.
    */
-  @ExperimentalHazeApi
   public var inputScale: HazeInputScale
 
   /**
@@ -105,7 +104,6 @@ public interface HazeEffectScope {
 /**
  * Value classes used for [HazeEffectScope.inputScale].
  */
-@ExperimentalHazeApi
 public sealed interface HazeInputScale {
   /**
    * No input scaling. This is functionally the same as `Fixed(1.0f)`
@@ -134,10 +132,8 @@ public sealed interface HazeInputScale {
 
   public companion object {
     /**
-     * The default [HazeInputScale] value. Currently this resolves to [HazeInputScale.None] but
-     * this may change in the future, probably to [HazeInputScale.Auto].
+     * The default [HazeInputScale] value. Resolves to [HazeInputScale.None].
      */
-    @ExperimentalHazeApi
     public val Default: HazeInputScale get() = None
   }
 }

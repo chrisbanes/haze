@@ -25,11 +25,13 @@ import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.blendForeground
 import dev.chrisbanes.haze.createBlendColorFilter
-import dev.chrisbanes.haze.createBlendImageFilter
-import dev.chrisbanes.haze.createColorFilterImageFilter
+import dev.chrisbanes.haze.createBlendRenderEffect
+import dev.chrisbanes.haze.createBlurRenderEffect
+import dev.chrisbanes.haze.createColorFilterRenderEffect
+import dev.chrisbanes.haze.createOffsetRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
-import dev.chrisbanes.haze.createShaderImageFilter
+import dev.chrisbanes.haze.createShaderRenderEffect
 import dev.chrisbanes.haze.isRuntimeShaderRenderEffectSupported
 import dev.chrisbanes.haze.then
 import dev.chrisbanes.haze.toHazeBlendMode
@@ -63,7 +65,11 @@ internal fun createRenderEffect(
     createGradientBlurRenderEffect(blurRadiusPx, size, offset, progressiveShader)
   } else {
     // Platform-specific blur creation
-    createBlurRenderEffect(blurRadiusPx, params)
+    createBlurRenderEffect(
+      radiusX = blurRadiusPx,
+      radiusY = blurRadiusPx,
+      tileMode = params.blurTileMode,
+    ) ?: createOffsetRenderEffect(0f, 0f)
   }
 
   val noise = createNoiseEffect(context, params.noiseFactor, progressiveShader, params.scale)
@@ -85,14 +91,6 @@ internal expect fun createNoiseEffect(
   noiseFactor: Float,
   mask: Shader?,
   scale: Float,
-): PlatformRenderEffect
-
-/**
- * Creates the platform-specific blur effect when no progressive mask is used.
- */
-internal expect fun createBlurRenderEffect(
-  blurRadiusPx: Float,
-  params: RenderEffectParams,
 ): PlatformRenderEffect
 
 private fun PlatformRenderEffect.withTints(
@@ -137,15 +135,15 @@ private fun PlatformRenderEffect.withBrushTint(
   val tintBrush = effect.brush.toShader(size) ?: return this
 
   val brushEffect = if (alphaModulate >= 1f) {
-    createShaderImageFilter(tintBrush)
+    createShaderRenderEffect(tintBrush)
   } else {
     // If we need to modulate the alpha, wrap it in a ColorFilter
-    createColorFilterImageFilter(
+    createColorFilterRenderEffect(
       colorFilter = createBlendColorFilter(
         color = Color.Black.copy(alpha = alphaModulate).toArgb(),
         blendMode = HazeBlendMode.SrcIn,
       ),
-      input = createShaderImageFilter(tintBrush),
+      input = createShaderRenderEffect(tintBrush),
     )
   }
 
@@ -178,12 +176,12 @@ private fun PlatformRenderEffect.withColorTint(
   val colorEffect = createBlendColorFilter(tintColor.toArgb(), effect.blendMode.toHazeBlendMode())
 
   val effectWithMask = if (mask != null) {
-    createColorFilterImageFilter(
+    createColorFilterRenderEffect(
       colorFilter = createBlendColorFilter(tintColor.toArgb(), HazeBlendMode.SrcIn),
-      input = createShaderImageFilter(mask),
+      input = createShaderRenderEffect(mask),
     )
   } else {
-    createColorFilterImageFilter(
+    createColorFilterRenderEffect(
       colorFilter = colorEffect,
       input = this,
     )
@@ -211,7 +209,7 @@ private fun PlatformRenderEffect.withColorFilter(
   offset: Offset,
   mask: Shader?,
 ): PlatformRenderEffect {
-  val filterEffect = createColorFilterImageFilter(
+  val filterEffect = createColorFilterRenderEffect(
     colorFilter = effect.colorFilter.toPlatformColorFilter(),
     input = this,
   )
@@ -234,9 +232,9 @@ private fun PlatformRenderEffect.applyMaskAndBlend(
   offset: Offset,
 ): PlatformRenderEffect {
   val effectWithMask = if (mask != null) {
-    createBlendImageFilter(
+    createBlendRenderEffect(
       blendMode = HazeBlendMode.SrcIn,
-      background = createShaderImageFilter(mask),
+      background = createShaderRenderEffect(mask),
       foreground = baseEffect,
     )
   } else {
@@ -258,7 +256,7 @@ private fun PlatformRenderEffect.withMask(
 ): PlatformRenderEffect {
   val shader = brush?.toShader(size) ?: return this
   return blendForeground(
-    foreground = createShaderImageFilter(shader),
+    foreground = createShaderRenderEffect(shader),
     blendMode = blendMode,
     offset = offset,
   )

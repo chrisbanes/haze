@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   build_docs:
-    runs-on: macos-latest
+    runs-on: macos-26
     env:
       DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
 
@@ -58,7 +58,7 @@ jobs:
             docs/
 
   deploy_docs:
-    runs-on: macos-latest
+    runs-on: macos-26
     needs: build_docs
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     environment:

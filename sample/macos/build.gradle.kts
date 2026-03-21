@@ -9,7 +9,6 @@ plugins {
 
 kotlin {
   listOf(
-    macosX64(),
     macosArm64(),
   ).forEach { macosTarget ->
     macosTarget.binaries.executable {
@@ -33,7 +32,6 @@ compose.desktop {
   nativeApplication {
     targets(
       kotlin.targets.getByName("macosArm64"),
-      kotlin.targets.getByName("macosX64"),
     )
   }
 }

@@ -78,6 +78,4 @@ public actual fun createFractalNoiseShader(
 public actual fun createBlendColorFilter(
   color: Int,
   blendMode: HazeBlendMode,
-): PlatformColorFilter {
-  return BlendModeColorFilter(color, blendMode.toAndroidBlendMode())
-}
+): PlatformColorFilter = BlendModeColorFilter(color, blendMode.toAndroidBlendMode())
