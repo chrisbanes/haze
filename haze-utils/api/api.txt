@@ -184,7 +184,7 @@ package dev.chrisbanes.haze {
     method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect? createBlurRenderEffect(float radiusX, float radiusY, int tileMode, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
     method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createColorFilterRenderEffect(android.graphics.ColorFilter colorFilter, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
     method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createOffsetRenderEffect(float offsetX, float offsetY, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
-    method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createShaderRenderEffect(android.graphics.Shader shader, optional androidx.compose.ui.geometry.Rect? crop);
+    method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createShaderRenderEffect(androidx.compose.ui.graphics.Shader shader, optional androidx.compose.ui.geometry.Rect? crop);
     method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static inline android.graphics.RenderEffect then(android.graphics.RenderEffect, android.graphics.RenderEffect other);
   }
 
@@ -196,13 +196,13 @@ package dev.chrisbanes.haze {
     method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createOffsetRenderEffect(float offsetX, float offsetY, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
     method @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRuntimeEffect createRuntimeEffect(String sksl);
     method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createRuntimeShaderRenderEffect(dev.chrisbanes.haze.PlatformRuntimeEffect effect, String[] shaderNames, android.graphics.RenderEffect?[] inputs, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.RuntimeShaderUniformProvider,kotlin.Unit> uniforms);
-    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createShaderRenderEffect(android.graphics.Shader shader, optional androidx.compose.ui.geometry.Rect? crop);
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createShaderRenderEffect(androidx.compose.ui.graphics.Shader shader, optional androidx.compose.ui.geometry.Rect? crop);
     method @dev.chrisbanes.haze.InternalHazeApi public static boolean isRuntimeShaderRenderEffectSupported();
     method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect then(android.graphics.RenderEffect, android.graphics.RenderEffect other);
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public interface RuntimeShaderUniformProvider {
-    method public void setChildShader(String name, android.graphics.Shader shader);
+    method public void setChildShader(String name, androidx.compose.ui.graphics.Shader shader);
     method public void setFloatUniform(String name, float value);
     method public void setFloatUniform(String name, float value1, float value2);
     method public void setFloatUniform(String name, float value1, float value2, float value3, float value4);
@@ -216,12 +216,12 @@ package dev.chrisbanes.haze {
 
   public final class Shader_androidKt {
     method @RequiresApi(android.os.Build.VERSION_CODES.Q) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.ColorFilter createBlendColorFilter(int color, dev.chrisbanes.haze.HazeBlendMode blendMode);
-    method @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.Shader createFractalNoiseShader(float baseFrequencyX, float baseFrequencyY, int numOctaves, float seed);
+    method @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) @dev.chrisbanes.haze.InternalHazeApi public static androidx.compose.ui.graphics.Shader createFractalNoiseShader(float baseFrequencyX, float baseFrequencyY, int numOctaves, float seed);
   }
 
   public final class Shader_skikoKt {
     method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.ColorFilter createBlendColorFilter(int color, dev.chrisbanes.haze.HazeBlendMode blendMode);
-    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.Shader createFractalNoiseShader(float baseFrequencyX, float baseFrequencyY, int numOctaves, float seed);
+    method @dev.chrisbanes.haze.InternalHazeApi public static androidx.compose.ui.graphics.Shader createFractalNoiseShader(float baseFrequencyX, float baseFrequencyY, int numOctaves, float seed);
   }
 
   public final class Trace_androidKt {
