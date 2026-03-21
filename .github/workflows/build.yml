@@ -22,7 +22,7 @@ jobs:
     # Skip build if head commit contains 'skip ci'
     if: "!contains(github.event.head_commit.message, 'skip ci')"
 
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 60
 
     steps:
@@ -51,7 +51,7 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1'
 
-    runs-on: macos-latest
+    runs-on: macos-26
     needs: [ build ]
     timeout-minutes: 30
 
