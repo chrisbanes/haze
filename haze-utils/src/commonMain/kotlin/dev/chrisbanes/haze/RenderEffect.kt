@@ -55,6 +55,9 @@ public expect fun createColorFilterRenderEffect(
 
 /**
  * Creates a blur [PlatformRenderEffect].
+ *
+ * Returns `null` when both [radiusX] and [radiusY] are <= 0, indicating no blur is needed.
+ *
  * @param radiusX Blur radius in the X direction (pixels)
  * @param radiusY Blur radius in the Y direction (pixels)
  */

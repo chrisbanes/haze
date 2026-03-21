@@ -37,8 +37,8 @@ public interface HazeEffectScope {
    * will likely be visually perceptible different to no scaling, but depending on the styling
    * parameters will still look pleasing to the user.
    *
-   * This feature is experimental as it's unclear how much gain it provides. It may be removed
-   * some point in the future.
+   * The exact performance and quality trade-off of using [inputScale] can vary between devices
+   * and use cases, so you should benchmark it in the context of your own app.
    */
   public var inputScale: HazeInputScale
 

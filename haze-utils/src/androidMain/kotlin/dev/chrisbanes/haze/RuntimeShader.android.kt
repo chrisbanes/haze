@@ -40,12 +40,17 @@ public actual fun createRuntimeShaderRenderEffect(
   val provider = AndroidRuntimeShaderUniformProvider(shader)
   uniforms(provider)
 
-  // Chain all input RenderEffects together using .then()
+  // Android's createRuntimeShaderEffect only supports a single content input.
+  // Find the content shader name — the one with a null input (receives rendered content).
+  val contentIndex = inputs.indexOfFirst { it == null }
+  val contentShaderName = if (contentIndex >= 0) shaderNames[contentIndex] else shaderNames.first()
+
+  // Chain any non-null input RenderEffects
   val chainedInput = inputs.filterNotNull().reduceOrNull { acc, input ->
     acc.then(input)
   }
 
-  return RenderEffect.createRuntimeShaderEffect(shader, "content").let { content ->
+  return RenderEffect.createRuntimeShaderEffect(shader, contentShaderName).let { content ->
     chainedInput?.then(content) ?: content
   }
 }
