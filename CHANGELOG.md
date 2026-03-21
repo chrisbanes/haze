@@ -57,7 +57,7 @@ New `positionStrategy` parameter on `rememberHazeState()` to control how effect 
 ### Key Dependencies
 
 - Kotlin 2.3.20
-- Compose Multiplatform 1.10.2
+- Compose Multiplatform 1.11.0-alpha04
 
 ### Migration
 

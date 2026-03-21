@@ -6,11 +6,11 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.skiaShader
 import kotlin.jvm.JvmInline
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.FilterTileMode
@@ -35,7 +35,7 @@ public actual fun createRuntimeEffect(sksl: String): PlatformRuntimeEffect {
 
 @InternalHazeApi
 public actual fun createShaderRenderEffect(shader: Shader, crop: Rect?): PlatformRenderEffect =
-  ImageFilter.makeShader(shader, crop = crop?.toIRect())
+  ImageFilter.makeShader(shader.skiaShader, crop = crop?.toIRect())
 
 @InternalHazeApi
 public actual fun createBlendRenderEffect(
@@ -74,8 +74,8 @@ public actual fun createBlurRenderEffect(
   }
 
   return ImageFilter.makeBlur(
-    sigmaX = BlurEffect.convertRadiusToSigma(radiusX),
-    sigmaY = BlurEffect.convertRadiusToSigma(radiusY),
+    sigmaX = radiusToSigma(radiusX),
+    sigmaY = radiusToSigma(radiusY),
     mode = when (tileMode) {
       TileMode.Clamp -> FilterTileMode.CLAMP
       TileMode.Repeated -> FilterTileMode.REPEAT
@@ -86,6 +86,14 @@ public actual fun createBlurRenderEffect(
     input = input,
     crop = crop?.toIRect(),
   )
+}
+
+/**
+ * Converts a blur radius to a sigma value for Skia's blur filter.
+ * This matches the formula used by Compose's BlurEffect.
+ */
+private fun radiusToSigma(radius: Float): Float {
+  return (radius * 0.57735f + 0.5f)
 }
 
 @InternalHazeApi
@@ -155,6 +163,6 @@ private value class SkikoRuntimeShaderUniformProvider(
   }
 
   override fun setChildShader(name: String, shader: Shader) {
-    builder.child(name, shader)
+    builder.child(name, shader.skiaShader)
   }
 }
