@@ -134,11 +134,10 @@ public sealed interface HazeInputScale {
 
   public companion object {
     /**
-     * The default [HazeInputScale] value. Currently this resolves to [HazeInputScale.None] but
-     * this may change in the future, probably to [HazeInputScale.Auto].
+     * The default [HazeInputScale] value. Resolves to [HazeInputScale.Auto].
      */
     @ExperimentalHazeApi
-    public val Default: HazeInputScale get() = None
+    public val Default: HazeInputScale get() = Auto
   }
 }
 

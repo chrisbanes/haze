@@ -51,6 +51,7 @@ New `positionStrategy` parameter on `rememberHazeState()` to control how effect 
   - `HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
   - `LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeStyle`
 - **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed (use `blurEffect { blurEnabled = ... }`)
+- **Default input scale changed:** `HazeInputScale.Default` now resolves to `Auto` instead of `None`. To preserve the old behavior, explicitly set `inputScale = HazeInputScale.None`.
 - **Internal API renames:** `create*ImageFilter` functions renamed to `create*RenderEffect` (only affects custom effect authors using `@InternalHazeApi`)
 
 ### Key Dependencies
