@@ -53,6 +53,7 @@ New `positionStrategy` parameter on `rememberHazeState()` to control how effect 
 - **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed (use `blurEffect { blurEnabled = ... }`)
 - **Default input scale changed:** `HazeInputScale.Default` now resolves to `Auto` instead of `None`. To preserve the old behavior, explicitly set `inputScale = HazeInputScale.None`.
 - **Internal API renames:** `create*ImageFilter` functions renamed to `create*RenderEffect` (only affects custom effect authors using `@InternalHazeApi`)
+- **Dropped targets:** `iosX64` and `macosX64` targets removed, following Compose Multiplatform 1.11. These Intel-based targets are no longer supported upstream.
 
 ### Key Dependencies
 
