@@ -101,19 +101,6 @@ class HazeColorEffectTest {
   }
 
   @Test
-  fun sealedInterface_typeChecking() {
-    val colorTint = HazeColorEffect.tint(Color.Red)
-    val brushTint = HazeColorEffect.tint(Brush.verticalGradient(listOf(Color.Red, Color.Blue)))
-    val colorFilter = HazeColorEffect.colorFilter(ColorFilter.tint(Color.Blue))
-
-    assertTrue(colorTint is HazeColorEffect.TintColor)
-    assertTrue(brushTint is HazeColorEffect.TintBrush)
-    assertTrue(colorFilter is HazeColorEffect.ColorFilter)
-    assertFalse(colorTint is HazeColorEffect.TintBrush)
-    assertFalse(brushTint is HazeColorEffect.TintColor)
-  }
-
-  @Test
   fun colorTint_accessColorProperty() {
     val color = Color.Red
     val effect = HazeColorEffect.tint(color) as HazeColorEffect.TintColor
@@ -138,8 +125,8 @@ class HazeColorEffectTest {
   @Test
   @Suppress("DEPRECATION")
   fun backwardCompatibility_HazeTint_typeAlias() {
-    val effect: HazeColorEffect = HazeColorEffect.tint(Color.Red, HazeColorEffect.DefaultBlendMode)
-    assertTrue(effect is HazeColorEffect)
+    val effect = HazeColorEffect.tint(Color.Red, HazeColorEffect.DefaultBlendMode)
+    assertTrue(effect.isSpecified)
   }
 
   @Test
