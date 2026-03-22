@@ -1,0 +1,104 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze.liquidglass {
+
+  public final class HazeEffectScopeKt {
+    method public static inline void liquidGlassEffect(dev.chrisbanes.haze.HazeEffectScope, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect,kotlin.Unit> block);
+  }
+
+  public final class LiquidGlassDefaults {
+    method public androidx.compose.foundation.shape.RoundedCornerShape getShape();
+    property public static float ambientResponse;
+    property public androidx.compose.ui.unit.Dp blurRadius;
+    property public static float chromaticAberrationStrength;
+    property public static float depth;
+    property public androidx.compose.ui.unit.Dp edgeSoftness;
+    property public static float refractionHeight;
+    property public static float refractionStrength;
+    property public androidx.compose.foundation.shape.RoundedCornerShape shape;
+    property public static float specularIntensity;
+    property public androidx.compose.ui.graphics.Color tint;
+    field public static final dev.chrisbanes.haze.liquidglass.LiquidGlassDefaults INSTANCE;
+    field public static final float ambientResponse = 0.5f;
+    field public static final float chromaticAberrationStrength = 0.0f;
+    field public static final float depth = 0.4f;
+    field public static final float refractionHeight = 0.25f;
+    field public static final float refractionStrength = 0.7f;
+    field public static final float specularIntensity = 0.4f;
+  }
+
+  @androidx.compose.runtime.Immutable public final class LiquidGlassStyle {
+    ctor public LiquidGlassStyle();
+    ctor @KotlinOnly public LiquidGlassStyle(optional androidx.compose.ui.graphics.Color tint, optional float refractionStrength, optional float specularIntensity, optional float depth, optional float ambientResponse, optional androidx.compose.ui.unit.Dp edgeSoftness, optional androidx.compose.ui.geometry.Offset lightPosition, optional androidx.compose.ui.unit.Dp blurRadius, optional float refractionHeight, optional float chromaticAberrationStrength, optional androidx.compose.foundation.shape.RoundedCornerShape? shape);
+    method public float component10();
+    method public androidx.compose.foundation.shape.RoundedCornerShape? component11();
+    method public float component2();
+    method public float component3();
+    method public float component4();
+    method public float component5();
+    method public float component9();
+    method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle copy-Uuz26js(long tint, float refractionStrength, float specularIntensity, float depth, float ambientResponse, float edgeSoftness, long lightPosition, float blurRadius, float refractionHeight, float chromaticAberrationStrength, androidx.compose.foundation.shape.RoundedCornerShape? shape);
+    method public float getAmbientResponse();
+    method public float getChromaticAberrationStrength();
+    method public float getDepth();
+    method public float getRefractionHeight();
+    method public float getRefractionStrength();
+    method public androidx.compose.foundation.shape.RoundedCornerShape? getShape();
+    method public float getSpecularIntensity();
+    property public float ambientResponse;
+    property public androidx.compose.ui.unit.Dp blurRadius;
+    property public float chromaticAberrationStrength;
+    property public float depth;
+    property public androidx.compose.ui.unit.Dp edgeSoftness;
+    property public androidx.compose.ui.geometry.Offset lightPosition;
+    property public float refractionHeight;
+    property public float refractionStrength;
+    property public androidx.compose.foundation.shape.RoundedCornerShape? shape;
+    property public float specularIntensity;
+    property public androidx.compose.ui.graphics.Color tint;
+    field public static final dev.chrisbanes.haze.liquidglass.LiquidGlassStyle.Companion Companion;
+  }
+
+  public static final class LiquidGlassStyle.Companion {
+    method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getUnspecified();
+    property public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle Unspecified;
+  }
+
+  public final class LiquidGlassVisualEffect implements dev.chrisbanes.haze.VisualEffect {
+    ctor public LiquidGlassVisualEffect();
+    method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
+    method public float getAlpha();
+    method public float getAmbientResponse();
+    method public float getChromaticAberrationStrength();
+    method public float getDepth();
+    method public float getRefractionHeight();
+    method public float getRefractionStrength();
+    method public androidx.compose.foundation.shape.RoundedCornerShape getShape();
+    method public float getSpecularIntensity();
+    method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getStyle();
+    method public void setAlpha(float);
+    method public void setAmbientResponse(float);
+    method public void setChromaticAberrationStrength(float);
+    method public void setDepth(float);
+    method public void setRefractionHeight(float);
+    method public void setRefractionStrength(float);
+    method public void setShape(androidx.compose.foundation.shape.RoundedCornerShape);
+    method public void setSpecularIntensity(float);
+    method public void setStyle(dev.chrisbanes.haze.liquidglass.LiquidGlassStyle);
+    property public float alpha;
+    property public float ambientResponse;
+    property public androidx.compose.ui.unit.Dp blurRadius;
+    property public float chromaticAberrationStrength;
+    property public float depth;
+    property public androidx.compose.ui.unit.Dp edgeSoftness;
+    property public androidx.compose.ui.geometry.Offset lightPosition;
+    property public float refractionHeight;
+    property public float refractionStrength;
+    property public androidx.compose.foundation.shape.RoundedCornerShape shape;
+    property public float specularIntensity;
+    property public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle style;
+    property public androidx.compose.ui.graphics.Color tint;
+    field public static final String TAG = "LiquidGlassVisualEffect";
+  }
+
+}
+

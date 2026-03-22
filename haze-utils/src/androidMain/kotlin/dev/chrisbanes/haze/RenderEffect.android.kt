@@ -73,6 +73,7 @@ public actual fun createBlurRenderEffect(
   }
 
   return try {
+    // On Android we use the native blur effect directly for better performance
     val blurEffect = RenderEffect.createBlurEffect(radiusX, radiusY, edgeTreatment)
     if (input != null) {
       RenderEffect.createChainEffect(blurEffect, input)
