@@ -3,8 +3,8 @@
 
 package dev.chrisbanes.haze.blur
 
-import dev.chrisbanes.haze.HazeEffectScope
 import androidx.compose.ui.Modifier
+import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 
@@ -45,13 +45,13 @@ public inline fun HazeEffectScope.blurEffect(block: BlurVisualEffect.() -> Unit)
   "Style parameter moved to blurEffect {} block. See migration guide.",
   ReplaceWith(
     "Modifier.hazeEffect(state) { blurEffect { this.style = style } }",
-    "dev.chrisbanes.haze.blur.blurEffect"
-  )
+    "dev.chrisbanes.haze.blur.blurEffect",
+  ),
 )
 public inline fun Modifier.hazeEffect(
   state: HazeState,
   style: HazeBlurStyle,
-  crossinline block: HazeEffectScope.() -> Unit = {}
+  crossinline block: HazeEffectScope.() -> Unit = {},
 ): Modifier = hazeEffect(state) {
   blurEffect {
     this.style = style
