@@ -1,4 +1,14 @@
 // Signature format: 4.0
+package dev.chrisbanes.haze {
+
+  public final class MigrationAliasesKt {
+    method @Deprecated public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeBlurStyle> getLocalHazeStyle();
+    method @Deprecated public static inline androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, dev.chrisbanes.haze.blur.HazeBlurStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit> block);
+    property @Deprecated public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeBlurStyle> LocalHazeStyle;
+  }
+
+}
+
 package dev.chrisbanes.haze.blur {
 
   public final class BlurVisualEffect implements dev.chrisbanes.haze.VisualEffect {
@@ -147,7 +157,7 @@ package dev.chrisbanes.haze.blur {
   }
 
   public static final class HazeProgressive.Companion {
-    method public inline androidx.compose.ui.graphics.Brush forShader(kotlin.jvm.functions.Function1<? super androidx.compose.ui.geometry.Size,? extends android.graphics.Shader> block);
+    method public inline androidx.compose.ui.graphics.Brush forShader(kotlin.jvm.functions.Function1<? super androidx.compose.ui.geometry.Size,androidx.compose.ui.graphics.Shader> block);
     method public dev.chrisbanes.haze.blur.HazeProgressive.LinearGradient horizontalGradient(optional androidx.compose.animation.core.Easing easing, optional float startX, optional float startIntensity, optional float endX, optional float endIntensity, optional boolean preferPerformance);
     method public dev.chrisbanes.haze.blur.HazeProgressive.LinearGradient verticalGradient(optional androidx.compose.animation.core.Easing easing, optional float startY, optional float startIntensity, optional float endY, optional float endIntensity, optional boolean preferPerformance);
   }
