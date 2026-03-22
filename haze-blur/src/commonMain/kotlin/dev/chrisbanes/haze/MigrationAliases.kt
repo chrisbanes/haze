@@ -6,10 +6,10 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.ui.Modifier
 import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.HazeProgressive
-import dev.chrisbanes.haze.blur.HazeTint
 import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
+import dev.chrisbanes.haze.blur.blurEffect
 
 /**
  * Migration typealias. Use [HazeBlurStyle] from `dev.chrisbanes.haze.blur` package instead.
@@ -47,3 +47,41 @@ public typealias HazeProgressive = dev.chrisbanes.haze.blur.HazeProgressive
 )
 public val LocalHazeStyle: ProvidableCompositionLocal<HazeBlurStyle>
   get() = LocalHazeBlurStyle
+
+/**
+ * Migration helper overload that accepts a style parameter directly.
+ *
+ * In v1, you could write:
+ * ```kotlin
+ * Modifier.hazeEffect(state, style = HazeMaterials.thin())
+ * ```
+ *
+ * In v2, this becomes:
+ * ```kotlin
+ * Modifier.hazeEffect(state) {
+ *   blurEffect {
+ *     style = HazeMaterials.thin()
+ *   }
+ * }
+ * ```
+ *
+ * This overload supports the v1 pattern during migration.
+ */
+@Deprecated(
+  "Style parameter moved to blurEffect {} block. See migration guide.",
+  ReplaceWith(
+    "hazeEffect(state) { blurEffect { style = style } }",
+    "dev.chrisbanes.haze.hazeEffect",
+    "dev.chrisbanes.haze.blur.blurEffect",
+  ),
+)
+public inline fun Modifier.hazeEffect(
+  state: HazeState,
+  style: HazeBlurStyle,
+  crossinline block: HazeEffectScope.() -> Unit = {},
+): Modifier = hazeEffect(state) {
+  blurEffect {
+    this.style = style
+  }
+  block()
+}
