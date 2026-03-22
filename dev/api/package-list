@@ -4,6 +4,7 @@ $dokka.linkExtension:html
 module:haze
 dev.chrisbanes.haze
 module:haze-blur
+dev.chrisbanes.haze
 dev.chrisbanes.haze.blur
 module:haze-materials
 dev.chrisbanes.haze.blur.materials
