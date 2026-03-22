@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.runSkikoComposeUiTest
+import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
@@ -34,7 +34,7 @@ class HazeTest {
   @Test
   fun testDescendantModifiers() {
     assertFailure {
-      runSkikoComposeUiTest {
+      runComposeUiTest {
         setContent {
           val hazeState = remember { HazeState() }
           Box(Modifier.size(30.dp).hazeSource(hazeState)) {
