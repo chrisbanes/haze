@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.TileMode
@@ -95,6 +96,7 @@ public actual fun createBlurRenderEffect(
 private fun radiusToSigma(radius: Float): Float {
   return (radius * 0.57735f + 0.5f)
 }
+
 
 @InternalHazeApi
 public actual fun createOffsetRenderEffect(

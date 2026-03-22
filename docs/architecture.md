@@ -60,7 +60,7 @@ haze (core)
 ```
 
 Future effects will follow the same pattern:
-- **haze-liquidglass** - Refraction-based liquid glass effect
+- **haze-liquidglass** - Refraction-based liquid glass effect with rounded-shape SDF and optional chromatic aberration
 - Custom third-party effect modules
 
 ## Effect Registration Pattern
