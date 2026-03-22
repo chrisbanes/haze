@@ -82,9 +82,9 @@ internal fun DrawScope.createScaledContentLayer(
     }
 
     scale(scale = scaleFactor, pivot = Offset.Zero) {
-      translate(layerOffset - context.positionOnScreen) {
+      translate(layerOffset - context.position) {
         for (area in context.areas) {
-          val position = Snapshot.withoutReadObservation { area.positionOnScreen }
+          val position = Snapshot.withoutReadObservation { area.position }
           val resolvedPosition = if (position.isSpecified) position else Offset.Zero
           translate(resolvedPosition) {
             val areaLayer = area.contentLayer
