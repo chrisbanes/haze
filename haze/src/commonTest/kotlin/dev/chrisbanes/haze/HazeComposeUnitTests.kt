@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.hasSize
@@ -21,7 +21,7 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class HazeComposeUnitTests : ContextTest() {
   @Test
-  fun testChangingHazeState() = runComposeUiTest {
+  fun testChangingHazeState() = runSkikoComposeUiTest {
     val hazeState1 = HazeState()
     val hazeState2 = HazeState()
 
@@ -49,7 +49,7 @@ class HazeComposeUnitTests : ContextTest() {
   }
 
   @Test
-  fun test_zeroSize() = runComposeUiTest {
+  fun test_zeroSize() = runSkikoComposeUiTest {
     val hazeState = HazeState()
 
     setContent {
@@ -79,7 +79,7 @@ class HazeComposeUnitTests : ContextTest() {
   }
 
   @Test
-  fun testExplicitLocalStrategy() = runComposeUiTest {
+  fun testExplicitLocalStrategy() = runSkikoComposeUiTest {
     val state = HazeState().apply {
       positionStrategy = HazePositionStrategy.Local
     }
@@ -93,7 +93,7 @@ class HazeComposeUnitTests : ContextTest() {
   }
 
   @Test
-  fun testExplicitScreenStrategy() = runComposeUiTest {
+  fun testExplicitScreenStrategy() = runSkikoComposeUiTest {
     val state = HazeState().apply {
       positionStrategy = HazePositionStrategy.Screen
     }
@@ -107,7 +107,7 @@ class HazeComposeUnitTests : ContextTest() {
   }
 
   @Test
-  fun testAutoStrategyResolvesToLocalInSameWindow() = runComposeUiTest {
+  fun testAutoStrategyResolvesToLocalInSameWindow() = runSkikoComposeUiTest {
     val state = HazeState()
     setContent {
       Box(Modifier.hazeSource(state)) {
