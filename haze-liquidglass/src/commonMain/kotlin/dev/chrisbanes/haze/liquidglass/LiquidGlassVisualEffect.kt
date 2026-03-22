@@ -75,30 +75,17 @@ public class LiquidGlassVisualEffect : VisualEffect {
     return if (softnessPx > 0f) rect.inflate(softnessPx) else rect
   }
 
-  // ======== Properties ========
-
-  private var _refractionStrength: Float = Float.NaN
-  private var _specularIntensity: Float = Float.NaN
-  private var _depth: Float = Float.NaN
-  private var _ambientResponse: Float = Float.NaN
-  private var _edgeSoftness: Dp = Dp.Unspecified
-  private var _lightPosition: Offset = Offset.Unspecified
-  private var _tint: Color = Color.Unspecified
-  private var _blurRadius: Dp = Dp.Unspecified
-  private var _refractionHeight: Float = Float.NaN
-  private var _chromaticAberrationStrength: Float = Float.NaN
-  private var _shape: RoundedCornerShape? = null
-
   /**
    * Strength of refractive distortion, in the range `0f..1f`.
    */
-  public var refractionStrength: Float
-    get() = _refractionStrength.takeOrElse { style.refractionStrength }.takeOrElse {
-      LiquidGlassDefaults.refractionStrength
+  public var refractionStrength: Float = Float.NaN
+    get() {
+      return field.takeOrElse { style.refractionStrength }
+        .takeOrElse { LiquidGlassDefaults.refractionStrength }
     }
     set(value) {
-      if (value != _refractionStrength) {
-        _refractionStrength = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.RefractionStrength
       }
     }
@@ -106,12 +93,14 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Intensity of specular highlights, in the range `0f..1f`.
    */
-  public var specularIntensity: Float
-    get() = _specularIntensity.takeOrElse { style.specularIntensity }
-      .takeOrElse { LiquidGlassDefaults.specularIntensity }
+  public var specularIntensity: Float = Float.NaN
+    get() {
+      return field.takeOrElse { style.specularIntensity }
+        .takeOrElse { LiquidGlassDefaults.specularIntensity }
+    }
     set(value) {
-      if (value != _specularIntensity) {
-        _specularIntensity = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.SpecularIntensity
       }
     }
@@ -119,11 +108,14 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Depth perception factor (0 = flat, 1 = deep layered glass).
    */
-  public var depth: Float
-    get() = _depth.takeOrElse { style.depth }.takeOrElse { LiquidGlassDefaults.depth }
+  public var depth: Float = Float.NaN
+    get() {
+      return field.takeOrElse { style.depth }
+        .takeOrElse { LiquidGlassDefaults.depth }
+    }
     set(value) {
-      if (value != _depth) {
-        _depth = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.Depth
       }
     }
@@ -131,13 +123,14 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Strength of ambient lighting response and Fresnel accent.
    */
-  public var ambientResponse: Float
-    get() = _ambientResponse.takeOrElse { style.ambientResponse }.takeOrElse {
-      LiquidGlassDefaults.ambientResponse
+  public var ambientResponse: Float = Float.NaN
+    get() {
+      return field.takeOrElse { style.ambientResponse }
+        .takeOrElse { LiquidGlassDefaults.ambientResponse }
     }
     set(value) {
-      if (value != _ambientResponse) {
-        _ambientResponse = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.AmbientResponse
       }
     }
@@ -145,11 +138,14 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Glass tint applied to the refracted content.
    */
-  public var tint: Color
-    get() = _tint.takeOrElse { style.tint }.takeOrElse { LiquidGlassDefaults.tint }
+  public var tint: Color = Color.Unspecified
+    get() {
+      return field.takeOrElse { style.tint }
+        .takeOrElse { LiquidGlassDefaults.tint }
+    }
     set(value) {
-      if (value != _tint) {
-        _tint = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.Tint
       }
     }
@@ -157,13 +153,14 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Softening distance for glass edges.
    */
-  public var edgeSoftness: Dp
-    get() = _edgeSoftness.takeOrElse { style.edgeSoftness }.takeOrElse {
-      LiquidGlassDefaults.edgeSoftness
+  public var edgeSoftness: Dp = Dp.Unspecified
+    get() {
+      return field.takeOrElse { style.edgeSoftness }
+        .takeOrElse { LiquidGlassDefaults.edgeSoftness }
     }
     set(value) {
-      if (value != _edgeSoftness) {
-        _edgeSoftness = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.EdgeSoftness
       }
     }
@@ -171,11 +168,14 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Position of the virtual light source. When unspecified, the center of the layer is used.
    */
-  public var lightPosition: Offset
-    get() = _lightPosition.takeOrElse { style.lightPosition }.takeOrElse { Offset.Unspecified }
+  public var lightPosition: Offset = Offset.Unspecified
+    get() {
+      return field.takeOrElse { style.lightPosition }
+        .takeOrElse { Offset.Unspecified }
+    }
     set(value) {
-      if (value != _lightPosition) {
-        _lightPosition = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.LightPosition
       }
     }
@@ -183,13 +183,14 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Radius of the blur applied to create depth effect.
    */
-  public var blurRadius: Dp
-    get() = _blurRadius.takeOrElse { style.blurRadius }.takeOrElse {
-      LiquidGlassDefaults.blurRadius
+  public var blurRadius: Dp = Dp.Unspecified
+    get() {
+      return field.takeOrElse { style.blurRadius }
+        .takeOrElse { LiquidGlassDefaults.blurRadius }
     }
     set(value) {
-      if (value != _blurRadius) {
-        _blurRadius = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.BlurRadius
       }
     }
@@ -197,13 +198,14 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Height of the refraction zone expressed as a fraction of the smallest dimension (0f..1f).
    */
-  public var refractionHeight: Float
-    get() = _refractionHeight.takeOrElse { style.refractionHeight }.takeOrElse {
-      LiquidGlassDefaults.refractionHeight
+  public var refractionHeight: Float = Float.NaN
+    get() {
+      return field.takeOrElse { style.refractionHeight }
+        .takeOrElse { LiquidGlassDefaults.refractionHeight }
     }
     set(value) {
-      if (value != _refractionHeight) {
-        _refractionHeight = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.RefractionHeight
       }
     }
@@ -211,12 +213,14 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Strength of chromatic aberration. TODO: expand to configurable channel/spread controls.
    */
-  public var chromaticAberrationStrength: Float
-    get() = _chromaticAberrationStrength.takeOrElse { style.chromaticAberrationStrength }
-      .takeOrElse { LiquidGlassDefaults.chromaticAberrationStrength }
+  public var chromaticAberrationStrength: Float = Float.NaN
+    get() {
+      return field.takeOrElse { style.chromaticAberrationStrength }
+        .takeOrElse { LiquidGlassDefaults.chromaticAberrationStrength }
+    }
     set(value) {
-      if (value != _chromaticAberrationStrength) {
-        _chromaticAberrationStrength = value
+      if (value != field) {
+        field = value
         dirtyTracker += LiquidGlassDirtyFields.ChromaticAberration
       }
     }
@@ -224,6 +228,8 @@ public class LiquidGlassVisualEffect : VisualEffect {
   /**
    * Shape applied to the glass. Defaults to a rectangle (all radii zero).
    */
+  private var _shape: RoundedCornerShape? = null
+
   public var shape: RoundedCornerShape
     get() = _shape ?: style.shape ?: LiquidGlassDefaults.shape
     set(value) {
