@@ -3,6 +3,7 @@ package dev.chrisbanes.haze {
 
   public final class MigrationAliasesKt {
     method @Deprecated public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeBlurStyle> getLocalHazeStyle();
+    method @Deprecated public static inline androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, dev.chrisbanes.haze.blur.HazeBlurStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit> block);
     property @Deprecated public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeBlurStyle> LocalHazeStyle;
   }
 
@@ -143,7 +144,6 @@ package dev.chrisbanes.haze.blur {
 
   public final class HazeEffectScopeKt {
     method public static inline void blurEffect(dev.chrisbanes.haze.HazeEffectScope, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.blur.BlurVisualEffect,kotlin.Unit> block);
-    method @Deprecated public static inline androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, dev.chrisbanes.haze.blur.HazeBlurStyle style, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit> block);
   }
 
   @androidx.compose.runtime.Immutable public sealed interface HazeProgressive {
