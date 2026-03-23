@@ -22,14 +22,12 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.sample.shared.R
 
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun ExoPlayerSample(blurEnabled: Boolean) {
   val hazeState = rememberHazeState()

@@ -27,7 +27,6 @@ public object CupertinoMaterials {
   /**
    * A [dev.chrisbanes.haze.blur.HazeBlurStyle] which implements a mostly translucent material.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun ultraThin(
@@ -44,7 +43,6 @@ public object CupertinoMaterials {
    * A [dev.chrisbanes.haze.blur.HazeBlurStyle] which implements a translucent material. More opaque than [ultraThin],
    * more translucent than [regular].
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun thin(
@@ -61,7 +59,6 @@ public object CupertinoMaterials {
    * A [dev.chrisbanes.haze.blur.HazeBlurStyle] which implements a somewhat opaque material. More opaque than [thin],
    * more translucent than [thick].
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun regular(
@@ -77,7 +74,6 @@ public object CupertinoMaterials {
   /**
    * A [dev.chrisbanes.haze.blur.HazeBlurStyle] which implements a mostly opaque material. More opaque than [regular].
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun thick(

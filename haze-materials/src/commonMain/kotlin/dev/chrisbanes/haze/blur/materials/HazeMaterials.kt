@@ -17,25 +17,16 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials.thin
 import dev.chrisbanes.haze.blur.materials.HazeMaterials.ultraThick
 import dev.chrisbanes.haze.blur.materials.HazeMaterials.ultraThin
 
-@RequiresOptIn(
-  message = "Experimental Haze Materials API",
-  level = RequiresOptIn.Level.WARNING,
-)
-public annotation class ExperimentalHazeMaterialsApi
-
 /**
  * A class which contains functions to build [HazeBlurStyle]s which implement 'material-like' styles.
  * It is inspired by the material APIs available in SwiftUI, but it makes no attempt to provide
  * the exact effects provided in iOS.
- *
- * The functions are marked as experimental, as the effects provided are still being tweaked.
  */
 public object HazeMaterials {
 
   /**
    * A [HazeBlurStyle] which implements a mostly translucent material.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun ultraThin(
@@ -50,7 +41,6 @@ public object HazeMaterials {
    * A [HazeBlurStyle] which implements a translucent material. More opaque than [ultraThin],
    * more translucent than [regular].
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun thin(
@@ -65,7 +55,6 @@ public object HazeMaterials {
    * A [HazeBlurStyle] which implements a somewhat opaque material. More opaque than [thin],
    * more translucent than [thick].
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun regular(
@@ -80,7 +69,6 @@ public object HazeMaterials {
    * A [HazeBlurStyle] which implements a mostly opaque material. More opaque than [regular],
    * more translucent than [ultraThick].
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun thick(
@@ -94,7 +82,6 @@ public object HazeMaterials {
   /**
    * A [HazeBlurStyle] which implements a nearly opaque material.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun ultraThick(
