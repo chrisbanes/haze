@@ -30,7 +30,6 @@ import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -38,7 +37,6 @@ import dev.chrisbanes.haze.rememberHazeState
 
 @OptIn(
   ExperimentalMaterial3Api::class,
-  ExperimentalHazeMaterialsApi::class,
   ExperimentalHazeApi::class,
   ExperimentalFoundationApi::class,
 )

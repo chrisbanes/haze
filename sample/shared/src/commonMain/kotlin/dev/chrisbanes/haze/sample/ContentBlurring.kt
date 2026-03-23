@@ -42,11 +42,10 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContentBlurring(
   navController: NavHostController,

@@ -44,7 +44,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.blur.HazeProgressive
 import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -58,7 +57,6 @@ enum class ScaffoldSampleMode {
 
 @OptIn(
   ExperimentalMaterial3Api::class,
-  ExperimentalHazeMaterialsApi::class,
   ExperimentalHazeApi::class,
 )
 @Composable

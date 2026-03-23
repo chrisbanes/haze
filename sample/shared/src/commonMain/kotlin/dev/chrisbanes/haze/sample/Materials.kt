@@ -32,7 +32,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.materials.CupertinoMaterials
-import dev.chrisbanes.haze.blur.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.blur.materials.FluentMaterials
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
@@ -157,7 +156,7 @@ fun MaterialsSample(navController: NavHostController, blurEnabled: Boolean) {
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HazeMaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier) {
   FlowRow(
@@ -202,7 +201,7 @@ private fun HazeMaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CupertinoMaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier) {
   FlowRow(
@@ -240,7 +239,7 @@ private fun CupertinoMaterialsRow(hazeState: HazeState, modifier: Modifier = Mod
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FluentMaterialsRow(hazeState: HazeState, modifier: Modifier = Modifier) {
   FlowRow(

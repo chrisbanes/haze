@@ -23,13 +23,11 @@ import dev.chrisbanes.haze.blur.HazeColorEffect
  * The primary use case for using these is for when aiming for consistency with native UI
  * (i.e. for when mixing Compose Multiplatform content alongside WinUI content).
  */
-@ExperimentalHazeMaterialsApi
 public object FluentMaterials {
 
   /**
    * A [HazeBlurStyle] which implements a mostly translucent material.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun thinAcrylic(
@@ -55,7 +53,6 @@ public object FluentMaterials {
   /**
    * A [HazeBlurStyle] which implements a translucent material used for the most translucent layer with accent color.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun accentAcrylicBase(
@@ -73,7 +70,6 @@ public object FluentMaterials {
   /**
    * A [HazeBlurStyle] which implements a translucent material used for the popup container background with accent color.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun accentAcrylicDefault(
@@ -91,7 +87,6 @@ public object FluentMaterials {
   /**
    * A [HazeBlurStyle] which implements a translucent material used for the most translucent layer.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun acrylicBase(
@@ -117,7 +112,6 @@ public object FluentMaterials {
   /**
    * A [HazeBlurStyle] which implements a translucent material used for the popup container background.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun acrylicDefault(
@@ -143,7 +137,6 @@ public object FluentMaterials {
   /**
    * A [HazeBlurStyle] which implements a translucent application background material.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun mica(
@@ -164,7 +157,6 @@ public object FluentMaterials {
   /**
    * A [HazeBlurStyle] which implements a translucent application background material used for the tab experience.
    */
-  @ExperimentalHazeMaterialsApi
   @Composable
   @ReadOnlyComposable
   public fun micaAlt(
