@@ -690,46 +690,23 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   /**
-   * Test for issue #717: verifies haze effect follows a parent's graphicsLayer rotation.
+   * Test for issue #717: verifies haze effect follows a parent's graphicsLayer rotation
+   * using [HazePositionStrategy.Local].
    */
   @Test
-  fun parentRotation() = runScreenshotTest {
-    var rotationZ by mutableStateOf(0f)
-    val blurVisualEffect = BlurVisualEffect().apply {
-      colorEffects = listOf(DefaultTint)
-      blurRadius = 8.dp
-    }
-
-    setContent {
-      ScreenshotTheme {
-        ParentRotatedContent(visualEffect = blurVisualEffect, rotationZ = rotationZ)
-      }
-    }
-
-    captureRoot("0deg")
-
-    rotationZ = 15f
-    waitForIdle()
-    captureRoot("15deg")
-
-    rotationZ = 45f
-    waitForIdle()
-    captureRoot("45deg")
-
-    rotationZ = 90f
-    waitForIdle()
-    captureRoot("90deg")
-
-    rotationZ = 180f
-    waitForIdle()
-    captureRoot("180deg")
+  fun parentRotation() {
+    parentRotationTest(HazePositionStrategy.Local)
   }
 
   /**
    * Same as [parentRotation] but using [HazePositionStrategy.Screen] to compare behavior.
    */
   @Test
-  fun parentRotation_screenStrategy() = runScreenshotTest {
+  fun parentRotation_screenStrategy() {
+    parentRotationTest(HazePositionStrategy.Screen)
+  }
+
+  private fun parentRotationTest(positionStrategy: HazePositionStrategy) = runScreenshotTest {
     var rotationZ by mutableStateOf(0f)
     val blurVisualEffect = BlurVisualEffect().apply {
       colorEffects = listOf(DefaultTint)
@@ -741,7 +718,7 @@ class HazeScreenshotTest : ScreenshotTest() {
         ParentRotatedContent(
           visualEffect = blurVisualEffect,
           rotationZ = rotationZ,
-          positionStrategy = HazePositionStrategy.Screen,
+          positionStrategy = positionStrategy,
         )
       }
     }
