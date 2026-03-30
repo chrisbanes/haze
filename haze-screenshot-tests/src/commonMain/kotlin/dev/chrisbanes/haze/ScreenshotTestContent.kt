@@ -294,8 +294,9 @@ fun ContentAtEdges(visualEffect: BlurVisualEffect) {
 fun ParentRotatedContent(
   visualEffect: BlurVisualEffect,
   rotationZ: Float = 0f,
+  positionStrategy: HazePositionStrategy = HazePositionStrategy.Auto,
 ) {
-  val hazeState = rememberHazeState()
+  val hazeState = rememberHazeState(positionStrategy = positionStrategy)
 
   Box(modifier = Modifier.fillMaxSize()) {
     // Background gradient as a haze source (not rotated)

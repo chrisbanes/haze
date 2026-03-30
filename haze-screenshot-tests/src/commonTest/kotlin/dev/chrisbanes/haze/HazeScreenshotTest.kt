@@ -725,6 +725,46 @@ class HazeScreenshotTest : ScreenshotTest() {
     captureRoot("180deg")
   }
 
+  /**
+   * Same as [parentRotation] but using [HazePositionStrategy.Screen] to compare behavior.
+   */
+  @Test
+  fun parentRotation_screenStrategy() = runScreenshotTest {
+    var rotationZ by mutableStateOf(0f)
+    val blurVisualEffect = BlurVisualEffect().apply {
+      colorEffects = listOf(DefaultTint)
+      blurRadius = 8.dp
+    }
+
+    setContent {
+      ScreenshotTheme {
+        ParentRotatedContent(
+          visualEffect = blurVisualEffect,
+          rotationZ = rotationZ,
+          positionStrategy = HazePositionStrategy.Screen,
+        )
+      }
+    }
+
+    captureRoot("0deg")
+
+    rotationZ = 15f
+    waitForIdle()
+    captureRoot("15deg")
+
+    rotationZ = 45f
+    waitForIdle()
+    captureRoot("45deg")
+
+    rotationZ = 90f
+    waitForIdle()
+    captureRoot("90deg")
+
+    rotationZ = 180f
+    waitForIdle()
+    captureRoot("180deg")
+  }
+
   @Test
   fun edges() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
