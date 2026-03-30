@@ -689,6 +689,42 @@ class HazeScreenshotTest : ScreenshotTest() {
     captureRoot("bottom")
   }
 
+  /**
+   * Test for issue #717: verifies haze effect follows a parent's graphicsLayer rotation.
+   */
+  @Test
+  fun parentRotation() = runScreenshotTest {
+    var rotationZ by mutableStateOf(0f)
+    val blurVisualEffect = BlurVisualEffect().apply {
+      colorEffects = listOf(DefaultTint)
+      blurRadius = 8.dp
+    }
+
+    setContent {
+      ScreenshotTheme {
+        ParentRotatedContent(visualEffect = blurVisualEffect, rotationZ = rotationZ)
+      }
+    }
+
+    captureRoot("0deg")
+
+    rotationZ = 15f
+    waitForIdle()
+    captureRoot("15deg")
+
+    rotationZ = 45f
+    waitForIdle()
+    captureRoot("45deg")
+
+    rotationZ = 90f
+    waitForIdle()
+    captureRoot("90deg")
+
+    rotationZ = 180f
+    waitForIdle()
+    captureRoot("180deg")
+  }
+
   @Test
   fun edges() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
