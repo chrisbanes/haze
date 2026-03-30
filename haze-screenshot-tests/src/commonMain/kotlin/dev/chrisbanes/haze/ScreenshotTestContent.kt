@@ -311,12 +311,16 @@ fun ParentRotatedContent(
         ),
     )
 
-    // A card-like container with graphicsLayer rotation applied to the PARENT,
+    // A card-like container with graphicsLayer transforms applied to the PARENT,
     // wrapping both an image (hazeSource) and a text overlay (hazeEffect).
     Box(
       modifier = Modifier
         .align(Alignment.Center)
-        .graphicsLayer { this.rotationZ = rotationZ }
+        .graphicsLayer {
+          this.rotationZ = rotationZ
+          scaleX = 1.25f
+          scaleY = 1.25f
+        }
         .size(width = 250.dp, height = 350.dp)
         .clip(RoundedCornerShape(16.dp)),
     ) {
