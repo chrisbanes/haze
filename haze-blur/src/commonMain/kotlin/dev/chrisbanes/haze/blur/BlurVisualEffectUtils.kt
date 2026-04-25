@@ -64,6 +64,10 @@ private val renderEffectCache by lazy(mode = LazyThreadSafetyMode.NONE) {
   LruCache<RenderEffectParams, RenderEffect>(maxSize = 50)
 }
 
+internal fun clearRenderEffectCache() {
+  renderEffectCache.evictAll()
+}
+
 @Poko
 internal class RenderEffectParams(
   val blurRadius: Dp,
@@ -92,7 +96,7 @@ private fun getOrCreateRenderEffect(context: VisualEffectContext, params: Render
     context = context.requirePlatformContext(),
     density = context.requireDensity(),
     params = params,
-  )?.also { effect ->
+  ).also { effect ->
     renderEffectCache.put(params, effect)
   }
 }

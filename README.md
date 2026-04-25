@@ -4,6 +4,28 @@
 
 Check out the website for more information: https://chrisbanes.github.io/haze
 
+## v2 (alpha) quickstart
+
+Haze `2.0.0-alpha01` splits blur into a separate module.
+
+```kotlin
+dependencies {
+  implementation("dev.chrisbanes.haze:haze:2.0.0-alpha01")
+  implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha01")
+}
+```
+
+```kotlin
+Modifier.hazeEffect(state = hazeState) {
+  blurEffect {
+    blurRadius = 20.dp
+    colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
+  }
+}
+```
+
+See migration docs: `docs/migrating-2.0.md`.
+
 ## License
 
 ```

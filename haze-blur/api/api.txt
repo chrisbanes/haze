@@ -11,7 +11,7 @@ package dev.chrisbanes.haze {
 
 package dev.chrisbanes.haze.blur {
 
-  public final class BlurVisualEffect implements dev.chrisbanes.haze.VisualEffect {
+  @androidx.compose.runtime.Stable public final class BlurVisualEffect implements dev.chrisbanes.haze.VisualEffect {
     ctor public BlurVisualEffect();
     method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
     method public float getAlpha();

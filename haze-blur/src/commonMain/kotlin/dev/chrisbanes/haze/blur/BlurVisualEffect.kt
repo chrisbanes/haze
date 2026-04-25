@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -45,6 +46,7 @@ import dev.chrisbanes.haze.VisualEffectContext
  * }
  * ```
  */
+@Stable
 public class BlurVisualEffect : VisualEffect {
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
@@ -86,7 +88,9 @@ public class BlurVisualEffect : VisualEffect {
   }
 
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel): Unit =
-    delegate.onTrimMemory(context, level)
+    delegate.onTrimMemory(context, level).also {
+      clearRenderEffectCache()
+    }
 
   override fun shouldClip(): Boolean = blurredEdgeTreatment.shape != null
 

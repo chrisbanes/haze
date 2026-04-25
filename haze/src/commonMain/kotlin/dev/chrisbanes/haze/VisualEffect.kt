@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Density
@@ -15,6 +16,7 @@ import androidx.compose.ui.unit.Density
  * to the underlying node implementation.
  */
 @ExperimentalHazeApi
+@Stable
 public interface VisualEffect {
   /**
    * Draws the effect.
@@ -67,8 +69,10 @@ public interface VisualEffect {
   public fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel): Unit = Unit
 
   /**
-   * Returns whether the content should be drawn behind the effect for foreground blurring.
-   * This is called during drawing to determine draw order.
+   * Returns whether the source content should be drawn before the effect in foreground mode.
+   *
+   * This is called during drawing to determine draw order when [VisualEffectContext.state]
+   * is null.
    *
    * @param context The context providing access to geometry, configuration, and platform
    * capabilities.

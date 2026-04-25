@@ -32,7 +32,7 @@ All blur-related properties now require a `blurEffect {}` wrapper:
 Modifier.hazeEffect(state = hazeState) {
   blurEffect {
     blurRadius = 20.dp
-    tints = listOf(HazeTint(...))
+    colorEffects = listOf(HazeColorEffect.tint(...))
   }
 }
 ```
@@ -44,12 +44,12 @@ New `positionStrategy` parameter on `rememberHazeState()` to control how effect 
 ### Breaking Changes
 
 - **New module dependency:** Blur functionality now requires the `haze-blur` module
-- **API nesting:** Blur properties (`blurRadius`, `tints`, `style`, `noiseFactor`, `progressive`, `mask`, etc.) now require `blurEffect {}` wrapper
+- **API nesting:** Blur properties (`blurRadius`, `colorEffects`, `style`, `noiseFactor`, `progressive`, `mask`, etc.) now require `blurEffect {}` wrapper
 - **Package changes:** Blur classes moved to `dev.chrisbanes.haze.blur` package:
-  - `HazeStyle` → `dev.chrisbanes.haze.blur.HazeStyle`
-  - `HazeTint` → `dev.chrisbanes.haze.blur.HazeTint`
+  - `HazeStyle` → `dev.chrisbanes.haze.blur.HazeBlurStyle`
+  - `HazeTint` → `dev.chrisbanes.haze.blur.HazeColorEffect`
   - `HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
-  - `LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeStyle`
+  - `LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeBlurStyle`
 - **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed (use `blurEffect { blurEnabled = ... }`)
 - **Internal API renames:** `create*ImageFilter` functions renamed to `create*RenderEffect` (only affects custom effect authors using `@InternalHazeApi`)
 - **Dropped targets:** `iosX64` and `macosX64` targets removed, following Compose Multiplatform 1.11. These Intel-based targets are no longer supported upstream.
