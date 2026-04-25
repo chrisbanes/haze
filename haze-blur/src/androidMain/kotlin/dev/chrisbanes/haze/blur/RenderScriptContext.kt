@@ -34,6 +34,7 @@ internal class RenderScriptContext(
 
   private val channel = Channel<Unit>(Channel.CONFLATED)
 
+  @Volatile
   private var isDestroyed = false
 
   init {
@@ -82,7 +83,7 @@ internal class RenderScriptContext(
     blurScript.destroy()
     inputAlloc.destroy()
     outputAlloc.destroy()
-    rs.destroy()
+    // Note: rs (RenderScript) is NOT destroyed here — the delegate owns its lifecycle.
   }
 
   private companion object {

@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.PlatformContext
+import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.traceAsync
@@ -48,22 +50,26 @@ import kotlinx.coroutines.withContext
 internal class RenderScriptBlurVisualEffectDelegate(
   private val blurVisualEffect: BlurVisualEffect,
   private val graphicsContext: GraphicsContext,
-  androidContext: android.content.Context,
+  private val platformContext: PlatformContext,
 ) : BlurVisualEffect.Delegate {
 
-  private val renderScript = RenderScript.create(androidContext)
+  @Volatile
+  private var renderScript = RenderScript.create(platformContext.applicationContext)
 
+  @Volatile
   private var renderScriptContext: RenderScriptContext? = null
   private val drawScope = CanvasDrawScope()
 
   private var currentJob: Job? = null
   private var drawSkipped: Boolean = false
 
+  @Volatile
+  private var trimGeneration = 0
+
   private val contentLayer: GraphicsLayer = graphicsContext.createGraphicsLayer()
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     val density = context.requireDensity()
-    val androidContext = context.requirePlatformContext()
     val offset = context.layerOffset
     var scaleFactor = blurVisualEffect.calculateInputScaleFactor(context.inputScale)
 
@@ -143,7 +149,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
             PaintPool.usePaint { paint ->
               paint.isAntiAlias = true
               paint.alpha = noiseFactor.coerceIn(0f, 1f)
-              val shader = BitmapShader(androidContext.getNoiseTexture(), REPEAT, REPEAT)
+              val shader = BitmapShader(platformContext.getNoiseTexture(), REPEAT, REPEAT)
               val normalizedScale = if (scaleFactor > 0f) scaleFactor else 1f
               if (abs(normalizedScale - 1f) >= 0.001f) {
                 val matrix = Matrix().apply {
@@ -193,20 +199,65 @@ internal class RenderScriptBlurVisualEffectDelegate(
     else -> false
   }
 
+  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+    if (level.severity >= TrimMemoryLevel.MODERATE.severity) {
+      currentJob?.cancel()
+      renderScriptContext?.release()
+      renderScriptContext = null
+      // Create the new RenderScript first, then destroy the old instance.
+      // This avoids leaving renderScript in a destroyed state if creation fails.
+      runCatching { RenderScript.create(platformContext.applicationContext) }
+        .onSuccess { newRs ->
+          val oldRs = renderScript
+          renderScript = newRs
+          runCatching { oldRs.destroy() }
+        }
+        .onFailure { HazeLogger.d(TAG) { "Failed to recreate RenderScript after trim" } }
+      // Bump generation so in-flight coroutines know their context is stale
+      trimGeneration++
+      // Force the next draw to recreate the layer from scratch
+      drawSkipped = true
+      context.invalidateDraw()
+    }
+  }
+
   private suspend fun updateSurface(
     content: GraphicsLayer,
     blurRadius: Float,
     context: VisualEffectContext,
     density: Density,
   ) {
+    val generationAtStart = trimGeneration
+
     traceAsync("Haze-RenderScriptBlurEffect-updateSurface", 0) {
+      // If a trim happened before we even started, bail out
+      if (trimGeneration != generationAtStart) return@traceAsync
+
       val rs = getRenderScriptContext(content.size)
+
+      // If a trim happened while we were getting the context, bail out
+      if (trimGeneration != generationAtStart) {
+        renderScriptContext?.release()
+        renderScriptContext = null
+        return@traceAsync
+      }
+
       traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
-        // Draw the layer (this is async)
-        rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
+        try {
+          // Draw the layer (this is async)
+          rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
+        } catch (e: IllegalStateException) {
+          HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
+          renderScriptContext?.release()
+          renderScriptContext = null
+          return@traceAsync
+        }
         // Wait for the layer to be written to the Surface
         rs.awaitSurfaceWritten()
       }
+
+      // If a trim happened during surface operations, bail out before using stale data
+      if (trimGeneration != generationAtStart) return@traceAsync
 
       if (blurRadius > 0f) {
         // Now apply the blur on a background thread
@@ -258,6 +309,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     currentJob?.cancel()
     graphicsContext.releaseGraphicsLayer(contentLayer)
     renderScriptContext?.release()
+    runCatching { renderScript.destroy() }
   }
 
   internal companion object {
@@ -274,7 +326,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
           RenderScriptBlurVisualEffectDelegate(
             blurVisualEffect = effect,
             graphicsContext = context.requireGraphicsContext(),
-            androidContext = context.requirePlatformContext(),
+            platformContext = context.requirePlatformContext(),
           )
         }
           .onFailure { isEnabled = false }
