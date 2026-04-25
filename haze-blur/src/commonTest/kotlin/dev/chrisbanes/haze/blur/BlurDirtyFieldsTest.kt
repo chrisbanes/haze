@@ -3,9 +3,10 @@
 
 package dev.chrisbanes.haze.blur
 
+import assertk.assertThat
+import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.Bitmask
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class BlurDirtyFieldsTest {
 
@@ -16,13 +17,13 @@ class BlurDirtyFieldsTest {
         BlurDirtyFields.BackgroundColor or
         BlurDirtyFields.Alpha
 
-    assertEquals(expected, BlurDirtyFields.InvalidateFlags)
+    assertThat(BlurDirtyFields.InvalidateFlags).isEqualTo(expected)
   }
 
   @Test
   fun stringify_shouldIncludeModernColorEffectsName() {
     val names = BlurDirtyFields.stringify(Bitmask(BlurDirtyFields.ColorEffects))
 
-    assertEquals("[ColorEffects]", names)
+    assertThat(names).isEqualTo("[ColorEffects]")
   }
 }
