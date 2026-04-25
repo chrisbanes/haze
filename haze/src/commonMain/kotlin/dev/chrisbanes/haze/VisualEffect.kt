@@ -56,8 +56,8 @@ public interface VisualEffect {
   /**
    * Called when the system is running low on memory, or the app is being backgrounded.
    *
-   * Implementations should release any heavy resources ( such as cached bitmaps,
-   * off-screen buffers, or native contexts ) in response to the given [level].
+   * Implementations should release any heavy resources (such as cached bitmaps,
+   * off-screen buffers, or native contexts) in response to the given [level].
    *
    * @param context The context providing access to geometry, configuration, and platform
    * capabilities. Use [VisualEffectContext.invalidateDraw] to request a redraw after

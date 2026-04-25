@@ -34,6 +34,7 @@ internal class RenderScriptContext(
 
   private val channel = Channel<Unit>(Channel.CONFLATED)
 
+  @Volatile
   private var isDestroyed = false
 
   init {

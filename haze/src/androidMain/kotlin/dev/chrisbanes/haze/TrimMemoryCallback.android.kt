@@ -31,5 +31,8 @@ private fun Int.toTrimMemoryLevel(): TrimMemoryLevel = when {
   this >= ComponentCallbacks2.TRIM_MEMORY_MODERATE -> TrimMemoryLevel.MODERATE
   this >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> TrimMemoryLevel.BACKGROUND
   this >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> TrimMemoryLevel.UI_HIDDEN
+  this >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> TrimMemoryLevel.COMPLETE
+  this >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> TrimMemoryLevel.MODERATE
+  this >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE -> TrimMemoryLevel.BACKGROUND
   else -> TrimMemoryLevel.UI_HIDDEN
 }

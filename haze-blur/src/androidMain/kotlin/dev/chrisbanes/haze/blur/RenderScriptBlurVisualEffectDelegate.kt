@@ -54,7 +54,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 ) : BlurVisualEffect.Delegate {
 
   @Volatile
-  private var renderScript = RenderScript.create(platformContext)
+  private var renderScript = RenderScript.create(platformContext.applicationContext)
 
   @Volatile
   private var renderScriptContext: RenderScriptContext? = null
@@ -204,9 +204,14 @@ internal class RenderScriptBlurVisualEffectDelegate(
       currentJob?.cancel()
       renderScriptContext?.release()
       renderScriptContext = null
-      // Destroy the old RenderScript and recreate it.
-      runCatching { renderScript.destroy() }
-      runCatching { renderScript = RenderScript.create(platformContext.applicationContext) }
+      // Create the new RenderScript first, then destroy the old instance.
+      // This avoids leaving renderScript in a destroyed state if creation fails.
+      runCatching { RenderScript.create(platformContext.applicationContext) }
+        .onSuccess { newRs ->
+          val oldRs = renderScript
+          renderScript = newRs
+          runCatching { oldRs.destroy() }
+        }
         .onFailure { HazeLogger.d(TAG) { "Failed to recreate RenderScript after trim" } }
       // Bump generation so in-flight coroutines know their context is stale
       trimGeneration++
