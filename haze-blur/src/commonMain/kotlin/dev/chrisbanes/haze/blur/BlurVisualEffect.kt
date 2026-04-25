@@ -49,6 +49,8 @@ import dev.chrisbanes.haze.VisualEffectContext
 @Stable
 public class BlurVisualEffect : VisualEffect {
 
+  private var isAttached: Boolean = false
+
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
 
@@ -56,13 +58,29 @@ public class BlurVisualEffect : VisualEffect {
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "delegate changed. Current $field. New: $value" }
-        // attach new delegate
-        value.attach()
-        // detach old delegate
-        field.detach()
+        if (isAttached) {
+          // attach new delegate
+          value.attach()
+          // detach old delegate
+          field.detach()
+        }
         field = value
       }
     }
+
+  override fun attach(context: VisualEffectContext) {
+    if (!isAttached) {
+      isAttached = true
+      delegate.attach()
+    }
+  }
+
+  override fun detach() {
+    if (isAttached) {
+      isAttached = false
+      delegate.detach()
+    }
+  }
 
   override fun update(context: VisualEffectContext) {
     compositionLocalStyle = context.currentValueOf(LocalHazeBlurStyle)
