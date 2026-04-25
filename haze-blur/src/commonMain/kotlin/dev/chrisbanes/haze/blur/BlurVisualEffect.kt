@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 
@@ -83,6 +84,9 @@ public class BlurVisualEffect : VisualEffect {
     updateDelegate(context, this)
     return delegate is ScrimBlurVisualEffectDelegate
   }
+
+  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel): Unit =
+    delegate.onTrimMemory(context, level)
 
   override fun shouldClip(): Boolean = blurredEdgeTreatment.shape != null
 
@@ -373,6 +377,7 @@ public class BlurVisualEffect : VisualEffect {
     fun attach() = Unit
     fun DrawScope.draw(context: VisualEffectContext)
     fun detach() = Unit
+    fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) = Unit
   }
 
   internal companion object {

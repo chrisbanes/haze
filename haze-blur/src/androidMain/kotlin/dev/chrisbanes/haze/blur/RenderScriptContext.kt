@@ -82,7 +82,7 @@ internal class RenderScriptContext(
     blurScript.destroy()
     inputAlloc.destroy()
     outputAlloc.destroy()
-    rs.destroy()
+    // Note: rs (RenderScript) is NOT destroyed here — the delegate owns its lifecycle.
   }
 
   private companion object {

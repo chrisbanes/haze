@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.DisposableHandle
 
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeEffect].
@@ -216,12 +217,19 @@ public class HazeEffectNode(
     onObservedReadsChanged()
   }
 
+  private var trimMemoryCallbackDisposable: DisposableHandle? = null
+
   override fun onAttach() {
     visualEffect.attach(visualEffectContext)
+    trimMemoryCallbackDisposable = registerTrimMemoryCallback(
+      requirePlatformContext(),
+    ) { level -> visualEffect.onTrimMemory(visualEffectContext, level) }
     update()
   }
 
   override fun onDetach() {
+    trimMemoryCallbackDisposable?.dispose()
+    trimMemoryCallbackDisposable = null
     visualEffect.detach()
   }
 
