@@ -43,8 +43,8 @@ import kotlinx.coroutines.DisposableHandle
  */
 @ExperimentalHazeApi
 public class HazeEffectNode(
-  public var state: HazeState?,
-  public var block: (HazeEffectScope.() -> Unit)?,
+  public var state: HazeState? = null,
+  public var block: (HazeEffectScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
   GlobalPositionAwareModifierNode,

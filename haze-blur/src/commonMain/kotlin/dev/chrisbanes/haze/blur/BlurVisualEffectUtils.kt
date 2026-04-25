@@ -60,12 +60,18 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
   )
 }
 
-private val renderEffectCache by lazy(mode = LazyThreadSafetyMode.NONE) {
+private val renderEffectCache = lazy(mode = LazyThreadSafetyMode.NONE) {
   LruCache<RenderEffectParams, RenderEffect>(maxSize = 50)
 }
 
 internal fun clearRenderEffectCache() {
-  renderEffectCache.evictAll()
+  clearIfInitialized(renderEffectCache) { it.evictAll() }
+}
+
+internal inline fun <T> clearIfInitialized(lazyValue: Lazy<T>, clear: (T) -> Unit) {
+  if (lazyValue.isInitialized()) {
+    clear(lazyValue.value)
+  }
 }
 
 @Poko
@@ -85,7 +91,7 @@ internal class RenderEffectParams(
 @OptIn(ExperimentalHazeApi::class)
 private fun getOrCreateRenderEffect(context: VisualEffectContext, params: RenderEffectParams): RenderEffect? {
   HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect: $params" }
-  val cached = renderEffectCache[params]
+  val cached = renderEffectCache.value[params]
   if (cached != null) {
     HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
     return cached
@@ -97,6 +103,6 @@ private fun getOrCreateRenderEffect(context: VisualEffectContext, params: Render
     density = context.requireDensity(),
     params = params,
   ).also { effect ->
-    renderEffectCache.put(params, effect)
+    renderEffectCache.value.put(params, effect)
   }
 }
