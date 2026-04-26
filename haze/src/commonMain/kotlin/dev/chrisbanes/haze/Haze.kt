@@ -65,7 +65,7 @@ internal fun resolvePositionStrategy(
 }
 
 @Stable
-public class HazeArea {
+public class HazeArea internal constructor() {
 
   public var position: Offset by mutableStateOf(Offset.Unspecified)
     internal set
@@ -85,8 +85,11 @@ public class HazeArea {
   internal val preDrawListeners = mutableStateSetOf<OnPreDrawListener>()
 
   /**
-   * The content [GraphicsLayer].
+   * Internal content [GraphicsLayer] used when capturing source content for effects.
+   *
+   * This is exposed for effect implementations and is not a stable public contract.
    */
+  @InternalHazeApi
   public var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
 
@@ -106,9 +109,7 @@ public class HazeArea {
     append("HazeArea(")
     append("position=$position, ")
     append("size=$size, ")
-    append("zIndex=$zIndex, ")
-    append("contentLayer=$contentLayer, ")
-    append("isContentDrawing=$isContentDrawing")
+    append("zIndex=$zIndex")
     append(")")
   }
 }

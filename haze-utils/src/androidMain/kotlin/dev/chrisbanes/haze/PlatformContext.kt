@@ -8,6 +8,7 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 
+@InternalHazeApi
 public actual typealias PlatformContext = Context
 
 @InternalHazeApi

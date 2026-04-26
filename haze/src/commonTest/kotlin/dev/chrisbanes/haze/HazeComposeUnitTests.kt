@@ -121,7 +121,7 @@ class HazeComposeUnitTests : ContextTest() {
 
   @Test
   fun testResolvePositionStrategy_autoPromotesToScreenForCrossWindow() {
-    val area = HazeArea().apply { windowId = "dialog-window" }
+    val area = HazeAreaTestFactory.create(windowId = "dialog-window")
 
     val resolved = resolvePositionStrategy(
       configured = HazePositionStrategy.Auto,
@@ -131,4 +131,8 @@ class HazeComposeUnitTests : ContextTest() {
 
     assertThat(resolved).isEqualTo(HazePositionStrategy.Screen)
   }
+}
+
+internal object HazeAreaTestFactory {
+  fun create(windowId: Any?): HazeArea = HazeArea().also { it.windowId = windowId }
 }

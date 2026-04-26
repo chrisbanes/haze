@@ -111,7 +111,10 @@ public interface VisualEffectContext {
   public fun requireGraphicsContext(): GraphicsContext
 
   /**
-   * CoroutineScope to launch coroutines from
+   * CoroutineScope tied to the effect node lifecycle.
+   *
+   * Any jobs launched in this scope are cancelled when the owning node detaches.
+   * Use this for short-lived effect work that should not outlive the node.
    */
   public val coroutineScope: CoroutineScope
 

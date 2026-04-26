@@ -66,6 +66,7 @@ kotlin {
 
     commonTest {
       dependencies {
+        implementation(libs.assertk)
         implementation(kotlin("test"))
       }
     }

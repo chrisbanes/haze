@@ -30,8 +30,8 @@ In addition to the core `haze` module, you now need to explicitly add the `haze-
 
 ```kotlin
 dependencies {
-  implementation("dev.chrisbanes.haze:haze:2.0.0")
-  implementation("dev.chrisbanes.haze:haze-blur:2.0.0") // NEW in v2
+  implementation("dev.chrisbanes.haze:haze:2.0.0-alpha01")
+  implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha01") // NEW in v2
 }
 ```
 
@@ -49,10 +49,10 @@ import dev.chrisbanes.haze.LocalHazeStyle
 
 **V2 imports:**
 ```kotlin
-import dev.chrisbanes.haze.blur.HazeStyle
-import dev.chrisbanes.haze.blur.HazeTint
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.HazeProgressive
-import dev.chrisbanes.haze.blur.LocalHazeStyle
+import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect // NEW: extension function
 ```
 
@@ -67,7 +67,7 @@ All blur-related properties that were previously set directly on `HazeEffectScop
     ```kotlin
     Modifier.hazeEffect(state = hazeState) {
       blurRadius = 20.dp
-      tints = listOf(HazeTint(Color.Black.copy(alpha = 0.7f)))
+      colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.7f)))
       noiseFactor = 0.15f
     }
     ```
@@ -78,7 +78,7 @@ All blur-related properties that were previously set directly on `HazeEffectScop
     Modifier.hazeEffect(state = hazeState) {
       blurEffect {  // NEW: wrap blur properties
         blurRadius = 20.dp
-        tints = listOf(HazeTint(Color.Black.copy(alpha = 0.7f)))
+        colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.7f)))
         noiseFactor = 0.15f
       }
     }
@@ -177,7 +177,7 @@ All blur-related properties that were previously set directly on `HazeEffectScop
 
     ``` kotlin
     Modifier.hazeEffect {
-      tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
+      colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
       progressive = HazeProgressive.verticalGradient(...)
     }
     ```
@@ -187,7 +187,7 @@ All blur-related properties that were previously set directly on `HazeEffectScop
     ``` kotlin
     Modifier.hazeEffect {
       blurEffect {
-        tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
+        colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
         progressive = HazeProgressive.verticalGradient(...)
       }
     }
@@ -198,7 +198,7 @@ All blur-related properties that were previously set directly on `HazeEffectScop
 | V1 Location | V2 Location | Notes |
 |-------------|-------------|-------|
 | `HazeEffectScope.blurRadius` | `BlurVisualEffect.blurRadius` | Inside `blurEffect {}` |
-| `HazeEffectScope.tints` | `BlurVisualEffect.tints` | Inside `blurEffect {}` |
+| `HazeEffectScope.tints` | `BlurVisualEffect.colorEffects` | Inside `blurEffect {}` |
 | `HazeEffectScope.noiseFactor` | `BlurVisualEffect.noiseFactor` | Inside `blurEffect {}` |
 | `HazeEffectScope.progressive` | `BlurVisualEffect.progressive` | Inside `blurEffect {}` |
 | `HazeEffectScope.mask` | `BlurVisualEffect.mask` | Inside `blurEffect {}` |
@@ -218,26 +218,26 @@ All blur-related properties that were previously set directly on `HazeEffectScop
 | `VisualEffectContext.rootBoundsOnScreen` | `VisualEffectContext.rootBounds` | Renamed |
 | *N/A* | `HazeState.positionStrategy` | New — configurable position calculation |
 | *N/A* | `rememberHazeState(positionStrategy)` | New parameter, defaults to `Auto` |
-| `dev.chrisbanes.haze.HazeStyle` | `dev.chrisbanes.haze.blur.HazeStyle` | Package change |
-| `dev.chrisbanes.haze.HazeTint` | `dev.chrisbanes.haze.blur.HazeTint` | Package change |
+| `dev.chrisbanes.haze.HazeStyle` | `dev.chrisbanes.haze.blur.HazeBlurStyle` | Renamed + package change |
+| `dev.chrisbanes.haze.HazeTint` | `dev.chrisbanes.haze.blur.HazeColorEffect` | Renamed + package change |
 | `dev.chrisbanes.haze.HazeProgressive` | `dev.chrisbanes.haze.blur.HazeProgressive` | Package change |
-| `dev.chrisbanes.haze.LocalHazeStyle` | `dev.chrisbanes.haze.blur.LocalHazeStyle` | Package change |
+| `dev.chrisbanes.haze.LocalHazeStyle` | `dev.chrisbanes.haze.blur.LocalHazeBlurStyle` | Renamed + package change |
 
 ## Step-by-Step Migration
 
 **Update dependencies** in your `build.gradle.kts`:
 
    ```kotlin
-   implementation("dev.chrisbanes.haze:haze:2.0.0")
-   implementation("dev.chrisbanes.haze:haze-blur:2.0.0") // Add this
+    implementation("dev.chrisbanes.haze:haze:2.0.0-alpha01")
+    implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha01") // Add this
    ```
 
 **Update imports** for blur-related classes:
 
-  - Change `dev.chrisbanes.haze.HazeStyle` → `dev.chrisbanes.haze.blur.HazeStyle`
-  - Change `dev.chrisbanes.haze.HazeTint` → `dev.chrisbanes.haze.blur.HazeTint`
+  - Change `dev.chrisbanes.haze.HazeStyle` → `dev.chrisbanes.haze.blur.HazeBlurStyle`
+  - Change `dev.chrisbanes.haze.HazeTint` → `dev.chrisbanes.haze.blur.HazeColorEffect`
   - Change `dev.chrisbanes.haze.HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
-  - Change `dev.chrisbanes.haze.LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeStyle`
+  - Change `dev.chrisbanes.haze.LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeBlurStyle`
   - Add `import dev.chrisbanes.haze.blur.blurEffect`
 
 **Wrap blur properties** in `blurEffect {}`:

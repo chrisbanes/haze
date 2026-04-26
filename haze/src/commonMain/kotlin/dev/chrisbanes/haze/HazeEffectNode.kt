@@ -54,6 +54,12 @@ public class HazeEffectNode(
   TraversableNode,
   HazeEffectScope {
 
+  @Deprecated(
+    message = "For binary compatibility only. Use the hazeEffect modifier APIs.",
+    level = DeprecationLevel.HIDDEN,
+  )
+  public constructor() : this(state = null, block = null)
+
   override val traverseKey: Any
     get() = HazeTraversableNodeKeys.Effect
 
@@ -230,7 +236,16 @@ public class HazeEffectNode(
   override fun onDetach() {
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
+    contentDrawArea.releaseLayer()
     visualEffect.detach()
+  }
+
+  private fun HazeArea.releaseLayer() {
+    contentLayer?.let { layer ->
+      HazeLogger.d(TAG) { "Releasing content layer: $layer" }
+      requireGraphicsContext().releaseGraphicsLayer(layer)
+    }
+    contentLayer = null
   }
 
   override fun onObservedReadsChanged() {
@@ -494,8 +509,8 @@ public class HazeEffectNode(
     }
   }
 
-  internal companion object {
-    const val TAG = "HazeEffect"
+  private companion object {
+    private const val TAG = "HazeEffect"
   }
 }
 

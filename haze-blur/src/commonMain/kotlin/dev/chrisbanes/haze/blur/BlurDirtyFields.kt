@@ -32,11 +32,8 @@ internal object BlurDirtyFields {
 
   const val InvalidateFlags: Int =
     RenderEffectAffectingFlags or
-      BlurEnabled or
       BackgroundColor or
-      Progressive or
-      Alpha or
-      BlurredEdgeTreatment
+      Alpha
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
@@ -45,8 +42,8 @@ internal object BlurDirtyFields {
       if (NoiseFactor in dirtyTracker) add("NoiseFactor")
       if (Mask in dirtyTracker) add("Mask")
       if (BackgroundColor in dirtyTracker) add("BackgroundColor")
-      if (ColorEffects in dirtyTracker) add("Tints")
-      if (FallbackColorEffect in dirtyTracker) add("FallbackTint")
+      if (ColorEffects in dirtyTracker) add("ColorEffects")
+      if (FallbackColorEffect in dirtyTracker) add("FallbackColorEffect")
       if (Alpha in dirtyTracker) add("Alpha")
       if (Progressive in dirtyTracker) add("Progressive")
       if (BlurredEdgeTreatment in dirtyTracker) add("BlurredEdgeTreatment")
