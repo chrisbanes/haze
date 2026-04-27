@@ -16,7 +16,7 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import assertk.assertions.isTrue
+import assertk.assertions.isGreaterThan
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
@@ -173,7 +173,7 @@ class VisualEffectLifecycleTest {
 
     waitForIdle()
     // drawContentBehind changed, which should trigger update
-    assertThat(effect.updateCalls).isTrue()
+    assertThat(effect.updateCalls).isGreaterThan(0)
   }
 
   @Test
@@ -232,6 +232,7 @@ internal data object FakeVisualEffectContext : VisualEffectContext {
 
   override fun requireDensity(): androidx.compose.ui.unit.Density = error("Fake")
   override fun <T> currentValueOf(local: androidx.compose.runtime.CompositionLocal<T>): T = error("Fake")
+  override fun requirePlatformContext(): PlatformContext = error("Unused in lifecycle tests")
   override fun requireGraphicsContext(): androidx.compose.ui.graphics.GraphicsContext = error("Fake")
   override fun invalidateDraw() {}
 }
