@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -53,28 +54,30 @@ class VisualEffectLifecycleTest : ContextTest() {
   fun visualEffect_detachCalledOnNodeDetach() = runComposeUiTest {
     val hazeState = HazeState()
     val effect = RecordingVisualEffect()
+    val showContent = mutableStateOf(true)
 
     setContent {
-      Box(
-        modifier = Modifier
-          .size(100.dp)
-          .hazeSource(hazeState),
-      ) {
-        Spacer(
-          Modifier
+      if (showContent.value) {
+        Box(
+          modifier = Modifier
             .size(100.dp)
-            .hazeEffect(hazeState) {
-              visualEffect = effect
-            },
-        )
+            .hazeSource(hazeState),
+        ) {
+          Spacer(
+            Modifier
+              .size(100.dp)
+              .hazeEffect(hazeState) {
+                visualEffect = effect
+              },
+          )
+        }
       }
     }
 
     waitForIdle()
     assertThat(effect.attachCalls).isEqualTo(1)
 
-    // Remove the content
-    setContent { }
+    showContent.value = false
     waitForIdle()
 
     assertThat(effect.detachCalls).isEqualTo(1)
@@ -85,6 +88,7 @@ class VisualEffectLifecycleTest : ContextTest() {
     val hazeState = HazeState()
     val effect1 = RecordingVisualEffect()
     val effect2 = RecordingVisualEffect()
+    val useSecondEffect = mutableStateOf(false)
 
     setContent {
       Box(
@@ -96,7 +100,7 @@ class VisualEffectLifecycleTest : ContextTest() {
           Modifier
             .size(100.dp)
             .hazeEffect(hazeState) {
-              visualEffect = effect1
+              visualEffect = if (useSecondEffect.value) effect2 else effect1
             },
         )
       }
@@ -106,24 +110,9 @@ class VisualEffectLifecycleTest : ContextTest() {
     assertThat(effect1.attachCalls).isEqualTo(1)
     assertThat(effect1.detachCalls).isEqualTo(0)
 
-    // Replace the effect
-    setContent {
-      Box(
-        modifier = Modifier
-          .size(100.dp)
-          .hazeSource(hazeState),
-      ) {
-        Spacer(
-          Modifier
-            .size(100.dp)
-            .hazeEffect(hazeState) {
-              visualEffect = effect2
-            },
-        )
-      }
-    }
-
+    useSecondEffect.value = true
     waitForIdle()
+
     assertThat(effect1.detachCalls).isEqualTo(1)
     assertThat(effect2.attachCalls).isEqualTo(1)
     assertThat(effect2.detachCalls).isEqualTo(0)
@@ -133,6 +122,7 @@ class VisualEffectLifecycleTest : ContextTest() {
   fun visualEffect_updateCalledWhenRecomposed() = runComposeUiTest {
     val hazeState = HazeState()
     val effect = RecordingVisualEffect()
+    val drawBehind = mutableStateOf(false)
 
     setContent {
       Box(
@@ -144,6 +134,7 @@ class VisualEffectLifecycleTest : ContextTest() {
           Modifier
             .size(100.dp)
             .hazeEffect(hazeState) {
+              drawContentBehind = drawBehind.value
               visualEffect = effect
             },
         )
@@ -151,36 +142,17 @@ class VisualEffectLifecycleTest : ContextTest() {
     }
 
     waitForIdle()
-    // update may be called during initial composition
     val initialUpdateCount = effect.updateCalls
 
-    // Trigger recomposition by changing something that affects the effect scope
-    setContent {
-      Box(
-        modifier = Modifier
-          .size(100.dp)
-          .hazeSource(hazeState),
-      ) {
-        Spacer(
-          Modifier
-            .size(100.dp)
-            .hazeEffect(hazeState) {
-              drawContentBehind = true
-              visualEffect = effect
-            },
-        )
-      }
-    }
-
+    drawBehind.value = true
     waitForIdle()
-    // drawContentBehind changed, which should trigger update
-    assertThat(effect.updateCalls).isGreaterThan(0)
+
+    assertThat(effect.updateCalls).isGreaterThan(initialUpdateCount)
   }
 
   @Test
   fun emptyVisualEffect_doesNothing() {
     val empty = VisualEffect.Empty
-    // Just verify it doesn't throw
     empty.attach(FakeVisualEffectContext)
     empty.update(FakeVisualEffectContext)
     empty.detach()
