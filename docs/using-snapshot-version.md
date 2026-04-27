@@ -15,7 +15,7 @@ dependencies {
     // Check the latest SNAPSHOT version from the link above
     // Core infrastructure (required)
     implementation("dev.chrisbanes.haze:haze:XXX-SNAPSHOT")
-    
+
     // For blur effects (most users will need this)
     implementation("dev.chrisbanes.haze:haze-blur:XXX-SNAPSHOT")
 }

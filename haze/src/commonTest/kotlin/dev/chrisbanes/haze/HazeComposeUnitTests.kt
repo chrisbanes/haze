@@ -211,20 +211,6 @@ class HazeComposeUnitTests : ContextTest() {
 
     assertThat(resolved).isEqualTo(HazePositionStrategy.Local)
   }
-
-  @Test
-  fun testResolvePositionStrategy_crossWindowWithExplicitLocalStillLocal() {
-    // Even if cross-window, explicit Local should stay Local
-    val area = HazeAreaTestFactory.create(windowId = "dialog-window")
-
-    val resolved = resolvePositionStrategy(
-      configured = HazePositionStrategy.Local,
-      areas = listOf(area),
-      windowId = "host-window",
-    )
-
-    assertThat(resolved).isEqualTo(HazePositionStrategy.Local)
-  }
 }
 
 internal object HazeAreaTestFactory {

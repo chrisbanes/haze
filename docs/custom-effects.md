@@ -129,7 +129,7 @@ interface VisualEffectContext {
 
 ## HazeEffectScope
 
-The effect receives the `HazeEffectScope` which provides common properties applicable to all effects:
+The `Modifier.hazeEffect { ... }` configuration lambda receives `HazeEffectScope` as its receiver, providing common properties applicable to all effects:
 
 ```kotlin
 interface HazeEffectScope {
