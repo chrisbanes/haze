@@ -188,9 +188,11 @@ internal fun DrawScope.createScaledContentLayer(
           translate(position) {
             // Draw the content into our effect layer. We do want to observe this via snapshot
             // state
-            val areaLayer = area.contentLayer
-              ?.takeUnless { it.isReleased }
-              ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+            val areaLayer = Snapshot.withoutReadObservation {
+              area.contentLayer
+                ?.takeUnless { it.isReleased }
+                ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+            }
 
             if (areaLayer != null) {
               HazeLogger.d("Blur") { "Drawing HazeArea GraphicsLayer: $areaLayer" }
