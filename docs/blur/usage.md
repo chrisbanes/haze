@@ -57,11 +57,11 @@ fun HazeExample(modifier: Modifier = Modifier) {
 
 ## Styling
 
-Blur appearance is controlled via the [HazeStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/index.html) class or properties in the `blurEffect` block:
+Blur appearance is controlled via the [HazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html) class or properties in the `blurEffect` block:
 
 Styles can be provided in multiple ways:
 
-- [LocalHazeStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html) composition local
+- [LocalHazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html) composition local
 - `style` property inside `blurEffect {}` block
 - Individual properties in the `blurEffect {}` block
 
@@ -92,7 +92,7 @@ Each styling property is resolved using the following precedence:
 
 1. Value set in `blurEffect {}` block (if specified)
 2. Value set via `style` property in `blurEffect {}` (if specified)
-3. Value set in [LocalHazeStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html) composition local
+3. Value set in [LocalHazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html) composition local
 4. Default value
 
 ### Styling Properties
@@ -109,13 +109,13 @@ blurEffect {
 
 #### Tint
 
-A tint effect is applied primarily to maintain contrast and legibility. By default, the provided background color is used at 70% opacity. You can provide multiple tints applied in sequence:
+A tint effect is applied primarily to maintain contrast and legibility. By default, the provided background color is used at 70% opacity. You can provide multiple color effects applied in sequence:
 
 ```kotlin
 blurEffect {
-  tints = listOf(
-    Color.Black.copy(alpha = 0.2f),
-    Color.Blue.copy(alpha = 0.1f)
+  colorEffects = listOf(
+    HazeColorEffect.tint(Color.Black.copy(alpha = 0.2f)),
+    HazeColorEffect.tint(Color.Blue.copy(alpha = 0.1f))
   )
 }
 ```
@@ -126,7 +126,7 @@ Visual noise provides tactility. Defaults to `0.15f` (15% strength). Disable by 
 
 ```kotlin
 blurEffect {
-  noise = 0f  // Disable noise
+  noiseFactor = 0f  // Disable noise
 }
 ```
 
