@@ -3,17 +3,17 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.GraphicsContext
-import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
