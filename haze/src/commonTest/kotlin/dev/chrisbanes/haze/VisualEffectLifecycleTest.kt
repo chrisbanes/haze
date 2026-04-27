@@ -17,10 +17,11 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
-class VisualEffectLifecycleTest {
+class VisualEffectLifecycleTest : ContextTest() {
 
   @Test
   fun visualEffect_attachCalledWhenSet() = runComposeUiTest {
