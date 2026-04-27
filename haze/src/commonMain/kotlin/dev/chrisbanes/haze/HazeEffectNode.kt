@@ -67,6 +67,8 @@ public class HazeEffectNode(
 
   internal var dirtyTracker = Bitmask()
 
+  private var needsPreDrawInvalidation = false
+
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
       if (value != field) {
@@ -217,7 +219,12 @@ public class HazeEffectNode(
       }
     }
   private val areaPreDrawListener by lazy(LazyThreadSafetyMode.NONE) {
-    OnPreDrawListener(::invalidateDraw)
+    OnPreDrawListener {
+      if (!needsPreDrawInvalidation) {
+        needsPreDrawInvalidation = true
+        invalidateDraw()
+      }
+    }
   }
 
   internal fun update() {
@@ -472,6 +479,7 @@ public class HazeEffectNode(
 
   private fun onPostDraw() {
     dirtyTracker = Bitmask()
+    needsPreDrawInvalidation = false
   }
 
   private fun invalidateIfNeeded() {
