@@ -164,6 +164,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "canDrawArea changed. Current $field. New: $value" }
+        dirtyTracker += DirtyFields.Areas
         field = value
       }
     }
@@ -368,38 +369,40 @@ public class HazeEffectNode(
 
     val backgroundBlurring = state != null
 
-    _areas.forEach { area ->
-      // Remove our pre draw listener from the current areas
-      area.preDrawListeners -= areaPreDrawListener
-    }
+    if (DirtyFields.Areas in dirtyTracker) {
+      _areas.forEach { area ->
+        // Remove our pre draw listener from the current areas
+        area.preDrawListeners -= areaPreDrawListener
+      }
 
-    _areas = if (backgroundBlurring) {
-      val ancestorSourceNode =
-        (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
-          ?.takeIf { it.state == this.state }
+      _areas = if (backgroundBlurring) {
+        val ancestorSourceNode =
+          (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
+            ?.takeIf { it.state == this.state }
 
-      state?.areas.orEmpty()
-        .also {
-          HazeLogger.d(TAG) { "Background Areas observing: $it" }
-        }
-        .asSequence()
-        .filter { area ->
-          val filter = canDrawArea
-          when {
-            filter != null -> filter(area)
-            ancestorSourceNode != null -> area.zIndex < ancestorSourceNode.zIndex
-            else -> true
-          }.also { included ->
-            HazeLogger.d(TAG) { "Background Area: $area. Included=$included" }
+        state?.areas.orEmpty()
+          .also {
+            HazeLogger.d(TAG) { "Background Areas observing: $it" }
           }
-        }
-        .toMutableList()
-        .apply { sortBy(HazeArea::zIndex) }
-    } else {
-      contentDrawArea.size = size
-      contentDrawArea.position = position
-      contentDrawArea.windowId = windowId
-      listOf(contentDrawArea)
+          .asSequence()
+          .filter { area ->
+            val filter = canDrawArea
+            when {
+              filter != null -> filter(area)
+              ancestorSourceNode != null -> area.zIndex < ancestorSourceNode.zIndex
+              else -> true
+            }.also { included ->
+              HazeLogger.d(TAG) { "Background Area: $area. Included=$included" }
+            }
+          }
+          .toMutableList()
+          .apply { sortBy(HazeArea::zIndex) }
+      } else {
+        contentDrawArea.size = size
+        contentDrawArea.position = position
+        contentDrawArea.windowId = windowId
+        listOf(contentDrawArea)
+      }
     }
 
     // Auto-promote position strategy when cross-window is detected
@@ -418,7 +421,9 @@ public class HazeEffectNode(
       }
     }
 
-    updateAreaOffsets()
+    if (dirtyTracker.any(AreaOffsetsDirtyFields)) {
+      updateAreaOffsets()
+    }
 
     if (shouldUsePreDrawListener()) {
       for (area in areas) {
@@ -426,41 +431,40 @@ public class HazeEffectNode(
       }
     }
 
-    if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
-      // Now we clip the expanded layer bounds, to remove anything areas which
-      // don't overlap any areas, and the window bounds
-      val clippedLayerBounds = Rect(position, size)
-        .letIf(shouldExpandLayer()) { visualEffect.calculateLayerBounds(it, requireDensity()) }
-        .letIf(shouldClipToAreaBounds()) { rect ->
-          // Calculate the dimensions which covers all areas...
-          var left = Float.POSITIVE_INFINITY
-          var top = Float.POSITIVE_INFINITY
-          var right = Float.NEGATIVE_INFINITY
-          var bottom = Float.NEGATIVE_INFINITY
-          for (area in areas) {
-            val bounds = area.bounds ?: continue
-            left = min(left, bounds.left)
-            top = min(top, bounds.top)
-            right = max(right, bounds.right)
-            bottom = max(bottom, bounds.bottom)
+    if (dirtyTracker.any(LayerBoundsDirtyFields)) {
+      if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
+        val clippedLayerBounds = Rect(position, size)
+          .letIf(shouldExpandLayer()) { visualEffect.calculateLayerBounds(it, requireDensity()) }
+          .letIf(shouldClipToAreaBounds()) { rect ->
+            var left = Float.POSITIVE_INFINITY
+            var top = Float.POSITIVE_INFINITY
+            var right = Float.NEGATIVE_INFINITY
+            var bottom = Float.NEGATIVE_INFINITY
+            for (area in areas) {
+              val bounds = area.bounds ?: continue
+              left = min(left, bounds.left)
+              top = min(top, bounds.top)
+              right = max(right, bounds.right)
+              bottom = max(bottom, bounds.bottom)
+            }
+            rect.intersect(left, top, right, bottom)
           }
-          rect.intersect(left, top, right, bottom)
-        }
-        .intersect(rootBounds)
+          .intersect(rootBounds)
 
-      _layerSize = Size(
-        width = clippedLayerBounds.width.coerceAtLeast(0f),
-        height = clippedLayerBounds.height.coerceAtLeast(0f),
-      )
-      _layerOffset = position - clippedLayerBounds.topLeft
-    } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
-      val rect = size.toRect()
-      val expanded = visualEffect.calculateLayerBounds(rect, requireDensity())
-      _layerSize = expanded.size
-      _layerOffset = rect.topLeft - expanded.topLeft
-    } else {
-      _layerSize = size
-      _layerOffset = Offset.Zero
+        _layerSize = Size(
+          width = clippedLayerBounds.width.coerceAtLeast(0f),
+          height = clippedLayerBounds.height.coerceAtLeast(0f),
+        )
+        _layerOffset = position - clippedLayerBounds.topLeft
+      } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
+        val rect = size.toRect()
+        val expanded = visualEffect.calculateLayerBounds(rect, requireDensity())
+        _layerSize = expanded.size
+        _layerOffset = rect.topLeft - expanded.topLeft
+      } else {
+        _layerSize = size
+        _layerOffset = Offset.Zero
+      }
     }
 
     invalidateIfNeeded()
@@ -585,3 +589,15 @@ internal object DirtyFields {
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }
 }
+
+/** Dirty fields that warrant recomputing layer bounds. */
+internal val LayerBoundsDirtyFields: Int =
+  DirtyFields.ScreenPosition or
+    DirtyFields.Size or
+    DirtyFields.Areas or
+    DirtyFields.ExpandLayer or
+    DirtyFields.ClipToAreas
+
+/** Dirty fields that warrant recomputing area offsets. */
+internal val AreaOffsetsDirtyFields: Int =
+  DirtyFields.ScreenPosition or DirtyFields.Areas
