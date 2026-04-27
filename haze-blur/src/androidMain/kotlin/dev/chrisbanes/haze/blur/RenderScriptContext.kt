@@ -38,8 +38,8 @@ internal class RenderScriptContext(
   private var isDestroyed = false
 
   init {
-    val width = size.width.increaseToDivisor(4)
-    val height = size.height.increaseToDivisor(4)
+    val width = size.width
+    val height = size.height
 
     val type = Type.Builder(rs, Element.U8_4(rs)).setX(width).setY(height).create()
 
@@ -89,8 +89,4 @@ internal class RenderScriptContext(
   private companion object {
     const val TAG = "RenderScriptContext"
   }
-}
-
-private fun Int.increaseToDivisor(divisor: Int): Int {
-  return this + (this % divisor)
 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -229,69 +230,113 @@ internal class RenderScriptBlurVisualEffectDelegate(
   ) {
     val generationAtStart = trimGeneration
 
-    traceAsync("Haze-RenderScriptBlurEffect-updateSurface", 0) {
-      // If a trim happened before we even started, bail out
-      if (trimGeneration != generationAtStart) return@traceAsync
+    // Pad the content layer to ensure dimensions are multiples of 4, so the RenderScript
+    // Allocation surface is fully covered with content (no transparent/black edges).
+    val paddedContent = padToMultipleOf4(content, density, context)
 
-      val rs = getRenderScriptContext(content.size)
+    try {
+      traceAsync("Haze-RenderScriptBlurEffect-updateSurface", 0) {
+        // If a trim happened before we even started, bail out
+        if (trimGeneration != generationAtStart) return@traceAsync
 
-      // If a trim happened while we were getting the context, bail out
-      if (trimGeneration != generationAtStart) {
-        renderScriptContext?.release()
-        renderScriptContext = null
-        return@traceAsync
-      }
+        val rs = getRenderScriptContext(paddedContent.size)
 
-      traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
-        try {
-          // Draw the layer (this is async)
-          rs.inputSurface.drawGraphicsLayer(layer = content, density = density, drawScope = drawScope)
-        } catch (e: IllegalStateException) {
-          HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
+        // If a trim happened while we were getting the context, bail out
+        if (trimGeneration != generationAtStart) {
           renderScriptContext?.release()
           renderScriptContext = null
           return@traceAsync
         }
-        // Wait for the layer to be written to the Surface
-        rs.awaitSurfaceWritten()
-      }
 
-      // If a trim happened during surface operations, bail out before using stale data
-      if (trimGeneration != generationAtStart) return@traceAsync
-
-      if (blurRadius > 0f) {
-        // Now apply the blur on a background thread
-        traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
-          withContext(Dispatchers.Default) {
-            rs.applyBlur(blurRadius)
+        traceAsync("Haze-RenderScriptBlurEffect-updateSurface-drawLayerToSurface", 0) {
+          try {
+            // Draw the layer (this is async)
+            rs.inputSurface.drawGraphicsLayer(layer = paddedContent, density = density, drawScope = drawScope)
+          } catch (e: IllegalStateException) {
+            HazeLogger.d(TAG) { "Surface draw failed, likely destroyed. Releasing context." }
+            renderScriptContext?.release()
+            renderScriptContext = null
+            return@traceAsync
           }
+          // Wait for the layer to be written to the Surface
+          rs.awaitSurfaceWritten()
         }
 
-        trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
-          // Finally draw the updated bitmap to our drawing graphics layer
-          val output = rs.outputBitmap
+        // If a trim happened during surface operations, bail out before using stale data
+        if (trimGeneration != generationAtStart) return@traceAsync
 
+        if (blurRadius > 0f) {
+          // Now apply the blur on a background thread
+          traceAsync("Haze-RenderScriptBlurEffect-updateSurface-applyBlur", 0) {
+            withContext(Dispatchers.Default) {
+              rs.applyBlur(blurRadius)
+            }
+          }
+
+          trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
+            // Finally draw the updated bitmap to our drawing graphics layer
+            val output = rs.outputBitmap
+
+            contentLayer.record(
+              density = density,
+              layoutDirection = context.currentValueOf(LocalLayoutDirection),
+              size = IntSize(output.width, output.height),
+            ) {
+              drawImage(output.asImageBitmap())
+            }
+          }
+        } else {
+          // If the blur radius is 0, we just copy the input content into our contentLayer
           contentLayer.record(
             density = density,
             layoutDirection = context.currentValueOf(LocalLayoutDirection),
-            size = IntSize(output.width, output.height),
+            size = paddedContent.size,
           ) {
-            drawImage(output.asImageBitmap())
+            drawLayer(paddedContent)
           }
         }
-      } else {
-        // If the blur radius is 0, we just copy the input content into our contentLayer
-        contentLayer.record(
-          density = density,
-          layoutDirection = context.currentValueOf(LocalLayoutDirection),
-          size = content.size,
-        ) {
-          drawLayer(content)
-        }
-      }
 
-      HazeLogger.d(TAG) { "Output updated in layer" }
+        HazeLogger.d(TAG) { "Output updated in layer" }
+      }
+    } finally {
+      // If we created a padded wrapper layer, release it now that we're done
+      if (paddedContent !== content) {
+        graphicsContext.releaseGraphicsLayer(paddedContent)
+      }
     }
+  }
+
+  /**
+   * Returns [layer] as-is if both dimensions are already multiples of 4.
+   * Otherwise creates a wrapper layer at a size rounded up to the next multiple of 4,
+   * fills the extra area with [BlurVisualEffect.backgroundColor], and records
+   * the original layer into it. This ensures the RenderScript Allocation surface
+   * has no transparent/black fringe regions for the blur kernel to sample.
+   */
+  private fun padToMultipleOf4(
+    layer: GraphicsLayer,
+    density: Density,
+    context: VisualEffectContext,
+  ): GraphicsLayer {
+    val size = layer.size
+    val paddedWidth = ((size.width + 3) / 4) * 4
+    val paddedHeight = ((size.height + 3) / 4) * 4
+
+    if (paddedWidth == size.width && paddedHeight == size.height) return layer
+
+    val paddedLayer = graphicsContext.createGraphicsLayer()
+    val bg = blurVisualEffect.backgroundColor
+    paddedLayer.record(
+      density = density,
+      layoutDirection = context.currentValueOf(LocalLayoutDirection),
+      size = IntSize(paddedWidth, paddedHeight),
+    ) {
+      if (bg.isSpecified) {
+        drawRect(bg)
+      }
+      drawLayer(layer)
+    }
+    return paddedLayer
   }
 
   private fun getRenderScriptContext(size: IntSize): RenderScriptContext {
