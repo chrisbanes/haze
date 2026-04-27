@@ -1403,10 +1403,10 @@
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="styling">Styling<a class="headerlink" href="#styling" title="Permanent link">¶</a></h2>
-<p>Blur appearance is controlled via the <a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/">HazeStyle</a> class or properties in the <code>blurEffect</code> block:</p>
+<p>Blur appearance is controlled via the <a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/">HazeBlurStyle</a> class or properties in the <code>blurEffect</code> block:</p>
 <p>Styles can be provided in multiple ways:</p>
 <ul>
-<li><a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html">LocalHazeStyle</a> composition local</li>
+<li><a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html">LocalHazeBlurStyle</a> composition local</li>
 <li><code>style</code> property inside <code>blurEffect {}</code> block</li>
 <li>Individual properties in the <code>blurEffect {}</code> block</li>
 </ul>
@@ -1432,7 +1432,7 @@
 <ol>
 <li>Value set in <code>blurEffect {}</code> block (if specified)</li>
 <li>Value set via <code>style</code> property in <code>blurEffect {}</code> (if specified)</li>
-<li>Value set in <a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-style.html">LocalHazeStyle</a> composition local</li>
+<li>Value set in <a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html">LocalHazeBlurStyle</a> composition local</li>
 <li>Default value</li>
 </ol>
 <h3 id="styling-properties">Styling Properties<a class="headerlink" href="#styling-properties" title="Permanent link">¶</a></h3>
@@ -1443,18 +1443,18 @@
 <span class="p">}</span>
 </code></pre></div>
 <h4 id="tint">Tint<a class="headerlink" href="#tint" title="Permanent link">¶</a></h4>
-<p>A tint effect is applied primarily to maintain contrast and legibility. By default, the provided background color is used at 70% opacity. You can provide multiple tints applied in sequence:</p>
+<p>A tint effect is applied primarily to maintain contrast and legibility. By default, the provided background color is used at 70% opacity. You can provide multiple color effects applied in sequence:</p>
 <div class="highlight"><pre><span></span><code><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span>
-<span class="w">    </span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">),</span>
-<span class="w">    </span><span class="n">Color</span><span class="p">.</span><span class="na">Blue</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.1f</span><span class="p">)</span>
+<span class="w">  </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span>
+<span class="w">    </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">)),</span>
+<span class="w">    </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Blue</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.1f</span><span class="p">))</span>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
 <h4 id="noise">Noise<a class="headerlink" href="#noise" title="Permanent link">¶</a></h4>
 <p>Visual noise provides tactility. Defaults to <code>0.15f</code> (15% strength). Disable by setting to <code>0f</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="w">  </span><span class="c1">// Disable noise</span>
+<span class="w">  </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0f</span><span class="w">  </span><span class="c1">// Disable noise</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="progressive-gradient-blurs">Progressive (Gradient) Blurs<a class="headerlink" href="#progressive-gradient-blurs" title="Permanent link">¶</a></h2>
