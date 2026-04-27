@@ -44,7 +44,6 @@ Scaffold(
     modifier = Modifier
       .hazeSource(
         state = hazeState,
-        style = HazeDefaults.style(backgroundColor = MaterialTheme.colorScheme.surface),
       ),
   ) {
     // todo

@@ -13,16 +13,16 @@ The `VisualEffect` interface is the base contract for all visual effects. Implem
 ```kotlin
 interface VisualEffect {
     fun attach(context: VisualEffectContext)
-    fun update(context: VisualEffectContext, scope: HazeEffectScope)
+    fun update(context: VisualEffectContext)
     fun detach()
-    fun draw(canvas: Canvas, context: VisualEffectContext)
+    fun DrawScope.draw(context: VisualEffectContext)
 }
 ```
 
 - **attach**: Called when the effect is first attached to a composable. Implementations can initialize platform-specific resources.
-- **update**: Called whenever styling parameters change (from `HazeEffectScope`).
+- **update**: Called whenever the effect should update its state from composition locals or other sources.
 - **detach**: Called when the effect is removed. Implementations should clean up resources.
-- **draw**: Renders the effect to the provided canvas.
+- **draw**: Renders the effect using the `DrawScope` receiver.
 
 ### HazeEffectScope
 
@@ -88,15 +88,25 @@ modifier = Modifier.hazeEffect(state) {
 
 ## Platform Support
 
-Haze provides a `VisualEffectContext` that gives effects access to platform-specific capabilities:
+Haze provides a `VisualEffectContext` that gives effects access to geometry, configuration, and platform capabilities:
 
 ```kotlin
 interface VisualEffectContext {
-    val size: IntSize
-    val density: Float
-    val layoutDirection: LayoutDirection
-    val coroutineScope: CoroutineScope
-    // Platform-specific rendering utilities
+    val position: Offset               // Position of the effect node
+    val size: Size                     // Size of the effect area
+    val layerSize: Size                // Size of the graphics layer (may differ from size)
+    val layerOffset: Offset            // Graphics layer offset relative to node position
+    val rootBounds: Rect               // Bounds of the root layout coordinates on screen
+    val inputScale: HazeInputScale     // Input scale factor configuration
+    val windowId: Any?                 // Identifier for the containing window
+    val areas: List<HazeArea>          // Source areas this effect should process
+    val state: HazeState?              // Associated HazeState (null for foreground blur)
+    val coroutineScope: CoroutineScope // CoroutineScope tied to the node lifecycle
+
+    fun requireDensity(): Density
+    fun <T> currentValueOf(local: CompositionLocal<T>): T
+    fun requireGraphicsContext(): GraphicsContext
+    fun invalidateDraw()
 }
 ```
 
@@ -119,16 +129,16 @@ class CustomVisualEffect : VisualEffect {
         // Initialize resources
     }
 
-    override fun update(context: VisualEffectContext, scope: HazeEffectScope) {
-        // Update with new styling parameters
+    override fun update(context: VisualEffectContext) {
+        // Update state from composition locals or snapshot state
     }
 
     override fun detach() {
         // Clean up resources
     }
 
-    override fun draw(canvas: Canvas, context: VisualEffectContext) {
-        // Render the effect
+    override fun DrawScope.draw(context: VisualEffectContext) {
+        // Render the effect using the DrawScope receiver
     }
 }
 
@@ -146,7 +156,7 @@ When multiple sources of styling are provided, Haze resolves values using the fo
 
 1. Value set directly in the effect builder (e.g., `blurEffect { }`)
 2. Value set via the `style` property
-3. Value set via `LocalHazeStyle` composition local
+3. Value set via `LocalHazeBlurStyle` composition local
 4. Default value
 
 This allows flexible composition of styles from different sources while maintaining predictable behavior.

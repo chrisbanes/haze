@@ -35,7 +35,7 @@ The numbers listed below the P90 frame durations in milliseconds, which tend to 
 
 We can also measure the rough cost of using Haze in the same samples. Here we've ran the same tests, with Haze being completely disabled:
 
-| Test          | 1.0.x (disabled)  | 1.0.x      | Difference   |
+| Test          | v1.x (disabled)  | v1.x      | Difference   |
 | ------------- | ------------------| -----------| ------------ |
 | Scaffold      | 7.5 ms            | 9.7 ms     | +29%         |
 | Images List   | 6.6 ms            | 9.6 ms     | +45%         |

@@ -27,9 +27,9 @@ class CustomVisualEffect : VisualEffect {
         // Initialize any platform-specific resources here
     }
 
-    override fun update(context: VisualEffectContext, scope: HazeEffectScope) {
-        // Called when styling properties change
-        // Update internal state based on scope properties
+    override fun update(context: VisualEffectContext) {
+        // Called when the effect should update its state from composition locals
+        // or other sources. You can safely read snapshot state here.
     }
 
     override fun detach() {
@@ -37,9 +37,9 @@ class CustomVisualEffect : VisualEffect {
         // Clean up any resources allocated in attach()
     }
 
-    override fun draw(canvas: Canvas, context: VisualEffectContext) {
+    override fun DrawScope.draw(context: VisualEffectContext) {
         // Called to render the effect
-        // Draw the effect to the provided canvas
+        // Draw the effect using the DrawScope receiver
     }
 }
 ```
@@ -56,22 +56,22 @@ Called once when the effect is first attached to a composable. Use this to:
 ```kotlin
 override fun attach(context: VisualEffectContext) {
     // Example: Initialize a platform-specific shader
-    myShader = createShader(context.size, context.density)
+    myShader = createShader(context.size, context.requireDensity())
 }
 ```
 
-#### update(context: VisualEffectContext, scope: HazeEffectScope)
+#### update(context: VisualEffectContext)
 
-Called whenever styling parameters change (when `HazeEffectScope` properties are updated). Use this to:
-- Update effect parameters from `HazeEffectScope`
-- Recalculate values based on new properties
-- Update platform-specific rendering parameters
+Called whenever the effect should update its state from composition locals or other sources. You can safely read snapshot state in this function. When any snapshot state read in this function is mutated, this function will be re-invoked.
 
 ```kotlin
-override fun update(context: VisualEffectContext, scope: HazeEffectScope) {
-    // Update effect from scope properties
-    myIntensity = scope.alpha
-    myInputScale = scope.inputScale
+override fun update(context: VisualEffectContext) {
+    // Example: read a composition local and trigger invalidation if needed
+    val someLocal = context.currentValueOf(MyCompositionLocal)
+    if (someLocal != cachedLocal) {
+        cachedLocal = someLocal
+        context.invalidateDraw()
+    }
 }
 ```
 
@@ -89,15 +89,17 @@ override fun detach() {
 }
 ```
 
-#### draw(canvas: Canvas, context: VisualEffectContext)
+#### draw(context: VisualEffectContext)
 
 Called to render the effect. This is where the actual effect rendering happens.
 
 ```kotlin
-override fun draw(canvas: Canvas, context: VisualEffectContext) {
-    // Draw the effect to canvas
-    canvas.drawRect(0f, 0f, context.size.width.toFloat(),
-                   context.size.height.toFloat(), myPaint)
+override fun DrawScope.draw(context: VisualEffectContext) {
+    // Draw the effect using the DrawScope receiver
+    drawRect(
+        color = Color.Black.copy(alpha = 0.5f),
+        size = context.size,
+    )
 }
 ```
 
@@ -107,23 +109,37 @@ The context provided to effect methods gives you access to:
 
 ```kotlin
 interface VisualEffectContext {
-    val size: IntSize                    // Size of the effect area
-    val density: Float                  // Screen pixel density
-    val layoutDirection: LayoutDirection // Text layout direction
-    val coroutineScope: CoroutineScope  // For async operations
+    val position: Offset               // Position of the effect node
+    val size: Size                    // Size of the effect area
+    val layerSize: Size              // Size of the graphics layer (may differ from size)
+    val layerOffset: Offset          // Graphics layer offset relative to node position
+    val rootBounds: Rect             // Bounds of the root layout coordinates on screen
+    val inputScale: HazeInputScale   // Input scale factor configuration
+    val windowId: Any?               // Identifier for the containing window
+    val areas: List<HazeArea>        // Source areas this effect should process
+    val state: HazeState?            // Associated HazeState (null for foreground blur)
+    val coroutineScope: CoroutineScope // CoroutineScope tied to the node lifecycle
+
+    fun requireDensity(): Density
+    fun <T> currentValueOf(local: CompositionLocal<T>): T
+    fun requireGraphicsContext(): GraphicsContext
+    fun invalidateDraw()
 }
 ```
 
 ## HazeEffectScope
 
-The effect receives the `HazeEffectScope` which provides common properties:
+The `Modifier.hazeEffect { ... }` configuration lambda receives `HazeEffectScope` as its receiver, providing common properties applicable to all effects:
 
 ```kotlin
 interface HazeEffectScope {
-    var alpha: Float                    // Overall effect opacity
-    var inputScale: HazeInputScale      // Performance optimization
-    var drawContentBehind: Boolean      // Whether to draw source content
-    var canDrawArea: ((DrawArea) -> Boolean)? // Layer filtering
+    var visualEffect: VisualEffect        // The current visual effect implementation
+    var inputScale: HazeInputScale        // Performance optimization via resolution scaling
+    var drawContentBehind: Boolean        // Whether to draw source content behind the effect
+    var clipToAreasBounds: Boolean?      // Whether to clip to total area bounds
+    var expandLayerBounds: Boolean?       // Whether to expand layer bounds for edge consistency
+    var forceInvalidateOnPreDraw: Boolean // Force invalidation from pre-draw events
+    var canDrawArea: ((HazeArea) -> Boolean)? // Optional filter to control which areas are drawn
 }
 ```
 
@@ -159,7 +175,7 @@ Effects often need platform-specific code. Use `expect`/`actual` to provide plat
 
 **commonMain:**
 ```kotlin
-expect fun createCustomShader(size: IntSize): Shader
+expect fun createCustomShader(size: Size): Shader
 
 class CustomVisualEffect : VisualEffect {
     private lateinit var shader: Shader
@@ -172,14 +188,14 @@ class CustomVisualEffect : VisualEffect {
 
 **androidMain:**
 ```kotlin
-actual fun createCustomShader(size: IntSize): Shader {
+actual fun createCustomShader(size: Size): Shader {
     // Android-specific shader creation
 }
 ```
 
 **desktopMain:**
 ```kotlin
-actual fun createCustomShader(size: IntSize): Shader {
+actual fun createCustomShader(size: Size): Shader {
     // Skiko-based shader creation
 }
 ```
@@ -215,28 +231,22 @@ class TintVisualEffect : VisualEffect {
     var color: Color = Color.Black
     var alpha: Float = 0.2f
 
-    private val paint = Paint().apply {
-        isAntiAlias = true
-    }
-
     override fun attach(context: VisualEffectContext) {
         // No resources to allocate for a simple tint
     }
 
-    override fun update(context: VisualEffectContext, scope: HazeEffectScope) {
-        paint.color = color.copy(alpha = scope.alpha * alpha).toArgb()
+    override fun update(context: VisualEffectContext) {
+        // Nothing to update from composition locals
     }
 
     override fun detach() {
         // Nothing to clean up
     }
 
-    override fun draw(canvas: Canvas, context: VisualEffectContext) {
-        canvas.drawRect(
-            0f, 0f,
-            context.size.width.toFloat(),
-            context.size.height.toFloat(),
-            paint
+    override fun DrawScope.draw(context: VisualEffectContext) {
+        drawRect(
+            color = color.copy(alpha = alpha),
+            size = context.size,
         )
     }
 }

@@ -24,14 +24,16 @@ Only linear gradient [HazeProgressive](../api/haze-blur/dev.chrisbanes.haze.blur
 
 You can disable this behavior by setting the [preferPerformance](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-companion/index.html) property. When set to true, the progressive 'effect' will instead be drawn via a mask:
 
-```kotlin hl_lines="6"
+```kotlin hl_lines="7"
 LargeTopAppBar(
   // ...
   modifier = Modifier.hazeEffect(hazeState) {
-    progressive = HazeProgressive.verticalGradient(
-      // ...
-      preferPerformance = true,
-    )
+    blurEffect {
+      progressive = HazeProgressive.verticalGradient(
+        // ...
+        preferPerformance = true,
+      )
+    }
   }
 )
 ```

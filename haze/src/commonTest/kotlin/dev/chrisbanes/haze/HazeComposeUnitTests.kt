@@ -131,6 +131,86 @@ class HazeComposeUnitTests : ContextTest() {
 
     assertThat(resolved).isEqualTo(HazePositionStrategy.Screen)
   }
+
+  @Test
+  fun testResolvePositionStrategy_autoResolvesToLocalForNullWindowIdAreas() {
+    val area1 = HazeAreaTestFactory.create(windowId = null)
+    val area2 = HazeAreaTestFactory.create(windowId = null)
+
+    val resolved = resolvePositionStrategy(
+      configured = HazePositionStrategy.Auto,
+      areas = listOf(area1, area2),
+      windowId = "host-window",
+    )
+
+    assertThat(resolved).isEqualTo(HazePositionStrategy.Local)
+  }
+
+  @Test
+  fun testResolvePositionStrategy_autoResolvesToLocalForMatchingWindowId() {
+    val area = HazeAreaTestFactory.create(windowId = "host-window")
+
+    val resolved = resolvePositionStrategy(
+      configured = HazePositionStrategy.Auto,
+      areas = listOf(area),
+      windowId = "host-window",
+    )
+
+    // Same window is treated as local
+    assertThat(resolved).isEqualTo(HazePositionStrategy.Local)
+  }
+
+  @Test
+  fun testResolvePositionStrategy_passesThroughExplicitLocal() {
+    val area = HazeAreaTestFactory.create(windowId = "dialog-window")
+
+    val resolved = resolvePositionStrategy(
+      configured = HazePositionStrategy.Local,
+      areas = listOf(area),
+      windowId = "host-window",
+    )
+
+    assertThat(resolved).isEqualTo(HazePositionStrategy.Local)
+  }
+
+  @Test
+  fun testResolvePositionStrategy_passesThroughExplicitScreen() {
+    val area = HazeAreaTestFactory.create(windowId = null)
+
+    val resolved = resolvePositionStrategy(
+      configured = HazePositionStrategy.Screen,
+      areas = listOf(area),
+      windowId = "host-window",
+    )
+
+    assertThat(resolved).isEqualTo(HazePositionStrategy.Screen)
+  }
+
+  @Test
+  fun testResolvePositionStrategy_autoPromotesToScreenForMixedWindowIds() {
+    val area1 = HazeAreaTestFactory.create(windowId = "dialog-window")
+    val area2 = HazeAreaTestFactory.create(windowId = "host-window")
+
+    val resolved = resolvePositionStrategy(
+      configured = HazePositionStrategy.Auto,
+      areas = listOf(area1, area2),
+      windowId = "host-window",
+    )
+
+    // One area is in a different window — promote to Screen
+    assertThat(resolved).isEqualTo(HazePositionStrategy.Screen)
+  }
+
+  @Test
+  fun testResolvePositionStrategy_emptyAreasResolvesToLocal() {
+    val resolved = resolvePositionStrategy(
+      configured = HazePositionStrategy.Auto,
+      areas = emptyList(),
+      windowId = "host-window",
+    )
+
+    assertThat(resolved).isEqualTo(HazePositionStrategy.Local)
+  }
 }
 
 internal object HazeAreaTestFactory {

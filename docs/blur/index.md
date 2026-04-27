@@ -66,7 +66,7 @@ For more detailed usage patterns, see the [Blur Usage](usage.md) guide.
 
 ## Styling
 
-The appearance of the blur effect is controlled through the [HazeStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/index.html) class:
+The appearance of the blur effect is controlled through the [HazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html) class:
 
 - **Blur Radius**: Controls the strength of the blur
 - **Tint**: Applies a color overlay for contrast

@@ -84,13 +84,13 @@ blurEffect {
 
 ## Custom Styles
 
-To create custom blur styles, use the [HazeStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/index.html) data class:
+To create custom blur styles, use the [HazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html) data class:
 
 ```kotlin
-val customStyle = HazeStyle(
+val customStyle = HazeBlurStyle(
   blurRadius = 15.dp,
-  tints = listOf(Color.Black.copy(alpha = 0.2f)),
-  noise = 0.1f
+  colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.2f))),
+  noiseFactor = 0.1f
 )
 
 blurEffect {
@@ -103,7 +103,7 @@ Or set properties directly in the `blurEffect` block:
 ```kotlin
 blurEffect {
   blurRadius = 15.dp
-  tints = listOf(Color.Black.copy(alpha = 0.2f))
-  noise = 0.1f
+  colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.2f)))
+  noiseFactor = 0.1f
 }
 ```
