@@ -161,6 +161,7 @@ internal fun DrawScope.createScaledContentLayer(
   scaleFactor: Float,
   layerSize: Size,
   layerOffset: Offset,
+  existingLayer: GraphicsLayer? = null,
 ): GraphicsLayer? {
   val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
 
@@ -172,7 +173,8 @@ internal fun DrawScope.createScaledContentLayer(
   // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
   // The RenderEffect applied will provide the blurring effect.
   val graphicsContext = context.requireGraphicsContext()
-  val layer = graphicsContext.createGraphicsLayer()
+  val layer = existingLayer?.takeUnless { it.isReleased }
+    ?: graphicsContext.createGraphicsLayer()
 
   layer.record(size = scaledLayerSize) {
     if (backgroundColor.isSpecified) {

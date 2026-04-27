@@ -6,9 +6,12 @@ package dev.chrisbanes.haze.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -23,9 +26,46 @@ internal class RenderEffectBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
 ) : BlurVisualEffect.Delegate {
   private var renderEffect: RenderEffect? = null
+  private var scaledContentLayer: GraphicsLayer? = null
+  private var lastScaledLayerSize: Size? = null
+  private var graphicsContext: GraphicsContext? = null
 
   override fun DrawScope.draw(context: VisualEffectContext) {
-    createAndDrawScaledContentLayer(context = context) { layer ->
+    // Calculate scaled layer size to detect size changes (needs re-allocation)
+    val scaleFactor = blurVisualEffect.calculateInputScaleFactor(context.inputScale)
+    val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {
+      Size(it.width.toFloat(), it.height.toFloat())
+    }
+
+    // Allocate the scaled content layer once, re-recording into it each frame
+    if (scaledContentLayer == null || scaledContentLayer!!.isReleased || lastScaledLayerSize != currentScaledSize) {
+      graphicsContext = context.requireGraphicsContext()
+      scaledContentLayer?.let { graphicsContext!!.releaseGraphicsLayer(it) }
+      scaledContentLayer = graphicsContext!!.createGraphicsLayer()
+      lastScaledLayerSize = currentScaledSize
+    }
+
+    val layer = scaledContentLayer!!
+
+    // Always re-record — the source area layers change each frame during scrolling.
+    // Returns null when the scaled size is 0 (e.g., window minimized).
+    val resultLayer = createScaledContentLayer(
+      context = context,
+      scaleFactor = scaleFactor,
+      layerSize = context.layerSize,
+      layerOffset = context.layerOffset,
+      backgroundColor = blurVisualEffect.backgroundColor,
+      existingLayer = layer,
+    ) ?: return
+
+    val clip = blurVisualEffect.shouldClip()
+    resultLayer.clip = clip
+
+    drawScaledContent(
+      offset = -context.layerOffset,
+      scaledSize = size * scaleFactor,
+      clip = clip,
+    ) {
       val p = blurVisualEffect.progressive
       if (p != null) {
         drawProgressiveEffect(
@@ -35,17 +75,21 @@ internal class RenderEffectBlurVisualEffectDelegate(
           context = context,
         )
       } else {
-        // First make sure that the RenderEffect is updated (if necessary)
         updateRenderEffectIfDirty(context)
-
         layer.renderEffect = renderEffect
         layer.alpha = blurVisualEffect.alpha
-
-        // Since we included a border around the content, we need to translate so that
-        // we don't see it (but it still affects the RenderEffect)
         drawLayer(layer)
       }
     }
+  }
+
+  override fun detach() {
+    scaledContentLayer?.let { layer ->
+      graphicsContext?.releaseGraphicsLayer(layer)
+    }
+    scaledContentLayer = null
+    lastScaledLayerSize = null
+    graphicsContext = null
   }
 
   private fun updateRenderEffectIfDirty(context: VisualEffectContext) {
