@@ -65,7 +65,7 @@ public class HazeEffectNode(
 
   override val shouldAutoInvalidate: Boolean = false
 
-  internal var dirtyTracker = Bitmask()
+  internal var dirtyTracker = Bitmask(DirtyFields.Areas)
 
   private var needsPreDrawInvalidation = false
 
@@ -374,24 +374,24 @@ public class HazeEffectNode(
     // effects but were previously showing some
     block?.invoke(this)
 
-    val backgroundBlurring = state != null
+    val state = this.state
+    if (state != null) {
+      // Background blur: only recompute areas when relevant dirty flags are set.
+      // Always read state.areas to maintain snapshot observation on HazeState._areas
+      // (mutableStateListOf), even when we skip recomputation below.
+      val stateAreas = state.areas
 
-    // Always read state?.areas to maintain snapshot observation on
-    // HazeState._areas (mutableStateListOf), even when we skip recomputation below.
-    val stateAreas = if (backgroundBlurring) state?.areas else null
+      if (DirtyFields.Areas in dirtyTracker) {
+        _areas.forEach { area ->
+          // Remove our pre draw listener from the current areas
+          area.preDrawListeners -= areaPreDrawListener
+        }
 
-    if (DirtyFields.Areas in dirtyTracker) {
-      _areas.forEach { area ->
-        // Remove our pre draw listener from the current areas
-        area.preDrawListeners -= areaPreDrawListener
-      }
-
-      _areas = if (backgroundBlurring) {
         val ancestorSourceNode =
           (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
             ?.takeIf { it.state == this.state }
 
-        stateAreas.orEmpty()
+        _areas = stateAreas.orEmpty()
           .also {
             HazeLogger.d(TAG) { "Background Areas observing: $it" }
           }
@@ -408,12 +408,14 @@ public class HazeEffectNode(
           }
           .toMutableList()
           .apply { sortBy(HazeArea::zIndex) }
-      } else {
-        contentDrawArea.size = size
-        contentDrawArea.position = position
-        contentDrawArea.windowId = windowId
-        listOf(contentDrawArea)
       }
+    } else {
+      // Foreground (content) blur: always update contentDrawArea since its size,
+      // position, and windowId may change every frame with no dirty flag.
+      contentDrawArea.size = size
+      contentDrawArea.position = position
+      contentDrawArea.windowId = windowId
+      _areas = listOf(contentDrawArea)
     }
 
     // Auto-promote position strategy when cross-window is detected
@@ -449,7 +451,7 @@ public class HazeEffectNode(
     }
 
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
-      if (backgroundBlurring && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
+      if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
         val clippedLayerBounds = Rect(position, size)
           .letIf(shouldExpandLayer()) { visualEffect.calculateLayerBounds(it, requireDensity()) }
           .letIf(shouldClipToAreaBounds()) { rect ->
@@ -473,7 +475,7 @@ public class HazeEffectNode(
           height = clippedLayerBounds.height.coerceAtLeast(0f),
         )
         _layerOffset = position - clippedLayerBounds.topLeft
-      } else if (!backgroundBlurring && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
+      } else if (state == null && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
         val rect = size.toRect()
         val expanded = visualEffect.calculateLayerBounds(rect, requireDensity())
         _layerSize = expanded.size
