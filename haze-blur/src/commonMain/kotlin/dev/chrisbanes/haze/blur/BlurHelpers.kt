@@ -161,6 +161,7 @@ internal fun DrawScope.createScaledContentLayer(
   scaleFactor: Float,
   layerSize: Size,
   layerOffset: Offset,
+  existingLayer: GraphicsLayer? = null,
 ): GraphicsLayer? {
   val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
 
@@ -172,7 +173,8 @@ internal fun DrawScope.createScaledContentLayer(
   // Now we need to draw `contentNode` into each of an 'effect' graphic layers.
   // The RenderEffect applied will provide the blurring effect.
   val graphicsContext = context.requireGraphicsContext()
-  val layer = graphicsContext.createGraphicsLayer()
+  val layer = existingLayer?.takeUnless { it.isReleased }
+    ?: graphicsContext.createGraphicsLayer()
 
   layer.record(size = scaledLayerSize) {
     if (backgroundColor.isSpecified) {
@@ -186,11 +188,13 @@ internal fun DrawScope.createScaledContentLayer(
             area.position.takeOrElse { Offset.Zero }
           }
           translate(position) {
-            // Draw the content into our effect layer. We do want to observe this via snapshot
-            // state
-            val areaLayer = area.contentLayer
-              ?.takeUnless { it.isReleased }
-              ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+            // Draw the content into our effect layer. Use withoutReadObservation to avoid
+            // creating snapshot edges — composition-level observation is handled by the node
+            val areaLayer = Snapshot.withoutReadObservation {
+              area.contentLayer
+                ?.takeUnless { it.isReleased }
+                ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+            }
 
             if (areaLayer != null) {
               HazeLogger.d("Blur") { "Drawing HazeArea GraphicsLayer: $areaLayer" }
