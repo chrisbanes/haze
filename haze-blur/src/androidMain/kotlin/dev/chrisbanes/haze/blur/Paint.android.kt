@@ -4,7 +4,8 @@
 package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.nativePaint
 
 internal actual fun Paint.reset() {
-  asFrameworkPaint().reset()
+  nativePaint.reset()
 }
