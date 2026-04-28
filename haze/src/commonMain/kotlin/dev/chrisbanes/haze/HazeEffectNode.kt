@@ -376,6 +376,10 @@ public class HazeEffectNode(
 
     val backgroundBlurring = state != null
 
+    // Always read state?.areas to maintain snapshot observation on
+    // HazeState._areas (mutableStateListOf), even when we skip recomputation below.
+    val stateAreas = if (backgroundBlurring) state?.areas else null
+
     if (DirtyFields.Areas in dirtyTracker) {
       _areas.forEach { area ->
         // Remove our pre draw listener from the current areas
@@ -387,7 +391,7 @@ public class HazeEffectNode(
           (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
             ?.takeIf { it.state == this.state }
 
-        state?.areas.orEmpty()
+        stateAreas.orEmpty()
           .also {
             HazeLogger.d(TAG) { "Background Areas observing: $it" }
           }
@@ -435,6 +439,12 @@ public class HazeEffectNode(
     if (shouldUsePreDrawListener()) {
       for (area in areas) {
         area.preDrawListeners += areaPreDrawListener
+      }
+    } else {
+      // Always remove the listener when it should no longer be active,
+      // even if DirtyFields.Areas was not set this frame.
+      for (area in areas) {
+        area.preDrawListeners -= areaPreDrawListener
       }
     }
 

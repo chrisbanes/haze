@@ -188,8 +188,8 @@ internal fun DrawScope.createScaledContentLayer(
             area.position.takeOrElse { Offset.Zero }
           }
           translate(position) {
-            // Draw the content into our effect layer. We do want to observe this via snapshot
-            // state
+            // Draw the content into our effect layer. Use withoutReadObservation to avoid
+            // creating snapshot edges — composition-level observation is handled by the node
             val areaLayer = Snapshot.withoutReadObservation {
               area.contentLayer
                 ?.takeUnless { it.isReleased }
