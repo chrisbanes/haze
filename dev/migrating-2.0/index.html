@@ -1255,8 +1255,8 @@
 <h3 id="add-the-haze-blur-module">Add the haze-blur Module<a class="headerlink" href="#add-the-haze-blur-module" title="Permanent link">¶</a></h3>
 <p>In addition to the core <code>haze</code> module, you now need to explicitly add the <code>haze-blur</code> module to use blur effects:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0"</span><span class="p">)</span>
-<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0"</span><span class="p">)</span><span class="w"> </span><span class="c1">// NEW in v2</span>
+<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0-alpha01"</span><span class="p">)</span>
+<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0-alpha01"</span><span class="p">)</span><span class="w"> </span><span class="c1">// NEW in v2</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="update-imports">Update Imports<a class="headerlink" href="#update-imports" title="Permanent link">¶</a></h3>
@@ -1268,10 +1268,10 @@
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.LocalHazeStyle</span>
 </code></pre></div>
 <p><strong>V2 imports:</strong>
-</p><div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeStyle</span>
-<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeTint</span>
+</p><div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeBlurStyle</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeColorEffect</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeProgressive</span>
-<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.LocalHazeStyle</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.LocalHazeBlurStyle</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.blurEffect</span><span class="w"> </span><span class="c1">// NEW: extension function</span>
 </code></pre></div>
 <h2 id="api-migration">API Migration<a class="headerlink" href="#api-migration" title="Permanent link">¶</a></h2>
@@ -1282,7 +1282,7 @@
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span>
-<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">)))</span>
+<span class="w">  </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">)))</span>
 <span class="w">  </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.15f</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1291,7 +1291,7 @@
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span><span class="w">  </span><span class="c1">// NEW: wrap blur properties</span>
 <span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span>
-<span class="w">    </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">)))</span>
+<span class="w">    </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">)))</span>
 <span class="w">    </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.15f</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
@@ -1387,7 +1387,7 @@
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">)))</span>
+<span class="w">  </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">)))</span>
 <span class="w">  </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1395,7 +1395,7 @@
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">)))</span>
+<span class="w">    </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">)))</span>
 <span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
@@ -1420,7 +1420,7 @@
 </tr>
 <tr>
 <td><code>HazeEffectScope.tints</code></td>
-<td><code>BlurVisualEffect.tints</code></td>
+<td><code>BlurVisualEffect.colorEffects</code></td>
 <td>Inside <code>blurEffect {}</code></td>
 </tr>
 <tr>
@@ -1520,13 +1520,13 @@
 </tr>
 <tr>
 <td><code>dev.chrisbanes.haze.HazeStyle</code></td>
-<td><code>dev.chrisbanes.haze.blur.HazeStyle</code></td>
-<td>Package change</td>
+<td><code>dev.chrisbanes.haze.blur.HazeBlurStyle</code></td>
+<td>Renamed + package change</td>
 </tr>
 <tr>
 <td><code>dev.chrisbanes.haze.HazeTint</code></td>
-<td><code>dev.chrisbanes.haze.blur.HazeTint</code></td>
-<td>Package change</td>
+<td><code>dev.chrisbanes.haze.blur.HazeColorEffect</code></td>
+<td>Renamed + package change</td>
 </tr>
 <tr>
 <td><code>dev.chrisbanes.haze.HazeProgressive</code></td>
@@ -1535,22 +1535,22 @@
 </tr>
 <tr>
 <td><code>dev.chrisbanes.haze.LocalHazeStyle</code></td>
-<td><code>dev.chrisbanes.haze.blur.LocalHazeStyle</code></td>
-<td>Package change</td>
+<td><code>dev.chrisbanes.haze.blur.LocalHazeBlurStyle</code></td>
+<td>Renamed + package change</td>
 </tr>
 </tbody>
 </table>
 <h2 id="step-by-step-migration">Step-by-Step Migration<a class="headerlink" href="#step-by-step-migration" title="Permanent link">¶</a></h2>
 <p><strong>Update dependencies</strong> in your <code>build.gradle.kts</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0"</span><span class="p">)</span>
-<span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0"</span><span class="p">)</span><span class="w"> </span><span class="c1">// Add this</span>
+<div class="highlight"><pre><span></span><code><span class="w"> </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0-alpha01"</span><span class="p">)</span>
+<span class="w"> </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0-alpha01"</span><span class="p">)</span><span class="w"> </span><span class="c1">// Add this</span>
 </code></pre></div>
 <p><strong>Update imports</strong> for blur-related classes:</p>
 <ul>
-<li>Change <code>dev.chrisbanes.haze.HazeStyle</code> → <code>dev.chrisbanes.haze.blur.HazeStyle</code></li>
-<li>Change <code>dev.chrisbanes.haze.HazeTint</code> → <code>dev.chrisbanes.haze.blur.HazeTint</code></li>
+<li>Change <code>dev.chrisbanes.haze.HazeStyle</code> → <code>dev.chrisbanes.haze.blur.HazeBlurStyle</code></li>
+<li>Change <code>dev.chrisbanes.haze.HazeTint</code> → <code>dev.chrisbanes.haze.blur.HazeColorEffect</code></li>
 <li>Change <code>dev.chrisbanes.haze.HazeProgressive</code> → <code>dev.chrisbanes.haze.blur.HazeProgressive</code></li>
-<li>Change <code>dev.chrisbanes.haze.LocalHazeStyle</code> → <code>dev.chrisbanes.haze.blur.LocalHazeStyle</code></li>
+<li>Change <code>dev.chrisbanes.haze.LocalHazeStyle</code> → <code>dev.chrisbanes.haze.blur.LocalHazeBlurStyle</code></li>
 <li>Add <code>import dev.chrisbanes.haze.blur.blurEffect</code></li>
 </ul>
 <p><strong>Wrap blur properties</strong> in <code>blurEffect {}</code>:</p>
