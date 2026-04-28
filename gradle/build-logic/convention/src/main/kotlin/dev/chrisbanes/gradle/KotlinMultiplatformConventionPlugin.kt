@@ -43,9 +43,10 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   }
 }
 
-fun KotlinMultiplatformExtension.addDefaultHazeTargets() {
+fun KotlinMultiplatformExtension.addDefaultHazeTargets(namespace: String? = null) {
   jvm()
-  androidTarget {
+
+  targets.withType<KotlinAndroidTarget> {
     publishLibraryVariants("release")
   }
 

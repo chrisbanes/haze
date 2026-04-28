@@ -6,13 +6,13 @@ import com.android.build.api.dsl.ManagedVirtualDevice
 
 plugins {
   id("dev.chrisbanes.android.test")
-  id("dev.chrisbanes.kotlin.android")
   id("androidx.baselineprofile")
 }
 
 @Suppress("UnstableApiUsage")
 android {
   namespace = "dev.chrisbanes.haze.baselineprofile"
+  compileSdk = 36
 
   defaultConfig {
     minSdk = 28
@@ -24,7 +24,7 @@ android {
   targetProjectPath = ":sample:android"
   experimentalProperties["android.experimental.self-instrumenting"] = true
 
-  testOptions.managedDevices.devices {
+  testOptions.managedDevices {
     create<ManagedVirtualDevice>("pixel5Api30") {
       device = "Pixel 5"
       apiLevel = 30

@@ -5,12 +5,16 @@
 import dev.chrisbanes.gradle.addDefaultHazeTargets
 
 plugins {
-  id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
+  id("com.android.kotlin.multiplatform.library")
   id("org.jetbrains.dokka")
 }
 
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.docs"
+    compileSdk = 36
+  }
   addDefaultHazeTargets()
 }
 
@@ -19,10 +23,6 @@ dependencies {
   dokka(projects.hazeBlur)
   dokka(projects.hazeMaterials)
   dokka(projects.hazeUtils)
-}
-
-android {
-  namespace = "dev.chrisbanes.haze.docs"
 }
 
 dokka {
