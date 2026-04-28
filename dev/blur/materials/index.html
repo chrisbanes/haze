@@ -1124,11 +1124,11 @@
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="custom-styles">Custom Styles<a class="headerlink" href="#custom-styles" title="Permanent link">¶</a></h2>
-<p>To create custom blur styles, use the <a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/">HazeBlurStyle</a> data class:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">customStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">(</span>
+<p>To create custom blur styles, use the <a href="../../api/haze-blur/dev.chrisbanes.haze.blur/-haze-style/">HazeStyle</a> data class:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">customStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeStyle</span><span class="p">(</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">15.</span><span class="n">dp</span><span class="p">,</span>
-<span class="w">  </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">))),</span>
-<span class="w">  </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.1f</span>
+<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">)),</span>
+<span class="w">  </span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.1f</span>
 <span class="p">)</span>
 
 <span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
@@ -1138,8 +1138,8 @@
 <p>Or set properties directly in the <code>blurEffect</code> block:</p>
 <div class="highlight"><pre><span></span><code><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">15.</span><span class="n">dp</span>
-<span class="w">  </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">)))</span>
-<span class="w">  </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.1f</span>
+<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">))</span>
+<span class="w">  </span><span class="n">noise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.1f</span>
 <span class="p">}</span>
 </code></pre></div></div>
 

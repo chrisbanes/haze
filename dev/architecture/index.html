@@ -1085,16 +1085,16 @@
 <p>The <code>VisualEffect</code> interface is the base contract for all visual effects. Implementations provide platform-specific rendering logic for creating the desired visual effect.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">VisualEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">attach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span>
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">,</span><span class="w"> </span><span class="n">scope</span><span class="p">:</span><span class="w"> </span><span class="n">HazeEffectScope</span><span class="p">)</span>
 <span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">()</span>
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="n">DrawScope</span><span class="p">.</span><span class="nf">draw</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="n">canvas</span><span class="p">:</span><span class="w"> </span><span class="n">Canvas</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
 <ul>
 <li><strong>attach</strong>: Called when the effect is first attached to a composable. Implementations can initialize platform-specific resources.</li>
-<li><strong>update</strong>: Called whenever the effect should update its state from composition locals or other sources.</li>
+<li><strong>update</strong>: Called whenever styling parameters change (from <code>HazeEffectScope</code>).</li>
 <li><strong>detach</strong>: Called when the effect is removed. Implementations should clean up resources.</li>
-<li><strong>draw</strong>: Renders the effect using the <code>DrawScope</code> receiver.</li>
+<li><strong>draw</strong>: Renders the effect to the provided canvas.</li>
 </ul>
 <h3 id="hazeeffectscope">HazeEffectScope<a class="headerlink" href="#hazeeffectscope" title="Permanent link">¶</a></h3>
 <p>The <code>HazeEffectScope</code> is a receiver scope passed to the lambda block of <code>Modifier.hazeEffect</code>. It provides common properties that apply across all effects:</p>
@@ -1143,23 +1143,13 @@
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="platform-support">Platform Support<a class="headerlink" href="#platform-support" title="Permanent link">¶</a></h2>
-<p>Haze provides a <code>VisualEffectContext</code> that gives effects access to geometry, configuration, and platform capabilities:</p>
+<p>Haze provides a <code>VisualEffectContext</code> that gives effects access to platform-specific capabilities:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">VisualEffectContext</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">position</span><span class="p">:</span><span class="w"> </span><span class="n">Offset</span><span class="w">               </span><span class="c1">// Position of the effect node</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">size</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="w">                     </span><span class="c1">// Size of the effect area</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">layerSize</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="w">                </span><span class="c1">// Size of the graphics layer (may differ from size)</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">layerOffset</span><span class="p">:</span><span class="w"> </span><span class="n">Offset</span><span class="w">            </span><span class="c1">// Graphics layer offset relative to node position</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">rootBounds</span><span class="p">:</span><span class="w"> </span><span class="n">Rect</span><span class="w">               </span><span class="c1">// Bounds of the root layout coordinates on screen</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">inputScale</span><span class="p">:</span><span class="w"> </span><span class="n">HazeInputScale</span><span class="w">     </span><span class="c1">// Input scale factor configuration</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">windowId</span><span class="p">:</span><span class="w"> </span><span class="kt">Any?</span><span class="w">                 </span><span class="c1">// Identifier for the containing window</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">areas</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeArea</span><span class="o">&gt;</span><span class="w">          </span><span class="c1">// Source areas this effect should process</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">state</span><span class="p">:</span><span class="w"> </span><span class="n">HazeState? </span><span class="w">             </span><span class="c1">// Associated HazeState (null for foreground blur)</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">coroutineScope</span><span class="p">:</span><span class="w"> </span><span class="n">CoroutineScope</span><span class="w"> </span><span class="c1">// CoroutineScope tied to the node lifecycle</span>
-
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">requireDensity</span><span class="p">():</span><span class="w"> </span><span class="n">Density</span>
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">currentValueOf</span><span class="p">(</span><span class="n">local</span><span class="p">:</span><span class="w"> </span><span class="n">CompositionLocal</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">):</span><span class="w"> </span><span class="n">T</span>
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">requireGraphicsContext</span><span class="p">():</span><span class="w"> </span><span class="n">GraphicsContext</span>
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">invalidateDraw</span><span class="p">()</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">size</span><span class="p">:</span><span class="w"> </span><span class="n">IntSize</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">density</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">layoutDirection</span><span class="p">:</span><span class="w"> </span><span class="n">LayoutDirection</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">coroutineScope</span><span class="p">:</span><span class="w"> </span><span class="n">CoroutineScope</span>
+<span class="w">    </span><span class="c1">// Platform-specific rendering utilities</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>Effects can detect platform capabilities and provide the best implementation available. For example:</p>
@@ -1178,16 +1168,16 @@
 <span class="w">        </span><span class="c1">// Initialize resources</span>
 <span class="w">    </span><span class="p">}</span>
 
-<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// Update state from composition locals or snapshot state</span>
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">,</span><span class="w"> </span><span class="n">scope</span><span class="p">:</span><span class="w"> </span><span class="n">HazeEffectScope</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Update with new styling parameters</span>
 <span class="w">    </span><span class="p">}</span>
 
 <span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="c1">// Clean up resources</span>
 <span class="w">    </span><span class="p">}</span>
 
-<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="n">DrawScope</span><span class="p">.</span><span class="nf">draw</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// Render the effect using the DrawScope receiver</span>
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="n">canvas</span><span class="p">:</span><span class="w"> </span><span class="n">Canvas</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Render the effect</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 
@@ -1202,7 +1192,7 @@
 <ol>
 <li>Value set directly in the effect builder (e.g., <code>blurEffect { }</code>)</li>
 <li>Value set via the <code>style</code> property</li>
-<li>Value set via <code>LocalHazeBlurStyle</code> composition local</li>
+<li>Value set via <code>LocalHazeStyle</code> composition local</li>
 <li>Default value</li>
 </ol>
 <p>This allows flexible composition of styles from different sources while maintaining predictable behavior.</p></div>

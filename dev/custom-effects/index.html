@@ -632,10 +632,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#updatecontext-visualeffectcontext" class="md-nav__link">
+  <a href="#updatecontext-visualeffectcontext-scope-hazeeffectscope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        update(context: VisualEffectContext)
+        update(context: VisualEffectContext, scope: HazeEffectScope)
       
     </span>
   </a>
@@ -654,10 +654,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#drawcontext-visualeffectcontext" class="md-nav__link">
+  <a href="#drawcanvas-canvas-context-visualeffectcontext" class="md-nav__link">
     <span class="md-ellipsis">
       
-        draw(context: VisualEffectContext)
+        draw(canvas: Canvas, context: VisualEffectContext)
       
     </span>
   </a>
@@ -1059,10 +1059,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#updatecontext-visualeffectcontext" class="md-nav__link">
+  <a href="#updatecontext-visualeffectcontext-scope-hazeeffectscope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        update(context: VisualEffectContext)
+        update(context: VisualEffectContext, scope: HazeEffectScope)
       
     </span>
   </a>
@@ -1081,10 +1081,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#drawcontext-visualeffectcontext" class="md-nav__link">
+  <a href="#drawcanvas-canvas-context-visualeffectcontext" class="md-nav__link">
     <span class="md-ellipsis">
       
-        draw(context: VisualEffectContext)
+        draw(canvas: Canvas, context: VisualEffectContext)
       
     </span>
   </a>
@@ -1230,9 +1230,9 @@
 <span class="w">        </span><span class="c1">// Initialize any platform-specific resources here</span>
 <span class="w">    </span><span class="p">}</span>
 
-<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// Called when the effect should update its state from composition locals</span>
-<span class="w">        </span><span class="c1">// or other sources. You can safely read snapshot state here.</span>
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">,</span><span class="w"> </span><span class="n">scope</span><span class="p">:</span><span class="w"> </span><span class="n">HazeEffectScope</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Called when styling properties change</span>
+<span class="w">        </span><span class="c1">// Update internal state based on scope properties</span>
 <span class="w">    </span><span class="p">}</span>
 
 <span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -1240,9 +1240,9 @@
 <span class="w">        </span><span class="c1">// Clean up any resources allocated in attach()</span>
 <span class="w">    </span><span class="p">}</span>
 
-<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="n">DrawScope</span><span class="p">.</span><span class="nf">draw</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="n">canvas</span><span class="p">:</span><span class="w"> </span><span class="n">Canvas</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="c1">// Called to render the effect</span>
-<span class="w">        </span><span class="c1">// Draw the effect using the DrawScope receiver</span>
+<span class="w">        </span><span class="c1">// Draw the effect to the provided canvas</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1254,18 +1254,18 @@
 - Query platform capabilities</p>
 <div class="highlight"><pre><span></span><code><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">attach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// Example: Initialize a platform-specific shader</span>
-<span class="w">    </span><span class="n">myShader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">createShader</span><span class="p">(</span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">requireDensity</span><span class="p">())</span>
+<span class="w">    </span><span class="n">myShader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">createShader</span><span class="p">(</span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">density</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<h4 id="updatecontext-visualeffectcontext">update(context: VisualEffectContext)<a class="headerlink" href="#updatecontext-visualeffectcontext" title="Permanent link">¶</a></h4>
-<p>Called whenever the effect should update its state from composition locals or other sources. You can safely read snapshot state in this function. When any snapshot state read in this function is mutated, this function will be re-invoked.</p>
-<div class="highlight"><pre><span></span><code><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// Example: read a composition local and trigger invalidation if needed</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">someLocal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">currentValueOf</span><span class="p">(</span><span class="n">MyCompositionLocal</span><span class="p">)</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">someLocal</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">cachedLocal</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">cachedLocal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">someLocal</span>
-<span class="w">        </span><span class="n">context</span><span class="p">.</span><span class="na">invalidateDraw</span><span class="p">()</span>
-<span class="w">    </span><span class="p">}</span>
+<h4 id="updatecontext-visualeffectcontext-scope-hazeeffectscope">update(context: VisualEffectContext, scope: HazeEffectScope)<a class="headerlink" href="#updatecontext-visualeffectcontext-scope-hazeeffectscope" title="Permanent link">¶</a></h4>
+<p>Called whenever styling parameters change (when <code>HazeEffectScope</code> properties are updated). Use this to:
+- Update effect parameters from <code>HazeEffectScope</code>
+- Recalculate values based on new properties
+- Update platform-specific rendering parameters</p>
+<div class="highlight"><pre><span></span><code><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">,</span><span class="w"> </span><span class="n">scope</span><span class="p">:</span><span class="w"> </span><span class="n">HazeEffectScope</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Update effect from scope properties</span>
+<span class="w">    </span><span class="n">myIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">scope</span><span class="p">.</span><span class="na">alpha</span>
+<span class="w">    </span><span class="n">myInputScale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">scope</span><span class="p">.</span><span class="na">inputScale</span>
 <span class="p">}</span>
 </code></pre></div>
 <h4 id="detach">detach()<a class="headerlink" href="#detach" title="Permanent link">¶</a></h4>
@@ -1278,46 +1278,30 @@
 <span class="w">    </span><span class="n">myCoroutineScope</span><span class="p">.</span><span class="na">cancel</span><span class="p">()</span>
 <span class="p">}</span>
 </code></pre></div>
-<h4 id="drawcontext-visualeffectcontext">draw(context: VisualEffectContext)<a class="headerlink" href="#drawcontext-visualeffectcontext" title="Permanent link">¶</a></h4>
+<h4 id="drawcanvas-canvas-context-visualeffectcontext">draw(canvas: Canvas, context: VisualEffectContext)<a class="headerlink" href="#drawcanvas-canvas-context-visualeffectcontext" title="Permanent link">¶</a></h4>
 <p>Called to render the effect. This is where the actual effect rendering happens.</p>
-<div class="highlight"><pre><span></span><code><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="n">DrawScope</span><span class="p">.</span><span class="nf">draw</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// Draw the effect using the DrawScope receiver</span>
-<span class="w">    </span><span class="n">drawRect</span><span class="p">(</span>
-<span class="w">        </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">),</span>
-<span class="w">        </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">,</span>
-<span class="w">    </span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="n">canvas</span><span class="p">:</span><span class="w"> </span><span class="n">Canvas</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Draw the effect to canvas</span>
+<span class="w">    </span><span class="n">canvas</span><span class="p">.</span><span class="na">drawRect</span><span class="p">(</span><span class="m">0f</span><span class="p">,</span><span class="w"> </span><span class="m">0f</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">.</span><span class="na">width</span><span class="p">.</span><span class="na">toFloat</span><span class="p">(),</span>
+<span class="w">                   </span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">.</span><span class="na">height</span><span class="p">.</span><span class="na">toFloat</span><span class="p">(),</span><span class="w"> </span><span class="n">myPaint</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="visualeffectcontext">VisualEffectContext<a class="headerlink" href="#visualeffectcontext" title="Permanent link">¶</a></h2>
 <p>The context provided to effect methods gives you access to:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">VisualEffectContext</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">position</span><span class="p">:</span><span class="w"> </span><span class="n">Offset</span><span class="w">               </span><span class="c1">// Position of the effect node</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">size</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="w">                    </span><span class="c1">// Size of the effect area</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">layerSize</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="w">              </span><span class="c1">// Size of the graphics layer (may differ from size)</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">layerOffset</span><span class="p">:</span><span class="w"> </span><span class="n">Offset</span><span class="w">          </span><span class="c1">// Graphics layer offset relative to node position</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">rootBounds</span><span class="p">:</span><span class="w"> </span><span class="n">Rect</span><span class="w">             </span><span class="c1">// Bounds of the root layout coordinates on screen</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">inputScale</span><span class="p">:</span><span class="w"> </span><span class="n">HazeInputScale</span><span class="w">   </span><span class="c1">// Input scale factor configuration</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">windowId</span><span class="p">:</span><span class="w"> </span><span class="kt">Any?</span><span class="w">               </span><span class="c1">// Identifier for the containing window</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">areas</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeArea</span><span class="o">&gt;</span><span class="w">        </span><span class="c1">// Source areas this effect should process</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">state</span><span class="p">:</span><span class="w"> </span><span class="n">HazeState? </span><span class="w">           </span><span class="c1">// Associated HazeState (null for foreground blur)</span>
-<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">coroutineScope</span><span class="p">:</span><span class="w"> </span><span class="n">CoroutineScope</span><span class="w"> </span><span class="c1">// CoroutineScope tied to the node lifecycle</span>
-
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">requireDensity</span><span class="p">():</span><span class="w"> </span><span class="n">Density</span>
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">currentValueOf</span><span class="p">(</span><span class="n">local</span><span class="p">:</span><span class="w"> </span><span class="n">CompositionLocal</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">):</span><span class="w"> </span><span class="n">T</span>
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">requireGraphicsContext</span><span class="p">():</span><span class="w"> </span><span class="n">GraphicsContext</span>
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">invalidateDraw</span><span class="p">()</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">size</span><span class="p">:</span><span class="w"> </span><span class="n">IntSize</span><span class="w">                    </span><span class="c1">// Size of the effect area</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">density</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w">                  </span><span class="c1">// Screen pixel density</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">layoutDirection</span><span class="p">:</span><span class="w"> </span><span class="n">LayoutDirection</span><span class="w"> </span><span class="c1">// Text layout direction</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">coroutineScope</span><span class="p">:</span><span class="w"> </span><span class="n">CoroutineScope</span><span class="w">  </span><span class="c1">// For async operations</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="hazeeffectscope">HazeEffectScope<a class="headerlink" href="#hazeeffectscope" title="Permanent link">¶</a></h2>
-<p>The <code>Modifier.hazeEffect { ... }</code> configuration lambda receives <code>HazeEffectScope</code> as its receiver, providing common properties applicable to all effects:</p>
+<p>The effect receives the <code>HazeEffectScope</code> which provides common properties:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">HazeEffectScope</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">visualEffect</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffect</span><span class="w">        </span><span class="c1">// The current visual effect implementation</span>
-<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">inputScale</span><span class="p">:</span><span class="w"> </span><span class="n">HazeInputScale</span><span class="w">        </span><span class="c1">// Performance optimization via resolution scaling</span>
-<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">drawContentBehind</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean</span><span class="w">        </span><span class="c1">// Whether to draw source content behind the effect</span>
-<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">clipToAreasBounds</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean?</span><span class="w">      </span><span class="c1">// Whether to clip to total area bounds</span>
-<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">expandLayerBounds</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean?</span><span class="w">       </span><span class="c1">// Whether to expand layer bounds for edge consistency</span>
-<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">forceInvalidateOnPreDraw</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean</span><span class="w"> </span><span class="c1">// Force invalidation from pre-draw events</span>
-<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">canDrawArea</span><span class="p">:</span><span class="w"> </span><span class="p">((</span><span class="n">HazeArea</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">Boolean</span><span class="p">)</span><span class="o">?</span><span class="w"> </span><span class="c1">// Optional filter to control which areas are drawn</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">alpha</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w">                    </span><span class="c1">// Overall effect opacity</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">inputScale</span><span class="p">:</span><span class="w"> </span><span class="n">HazeInputScale</span><span class="w">      </span><span class="c1">// Performance optimization</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">drawContentBehind</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean</span><span class="w">      </span><span class="c1">// Whether to draw source content</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">canDrawArea</span><span class="p">:</span><span class="w"> </span><span class="p">((</span><span class="n">DrawArea</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">Boolean</span><span class="p">)</span><span class="o">?</span><span class="w"> </span><span class="c1">// Layer filtering</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="providing-a-builder-extension">Providing a Builder Extension<a class="headerlink" href="#providing-a-builder-extension" title="Permanent link">¶</a></h2>
@@ -1342,7 +1326,7 @@
 <h2 id="platform-specific-implementations">Platform-Specific Implementations<a class="headerlink" href="#platform-specific-implementations" title="Permanent link">¶</a></h2>
 <p>Effects often need platform-specific code. Use <code>expect</code>/<code>actual</code> to provide platform implementations:</p>
 <p><strong>commonMain:</strong>
-</p><div class="highlight"><pre><span></span><code><span class="kd">expect</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createCustomShader</span><span class="p">(</span><span class="n">size</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="p">):</span><span class="w"> </span><span class="n">Shader</span>
+</p><div class="highlight"><pre><span></span><code><span class="kd">expect</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createCustomShader</span><span class="p">(</span><span class="n">size</span><span class="p">:</span><span class="w"> </span><span class="n">IntSize</span><span class="p">):</span><span class="w"> </span><span class="n">Shader</span>
 
 <span class="kd">class</span><span class="w"> </span><span class="nc">CustomVisualEffect</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">lateinit</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="nv">shader</span><span class="p">:</span><span class="w"> </span><span class="n">Shader</span>
@@ -1353,12 +1337,12 @@
 <span class="p">}</span>
 </code></pre></div>
 <p><strong>androidMain:</strong>
-</p><div class="highlight"><pre><span></span><code><span class="kd">actual</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createCustomShader</span><span class="p">(</span><span class="n">size</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="p">):</span><span class="w"> </span><span class="n">Shader</span><span class="w"> </span><span class="p">{</span>
+</p><div class="highlight"><pre><span></span><code><span class="kd">actual</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createCustomShader</span><span class="p">(</span><span class="n">size</span><span class="p">:</span><span class="w"> </span><span class="n">IntSize</span><span class="p">):</span><span class="w"> </span><span class="n">Shader</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// Android-specific shader creation</span>
 <span class="p">}</span>
 </code></pre></div>
 <p><strong>desktopMain:</strong>
-</p><div class="highlight"><pre><span></span><code><span class="kd">actual</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createCustomShader</span><span class="p">(</span><span class="n">size</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="p">):</span><span class="w"> </span><span class="n">Shader</span><span class="w"> </span><span class="p">{</span>
+</p><div class="highlight"><pre><span></span><code><span class="kd">actual</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createCustomShader</span><span class="p">(</span><span class="n">size</span><span class="p">:</span><span class="w"> </span><span class="n">IntSize</span><span class="p">):</span><span class="w"> </span><span class="n">Shader</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// Skiko-based shader creation</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1385,22 +1369,28 @@
 <span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">color</span><span class="p">:</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span>
 <span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">alpha</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span>
 
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">paint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Paint</span><span class="p">().</span><span class="na">apply</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">isAntiAlias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+
 <span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">attach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="c1">// No resources to allocate for a simple tint</span>
 <span class="w">    </span><span class="p">}</span>
 
-<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// Nothing to update from composition locals</span>
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">,</span><span class="w"> </span><span class="n">scope</span><span class="p">:</span><span class="w"> </span><span class="n">HazeEffectScope</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">paint</span><span class="p">.</span><span class="na">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">color</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">scope</span><span class="p">.</span><span class="na">alpha</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">alpha</span><span class="p">).</span><span class="na">toArgb</span><span class="p">()</span>
 <span class="w">    </span><span class="p">}</span>
 
 <span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="c1">// Nothing to clean up</span>
 <span class="w">    </span><span class="p">}</span>
 
-<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="n">DrawScope</span><span class="p">.</span><span class="nf">draw</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">drawRect</span><span class="p">(</span>
-<span class="w">            </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">color</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">alpha</span><span class="p">),</span>
-<span class="w">            </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">,</span>
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="n">canvas</span><span class="p">:</span><span class="w"> </span><span class="n">Canvas</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">canvas</span><span class="p">.</span><span class="na">drawRect</span><span class="p">(</span>
+<span class="w">            </span><span class="m">0f</span><span class="p">,</span><span class="w"> </span><span class="m">0f</span><span class="p">,</span>
+<span class="w">            </span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">.</span><span class="na">width</span><span class="p">.</span><span class="na">toFloat</span><span class="p">(),</span>
+<span class="w">            </span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">.</span><span class="na">height</span><span class="p">.</span><span class="na">toFloat</span><span class="p">(),</span>
+<span class="w">            </span><span class="n">paint</span>
 <span class="w">        </span><span class="p">)</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>

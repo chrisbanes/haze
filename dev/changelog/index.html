@@ -7130,7 +7130,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span>
-<span class="w">    </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(...))</span>
+<span class="w">    </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(...))</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -7139,12 +7139,12 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">¶</a></h3>
 <ul>
 <li><strong>New module dependency:</strong> Blur functionality now requires the <code>haze-blur</code> module</li>
-<li><strong>API nesting:</strong> Blur properties (<code>blurRadius</code>, <code>colorEffects</code>, <code>style</code>, <code>noiseFactor</code>, <code>progressive</code>, <code>mask</code>, etc.) now require <code>blurEffect {}</code> wrapper</li>
+<li><strong>API nesting:</strong> Blur properties (<code>blurRadius</code>, <code>tints</code>, <code>style</code>, <code>noiseFactor</code>, <code>progressive</code>, <code>mask</code>, etc.) now require <code>blurEffect {}</code> wrapper</li>
 <li><strong>Package changes:</strong> Blur classes moved to <code>dev.chrisbanes.haze.blur</code> package:</li>
-<li><code>HazeStyle</code> → <code>dev.chrisbanes.haze.blur.HazeBlurStyle</code></li>
-<li><code>HazeTint</code> → <code>dev.chrisbanes.haze.blur.HazeColorEffect</code></li>
+<li><code>HazeStyle</code> → <code>dev.chrisbanes.haze.blur.HazeStyle</code></li>
+<li><code>HazeTint</code> → <code>dev.chrisbanes.haze.blur.HazeTint</code></li>
 <li><code>HazeProgressive</code> → <code>dev.chrisbanes.haze.blur.HazeProgressive</code></li>
-<li><code>LocalHazeStyle</code> → <code>dev.chrisbanes.haze.blur.LocalHazeBlurStyle</code></li>
+<li><code>LocalHazeStyle</code> → <code>dev.chrisbanes.haze.blur.LocalHazeStyle</code></li>
 <li><strong>Removed APIs:</strong> <code>rememberHazeState(blurEnabled)</code> parameter removed (use <code>blurEffect { blurEnabled = ... }</code>)</li>
 <li><strong>Internal API renames:</strong> <code>create*ImageFilter</code> functions renamed to <code>create*RenderEffect</code> (only affects custom effect authors using <code>@InternalHazeApi</code>)</li>
 <li><strong>Dropped targets:</strong> <code>iosX64</code> and <code>macosX64</code> targets removed, following Compose Multiplatform 1.11. These Intel-based targets are no longer supported upstream.</li>
