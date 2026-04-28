@@ -5,7 +5,7 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.0-alpha01 <small>2026-03-21</small> { id="2.0.0-alpha01" }
+## 2.0.0-alpha01 <small>2026-04-28</small> { id="2.0.0-alpha01" }
 
 Major architectural refactor introducing a pluggable visual effects system for improved modularity and extensibility.
 
@@ -59,11 +59,45 @@ New `positionStrategy` parameter on `rememberHazeState()` to control how effect 
 - Kotlin 2.3.20
 - Compose Multiplatform 1.11.0-alpha04
 
+### Added
+* Introduce `VisualEffect` interface and pluggable effect system
+* Extract all blur functionality into a new `haze-blur` module
+* Add `blurEffect {}` wrapper for declarative blur configuration
+* Add `HazePositionStrategy` to control effect position calculation, fixing split-window misalignment
+* Refactor `HazeTint` to `HazeColorEffect` sealed interface with three concrete types: `TintColor`, `TintBrush`, and `ColorFilter` as a first-class effect
+* Add `VisualEffectContext` with lifecycle hooks for custom effects
+* Add migration helpers for v1 to v2 transition
+* Add `onTrimMemory` support to `VisualEffect` for memory pressure handling
+* Promote Materials API to stable, removing `@ExperimentalHazeMaterialsApi`
+* Add initial v2 documentation
+
+### Changed
+* Commonize `RenderEffect` and Shader handling, unifying skiko and android blur implementations
+* Performance: eliminate per-frame `GraphicsLayer` allocation in `hazeEffect`
+* Performance: remove `runBlocking` from RenderScript for faster startup
+* Harden `VisualEffect` lifecycle internals
+* Refactor screenshot test infrastructure to use `VisualEffect` for cross-effect reusability
+* Update Kotlin to 2.3.20
+* Update Compose Multiplatform to 1.11.0-alpha04
+
+### Fixed
+* Fix dark edge artifacts from RenderScript Allocation padding
+* Fix v2 documentation inconsistencies
+* Fix CHANGELOG not included in docs build
+
 ### Migration
 
 For detailed migration instructions, see the [Migration Guide](https://chrisbanes.github.io/haze/migrating-2.0/).
 
-**Full Changelog**: https://github.com/chrisbanes/haze/compare/1.7.1...2.0.0-alpha01
+**Full Changelog**: https://github.com/chrisbanes/haze/compare/1.7.2...2.0.0-alpha01
+
+## 1.7.2 <small>2026-02-10</small> { id="1.7.2" }
+
+### Changed
+* Add changelog
+* Update Compose Multiplatform to 1.10.0
+
+**Full Changelog**: https://github.com/chrisbanes/haze/compare/1.7.1...1.7.2
 
 ## 1.7.1 <small>2025-11-24</small> { id="1.7.1" }
 
