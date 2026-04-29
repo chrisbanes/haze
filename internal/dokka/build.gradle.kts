@@ -6,6 +6,7 @@ import dev.chrisbanes.gradle.addDefaultHazeTargets
 
 plugins {
   id("dev.chrisbanes.kotlin.multiplatform")
+  id("com.android.library")
   id("com.android.kotlin.multiplatform.library")
   id("org.jetbrains.dokka")
 }

@@ -5,6 +5,7 @@
 import dev.chrisbanes.gradle.addDefaultHazeTargets
 
 plugins {
+  id("com.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("com.android.kotlin.multiplatform.library")
   id("dev.chrisbanes.compose")
@@ -14,10 +15,13 @@ plugins {
   id("dev.drewhamilton.poko")
 }
 
+android {
+  namespace = "dev.chrisbanes.haze.blur"
+  compileSdk = 36
+}
+
 kotlin {
   android {
-    namespace = "dev.chrisbanes.haze.blur"
-    compileSdk = 36
   }
   addDefaultHazeTargets()
   explicitApi()
