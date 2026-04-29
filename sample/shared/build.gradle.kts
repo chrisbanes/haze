@@ -6,17 +6,18 @@ import dev.chrisbanes.gradle.addDefaultHazeTargets
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
-  id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
+  id("com.android.library")
+  id("com.android.kotlin.multiplatform.library")
   id("dev.chrisbanes.compose")
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.sample.shared"
-}
-
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.sample.shared"
+    compileSdk = 36
+  }
   addDefaultHazeTargets()
 
   sourceSets {

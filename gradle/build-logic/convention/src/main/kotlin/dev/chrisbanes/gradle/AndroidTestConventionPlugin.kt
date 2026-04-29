@@ -13,8 +13,6 @@ class AndroidTestConventionPlugin : Plugin<Project> {
         apply("com.android.test")
         apply("org.gradle.android.cache-fix")
       }
-
-      configureAndroid()
     }
   }
 }

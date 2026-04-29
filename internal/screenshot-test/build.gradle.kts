@@ -3,21 +3,19 @@
 
 
 plugins {
-  id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
+  id("com.android.library")
+  id("com.android.kotlin.multiplatform.library")
   id("dev.chrisbanes.compose")
   id("io.github.takahirom.roborazzi")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.internal.screenshot"
-}
-
 kotlin {
-  jvm()
-  androidTarget {
-    publishLibraryVariants("release")
+  android {
+    namespace = "dev.chrisbanes.haze.internal.screenshot"
+    compileSdk = 36
   }
+  jvm()
 
   sourceSets {
     commonMain {
@@ -25,11 +23,8 @@ kotlin {
         api(projects.internal.contextTest)
 
         api(compose.components.resources)
-        api(compose.foundation)
-        api(compose.material3)
-
-        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-        api(compose.uiTest)
+        api(libs.compose.multiplatform.foundation)
+        api(libs.compose.multiplatform.ui.test)
       }
     }
 

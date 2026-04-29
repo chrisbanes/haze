@@ -40,12 +40,17 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
     }
 
     configureSpotless()
+
+    tasks.named { it.startsWith("compileAndroid") }.configureEach {
+      dependsOn(tasks.named { it.startsWith("generateResourceAccessorsForAndroid") })
+    }
   }
 }
 
-fun KotlinMultiplatformExtension.addDefaultHazeTargets() {
+fun KotlinMultiplatformExtension.addDefaultHazeTargets(namespace: String? = null) {
   jvm()
-  androidTarget {
+
+  targets.withType<KotlinAndroidTarget> {
     publishLibraryVariants("release")
   }
 

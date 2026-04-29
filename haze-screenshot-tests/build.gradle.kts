@@ -2,36 +2,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
-import org.jetbrains.compose.ExperimentalComposeLibrary
-
 plugins {
-  id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
+  id("com.android.library")
+  id("com.android.kotlin.multiplatform.library")
   id("dev.chrisbanes.compose")
   id("io.github.takahirom.roborazzi")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.screenshots"
-
-  defaultConfig {
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-  }
-
-  testOptions {
-    unitTests {
-      isIncludeAndroidResources = true
-
-      all {
-        it.systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
-      }
-    }
-  }
-}
-
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.screenshots"
+    compileSdk = 36
+  }
   jvm()
-  androidTarget()
 
   compilerOptions {
     optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
@@ -41,7 +25,7 @@ kotlin {
     commonMain {
       dependencies {
         api(projects.hazeBlur)
-        api(compose.foundation)
+        api(libs.compose.multiplatform.foundation)
         api(compose.material3)
         api(compose.components.resources)
       }
@@ -52,8 +36,7 @@ kotlin {
         implementation(kotlin("test"))
         implementation(libs.assertk)
 
-        @OptIn(ExperimentalComposeLibrary::class)
-        implementation(compose.uiTest)
+        implementation(libs.compose.multiplatform.ui.test)
 
         implementation(projects.internal.contextTest)
         implementation(projects.internal.screenshotTest)

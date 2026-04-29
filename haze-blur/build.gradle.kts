@@ -5,8 +5,9 @@
 import dev.chrisbanes.gradle.addDefaultHazeTargets
 
 plugins {
-  id("dev.chrisbanes.android.library")
+  id("com.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
+  id("com.android.kotlin.multiplatform.library")
   id("dev.chrisbanes.compose")
   id("org.jetbrains.dokka")
   id("com.vanniktech.maven.publish")
@@ -16,9 +17,12 @@ plugins {
 
 android {
   namespace = "dev.chrisbanes.haze.blur"
+  compileSdk = 36
 }
 
 kotlin {
+  android {
+  }
   addDefaultHazeTargets()
   explicitApi()
 
@@ -26,8 +30,8 @@ kotlin {
     commonMain {
       dependencies {
         api(projects.haze)
-        api(compose.ui)
-        implementation(compose.foundation)
+        api(libs.compose.multiplatform.ui)
+        implementation(libs.compose.multiplatform.foundation)
         implementation(libs.androidx.collection)
         implementation(projects.hazeUtils)
       }

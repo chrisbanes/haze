@@ -3,11 +3,11 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
-import org.jetbrains.compose.ExperimentalComposeLibrary
 
 plugins {
-  id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
+  id("com.android.library")
+  id("com.android.kotlin.multiplatform.library")
   id("dev.chrisbanes.compose")
   id("androidx.baselineprofile")
   id("org.jetbrains.dokka")
@@ -16,32 +16,20 @@ plugins {
   id("dev.drewhamilton.poko")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze"
-
-  defaultConfig {
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-    consumerProguardFiles("consumer-rules.pro")
-  }
-
-  testOptions {
-    unitTests {
-      isIncludeAndroidResources = true
-    }
-  }
-}
-
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze"
+    compileSdk = 36
+  }
   addDefaultHazeTargets()
   explicitApi()
 
   sourceSets {
     commonMain {
       dependencies {
-        api(compose.ui)
+        api(libs.compose.multiplatform.ui)
         implementation(projects.hazeUtils)
-        implementation(compose.foundation)
+        implementation(libs.compose.multiplatform.foundation)
         implementation(libs.androidx.collection)
       }
     }
@@ -82,8 +70,7 @@ kotlin {
         implementation(kotlin("test"))
         implementation(libs.assertk)
 
-        @OptIn(ExperimentalComposeLibrary::class)
-        implementation(compose.uiTest)
+        implementation(libs.compose.multiplatform.ui.test)
 
         implementation(projects.internal.contextTest)
       }

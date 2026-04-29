@@ -5,15 +5,16 @@
 import dev.chrisbanes.gradle.addDefaultHazeTargets
 
 plugins {
-  id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
-}
-
-android {
-  namespace = "dev.chrisbanes.haze.internal.context"
+  id("com.android.library")
+  id("com.android.kotlin.multiplatform.library")
 }
 
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.internal.context"
+    compileSdk = 36
+  }
   addDefaultHazeTargets()
 
   sourceSets {

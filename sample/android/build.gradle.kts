@@ -4,13 +4,13 @@
 
 plugins {
   id("dev.chrisbanes.android.application")
-  id("dev.chrisbanes.kotlin.android")
   id("dev.chrisbanes.compose")
   id("androidx.baselineprofile")
 }
 
 android {
   namespace = "dev.chrisbanes.haze.sample.android"
+  compileSdk = 36
 
   defaultConfig {
     versionCode = 1
