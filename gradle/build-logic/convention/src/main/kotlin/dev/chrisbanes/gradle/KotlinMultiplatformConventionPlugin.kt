@@ -40,6 +40,10 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
     }
 
     configureSpotless()
+
+    tasks.named { it.startsWith("compileAndroid") }.configureEach {
+      dependsOn(tasks.named { it.startsWith("generateResourceAccessorsForAndroid") })
+    }
   }
 }
 
