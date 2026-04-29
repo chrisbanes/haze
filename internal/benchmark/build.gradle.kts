@@ -2,14 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
-import com.android.build.api.dsl.ManagedVirtualDevice
-
 plugins {
   id("dev.chrisbanes.android.test")
   id("androidx.baselineprofile")
 }
 
-@Suppress("UnstableApiUsage")
 android {
   namespace = "dev.chrisbanes.haze.baselineprofile"
   compileSdk = 36
@@ -24,28 +21,18 @@ android {
   targetProjectPath = ":sample:android"
   experimentalProperties["android.experimental.self-instrumenting"] = true
 
-  testOptions.managedDevices {
-    create<ManagedVirtualDevice>("pixel5Api30") {
-      device = "Pixel 5"
-      apiLevel = 30
-      systemImageSource = "aosp"
-    }
-
-    create<ManagedVirtualDevice>("pixel5Api34") {
-      device = "Pixel 5"
-      apiLevel = 34
-      systemImageSource = "aosp"
-    }
-  }
+  // TODO: ManagedVirtualDevice API changed in AGP 9.x / benchmark alpha
+  // testOptions.managedDevices { ... }
 }
 
-@Suppress("UnstableApiUsage")
-baselineProfile {
-  managedDevices += "pixel5Api30"
-  managedDevices += "pixel5Api34"
-  useConnectedDevices = false
-  enableEmulatorDisplay = false
-}
+// TODO: ManagedVirtualDevice API changed in AGP 9.x / benchmark alpha
+// @Suppress("UnstableApiUsage")
+// baselineProfile {
+//   managedDevices += "pixel5Api30"
+//   managedDevices += "pixel5Api34"
+//   useConnectedDevices = false
+//   enableEmulatorDisplay = false
+// }
 
 dependencies {
   implementation(libs.androidx.benchmark.macro)
