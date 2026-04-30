@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -281,6 +282,73 @@ fun ContentAtEdges(visualEffect: BlurVisualEffect) {
         style = MaterialTheme.typography.headlineSmall,
         modifier = Modifier.align(Alignment.Center),
       )
+    }
+  }
+}
+
+/**
+ * Test content for issue #717: verifies that haze effect follows a parent's graphicsLayer rotation.
+ * Both the hazeSource and hazeEffect are inside the same rotated parent.
+ */
+@Composable
+fun ParentRotatedContent(
+  visualEffect: BlurVisualEffect,
+  rotationZ: Float = 0f,
+  positionStrategy: HazePositionStrategy = HazePositionStrategy.Auto,
+) {
+  val hazeState = rememberHazeState(positionStrategy = positionStrategy)
+
+  Box(modifier = Modifier.fillMaxSize()) {
+    // Background gradient as a haze source (not rotated)
+    Spacer(
+      modifier = Modifier
+        .hazeSource(hazeState)
+        .fillMaxSize()
+        .background(
+          brush = Brush.verticalGradient(
+            colors = listOf(Color.Red, Color.Cyan, Color.Blue, Color.Magenta, Color.Red),
+          ),
+        ),
+    )
+
+    // A card-like container with graphicsLayer transforms applied to the PARENT,
+    // wrapping both an image (hazeSource) and a text overlay (hazeEffect).
+    Box(
+      modifier = Modifier
+        .align(Alignment.Center)
+        .graphicsLayer {
+          this.rotationZ = rotationZ
+          scaleX = 1.25f
+          scaleY = 1.25f
+        }
+        .size(width = 250.dp, height = 350.dp)
+        .clip(RoundedCornerShape(16.dp)),
+    ) {
+      Image(
+        painter = painterResource(Res.drawable.photo),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+          .hazeSource(hazeState)
+          .fillMaxSize(),
+      )
+
+      Box(
+        modifier = Modifier
+          .align(Alignment.BottomCenter)
+          .fillMaxWidth()
+          .height(80.dp)
+          .hazeEffect(state = hazeState) {
+            this.visualEffect = visualEffect
+          },
+      ) {
+        Text(
+          text = "Haze",
+          color = Color.White,
+          style = MaterialTheme.typography.headlineSmall,
+          modifier = Modifier.align(Alignment.Center),
+        )
+      }
     }
   }
 }
