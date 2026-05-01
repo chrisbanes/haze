@@ -38,10 +38,10 @@ import dev.chrisbanes.haze.VisualEffectContext
  *
  * Example usage:
  * ```
- * Modifier.hazeEffect { scope ->
- *   scope.visualEffect = BlurVisualEffect().apply {
+ * Modifier.hazeEffect {
+ *   blurEffect {
  *     blurRadius = 20.dp
- *     tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
+ *     colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
  *   }
  * }
  * ```

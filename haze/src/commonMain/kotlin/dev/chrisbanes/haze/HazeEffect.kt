@@ -142,8 +142,8 @@ public sealed interface HazeInputScale {
  * Draw the 'haze' effect behind the attached node using a pre-configured [VisualEffect].
  *
  * ```
- * Modifier.hazeEffect(state, effect = effect) {
- *   visualEffect = BlurVisualEffect().apply {
+ * Modifier.hazeEffect(state) {
+ *   blurEffect {
  *     blurRadius = 20.dp
  *     colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
  *   }
