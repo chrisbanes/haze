@@ -10,13 +10,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.PlatformContext
-import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -41,8 +41,8 @@ class BlurVisualEffectLifecycleTest {
     assertThat(delegate.attachCount).isEqualTo(1)
     assertThat(delegate.detachCount).isEqualTo(0)
 
-    effect.detach()
-    effect.detach()
+    effect.detach(FakeVisualEffectContext)
+    effect.detach(FakeVisualEffectContext)
 
     assertThat(delegate.attachCount).isEqualTo(1)
     assertThat(delegate.detachCount).isEqualTo(1)
@@ -64,9 +64,26 @@ class BlurVisualEffectLifecycleTest {
     assertThat(newDelegate.attachCount).isEqualTo(1)
     assertThat(newDelegate.detachCount).isEqualTo(0)
 
-    effect.detach()
+    effect.detach(FakeVisualEffectContext)
 
     assertThat(newDelegate.detachCount).isEqualTo(1)
+  }
+
+  @Test
+  fun shouldDrawContentBehind_reflectsCurrentDelegateWithoutMutatingIt() {
+    val effect = BlurVisualEffect()
+    effect.delegate = ScrimBlurVisualEffectDelegate(effect)
+
+    assertThat(effect.shouldDrawContentBehind(FakeVisualEffectContext)).isEqualTo(true)
+  }
+
+  @Test
+  fun resolveInputScaleFactor_autoUsesBlurSpecificRules() {
+    val effect = BlurVisualEffect().apply {
+      blurRadius = 20.dp
+    }
+
+    assertThat(effect.resolveInputScaleFactor(HazeInputScale.Auto)).isEqualTo(0.3334f)
   }
 
   @Test
@@ -100,7 +117,6 @@ private data object FakeVisualEffectContext : VisualEffectContext {
   override val windowId: Any? = null
   override val areas: List<HazeArea> = emptyList()
   override val state: HazeState? = null
-  override val visualEffect: VisualEffect = VisualEffect.Empty
   override val coroutineScope: CoroutineScope = object : CoroutineScope {
     override val coroutineContext: CoroutineContext = EmptyCoroutineContext
   }

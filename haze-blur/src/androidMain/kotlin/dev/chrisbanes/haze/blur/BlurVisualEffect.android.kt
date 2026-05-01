@@ -4,27 +4,19 @@
 package dev.chrisbanes.haze.blur
 
 import android.os.Build
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
 import dev.chrisbanes.haze.VisualEffectContext
 
-internal actual fun BlurVisualEffect.updateDelegate(
-  context: VisualEffectContext,
-  drawScope: DrawScope,
-) {
-  val canUseRenderEffect = Build.VERSION.SDK_INT >= 31 &&
-    drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
+internal actual fun BlurVisualEffect.updateDelegate(context: VisualEffectContext): BlurVisualEffect.Delegate {
+  val canUseRenderEffect = Build.VERSION.SDK_INT >= 31
 
   val blurEnabled = blurEnabled
 
   if (blurEnabled && canUseRenderEffect) {
-    val newBlurEffect = when (delegate) {
+    return when (delegate) {
       is RenderEffectBlurVisualEffectDelegate -> delegate
       else -> RenderEffectBlurVisualEffectDelegate(this)
     }
-    // We have a valid blur effect, so return
-    delegate = newBlurEffect
-    return
   }
 
   if (blurEnabled) {
@@ -33,14 +25,12 @@ internal actual fun BlurVisualEffect.updateDelegate(
       else -> RenderScriptBlurVisualEffectDelegate.createOrNull(this, context)
     }
     if (newDelegate != null) {
-      // We have a valid blur effect, so return
-      delegate = newDelegate
-      return
+      return newDelegate
     }
   }
 
   // If we reach here, this is the fallback case of using a scrim
-  if (delegate !is ScrimBlurVisualEffectDelegate) {
-    delegate = ScrimBlurVisualEffectDelegate(this)
+  return if (delegate is ScrimBlurVisualEffectDelegate) delegate else {
+    ScrimBlurVisualEffectDelegate(this)
   }
 }

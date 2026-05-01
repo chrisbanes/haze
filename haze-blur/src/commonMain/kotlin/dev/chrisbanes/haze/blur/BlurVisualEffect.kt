@@ -75,7 +75,7 @@ public class BlurVisualEffect : VisualEffect {
     }
   }
 
-  override fun detach() {
+  override fun detach(context: VisualEffectContext) {
     if (isAttached) {
       isAttached = false
       delegate.detach()
@@ -84,6 +84,7 @@ public class BlurVisualEffect : VisualEffect {
 
   override fun update(context: VisualEffectContext) {
     compositionLocalStyle = context.currentValueOf(LocalHazeBlurStyle)
+    delegate = updateDelegate(context)
 
     if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
       context.invalidateDraw()
@@ -91,8 +92,6 @@ public class BlurVisualEffect : VisualEffect {
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
-    updateDelegate(context, this)
-
     try {
       with(delegate) { draw(context) }
     } finally {
@@ -100,8 +99,7 @@ public class BlurVisualEffect : VisualEffect {
     }
   }
 
-  override fun DrawScope.shouldDrawContentBehind(context: VisualEffectContext): Boolean {
-    updateDelegate(context, this)
+  override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
     return delegate is ScrimBlurVisualEffectDelegate
   }
 
@@ -110,7 +108,7 @@ public class BlurVisualEffect : VisualEffect {
       clearRenderEffectCache()
     }
 
-  override fun shouldClip(): Boolean = blurredEdgeTreatment.shape != null
+  override fun shouldClipToNodeBounds(): Boolean = blurredEdgeTreatment.shape != null
 
   private fun resetDirtyTracker() {
     dirtyTracker = Bitmask()
@@ -325,6 +323,20 @@ public class BlurVisualEffect : VisualEffect {
       }
     }
 
+  internal fun resolveInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
+    is HazeInputScale.None -> 1f
+    is HazeInputScale.Fixed -> scale.scale
+    HazeInputScale.Auto -> {
+      val blurRadius = blurRadius.takeOrElse { 0.dp }
+      when {
+        blurRadius < 7.dp -> 1f
+        progressive != null -> 0.5f
+        mask != null -> 0.5f
+        else -> 0.3334f
+      }
+    }
+  }
+
   internal var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle.Unspecified
     set(value) {
       if (field != value) {
@@ -353,27 +365,7 @@ public class BlurVisualEffect : VisualEffect {
       }
     }
 
-  public override fun calculateInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
-    is HazeInputScale.None -> 1f
-    is HazeInputScale.Fixed -> scale.scale
-    HazeInputScale.Auto -> {
-      val blurRadius = blurRadius.takeOrElse { 0.dp }
-      when {
-        // For small blurRadius values, input scaling is very noticeable therefore we turn it off
-        blurRadius < 7.dp -> 1f
-        // For progressive and masks, we need to keep enough resolution for the lowest intensity.
-        // 0.5f is about right.
-        progressive != null -> 0.5f
-        mask != null -> 0.5f
-        // Otherwise we use 1/3
-        else -> 0.3334f
-      }
-    }
-  }
-
-  override fun requireInvalidation(): Boolean = dirtyTracker.any(BlurDirtyFields.InvalidateFlags)
-
-  override fun preferClipToAreaBounds(): Boolean {
+  override fun shouldPreferClipToAreaBounds(): Boolean {
     return backgroundColor.isSpecified && backgroundColor.alpha < 0.9f
   }
 
@@ -407,4 +399,4 @@ public class BlurVisualEffect : VisualEffect {
   }
 }
 
-internal expect fun BlurVisualEffect.updateDelegate(context: VisualEffectContext, drawScope: DrawScope)
+internal expect fun BlurVisualEffect.updateDelegate(context: VisualEffectContext): BlurVisualEffect.Delegate
