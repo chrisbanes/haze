@@ -175,11 +175,9 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
-        // detach old VisualEffect
-        field.detach()
+        detachVisualEffect(field)
         field = value
-        // attach new VisualEffect
-        value.attach(visualEffectContext)
+        attachVisualEffect(value)
       }
     }
 
@@ -234,7 +232,7 @@ public class HazeEffectNode(
   private var trimMemoryCallbackDisposable: DisposableHandle? = null
 
   override fun onAttach() {
-    visualEffect.attach(visualEffectContext)
+    attachVisualEffect(visualEffect)
     trimMemoryCallbackDisposable = registerTrimMemoryCallback(
       requirePlatformContext(),
     ) { level -> visualEffect.onTrimMemory(visualEffectContext, level) }
@@ -245,7 +243,7 @@ public class HazeEffectNode(
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
     contentDrawArea.releaseLayer()
-    visualEffect.detach()
+    detachVisualEffect(visualEffect)
   }
 
   private fun HazeArea.releaseLayer() {
@@ -342,7 +340,7 @@ public class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
-          if (drawContentBehind || with(visualEffect) { shouldDrawContentBehind(visualEffectContext) }) {
+          if (drawContentBehind || visualEffect.shouldDrawContentBehind(visualEffectContext)) {
             drawLayer(contentLayer)
           }
           with(visualEffect) {
@@ -475,7 +473,7 @@ public class HazeEffectNode(
           height = clippedLayerBounds.height.coerceAtLeast(0f),
         )
         _layerOffset = position - clippedLayerBounds.topLeft
-      } else if (state == null && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
+      } else if (state == null && size.isSpecified && !visualEffect.shouldClipToNodeBounds() && shouldExpandLayer()) {
         val rect = size.toRect()
         val expanded = visualEffect.calculateLayerBounds(rect, requireDensity())
         _layerSize = expanded.size
@@ -496,8 +494,7 @@ public class HazeEffectNode(
 
   private fun invalidateIfNeeded() {
     val invalidateRequired =
-      dirtyTracker.any(DirtyFields.InvalidateFlags) ||
-        visualEffect.requireInvalidation()
+      dirtyTracker.any(DirtyFields.InvalidateFlags)
 
     HazeLogger.d(TAG) {
       "invalidateRequired=$invalidateRequired. " +
@@ -542,7 +539,23 @@ internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 
 internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
   clipToAreasBounds?.let { return it }
-  return visualEffect.preferClipToAreaBounds()
+  return visualEffect.shouldPreferClipToAreaBounds()
+}
+
+private val attachedEffects = mutableMapOf<VisualEffect, HazeEffectNode>()
+
+internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
+  val current = attachedEffects[effect]
+  check(current == null || current === this) {
+    "VisualEffect instances are single-owner and cannot be shared across multiple hazeEffect nodes."
+  }
+  attachedEffects[effect] = this
+  effect.attach(visualEffectContext)
+}
+
+internal fun HazeEffectNode.detachVisualEffect(effect: VisualEffect) {
+  effect.detach(visualEffectContext)
+  attachedEffects.remove(effect, this)
 }
 
 internal fun HazeEffectNode.shouldExpandLayer(): Boolean {
