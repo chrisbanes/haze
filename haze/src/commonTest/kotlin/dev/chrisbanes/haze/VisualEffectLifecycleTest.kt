@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isNotNull
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -114,6 +115,7 @@ class VisualEffectLifecycleTest : ContextTest() {
     waitForIdle()
 
     assertThat(effect1.detachCalls).isEqualTo(1)
+    assertThat(effect1.lastDetachContext).isNotNull()
     assertThat(effect2.attachCalls).isEqualTo(1)
     assertThat(effect2.detachCalls).isEqualTo(0)
   }
@@ -151,14 +153,34 @@ class VisualEffectLifecycleTest : ContextTest() {
   }
 
   @Test
-  fun emptyVisualEffect_doesNothing() {
-    val empty = VisualEffect.Empty
-    empty.attach(FakeVisualEffectContext)
-    empty.update(FakeVisualEffectContext)
-    empty.detach()
-    assertThat(empty.shouldClip()).isEqualTo(false)
-    assertThat(empty.requireInvalidation()).isEqualTo(false)
-    assertThat(empty.preferClipToAreaBounds()).isEqualTo(false)
+  fun visualEffect_attachMayRunBeforeGeometryResolved() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RecordingVisualEffect()
+
+    setContent {
+      Box(Modifier.size(100.dp).hazeSource(hazeState)) {
+        Spacer(Modifier.size(100.dp).hazeEffect(hazeState) { visualEffect = effect })
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.attachSawUnspecifiedSize).isEqualTo(true)
+  }
+
+  @Test
+  fun visualEffect_reusingOneInstanceAcrossNodesThrows() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RecordingVisualEffect()
+
+    kotlin.test.assertFailsWith<IllegalStateException> {
+      setContent {
+        Box(Modifier.size(100.dp).hazeSource(hazeState)) {
+          Spacer(Modifier.size(40.dp).hazeEffect(hazeState) { visualEffect = effect })
+          Spacer(Modifier.size(40.dp).hazeEffect(hazeState) { visualEffect = effect })
+        }
+      }
+      waitForIdle()
+    }
   }
 }
 
@@ -168,17 +190,21 @@ internal class RecordingVisualEffect : VisualEffect {
   var updateCalls = 0
   var drawCalls = 0
   var trimMemoryCalls = 0
+  var attachSawUnspecifiedSize = false
+  var lastDetachContext: VisualEffectContext? = null
 
   override fun attach(context: VisualEffectContext) {
     attachCalls++
+    attachSawUnspecifiedSize = context.size == Size.Unspecified || context.size == Size.Zero
   }
 
   override fun update(context: VisualEffectContext) {
     updateCalls++
   }
 
-  override fun detach() {
+  override fun detach(context: VisualEffectContext) {
     detachCalls++
+    lastDetachContext = context
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
@@ -200,7 +226,6 @@ internal data object FakeVisualEffectContext : VisualEffectContext {
   override val windowId: Any? = null
   override val areas: List<HazeArea> = emptyList()
   override val state: HazeState? = null
-  override val visualEffect: VisualEffect = VisualEffect.Empty
   override val coroutineScope: kotlinx.coroutines.CoroutineScope = kotlinx.coroutines.CoroutineScope(kotlin.coroutines.EmptyCoroutineContext)
 
   override fun requireDensity(): androidx.compose.ui.unit.Density = error("Fake")
