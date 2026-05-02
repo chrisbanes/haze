@@ -61,6 +61,21 @@ class HazeEffectNodeConstructorTest {
     node2.attachVisualEffect(effect)
     node2.detachVisualEffect(effect)
   }
+
+  @Test
+  fun attachVisualEffect_noopWhenAlreadyAttachedToSameNode() {
+    val node = HazeEffectNode()
+    val effect = CountingAttachVisualEffect()
+
+    node.attachVisualEffect(effect)
+    assertThat(effect.attachCount).isEqualTo(1)
+
+    // Re-attaching the same effect to the same node should be a no-op
+    node.attachVisualEffect(effect)
+    assertThat(effect.attachCount).isEqualTo(1)
+
+    node.detachVisualEffect(effect)
+  }
 }
 
 private class EqualByTypeVisualEffect(
@@ -85,5 +100,15 @@ private class ThrowOnFirstAttachVisualEffect : VisualEffect {
       shouldThrow = false
       throw IllegalStateException("boom")
     }
+  }
+}
+
+private class CountingAttachVisualEffect : VisualEffect {
+  var attachCount = 0
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+
+  override fun attach(context: VisualEffectContext) {
+    attachCount++
   }
 }

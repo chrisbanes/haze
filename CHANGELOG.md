@@ -51,6 +51,7 @@ New `positionStrategy` parameter on `rememberHazeState()` to control how effect 
   - `HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
   - `LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeBlurStyle`
 - **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed (use `blurEffect { blurEnabled = ... }`)
+- **Removed APIs:** `VisualEffectContext.visualEffect` property removed. Custom `VisualEffect` implementations should use `this` instead of `context.visualEffect` to reference themselves.
 - **Internal API renames:** `create*ImageFilter` functions renamed to `create*RenderEffect` (only affects custom effect authors using `@InternalHazeApi`)
 - **Dropped targets:** `iosX64` and `macosX64` targets removed, following Compose Multiplatform 1.11. These Intel-based targets are no longer supported upstream.
 

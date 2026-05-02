@@ -18,10 +18,13 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotNull
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 @OptIn(ExperimentalTestApi::class)
 class VisualEffectLifecycleTest : ContextTest() {
@@ -165,7 +168,7 @@ class VisualEffectLifecycleTest : ContextTest() {
     }
 
     waitForIdle()
-    assertThat(effect.attachSawUnspecifiedSize).isEqualTo(true)
+    assertThat(effect.attachSawUnspecifiedSize).isTrue()
   }
 
   @Test
@@ -210,6 +213,28 @@ class VisualEffectLifecycleTest : ContextTest() {
   }
 
   @Test
+  fun visualEffect_sharedAcrossConcurrentNodesThrows() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sharedEffect = RecordingVisualEffect()
+
+    setContent {
+      Box(Modifier.size(200.dp)) {
+        Spacer(Modifier.size(100.dp).hazeSource(hazeState))
+        // First node takes ownership
+        Spacer(Modifier.size(100.dp).hazeEffect(hazeState) { visualEffect = sharedEffect })
+      }
+    }
+
+    waitForIdle()
+    assertThat(sharedEffect.attachCalls).isEqualTo(1)
+
+    // Attempting to attach the same instance to a second active node must fail
+    assertFailsWith<IllegalStateException> {
+      HazeEffectNode().attachVisualEffect(sharedEffect)
+    }
+  }
+
+  @Test
   fun visualEffect_calculateLayerBounds_usesScreenAlignedRectInBackgroundMode() = runComposeUiTest {
     val hazeState = HazeState()
     val effect = LayerBoundsRecordingVisualEffect()
@@ -238,7 +263,7 @@ class VisualEffectLifecycleTest : ContextTest() {
     waitForIdle()
     val rect = effect.lastBackgroundRect
     assertThat(rect).isNotNull()
-    assertThat(rect!!.topLeft == Offset.Zero).isEqualTo(false)
+    assertThat(rect!!.topLeft == Offset.Zero).isFalse()
   }
 }
 

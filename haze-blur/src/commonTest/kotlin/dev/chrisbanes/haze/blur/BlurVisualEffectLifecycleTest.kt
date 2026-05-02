@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
@@ -74,7 +76,7 @@ class BlurVisualEffectLifecycleTest {
     val effect = BlurVisualEffect()
     effect.delegate = ScrimBlurVisualEffectDelegate(effect)
 
-    assertThat(effect.shouldDrawContentBehind(FakeVisualEffectContext)).isEqualTo(true)
+    assertThat(effect.shouldDrawContentBehind(FakeVisualEffectContext)).isTrue()
   }
 
   @Test
@@ -88,9 +90,9 @@ class BlurVisualEffectLifecycleTest {
 
   @Test
   fun canUseRenderEffect_requiresApi31AndHardwareAcceleration() {
-    assertThat(canUseRenderEffect(sdkInt = 31, isHardwareAccelerated = true)).isEqualTo(true)
-    assertThat(canUseRenderEffect(sdkInt = 31, isHardwareAccelerated = false)).isEqualTo(false)
-    assertThat(canUseRenderEffect(sdkInt = 30, isHardwareAccelerated = true)).isEqualTo(false)
+    assertThat(canUseRenderEffect(sdkInt = 31, isHardwareAccelerated = true)).isTrue()
+    assertThat(canUseRenderEffect(sdkInt = 31, isHardwareAccelerated = false)).isFalse()
+    assertThat(canUseRenderEffect(sdkInt = 30, isHardwareAccelerated = true)).isFalse()
   }
 
   @Test

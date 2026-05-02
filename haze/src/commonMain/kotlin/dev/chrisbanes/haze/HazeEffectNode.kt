@@ -545,6 +545,9 @@ internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
 // Tracks currently attached effect instances across all nodes.
 // Multiple entries are expected (different effect instances on different nodes),
 // but a single effect instance must never be owned by more than one node.
+// Confined to main-thread access; Compose modifier node callbacks run exclusively on main.
+// Entries are removed in detachVisualEffect(), called from onDetach() which Compose
+// guarantees before the node becomes unreachable.
 private val attachedEffectOwners = mutableListOf<Pair<VisualEffect, HazeEffectNode>>()
 
 internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
@@ -556,18 +559,15 @@ internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
     "VisualEffect instances are single-owner and cannot be shared across multiple hazeEffect nodes."
   }
 
-  val inserted = current == null
-  if (inserted) {
-    attachedEffectOwners += effect to this
-  }
+  if (current === this) return // Already attached to this node; no-op
+
+  attachedEffectOwners += effect to this
 
   runCatching {
     effect.attach(visualEffectContext)
   }.onFailure {
-    if (inserted) {
-      attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
-        attachedEffect === effect && attachedNode === this
-      }
+    attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
+      attachedEffect === effect && attachedNode === this
     }
   }.getOrThrow()
 }

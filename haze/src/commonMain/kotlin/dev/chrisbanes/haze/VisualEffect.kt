@@ -13,16 +13,13 @@ import androidx.compose.ui.unit.Density
  * Implementations receive a [VisualEffectContext] during their lifecycle which provides
  * access to geometry, configuration, and platform capabilities without direct coupling
  * to the underlying node implementation.
+ *
+ * VisualEffect instances are single-owner and must not be attached to multiple
+ * `Modifier.hazeEffect` nodes at the same time. Reusing the same effect instance
+ * across concurrently active nodes will throw an [IllegalStateException].
  */
 @ExperimentalHazeApi
 public interface VisualEffect {
-  /**
-   * VisualEffect instances are single-owner and must not be attached to multiple
-   * `Modifier.hazeEffect` nodes at the same time.
-   *
-   * Reusing the same effect instance across concurrently active nodes is not supported.
-   */
-
   /**
    * Draws the effect.
    *
