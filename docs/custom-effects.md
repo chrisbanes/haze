@@ -1,246 +1,46 @@
 # Custom Effects
 
-This guide explains how to implement custom visual effects that work with Haze's architecture.
+This guide shows how to build and ship custom `VisualEffect` implementations for Haze.
+
+If you want a complete production implementation, see the [haze-blur](https://github.com/chrisbanes/haze/tree/main/haze-blur) module.
 
 ## Overview
 
-Haze is designed to be extensible. While Haze ships with a blur effect, you can implement custom effects by implementing the `VisualEffect` interface and providing a builder extension function.
+Haze is extensible by design. `Modifier.hazeEffect { ... }` is driven by a `VisualEffect` instance, and you can provide your own implementation.
 
-For a complete reference implementation, see the [haze-blur](https://github.com/chrisbanes/haze/tree/main/haze-blur) module.
+Typical workflow:
 
-## Implementing a VisualEffect
+1. Implement `VisualEffect`
+2. Provide a `HazeEffectScope` builder extension for ergonomic configuration
+3. Use your builder from `Modifier.hazeEffect { ... }`
 
-Create a class that implements the `VisualEffect` interface:
+## Implementing VisualEffect
+
+Create a class implementing `VisualEffect`:
 
 ```kotlin
-import android.graphics.Canvas
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 
-class CustomVisualEffect : VisualEffect {
-    // Your effect's configuration properties
-    var intensity: Float = 1f
-    var color: Color = Color.Black
-
-    override fun attach(context: VisualEffectContext) {
-        // Called when the effect is first attached
-        // Initialize any platform-specific resources here
-    }
-
-    override fun update(context: VisualEffectContext) {
-        // Called when the effect should update its state from composition locals
-        // or other sources. You can safely read snapshot state here.
-    }
-
-    override fun detach() {
-        // Called when the effect is removed
-        // Clean up any resources allocated in attach()
-    }
-
-    override fun DrawScope.draw(context: VisualEffectContext) {
-        // Called to render the effect
-        // Draw the effect using the DrawScope receiver
-    }
-}
-```
-
-### Interface Methods
-
-#### attach(context: VisualEffectContext)
-
-Called once when the effect is first attached to a composable. Use this to:
-- Allocate platform-specific resources (Shaders, RenderEffects, etc.)
-- Initialize expensive objects
-- Query platform capabilities
-
-```kotlin
-override fun attach(context: VisualEffectContext) {
-    // Example: Initialize a platform-specific shader
-    myShader = createShader(context.size, context.requireDensity())
-}
-```
-
-#### update(context: VisualEffectContext)
-
-Called whenever the effect should update its state from composition locals or other sources. You can safely read snapshot state in this function. When any snapshot state read in this function is mutated, this function will be re-invoked.
-
-```kotlin
-override fun update(context: VisualEffectContext) {
-    // Example: read a composition local and trigger invalidation if needed
-    val someLocal = context.currentValueOf(MyCompositionLocal)
-    if (someLocal != cachedLocal) {
-        cachedLocal = someLocal
-        context.invalidateDraw()
-    }
-}
-```
-
-#### detach()
-
-Called when the effect is removed. Use this to:
-- Release native resources
-- Cancel coroutines
-- Clean up allocations from `attach()`
-
-```kotlin
-override fun detach() {
-    myShader?.release()
-    myCoroutineScope.cancel()
-}
-```
-
-#### draw(context: VisualEffectContext)
-
-Called to render the effect. This is where the actual effect rendering happens.
-
-```kotlin
-override fun DrawScope.draw(context: VisualEffectContext) {
-    // Draw the effect using the DrawScope receiver
-    drawRect(
-        color = Color.Black.copy(alpha = 0.5f),
-        size = context.size,
-    )
-}
-```
-
-## VisualEffectContext
-
-The context provided to effect methods gives you access to:
-
-```kotlin
-interface VisualEffectContext {
-    val position: Offset               // Position of the effect node
-    val size: Size                    // Size of the effect area
-    val layerSize: Size              // Size of the graphics layer (may differ from size)
-    val layerOffset: Offset          // Graphics layer offset relative to node position
-    val rootBounds: Rect             // Bounds of the root layout coordinates on screen
-    val inputScale: HazeInputScale   // Input scale factor configuration
-    val windowId: Any?               // Identifier for the containing window
-    val areas: List<HazeArea>        // Source areas this effect should process
-    val state: HazeState?            // Associated HazeState (null for foreground blur)
-    val coroutineScope: CoroutineScope // CoroutineScope tied to the node lifecycle
-
-    fun requireDensity(): Density
-    fun <T> currentValueOf(local: CompositionLocal<T>): T
-    fun requireGraphicsContext(): GraphicsContext
-    fun invalidateDraw()
-}
-```
-
-## HazeEffectScope
-
-The `Modifier.hazeEffect { ... }` configuration lambda receives `HazeEffectScope` as its receiver, providing common properties applicable to all effects:
-
-```kotlin
-interface HazeEffectScope {
-    var visualEffect: VisualEffect        // The current visual effect implementation
-    var inputScale: HazeInputScale        // Performance optimization via resolution scaling
-    var drawContentBehind: Boolean        // Whether to draw source content behind the effect
-    var clipToAreasBounds: Boolean?      // Whether to clip to total area bounds
-    var expandLayerBounds: Boolean?       // Whether to expand layer bounds for edge consistency
-    var forceInvalidateOnPreDraw: Boolean // Force invalidation from pre-draw events
-    var canDrawArea: ((HazeArea) -> Boolean)? // Optional filter to control which areas are drawn
-}
-```
-
-## Providing a Builder Extension
-
-To make your effect convenient to use, provide a builder extension function:
-
-```kotlin
-fun HazeEffectScope.customEffect(
-    block: CustomVisualEffect.() -> Unit = {}
-): CustomVisualEffect {
-    val effect = CustomVisualEffect()
-    effect.apply(block)
-    visualEffect = effect
-    return effect
-}
-```
-
-Users can then configure your effect like this:
-
-```kotlin
-modifier = Modifier.hazeEffect(state = hazeState) {
-    customEffect {
-        intensity = 0.8f
-        color = Color.Blue
-    }
-}
-```
-
-## Platform-Specific Implementations
-
-Effects often need platform-specific code. Use `expect`/`actual` to provide platform implementations:
-
-**commonMain:**
-```kotlin
-expect fun createCustomShader(size: Size): Shader
-
-class CustomVisualEffect : VisualEffect {
-    private lateinit var shader: Shader
-
-    override fun attach(context: VisualEffectContext) {
-        shader = createCustomShader(context.size)
-    }
-}
-```
-
-**androidMain:**
-```kotlin
-actual fun createCustomShader(size: Size): Shader {
-    // Android-specific shader creation
-}
-```
-
-**desktopMain:**
-```kotlin
-actual fun createCustomShader(size: Size): Shader {
-    // Skiko-based shader creation
-}
-```
-
-See the [haze-blur module](https://github.com/chrisbanes/haze/tree/main/haze-blur) for complete platform-specific examples.
-
-## Publishing Your Effect Module
-
-To share your custom effect, publish it as a library:
-
-1. Create a new Gradle module (e.g., `haze-myeffect`)
-2. Add `haze` as a dependency:
-   ```gradle
-   dependencies {
-       api("dev.chrisbanes.haze:haze:2.0.0")
-   }
-   ```
-3. Publish to Maven Central or your preferred repository
-
-Users can then add it like any effect:
-```gradle
-dependencies {
-    implementation("dev.chrisbanes.haze:haze-myeffect:1.0.0")
-}
-```
-
-## Example: Simple Tint Effect
-
-Here's a minimal example of a custom effect that applies a color tint:
-
-```kotlin
+@OptIn(ExperimentalHazeApi::class)
 class TintVisualEffect : VisualEffect {
     var color: Color = Color.Black
     var alpha: Float = 0.2f
 
     override fun attach(context: VisualEffectContext) {
-        // No resources to allocate for a simple tint
+        // Allocate expensive resources if needed.
     }
 
     override fun update(context: VisualEffectContext) {
-        // Nothing to update from composition locals
+        // Read composition locals or snapshot state.
+        // Call context.invalidateDraw() if output changes.
     }
 
-    override fun detach() {
-        // Nothing to clean up
+    override fun detach(context: VisualEffectContext) {
+        // Release resources from attach().
     }
 
     override fun DrawScope.draw(context: VisualEffectContext) {
@@ -250,19 +50,130 @@ class TintVisualEffect : VisualEffect {
         )
     }
 }
+```
 
+### Lifecycle methods
+
+#### `attach(context: VisualEffectContext)`
+
+Called when the effect is attached to a node.
+
+- Allocate long-lived resources here (shaders, caches, delegates)
+- Geometry may not be resolved yet, so treat `position`, `size`, `layerSize`, and `layerOffset` as potentially unspecified/zero during attach
+
+#### `update(context: VisualEffectContext)`
+
+Called when the effect should refresh state from composition locals or snapshot-backed data.
+
+- Snapshot reads are tracked
+- When read state changes, `update` is invoked again
+- Call `context.invalidateDraw()` when visual output should be re-drawn
+
+```kotlin
+override fun update(context: VisualEffectContext) {
+    val newColor = context.currentValueOf(LocalTintColor)
+    if (newColor != color) {
+        color = newColor
+        context.invalidateDraw()
+    }
+}
+```
+
+#### `detach(context: VisualEffectContext)`
+
+Called when the effect is detached.
+
+- Release resources acquired in `attach`
+- Cancel work tied to effect internals
+
+```kotlin
+override fun detach(context: VisualEffectContext) {
+    shader?.release()
+    shader = null
+}
+```
+
+#### `onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel)`
+
+Called on memory pressure/background transitions.
+
+- Free heavy caches and temporary buffers
+- Keep this fast and safe to call repeatedly
+- Optionally call `context.invalidateDraw()` after release
+
+#### `draw(context: VisualEffectContext)`
+
+Called during rendering.
+
+- Keep this path hot and allocation-light
+- Use `context.size`/`context.layerSize` to align your output to the requested bounds
+
+## VisualEffectContext
+
+`VisualEffectContext` provides geometry, environment, and lifecycle helpers:
+
+```kotlin
+interface VisualEffectContext {
+    val position: Offset
+    val size: Size
+    val layerSize: Size
+    val layerOffset: Offset
+    val rootBounds: Rect
+
+    val inputScale: HazeInputScale
+    val windowId: Any?
+    val areas: List<HazeArea>
+    val state: HazeState?
+
+    val coroutineScope: CoroutineScope
+
+    fun requireDensity(): Density
+    fun <T> currentValueOf(local: CompositionLocal<T>): T
+    fun requireGraphicsContext(): GraphicsContext
+    fun invalidateDraw()
+}
+```
+
+Mode semantics:
+
+- `state != null`: background mode (`hazeEffect(state = hazeState)`)
+- `state == null`: foreground/content mode (`hazeEffect { ... }`)
+
+## HazeEffectScope
+
+The `Modifier.hazeEffect { ... }` lambda uses `HazeEffectScope`:
+
+```kotlin
+interface HazeEffectScope {
+    var visualEffect: VisualEffect
+    var inputScale: HazeInputScale
+    var drawContentBehind: Boolean
+    var clipToAreasBounds: Boolean?
+    var expandLayerBounds: Boolean?
+    var forceInvalidateOnPreDraw: Boolean
+    var canDrawArea: ((HazeArea) -> Boolean)?
+}
+```
+
+## Builder extension pattern
+
+Expose your effect through a `HazeEffectScope` extension:
+
+```kotlin
+@OptIn(ExperimentalHazeApi::class)
 fun HazeEffectScope.tintEffect(
-    block: TintVisualEffect.() -> Unit = {}
+    block: TintVisualEffect.() -> Unit,
 ) {
-    val effect = TintVisualEffect()
-    effect.apply(block)
+    val effect = visualEffect as? TintVisualEffect ?: TintVisualEffect()
     visualEffect = effect
+    effect.block()
 }
 ```
 
 Usage:
+
 ```kotlin
-modifier = Modifier.hazeEffect(state = hazeState) {
+Modifier.hazeEffect(state = hazeState) {
     tintEffect {
         color = Color.Blue
         alpha = 0.3f
@@ -270,17 +181,79 @@ modifier = Modifier.hazeEffect(state = hazeState) {
 }
 ```
 
-## Best Practices
+## Ownership model
 
-1. **Resource Management** - Always allocate resources in `attach()` and clean up in `detach()`
-2. **Thread Safety** - Effects may be accessed from multiple threads; use appropriate synchronization
-3. **Performance** - Remember `draw()` is called frequently; optimize for performance
-4. **Input Scale** - Respect `inputScale` from `HazeEffectScope` to support performance optimizations
-5. **Documentation** - Document your effect's configuration properties clearly
-6. **Testing** - Use screenshot tests to verify your effect works correctly
+`VisualEffect` instances are single-owner.
 
-## Next Steps
+- One effect instance can only be attached to one active `hazeEffect` node at a time
+- Do not share the same effect instance across multiple active nodes
+- Prefer creating/reusing instances per node via your builder pattern
 
-- See [Architecture](architecture.md) for an overview of Haze's design
-- Review the [haze-blur](https://github.com/chrisbanes/haze/tree/main/haze-blur) module for a production implementation
-- Check out the [sample code](https://github.com/chrisbanes/haze/tree/main/sample) for usage examples
+## Layer bounds behavior
+
+Override `calculateLayerBounds(rect, density)` if your effect needs extra sampling space:
+
+```kotlin
+override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
+    val extra = with(density) { 24.dp.toPx() }
+    return rect.inflate(extra)
+}
+```
+
+Coordinate-space contract:
+
+- Return bounds in the same coordinate space as `rect`
+- In background mode (`context.state != null`), Haze passes a root/screen-aligned rect
+- In foreground mode (`context.state == null`), Haze passes a local node rect
+
+## Platform-specific implementations
+
+Use `expect`/`actual` for platform-specific rendering internals:
+
+```kotlin
+// commonMain
+expect fun createPlatformShader(size: Size): Shader
+
+@OptIn(ExperimentalHazeApi::class)
+class ShaderEffect : VisualEffect {
+    private lateinit var shader: Shader
+
+    override fun attach(context: VisualEffectContext) {
+        shader = createPlatformShader(context.size)
+    }
+}
+```
+
+```kotlin
+// androidMain
+actual fun createPlatformShader(size: Size): Shader {
+    // Android implementation
+}
+```
+
+```kotlin
+// desktopMain / skikoMain
+actual fun createPlatformShader(size: Size): Shader {
+    // Desktop implementation
+}
+```
+
+## Sample
+
+See the dedicated custom effect sample:
+
+- [CustomVisualEffectSample.kt](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/CustomVisualEffectSample.kt)
+
+## Best practices
+
+1. Allocate in `attach`, release in `detach`
+2. Keep `draw` allocation-free where possible
+3. Use `update` for tracked state reads and controlled invalidation
+4. Respect `inputScale` and bounds contracts for performance and correctness
+5. Validate behavior with screenshot tests for visual regressions
+
+## Next steps
+
+- Read [Architecture](architecture.md) for internals
+- Review [haze-blur](https://github.com/chrisbanes/haze/tree/main/haze-blur) for a full production effect
+- Browse the [sample app](https://github.com/chrisbanes/haze/tree/main/sample)

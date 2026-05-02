@@ -71,6 +71,7 @@ val CommonSamples: List<Sample> = listOf(
   Sample.ListWithStickyHeaders,
   Sample.BottomSheet,
   Sample.ContentBlurring,
+  Sample.CustomVisualEffect,
   Sample.LayerTransformations,
 )
 
@@ -260,6 +261,16 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       ContentBlurring(navController, blurEnabled)
+    }
+  }
+
+  @Serializable
+  data object CustomVisualEffect : Sample {
+    override val title: String = "Custom VisualEffect"
+
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      CustomVisualEffectSample(navController, blurEnabled)
     }
   }
 
