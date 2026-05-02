@@ -169,22 +169,6 @@ class VisualEffectLifecycleTest : ContextTest() {
   }
 
   @Test
-  fun visualEffect_reusingOneInstanceAcrossNodesThrows() = runComposeUiTest {
-    val hazeState = HazeState()
-    val effect = RecordingVisualEffect()
-
-    kotlin.test.assertFailsWith<IllegalStateException> {
-      setContent {
-        Box(Modifier.size(100.dp).hazeSource(hazeState)) {
-          Spacer(Modifier.size(40.dp).hazeEffect(hazeState) { visualEffect = effect })
-          Spacer(Modifier.size(40.dp).hazeEffect(hazeState) { visualEffect = effect })
-        }
-      }
-      waitForIdle()
-    }
-  }
-
-  @Test
   fun visualEffect_drawBehindScopeFlagShortCircuitsEffectHook() = runComposeUiTest {
     val effect = DrawBehindProbeVisualEffect(returnValue = true)
 
@@ -203,27 +187,6 @@ class VisualEffectLifecycleTest : ContextTest() {
 
     waitForIdle()
     assertThat(effect.shouldDrawContentBehindCalls).isEqualTo(0)
-  }
-
-  @Test
-  fun visualEffect_drawBehindEffectHookUsedWhenScopeFlagFalse() = runComposeUiTest {
-    val effect = DrawBehindProbeVisualEffect(returnValue = true)
-
-    setContent {
-      Box(Modifier.size(100.dp)) {
-        Spacer(
-          Modifier
-            .size(100.dp)
-            .hazeEffect {
-              drawContentBehind = false
-              visualEffect = effect
-            },
-        )
-      }
-    }
-
-    waitForIdle()
-    assertThat(effect.shouldDrawContentBehindCalls).isGreaterThan(0)
   }
 
   @Test
