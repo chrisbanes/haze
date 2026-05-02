@@ -1,0 +1,238 @@
+// Signature format: 4.0
+package dev.chrisbanes.haze {
+
+  @dev.chrisbanes.haze.InternalHazeApi @kotlin.jvm.JvmInline public final value class Bitmask {
+    ctor @KotlinOnly public Bitmask(optional int value);
+    method public boolean any(int flag);
+    method public operator boolean contains(int flag);
+    method public boolean isEmpty();
+    method public operator int minus(int flag);
+    method public operator int plus(int flag);
+  }
+
+  public final class BlendModeKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.HazeBlendMode toHazeBlendMode(int);
+  }
+
+  public final class BlendMode_androidKt {
+    method @RequiresApi(android.os.Build.VERSION_CODES.Q) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.BlendMode toAndroidBlendMode(dev.chrisbanes.haze.HazeBlendMode);
+  }
+
+  public final class BlendMode_skikoKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static org.jetbrains.skia.BlendMode toSkiaBlendMode(dev.chrisbanes.haze.HazeBlendMode);
+  }
+
+  public final class ColorFilter_androidKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.ColorFilter toPlatformColorFilter(androidx.compose.ui.graphics.ColorFilter);
+  }
+
+  public final class ColorFilter_skikoKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.ColorFilter toPlatformColorFilter(androidx.compose.ui.graphics.ColorFilter);
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public sealed interface HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Companion Companion;
+  }
+
+  public static final class HazeBlendMode.Clear implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Clear INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Color implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Color INSTANCE;
+  }
+
+  public static final class HazeBlendMode.ColorBurn implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.ColorBurn INSTANCE;
+  }
+
+  public static final class HazeBlendMode.ColorDodge implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.ColorDodge INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Companion {
+    method public dev.chrisbanes.haze.HazeBlendMode from(int blendMode);
+  }
+
+  public static final class HazeBlendMode.Darken implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Darken INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Difference implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Difference INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Dst implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Dst INSTANCE;
+  }
+
+  public static final class HazeBlendMode.DstAtop implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.DstAtop INSTANCE;
+  }
+
+  public static final class HazeBlendMode.DstIn implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.DstIn INSTANCE;
+  }
+
+  public static final class HazeBlendMode.DstOut implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.DstOut INSTANCE;
+  }
+
+  public static final class HazeBlendMode.DstOver implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.DstOver INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Exclusion implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Exclusion INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Hardlight implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Hardlight INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Hue implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Hue INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Lighten implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Lighten INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Luminosity implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Luminosity INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Modulate implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Modulate INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Multiply implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Multiply INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Overlay implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Overlay INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Plus implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Plus INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Saturation implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Saturation INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Screen implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Screen INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Softlight implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Softlight INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Src implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Src INSTANCE;
+  }
+
+  public static final class HazeBlendMode.SrcAtop implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.SrcAtop INSTANCE;
+  }
+
+  public static final class HazeBlendMode.SrcIn implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.SrcIn INSTANCE;
+  }
+
+  public static final class HazeBlendMode.SrcOut implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.SrcOut INSTANCE;
+  }
+
+  public static final class HazeBlendMode.SrcOver implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.SrcOver INSTANCE;
+  }
+
+  public static final class HazeBlendMode.Xor implements dev.chrisbanes.haze.HazeBlendMode {
+    field public static final dev.chrisbanes.haze.HazeBlendMode.Xor INSTANCE;
+  }
+
+  @kotlin.RequiresOptIn(message="This is an internal Haze API and should not be used outside of the library. It may be changed or removed without notice.") @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) @kotlin.annotation.Target(allowedTargets={kotlin.annotation.AnnotationTarget.CLASS, kotlin.annotation.AnnotationTarget.FUNCTION, kotlin.annotation.AnnotationTarget.PROPERTY, kotlin.annotation.AnnotationTarget.TYPEALIAS}) public @interface InternalHazeApi {
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public abstract class PlatformContext {
+    field public static final dev.chrisbanes.haze.PlatformContext.Companion Companion;
+    field public static final dev.chrisbanes.haze.PlatformContext INSTANCE;
+  }
+
+  public static final class PlatformContext.Companion {
+    property public dev.chrisbanes.haze.PlatformContext INSTANCE;
+  }
+
+  public final class PlatformContextKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformContext requirePlatformContext(androidx.compose.ui.node.CompositionLocalConsumerModifierNode);
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public final class PlatformRuntimeEffect {
+    ctor public PlatformRuntimeEffect(String sksl);
+  }
+
+  public final class RenderEffectKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect blendForeground(android.graphics.RenderEffect, android.graphics.RenderEffect foreground, dev.chrisbanes.haze.HazeBlendMode blendMode, optional long offset);
+  }
+
+  public final class RenderEffect_androidKt {
+    method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static androidx.compose.ui.graphics.RenderEffect asComposeRenderEffect(android.graphics.RenderEffect);
+    method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createBlendRenderEffect(dev.chrisbanes.haze.HazeBlendMode blendMode, android.graphics.RenderEffect background, android.graphics.RenderEffect foreground, optional androidx.compose.ui.geometry.Rect? crop);
+    method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect? createBlurRenderEffect(float radiusX, float radiusY, int tileMode, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
+    method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createColorFilterRenderEffect(android.graphics.ColorFilter colorFilter, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
+    method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createOffsetRenderEffect(float offsetX, float offsetY, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
+    method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createShaderRenderEffect(androidx.compose.ui.graphics.Shader shader, optional androidx.compose.ui.geometry.Rect? crop);
+    method @RequiresApi(31) @dev.chrisbanes.haze.InternalHazeApi public static inline android.graphics.RenderEffect then(android.graphics.RenderEffect, android.graphics.RenderEffect other);
+  }
+
+  public final class RenderEffect_skikoKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static androidx.compose.ui.graphics.RenderEffect asComposeRenderEffect(android.graphics.RenderEffect);
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createBlendRenderEffect(dev.chrisbanes.haze.HazeBlendMode blendMode, android.graphics.RenderEffect background, android.graphics.RenderEffect foreground, optional androidx.compose.ui.geometry.Rect? crop);
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect? createBlurRenderEffect(float radiusX, float radiusY, int tileMode, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createColorFilterRenderEffect(android.graphics.ColorFilter colorFilter, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createOffsetRenderEffect(float offsetX, float offsetY, optional android.graphics.RenderEffect? input, optional androidx.compose.ui.geometry.Rect? crop);
+    method @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRuntimeEffect createRuntimeEffect(String sksl);
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createRuntimeShaderRenderEffect(dev.chrisbanes.haze.PlatformRuntimeEffect effect, String[] shaderNames, android.graphics.RenderEffect?[] inputs, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.RuntimeShaderUniformProvider,kotlin.Unit> uniforms);
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createShaderRenderEffect(androidx.compose.ui.graphics.Shader shader, optional androidx.compose.ui.geometry.Rect? crop);
+    method @dev.chrisbanes.haze.InternalHazeApi public static boolean isRuntimeShaderRenderEffectSupported();
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect then(android.graphics.RenderEffect, android.graphics.RenderEffect other);
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public interface RuntimeShaderUniformProvider {
+    method public void setChildShader(String name, androidx.compose.ui.graphics.Shader shader);
+    method public void setFloatUniform(String name, float value);
+    method public void setFloatUniform(String name, float value1, float value2);
+    method public void setFloatUniform(String name, float value1, float value2, float value3, float value4);
+  }
+
+  public final class RuntimeShader_androidKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRuntimeEffect createRuntimeEffect(String sksl);
+    method @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.RenderEffect createRuntimeShaderRenderEffect(dev.chrisbanes.haze.PlatformRuntimeEffect effect, String[] shaderNames, android.graphics.RenderEffect?[] inputs, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.RuntimeShaderUniformProvider,kotlin.Unit> uniforms);
+    method @ChecksSdkIntAtLeast(api=33) @dev.chrisbanes.haze.InternalHazeApi public static boolean isRuntimeShaderRenderEffectSupported();
+  }
+
+  public final class Shader_androidKt {
+    method @RequiresApi(android.os.Build.VERSION_CODES.Q) @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.ColorFilter createBlendColorFilter(int color, dev.chrisbanes.haze.HazeBlendMode blendMode);
+    method @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) @dev.chrisbanes.haze.InternalHazeApi public static androidx.compose.ui.graphics.Shader createFractalNoiseShader(float baseFrequencyX, float baseFrequencyY, int numOctaves, float seed);
+  }
+
+  public final class Shader_skikoKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static android.graphics.ColorFilter createBlendColorFilter(int color, dev.chrisbanes.haze.HazeBlendMode blendMode);
+    method @dev.chrisbanes.haze.InternalHazeApi public static androidx.compose.ui.graphics.Shader createFractalNoiseShader(float baseFrequencyX, float baseFrequencyY, int numOctaves, float seed);
+  }
+
+  public final class Trace_androidKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
+    method @dev.chrisbanes.haze.InternalHazeApi public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
+  }
+
+  public final class Trace_skikoKt {
+    method @dev.chrisbanes.haze.InternalHazeApi public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
+    method @dev.chrisbanes.haze.InternalHazeApi public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
+  }
+
+}
+
