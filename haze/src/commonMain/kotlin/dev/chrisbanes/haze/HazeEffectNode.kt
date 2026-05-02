@@ -542,20 +542,41 @@ internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
   return visualEffect.shouldPreferClipToAreaBounds()
 }
 
-private val attachedEffects = mutableMapOf<VisualEffect, HazeEffectNode>()
+// Tracks currently attached effect instances across all nodes.
+// Multiple entries are expected (different effect instances on different nodes),
+// but a single effect instance must never be owned by more than one node.
+private val attachedEffectOwners = mutableListOf<Pair<VisualEffect, HazeEffectNode>>()
 
 internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
-  val current = attachedEffects[effect]
+  val current = attachedEffectOwners
+    .firstOrNull { (attachedEffect, _) -> attachedEffect === effect }
+    ?.second
+
   check(current == null || current === this) {
     "VisualEffect instances are single-owner and cannot be shared across multiple hazeEffect nodes."
   }
-  attachedEffects[effect] = this
-  effect.attach(visualEffectContext)
+
+  val inserted = current == null
+  if (inserted) {
+    attachedEffectOwners += effect to this
+  }
+
+  runCatching {
+    effect.attach(visualEffectContext)
+  }.onFailure {
+    if (inserted) {
+      attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
+        attachedEffect === effect && attachedNode === this
+      }
+    }
+  }.getOrThrow()
 }
 
 internal fun HazeEffectNode.detachVisualEffect(effect: VisualEffect) {
   effect.detach(visualEffectContext)
-  attachedEffects.remove(effect, this)
+  attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
+    attachedEffect === effect && attachedNode === this
+  }
 }
 
 internal fun HazeEffectNode.shouldExpandLayer(): Boolean {

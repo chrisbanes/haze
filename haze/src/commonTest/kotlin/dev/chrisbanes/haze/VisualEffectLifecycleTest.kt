@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -182,6 +183,100 @@ class VisualEffectLifecycleTest : ContextTest() {
       waitForIdle()
     }
   }
+
+  @Test
+  fun visualEffect_drawBehindScopeFlagShortCircuitsEffectHook() = runComposeUiTest {
+    val effect = DrawBehindProbeVisualEffect(returnValue = true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect {
+              drawContentBehind = true
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.shouldDrawContentBehindCalls).isEqualTo(0)
+  }
+
+  @Test
+  fun visualEffect_drawBehindEffectHookUsedWhenScopeFlagFalse() = runComposeUiTest {
+    val effect = DrawBehindProbeVisualEffect(returnValue = true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect {
+              drawContentBehind = false
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.shouldDrawContentBehindCalls).isGreaterThan(0)
+  }
+
+  @Test
+  fun visualEffect_calculateLayerBounds_usesLocalRectInForegroundMode() = runComposeUiTest {
+    val effect = LayerBoundsRecordingVisualEffect()
+
+    setContent {
+      Box(
+        Modifier
+          .size(80.dp)
+          .hazeEffect {
+            visualEffect = effect
+          },
+      )
+    }
+
+    waitForIdle()
+    val rect = effect.lastForegroundRect
+    assertThat(rect).isNotNull()
+    assertThat(rect!!.topLeft).isEqualTo(Offset.Zero)
+  }
+
+  @Test
+  fun visualEffect_calculateLayerBounds_usesScreenAlignedRectInBackgroundMode() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = LayerBoundsRecordingVisualEffect()
+
+    setContent {
+      Box(
+        Modifier
+          .size(200.dp)
+          .padding(20.dp),
+      ) {
+        Spacer(
+          Modifier
+            .size(120.dp)
+            .hazeSource(hazeState),
+        )
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    val rect = effect.lastBackgroundRect
+    assertThat(rect).isNotNull()
+    assertThat(rect!!.topLeft == Offset.Zero).isEqualTo(false)
+  }
 }
 
 internal class RecordingVisualEffect : VisualEffect {
@@ -214,6 +309,40 @@ internal class RecordingVisualEffect : VisualEffect {
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
     trimMemoryCalls++
   }
+}
+
+internal class DrawBehindProbeVisualEffect(
+  private val returnValue: Boolean,
+) : VisualEffect {
+  var shouldDrawContentBehindCalls: Int = 0
+
+  override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
+    shouldDrawContentBehindCalls++
+    return returnValue
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+}
+
+internal class LayerBoundsRecordingVisualEffect : VisualEffect {
+  private var isBackgroundMode: Boolean = false
+  var lastForegroundRect: Rect? = null
+  var lastBackgroundRect: Rect? = null
+
+  override fun update(context: VisualEffectContext) {
+    isBackgroundMode = context.state != null
+  }
+
+  override fun calculateLayerBounds(rect: Rect, density: androidx.compose.ui.unit.Density): Rect {
+    if (isBackgroundMode) {
+      lastBackgroundRect = rect
+    } else {
+      lastForegroundRect = rect
+    }
+    return rect
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
 
 internal data object FakeVisualEffectContext : VisualEffectContext {

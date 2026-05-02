@@ -17,6 +17,13 @@ import androidx.compose.ui.unit.Density
 @ExperimentalHazeApi
 public interface VisualEffect {
   /**
+   * VisualEffect instances are single-owner and must not be attached to multiple
+   * `Modifier.hazeEffect` nodes at the same time.
+   *
+   * Reusing the same effect instance across concurrently active nodes is not supported.
+   */
+
+  /**
    * Draws the effect.
    *
    * @param context The context providing access to geometry, configuration, and platform
@@ -92,6 +99,10 @@ public interface VisualEffect {
    *
    * The resulting rect should be in the same coordinate system as the passed in rect.
    * i.e. the content at [x,y] of [rect] should be the same content of the resulting rect.
+   *
+   * Coordinate-space note:
+   * - In background mode (`context.state != null`), Haze passes a screen/root-aligned rect.
+   * - In foreground mode (`context.state == null`), Haze passes a local node rect.
    *
    * @param rect The original bounds rect.
    * @param density The density to use for pixel conversions.

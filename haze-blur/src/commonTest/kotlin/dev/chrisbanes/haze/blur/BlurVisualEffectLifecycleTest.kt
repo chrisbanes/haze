@@ -87,6 +87,13 @@ class BlurVisualEffectLifecycleTest {
   }
 
   @Test
+  fun canUseRenderEffect_requiresApi31AndHardwareAcceleration() {
+    assertThat(canUseRenderEffect(sdkInt = 31, isHardwareAccelerated = true)).isEqualTo(true)
+    assertThat(canUseRenderEffect(sdkInt = 31, isHardwareAccelerated = false)).isEqualTo(false)
+    assertThat(canUseRenderEffect(sdkInt = 30, isHardwareAccelerated = true)).isEqualTo(false)
+  }
+
+  @Test
   fun blurRadius_prefersDirectThenStyleThenCompositionLocal() {
     val effect = BlurVisualEffect()
 
