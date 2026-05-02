@@ -337,6 +337,20 @@ public class BlurVisualEffect : VisualEffect {
     }
   }
 
+  public fun copyFrom(other: BlurVisualEffect) {
+    blurEnabled = other.blurEnabled
+    blurRadius = other.blurRadius
+    noiseFactor = other.noiseFactor
+    mask = other.mask
+    backgroundColor = other.backgroundColor
+    colorEffects = other.colorEffects
+    fallbackTint = other.fallbackTint
+    alpha = other.alpha
+    progressive = other.progressive
+    blurredEdgeTreatment = other.blurredEdgeTreatment
+    style = other.style
+  }
+
   internal var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle.Unspecified
     set(value) {
       if (field != value) {
