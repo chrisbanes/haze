@@ -5,6 +5,14 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.0-alpha02 (WIP) { id="2.0.0-alpha02" }
+
+Work in progress. Changes since 2.0.0-alpha01.
+
+### Breaking Changes
+
+- **Removed APIs:** `VisualEffectContext.visualEffect` property removed. Custom `VisualEffect` implementations should use `this` instead of `context.visualEffect` to reference themselves.
+
 ## 2.0.0-alpha01 <small>2026-04-28</small> { id="2.0.0-alpha01" }
 
 Major architectural refactor introducing a pluggable visual effects system for improved modularity and extensibility.
@@ -51,7 +59,6 @@ New `positionStrategy` parameter on `rememberHazeState()` to control how effect 
   - `HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
   - `LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeBlurStyle`
 - **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed (use `blurEffect { blurEnabled = ... }`)
-- **Removed APIs:** `VisualEffectContext.visualEffect` property removed. Custom `VisualEffect` implementations should use `this` instead of `context.visualEffect` to reference themselves.
 - **Internal API renames:** `create*ImageFilter` functions renamed to `create*RenderEffect` (only affects custom effect authors using `@InternalHazeApi`)
 - **Dropped targets:** `iosX64` and `macosX64` targets removed, following Compose Multiplatform 1.11. These Intel-based targets are no longer supported upstream.
 
