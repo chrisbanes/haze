@@ -33,7 +33,9 @@ internal actual fun BlurVisualEffect.updateDelegate(context: VisualEffectContext
   }
 
   // If we reach here, this is the fallback case of using a scrim
-  return if (delegate is ScrimBlurVisualEffectDelegate) delegate else {
+  return if (delegate is ScrimBlurVisualEffectDelegate) {
+    delegate
+  } else {
     ScrimBlurVisualEffectDelegate(this)
   }
 }
