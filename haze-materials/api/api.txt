@@ -2,30 +2,30 @@
 package dev.chrisbanes.haze.blur.materials {
 
   public final class CupertinoMaterials {
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle regular(optional long containerColor);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thick(optional long containerColor);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thin(optional long containerColor);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle ultraThin(optional long containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle regular(optional androidx.compose.ui.graphics.Color containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thick(optional androidx.compose.ui.graphics.Color containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thin(optional androidx.compose.ui.graphics.Color containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle ultraThin(optional androidx.compose.ui.graphics.Color containerColor);
     field public static final dev.chrisbanes.haze.blur.materials.CupertinoMaterials INSTANCE;
   }
 
   public final class FluentMaterials {
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle accentAcrylicBase(optional long accentColor, optional boolean isDark);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle accentAcrylicDefault(optional long accentColor, optional boolean isDark);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle acrylicBase(optional boolean isDark);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle acrylicDefault(optional boolean isDark);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle mica(optional boolean isDark);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle micaAlt(optional boolean isDark);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thinAcrylic(optional boolean isDark);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle accentAcrylicBase(optional androidx.compose.ui.graphics.Color accentColor, optional boolean isDark);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle accentAcrylicDefault(optional androidx.compose.ui.graphics.Color accentColor, optional boolean isDark);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle acrylicBase(optional boolean isDark);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle acrylicDefault(optional boolean isDark);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle mica(optional boolean isDark);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle micaAlt(optional boolean isDark);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thinAcrylic(optional boolean isDark);
     field public static final dev.chrisbanes.haze.blur.materials.FluentMaterials INSTANCE;
   }
 
   public final class HazeMaterials {
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle regular(optional long containerColor);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thick(optional long containerColor);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thin(optional long containerColor);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle ultraThick(optional long containerColor);
-    method @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle ultraThin(optional long containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle regular(optional androidx.compose.ui.graphics.Color containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thick(optional androidx.compose.ui.graphics.Color containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle thin(optional androidx.compose.ui.graphics.Color containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle ultraThick(optional androidx.compose.ui.graphics.Color containerColor);
+    method @KotlinOnly @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public dev.chrisbanes.haze.blur.HazeBlurStyle ultraThin(optional androidx.compose.ui.graphics.Color containerColor);
     field public static final dev.chrisbanes.haze.blur.materials.HazeMaterials INSTANCE;
   }
 

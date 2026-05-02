@@ -4,7 +4,6 @@
 
 plugins {
   id("dev.chrisbanes.kotlin.multiplatform")
-  id("com.android.library")
   id("com.android.kotlin.multiplatform.library")
   id("dev.chrisbanes.compose")
   id("io.github.takahirom.roborazzi")

@@ -4,7 +4,6 @@
 
 plugins {
   id("dev.chrisbanes.kotlin.multiplatform")
-  id("com.android.library")
   id("com.android.kotlin.multiplatform.library")
   id("dev.chrisbanes.compose")
   id("io.github.takahirom.roborazzi")
@@ -23,6 +22,7 @@ kotlin {
         api(projects.internal.contextTest)
 
         api(compose.components.resources)
+        api(compose.material3)
         api(libs.compose.multiplatform.foundation)
         api(libs.compose.multiplatform.ui.test)
       }

@@ -33,7 +33,9 @@ internal fun Context.getNoiseTexture(): Bitmap {
     return cached
   }
 
-  return BitmapFactory.decodeResource(resources, R.drawable.haze_noise).also { decoded ->
+  return assets.open("composeResources/drawable/haze_noise.webp").use { stream ->
+    BitmapFactory.decodeStream(stream)
+  }.also { decoded ->
     noiseTexture = decoded
   }
 }

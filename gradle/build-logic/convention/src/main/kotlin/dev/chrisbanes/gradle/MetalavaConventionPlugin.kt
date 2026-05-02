@@ -29,6 +29,7 @@ class MetalavaConventionPlugin : Plugin<Project> {
 
     tasks.named { it.startsWith("metalavaCheckCompatibility") }.configureEach {
       dependsOn(tasks.named { it.startsWith("generateResourceAccessors") })
+      dependsOn(tasks.named { it.startsWith("generateActualResourceCollectors") })
     }
   }
 }

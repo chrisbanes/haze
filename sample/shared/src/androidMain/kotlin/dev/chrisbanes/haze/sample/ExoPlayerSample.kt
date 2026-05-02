@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze.sample
 
-import android.view.LayoutInflater
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -26,7 +25,6 @@ import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import dev.chrisbanes.haze.sample.shared.R
 
 @Composable
 fun ExoPlayerSample(blurEnabled: Boolean) {
@@ -54,8 +52,10 @@ fun ExoPlayerSample(blurEnabled: Boolean) {
     AndroidView(
       factory = { ctx ->
         // For Haze to work with video players, they need to be configured to use a TextureView.
-        // When using ExoPlayer's PlayerView, that needs to be done via a layout attribute.
-        LayoutInflater.from(ctx).inflate(R.layout.exoplayer, null) as PlayerView
+        PlayerView(ctx).apply {
+          useController = true
+          setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+        }
       },
       update = { playerView ->
         playerView.player = exoPlayer

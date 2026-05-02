@@ -16,6 +16,7 @@ android {
     versionCode = 1
     versionName = "1.0"
     applicationId = "dev.chrisbanes.haze.sample.android"
+    minSdk = 23
   }
 
   buildTypes {
