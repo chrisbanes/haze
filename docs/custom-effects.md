@@ -8,11 +8,52 @@ If you want a complete production implementation, see the [haze-blur](https://gi
 
 Haze is extensible by design. `Modifier.hazeEffect { ... }` is driven by a `VisualEffect` instance, and you can provide your own implementation.
 
+For most real-world usage, start with **background mode** (`hazeSource` + `hazeEffect(state = hazeState)`), since that is where Haze shines: applying effects to transformed background graphics layers.
+
 Typical workflow:
 
 1. Implement `VisualEffect`
 2. Provide a `HazeEffectScope` builder extension for ergonomic configuration
 3. Use your builder from `Modifier.hazeEffect { ... }`
+
+## Background source layers (primary pattern)
+
+Use one `HazeState` shared by transformed source layers and your effect target:
+
+```kotlin
+val hazeState = rememberHazeState()
+
+Box(Modifier.fillMaxSize()) {
+    AsyncImage(
+        model = rememberRandomSampleImageUrl(),
+        contentDescription = null,
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = 1.06f
+                translationX = 24f
+            }
+            .hazeSource(state = hazeState),
+    )
+
+    Box(
+        modifier = Modifier
+            .size(260.dp, 180.dp)
+            .graphicsLayer { rotationZ = 10f }
+            .hazeSource(state = hazeState, zIndex = 1f),
+    )
+
+    Box(
+        modifier = Modifier
+            .align(Alignment.Center)
+            .hazeEffect(state = hazeState) {
+                sparkEffect { }
+            },
+    )
+}
+```
+
+The key point is that Haze samples the transformed `hazeSource` layers behind the target node. Your custom `VisualEffect` then controls how that sampled content is rendered.
 
 ## Implementing VisualEffect
 
@@ -26,7 +67,7 @@ import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 
 @OptIn(ExperimentalHazeApi::class)
-class TintVisualEffect : VisualEffect {
+class SparkVisualEffect : VisualEffect {
     var color: Color = Color.Black
     var alpha: Float = 0.2f
 
@@ -71,7 +112,7 @@ Called when the effect should refresh state from composition locals or snapshot-
 
 ```kotlin
 override fun update(context: VisualEffectContext) {
-    val newColor = context.currentValueOf(LocalTintColor)
+    val newColor = context.currentValueOf(LocalSparkColor)
     if (newColor != color) {
         color = newColor
         context.invalidateDraw()
@@ -161,10 +202,10 @@ Expose your effect through a `HazeEffectScope` extension:
 
 ```kotlin
 @OptIn(ExperimentalHazeApi::class)
-fun HazeEffectScope.tintEffect(
-    block: TintVisualEffect.() -> Unit,
+fun HazeEffectScope.sparkEffect(
+    block: SparkVisualEffect.() -> Unit,
 ) {
-    val effect = visualEffect as? TintVisualEffect ?: TintVisualEffect()
+    val effect = visualEffect as? SparkVisualEffect ?: SparkVisualEffect()
     visualEffect = effect
     effect.block()
 }
@@ -174,7 +215,7 @@ Usage:
 
 ```kotlin
 Modifier.hazeEffect(state = hazeState) {
-    tintEffect {
+    sparkEffect {
         color = Color.Blue
         alpha = 0.3f
     }
