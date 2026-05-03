@@ -12,7 +12,6 @@ plugins {
 kotlin {
   android {
     namespace = "dev.chrisbanes.haze.screenshots"
-    compileSdk = 36
   }
   jvm()
 

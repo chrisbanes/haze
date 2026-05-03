@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
 import dev.chrisbanes.haze.VisualEffectContext
+import kotlinx.coroutines.launch
 
 internal actual fun BlurVisualEffect.updateDelegate(
   context: VisualEffectContext,
@@ -16,6 +17,10 @@ internal actual fun BlurVisualEffect.updateDelegate(
     drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated
 
   val blurEnabled = blurEnabled
+
+  if (blurEnabled) {
+    context.coroutineScope.launch { preloadNoiseTexture() }
+  }
 
   if (blurEnabled && canUseRenderEffect) {
     val newBlurEffect = when (delegate) {

@@ -15,7 +15,6 @@ plugins {
 kotlin {
   android {
     namespace = "dev.chrisbanes.haze.sample.shared"
-    compileSdk = 36
   }
   addDefaultHazeTargets()
 

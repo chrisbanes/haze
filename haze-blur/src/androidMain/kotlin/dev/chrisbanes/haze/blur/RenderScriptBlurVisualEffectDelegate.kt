@@ -145,12 +145,13 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
         // Draw the noise on top...
         val noiseFactor = blurVisualEffect.noiseFactor
-        if (noiseFactor > 0f) {
+        val noiseBitmap = platformContext.getNoiseTexture()
+        if (noiseFactor > 0f && noiseBitmap != null) {
           translate(offset = -offset) {
             PaintPool.usePaint { paint ->
               paint.isAntiAlias = true
               paint.alpha = noiseFactor.coerceIn(0f, 1f)
-              val shader = BitmapShader(platformContext.getNoiseTexture(), REPEAT, REPEAT)
+              val shader = BitmapShader(noiseBitmap, REPEAT, REPEAT)
               val normalizedScale = if (scaleFactor > 0f) scaleFactor else 1f
               if (abs(normalizedScale - 1f) >= 0.001f) {
                 val matrix = Matrix().apply {

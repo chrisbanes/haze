@@ -17,7 +17,6 @@ plugins {
 kotlin {
   android {
     namespace = "dev.chrisbanes.haze.blur"
-    compileSdk = 36
   }
   addDefaultHazeTargets()
   explicitApi()

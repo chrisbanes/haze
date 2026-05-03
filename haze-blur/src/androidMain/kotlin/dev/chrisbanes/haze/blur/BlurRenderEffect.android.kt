@@ -22,23 +22,21 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.createBlendRenderEffect
+import dev.chrisbanes.haze.createOffsetRenderEffect
 import dev.chrisbanes.haze.createShaderRenderEffect
+import haze_root.haze_blur.generated.resources.Res
 import kotlin.math.abs
 
+@Volatile
 private var noiseTexture: Bitmap? = null
 
-internal fun Context.getNoiseTexture(): Bitmap {
-  val cached = noiseTexture
-  if (cached != null && !cached.isRecycled) {
-    return cached
-  }
-
-  return assets.open("composeResources/drawable/haze_noise.webp").use { stream ->
-    BitmapFactory.decodeStream(stream)
-  }.also { decoded ->
-    noiseTexture = decoded
-  }
+internal suspend fun preloadNoiseTexture() {
+  if (noiseTexture != null) return
+  val bytes = Res.readBytes("drawable/haze_noise.webp")
+  noiseTexture = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 }
+
+internal fun Context.getNoiseTexture(): Bitmap? = noiseTexture
 
 @RequiresApi(31)
 internal actual fun createNoiseEffect(
@@ -47,9 +45,16 @@ internal actual fun createNoiseEffect(
   mask: Shader?,
   scale: Float,
 ): PlatformRenderEffect {
-  // Apply scaling through the shader matrix so we can reuse the decoded bitmap.
+  val noiseBitmap = context.getNoiseTexture()
+
+  if (noiseBitmap == null) {
+    // Texture not loaded yet, return no-op effect.
+    // Will be replaced on next frame after preloadNoiseTexture() completes.
+    return createOffsetRenderEffect(0f, 0f)
+  }
+
   val normalizedScale = if (scale > 0f) scale else 1f
-  val noiseShader = BitmapShader(context.getNoiseTexture(), REPEAT, REPEAT).apply {
+  val noiseShader = BitmapShader(noiseBitmap, REPEAT, REPEAT).apply {
     if (abs(normalizedScale - 1f) >= 0.001f) {
       val matrix = Matrix().apply {
         val reciprocal = 1f / normalizedScale
@@ -70,7 +75,6 @@ internal actual fun createNoiseEffect(
 
   return when {
     mask != null -> {
-      // If we have a mask, we need to apply it to the noise bitmap shader via a blend mode
       createBlendRenderEffect(
         blendMode = HazeBlendMode.SrcIn,
         background = createShaderRenderEffect(mask),

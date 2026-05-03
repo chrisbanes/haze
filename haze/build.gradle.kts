@@ -18,7 +18,6 @@ plugins {
 kotlin {
   android {
     namespace = "dev.chrisbanes.haze"
-    compileSdk = 36
   }
   addDefaultHazeTargets()
   explicitApi()

@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.gradle
 
+import com.android.build.gradle.LibraryExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -39,6 +40,16 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
       }
     }
 
+    // Configure Android defaults when the KMP Android target is present
+    pluginManager.withPlugin("com.android.kotlin.multiplatform.library") {
+      extensions.configure<LibraryExtension> {
+        compileSdk = Versions.COMPILE_SDK
+        defaultConfig {
+          minSdk = Versions.MIN_SDK
+        }
+      }
+    }
+
     configureSpotless()
 
     tasks.named { it.startsWith("compileAndroid") }.configureEach {
@@ -47,7 +58,7 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   }
 }
 
-fun KotlinMultiplatformExtension.addDefaultHazeTargets(namespace: String? = null) {
+fun KotlinMultiplatformExtension.addDefaultHazeTargets() {
   jvm()
 
   targets.withType<KotlinAndroidTarget> {
