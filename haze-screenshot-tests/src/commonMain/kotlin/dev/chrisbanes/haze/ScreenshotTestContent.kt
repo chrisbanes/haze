@@ -171,8 +171,7 @@ private fun CreditCard(
   modifier: Modifier = Modifier,
   baseWidth: Float = .7f,
 ) {
-  val perCardEffect = remember(visualEffect) { BlurVisualEffect() }
-  perCardEffect.copyFrom(visualEffect)
+  val perCardEffect = remember(visualEffect) { BlurVisualEffect(visualEffect) }
 
   Box(
     modifier = modifier

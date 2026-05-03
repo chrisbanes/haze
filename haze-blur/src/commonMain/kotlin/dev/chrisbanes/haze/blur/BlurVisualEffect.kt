@@ -47,7 +47,22 @@ import dev.chrisbanes.haze.VisualEffectContext
  * ```
  */
 @Stable
-public class BlurVisualEffect : VisualEffect {
+public class BlurVisualEffect() : VisualEffect {
+
+  /** Creates a new [BlurVisualEffect] copying all properties from [other]. */
+  public constructor(other: BlurVisualEffect) : this() {
+    blurEnabled = other.blurEnabled
+    blurRadius = other.blurRadius
+    noiseFactor = other.noiseFactor
+    mask = other.mask
+    backgroundColor = other.backgroundColor
+    colorEffects = other.colorEffects
+    fallbackTint = other.fallbackTint
+    alpha = other.alpha
+    progressive = other.progressive
+    blurredEdgeTreatment = other.blurredEdgeTreatment
+    style = other.style
+  }
 
   private var isAttached: Boolean = false
 
@@ -341,20 +356,6 @@ public class BlurVisualEffect : VisualEffect {
         else -> 0.3334f
       }
     }
-  }
-
-  public fun copyFrom(other: BlurVisualEffect) {
-    blurEnabled = other.blurEnabled
-    blurRadius = other.blurRadius
-    noiseFactor = other.noiseFactor
-    mask = other.mask
-    backgroundColor = other.backgroundColor
-    colorEffects = other.colorEffects
-    fallbackTint = other.fallbackTint
-    alpha = other.alpha
-    progressive = other.progressive
-    blurredEdgeTreatment = other.blurredEdgeTreatment
-    style = other.style
   }
 
   internal var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle.Unspecified
