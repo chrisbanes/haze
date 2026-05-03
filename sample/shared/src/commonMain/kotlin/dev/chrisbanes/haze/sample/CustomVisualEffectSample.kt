@@ -261,6 +261,8 @@ fun CustomVisualEffectSample(
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+          // Note: drawContentBehind only applies to foreground mode (hazeEffect without state).
+          // This sample uses background mode, so this toggle has no visual effect.
           Text("Draw content behind")
           Switch(checked = drawContentBehind, onCheckedChange = { drawContentBehind = it })
         }
@@ -313,7 +315,7 @@ private class SparkVisualEffect : VisualEffect {
     if (!sparkEnabled) return
 
     val tintAlpha = sparkAlpha.coerceIn(0f, 1f)
-    drawRect(color = sparkColor.copy(alpha = tintAlpha), size = context.size)
+    drawRect(color = sparkColor.copy(alpha = tintAlpha), size = size)
 
     if (!sparkleEnabled || tintAlpha <= 0f) return
 

@@ -51,6 +51,8 @@ public class BlurVisualEffect : VisualEffect {
 
   private var isAttached: Boolean = false
 
+  private var needsDelegateSelection: Boolean = true
+
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
 
@@ -84,15 +86,19 @@ public class BlurVisualEffect : VisualEffect {
 
   override fun update(context: VisualEffectContext) {
     compositionLocalStyle = context.currentValueOf(LocalHazeBlurStyle)
-    delegate = updateDelegate(context)
 
     if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
+      needsDelegateSelection = true
       context.invalidateDraw()
     }
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     try {
+      if (needsDelegateSelection) {
+        delegate = updateDelegate(context, this)
+        needsDelegateSelection = false
+      }
       with(delegate) { draw(context) }
     } finally {
       resetDirtyTracker()
@@ -413,4 +419,7 @@ public class BlurVisualEffect : VisualEffect {
   }
 }
 
-internal expect fun BlurVisualEffect.updateDelegate(context: VisualEffectContext): BlurVisualEffect.Delegate
+internal expect fun BlurVisualEffect.updateDelegate(
+  context: VisualEffectContext,
+  drawScope: DrawScope,
+): BlurVisualEffect.Delegate

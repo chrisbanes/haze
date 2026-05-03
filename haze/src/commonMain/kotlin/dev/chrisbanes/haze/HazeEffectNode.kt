@@ -175,7 +175,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
-        detachVisualEffect(field)
+        runCatching { detachVisualEffect(field) }
         field = value
         attachVisualEffect(value)
       }
@@ -573,9 +573,12 @@ internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
 }
 
 internal fun HazeEffectNode.detachVisualEffect(effect: VisualEffect) {
-  effect.detach(visualEffectContext)
-  attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
-    attachedEffect === effect && attachedNode === this
+  try {
+    effect.detach(visualEffectContext)
+  } finally {
+    attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
+      attachedEffect === effect && attachedNode === this
+    }
   }
 }
 

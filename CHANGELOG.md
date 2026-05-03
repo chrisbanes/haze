@@ -11,7 +11,11 @@ Work in progress. Changes since 2.0.0-alpha01.
 
 ### Breaking Changes
 
-- **Removed APIs:** `VisualEffectContext.visualEffect` property removed. Custom `VisualEffect` implementations should use `this` instead of `context.visualEffect` to reference themselves.
+- **Removed APIs:** `VisualEffectContext.visualEffect` property removed. Custom `VisualEffect` implementations should access their own state directly through class members or captured references. Inside `override fun DrawScope.draw(...)`, bare `this` refers to the `DrawScope`, not the `VisualEffect` instance.
+- **Lifecycle signature:** `VisualEffect.detach()` now receives the attached context as `detach(context: VisualEffectContext)`.
+- **Method renames:** `DrawScope.shouldDrawContentBehind(context)` is now `shouldDrawContentBehind(context)`.
+- **Method renames:** `shouldClip()` is now `shouldClipToNodeBounds()`, and `preferClipToAreaBounds()` is now `shouldPreferClipToAreaBounds()`.
+- **Removed APIs:** `calculateInputScaleFactor()` and `requireInvalidation()` were removed from `VisualEffect`.
 
 ## 2.0.0-alpha01 <small>2026-04-28</small> { id="2.0.0-alpha01" }
 

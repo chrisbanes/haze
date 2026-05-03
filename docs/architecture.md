@@ -14,14 +14,14 @@ The `VisualEffect` interface is the base contract for all visual effects. Implem
 interface VisualEffect {
     fun attach(context: VisualEffectContext)
     fun update(context: VisualEffectContext)
-    fun detach()
+    fun detach(context: VisualEffectContext)
     fun DrawScope.draw(context: VisualEffectContext)
 }
 ```
 
 - **attach**: Called when the effect is first attached to a composable. Implementations can initialize platform-specific resources.
 - **update**: Called whenever the effect should update its state from composition locals or other sources.
-- **detach**: Called when the effect is removed. Implementations should clean up resources.
+- **detach**: Called when the effect is removed. Implementations should clean up resources using the last attached context.
 - **draw**: Renders the effect using the `DrawScope` receiver.
 
 ### HazeEffectScope
@@ -133,7 +133,7 @@ class CustomVisualEffect : VisualEffect {
         // Update state from composition locals or snapshot state
     }
 
-    override fun detach() {
+    override fun detach(context: VisualEffectContext) {
         // Clean up resources
     }
 

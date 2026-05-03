@@ -76,6 +76,25 @@ class HazeEffectNodeConstructorTest {
 
     node.detachVisualEffect(effect)
   }
+
+  @Test
+  fun detachVisualEffect_cleansRegistryWhenDetachThrows() {
+    val node = HazeEffectNode()
+    val effect = ThrowOnDetachVisualEffect()
+
+    node.attachVisualEffect(effect)
+
+    // detachVisualEffect still throws, but the registry cleanup runs in the finally block.
+    assertFailsWith<IllegalStateException> {
+      node.detachVisualEffect(effect)
+    }
+
+    // After detach (which threw), the effect should no longer be owned,
+    // so attaching it to a different node should succeed.
+    val node2 = HazeEffectNode()
+    node2.attachVisualEffect(effect)
+    node2.detachVisualEffect(effect)
+  }
 }
 
 private class EqualByTypeVisualEffect(
@@ -110,5 +129,20 @@ private class CountingAttachVisualEffect : VisualEffect {
 
   override fun attach(context: VisualEffectContext) {
     attachCount++
+  }
+}
+
+private class ThrowOnDetachVisualEffect : VisualEffect {
+  private var shouldThrow = true
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+
+  override fun attach(context: VisualEffectContext) = Unit
+
+  override fun detach(context: VisualEffectContext) {
+    if (shouldThrow) {
+      shouldThrow = false
+      throw IllegalStateException("detach boom")
+    }
   }
 }

@@ -4,13 +4,17 @@
 package dev.chrisbanes.haze.blur
 
 import android.os.Build
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.nativeCanvas
 import dev.chrisbanes.haze.VisualEffectContext
 
-internal actual fun BlurVisualEffect.updateDelegate(context: VisualEffectContext): BlurVisualEffect.Delegate {
+internal actual fun BlurVisualEffect.updateDelegate(
+  context: VisualEffectContext,
+  drawScope: DrawScope,
+): BlurVisualEffect.Delegate {
   val canUseRenderEffect = canUseRenderEffect(
     sdkInt = Build.VERSION.SDK_INT,
-    isHardwareAccelerated = context.currentValueOf(LocalView).isHardwareAccelerated,
+    isHardwareAccelerated = drawScope.drawContext.canvas.nativeCanvas.isHardwareAccelerated,
   )
 
   val blurEnabled = blurEnabled
