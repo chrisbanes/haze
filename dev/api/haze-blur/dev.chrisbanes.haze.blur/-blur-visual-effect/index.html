@@ -93,24 +93,24 @@
   <div class="breadcrumbs"><a href="../../index.html">haze-blur</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze.blur</a><span class="delimiter">/</span><span class="current">BlurVisualEffect</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Blur</span><wbr><span>Visual</span><wbr><span><span>Effect</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Stable.html"><span class="token annotation builtin">Stable</span></a></div></div><span class="token keyword">class </span><a href="index.html">BlurVisualEffect</a> : <a href="../../../haze/dev.chrisbanes.haze/-visual-effect/index.html">VisualEffect</a></div><p class="paragraph">A <a href="../../../haze/dev.chrisbanes.haze/-visual-effect/index.html">VisualEffect</a> implementation that applies blur effects to content.</p><p class="paragraph">This effect supports various blur-related features including:</p><ul><li><p class="paragraph">Configurable blur radius</p></li><li><p class="paragraph">Tinting with multiple colors</p></li><li><p class="paragraph">Progressive (gradient) blur</p></li><li><p class="paragraph">Noise overlays</p></li><li><p class="paragraph">Background color</p></li><li><p class="paragraph">Alpha masking</p></li></ul><p class="paragraph">Example usage:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">Modifier.hazeEffect { scope -&gt;<br>  scope.visualEffect = BlurVisualEffect().apply {<br>    blurRadius = 20.dp<br>    tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))<br>  }<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Stable.html"><span class="token annotation builtin">Stable</span></a></div></div><span class="token keyword">class </span><a href="index.html">BlurVisualEffect</a> : <a href="../../../haze/dev.chrisbanes.haze/-visual-effect/index.html">VisualEffect</a></div><p class="paragraph">A <a href="../../../haze/dev.chrisbanes.haze/-visual-effect/index.html">VisualEffect</a> implementation that applies blur effects to content.</p><p class="paragraph">This effect supports various blur-related features including:</p><ul><li><p class="paragraph">Configurable blur radius</p></li><li><p class="paragraph">Tinting with multiple colors</p></li><li><p class="paragraph">Progressive (gradient) blur</p></li><li><p class="paragraph">Noise overlays</p></li><li><p class="paragraph">Background color</p></li><li><p class="paragraph">Alpha masking</p></li></ul><p class="paragraph">Example usage:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">Modifier.hazeEffect {<br>  blurEffect {<br>    blurRadius = 20.dp<br>    colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))<br>  }<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
     <div class="tabs-section-body">
       <div data-togglable="CONSTRUCTOR">
         <h2 class="tableheader">Constructors</h2>
-        <div class="table"><a data-name="-2033453989%2FConstructors%2F-476713239" anchor-label="BlurVisualEffect" id="-2033453989%2FConstructors%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
+        <div class="table"><a data-name="-1418217262%2FConstructors%2F-476713239" anchor-label="BlurVisualEffect" id="-1418217262%2FConstructors%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
           <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":haze-blur/commonMain" data-filterable-set=":haze-blur/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="-blur-visual-effect.html"><span>Blur</span><wbr><span>Visual</span><wbr><span><span>Effect</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2033453989%2FConstructors%2F-476713239"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1418217262%2FConstructors%2F-476713239"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">BlurVisualEffect</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Creates a new <a href="-blur-visual-effect.html">BlurVisualEffect</a> copying all properties from <a href="../../../haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/--root--.html">other</a>.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -303,21 +303,6 @@
               </div>
             </div>
           </div>
-<a data-name="-248869933%2FFunctions%2F-476713239" anchor-label="calculateInputScaleFactor" id="-248869933%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
-          <div class="table-row table-row_content" data-filterable-current=":haze-blur/commonMain" data-filterable-set=":haze-blur/commonMain">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="calculate-input-scale-factor.html"><span>calculate</span><wbr><span>Input</span><wbr><span>Scale</span><wbr><span><span>Factor</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-248869933%2FFunctions%2F-476713239"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="calculate-input-scale-factor.html"><span class="token function">calculateInputScaleFactor</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">scale<span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-haze-input-scale/index.html">HazeInputScale</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
 <a data-name="-1273459264%2FFunctions%2F-476713239" anchor-label="calculateLayerBounds" id="-1273459264%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze-blur/commonMain" data-filterable-set=":haze-blur/commonMain">
             <div class="main-subrow keyValue ">
@@ -333,17 +318,17 @@
               </div>
             </div>
           </div>
-<a data-name="498252736%2FFunctions%2F-476713239" anchor-label="detach" id="498252736%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
+<a data-name="613593855%2FFunctions%2F-476713239" anchor-label="detach" id="613593855%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze-blur/commonMain" data-filterable-set=":haze-blur/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="detach.html"><span><span>detach</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="498252736%2FFunctions%2F-476713239"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="613593855%2FFunctions%2F-476713239"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="detach.html"><span class="token function">detach</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="detach.html"><span class="token function">detach</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-visual-effect-context/index.html">VisualEffectContext</a></span></span><span class="token punctuation">)</span></div></div></div>
                 </div>
               </div>
             </div>
@@ -378,62 +363,47 @@
               </div>
             </div>
           </div>
-<a data-name="-308511114%2FFunctions%2F-476713239" anchor-label="preferClipToAreaBounds" id="-308511114%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
+<a data-name="-2024930786%2FFunctions%2F-476713239" anchor-label="shouldClipToNodeBounds" id="-2024930786%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze-blur/commonMain" data-filterable-set=":haze-blur/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
-                  <div><a href="prefer-clip-to-area-bounds.html"><span>prefer</span><wbr><span>Clip</span><wbr><span>To</span><wbr><span>Area</span><wbr><span><span>Bounds</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-308511114%2FFunctions%2F-476713239"></span>
+                  <div><a href="should-clip-to-node-bounds.html"><span>should</span><wbr><span>Clip</span><wbr><span>To</span><wbr><span>Node</span><wbr><span><span>Bounds</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2024930786%2FFunctions%2F-476713239"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="prefer-clip-to-area-bounds.html"><span class="token function">preferClipToAreaBounds</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="should-clip-to-node-bounds.html"><span class="token function">shouldClipToNodeBounds</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
                 </div>
               </div>
             </div>
           </div>
-<a data-name="-309654716%2FFunctions%2F-476713239" anchor-label="requireInvalidation" id="-309654716%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
-          <div class="table-row table-row_content" data-filterable-current=":haze-blur/commonMain" data-filterable-set=":haze-blur/commonMain">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="require-invalidation.html"><span>require</span><wbr><span><span>Invalidation</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-309654716%2FFunctions%2F-476713239"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="require-invalidation.html"><span class="token function">requireInvalidation</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-<a data-name="1780113072%2FFunctions%2F-476713239" anchor-label="shouldClip" id="1780113072%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
-          <div class="table-row table-row_content" data-filterable-current=":haze-blur/commonMain" data-filterable-set=":haze-blur/commonMain">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="should-clip.html"><span>should</span><wbr><span><span>Clip</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1780113072%2FFunctions%2F-476713239"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="should-clip.html"><span class="token function">shouldClip</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-<a data-name="-881238004%2FFunctions%2F-476713239" anchor-label="shouldDrawContentBehind" id="-881238004%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
+<a data-name="1958698324%2FFunctions%2F-476713239" anchor-label="shouldDrawContentBehind" id="1958698324%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze-blur/commonMain" data-filterable-set=":haze-blur/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="should-draw-content-behind.html"><span>should</span><wbr><span>Draw</span><wbr><span>Content</span><wbr><span><span>Behind</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-881238004%2FFunctions%2F-476713239"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1958698324%2FFunctions%2F-476713239"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/drawscope/DrawScope.html">DrawScope</a><span class="token punctuation">.</span><a href="should-draw-content-behind.html"><span class="token function">shouldDrawContentBehind</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-visual-effect-context/index.html">VisualEffectContext</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="should-draw-content-behind.html"><span class="token function">shouldDrawContentBehind</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-visual-effect-context/index.html">VisualEffectContext</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-299520061%2FFunctions%2F-476713239" anchor-label="shouldPreferClipToAreaBounds" id="-299520061%2FFunctions%2F-476713239" data-filterable-set=":haze-blur/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-blur/commonMain" data-filterable-set=":haze-blur/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="should-prefer-clip-to-area-bounds.html"><span>should</span><wbr><span>Prefer</span><wbr><span>Clip</span><wbr><span>To</span><wbr><span>Area</span><wbr><span><span>Bounds</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-299520061%2FFunctions%2F-476713239"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="should-prefer-clip-to-area-bounds.html"><span class="token function">shouldPreferClipToAreaBounds</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div></div></div>
                 </div>
               </div>
             </div>

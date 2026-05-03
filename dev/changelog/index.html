@@ -694,6 +694,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2.0.0-alpha02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.0.0-alpha02 (WIP)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.0.0-alpha02 (WIP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2.0.0-alpha01" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -767,7 +795,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#breaking-changes" class="md-nav__link">
+  <a href="#breaking-changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking Changes
@@ -4025,6 +4053,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#2.0.0-alpha02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.0.0-alpha02 (WIP)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.0.0-alpha02 (WIP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2.0.0-alpha01" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4098,7 +4154,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#breaking-changes" class="md-nav__link">
+  <a href="#breaking-changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking Changes
@@ -7237,6 +7293,16 @@
 <p>All notable changes to this project are documented here.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
+<h2 id="2.0.0-alpha02">2.0.0-alpha02 (WIP)<a class="headerlink" href="#2.0.0-alpha02" title="Permanent link">¶</a></h2>
+<p>Work in progress. Changes since 2.0.0-alpha01.</p>
+<h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Removed APIs:</strong> <code>VisualEffectContext.visualEffect</code> property removed. Custom <code>VisualEffect</code> implementations should access their own state directly through class members or captured references. Inside <code>override fun DrawScope.draw(...)</code>, bare <code>this</code> refers to the <code>DrawScope</code>, not the <code>VisualEffect</code> instance.</li>
+<li><strong>Lifecycle signature:</strong> <code>VisualEffect.detach()</code> now receives the attached context as <code>detach(context: VisualEffectContext)</code>.</li>
+<li><strong>Method renames:</strong> <code>DrawScope.shouldDrawContentBehind(context)</code> is now <code>shouldDrawContentBehind(context)</code>.</li>
+<li><strong>Method renames:</strong> <code>shouldClip()</code> is now <code>shouldClipToNodeBounds()</code>, and <code>preferClipToAreaBounds()</code> is now <code>shouldPreferClipToAreaBounds()</code>.</li>
+<li><strong>Removed APIs:</strong> <code>calculateInputScaleFactor()</code> and <code>requireInvalidation()</code> were removed from <code>VisualEffect</code>.</li>
+</ul>
 <h2 id="2.0.0-alpha01">2.0.0-alpha01 <small>2026-04-28</small><a class="headerlink" href="#2.0.0-alpha01" title="Permanent link">¶</a></h2>
 <p>Major architectural refactor introducing a pluggable visual effects system for improved modularity and extensibility.</p>
 <h3 id="highlights">Highlights<a class="headerlink" href="#highlights" title="Permanent link">¶</a></h3>
@@ -7258,7 +7324,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </code></pre></div>
 <h4 id="configurable-hazepositionstrategy">Configurable <code>HazePositionStrategy</code><a class="headerlink" href="#configurable-hazepositionstrategy" title="Permanent link">¶</a></h4>
 <p>New <code>positionStrategy</code> parameter on <code>rememberHazeState()</code> to control how effect positions are calculated, fixing split-window blur misalignment scenarios.</p>
-<h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">¶</a></h3>
+<h3 id="breaking-changes_1">Breaking Changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">¶</a></h3>
 <ul>
 <li><strong>New module dependency:</strong> Blur functionality now requires the <code>haze-blur</code> module</li>
 <li><strong>API nesting:</strong> Blur properties (<code>blurRadius</code>, <code>colorEffects</code>, <code>style</code>, <code>noiseFactor</code>, <code>progressive</code>, <code>mask</code>, etc.) now require <code>blurEffect {}</code> wrapper</li>

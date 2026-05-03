@@ -1086,14 +1086,14 @@
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">VisualEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">attach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span>
 <span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span>
-<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">()</span>
+<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span>
 <span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="n">DrawScope</span><span class="p">.</span><span class="nf">draw</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
 <ul>
 <li><strong>attach</strong>: Called when the effect is first attached to a composable. Implementations can initialize platform-specific resources.</li>
 <li><strong>update</strong>: Called whenever the effect should update its state from composition locals or other sources.</li>
-<li><strong>detach</strong>: Called when the effect is removed. Implementations should clean up resources.</li>
+<li><strong>detach</strong>: Called when the effect is removed. Implementations should clean up resources using the last attached context.</li>
 <li><strong>draw</strong>: Renders the effect using the <code>DrawScope</code> receiver.</li>
 </ul>
 <h3 id="hazeeffectscope">HazeEffectScope<a class="headerlink" href="#hazeeffectscope" title="Permanent link">¶</a></h3>
@@ -1182,7 +1182,7 @@
 <span class="w">        </span><span class="c1">// Update state from composition locals or snapshot state</span>
 <span class="w">    </span><span class="p">}</span>
 
-<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="c1">// Clean up resources</span>
 <span class="w">    </span><span class="p">}</span>
 
