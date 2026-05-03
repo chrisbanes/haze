@@ -32,7 +32,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     // Calculate scaled layer size to detect size changes (needs re-allocation)
-    val scaleFactor = blurVisualEffect.calculateInputScaleFactor(context.inputScale)
+    val scaleFactor = blurVisualEffect.resolveInputScaleFactor(context.inputScale)
     val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {
       Size(it.width.toFloat(), it.height.toFloat())
     }
@@ -58,7 +58,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
       existingLayer = layer,
     ) ?: return
 
-    val clip = blurVisualEffect.shouldClip()
+    val clip = blurVisualEffect.shouldClipToNodeBounds()
     resultLayer.clip = clip
 
     drawScaledContent(

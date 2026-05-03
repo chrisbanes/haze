@@ -171,6 +171,8 @@ private fun CreditCard(
   modifier: Modifier = Modifier,
   baseWidth: Float = .7f,
 ) {
+  val perCardEffect = remember(visualEffect) { BlurVisualEffect(visualEffect) }
+
   Box(
     modifier = modifier
       .fillMaxWidth(baseWidth - (reverseIndex * 0.05f))
@@ -182,7 +184,7 @@ private fun CreditCard(
       .then(
         if (enabled) {
           Modifier.hazeEffect(state = hazeState) {
-            this.visualEffect = visualEffect
+            this.visualEffect = perCardEffect
           }
         } else {
           Modifier

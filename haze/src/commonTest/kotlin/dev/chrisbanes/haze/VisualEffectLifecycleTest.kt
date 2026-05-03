@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -17,9 +18,13 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isNotNull
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 @OptIn(ExperimentalTestApi::class)
 class VisualEffectLifecycleTest : ContextTest() {
@@ -114,6 +119,7 @@ class VisualEffectLifecycleTest : ContextTest() {
     waitForIdle()
 
     assertThat(effect1.detachCalls).isEqualTo(1)
+    assertThat(effect1.lastDetachContext).isNotNull()
     assertThat(effect2.attachCalls).isEqualTo(1)
     assertThat(effect2.detachCalls).isEqualTo(0)
   }
@@ -151,14 +157,113 @@ class VisualEffectLifecycleTest : ContextTest() {
   }
 
   @Test
-  fun emptyVisualEffect_doesNothing() {
-    val empty = VisualEffect.Empty
-    empty.attach(FakeVisualEffectContext)
-    empty.update(FakeVisualEffectContext)
-    empty.detach()
-    assertThat(empty.shouldClip()).isEqualTo(false)
-    assertThat(empty.requireInvalidation()).isEqualTo(false)
-    assertThat(empty.preferClipToAreaBounds()).isEqualTo(false)
+  fun visualEffect_attachMayRunBeforeGeometryResolved() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RecordingVisualEffect()
+
+    setContent {
+      Box(Modifier.size(100.dp).hazeSource(hazeState)) {
+        Spacer(Modifier.size(100.dp).hazeEffect(hazeState) { visualEffect = effect })
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.attachSawUnspecifiedSize).isTrue()
+  }
+
+  @Test
+  fun visualEffect_drawBehindScopeFlagShortCircuitsEffectHook() = runComposeUiTest {
+    val effect = DrawBehindProbeVisualEffect(returnValue = true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect {
+              drawContentBehind = true
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.shouldDrawContentBehindCalls).isEqualTo(0)
+  }
+
+  @Test
+  fun visualEffect_calculateLayerBounds_usesLocalRectInForegroundMode() = runComposeUiTest {
+    val effect = LayerBoundsRecordingVisualEffect()
+
+    setContent {
+      Box(
+        Modifier
+          .size(80.dp)
+          .hazeEffect {
+            visualEffect = effect
+          },
+      )
+    }
+
+    waitForIdle()
+    val rect = effect.lastForegroundRect
+    assertThat(rect).isNotNull()
+    assertThat(rect!!.topLeft).isEqualTo(Offset.Zero)
+  }
+
+  @Test
+  fun visualEffect_sharedAcrossConcurrentNodesThrows() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sharedEffect = RecordingVisualEffect()
+
+    setContent {
+      Box(Modifier.size(200.dp)) {
+        Spacer(Modifier.size(100.dp).hazeSource(hazeState))
+        // First node takes ownership
+        Spacer(Modifier.size(100.dp).hazeEffect(hazeState) { visualEffect = sharedEffect })
+      }
+    }
+
+    waitForIdle()
+    assertThat(sharedEffect.attachCalls).isEqualTo(1)
+
+    // Attempting to attach the same instance to a second active node must fail
+    assertFailsWith<IllegalStateException> {
+      HazeEffectNode().attachVisualEffect(sharedEffect)
+    }
+  }
+
+  @Test
+  fun visualEffect_calculateLayerBounds_usesScreenAlignedRectInBackgroundMode() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = LayerBoundsRecordingVisualEffect()
+
+    setContent {
+      Box(
+        Modifier
+          .size(200.dp)
+          .padding(20.dp),
+      ) {
+        Spacer(
+          Modifier
+            .size(120.dp)
+            .hazeSource(hazeState),
+        )
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    val rect = effect.lastBackgroundRect
+    assertThat(rect).isNotNull()
+    assertThat(rect!!.topLeft == Offset.Zero).isFalse()
   }
 }
 
@@ -168,17 +273,21 @@ internal class RecordingVisualEffect : VisualEffect {
   var updateCalls = 0
   var drawCalls = 0
   var trimMemoryCalls = 0
+  var attachSawUnspecifiedSize = false
+  var lastDetachContext: VisualEffectContext? = null
 
   override fun attach(context: VisualEffectContext) {
     attachCalls++
+    attachSawUnspecifiedSize = context.size == Size.Unspecified || context.size == Size.Zero
   }
 
   override fun update(context: VisualEffectContext) {
     updateCalls++
   }
 
-  override fun detach() {
+  override fun detach(context: VisualEffectContext) {
     detachCalls++
+    lastDetachContext = context
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
@@ -188,6 +297,40 @@ internal class RecordingVisualEffect : VisualEffect {
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
     trimMemoryCalls++
   }
+}
+
+internal class DrawBehindProbeVisualEffect(
+  private val returnValue: Boolean,
+) : VisualEffect {
+  var shouldDrawContentBehindCalls: Int = 0
+
+  override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
+    shouldDrawContentBehindCalls++
+    return returnValue
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+}
+
+internal class LayerBoundsRecordingVisualEffect : VisualEffect {
+  private var isBackgroundMode: Boolean = false
+  var lastForegroundRect: Rect? = null
+  var lastBackgroundRect: Rect? = null
+
+  override fun update(context: VisualEffectContext) {
+    isBackgroundMode = context.state != null
+  }
+
+  override fun calculateLayerBounds(rect: Rect, density: androidx.compose.ui.unit.Density): Rect {
+    if (isBackgroundMode) {
+      lastBackgroundRect = rect
+    } else {
+      lastForegroundRect = rect
+    }
+    return rect
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
 
 internal data object FakeVisualEffectContext : VisualEffectContext {
@@ -200,7 +343,6 @@ internal data object FakeVisualEffectContext : VisualEffectContext {
   override val windowId: Any? = null
   override val areas: List<HazeArea> = emptyList()
   override val state: HazeState? = null
-  override val visualEffect: VisualEffect = VisualEffect.Empty
   override val coroutineScope: kotlinx.coroutines.CoroutineScope = kotlinx.coroutines.CoroutineScope(kotlin.coroutines.EmptyCoroutineContext)
 
   override fun requireDensity(): androidx.compose.ui.unit.Density = error("Fake")

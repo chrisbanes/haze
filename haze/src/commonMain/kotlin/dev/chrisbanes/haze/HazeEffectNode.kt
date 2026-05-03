@@ -175,11 +175,9 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
-        // detach old VisualEffect
-        field.detach()
+        runCatching { detachVisualEffect(field) }
         field = value
-        // attach new VisualEffect
-        value.attach(visualEffectContext)
+        attachVisualEffect(value)
       }
     }
 
@@ -234,7 +232,7 @@ public class HazeEffectNode(
   private var trimMemoryCallbackDisposable: DisposableHandle? = null
 
   override fun onAttach() {
-    visualEffect.attach(visualEffectContext)
+    attachVisualEffect(visualEffect)
     trimMemoryCallbackDisposable = registerTrimMemoryCallback(
       requirePlatformContext(),
     ) { level -> visualEffect.onTrimMemory(visualEffectContext, level) }
@@ -245,7 +243,7 @@ public class HazeEffectNode(
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
     contentDrawArea.releaseLayer()
-    visualEffect.detach()
+    detachVisualEffect(visualEffect)
   }
 
   private fun HazeArea.releaseLayer() {
@@ -342,7 +340,7 @@ public class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
-          if (drawContentBehind || with(visualEffect) { shouldDrawContentBehind(visualEffectContext) }) {
+          if (drawContentBehind || visualEffect.shouldDrawContentBehind(visualEffectContext)) {
             drawLayer(contentLayer)
           }
           with(visualEffect) {
@@ -475,7 +473,7 @@ public class HazeEffectNode(
           height = clippedLayerBounds.height.coerceAtLeast(0f),
         )
         _layerOffset = position - clippedLayerBounds.topLeft
-      } else if (state == null && size.isSpecified && !visualEffect.shouldClip() && shouldExpandLayer()) {
+      } else if (state == null && size.isSpecified && !visualEffect.shouldClipToNodeBounds() && shouldExpandLayer()) {
         val rect = size.toRect()
         val expanded = visualEffect.calculateLayerBounds(rect, requireDensity())
         _layerSize = expanded.size
@@ -496,8 +494,7 @@ public class HazeEffectNode(
 
   private fun invalidateIfNeeded() {
     val invalidateRequired =
-      dirtyTracker.any(DirtyFields.InvalidateFlags) ||
-        visualEffect.requireInvalidation()
+      dirtyTracker.any(DirtyFields.InvalidateFlags)
 
     HazeLogger.d(TAG) {
       "invalidateRequired=$invalidateRequired. " +
@@ -542,7 +539,47 @@ internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 
 internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
   clipToAreasBounds?.let { return it }
-  return visualEffect.preferClipToAreaBounds()
+  return visualEffect.shouldPreferClipToAreaBounds()
+}
+
+// Tracks currently attached effect instances across all nodes.
+// Multiple entries are expected (different effect instances on different nodes),
+// but a single effect instance must never be owned by more than one node.
+// Confined to main-thread access; Compose modifier node callbacks run exclusively on main.
+// Entries are removed in detachVisualEffect(), called from onDetach() which Compose
+// guarantees before the node becomes unreachable.
+private val attachedEffectOwners = mutableListOf<Pair<VisualEffect, HazeEffectNode>>()
+
+internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
+  val current = attachedEffectOwners
+    .firstOrNull { (attachedEffect, _) -> attachedEffect === effect }
+    ?.second
+
+  check(current == null || current === this) {
+    "VisualEffect instances are single-owner and cannot be shared across multiple hazeEffect nodes."
+  }
+
+  if (current === this) return // Already attached to this node; no-op
+
+  attachedEffectOwners += effect to this
+
+  runCatching {
+    effect.attach(visualEffectContext)
+  }.onFailure {
+    attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
+      attachedEffect === effect && attachedNode === this
+    }
+  }.getOrThrow()
+}
+
+internal fun HazeEffectNode.detachVisualEffect(effect: VisualEffect) {
+  try {
+    effect.detach(visualEffectContext)
+  } finally {
+    attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
+      attachedEffect === effect && attachedNode === this
+    }
+  }
 }
 
 internal fun HazeEffectNode.shouldExpandLayer(): Boolean {

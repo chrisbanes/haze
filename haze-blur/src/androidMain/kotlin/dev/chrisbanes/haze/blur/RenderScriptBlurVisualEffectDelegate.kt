@@ -72,7 +72,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   override fun DrawScope.draw(context: VisualEffectContext) {
     val density = context.requireDensity()
     val offset = context.layerOffset
-    var scaleFactor = blurVisualEffect.calculateInputScaleFactor(context.inputScale)
+    var scaleFactor = blurVisualEffect.resolveInputScaleFactor(context.inputScale)
 
     var blurRadiusPx = scaleFactor * with(density) {
       blurVisualEffect.blurRadius.takeOrElse { 0.dp }.toPx()
@@ -96,7 +96,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
         layerOffset = offset,
         backgroundColor = blurVisualEffect.backgroundColor,
       )?.let { layer ->
-        layer.clip = context.visualEffect.shouldClip()
+        layer.clip = blurVisualEffect.shouldClipToNodeBounds()
 
         currentJob = context.coroutineScope.launch(Dispatchers.Main.immediate) {
           updateSurface(
@@ -121,7 +121,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
     context.withGraphicsLayer { layer ->
       layer.alpha = blurVisualEffect.alpha
-      layer.clip = blurVisualEffect.shouldClip()
+      layer.clip = blurVisualEffect.shouldClipToNodeBounds()
 
       val mask = blurVisualEffect.progressive?.asBrush() ?: blurVisualEffect.mask
       if (mask != null) {
@@ -133,7 +133,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
         drawScaledContent(
           offset = -offset,
           scaledSize = size * scaleFactor,
-          clip = context.visualEffect.shouldClip(),
+          clip = blurVisualEffect.shouldClipToNodeBounds(),
         ) {
           drawLayer(contentLayer)
         }

@@ -38,18 +38,35 @@ import dev.chrisbanes.haze.VisualEffectContext
  *
  * Example usage:
  * ```
- * Modifier.hazeEffect { scope ->
- *   scope.visualEffect = BlurVisualEffect().apply {
+ * Modifier.hazeEffect {
+ *   blurEffect {
  *     blurRadius = 20.dp
- *     tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
+ *     colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
  *   }
  * }
  * ```
  */
 @Stable
-public class BlurVisualEffect : VisualEffect {
+public class BlurVisualEffect() : VisualEffect {
+
+  /** Creates a new [BlurVisualEffect] copying all properties from [other]. */
+  public constructor(other: BlurVisualEffect) : this() {
+    blurEnabled = other.blurEnabled
+    blurRadius = other.blurRadius
+    noiseFactor = other.noiseFactor
+    mask = other.mask
+    backgroundColor = other.backgroundColor
+    colorEffects = other.colorEffects
+    fallbackTint = other.fallbackTint
+    alpha = other.alpha
+    progressive = other.progressive
+    blurredEdgeTreatment = other.blurredEdgeTreatment
+    style = other.style
+  }
 
   private var isAttached: Boolean = false
+
+  private var needsDelegateSelection: Boolean = true
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
@@ -75,7 +92,7 @@ public class BlurVisualEffect : VisualEffect {
     }
   }
 
-  override fun detach() {
+  override fun detach(context: VisualEffectContext) {
     if (isAttached) {
       isAttached = false
       delegate.detach()
@@ -86,22 +103,24 @@ public class BlurVisualEffect : VisualEffect {
     compositionLocalStyle = context.currentValueOf(LocalHazeBlurStyle)
 
     if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
+      needsDelegateSelection = true
       context.invalidateDraw()
     }
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
-    updateDelegate(context, this)
-
     try {
+      if (needsDelegateSelection) {
+        delegate = updateDelegate(context, this)
+        needsDelegateSelection = false
+      }
       with(delegate) { draw(context) }
     } finally {
       resetDirtyTracker()
     }
   }
 
-  override fun DrawScope.shouldDrawContentBehind(context: VisualEffectContext): Boolean {
-    updateDelegate(context, this)
+  override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
     return delegate is ScrimBlurVisualEffectDelegate
   }
 
@@ -110,7 +129,7 @@ public class BlurVisualEffect : VisualEffect {
       clearRenderEffectCache()
     }
 
-  override fun shouldClip(): Boolean = blurredEdgeTreatment.shape != null
+  override fun shouldClipToNodeBounds(): Boolean = blurredEdgeTreatment.shape != null
 
   private fun resetDirtyTracker() {
     dirtyTracker = Bitmask()
@@ -325,6 +344,20 @@ public class BlurVisualEffect : VisualEffect {
       }
     }
 
+  internal fun resolveInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
+    is HazeInputScale.None -> 1f
+    is HazeInputScale.Fixed -> scale.scale
+    HazeInputScale.Auto -> {
+      val blurRadius = blurRadius.takeOrElse { 0.dp }
+      when {
+        blurRadius < 7.dp -> 1f
+        progressive != null -> 0.5f
+        mask != null -> 0.5f
+        else -> 0.3334f
+      }
+    }
+  }
+
   internal var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle.Unspecified
     set(value) {
       if (field != value) {
@@ -353,27 +386,7 @@ public class BlurVisualEffect : VisualEffect {
       }
     }
 
-  public override fun calculateInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
-    is HazeInputScale.None -> 1f
-    is HazeInputScale.Fixed -> scale.scale
-    HazeInputScale.Auto -> {
-      val blurRadius = blurRadius.takeOrElse { 0.dp }
-      when {
-        // For small blurRadius values, input scaling is very noticeable therefore we turn it off
-        blurRadius < 7.dp -> 1f
-        // For progressive and masks, we need to keep enough resolution for the lowest intensity.
-        // 0.5f is about right.
-        progressive != null -> 0.5f
-        mask != null -> 0.5f
-        // Otherwise we use 1/3
-        else -> 0.3334f
-      }
-    }
-  }
-
-  override fun requireInvalidation(): Boolean = dirtyTracker.any(BlurDirtyFields.InvalidateFlags)
-
-  override fun preferClipToAreaBounds(): Boolean {
+  override fun shouldPreferClipToAreaBounds(): Boolean {
     return backgroundColor.isSpecified && backgroundColor.alpha < 0.9f
   }
 
@@ -407,4 +420,7 @@ public class BlurVisualEffect : VisualEffect {
   }
 }
 
-internal expect fun BlurVisualEffect.updateDelegate(context: VisualEffectContext, drawScope: DrawScope)
+internal expect fun BlurVisualEffect.updateDelegate(
+  context: VisualEffectContext,
+  drawScope: DrawScope,
+): BlurVisualEffect.Delegate

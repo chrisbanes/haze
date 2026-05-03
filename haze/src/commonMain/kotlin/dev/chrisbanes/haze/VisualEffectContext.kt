@@ -79,11 +79,6 @@ public interface VisualEffectContext {
    */
   public val state: HazeState?
 
-  /**
-   * The [VisualEffect] currently attached to this context.
-   */
-  public val visualEffect: VisualEffect
-
   // ==================== Platform Accessors ====================
 
   /**
@@ -142,8 +137,6 @@ internal class HazeEffectNodeVisualEffectContext(
   override val windowId: Any? get() = node.windowId
   override val areas: List<HazeArea> get() = node.areas
   override val state: HazeState? get() = node.state
-
-  override val visualEffect: VisualEffect get() = node.visualEffect
 
   override val coroutineScope: CoroutineScope get() = node.coroutineScope
   override fun requirePlatformContext(): PlatformContext = node.requirePlatformContext()
