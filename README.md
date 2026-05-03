@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source srcset="docs/media/logo.webp" type="image/webp">
+    <img src="docs/media/logo.webp" alt="Haze" width="360">
+  </picture>
+</p>
+
 [![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze)](https://search.maven.org/search?q=g:dev.chrisbanes.haze) ![Build status](https://github.com/chrisbanes/haze/actions/workflows/build.yml/badge.svg)
 
 # Haze
