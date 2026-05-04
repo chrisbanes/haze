@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.test.RecompositionCounter
+import dev.chrisbanes.haze.test.RecompositionCounter
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
