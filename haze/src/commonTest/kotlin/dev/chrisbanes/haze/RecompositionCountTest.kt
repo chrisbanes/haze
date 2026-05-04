@@ -3,9 +3,14 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -22,7 +27,11 @@ import kotlin.test.Test
 class RecompositionCountTest : ContextTest() {
 
   companion object {
-    private const val RECOMPOSITION_THRESHOLD = 2
+    // Threshold of 1 ensures we catch any extra unnecessary recomposition.
+    // Some tests produce 2 recompositions (e.g. due to Compose scheduling
+    // two frames for a single atomic change) - those use isBetween(1, 2)
+    // with a comment explaining why.
+    private const val RECOMPOSITION_THRESHOLD = 1
   }
 
   @Test
@@ -42,6 +51,8 @@ class RecompositionCountTest : ContextTest() {
     }
     waitForIdle()
 
+    // Reset after initial composition. Safe because SideEffect-based counting
+    // does not read snapshot state during composition.
     effectCounter.intValue = 0
     sourceCounter.intValue = 0
 
@@ -58,11 +69,14 @@ class RecompositionCountTest : ContextTest() {
   fun addingSourceNode_causesBoundedRecompositions() = runComposeUiTest {
     val hazeState = HazeState()
     val effectCounter = mutableIntStateOf(0)
+    val sourceCounter = mutableIntStateOf(0)
     val showSource = mutableStateOf(false)
 
     setContent {
-      if (showSource.value) {
-        Box(Modifier.hazeSource(hazeState).size(50.dp))
+      RecompositionCounter(sourceCounter) {
+        if (showSource.value) {
+          Box(Modifier.hazeSource(hazeState).size(50.dp))
+        }
       }
       RecompositionCounter(effectCounter) {
         Spacer(Modifier.hazeEffect(hazeState).size(100.dp))
@@ -71,11 +85,14 @@ class RecompositionCountTest : ContextTest() {
     waitForIdle()
 
     effectCounter.intValue = 0
+    sourceCounter.intValue = 0
 
     showSource.value = true
     waitForIdle()
 
     assertThat(effectCounter.intValue, "effect recompositions after adding source")
+      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
+    assertThat(sourceCounter.intValue, "source recompositions after adding source")
       .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
   }
 
@@ -83,11 +100,14 @@ class RecompositionCountTest : ContextTest() {
   fun removingSourceNode_causesBoundedRecompositions() = runComposeUiTest {
     val hazeState = HazeState()
     val effectCounter = mutableIntStateOf(0)
+    val sourceCounter = mutableIntStateOf(0)
     val showSource = mutableStateOf(true)
 
     setContent {
-      if (showSource.value) {
-        Box(Modifier.hazeSource(hazeState).size(50.dp))
+      RecompositionCounter(sourceCounter) {
+        if (showSource.value) {
+          Box(Modifier.hazeSource(hazeState).size(50.dp))
+        }
       }
       RecompositionCounter(effectCounter) {
         Spacer(Modifier.hazeEffect(hazeState).size(100.dp))
@@ -96,11 +116,14 @@ class RecompositionCountTest : ContextTest() {
     waitForIdle()
 
     effectCounter.intValue = 0
+    sourceCounter.intValue = 0
 
     showSource.value = false
     waitForIdle()
 
     assertThat(effectCounter.intValue, "effect recompositions after removing source")
+      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
+    assertThat(sourceCounter.intValue, "source recompositions after removing source")
       .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
   }
 
@@ -108,29 +131,61 @@ class RecompositionCountTest : ContextTest() {
   fun blurEnabledToggle_causesBoundedRecompositions() = runComposeUiTest {
     val hazeState = HazeState()
     val effectCounter = mutableIntStateOf(0)
+    val sourceCounter = mutableIntStateOf(0)
     val blurEnabled = mutableStateOf(true)
 
     setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          Spacer(
-            Modifier
-              .hazeEffect(hazeState) {
-                drawContentBehind = blurEnabled.value
-              }
-              .size(100.dp),
-          )
+      RecompositionCounter(sourceCounter) {
+        Box(Modifier.hazeSource(hazeState).size(100.dp)) {
+          RecompositionCounter(effectCounter) {
+            Spacer(
+              Modifier
+                .hazeEffect(hazeState) {
+                  drawContentBehind = blurEnabled.value
+                }
+                .size(100.dp),
+            )
+          }
         }
       }
     }
     waitForIdle()
 
     effectCounter.intValue = 0
+    sourceCounter.intValue = 0
 
     blurEnabled.value = false
     waitForIdle()
 
     assertThat(effectCounter.intValue, "effect recompositions after blur toggle")
+      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
+    assertThat(sourceCounter.intValue, "source recompositions after blur toggle")
+      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
+  }
+
+  @Test
+  fun addingEffectNode_doesNotExcessRecomposeSource() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sourceCounter = mutableIntStateOf(0)
+    val showEffect = mutableStateOf(false)
+
+    setContent {
+      RecompositionCounter(sourceCounter) {
+        Box(Modifier.hazeSource(hazeState).size(100.dp)) {
+          if (showEffect.value) {
+            Spacer(Modifier.hazeEffect(hazeState).size(100.dp))
+          }
+        }
+      }
+    }
+    waitForIdle()
+
+    sourceCounter.intValue = 0
+
+    showEffect.value = true
+    waitForIdle()
+
+    assertThat(sourceCounter.intValue, "source recompositions after adding effect node")
       .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
   }
 
@@ -160,6 +215,95 @@ class RecompositionCountTest : ContextTest() {
     waitForIdle()
 
     assertThat(effectCounter.intValue, "effect recompositions after adding 5 sources")
+      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
+  }
+
+  @Test
+  fun lazyColumnScroll_causesBoundedRecompositions() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effectCounter = mutableIntStateOf(0)
+    val listState = androidx.compose.foundation.lazy.LazyListState()
+
+    setContent {
+      Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+          state = listState,
+          verticalArrangement = Arrangement.spacedBy(8.dp),
+          modifier = Modifier
+            .fillMaxSize()
+            .hazeSource(hazeState),
+        ) {
+          items(50) { index ->
+            Spacer(
+              Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            )
+          }
+        }
+
+        RecompositionCounter(effectCounter) {
+          Spacer(
+            Modifier
+              .hazeEffect(hazeState)
+              .fillMaxWidth()
+              .height(56.dp),
+          )
+        }
+      }
+    }
+    waitForIdle()
+
+    effectCounter.intValue = 0
+
+    listState.scrollToItem(25)
+    waitForIdle()
+
+    assertThat(effectCounter.intValue, "effect recompositions after scroll")
+      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
+  }
+
+  @Test
+  fun lazyColumnItemCountChange_causesBoundedRecompositions() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effectCounter = mutableIntStateOf(0)
+    val itemCount = mutableIntStateOf(10)
+
+    setContent {
+      Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+          verticalArrangement = Arrangement.spacedBy(8.dp),
+          modifier = Modifier
+            .fillMaxSize()
+            .hazeSource(hazeState),
+        ) {
+          items(itemCount.intValue) { index ->
+            Spacer(
+              Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            )
+          }
+        }
+
+        RecompositionCounter(effectCounter) {
+          Spacer(
+            Modifier
+              .hazeEffect(hazeState)
+              .fillMaxWidth()
+              .height(56.dp),
+          )
+        }
+      }
+    }
+    waitForIdle()
+
+    effectCounter.intValue = 0
+
+    itemCount.intValue = 50
+    waitForIdle()
+
+    assertThat(effectCounter.intValue, "effect recompositions after item count change")
       .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
   }
 }

@@ -3,17 +3,24 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,36 +30,6 @@ class RecompositionLoopInstrumentationTest {
 
   @get:Rule
   val composeTestRule = createComposeRule()
-
-  companion object {
-    private const val IDLE_TIMEOUT_MS = 1000L
-  }
-
-  private fun assertIdleWithinTimeout(description: String) {
-    val latch = CountDownLatch(1)
-    val error = AtomicReference<Throwable?>(null)
-
-    val thread = Thread {
-      try {
-        composeTestRule.waitForIdle()
-      } catch (t: Throwable) {
-        error.set(t)
-      } finally {
-        latch.countDown()
-      }
-    }
-    thread.start()
-
-    if (!latch.await(IDLE_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-      thread.interrupt()
-      throw AssertionError(
-        "Infinite recomposition loop detected $description. " +
-          "waitForIdle() did not return within ${IDLE_TIMEOUT_MS}ms.",
-      )
-    }
-
-    error.get()?.let { throw it }
-  }
 
   @Test
   fun positionStrategyMutation_doesNotInfiniteLoop() {
@@ -66,7 +43,7 @@ class RecompositionLoopInstrumentationTest {
     composeTestRule.waitForIdle()
 
     hazeState.positionStrategy = HazePositionStrategy.Screen
-    assertIdleWithinTimeout("after positionStrategy mutation")
+    composeTestRule.waitForIdle()
   }
 
   @Test
@@ -83,7 +60,7 @@ class RecompositionLoopInstrumentationTest {
     composeTestRule.waitForIdle()
 
     showSource.value = true
-    assertIdleWithinTimeout("after adding source node")
+    composeTestRule.waitForIdle()
   }
 
   @Test
@@ -100,7 +77,7 @@ class RecompositionLoopInstrumentationTest {
     composeTestRule.waitForIdle()
 
     showSource.value = false
-    assertIdleWithinTimeout("after removing source node")
+    composeTestRule.waitForIdle()
   }
 
   @Test
@@ -122,7 +99,7 @@ class RecompositionLoopInstrumentationTest {
     composeTestRule.waitForIdle()
 
     drawBehind.value = true
-    assertIdleWithinTimeout("after blur effect block mutation")
+    composeTestRule.waitForIdle()
   }
 
   @Test
@@ -145,7 +122,81 @@ class RecompositionLoopInstrumentationTest {
 
     repeat(5) {
       flag.value = !flag.value
-      assertIdleWithinTimeout("on alternating mutation #$it")
+      composeTestRule.waitForIdle()
     }
+  }
+
+  @Test
+  fun lazyColumnScroll_doesNotInfiniteLoop() {
+    val hazeState = HazeState()
+
+    composeTestRule.setContent {
+      Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+          verticalArrangement = Arrangement.spacedBy(8.dp),
+          modifier = Modifier
+            .fillMaxSize()
+            .testTag("lazy_column")
+            .hazeSource(hazeState),
+        ) {
+          items(50) { index ->
+            Spacer(
+              Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            )
+          }
+        }
+
+        Spacer(
+          Modifier
+            .hazeEffect(hazeState)
+            .fillMaxWidth()
+            .height(56.dp),
+        )
+      }
+    }
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag("lazy_column").performTouchInput {
+      swipeUp()
+    }
+    composeTestRule.waitForIdle()
+  }
+
+  @Test
+  fun lazyColumnItemCountChange_doesNotInfiniteLoop() {
+    val hazeState = HazeState()
+    val itemCount = mutableIntStateOf(10)
+
+    composeTestRule.setContent {
+      Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+          verticalArrangement = Arrangement.spacedBy(8.dp),
+          modifier = Modifier
+            .fillMaxSize()
+            .hazeSource(hazeState),
+        ) {
+          items(itemCount.intValue) { index ->
+            Spacer(
+              Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            )
+          }
+        }
+
+        Spacer(
+          Modifier
+            .hazeEffect(hazeState)
+            .fillMaxWidth()
+            .height(56.dp),
+        )
+      }
+    }
+    composeTestRule.waitForIdle()
+
+    itemCount.intValue = 50
+    composeTestRule.waitForIdle()
   }
 }
