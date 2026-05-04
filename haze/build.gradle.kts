@@ -128,6 +128,11 @@ baselineProfile {
 
 dependencies {
   baselineProfile(projects.internal.benchmark)
+
+  androidTestImplementation(libs.assertk)
+  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+  androidTestImplementation(libs.androidx.test.ext.junit)
+  debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
 tasks.withType<Test> {
