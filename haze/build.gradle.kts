@@ -98,6 +98,7 @@ kotlin {
         implementation(compose.uiTest)
 
         implementation(projects.internal.contextTest)
+        implementation(projects.internal.testUtils)
       }
     }
 
@@ -144,6 +145,7 @@ dependencies {
   androidTestImplementation(libs.assertk)
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.test.ext.junit)
+  androidTestImplementation(projects.internal.testUtils)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
