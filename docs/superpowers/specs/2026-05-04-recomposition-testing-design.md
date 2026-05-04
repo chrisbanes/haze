@@ -27,8 +27,8 @@ Haze 2.0.0-alpha01 introduced a pluggable `VisualEffect` system where `HazeEffec
 Detect infinite `onObservedReadsChanged` → `updateEffect` → state-read → `onObservedReadsChanged` cycles without spinning up the full Compose UI pipeline.
 
 ### Mechanism
-- Build a `SnapshotObservationHarness` test helper that implements the minimal `ObserverModifierNode` contract required by `HazeEffectNode` and `HazeSourceNode`.
-- Instantiate the nodes directly, attach them to the harness, and invoke `onObservedReadsChanged()`.
+- Build a `SnapshotObservationHarness` test helper that implements the minimal `ObserverModifierNode` contract required by both `HazeEffectNode` and `HazeSourceNode`.
+- Instantiate either node directly, attach it to the harness, and invoke `onObservedReadsChanged()`.
 - The harness registers a `Snapshot` apply observer to track which snapshot states are read during `updateEffect()`.
 - If a state mutation triggers `onObservedReadsChanged()` again *before* the harness advances to the next simulated frame, the harness records a cycle.
 - After a configurable max depth (e.g., 10 iterations), the test fails and prints the cycle trace.
@@ -36,6 +36,13 @@ Detect infinite `onObservedReadsChanged` → `updateEffect` → state-read → `
 ### File Locations
 - `haze/src/commonTest/kotlin/dev/chrisbanes/haze/test/SnapshotObservationHarness.kt`
 - `haze/src/commonTest/kotlin/dev/chrisbanes/haze/SnapshotObservationCycleTest.kt`
+
+### Scenarios to Cover
+1. **`HazeEffectNode` — area list mutation** → assert no synchronous cycle.
+2. **`HazeEffectNode` — position strategy mutation** → assert no synchronous cycle.
+3. **`HazeSourceNode` — area bounds update** → assert no synchronous cycle.
+4. **`HazeSourceNode` — resolved strategy mutation** → assert no synchronous cycle.
+5. **Combined effect + source** → both nodes attached to the same `HazeState`, mutate areas → assert neither node cycles.
 
 ### Pros & Cons
 | Pros | Cons |
@@ -103,6 +110,5 @@ Both approaches live in `haze/src/commonTest/` and rely on:
 
 ## Open Questions
 
-1. Should `SnapshotObservationHarness` also cover `HazeSourceNode`, or focus on `HazeEffectNode` first?
-2. What is the exact threshold for split-screen strategy promotion — is it reliably ≤ 2 recompositions, or should the test allow ≤ 3?
-3. Do we want a `@FlakyTest` annotation or retry logic for recomposition counters on CI emulators with variable performance?
+1. What is the exact threshold for split-screen strategy promotion — is it reliably ≤ 2 recompositions, or should the test allow ≤ 3?
+2. Do we want a `@FlakyTest` annotation or retry logic for recomposition counters on CI emulators with variable performance?
