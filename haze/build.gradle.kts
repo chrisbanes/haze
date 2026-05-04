@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+import com.android.build.api.dsl.ManagedVirtualDevice
 import dev.chrisbanes.gradle.addDefaultHazeTargets
 import org.jetbrains.compose.ExperimentalComposeLibrary
 
@@ -25,9 +26,20 @@ android {
     consumerProguardFiles("consumer-rules.pro")
   }
 
+  @Suppress("UnstableApiUsage")
   testOptions {
     unitTests {
       isIncludeAndroidResources = true
+    }
+
+    managedDevices {
+      devices {
+        create<ManagedVirtualDevice>("pixel6Api34") {
+          device = "Pixel 6"
+          apiLevel = 34
+          systemImageSource = "aosp_atd"
+        }
+      }
     }
   }
 }
