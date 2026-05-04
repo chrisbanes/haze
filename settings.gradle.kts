@@ -63,6 +63,7 @@ include(
   ":haze-screenshot-tests",
   ":internal:benchmark",
   ":internal:context-test",
+  ":internal:test-utils",
   ":internal:dokka",
   ":internal:screenshot-test",
   ":sample:shared",
