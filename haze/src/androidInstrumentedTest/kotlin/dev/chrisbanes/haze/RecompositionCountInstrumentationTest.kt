@@ -3,17 +3,20 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -52,7 +55,7 @@ class RecompositionCountInstrumentationTest {
       RecompositionCounter(sourceCounter) {
         Box(Modifier.hazeSource(hazeState).size(100.dp)) {
           RecompositionCounter(effectCounter) {
-            Spacer(Modifier.hazeEffect(hazeState).size(100.dp))
+            GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
           }
         }
       }
@@ -83,11 +86,11 @@ class RecompositionCountInstrumentationTest {
     composeTestRule.setContent {
       RecompositionCounter(sourceCounter) {
         if (showSource.value) {
-          Box(Modifier.hazeSource(hazeState).size(50.dp))
+          GradientBox(Modifier.hazeSource(hazeState).size(50.dp))
         }
       }
       RecompositionCounter(effectCounter) {
-        Spacer(Modifier.hazeEffect(hazeState).size(100.dp))
+        GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
       }
     }
     composeTestRule.waitForIdle()
@@ -114,11 +117,11 @@ class RecompositionCountInstrumentationTest {
     composeTestRule.setContent {
       RecompositionCounter(sourceCounter) {
         if (showSource.value) {
-          Box(Modifier.hazeSource(hazeState).size(50.dp))
+          GradientBox(Modifier.hazeSource(hazeState).size(50.dp))
         }
       }
       RecompositionCounter(effectCounter) {
-        Spacer(Modifier.hazeEffect(hazeState).size(100.dp))
+        GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
       }
     }
     composeTestRule.waitForIdle()
@@ -146,7 +149,7 @@ class RecompositionCountInstrumentationTest {
       RecompositionCounter(sourceCounter) {
         Box(Modifier.hazeSource(hazeState).size(100.dp)) {
           RecompositionCounter(effectCounter) {
-            Spacer(
+            GradientBox(
               Modifier
                 .hazeEffect(hazeState) {
                   drawContentBehind = blurEnabled.value
@@ -181,7 +184,7 @@ class RecompositionCountInstrumentationTest {
       RecompositionCounter(sourceCounter) {
         Box(Modifier.hazeSource(hazeState).size(100.dp)) {
           if (showEffect.value) {
-            Spacer(Modifier.hazeEffect(hazeState).size(100.dp))
+            GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
           }
         }
       }
@@ -205,14 +208,14 @@ class RecompositionCountInstrumentationTest {
 
     composeTestRule.setContent {
       if (showSources.value) {
-        Box(Modifier.hazeSource(hazeState).size(20.dp))
-        Box(Modifier.hazeSource(hazeState).size(20.dp))
-        Box(Modifier.hazeSource(hazeState).size(20.dp))
-        Box(Modifier.hazeSource(hazeState).size(20.dp))
-        Box(Modifier.hazeSource(hazeState).size(20.dp))
+        GradientBox(Modifier.hazeSource(hazeState).size(20.dp))
+        GradientBox(Modifier.hazeSource(hazeState).size(20.dp))
+        GradientBox(Modifier.hazeSource(hazeState).size(20.dp))
+        GradientBox(Modifier.hazeSource(hazeState).size(20.dp))
+        GradientBox(Modifier.hazeSource(hazeState).size(20.dp))
       }
       RecompositionCounter(effectCounter) {
-        Spacer(Modifier.hazeEffect(hazeState).size(100.dp))
+        GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
       }
     }
     composeTestRule.waitForIdle()
@@ -241,7 +244,7 @@ class RecompositionCountInstrumentationTest {
             .hazeSource(hazeState),
         ) {
           items(50) { index ->
-            Spacer(
+            GradientBox(
               Modifier
                 .fillMaxWidth()
                 .height(80.dp),
@@ -250,7 +253,7 @@ class RecompositionCountInstrumentationTest {
         }
 
         RecompositionCounter(effectCounter) {
-          Spacer(
+          GradientBox(
             Modifier
               .hazeEffect(hazeState)
               .fillMaxWidth()
@@ -287,7 +290,7 @@ class RecompositionCountInstrumentationTest {
             .hazeSource(hazeState),
         ) {
           items(itemCount.intValue) { index ->
-            Spacer(
+            GradientBox(
               Modifier
                 .fillMaxWidth()
                 .height(80.dp),
@@ -296,7 +299,7 @@ class RecompositionCountInstrumentationTest {
         }
 
         RecompositionCounter(effectCounter) {
-          Spacer(
+          GradientBox(
             Modifier
               .hazeEffect(hazeState)
               .fillMaxWidth()
@@ -315,4 +318,20 @@ class RecompositionCountInstrumentationTest {
     assertThat(effectCounter.intValue, "effect recompositions after item count change")
       .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
   }
+}
+
+@Composable
+private fun GradientBox(modifier: Modifier = Modifier) {
+  Box(
+    modifier = modifier.background(
+      Brush.linearGradient(
+        colors = listOf(
+          Color(0xFF6B73FF),
+          Color(0xFF9B59B6),
+          Color(0xFFE74C3C),
+          Color(0xFFF39C12),
+        ),
+      ),
+    ),
+  )
 }
