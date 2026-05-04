@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+import com.android.build.api.dsl.ManagedVirtualDevice
 import dev.chrisbanes.gradle.addDefaultHazeTargets
 
 plugins {
@@ -16,6 +17,27 @@ plugins {
 
 android {
   namespace = "dev.chrisbanes.haze.blur"
+
+  defaultConfig {
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  @Suppress("UnstableApiUsage")
+  testOptions {
+    unitTests {
+      isIncludeAndroidResources = true
+    }
+
+    managedDevices {
+      devices {
+        create<ManagedVirtualDevice>("pixel6Api34") {
+          device = "Pixel 6"
+          apiLevel = 34
+          systemImageSource = "aosp_atd"
+        }
+      }
+    }
+  }
 }
 
 kotlin {
@@ -68,6 +90,11 @@ kotlin {
       dependencies {
         implementation(libs.assertk)
         implementation(kotlin("test"))
+
+        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+        implementation(compose.uiTest)
+
+        implementation(projects.internal.contextTest)
       }
     }
 
@@ -82,6 +109,13 @@ kotlin {
     optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
     optIn.add("dev.chrisbanes.haze.InternalHazeApi")
   }
+}
+
+dependencies {
+  androidTestImplementation(libs.assertk)
+  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+  androidTestImplementation(libs.androidx.test.ext.junit)
+  debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
 // Disable JS tests; they currently fail due to missing browser-side runtime support.
