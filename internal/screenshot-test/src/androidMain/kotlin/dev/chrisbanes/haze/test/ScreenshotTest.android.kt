@@ -35,7 +35,10 @@ actual abstract class ScreenshotTest : ContextTest() {
 }
 
 @OptIn(ExperimentalTestApi::class)
-actual fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit) {
+actual fun ScreenshotTest.runScreenshotTest(
+  relaxedTolerance: Boolean,
+  block: ScreenshotUiTest.() -> Unit,
+) {
   createScreenshotUiTest(composeTestRule).block()
 }
 
