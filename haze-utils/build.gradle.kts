@@ -38,7 +38,7 @@ kotlin {
       dependsOn(commonMain.get())
     }
 
-    if (!project.providers.gradleProperty("haze.disableNative").isPresent) {
+    if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
       iosMain {
         dependsOn(skikoMain)
       }

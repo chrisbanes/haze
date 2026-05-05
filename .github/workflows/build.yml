@@ -65,7 +65,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Assemble and check
-        run: ./gradlew check assembleDebug -Phaze.disableNative -Pandroidx.baselineprofile.skipgeneration
+        run: ./gradlew check assembleDebug -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
 
       - name: Upload reports + Roborazzi outputs
         if: failure()
@@ -108,7 +108,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
-          script: ./gradlew connectedDebugAndroidTest -Phaze.disableNative -Pandroidx.baselineprofile.skipgeneration
+          script: ./gradlew connectedDebugAndroidTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
 
       - name: Upload instrumentation reports
         if: failure()

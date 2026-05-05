@@ -49,7 +49,7 @@ fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
     publishLibraryVariants("release")
   }
 
-  if (!project.providers.gradleProperty("haze.disableNative").isPresent) {
+  if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
     iosArm64()
     iosSimulatorArm64()
     macosArm64()

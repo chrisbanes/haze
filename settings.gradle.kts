@@ -73,6 +73,6 @@ include(
   ":sample:web",
 )
 
-if (!providers.gradleProperty("haze.disableNative").isPresent) {
+if (!providers.gradleProperty("haze.disableAppleTargets").isPresent) {
   include(":sample:macos")
 }
