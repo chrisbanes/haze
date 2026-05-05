@@ -38,14 +38,11 @@ kotlin {
         implementation(libs.androidx.test.ext.junit)
         implementation(libs.androidx.compose.ui.test.manifest)
 
-        implementation(compose.desktop.uiTestJUnit4)
-
         implementation(libs.robolectric)
 
         implementation(libs.roborazzi.core)
         implementation(libs.roborazzi.android)
         implementation(libs.roborazzi.compose)
-        implementation(libs.roborazzi.junit)
       }
     }
 
