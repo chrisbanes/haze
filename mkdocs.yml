@@ -37,8 +37,8 @@ nav:
 theme:
   name: "material"
   language: "en"
-  logo: docs/media/logo.webp
-  favicon: docs/media/logo.webp
+  logo: media/logo.webp
+  favicon: media/logo.webp
   palette:
     primary: "white"
     accent: "teal"

@@ -48,11 +48,55 @@ jobs:
             **/build/reports/**
             **/build/outputs/roborazzi/**
 
+  emulator_tests:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'zulu'
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run instrumentation tests on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
+          script: ./gradlew connectedDebugAndroidTest -Pandroidx.baselineprofile.skipgeneration
+
+      - name: Upload instrumentation reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: emulator-test-reports
+          path: |
+            **/build/reports/androidTests/**
+            **/build/reports/tests/**
+            **/build/outputs/androidTest-results/**
+
   deploy:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1'
 
     runs-on: macos-26
-    needs: [ build ]
+    needs: [ build, emulator_tests ]
     timeout-minutes: 30
 
     steps:

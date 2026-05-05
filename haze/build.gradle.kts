@@ -86,6 +86,7 @@ kotlin {
         implementation(compose.uiTest)
 
         implementation(projects.internal.contextTest)
+        implementation(projects.internal.testUtils)
       }
     }
 
