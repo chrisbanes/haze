@@ -3,15 +3,15 @@
 
 package dev.chrisbanes.haze.blur
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
@@ -37,20 +37,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     val effectCounter = mutableIntStateOf(0)
     val blurRadius = mutableStateOf(10.dp)
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.blurRadius = blurRadius.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.blurRadius = blurRadius.value
     }
     waitForIdle()
 
@@ -59,7 +47,7 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     blurRadius.value = 20.dp
     waitForIdle()
 
-    assertThat(effectCounter.intValue, "effect recompositions after blur radius change")
+    assertThat(effectCounter.intValue, "effect recompositions after blurRadius change")
       .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
   }
 
@@ -71,20 +59,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
       listOf(HazeColorEffect.tint(Color.Red.copy(alpha = 0.3f))),
     )
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.colorEffects = colorEffects.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.colorEffects = colorEffects.value
     }
     waitForIdle()
 
@@ -108,20 +84,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
       ),
     )
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.style = style.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.style = style.value
     }
     waitForIdle()
 
@@ -143,20 +107,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     val effectCounter = mutableIntStateOf(0)
     val blurEnabled = mutableStateOf(true)
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.blurEnabled = blurEnabled.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.blurEnabled = blurEnabled.value
     }
     waitForIdle()
 
@@ -175,20 +127,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     val effectCounter = mutableIntStateOf(0)
     val progressive = mutableStateOf<HazeProgressive?>(null)
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.progressive = progressive.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.progressive = progressive.value
     }
     waitForIdle()
 
@@ -210,20 +150,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     val effectCounter = mutableIntStateOf(0)
     val noiseFactor = mutableStateOf(0f)
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.noiseFactor = noiseFactor.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.noiseFactor = noiseFactor.value
     }
     waitForIdle()
 
@@ -242,20 +170,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     val effectCounter = mutableIntStateOf(0)
     val backgroundColor = mutableStateOf(Color.Unspecified)
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.backgroundColor = backgroundColor.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.backgroundColor = backgroundColor.value
     }
     waitForIdle()
 
@@ -274,20 +190,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     val effectCounter = mutableIntStateOf(0)
     val alpha = mutableStateOf(1f)
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.alpha = alpha.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.alpha = alpha.value
     }
     waitForIdle()
 
@@ -306,20 +210,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     val effectCounter = mutableIntStateOf(0)
     val mask = mutableStateOf<Brush?>(null)
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.mask = mask.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.mask = mask.value
     }
     waitForIdle()
 
@@ -340,20 +232,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     val effectCounter = mutableIntStateOf(0)
     val fallbackTint = mutableStateOf<HazeColorEffect>(HazeColorEffect.Unspecified)
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.fallbackTint = fallbackTint.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.fallbackTint = fallbackTint.value
     }
     waitForIdle()
 
@@ -372,20 +252,8 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     val effectCounter = mutableIntStateOf(0)
     val blurredEdgeTreatment = mutableStateOf(HazeBlurDefaults.blurredEdgeTreatment)
 
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        RecompositionCounter(effectCounter) {
-          GradientBox(
-            Modifier
-              .hazeEffect(hazeState) {
-                blurEffect {
-                  this.blurredEdgeTreatment = blurredEdgeTreatment.value
-                }
-              }
-              .size(100.dp),
-          )
-        }
-      }
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.blurredEdgeTreatment = blurredEdgeTreatment.value
     }
     waitForIdle()
 
@@ -397,20 +265,148 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
     assertThat(effectCounter.intValue, "effect recompositions after blurredEdgeTreatment change")
       .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
   }
-}
 
-@Composable
-private fun GradientBox(modifier: Modifier = Modifier) {
-  Box(
-    modifier = modifier.background(
-      Brush.linearGradient(
-        colors = listOf(
-          Color(0xFF6B73FF),
-          Color(0xFF9B59B6),
-          Color(0xFFE74C3C),
-          Color(0xFFF39C12),
-        ),
+  @Test
+  fun sourceAttachRemoveChurn_causesBoundedRecompositions() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effectCounter = mutableIntStateOf(0)
+    val showPrimarySource = mutableStateOf(true)
+    val showSecondarySource = mutableStateOf(false)
+    val blurRadius = mutableStateOf(10.dp)
+
+    setContent {
+      if (showPrimarySource.value) {
+        BlurTestGradientBox(Modifier.hazeSource(hazeState).size(60.dp))
+      }
+      if (showSecondarySource.value) {
+        BlurTestGradientBox(Modifier.hazeSource(hazeState).size(80.dp))
+      }
+
+      RecompositionCounter(effectCounter) {
+        BlurTestGradientBox(
+          Modifier
+            .hazeEffect(hazeState) {
+              blurEffect {
+                this.blurRadius = blurRadius.value
+              }
+            }
+            .size(100.dp),
+        )
+      }
+    }
+    waitForIdle()
+
+    effectCounter.intValue = 0
+
+    // Coupling source attach/remove with a blur mutation catches source node + effect bookkeeping churn.
+    showSecondarySource.value = true
+    blurRadius.value = 18.dp
+    waitForIdle()
+
+    showPrimarySource.value = false
+    blurRadius.value = 12.dp
+    waitForIdle()
+
+    assertThat(effectCounter.intValue, "effect recompositions after source attach/remove churn")
+      .isLessThanOrEqualTo(3)
+  }
+
+  @Test
+  fun sourceAndStyleMutationTogether_causesBoundedRecompositions() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effectCounter = mutableIntStateOf(0)
+    val showSource = mutableStateOf(true)
+    val style = mutableStateOf(
+      HazeBlurStyle(
+        blurRadius = 10.dp,
+        colorEffects = emptyList(),
       ),
-    ),
-  )
+    )
+
+    setContent {
+      if (showSource.value) {
+        BlurTestGradientBox(Modifier.hazeSource(hazeState).size(100.dp))
+      }
+
+      RecompositionCounter(effectCounter) {
+        BlurTestGradientBox(
+          Modifier
+            .hazeEffect(hazeState) {
+              blurEffect {
+                this.style = style.value
+              }
+            }
+            .size(100.dp),
+        )
+      }
+    }
+    waitForIdle()
+
+    effectCounter.intValue = 0
+
+    // Trigger both source lifecycle and full style replacement in the same frame.
+    runOnIdle {
+      showSource.value = false
+      style.value = HazeBlurStyle(
+        blurRadius = 22.dp,
+        colorEffects = listOf(HazeColorEffect.tint(Color.Cyan.copy(alpha = 0.3f))),
+      )
+    }
+    waitForIdle()
+
+    assertThat(effectCounter.intValue, "effect recompositions after source and style mutation")
+      .isLessThanOrEqualTo(2)
+  }
+
+  @Test
+  fun rapidCombinedPropertyChanges_causesBoundedRecompositions() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effectCounter = mutableIntStateOf(0)
+    val blurRadius = mutableStateOf(10.dp)
+    val alpha = mutableStateOf(1f)
+    val noiseFactor = mutableStateOf(0f)
+
+    setBlurEffectContent(hazeState, effectCounter) {
+      this.blurRadius = blurRadius.value
+      this.alpha = alpha.value
+      this.noiseFactor = noiseFactor.value
+    }
+    waitForIdle()
+
+    effectCounter.intValue = 0
+
+    repeat(5) { index ->
+      runOnIdle {
+        val toggled = index % 2 == 0
+        blurRadius.value = if (toggled) 22.dp else 10.dp
+        alpha.value = if (toggled) 0.55f else 1f
+        noiseFactor.value = if (toggled) 0.4f else 0f
+      }
+      waitForIdle()
+    }
+
+    // Rapid multi-property churn can coalesce differently across schedulers; allow a small buffer.
+    assertThat(effectCounter.intValue, "effect recompositions after rapid combined property changes")
+      .isLessThanOrEqualTo(7)
+  }
+
+  private fun ComposeUiTest.setBlurEffectContent(
+    hazeState: HazeState,
+    effectCounter: MutableIntState,
+    configure: BlurVisualEffect.() -> Unit,
+  ) {
+    setContent {
+      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
+        RecompositionCounter(effectCounter) {
+          BlurTestGradientBox(
+            Modifier
+              .hazeEffect(hazeState) {
+                blurEffect(configure)
+              }
+              .size(100.dp),
+          )
+        }
+      }
+    }
+  }
 }

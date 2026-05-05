@@ -3,14 +3,13 @@
 
 package dev.chrisbanes.haze.blur
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,28 +26,35 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
   @get:Rule
   val composeTestRule = createComposeRule()
 
-  @Test
-  fun blurRadiusMutation_doesNotInfiniteLoop() {
-    val hazeState = HazeState()
-    val blurRadius = mutableStateOf(10.dp)
-
-    composeTestRule.setContent {
+  private fun ComposeContentTestRule.setBlurEffectContent(
+    hazeState: HazeState,
+    configure: BlurVisualEffect.() -> Unit,
+  ) {
+    setContent {
       Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
+        BlurTestGradientBox(
           Modifier
             .hazeEffect(hazeState) {
-              blurEffect {
-                this.blurRadius = blurRadius.value
-              }
+              blurEffect(configure)
             }
             .size(100.dp),
         )
       }
     }
+  }
+
+  @Test
+  fun blurRadiusMutation_doesNotInfiniteLoop() {
+    val hazeState = HazeState()
+    val blurRadius = mutableStateOf(10.dp)
+
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.blurRadius = blurRadius.value
+    }
     composeTestRule.waitForIdle()
 
     blurRadius.value = 20.dp
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after blurRadius mutation")
   }
 
   @Test
@@ -58,23 +64,13 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
       listOf(HazeColorEffect.tint(Color.Red.copy(alpha = 0.3f))),
     )
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.colorEffects = colorEffects.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.colorEffects = colorEffects.value
     }
     composeTestRule.waitForIdle()
 
     colorEffects.value = listOf(HazeColorEffect.tint(Color.Blue.copy(alpha = 0.5f)))
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after colorEffects mutation")
   }
 
   @Test
@@ -87,18 +83,8 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
       ),
     )
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.style = style.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.style = style.value
     }
     composeTestRule.waitForIdle()
 
@@ -106,7 +92,7 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
       colorEffects = emptyList(),
       blurRadius = 20.dp,
     )
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after style mutation")
   }
 
   @Test
@@ -114,23 +100,13 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
     val hazeState = HazeState()
     val blurEnabled = mutableStateOf(true)
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.blurEnabled = blurEnabled.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.blurEnabled = blurEnabled.value
     }
     composeTestRule.waitForIdle()
 
     blurEnabled.value = false
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after blurEnabled toggle")
   }
 
   @Test
@@ -138,18 +114,8 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
     val hazeState = HazeState()
     val progressive = mutableStateOf<HazeProgressive?>(null)
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.progressive = progressive.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.progressive = progressive.value
     }
     composeTestRule.waitForIdle()
 
@@ -157,7 +123,7 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
       startIntensity = 1f,
       endIntensity = 0f,
     )
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after progressive mutation")
   }
 
   @Test
@@ -165,23 +131,13 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
     val hazeState = HazeState()
     val noiseFactor = mutableStateOf(0f)
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.noiseFactor = noiseFactor.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.noiseFactor = noiseFactor.value
     }
     composeTestRule.waitForIdle()
 
     noiseFactor.value = 0.5f
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after noiseFactor mutation")
   }
 
   @Test
@@ -189,23 +145,13 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
     val hazeState = HazeState()
     val backgroundColor = mutableStateOf(Color.Unspecified)
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.backgroundColor = backgroundColor.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.backgroundColor = backgroundColor.value
     }
     composeTestRule.waitForIdle()
 
     backgroundColor.value = Color.Black
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after backgroundColor mutation")
   }
 
   @Test
@@ -213,23 +159,13 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
     val hazeState = HazeState()
     val alpha = mutableStateOf(1f)
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.alpha = alpha.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.alpha = alpha.value
     }
     composeTestRule.waitForIdle()
 
     alpha.value = 0.5f
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after alpha mutation")
   }
 
   @Test
@@ -237,25 +173,15 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
     val hazeState = HazeState()
     val mask = mutableStateOf<Brush?>(null)
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.mask = mask.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.mask = mask.value
     }
     composeTestRule.waitForIdle()
 
     mask.value = Brush.verticalGradient(
       colors = listOf(Color.Transparent, Color.Black),
     )
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after mask mutation")
   }
 
   @Test
@@ -263,23 +189,13 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
     val hazeState = HazeState()
     val fallbackTint = mutableStateOf<HazeColorEffect>(HazeColorEffect.Unspecified)
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.fallbackTint = fallbackTint.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.fallbackTint = fallbackTint.value
     }
     composeTestRule.waitForIdle()
 
     fallbackTint.value = HazeColorEffect.tint(Color.Gray)
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after fallbackTint mutation")
   }
 
   @Test
@@ -287,23 +203,13 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
     val hazeState = HazeState()
     val blurredEdgeTreatment = mutableStateOf(HazeBlurDefaults.blurredEdgeTreatment)
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.blurredEdgeTreatment = blurredEdgeTreatment.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.blurredEdgeTreatment = blurredEdgeTreatment.value
     }
     composeTestRule.waitForIdle()
 
     blurredEdgeTreatment.value = androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded
-    composeTestRule.waitForIdle()
+    composeTestRule.awaitIdleWithTimeout("after blurredEdgeTreatment mutation")
   }
 
   @Test
@@ -314,19 +220,9 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
       listOf(HazeColorEffect.tint(Color.Red.copy(alpha = 0.3f))),
     )
 
-    composeTestRule.setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              blurEffect {
-                this.blurRadius = blurRadius.value
-                this.colorEffects = colorEffects.value
-              }
-            }
-            .size(100.dp),
-        )
-      }
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.blurRadius = blurRadius.value
+      this.colorEffects = colorEffects.value
     }
     composeTestRule.waitForIdle()
 
@@ -338,23 +234,106 @@ class BlurVisualEffectRecompositionLoopInstrumentationTest {
         blurRadius.value = 10.dp
         colorEffects.value = listOf(HazeColorEffect.tint(Color.Red.copy(alpha = 0.3f)))
       }
-      composeTestRule.waitForIdle()
+      composeTestRule.awaitIdleWithTimeout("on alternating mutation #$index")
     }
   }
-}
 
-@Composable
-private fun GradientBox(modifier: Modifier = Modifier) {
-  Box(
-    modifier = modifier.background(
-      Brush.linearGradient(
-        colors = listOf(
-          Color(0xFF6B73FF),
-          Color(0xFF9B59B6),
-          Color(0xFFE74C3C),
-          Color(0xFFF39C12),
-        ),
+  @Test
+  fun sourceAttachRemoveChurn_doesNotInfiniteLoop() {
+    val hazeState = HazeState()
+    val showPrimarySource = mutableStateOf(true)
+    val showSecondarySource = mutableStateOf(false)
+    val blurRadius = mutableStateOf(10.dp)
+
+    composeTestRule.setContent {
+      if (showPrimarySource.value) {
+        BlurTestGradientBox(Modifier.hazeSource(hazeState).size(60.dp))
+      }
+      if (showSecondarySource.value) {
+        BlurTestGradientBox(Modifier.hazeSource(hazeState).size(80.dp))
+      }
+
+      BlurTestGradientBox(
+        Modifier
+          .hazeEffect(hazeState) {
+            blurEffect {
+              this.blurRadius = blurRadius.value
+            }
+          }
+          .size(100.dp),
+      )
+    }
+    composeTestRule.waitForIdle()
+
+    showSecondarySource.value = true
+    blurRadius.value = 18.dp
+    composeTestRule.awaitIdleWithTimeout("after attaching secondary source and mutating blur")
+
+    showPrimarySource.value = false
+    blurRadius.value = 12.dp
+    composeTestRule.awaitIdleWithTimeout("after removing primary source and mutating blur")
+  }
+
+  @Test
+  fun sourceAndStyleMutationTogether_doesNotInfiniteLoop() {
+    val hazeState = HazeState()
+    val showSource = mutableStateOf(true)
+    val style = mutableStateOf(
+      HazeBlurStyle(
+        blurRadius = 10.dp,
+        colorEffects = emptyList(),
       ),
-    ),
-  )
+    )
+
+    composeTestRule.setContent {
+      if (showSource.value) {
+        BlurTestGradientBox(Modifier.hazeSource(hazeState).size(100.dp))
+      }
+
+      BlurTestGradientBox(
+        Modifier
+          .hazeEffect(hazeState) {
+            blurEffect {
+              this.style = style.value
+            }
+          }
+          .size(100.dp),
+      )
+    }
+    composeTestRule.waitForIdle()
+
+    composeTestRule.runOnIdle {
+      showSource.value = false
+      style.value = HazeBlurStyle(
+        blurRadius = 22.dp,
+        colorEffects = listOf(HazeColorEffect.tint(Color.Cyan.copy(alpha = 0.3f))),
+      )
+    }
+    composeTestRule.awaitIdleWithTimeout("after combined source and style mutation")
+  }
+
+  @Test
+  fun rapidCombinedPropertyChanges_doNotInfiniteLoop() {
+    val hazeState = HazeState()
+    val blurRadius = mutableStateOf(10.dp)
+    val alpha = mutableStateOf(1f)
+    val noiseFactor = mutableStateOf(0f)
+
+    composeTestRule.setBlurEffectContent(hazeState) {
+      this.blurRadius = blurRadius.value
+      this.alpha = alpha.value
+      this.noiseFactor = noiseFactor.value
+    }
+    composeTestRule.waitForIdle()
+
+    repeat(5) { index ->
+      composeTestRule.runOnIdle {
+        val toggled = index % 2 == 0
+        blurRadius.value = if (toggled) 22.dp else 10.dp
+        alpha.value = if (toggled) 0.55f else 1f
+        noiseFactor.value = if (toggled) 0.4f else 0f
+      }
+      composeTestRule.awaitIdleWithTimeout("after rapid combined mutation #$index")
+    }
+  }
 }

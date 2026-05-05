@@ -214,6 +214,8 @@ class RecompositionCountTest : ContextTest() {
 
     effectCounter.intValue = 0
 
+    // Flip one state value to attach five source nodes in a single frame.
+    // This catches regressions where area-list churn fans out recompositions.
     showSources.value = true
     waitForIdle()
 
@@ -259,9 +261,11 @@ class RecompositionCountTest : ContextTest() {
 
     effectCounter.intValue = 0
 
+    // Use programmatic scroll so the trigger is deterministic across targets.
     listState.scrollToItem(25)
     waitForIdle()
 
+    // Scrolling should invalidate effect drawing, but not force extra effect recompositions.
     assertThat(effectCounter.intValue, "effect recompositions after scroll")
       .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
   }
@@ -303,6 +307,7 @@ class RecompositionCountTest : ContextTest() {
 
     effectCounter.intValue = 0
 
+    // Grow the source list to force a large area-graph update in one mutation.
     itemCount.intValue = 50
     waitForIdle()
 

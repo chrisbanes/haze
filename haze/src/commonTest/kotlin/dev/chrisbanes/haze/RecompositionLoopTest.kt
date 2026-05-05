@@ -140,6 +140,7 @@ class RecompositionLoopTest : ContextTest() {
     }
     waitForIdle()
 
+    // Alternate quickly to mimic interactive toggles and catch feedback loops.
     repeat(5) {
       flag.value = !flag.value
       awaitIdleWithTimeout("on alternating mutation #$it")
@@ -179,6 +180,7 @@ class RecompositionLoopTest : ContextTest() {
     }
     waitForIdle()
 
+    // Programmatic scroll gives a deterministic trigger for loop detection.
     listState.scrollToItem(25)
 
     awaitIdleWithTimeout("after LazyColumn scroll")
@@ -216,6 +218,7 @@ class RecompositionLoopTest : ContextTest() {
     }
     waitForIdle()
 
+    // Large list growth can churn source area bookkeeping; should still settle.
     itemCount.intValue = 50
 
     awaitIdleWithTimeout("after LazyColumn item count change")
