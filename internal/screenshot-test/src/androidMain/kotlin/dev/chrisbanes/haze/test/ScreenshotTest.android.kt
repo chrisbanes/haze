@@ -12,10 +12,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
 import androidx.test.core.app.ActivityScenario
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
-import com.github.takahirom.roborazzi.InternalRoborazziApi
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.github.takahirom.roborazzi.provideRoborazziContext
 import com.github.takahirom.roborazzi.roboOutputName
 import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
@@ -25,11 +23,7 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [28, 32, 35], qualifiers = RobolectricDeviceQualifiers.Pixel5)
 actual abstract class ScreenshotTest : ContextTest()
 
-@OptIn(
-  ExperimentalTestApi::class,
-  ExperimentalRoborazziApi::class,
-  InternalRoborazziApi::class,
-)
+@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
 actual fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit) {
   @Suppress("UNCHECKED_CAST")
   val clazz =
@@ -43,21 +37,9 @@ actual fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit) 
   val environment = AndroidComposeUiTestEnvironment<ComponentActivity> { requireNotNull(activity) }
   try {
     environment.runTest {
-      provideRoborazziContext().apply {
-        setRuleOverrideRoborazziOptions(HazeRoborazziDefaults.roborazziOptions)
-        setRuleOverrideOutputDirectory("screenshots/android")
-      }
       createScreenshotUiTest().block()
     }
   } finally {
-    // Close the scenario outside runTest to avoid getting stuck.
-    //
-    // ActivityScenario.close() calls Instrumentation.waitForIdleSync(), which would time out
-    // if there is an infinite self-invalidating measure, layout, or draw loop. If the
-    // Compose content was set through the test's setContent method, it will remove the
-    // AndroidComposeView from the view hierarchy which breaks this loop, which is why we
-    // call close() outside the runTest lambda. This will not help if the content is not set
-    // through the test's setContent method though, in which case we'll still time out here.
     scenario.close()
   }
 }
@@ -70,11 +52,15 @@ private fun <A : ComponentActivity> AndroidComposeUiTest<A>.createScreenshotUiTe
     }
 
     override fun captureRoot(nameSuffix: String?) {
-      val output = when {
+      this@createScreenshotUiTest.waitForIdle()
+      val name = when {
         nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.png"
         else -> "${roboOutputName()}_$nameSuffix.png"
       }
-      this@createScreenshotUiTest.onRoot().captureRoboImage(output)
+      this@createScreenshotUiTest.onRoot().captureRoboImage(
+        filePath = "android/$name",
+        roborazziOptions = HazeRoborazziDefaults.roborazziOptions,
+      )
     }
 
     override fun waitForIdle() {
