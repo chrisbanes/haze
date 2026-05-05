@@ -9,49 +9,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.AndroidComposeUiTest
 import androidx.compose.ui.test.AndroidComposeUiTestEnvironment
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.test.core.app.ActivityScenario
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import com.github.takahirom.roborazzi.InternalRoborazziApi
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
-import com.github.takahirom.roborazzi.RoborazziRule
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.provideRoborazziContext
 import com.github.takahirom.roborazzi.roboOutputName
-import org.junit.Before
-import org.junit.Rule
 import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [28, 32, 35], qualifiers = RobolectricDeviceQualifiers.Pixel5)
-actual abstract class ScreenshotTest : ContextTest() {
-  @get:Rule
-  val composeTestRule = createAndroidComposeRule<ComponentActivity>()
+actual abstract class ScreenshotTest : ContextTest()
 
-  @get:Rule
-  val roborazziRule = RoborazziRule(
-    composeRule = composeTestRule,
-    captureRoot = composeTestRule.onRoot(),
-    options = RoborazziRule.Options(
-      outputDirectoryPath = "screenshots/android",
-      roborazziOptions = HazeRoborazziDefaults.roborazziOptions,
-    ),
-  )
-
-  @Before
-  fun fixComposeResources() {
-    @Suppress("UNCHECKED_CAST")
-    val clazz =
-      Class.forName("org.jetbrains.compose.resources.AndroidContextProvider") as Class<ContentProvider>
-    Robolectric.setupContentProvider(clazz)
-  }
-}
-
-@OptIn(ExperimentalTestApi::class)
+@OptIn(
+  ExperimentalTestApi::class,
+  ExperimentalRoborazziApi::class,
+  InternalRoborazziApi::class,
+)
 actual fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit) {
-  val environment = AndroidComposeUiTestEnvironment { composeTestRule.activity }
+  @Suppress("UNCHECKED_CAST")
+  val clazz =
+    Class.forName("org.jetbrains.compose.resources.AndroidContextProvider") as Class<ContentProvider>
+  Robolectric.setupContentProvider(clazz)
+
+  var activity: ComponentActivity? = null
+  val scenario = ActivityScenario.launch(ComponentActivity::class.java).onActivity {
+    activity = it
+  }
+  val environment = AndroidComposeUiTestEnvironment<ComponentActivity> { activity }
   try {
     environment.runTest {
+      provideRoborazziContext().apply {
+        setRuleOverrideRoborazziOptions(HazeRoborazziDefaults.roborazziOptions)
+        setRuleOverrideOutputDirectory("screenshots/android")
+      }
       createScreenshotUiTest().block()
     }
   } finally {
@@ -63,7 +58,7 @@ actual fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit) 
     // AndroidComposeView from the view hierarchy which breaks this loop, which is why we
     // call close() outside the runTest lambda. This will not help if the content is not set
     // through the test's setContent method though, in which case we'll still time out here.
-    composeTestRule.activityRule.scenario.close()
+    scenario.close()
   }
 }
 
