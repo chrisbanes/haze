@@ -40,7 +40,7 @@ actual fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit) 
   val scenario = ActivityScenario.launch(ComponentActivity::class.java).onActivity {
     activity = it
   }
-  val environment = AndroidComposeUiTestEnvironment<ComponentActivity> { activity }
+  val environment = AndroidComposeUiTestEnvironment<ComponentActivity> { requireNotNull(activity) }
   try {
     environment.runTest {
       provideRoborazziContext().apply {
