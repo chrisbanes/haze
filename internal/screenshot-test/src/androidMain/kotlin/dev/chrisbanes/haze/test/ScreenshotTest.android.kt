@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [28, 32, 35], qualifiers = RobolectricDeviceQualifiers.Pixel5)
+@Config(sdk = [35], qualifiers = RobolectricDeviceQualifiers.Pixel5)
 actual abstract class ScreenshotTest : ContextTest()
 
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
@@ -51,7 +51,7 @@ private fun <A : ComponentActivity> AndroidComposeUiTest<A>.createScreenshotUiTe
         else -> "${roboOutputName()}_$nameSuffix.png"
       }
       this@createScreenshotUiTest.onRoot().captureRoboImage(
-        filePath = "android/$name",
+        filePath = name,
         roborazziOptions = HazeRoborazziDefaults.roborazziOptions,
       )
     }
