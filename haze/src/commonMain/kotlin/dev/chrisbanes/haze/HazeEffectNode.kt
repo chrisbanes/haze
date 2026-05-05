@@ -226,6 +226,8 @@ public class HazeEffectNode(
   }
 
   internal fun update() {
+    if (!isAttached) return
+
     onObservedReadsChanged()
   }
 
@@ -358,6 +360,8 @@ public class HazeEffectNode(
   }
 
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
+    if (!isAttached) return@trace
+
     // Allow the current VisualEffect to update from CompositionLocals/state
     visualEffect.update(visualEffectContext)
     windowId = getWindowId()

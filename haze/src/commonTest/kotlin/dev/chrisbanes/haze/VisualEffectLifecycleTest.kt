@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -265,6 +266,53 @@ class VisualEffectLifecycleTest : ContextTest() {
     assertThat(rect).isNotNull()
     assertThat(rect!!.topLeft == Offset.Zero).isFalse()
   }
+
+  /**
+   * Verifies that [HazeEffectNode.updateEffect] gracefully skips its work when called
+   * on a node that has not been attached to the composition tree. Without the
+   * [isAttached] guard, this path would throw an [IllegalStateException] via
+   * [CompositionLocalConsumerModifierNode.currentValueOf].
+   */
+  @Test
+  fun visualEffect_updateDoesNotCrashOnUnattachedNode() {
+    val effect = CompositionLocalReadingVisualEffect()
+    val node = HazeEffectNode()
+
+    node.visualEffect = effect
+    // Should not throw even though the node is unattached
+    node.update()
+  }
+
+  /**
+   * Exercises rapid attach/detach cycles (mimicking window resize and screen rotation
+   * scenarios reported in issue #920) to ensure no [IllegalStateException] is thrown
+   * and the VisualEffect lifecycle callbacks are correctly balanced.
+   */
+  @Test
+  fun visualEffect_rapidAttachDetachDoesNotCrash() = runComposeUiTest {
+    val effect = CompositionLocalReadingVisualEffect()
+    val showContent = mutableStateOf(true)
+
+    setContent {
+      if (showContent.value) {
+        Box(Modifier.size(100.dp).hazeEffect { visualEffect = effect })
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.attachCalls).isEqualTo(1)
+
+    repeat(5) {
+      showContent.value = false
+      waitForIdle()
+      showContent.value = true
+      waitForIdle()
+    }
+
+    assertThat(effect.attachCalls).isEqualTo(6)
+    assertThat(effect.detachCalls).isEqualTo(5)
+    assertThat(effect.updateCalls).isGreaterThan(0)
+  }
 }
 
 internal class RecordingVisualEffect : VisualEffect {
@@ -350,4 +398,32 @@ internal data object FakeVisualEffectContext : VisualEffectContext {
   override fun requirePlatformContext(): PlatformContext = error("Unused in lifecycle tests")
   override fun requireGraphicsContext(): androidx.compose.ui.graphics.GraphicsContext = error("Fake")
   override fun invalidateDraw() {}
+}
+
+/**
+ * A CompositionLocal that is never provided in the test composition, so reading it
+ * via [VisualEffectContext.currentValueOf] on an unattached node would crash if
+ * [HazeEffectNode.updateEffect] did not guard with [!isAttached].
+ */
+internal val TestCompositionLocal = compositionLocalOf { "test" }
+
+internal class CompositionLocalReadingVisualEffect : VisualEffect {
+  var attachCalls = 0
+  var detachCalls = 0
+  var updateCalls = 0
+
+  override fun attach(context: VisualEffectContext) {
+    attachCalls++
+  }
+
+  override fun detach(context: VisualEffectContext) {
+    detachCalls++
+  }
+
+  override fun update(context: VisualEffectContext) {
+    updateCalls++
+    context.currentValueOf(TestCompositionLocal)
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
