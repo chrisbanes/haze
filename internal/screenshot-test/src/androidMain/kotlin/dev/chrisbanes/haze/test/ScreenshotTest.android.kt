@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze.test
 
-import android.content.ContentProvider
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.AndroidComposeUiTest
@@ -15,7 +14,6 @@ import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.roboOutputName
-import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -25,11 +23,6 @@ actual abstract class ScreenshotTest : ContextTest()
 
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
 actual fun ScreenshotTest.runScreenshotTest(block: ScreenshotUiTest.() -> Unit) {
-  @Suppress("UNCHECKED_CAST")
-  val clazz =
-    Class.forName("org.jetbrains.compose.resources.AndroidContextProvider") as Class<ContentProvider>
-  Robolectric.setupContentProvider(clazz)
-
   var activity: ComponentActivity? = null
   val scenario = ActivityScenario.launch(ComponentActivity::class.java).onActivity {
     activity = it
