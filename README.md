@@ -1,19 +1,14 @@
 <p align="center">
-  <picture>
-    <source srcset="docs/media/logo.webp" type="image/webp">
-    <img src="docs/media/logo.webp" alt="Haze" width="360">
-  </picture>
+  <img src="docs/media/logo.webp" alt="Haze" width="320">
 </p>
-
-[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze)](https://search.maven.org/search?q=g:dev.chrisbanes.haze) ![Build status](https://github.com/chrisbanes/haze/actions/workflows/build.yml/badge.svg)
 
 # Haze
 
+[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze)](https://search.maven.org/search?q=g:dev.chrisbanes.haze) ![Build status](https://github.com/chrisbanes/haze/actions/workflows/build.yml/badge.svg)
+
 Visual effects (blur and more) for Compose Multiplatform.
 
-<video width="600" autoplay loop muted playsinline>
-  <source src="docs/media/desktop-small.mp4" type="video/mp4">
-</video>
+https://github.com/user-attachments/assets/836dd79a-abdc-4cdc-b27d-baee394c1e26
 
 Haze provides hardware-accelerated visual effects for Compose Multiplatform — Android, iOS, Desktop, and Web. Built on a modular effect system, it lets you add blur, tint, and custom effects to any composable with a single modifier.
 
