@@ -71,5 +71,8 @@ include(
   ":sample:android",
   ":sample:desktop",
   ":sample:web",
-  ":sample:macos",
 )
+
+if (!providers.gradleProperty("haze.disableNative").isPresent) {
+  include(":sample:macos")
+}
