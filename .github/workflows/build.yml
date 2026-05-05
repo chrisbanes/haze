@@ -108,7 +108,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
-          script: ./gradlew connectedDebugAndroidTest -Pandroidx.baselineprofile.skipgeneration
+          script: ./gradlew connectedDebugAndroidTest -Phaze.disableNative -Pandroidx.baselineprofile.skipgeneration
 
       - name: Upload instrumentation reports
         if: failure()
