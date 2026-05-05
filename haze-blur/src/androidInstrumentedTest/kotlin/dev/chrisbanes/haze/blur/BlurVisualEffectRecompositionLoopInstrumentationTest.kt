@@ -17,11 +17,13 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalTestApi::class)
 class BlurVisualEffectRecompositionLoopInstrumentationTest {
 
+  @get:Rule
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
   private fun ComposeContentTestRule.setBlurEffectContent(

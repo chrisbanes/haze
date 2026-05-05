@@ -22,11 +22,13 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.RecompositionCounter
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalTestApi::class)
 class BlurVisualEffectRecompositionCountInstrumentationTest {
 
+  @get:Rule
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
   companion object {
