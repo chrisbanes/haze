@@ -11,7 +11,7 @@ plugins {
 }
 
 kotlin {
-  addDefaultHazeTargets()
+  addDefaultHazeTargets(project)
 }
 
 dependencies {

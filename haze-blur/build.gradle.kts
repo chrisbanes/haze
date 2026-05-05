@@ -41,7 +41,7 @@ android {
 }
 
 kotlin {
-  addDefaultHazeTargets()
+  addDefaultHazeTargets(project)
   explicitApi()
 
   sourceSets {
@@ -66,12 +66,14 @@ kotlin {
       dependsOn(commonMain.get())
     }
 
-    iosMain {
-      dependsOn(skikoMain)
-    }
+    if (!project.providers.gradleProperty("haze.disableNative").isPresent) {
+      iosMain {
+        dependsOn(skikoMain)
+      }
 
-    macosMain {
-      dependsOn(skikoMain)
+      macosMain {
+        dependsOn(skikoMain)
+      }
     }
 
     jvmMain {
