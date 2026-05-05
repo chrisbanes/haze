@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.MutableIntState
@@ -11,11 +12,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.activity.ComponentActivity
 import assertk.assertThat
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.HazeState

@@ -3,20 +3,20 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import androidx.compose.ui.test.ExperimentalTestApi
 import org.junit.Test
 
 @OptIn(ExperimentalTestApi::class)
