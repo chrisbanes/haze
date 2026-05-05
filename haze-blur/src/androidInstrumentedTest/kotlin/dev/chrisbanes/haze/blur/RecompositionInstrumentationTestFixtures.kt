@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import androidx.compose.ui.test.AndroidComposeUiTest
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -17,7 +17,7 @@ import java.util.concurrent.TimeoutException
 
 internal const val IDLE_TIMEOUT_MS = 3000L
 
-internal fun ComposeContentTestRule.awaitIdleWithTimeout(description: String) {
+internal fun AndroidComposeUiTest<*>.awaitIdleWithTimeout(description: String) {
   val executor = Executors.newSingleThreadExecutor()
   val finished = CountDownLatch(1)
   var failure: Throwable? = null
