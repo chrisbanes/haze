@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [35], qualifiers = RobolectricDeviceQualifiers.Pixel5)
+@Config(sdk = [28, 32, 35], qualifiers = RobolectricDeviceQualifiers.Pixel5)
 actual abstract class ScreenshotTest : ContextTest()
 
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
