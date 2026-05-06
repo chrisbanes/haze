@@ -3,28 +3,28 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 
-@RunWith(AndroidJUnit4::class)
+@OptIn(ExperimentalTestApi::class)
 class BlurVisualEffectRecompositionLoopInstrumentationTest {
 
   @get:Rule
-  val composeTestRule = createComposeRule()
+  val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
   private fun ComposeContentTestRule.setBlurEffectContent(
     hazeState: HazeState,
