@@ -1,0 +1,1581 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual effects (blur and more) for Compose Multiplatform">
+      
+      
+        <meta name="author" content="Chris Banes">
+      
+      
+        <link rel="canonical" href="https://chribanes.github.io/haze/2.0.0-alpha02/custom-effects/">
+      
+      
+        <link rel="prev" href="../blur/platforms/">
+      
+      
+        <link rel="next" href="../performance/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../media/logo.webp">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Custom Effects - Haze</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=DM+Sans:300,300i,400,400i,700,700i%7CDM+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"DM Sans";--md-code-font:"DM Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Custom Effects - Haze" />
+<meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="og:image" content="https://chribanes.github.io/haze/2.0.0-alpha02/assets/images/social/custom-effects.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://chribanes.github.io/haze/2.0.0-alpha02/custom-effects/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="Custom Effects - Haze" />
+<meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="twitter:image" content="https://chribanes.github.io/haze/2.0.0-alpha02/assets/images/social/custom-effects.png" />
+</head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#custom-effects" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  <img src="../media/logo.webp" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haze
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Custom Effects
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  <img src="../media/logo.webp" alt="logo">
+
+    </a>
+    Haze
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blur
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blur
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blur/usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blur/materials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Materials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blur/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blur/platforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platforms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Effects
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Effects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-source-layers-primary-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background source layers (primary pattern)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementing-visualeffect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementing VisualEffect
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementing VisualEffect">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lifecycle-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Lifecycle methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#attachcontext-visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        attach(context: VisualEffectContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#updatecontext-visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        update(context: VisualEffectContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detachcontext-visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        detach(context: VisualEffectContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ontrimmemorycontext-visualeffectcontext-level-trimmemorylevel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#drawcontext-visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        draw(context: VisualEffectContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VisualEffectContext
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hazeeffectscope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HazeEffectScope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#builder-extension-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Builder extension pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ownership-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ownership model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-bounds-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer bounds behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#platform-specific-implementations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Platform-specific implementations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sample
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrating-2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Haze 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sample code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample/wasm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🕸️ Sample app (Wasm)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample/js/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🕸️ Sample app (JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-source-layers-primary-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background source layers (primary pattern)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementing-visualeffect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementing VisualEffect
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementing VisualEffect">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lifecycle-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Lifecycle methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#attachcontext-visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        attach(context: VisualEffectContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#updatecontext-visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        update(context: VisualEffectContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detachcontext-visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        detach(context: VisualEffectContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ontrimmemorycontext-visualeffectcontext-level-trimmemorylevel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#drawcontext-visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        draw(context: VisualEffectContext)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#visualeffectcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VisualEffectContext
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hazeeffectscope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HazeEffectScope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#builder-extension-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Builder extension pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ownership-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ownership model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-bounds-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layer bounds behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#platform-specific-implementations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Platform-specific implementations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sample
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<div><h1 id="custom-effects">Custom Effects<a class="headerlink" href="#custom-effects" title="Permanent link">¶</a></h1>
+<p>This guide shows how to build and ship custom <code>VisualEffect</code> implementations for Haze.</p>
+<p>If you want a complete production implementation, see the <a href="https://github.com/chrisbanes/haze/tree/main/haze-blur">haze-blur</a> module.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
+<p>Haze is extensible by design. <code>Modifier.hazeEffect { ... }</code> is driven by a <code>VisualEffect</code> instance, and you can provide your own implementation.</p>
+<p>For most real-world usage, start with <strong>background mode</strong> (<code>hazeSource</code> + <code>hazeEffect(state = hazeState)</code>), since that is where Haze shines: applying effects to transformed background graphics layers.</p>
+<p>Typical workflow:</p>
+<ol>
+<li>Implement <code>VisualEffect</code></li>
+<li>Provide a <code>HazeEffectScope</code> builder extension for ergonomic configuration</li>
+<li>Use your builder from <code>Modifier.hazeEffect { ... }</code></li>
+</ol>
+<h2 id="background-source-layers-primary-pattern">Background source layers (primary pattern)<a class="headerlink" href="#background-source-layers-primary-pattern" title="Permanent link">¶</a></h2>
+<p>Use one <code>HazeState</code> shared by transformed source layers and your effect target:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
+
+<span class="n">Box</span><span class="p">(</span><span class="n">Modifier</span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">AsyncImage</span><span class="p">(</span>
+<span class="w">        </span><span class="n">model</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberRandomSampleImageUrl</span><span class="p">(),</span>
+<span class="w">        </span><span class="n">contentDescription</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">        </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">            </span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">()</span>
+<span class="w">            </span><span class="p">.</span><span class="na">graphicsLayer</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">scaleX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1.06f</span>
+<span class="w">                </span><span class="n">translationX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">24f</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
+
+<span class="w">    </span><span class="n">Box</span><span class="p">(</span>
+<span class="w">        </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">            </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">260.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">            </span><span class="p">.</span><span class="na">graphicsLayer</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">rotationZ</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">10f</span><span class="w"> </span><span class="p">}</span>
+<span class="w">            </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span><span class="w"> </span><span class="n">zIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
+
+<span class="w">    </span><span class="n">Box</span><span class="p">(</span>
+<span class="w">        </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">            </span><span class="p">.</span><span class="na">align</span><span class="p">(</span><span class="n">Alignment</span><span class="p">.</span><span class="na">Center</span><span class="p">)</span>
+<span class="w">            </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">sparkEffect</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The key point is that Haze samples the transformed <code>hazeSource</code> layers behind the target node. Your custom <code>VisualEffect</code> then controls how that sampled content is rendered.</p>
+<h2 id="implementing-visualeffect">Implementing VisualEffect<a class="headerlink" href="#implementing-visualeffect" title="Permanent link">¶</a></h2>
+<p>Create a class implementing <code>VisualEffect</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">androidx.compose.ui.graphics.Color</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">androidx.compose.ui.graphics.drawscope.DrawScope</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.ExperimentalHazeApi</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.VisualEffect</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.VisualEffectContext</span>
+
+<span class="nd">@OptIn</span><span class="p">(</span><span class="n">ExperimentalHazeApi</span><span class="o">::</span><span class="n">class</span><span class="p">)</span>
+<span class="kd">class</span><span class="w"> </span><span class="nc">SparkVisualEffect</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">color</span><span class="p">:</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">alpha</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span>
+
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">attach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Allocate expensive resources if needed.</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Read composition locals or snapshot state.</span>
+<span class="w">        </span><span class="c1">// Call context.invalidateDraw() if output changes.</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Release resources from attach().</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="n">DrawScope</span><span class="p">.</span><span class="nf">draw</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">drawRect</span><span class="p">(</span>
+<span class="w">            </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">color</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">alpha</span><span class="p">),</span>
+<span class="w">            </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">,</span>
+<span class="w">        </span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="lifecycle-methods">Lifecycle methods<a class="headerlink" href="#lifecycle-methods" title="Permanent link">¶</a></h3>
+<h4 id="attachcontext-visualeffectcontext"><code>attach(context: VisualEffectContext)</code><a class="headerlink" href="#attachcontext-visualeffectcontext" title="Permanent link">¶</a></h4>
+<p>Called when the effect is attached to a node.</p>
+<ul>
+<li>Allocate long-lived resources here (shaders, caches, delegates)</li>
+<li>Geometry may not be resolved yet, so treat <code>position</code>, <code>size</code>, <code>layerSize</code>, and <code>layerOffset</code> as potentially unspecified/zero during attach</li>
+</ul>
+<h4 id="updatecontext-visualeffectcontext"><code>update(context: VisualEffectContext)</code><a class="headerlink" href="#updatecontext-visualeffectcontext" title="Permanent link">¶</a></h4>
+<p>Called when the effect should refresh state from composition locals or snapshot-backed data.</p>
+<ul>
+<li>Snapshot reads are tracked</li>
+<li>When read state changes, <code>update</code> is invoked again</li>
+<li>Call <code>context.invalidateDraw()</code> when visual output should be re-drawn</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">newColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">currentValueOf</span><span class="p">(</span><span class="n">LocalSparkColor</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">newColor</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">color</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">newColor</span>
+<span class="w">        </span><span class="n">context</span><span class="p">.</span><span class="na">invalidateDraw</span><span class="p">()</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="detachcontext-visualeffectcontext"><code>detach(context: VisualEffectContext)</code><a class="headerlink" href="#detachcontext-visualeffectcontext" title="Permanent link">¶</a></h4>
+<p>Called when the effect is detached.</p>
+<ul>
+<li>Release resources acquired in <code>attach</code></li>
+<li>Cancel work tied to effect internals</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">shader</span><span class="o">?.</span><span class="na">release</span><span class="p">()</span>
+<span class="w">    </span><span class="n">shader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="ontrimmemorycontext-visualeffectcontext-level-trimmemorylevel"><code>onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel)</code><a class="headerlink" href="#ontrimmemorycontext-visualeffectcontext-level-trimmemorylevel" title="Permanent link">¶</a></h4>
+<p>Called on memory pressure/background transitions.</p>
+<ul>
+<li>Free heavy caches and temporary buffers</li>
+<li>Keep this fast and safe to call repeatedly</li>
+<li>Optionally call <code>context.invalidateDraw()</code> after release</li>
+</ul>
+<h4 id="drawcontext-visualeffectcontext"><code>draw(context: VisualEffectContext)</code><a class="headerlink" href="#drawcontext-visualeffectcontext" title="Permanent link">¶</a></h4>
+<p>Called during rendering.</p>
+<ul>
+<li>Keep this path hot and allocation-light</li>
+<li>Use <code>context.size</code>/<code>context.layerSize</code> to align your output to the requested bounds</li>
+</ul>
+<h2 id="visualeffectcontext">VisualEffectContext<a class="headerlink" href="#visualeffectcontext" title="Permanent link">¶</a></h2>
+<p><code>VisualEffectContext</code> provides geometry, environment, and lifecycle helpers:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">VisualEffectContext</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">position</span><span class="p">:</span><span class="w"> </span><span class="n">Offset</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">size</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">layerSize</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">layerOffset</span><span class="p">:</span><span class="w"> </span><span class="n">Offset</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">rootBounds</span><span class="p">:</span><span class="w"> </span><span class="n">Rect</span>
+
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">inputScale</span><span class="p">:</span><span class="w"> </span><span class="n">HazeInputScale</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">windowId</span><span class="p">:</span><span class="w"> </span><span class="kt">Any?</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">areas</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeArea</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">state</span><span class="p">:</span><span class="w"> </span><span class="n">HazeState?</span>
+
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">coroutineScope</span><span class="p">:</span><span class="w"> </span><span class="n">CoroutineScope</span>
+
+<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">requireDensity</span><span class="p">():</span><span class="w"> </span><span class="n">Density</span>
+<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">currentValueOf</span><span class="p">(</span><span class="n">local</span><span class="p">:</span><span class="w"> </span><span class="n">CompositionLocal</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">):</span><span class="w"> </span><span class="n">T</span>
+<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">requireGraphicsContext</span><span class="p">():</span><span class="w"> </span><span class="n">GraphicsContext</span>
+<span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">invalidateDraw</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Mode semantics:</p>
+<ul>
+<li><code>state != null</code>: background mode (<code>hazeEffect(state = hazeState)</code>)</li>
+<li><code>state == null</code>: foreground/content mode (<code>hazeEffect { ... }</code>)</li>
+</ul>
+<h2 id="hazeeffectscope">HazeEffectScope<a class="headerlink" href="#hazeeffectscope" title="Permanent link">¶</a></h2>
+<p>The <code>Modifier.hazeEffect { ... }</code> lambda uses <code>HazeEffectScope</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">HazeEffectScope</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">visualEffect</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffect</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">inputScale</span><span class="p">:</span><span class="w"> </span><span class="n">HazeInputScale</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">drawContentBehind</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">clipToAreasBounds</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean?</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">expandLayerBounds</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean?</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">forceInvalidateOnPreDraw</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">canDrawArea</span><span class="p">:</span><span class="w"> </span><span class="p">((</span><span class="n">HazeArea</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">Boolean</span><span class="p">)</span><span class="o">?</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="builder-extension-pattern">Builder extension pattern<a class="headerlink" href="#builder-extension-pattern" title="Permanent link">¶</a></h2>
+<p>Expose your effect through a <code>HazeEffectScope</code> extension:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@OptIn</span><span class="p">(</span><span class="n">ExperimentalHazeApi</span><span class="o">::</span><span class="n">class</span><span class="p">)</span>
+<span class="kd">fun</span><span class="w"> </span><span class="n">HazeEffectScope</span><span class="p">.</span><span class="nf">sparkEffect</span><span class="p">(</span>
+<span class="w">    </span><span class="n">block</span><span class="p">:</span><span class="w"> </span><span class="n">SparkVisualEffect</span><span class="p">.()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">Unit</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">effect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">visualEffect</span><span class="w"> </span><span class="k">as?</span><span class="w"> </span><span class="n">SparkVisualEffect</span><span class="w"> </span><span class="o">?:</span><span class="w"> </span><span class="n">SparkVisualEffect</span><span class="p">()</span>
+<span class="w">    </span><span class="n">visualEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">effect</span>
+<span class="w">    </span><span class="n">effect</span><span class="p">.</span><span class="na">block</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Usage:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">sparkEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Blue</span>
+<span class="w">        </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="ownership-model">Ownership model<a class="headerlink" href="#ownership-model" title="Permanent link">¶</a></h2>
+<p><code>VisualEffect</code> instances are single-owner.</p>
+<ul>
+<li>One effect instance can only be attached to one active <code>hazeEffect</code> node at a time</li>
+<li>Do not share the same effect instance across multiple active nodes</li>
+<li>Prefer creating/reusing instances per node via your builder pattern</li>
+</ul>
+<h2 id="layer-bounds-behavior">Layer bounds behavior<a class="headerlink" href="#layer-bounds-behavior" title="Permanent link">¶</a></h2>
+<p>Override <code>calculateLayerBounds(rect, density)</code> if your effect needs extra sampling space:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">calculateLayerBounds</span><span class="p">(</span><span class="n">rect</span><span class="p">:</span><span class="w"> </span><span class="n">Rect</span><span class="p">,</span><span class="w"> </span><span class="n">density</span><span class="p">:</span><span class="w"> </span><span class="n">Density</span><span class="p">):</span><span class="w"> </span><span class="n">Rect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">extra</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">with</span><span class="p">(</span><span class="n">density</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="m">24.</span><span class="n">dp</span><span class="p">.</span><span class="na">toPx</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">rect</span><span class="p">.</span><span class="na">inflate</span><span class="p">(</span><span class="n">extra</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Coordinate-space contract:</p>
+<ul>
+<li>Return bounds in the same coordinate space as <code>rect</code></li>
+<li>In background mode (<code>context.state != null</code>), Haze passes a root/screen-aligned rect</li>
+<li>In foreground mode (<code>context.state == null</code>), Haze passes a local node rect</li>
+</ul>
+<h2 id="platform-specific-implementations">Platform-specific implementations<a class="headerlink" href="#platform-specific-implementations" title="Permanent link">¶</a></h2>
+<p>Use <code>expect</code>/<code>actual</code> for platform-specific rendering internals:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// commonMain</span>
+<span class="kd">expect</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createPlatformShader</span><span class="p">(</span><span class="n">size</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="p">):</span><span class="w"> </span><span class="n">Shader</span>
+
+<span class="nd">@OptIn</span><span class="p">(</span><span class="n">ExperimentalHazeApi</span><span class="o">::</span><span class="n">class</span><span class="p">)</span>
+<span class="kd">class</span><span class="w"> </span><span class="nc">ShaderEffect</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">lateinit</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="nv">shader</span><span class="p">:</span><span class="w"> </span><span class="n">Shader</span>
+
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">attach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">shader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">createPlatformShader</span><span class="p">(</span><span class="n">context</span><span class="p">.</span><span class="na">size</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1">// androidMain</span>
+<span class="kd">actual</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createPlatformShader</span><span class="p">(</span><span class="n">size</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="p">):</span><span class="w"> </span><span class="n">Shader</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Android implementation</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1">// desktopMain / skikoMain</span>
+<span class="kd">actual</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createPlatformShader</span><span class="p">(</span><span class="n">size</span><span class="p">:</span><span class="w"> </span><span class="n">Size</span><span class="p">):</span><span class="w"> </span><span class="n">Shader</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Desktop implementation</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="sample">Sample<a class="headerlink" href="#sample" title="Permanent link">¶</a></h2>
+<p>See the dedicated custom effect sample:</p>
+<ul>
+<li><a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/CustomVisualEffectSample.kt">CustomVisualEffectSample.kt</a></li>
+</ul>
+<h2 id="best-practices">Best practices<a class="headerlink" href="#best-practices" title="Permanent link">¶</a></h2>
+<ol>
+<li>Allocate in <code>attach</code>, release in <code>detach</code></li>
+<li>Keep <code>draw</code> allocation-free where possible</li>
+<li>Use <code>update</code> for tracked state reads and controlled invalidation</li>
+<li>Respect <code>inputScale</code> and bounds contracts for performance and correctness</li>
+<li>Validate behavior with screenshot tests for visual regressions</li>
+</ol>
+<h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">¶</a></h2>
+<ul>
+<li>Read <a href="../architecture/">Architecture</a> for internals</li>
+<li>Review <a href="https://github.com/chrisbanes/haze/tree/main/haze-blur">haze-blur</a> for a full production effect</li>
+<li>Browse the <a href="https://github.com/chrisbanes/haze/tree/main/sample">sample app</a></li>
+</ul></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.tabs.link", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
