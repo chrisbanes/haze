@@ -1,24 +1,52 @@
 #!/bin/zsh
 
-versions=($(mike list | tr ' ' '\n'))
+# Parse mike list output. Format: "version [alias1, alias2]  title"
+# We only care about version names (first column) and aliases.
+# Aliases like 'latest' and 'dev' must never be deleted.
+
+latest_alias_version=""
+dev_alias_version=""
+bare_versions=()
+
+while IFS= read -r line; do
+  version=$(echo "$line" | awk '{print $1}')
+  aliases=$(echo "$line" | grep -o '\[.*\]' | tr -d '[]' | tr ',' '\n' | xargs)
+
+  bare_versions+=("$version")
+
+  if echo "$aliases" | grep -qw "latest"; then
+    latest_alias_version="$version"
+  fi
+  if echo "$aliases" | grep -qw "dev"; then
+    dev_alias_version="$version"
+  fi
+done < <(mike list)
 
 declare -A major_latest
 
-# Find latest per X.Y
-for v in "${versions[@]}"; do
+for v in "${bare_versions[@]}"; do
   major="${v%.*}"
   if [[ -z "${major_latest[$major]}" ]]; then
     major_latest[$major]="$v"
   else
-    latest="${major_latest[$major]}"
-    # Use version sort (-V) to compare
-    greater=$(printf "%s\n%s\n" "$latest" "$v" | sort -V | tail -n1)
+    prev="${major_latest[$major]}"
+    greater=$(printf "%s\n%s\n" "$prev" "$v" | sort -V | tail -n1)
     major_latest[$major]="$greater"
   fi
 done
 
 to_delete=()
-for v in "${versions[@]}"; do
+for v in "${bare_versions[@]}"; do
+  # Never delete the version holding the 'latest' or 'dev' alias
+  if [[ "$v" == "$latest_alias_version" ]]; then
+    echo "Keeping $v (holds 'latest' alias)"
+    continue
+  fi
+  if [[ "$v" == "$dev_alias_version" ]]; then
+    echo "Keeping $v (holds 'dev' alias)"
+    continue
+  fi
+
   major="${v%.*}"
   if [[ "$v" != "${major_latest[$major]}" ]]; then
     to_delete+=("$v")

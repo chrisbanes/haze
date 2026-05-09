@@ -5,9 +5,9 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.0-alpha02 (WIP) { id="2.0.0-alpha02" }
+## 2.0.0-alpha02 <small>2026-05-08</small> { id="2.0.0-alpha02" }
 
-Work in progress. Changes since 2.0.0-alpha01.
+Changes since 2.0.0-alpha01.
 
 ### Breaking Changes
 
@@ -16,6 +16,25 @@ Work in progress. Changes since 2.0.0-alpha01.
 - **Method renames:** `DrawScope.shouldDrawContentBehind(context)` is now `shouldDrawContentBehind(context)`.
 - **Method renames:** `shouldClip()` is now `shouldClipToNodeBounds()`, and `preferClipToAreaBounds()` is now `shouldPreferClipToAreaBounds()`.
 - **Removed APIs:** `calculateInputScaleFactor()` and `requireInvalidation()` were removed from `VisualEffect`.
+
+### Key Dependencies
+
+- Kotlin 2.3.20
+- Compose Multiplatform 1.11.0-rc01
+- Jetpack Compose 1.11.1
+- kotlinx-coroutines 1.11.0
+
+### Changed
+* Refine `VisualEffect` lifecycle API, enforce single-owner semantics in #916
+* Migrate to Compose v2 test APIs in #924
+
+### Added
+* Add recomposition testing (count + loop detection + instrumentation) in #919
+
+### Fixed
+* Fix `IllegalStateException` from `currentValueOf` on unattached node in #921
+
+**Full Changelog**: https://github.com/chrisbanes/haze/compare/2.0.0-alpha01...2.0.0-alpha02
 
 ## 2.0.0-alpha01 <small>2026-04-28</small> { id="2.0.0-alpha01" }
 
