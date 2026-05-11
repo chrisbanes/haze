@@ -690,6 +690,25 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_progressive_vertical_whiteBg() = runScreenshotTest {
+    val blurVisualEffect = BlurVisualEffect().apply {
+      colorEffects = listOf(DefaultTint)
+      blurRadius = 20.dp
+      progressive = HazeProgressive.verticalGradient()
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(
+          visualEffect = blurVisualEffect,
+          backgroundColors = listOf(Color.White, Color.White),
+        )
+      }
+    }
+    captureRoot()
+  }
+
+  @Test
   fun edges() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
       colorEffects = listOf(DefaultTint)
