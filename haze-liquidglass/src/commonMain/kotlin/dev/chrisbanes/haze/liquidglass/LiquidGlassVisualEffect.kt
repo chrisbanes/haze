@@ -21,6 +21,7 @@ import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 
@@ -29,7 +30,24 @@ import dev.chrisbanes.haze.VisualEffectContext
  * refraction, depth layering, specular highlights, and soft tinted glass.
  */
 @OptIn(ExperimentalHazeApi::class)
-public class LiquidGlassVisualEffect : VisualEffect {
+public class LiquidGlassVisualEffect() : VisualEffect {
+
+  /** Creates a new [LiquidGlassVisualEffect] copying all properties from [other]. */
+  public constructor(other: LiquidGlassVisualEffect) : this() {
+    refractionStrength = other.refractionStrength
+    specularIntensity = other.specularIntensity
+    depth = other.depth
+    ambientResponse = other.ambientResponse
+    tint = other.tint
+    edgeSoftness = other.edgeSoftness
+    lightPosition = other.lightPosition
+    blurRadius = other.blurRadius
+    refractionHeight = other.refractionHeight
+    chromaticAberrationStrength = other.chromaticAberrationStrength
+    shape = other.shape
+    alpha = other.alpha
+    style = other.style
+  }
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
@@ -43,6 +61,22 @@ public class LiquidGlassVisualEffect : VisualEffect {
         field = value
       }
     }
+
+  private var isAttached: Boolean = false
+
+  override fun attach(context: VisualEffectContext) {
+    if (!isAttached) {
+      isAttached = true
+      delegate.attach()
+    }
+  }
+
+  override fun detach(context: VisualEffectContext) {
+    if (isAttached) {
+      isAttached = false
+      delegate.detach()
+    }
+  }
 
   override fun update(context: VisualEffectContext) {
     if (dirtyTracker.any(LiquidGlassDirtyFields.InvalidateFlags)) {
@@ -60,20 +94,28 @@ public class LiquidGlassVisualEffect : VisualEffect {
     }
   }
 
-  override fun shouldClip(): Boolean = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
+  override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
+    return delegate is FallbackLiquidGlassDelegate
+  }
 
-  override fun calculateInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
+  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+    delegate.onTrimMemory(context, level)
+  }
+
+  override fun shouldClipToNodeBounds(): Boolean = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
+
+  internal fun resolveInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
     is HazeInputScale.None -> 1f
     is HazeInputScale.Fixed -> scale.scale
     HazeInputScale.Auto -> 0.75f
   }
 
-  override fun requireInvalidation(): Boolean = dirtyTracker.any(LiquidGlassDirtyFields.InvalidateFlags)
-
   override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
     val softnessPx = with(density) { edgeSoftness.toPx() }
     return if (softnessPx > 0f) rect.inflate(softnessPx) else rect
   }
+
+  override fun shouldPreferClipToAreaBounds(): Boolean = edgeSoftness <= 0.dp && shape.hasZeroCornerRadii()
 
   /**
    * Strength of refractive distortion, in the range `0f..1f`.
@@ -262,12 +304,11 @@ public class LiquidGlassVisualEffect : VisualEffect {
       }
     }
 
-  override fun preferClipToAreaBounds(): Boolean = edgeSoftness <= 0.dp && shape.hasZeroCornerRadii()
-
   internal interface Delegate {
     fun attach() = Unit
     fun DrawScope.draw(context: VisualEffectContext)
     fun detach() = Unit
+    fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) = Unit
   }
 
   private fun resetDirtyTracker() {

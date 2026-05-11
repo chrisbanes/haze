@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.blur.BlurVisualEffect
+import dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect
 import haze_root.haze_screenshot_tests.generated.resources.Res
 import haze_root.haze_screenshot_tests.generated.resources.photo
 import kotlin.math.roundToInt
@@ -170,7 +172,13 @@ private fun CreditCard(
   modifier: Modifier = Modifier,
   baseWidth: Float = .7f,
 ) {
-  val perCardEffect = remember(visualEffect) { BlurVisualEffect(visualEffect) }
+  val perCardEffect = remember(visualEffect) {
+    when (visualEffect) {
+      is BlurVisualEffect -> BlurVisualEffect(visualEffect)
+      is LiquidGlassVisualEffect -> LiquidGlassVisualEffect(visualEffect)
+      else -> visualEffect
+    }
+  }
 
   Box(
     modifier = modifier

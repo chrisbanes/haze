@@ -31,9 +31,15 @@ internal class RuntimeShaderLiquidGlassDelegate(
   override fun DrawScope.draw(context: VisualEffectContext) {
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
-    val scaleFactor = effect.calculateInputScaleFactor(context.inputScale)
+    val scaleFactor = effect.resolveInputScaleFactor(context.inputScale)
     val layerSize = context.layerSize * scaleFactor
-    createAndDrawScaledContentLayer(context) {
+    val clipToNodeBounds = effect.shouldClipToNodeBounds()
+    createAndDrawScaledContentLayer(
+      context = context,
+      scaleFactor = scaleFactor,
+      clipToNodeBounds = clipToNodeBounds,
+      backgroundColor = Color.Transparent,
+    ) {
       val layerRadii = effect.shape.toCornerRadiiPx(
         layerSize = layerSize,
         density = density,

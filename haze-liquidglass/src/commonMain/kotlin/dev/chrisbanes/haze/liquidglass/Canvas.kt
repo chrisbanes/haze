@@ -17,38 +17,38 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalHazeApi::class)
+@OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal fun DrawScope.createAndDrawScaledContentLayer(
   context: VisualEffectContext,
+  scaleFactor: Float,
+  clipToNodeBounds: Boolean,
+  backgroundColor: Color,
   releaseLayerOnExit: Boolean = true,
   block: DrawScope.(GraphicsLayer) -> Unit,
 ) {
   val graphicsContext = context.requireGraphicsContext()
-
-  val effect = context.visualEffect
-  val scaleFactor = effect.calculateInputScaleFactor(context.inputScale)
-  val clip = effect.shouldClip()
 
   val layer = createScaledContentLayer(
     context = context,
     scaleFactor = scaleFactor,
     layerSize = context.layerSize,
     layerOffset = context.layerOffset,
-    backgroundColor = Color.Transparent,
+    backgroundColor = backgroundColor,
   )
 
   if (layer != null) {
-    layer.clip = clip
+    layer.clip = clipToNodeBounds
 
     drawScaledContent(
       offset = -context.layerOffset,
       scaledSize = size * scaleFactor,
-      clip = clip,
+      clip = clipToNodeBounds,
     ) {
       block(layer)
     }
@@ -59,7 +59,7 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
   }
 }
 
-@OptIn(ExperimentalHazeApi::class)
+@OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal fun DrawScope.createScaledContentLayer(
   context: VisualEffectContext,
   backgroundColor: Color,
