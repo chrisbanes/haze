@@ -12,9 +12,9 @@ import dev.chrisbanes.haze.isRuntimeShaderRenderEffectSupported
 internal actual fun LiquidGlassVisualEffect.updateDelegate(
   context: VisualEffectContext,
   drawScope: DrawScope,
-) {
+): LiquidGlassVisualEffect.Delegate {
   val wantsRuntime = isRuntimeShaderRenderEffectSupported()
-  delegate = when {
+  return when {
     wantsRuntime && delegate !is RuntimeShaderLiquidGlassDelegate -> RuntimeShaderLiquidGlassDelegate(this)
     !wantsRuntime && delegate !is FallbackLiquidGlassDelegate -> FallbackLiquidGlassDelegate(this)
     else -> delegate

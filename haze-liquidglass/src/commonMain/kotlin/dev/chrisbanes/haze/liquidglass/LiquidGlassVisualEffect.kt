@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.liquidglass
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -30,6 +31,7 @@ import dev.chrisbanes.haze.VisualEffectContext
  * refraction, depth layering, specular highlights, and soft tinted glass.
  */
 @OptIn(ExperimentalHazeApi::class)
+@Stable
 public class LiquidGlassVisualEffect() : VisualEffect {
 
   /** Creates a new [LiquidGlassVisualEffect] copying all properties from [other]. */
@@ -49,6 +51,10 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     style = other.style
   }
 
+  private var isAttached: Boolean = false
+
+  private var needsDelegateSelection: Boolean = true
+
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
 
@@ -56,13 +62,15 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "delegate changed. Current $field. New: $value" }
-        value.attach()
-        field.detach()
+        if (isAttached) {
+          // attach new delegate
+          value.attach()
+          // detach old delegate
+          field.detach()
+        }
         field = value
       }
     }
-
-  private var isAttached: Boolean = false
 
   override fun attach(context: VisualEffectContext) {
     if (!isAttached) {
@@ -79,15 +87,20 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   }
 
   override fun update(context: VisualEffectContext) {
+    compositionLocalStyle = context.currentValueOf(LocalLiquidGlassStyle)
+
     if (dirtyTracker.any(LiquidGlassDirtyFields.InvalidateFlags)) {
+      needsDelegateSelection = true
       context.invalidateDraw()
     }
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
-    updateDelegate(context, this)
-
     try {
+      if (needsDelegateSelection) {
+        delegate = updateDelegate(context, this)
+        needsDelegateSelection = false
+      }
       with(delegate) { draw(context) }
     } finally {
       resetDirtyTracker()
@@ -119,14 +132,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Strength of refractive distortion, in the range `0f..1f`.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.refractionStrength] value set in [style], if specified.
+   *  - [LiquidGlassStyle.refractionStrength] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var refractionStrength: Float = Float.NaN
     get() {
-      return field.takeOrElse { style.refractionStrength }
+      return field
+        .takeOrElse { style.refractionStrength }
+        .takeOrElse { compositionLocalStyle.refractionStrength }
         .takeOrElse { LiquidGlassDefaults.refractionStrength }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "refractionStrength changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.RefractionStrength
       }
@@ -134,14 +156,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Intensity of specular highlights, in the range `0f..1f`.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.specularIntensity] value set in [style], if specified.
+   *  - [LiquidGlassStyle.specularIntensity] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var specularIntensity: Float = Float.NaN
     get() {
-      return field.takeOrElse { style.specularIntensity }
+      return field
+        .takeOrElse { style.specularIntensity }
+        .takeOrElse { compositionLocalStyle.specularIntensity }
         .takeOrElse { LiquidGlassDefaults.specularIntensity }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "specularIntensity changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.SpecularIntensity
       }
@@ -149,14 +180,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Depth perception factor (0 = flat, 1 = deep layered glass).
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.depth] value set in [style], if specified.
+   *  - [LiquidGlassStyle.depth] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var depth: Float = Float.NaN
     get() {
-      return field.takeOrElse { style.depth }
+      return field
+        .takeOrElse { style.depth }
+        .takeOrElse { compositionLocalStyle.depth }
         .takeOrElse { LiquidGlassDefaults.depth }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "depth changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.Depth
       }
@@ -164,14 +204,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Strength of ambient lighting response and Fresnel accent.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.ambientResponse] value set in [style], if specified.
+   *  - [LiquidGlassStyle.ambientResponse] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var ambientResponse: Float = Float.NaN
     get() {
-      return field.takeOrElse { style.ambientResponse }
+      return field
+        .takeOrElse { style.ambientResponse }
+        .takeOrElse { compositionLocalStyle.ambientResponse }
         .takeOrElse { LiquidGlassDefaults.ambientResponse }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "ambientResponse changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.AmbientResponse
       }
@@ -179,14 +228,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Glass tint applied to the refracted content.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.tint] value set in [style], if specified.
+   *  - [LiquidGlassStyle.tint] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var tint: Color = Color.Unspecified
     get() {
-      return field.takeOrElse { style.tint }
+      return field
+        .takeOrElse { style.tint }
+        .takeOrElse { compositionLocalStyle.tint }
         .takeOrElse { LiquidGlassDefaults.tint }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "tint changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.Tint
       }
@@ -194,14 +252,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Softening distance for glass edges.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.edgeSoftness] value set in [style], if specified.
+   *  - [LiquidGlassStyle.edgeSoftness] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var edgeSoftness: Dp = Dp.Unspecified
     get() {
-      return field.takeOrElse { style.edgeSoftness }
+      return field
+        .takeOrElse { style.edgeSoftness }
+        .takeOrElse { compositionLocalStyle.edgeSoftness }
         .takeOrElse { LiquidGlassDefaults.edgeSoftness }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "edgeSoftness changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.EdgeSoftness
       }
@@ -209,14 +276,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Position of the virtual light source. When unspecified, the center of the layer is used.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.lightPosition] value set in [style], if specified.
+   *  - [LiquidGlassStyle.lightPosition] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var lightPosition: Offset = Offset.Unspecified
     get() {
-      return field.takeOrElse { style.lightPosition }
+      return field
+        .takeOrElse { style.lightPosition }
+        .takeOrElse { compositionLocalStyle.lightPosition }
         .takeOrElse { Offset.Unspecified }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "lightPosition changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.LightPosition
       }
@@ -224,14 +300,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Radius of the blur applied to create depth effect.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.blurRadius] value set in [style], if specified.
+   *  - [LiquidGlassStyle.blurRadius] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var blurRadius: Dp = Dp.Unspecified
     get() {
-      return field.takeOrElse { style.blurRadius }
+      return field
+        .takeOrElse { style.blurRadius }
+        .takeOrElse { compositionLocalStyle.blurRadius }
         .takeOrElse { LiquidGlassDefaults.blurRadius }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "blurRadius changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.BlurRadius
       }
@@ -239,14 +324,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Height of the refraction zone expressed as a fraction of the smallest dimension (0f..1f).
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.refractionHeight] value set in [style], if specified.
+   *  - [LiquidGlassStyle.refractionHeight] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var refractionHeight: Float = Float.NaN
     get() {
-      return field.takeOrElse { style.refractionHeight }
+      return field
+        .takeOrElse { style.refractionHeight }
+        .takeOrElse { compositionLocalStyle.refractionHeight }
         .takeOrElse { LiquidGlassDefaults.refractionHeight }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "refractionHeight changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.RefractionHeight
       }
@@ -254,14 +348,23 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Strength of chromatic aberration. TODO: expand to configurable channel/spread controls.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.chromaticAberrationStrength] value set in [style], if specified.
+   *  - [LiquidGlassStyle.chromaticAberrationStrength] value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var chromaticAberrationStrength: Float = Float.NaN
     get() {
-      return field.takeOrElse { style.chromaticAberrationStrength }
+      return field
+        .takeOrElse { style.chromaticAberrationStrength }
+        .takeOrElse { compositionLocalStyle.chromaticAberrationStrength }
         .takeOrElse { LiquidGlassDefaults.chromaticAberrationStrength }
     }
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "chromaticAberrationStrength changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.ChromaticAberration
       }
@@ -269,13 +372,20 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Shape applied to the glass. Defaults to a rectangle (all radii zero).
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.shape] value set in [style], if specified.
+   *  - [LiquidGlassStyle.shape] value set in the [LocalLiquidGlassStyle] composition local.
    */
   private var _shape: RoundedCornerShape? = null
 
   public var shape: RoundedCornerShape
-    get() = _shape ?: style.shape ?: LiquidGlassDefaults.shape
+    get() = _shape ?: style.shape ?: compositionLocalStyle.shape ?: LiquidGlassDefaults.shape
     set(value) {
       if (value != _shape) {
+        HazeLogger.d(TAG) { "shape changed. Current: $_shape. New: $value" }
         _shape = value
         dirtyTracker += LiquidGlassDirtyFields.Shape
       }
@@ -287,6 +397,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var alpha: Float = 1f
     set(value) {
       if (value != field) {
+        HazeLogger.d(TAG) { "alpha changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += LiquidGlassDirtyFields.Alpha
       }
@@ -294,13 +405,30 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   /**
    * Optional style container that can set multiple parameters at once.
+   *
+   * There are precedence rules to how each styling property is applied. The order of precedence
+   * for each property are as follows:
+   *
+   *  - Property value set directly on this [LiquidGlassVisualEffect], if specified.
+   *  - Value set here in [style], if specified.
+   *  - Value set in the [LocalLiquidGlassStyle] composition local.
    */
   public var style: LiquidGlassStyle = LiquidGlassStyle.Unspecified
     set(value) {
       if (field != value) {
+        HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
         onStyleChanged(old = field, new = value)
         field = value
         dirtyTracker += LiquidGlassDirtyFields.Style
+      }
+    }
+
+  internal var compositionLocalStyle: LiquidGlassStyle = LiquidGlassDefaults.style
+    set(value) {
+      if (field != value) {
+        HazeLogger.d(TAG) { "LocalLiquidGlassStyle changed. Current: $field. New: $value" }
+        onStyleChanged(field, value)
+        field = value
       }
     }
 
@@ -359,7 +487,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 internal expect fun LiquidGlassVisualEffect.updateDelegate(
   context: VisualEffectContext,
   drawScope: DrawScope,
-)
+): LiquidGlassVisualEffect.Delegate
 
 private fun RoundedCornerShape.hasZeroCornerRadii(): Boolean = this == LiquidGlassDefaults.shape
 

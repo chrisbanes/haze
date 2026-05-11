@@ -21,4 +21,20 @@ public object LiquidGlassDefaults {
   public const val refractionHeight: Float = 0.25f // Fraction of min dimension used for refraction
   public const val chromaticAberrationStrength: Float = 0f // 0 = off, 1 = strong dispersion
   public val shape: RoundedCornerShape = RoundedCornerShape(0.dp)
+
+  /**
+   * Default [dev.chrisbanes.haze.liquidglass.LiquidGlassStyle] for usage with [LiquidGlassVisualEffect].
+   */
+  public val style: LiquidGlassStyle = LiquidGlassStyle(
+    tint = tint,
+    refractionStrength = refractionStrength,
+    specularIntensity = specularIntensity,
+    depth = depth,
+    ambientResponse = ambientResponse,
+    edgeSoftness = edgeSoftness,
+    blurRadius = blurRadius,
+    refractionHeight = refractionHeight,
+    chromaticAberrationStrength = chromaticAberrationStrength,
+    shape = shape,
+  )
 }
