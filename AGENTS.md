@@ -30,10 +30,28 @@ descriptive method-level names such as `functionName_emitsExpectedBlur`. Run `./
 locally before opening a PR, and regenerate snapshots with
 `./gradlew :haze-screenshot-tests:recordRoborazzi` when intentional UI changes occur.
 
+## VisualEffect Implementation Patterns
+
+When authoring or modifying `VisualEffect` implementations (e.g., `BlurVisualEffect`,
+`LiquidGlassVisualEffect`), follow these conventions:
+
+- Annotate the class with `@Stable` for Compose skippability.
+- Use a `needsDelegateSelection` flag to defer delegate creation from `update()` to `draw()`,
+  avoiding work on frames where no draw occurs.
+- Expose a `Local*Style` composition local (e.g., `LocalLiquidGlassStyle`) and a matching
+  `*Defaults.style` property.
+- Resolve style properties with three-tier precedence: direct property value → `style` parameter
+  → composition local → defaults.
+- Guard the delegate property setter with `isAttached` to prevent calling `attach()`/`detach()`
+  before the effect is node-attached.
+- Log property changes via `HazeLogger.d(TAG)` in every public setter for debugging.
+- Make platform-specific `updateDelegate` functions return the new `Delegate` instance rather than
+  mutating the property as a side-effect.
+
 ## Commit & Pull Request Guidelines
 
 Commit history favors imperative subjects with optional scope notes and auto-linked PR numbers (
-e.g., "Update plugin … (#772)"). Keep commits focused, include configuration updates when they
+e.g., "Update plugin \u2026 (#772)"). Keep commits focused, include configuration updates when they
 affect generated artifacts, and ensure Spotless has been applied. Pull requests should describe
 motivation, mention affected modules, link GitHub issues when relevant, and attach updated
 screenshots for UI-facing changes.
