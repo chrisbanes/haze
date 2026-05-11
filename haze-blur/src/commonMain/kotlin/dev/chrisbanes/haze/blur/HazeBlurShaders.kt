@@ -43,7 +43,7 @@ internal object HazeBlurShaders {
 
     vec4 blur(vec2 coord, float radius) {
       // Truncate the radius
-      half r = floor(radius);
+      half r = floor(radius + 0.5);
 
       // Need to use float and vec here for higher precision, otherwise we see
       // visually clipping on certain devices (Samsung for example)
@@ -73,7 +73,7 @@ internal object HazeBlurShaders {
         }
 
         newCoord = coord + offset;
-        if (newCoord.x < crop[2] && newCoord.y < crop[3]) {
+        if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
           result += weight * content.eval(newCoord);
           weightSum += weight;
         }
@@ -91,7 +91,7 @@ internal object HazeBlurShaders {
         }
 
         newCoord = coord + offset;
-        if (newCoord.x < crop[2] && newCoord.y < crop[3]) {
+        if (newCoord.x <= crop[2] && newCoord.y <= crop[3]) {
           result += weight * content.eval(newCoord);
           weightSum += weight;
         }
