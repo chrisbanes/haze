@@ -227,7 +227,7 @@ internal object LiquidGlassShaders {
       float h = surfaceHeight(coord);
       float refractionZone = max(refractionHeight, 0.0001);
       float heightNorm = clamp(h / refractionZone, 0.0, 1.0);
-      float displacementMagnitude = -heightNorm * refractionStrength * 12.0;
+      float displacementMagnitude = -heightNorm * refractionStrength * 12.0; // Scale factor for refraction displacement
 
       float smoothRadius = max(radius * 1.5, 30.0);
       float gradRadius = min(smoothRadius, min(halfSize.x, halfSize.y));
@@ -247,14 +247,14 @@ internal object LiquidGlassShaders {
       vec2 grad = surfaceGradient(coord);
       vec3 shapeNormal = normalize(vec3(-grad.x, -grad.y, 1.0));
       vec3 contentNormal = computeContentNormal(coord);
-      vec3 normal = normalize(mix(shapeNormal, contentNormal, 0.15));
+      vec3 normal = normalize(mix(shapeNormal, contentNormal, 0.15)); // Blend shape + content normals
 
       vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));
       vec3 tinted = mix(mixedColor, tintColor.rgb, tintColor.a);
       vec2 lightDir2D = normalize(lightPosition - coord);
       vec3 lightDir = normalize(vec3(lightDir2D, 1.0));
-      float spec = pow(max(dot(normal, lightDir), 0.0), 24.0) * specularIntensity;
-      float fresnel = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0);
+      float spec = pow(max(dot(normal, lightDir), 0.0), 24.0) * specularIntensity; // Specular highlight exponent
+      float fresnel = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0); // Fresnel edge glow exponent
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
       vec3 finalColor = mix(tinted, refracted.rgb, refractionStrength) * ambient + spec;
       float edge = edgeMask(distToEdge);

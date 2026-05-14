@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.liquidglass
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -20,6 +21,11 @@ import kotlin.math.max
 internal class FallbackLiquidGlassDelegate(
   private val effect: LiquidGlassVisualEffect,
 ) : LiquidGlassVisualEffect.Delegate {
+
+  private var cachedShapePath: Path? = null
+  private var cachedSize: Size = Size.Zero
+  private var cachedRadiiIsZero: Boolean = true
+
   override fun DrawScope.draw(context: VisualEffectContext) {
     val tint = effect.tint
     if (!tint.isSpecified) return
@@ -31,8 +37,18 @@ internal class FallbackLiquidGlassDelegate(
       ?: Offset(size.width / 2f, size.height / 3f)
 
     val radii = effect.shape.toCornerRadiiPx(layerSize = size, density = density, layoutDirection = layoutDirection)
-    val roundRect = radii.takeUnless { it.isZero() }?.toRoundRect(size)
-    val shapePath = roundRect?.let { Path().apply { addRoundRect(it) } }
+    val radiiIsZero = radii.isZero()
+
+    if (size != cachedSize || radiiIsZero != cachedRadiiIsZero) {
+      cachedSize = size
+      cachedRadiiIsZero = radiiIsZero
+      cachedShapePath = if (!radiiIsZero) {
+        radii.toRoundRect(size).let { Path().apply { addRoundRect(it) } }
+      } else {
+        null
+      }
+    }
+    val shapePath = cachedShapePath
 
     withAlpha(alpha = effect.alpha, context = context) {
       if (shapePath != null) {

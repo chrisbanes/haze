@@ -20,9 +20,10 @@ public object LiquidGlassDefaults {
   public val blurRadius: Dp = 4.dp // Blur radius for glass depth effect
   public const val refractionHeight: Float = 0.25f // Fraction of min dimension used for refraction
   public const val chromaticAberrationStrength: Float = 0f // 0 = off, 1 = strong dispersion
-  public val shape: RoundedCornerShape = RoundedCornerShape(0.dp)
+  public val shape: RoundedCornerShape = RoundedCornerShape(16.dp)
   public val surfaceProfile: SurfaceProfile = SurfaceProfile.Circle
   public val chromaticAberrationMode: ChromaticAberrationMode = ChromaticAberrationMode.Simple
+  public const val alpha: Float = 1f // Fully opaque
 
   /**
    * Default [dev.chrisbanes.haze.liquidglass.LiquidGlassStyle] for usage with [LiquidGlassVisualEffect].
@@ -37,6 +38,7 @@ public object LiquidGlassDefaults {
     blurRadius = blurRadius,
     refractionHeight = refractionHeight,
     chromaticAberrationStrength = chromaticAberrationStrength,
+    alpha = alpha,
     shape = shape,
     surfaceProfile = surfaceProfile,
     chromaticAberrationMode = chromaticAberrationMode,

@@ -6,17 +6,15 @@ package dev.chrisbanes.haze.liquidglass
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
-import dev.chrisbanes.haze.isRuntimeShaderRenderEffectSupported
 
 @OptIn(ExperimentalHazeApi::class)
 internal actual fun LiquidGlassVisualEffect.updateDelegate(
   context: VisualEffectContext,
   drawScope: DrawScope,
 ): LiquidGlassVisualEffect.Delegate {
-  val wantsRuntime = isRuntimeShaderRenderEffectSupported()
-  return when {
-    wantsRuntime && delegate !is RuntimeShaderLiquidGlassDelegate -> RuntimeShaderLiquidGlassDelegate(this)
-    !wantsRuntime && delegate !is FallbackLiquidGlassDelegate -> FallbackLiquidGlassDelegate(this)
-    else -> delegate
+  // Runtime shaders are always supported on Skiko platforms.
+  return when (delegate) {
+    is RuntimeShaderLiquidGlassDelegate -> delegate
+    else -> RuntimeShaderLiquidGlassDelegate(this)
   }
 }

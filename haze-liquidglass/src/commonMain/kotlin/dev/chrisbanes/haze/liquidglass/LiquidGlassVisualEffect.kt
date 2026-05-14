@@ -64,13 +64,12 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "delegate changed. Current $field. New: $value" }
-        if (isAttached) {
-          // attach new delegate
-          value.attach()
-          // detach old delegate
-          field.detach()
-        }
+        val old = field
         field = value
+        if (isAttached) {
+          old.detach()
+          value.attach()
+        }
       }
     }
 
@@ -151,7 +150,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "refractionStrength changed. Current: $field. New: $value" }
-        field = value
+        field = value.coerceIn(0f, 1f)
         dirtyTracker += LiquidGlassDirtyFields.RefractionStrength
       }
     }
@@ -175,7 +174,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "specularIntensity changed. Current: $field. New: $value" }
-        field = value
+        field = value.coerceIn(0f, 1f)
         dirtyTracker += LiquidGlassDirtyFields.SpecularIntensity
       }
     }
@@ -199,7 +198,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "depth changed. Current: $field. New: $value" }
-        field = value
+        field = value.coerceIn(0f, 1f)
         dirtyTracker += LiquidGlassDirtyFields.Depth
       }
     }
@@ -223,7 +222,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "ambientResponse changed. Current: $field. New: $value" }
-        field = value
+        field = value.coerceIn(0f, 1f)
         dirtyTracker += LiquidGlassDirtyFields.AmbientResponse
       }
     }
@@ -284,13 +283,15 @@ public class LiquidGlassVisualEffect() : VisualEffect {
    *  - This property value, if specified.
    *  - [LiquidGlassStyle.lightPosition] value set in [style], if specified.
    *  - [LiquidGlassStyle.lightPosition] value set in the [LocalLiquidGlassStyle] composition local.
+   *
+   * If no value is specified through any of the above, the delegate falls back to the
+   * center of the layer at draw time.
    */
   public var lightPosition: Offset = Offset.Unspecified
     get() {
       return field
         .takeOrElse { style.lightPosition }
         .takeOrElse { compositionLocalStyle.lightPosition }
-        .takeOrElse { Offset.Unspecified }
     }
     set(value) {
       if (value != field) {
@@ -349,7 +350,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     }
 
   /**
-   * Strength of chromatic aberration. TODO: expand to configurable channel/spread controls.
+   * Strength of chromatic aberration, in the range `0f..1f`.
    *
    * There are precedence rules to how this styling property is applied:
    *
@@ -367,7 +368,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "chromaticAberrationStrength changed. Current: $field. New: $value" }
-        field = value
+        field = value.coerceIn(0f, 1f)
         dirtyTracker += LiquidGlassDirtyFields.ChromaticAberration
       }
     }
@@ -415,7 +416,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     }
 
   /**
-   * Shape applied to the glass. Defaults to a rectangle (all radii zero).
+   * Shape applied to the glass. Defaults to [RoundedCornerShape] with 16.dp corners.
    *
    * There are precedence rules to how this styling property is applied:
    *
@@ -436,13 +437,25 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     }
 
   /**
-   * Overall opacity for the effect.
+   * Overall opacity for the effect, in the range `0f..1f`.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.alpha] value set in [style], if specified.
+   *  - [LiquidGlassStyle.alpha] value set in the [LocalLiquidGlassStyle] composition local.
    */
-  public var alpha: Float = 1f
+  public var alpha: Float = Float.NaN
+    get() {
+      return field
+        .takeOrElse { style.alpha }
+        .takeOrElse { compositionLocalStyle.alpha }
+        .takeOrElse { LiquidGlassDefaults.alpha }
+    }
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "alpha changed. Current: $field. New: $value" }
-        field = value
+        field = value.coerceIn(0f, 1f)
         dirtyTracker += LiquidGlassDirtyFields.Alpha
       }
     }
@@ -527,6 +540,9 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     if (old.shape != new.shape) {
       dirtyTracker += LiquidGlassDirtyFields.Shape
     }
+    if (old.alpha != new.alpha) {
+      dirtyTracker += LiquidGlassDirtyFields.Alpha
+    }
   }
 
   internal companion object {
@@ -539,7 +555,15 @@ internal expect fun LiquidGlassVisualEffect.updateDelegate(
   drawScope: DrawScope,
 ): LiquidGlassVisualEffect.Delegate
 
-private fun RoundedCornerShape.hasZeroCornerRadii(): Boolean = this == LiquidGlassDefaults.shape
+private fun RoundedCornerShape.hasZeroCornerRadii(): Boolean {
+  // Use unit values to check if all corner sizes resolve to zero.
+  val unitSize = androidx.compose.ui.geometry.Size(1f, 1f)
+  val unitDensity = androidx.compose.ui.unit.Density(1f)
+  return topStart.toPx(unitSize, unitDensity) == 0f &&
+    topEnd.toPx(unitSize, unitDensity) == 0f &&
+    bottomEnd.toPx(unitSize, unitDensity) == 0f &&
+    bottomStart.toPx(unitSize, unitDensity) == 0f
+}
 
 private inline fun Float.takeOrElse(default: () -> Float): Float {
   return if (this.isNaN()) default() else this

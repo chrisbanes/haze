@@ -32,6 +32,7 @@ Changes since 2.0.0-alpha01.
 
 ### Added
 * Add recomposition testing (count + loop detection + instrumentation) in #919
+* Add `haze-liquidglass` module with iOS-style liquid glass refraction effect (experimental)
 
 ### Fixed
 * Fix `IllegalStateException` from `currentValueOf` on unattached node in #921

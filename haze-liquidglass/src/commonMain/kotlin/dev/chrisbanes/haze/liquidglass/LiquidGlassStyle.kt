@@ -30,6 +30,7 @@ public data class LiquidGlassStyle(
   val blurRadius: Dp = Dp.Unspecified,
   val refractionHeight: Float = Float.NaN,
   val chromaticAberrationStrength: Float = Float.NaN,
+  val alpha: Float = Float.NaN,
   val shape: RoundedCornerShape? = null,
   val surfaceProfile: SurfaceProfile? = null,
   val chromaticAberrationMode: ChromaticAberrationMode? = null,
