@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Changes since 2.0.0-alpha01.
 
+### Highlights
+
+#### New `haze-liquidglass` Module (Experimental)
+
+A new `haze-liquidglass` module adds an iOS-style liquid glass refraction effect. It renders refraction, depth blur, specular highlights, Fresnel ambient lift, chromatic aberration, and soft tinted glass through a custom AGSL runtime shader, with a Canvas-based fallback for platforms without runtime shader support.
+
+The module is gated behind `@ExperimentalHazeApi` and publishing is disabled until the API stabilizes.
+
+```kotlin
+implementation("dev.chrisbanes.haze:haze:2.0.0-alpha02")
+implementation("dev.chrisbanes.haze:haze-liquidglass:2.0.0-alpha02")
+```
+
+Usage:
+
+```kotlin
+Modifier.hazeEffect(state = hazeState) {
+  liquidGlassEffect {
+    tint = Color.White.copy(alpha = 0.12f)
+    refractionStrength = 0.7f
+    depth = 0.4f
+    shape = RoundedCornerShape(16.dp)
+    surfaceProfile = SurfaceProfile.Circle
+  }
+}
+```
+
+Key features:
+
+- **Refraction** with configurable strength, height, and surface profile (Circle, Squircle, Lip, Concave)
+- **Depth blur** mixing original and blurred content
+- **Specular highlights** and **Fresnel ambient response** driven by a virtual light source
+- **Chromatic aberration** in Simple (fast) or Full (spectral) modes
+- **`LiquidGlassStyle`** container with `LocalLiquidGlassStyle` composition local for scoped defaults
+- All properties follow the standard three-tier precedence: direct → style → composition local → defaults
+
 ### Breaking Changes
 
 - **Removed APIs:** `VisualEffectContext.visualEffect` property removed. Custom `VisualEffect` implementations should access their own state directly through class members or captured references. Inside `override fun DrawScope.draw(...)`, bare `this` refers to the `DrawScope`, not the `VisualEffect` instance.
@@ -32,7 +68,7 @@ Changes since 2.0.0-alpha01.
 
 ### Added
 * Add recomposition testing (count + loop detection + instrumentation) in #919
-* Add `haze-liquidglass` module with iOS-style liquid glass refraction effect (experimental)
+* Add `haze-liquidglass` module with liquid glass refraction effect — see [Highlights](#highlights) above
 
 ### Fixed
 * Fix `IllegalStateException` from `currentValueOf` on unattached node in #921
