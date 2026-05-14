@@ -1,16 +1,16 @@
 // Signature format: 4.0
 package dev.chrisbanes.haze.liquidglass {
 
-  public enum ChromaticAberrationMode {
+  @dev.chrisbanes.haze.ExperimentalHazeApi public enum ChromaticAberrationMode {
     enum_constant public static final dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode Full;
     enum_constant public static final dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode Simple;
   }
 
   public final class HazeEffectScopeKt {
-    method public static inline void liquidGlassEffect(dev.chrisbanes.haze.HazeEffectScope, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect,kotlin.Unit> block);
+    method @dev.chrisbanes.haze.ExperimentalHazeApi public static inline void liquidGlassEffect(dev.chrisbanes.haze.HazeEffectScope, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect,kotlin.Unit> block);
   }
 
-  public final class LiquidGlassDefaults {
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class LiquidGlassDefaults {
     method public dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode getChromaticAberrationMode();
     method public androidx.compose.foundation.shape.RoundedCornerShape getShape();
     method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getStyle();
@@ -39,7 +39,7 @@ package dev.chrisbanes.haze.liquidglass {
     field public static final float specularIntensity = 0.4f;
   }
 
-  @androidx.compose.runtime.Immutable public final class LiquidGlassStyle {
+  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class LiquidGlassStyle {
     ctor public LiquidGlassStyle();
     ctor @KotlinOnly public LiquidGlassStyle(optional androidx.compose.ui.graphics.Color tint, optional float refractionStrength, optional float specularIntensity, optional float depth, optional float ambientResponse, optional androidx.compose.ui.unit.Dp edgeSoftness, optional androidx.compose.ui.geometry.Offset lightPosition, optional androidx.compose.ui.unit.Dp blurRadius, optional float refractionHeight, optional float chromaticAberrationStrength, optional float alpha, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.liquidglass.SurfaceProfile? surfaceProfile, optional dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode? chromaticAberrationMode);
     method public float component10();
@@ -52,7 +52,7 @@ package dev.chrisbanes.haze.liquidglass {
     method public float component4();
     method public float component5();
     method public float component9();
-    method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle copy-d77f0L4(long tint, float refractionStrength, float specularIntensity, float depth, float ambientResponse, float edgeSoftness, long lightPosition, float blurRadius, float refractionHeight, float chromaticAberrationStrength, float alpha, androidx.compose.foundation.shape.RoundedCornerShape? shape, dev.chrisbanes.haze.liquidglass.SurfaceProfile? surfaceProfile, dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode? chromaticAberrationMode);
+    method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle copy-q1HvK6I(long tint, float refractionStrength, float specularIntensity, float depth, float ambientResponse, float edgeSoftness, long lightPosition, float blurRadius, float refractionHeight, float chromaticAberrationStrength, float alpha, androidx.compose.foundation.shape.RoundedCornerShape? shape, dev.chrisbanes.haze.liquidglass.SurfaceProfile? surfaceProfile, dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode? chromaticAberrationMode);
     method public float getAlpha();
     method public float getAmbientResponse();
     method public dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode? getChromaticAberrationMode();
@@ -87,10 +87,10 @@ package dev.chrisbanes.haze.liquidglass {
 
   public final class LiquidGlassStyleKt {
     method public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.liquidglass.LiquidGlassStyle> getLocalLiquidGlassStyle();
-    property public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.liquidglass.LiquidGlassStyle> LocalLiquidGlassStyle;
+    property @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.liquidglass.LiquidGlassStyle> LocalLiquidGlassStyle;
   }
 
-  @androidx.compose.runtime.Stable public final class LiquidGlassVisualEffect implements dev.chrisbanes.haze.VisualEffect {
+  @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public final class LiquidGlassVisualEffect implements dev.chrisbanes.haze.VisualEffect {
     ctor public LiquidGlassVisualEffect();
     ctor public LiquidGlassVisualEffect(dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect other);
     method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
@@ -134,7 +134,7 @@ package dev.chrisbanes.haze.liquidglass {
     field public static final String TAG = "LiquidGlassVisualEffect";
   }
 
-  public enum SurfaceProfile {
+  @dev.chrisbanes.haze.ExperimentalHazeApi public enum SurfaceProfile {
     enum_constant public static final dev.chrisbanes.haze.liquidglass.SurfaceProfile Circle;
     enum_constant public static final dev.chrisbanes.haze.liquidglass.SurfaceProfile Concave;
     enum_constant public static final dev.chrisbanes.haze.liquidglass.SurfaceProfile Lip;
