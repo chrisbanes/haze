@@ -20,19 +20,22 @@ Changes since 2.0.0-alpha01.
 ### Key Dependencies
 
 - Kotlin 2.3.20
-- Compose Multiplatform 1.11.0-rc01
+- Compose Multiplatform 1.11.0
 - Jetpack Compose 1.11.1
 - kotlinx-coroutines 1.11.0
 
 ### Changed
 * Refine `VisualEffect` lifecycle API, enforce single-owner semantics in #916
 * Migrate to Compose v2 test APIs in #924
+* Update Gradle to v9.5.1 in #931
+* Update Compose Multiplatform to 1.11.0 in #933
 
 ### Added
 * Add recomposition testing (count + loop detection + instrumentation) in #919
 
 ### Fixed
 * Fix `IllegalStateException` from `currentValueOf` on unattached node in #921
+* Fix dark line artifact at progressive blur region edges in #929
 
 **Full Changelog**: https://github.com/chrisbanes/haze/compare/2.0.0-alpha01...2.0.0-alpha02
 
