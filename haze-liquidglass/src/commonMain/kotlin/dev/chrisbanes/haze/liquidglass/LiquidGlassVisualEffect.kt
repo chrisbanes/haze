@@ -30,7 +30,7 @@ import dev.chrisbanes.haze.VisualEffectContext
  * A [VisualEffect] implementation that simulates the iOS-style liquid glass look:
  * refraction, depth layering, specular highlights, and soft tinted glass.
  */
-@OptIn(ExperimentalHazeApi::class)
+@ExperimentalHazeApi
 @Stable
 public class LiquidGlassVisualEffect() : VisualEffect {
 

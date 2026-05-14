@@ -3,10 +3,13 @@
 
 package dev.chrisbanes.haze.liquidglass
 
+import dev.chrisbanes.haze.ExperimentalHazeApi
+
 /**
  * Controls the quality and appearance of chromatic aberration (color dispersion)
  * at the refraction edges.
  */
+@ExperimentalHazeApi
 public enum class ChromaticAberrationMode {
   /**
    * Three-sample split: red shifted forward, green centered, blue shifted backward.

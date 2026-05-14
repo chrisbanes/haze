@@ -10,14 +10,17 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
+import dev.chrisbanes.haze.ExperimentalHazeApi
 
 /**
  * A [ProvidableCompositionLocal] which provides the default [LiquidGlassStyle] for all
  * [dev.chrisbanes.haze.hazeEffect] layout nodes placed within this composition local's content.
  */
+@ExperimentalHazeApi
 public val LocalLiquidGlassStyle: ProvidableCompositionLocal<LiquidGlassStyle> =
   compositionLocalOf { LiquidGlassDefaults.style }
 
+@ExperimentalHazeApi
 @Immutable
 public data class LiquidGlassStyle(
   val tint: Color = Color.Unspecified,

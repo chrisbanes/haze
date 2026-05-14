@@ -3,12 +3,15 @@
 
 package dev.chrisbanes.haze.liquidglass
 
+import dev.chrisbanes.haze.ExperimentalHazeApi
+
 /**
  * Describes the cross-sectional surface shape of the liquid glass bezel.
  *
  * The profile controls how light bends at the transition from the edge to the flat interior,
  * producing different refraction characteristics.
  */
+@ExperimentalHazeApi
 public enum class SurfaceProfile {
   /**
    * Spherical dome profile. Light rays bend sharply near the edge, creating a pronounced

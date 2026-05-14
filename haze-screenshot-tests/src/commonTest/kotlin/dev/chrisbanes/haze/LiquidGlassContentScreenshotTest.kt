@@ -1,6 +1,8 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(ExperimentalHazeApi::class)
+
 package dev.chrisbanes.haze
 
 import androidx.compose.runtime.getValue

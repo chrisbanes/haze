@@ -3,11 +3,13 @@
 
 package dev.chrisbanes.haze.liquidglass
 
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectScope
 
 /**
  * Configures a [LiquidGlassVisualEffect] for this effect scope.
  */
+@ExperimentalHazeApi
 public inline fun HazeEffectScope.liquidGlassEffect(
   block: LiquidGlassVisualEffect.() -> Unit = {},
 ) {

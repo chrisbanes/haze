@@ -7,7 +7,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.ExperimentalHazeApi
 
+@ExperimentalHazeApi
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object LiquidGlassDefaults {
   // Tuned defaults for the project's Liquid Glass effect.
