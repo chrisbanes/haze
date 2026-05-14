@@ -56,6 +56,8 @@ internal class RuntimeShaderLiquidGlassDelegate(
         blurRadiusPx = with(density) { effect.blurRadius.toPx() },
         refractionHeightPx = effect.refractionHeight.coerceIn(0f, 1f) * layerSize.minDimension,
         chromaticAberrationStrength = effect.chromaticAberrationStrength.coerceIn(0f, 1f),
+        surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),
+        chromaticAberrationMode = effect.chromaticAberrationMode.ordinal.toFloat(),
         cornerRadii = layerRadii,
         lightPosition = effect.lightPosition.takeOrElse {
           context.layerSize.center * scaleFactor
@@ -94,6 +96,8 @@ internal class RuntimeShaderLiquidGlassDelegate(
       setFloatUniform("edgeSoftness", params.edgeSoftnessPx)
       setFloatUniform("refractionHeight", params.refractionHeightPx)
       setFloatUniform("chromaticAberrationStrength", params.chromaticAberrationStrength)
+      setFloatUniform("surfaceProfile", params.surfaceProfile)
+      setFloatUniform("chromaticAberrationMode", params.chromaticAberrationMode)
       setFloatUniform(
         "cornerRadii",
         params.cornerRadii.topLeft,
@@ -123,6 +127,8 @@ internal class RuntimeShaderLiquidGlassDelegate(
     val blurRadiusPx: Float,
     val refractionHeightPx: Float,
     val chromaticAberrationStrength: Float,
+    val surfaceProfile: Float,
+    val chromaticAberrationMode: Float,
     val cornerRadii: CornerRadii,
     val lightPosition: Offset,
   )

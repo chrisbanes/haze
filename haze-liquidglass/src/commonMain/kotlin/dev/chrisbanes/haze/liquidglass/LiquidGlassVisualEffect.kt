@@ -46,6 +46,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     blurRadius = other.blurRadius
     refractionHeight = other.refractionHeight
     chromaticAberrationStrength = other.chromaticAberrationStrength
+    surfaceProfile = other.surfaceProfile
+    chromaticAberrationMode = other.chromaticAberrationMode
     shape = other.shape
     alpha = other.alpha
     style = other.style
@@ -371,6 +373,48 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     }
 
   /**
+   * Surface cross-section profile used for the refraction bezel.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.surfaceProfile] value set in [style], if specified.
+   *  - [LiquidGlassStyle.surfaceProfile] value set in the [LocalLiquidGlassStyle] composition local.
+   */
+  private var _surfaceProfile: SurfaceProfile? = null
+
+  public var surfaceProfile: SurfaceProfile
+    get() = _surfaceProfile ?: style.surfaceProfile ?: compositionLocalStyle.surfaceProfile ?: LiquidGlassDefaults.surfaceProfile
+    set(value) {
+      if (value != _surfaceProfile) {
+        HazeLogger.d(TAG) { "surfaceProfile changed. Current: $_surfaceProfile. New: $value" }
+        _surfaceProfile = value
+        dirtyTracker += LiquidGlassDirtyFields.SurfaceProfile
+      }
+    }
+
+  /**
+   * Quality mode for chromatic aberration (color dispersion).
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.chromaticAberrationMode] value set in [style], if specified.
+   *  - [LiquidGlassStyle.chromaticAberrationMode] value set in the [LocalLiquidGlassStyle] composition local.
+   */
+  private var _chromaticAberrationMode: ChromaticAberrationMode? = null
+
+  public var chromaticAberrationMode: ChromaticAberrationMode
+    get() = _chromaticAberrationMode ?: style.chromaticAberrationMode ?: compositionLocalStyle.chromaticAberrationMode ?: LiquidGlassDefaults.chromaticAberrationMode
+    set(value) {
+      if (value != _chromaticAberrationMode) {
+        HazeLogger.d(TAG) { "chromaticAberrationMode changed. Current: $_chromaticAberrationMode. New: $value" }
+        _chromaticAberrationMode = value
+        dirtyTracker += LiquidGlassDirtyFields.ChromaticAberrationMode
+      }
+    }
+
+  /**
    * Shape applied to the glass. Defaults to a rectangle (all radii zero).
    *
    * There are precedence rules to how this styling property is applied:
@@ -473,6 +517,12 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     }
     if (old.chromaticAberrationStrength != new.chromaticAberrationStrength) {
       dirtyTracker += LiquidGlassDirtyFields.ChromaticAberration
+    }
+    if (old.surfaceProfile != new.surfaceProfile) {
+      dirtyTracker += LiquidGlassDirtyFields.SurfaceProfile
+    }
+    if (old.chromaticAberrationMode != new.chromaticAberrationMode) {
+      dirtyTracker += LiquidGlassDirtyFields.ChromaticAberrationMode
     }
     if (old.shape != new.shape) {
       dirtyTracker += LiquidGlassDirtyFields.Shape

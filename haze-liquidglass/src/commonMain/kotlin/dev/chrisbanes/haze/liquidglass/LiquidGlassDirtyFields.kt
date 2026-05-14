@@ -20,7 +20,9 @@ internal object LiquidGlassDirtyFields {
   const val RefractionHeight: Int = BlurRadius shl 1
   const val ChromaticAberration: Int = RefractionHeight shl 1
   const val Shape: Int = ChromaticAberration shl 1
-  const val Alpha: Int = Shape shl 1
+  const val SurfaceProfile: Int = Shape shl 1
+  const val ChromaticAberrationMode: Int = SurfaceProfile shl 1
+  const val Alpha: Int = ChromaticAberrationMode shl 1
   const val Style: Int = Alpha shl 1
 
   const val InvalidateFlags: Int =
@@ -35,6 +37,8 @@ internal object LiquidGlassDirtyFields {
       RefractionHeight or
       ChromaticAberration or
       Shape or
+      SurfaceProfile or
+      ChromaticAberrationMode or
       Alpha or
       Style
 
@@ -51,6 +55,8 @@ internal object LiquidGlassDirtyFields {
       if (RefractionHeight in dirtyTracker) add("RefractionHeight")
       if (ChromaticAberration in dirtyTracker) add("ChromaticAberration")
       if (Shape in dirtyTracker) add("Shape")
+      if (SurfaceProfile in dirtyTracker) add("SurfaceProfile")
+      if (ChromaticAberrationMode in dirtyTracker) add("ChromaticAberrationMode")
       if (Alpha in dirtyTracker) add("Alpha")
       if (Style in dirtyTracker) add("Style")
     }

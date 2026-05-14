@@ -31,6 +31,8 @@ public data class LiquidGlassStyle(
   val refractionHeight: Float = Float.NaN,
   val chromaticAberrationStrength: Float = Float.NaN,
   val shape: RoundedCornerShape? = null,
+  val surfaceProfile: SurfaceProfile? = null,
+  val chromaticAberrationMode: ChromaticAberrationMode? = null,
 ) {
   public companion object {
     public val Unspecified: LiquidGlassStyle = LiquidGlassStyle()

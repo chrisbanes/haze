@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object LiquidGlassDefaults {
-  // Based on Apple's Liquid Glass and https://kube.io/blog/liquid-glass-css-svg/
+  // Tuned defaults for the project's Liquid Glass effect.
   public const val refractionStrength: Float = 0.7f // Typical range: 0.7-1.0
   public const val specularIntensity: Float = 0.4f // Typical range: 0.2-0.5
   public const val depth: Float = 0.4f // Blur/depth mixing
@@ -21,6 +21,8 @@ public object LiquidGlassDefaults {
   public const val refractionHeight: Float = 0.25f // Fraction of min dimension used for refraction
   public const val chromaticAberrationStrength: Float = 0f // 0 = off, 1 = strong dispersion
   public val shape: RoundedCornerShape = RoundedCornerShape(0.dp)
+  public val surfaceProfile: SurfaceProfile = SurfaceProfile.Circle
+  public val chromaticAberrationMode: ChromaticAberrationMode = ChromaticAberrationMode.Simple
 
   /**
    * Default [dev.chrisbanes.haze.liquidglass.LiquidGlassStyle] for usage with [LiquidGlassVisualEffect].
@@ -36,5 +38,7 @@ public object LiquidGlassDefaults {
     refractionHeight = refractionHeight,
     chromaticAberrationStrength = chromaticAberrationStrength,
     shape = shape,
+    surfaceProfile = surfaceProfile,
+    chromaticAberrationMode = chromaticAberrationMode,
   )
 }

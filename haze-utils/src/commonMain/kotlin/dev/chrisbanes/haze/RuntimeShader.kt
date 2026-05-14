@@ -59,6 +59,11 @@ public interface RuntimeShaderUniformProvider {
   public fun setFloatUniform(name: String, value1: Float, value2: Float, value3: Float, value4: Float)
 
   /**
+   * Sets an int uniform.
+   */
+  public fun setIntUniform(name: String, value: Int)
+
+  /**
    * Sets a child shader uniform.
    */
   public fun setChildShader(name: String, shader: Shader)

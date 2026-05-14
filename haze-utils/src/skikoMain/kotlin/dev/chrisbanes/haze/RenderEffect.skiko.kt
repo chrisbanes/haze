@@ -162,6 +162,10 @@ private value class SkikoRuntimeShaderUniformProvider(
     builder.uniform(name, value1, value2, value3, value4)
   }
 
+  override fun setIntUniform(name: String, value: Int) {
+    builder.uniform(name, value)
+  }
+
   override fun setChildShader(name: String, shader: Shader) {
     builder.child(name, shader.skiaShader)
   }

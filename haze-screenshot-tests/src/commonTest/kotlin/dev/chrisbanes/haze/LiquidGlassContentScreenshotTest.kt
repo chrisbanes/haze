@@ -9,8 +9,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode
 import dev.chrisbanes.haze.liquidglass.LiquidGlassStyle
 import dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect
+import dev.chrisbanes.haze.liquidglass.SurfaceProfile
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -199,6 +201,66 @@ class LiquidGlassContentScreenshotTest : ScreenshotTest() {
     }
 
     captureRoot()
+  }
+
+  @Test
+  fun creditCard_surfaceProfile() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      refractionStrength = 0.7f
+      refractionHeight = 0.28f
+      depth = 0.4f
+      specularIntensity = 0.5f
+      shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
+      surfaceProfile = SurfaceProfile.Squircle
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardContentBlurring(
+          visualEffect = visualEffect,
+          backgroundColors = listOf(Color(0xFF1E88E5), Color(0xFF00ACC1)),
+        )
+      }
+    }
+
+    captureRoot("squircle")
+
+    visualEffect.surfaceProfile = SurfaceProfile.Concave
+    waitForIdle()
+    captureRoot("concave")
+
+    visualEffect.surfaceProfile = SurfaceProfile.Lip
+    waitForIdle()
+    captureRoot("lip")
+  }
+
+  @Test
+  fun creditCard_chromaticAberrationMode() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      refractionStrength = 0.8f
+      chromaticAberrationStrength = 0.3f
+      depth = 0.45f
+      edgeSoftness = 14.dp
+      shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+      chromaticAberrationMode = ChromaticAberrationMode.Simple
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardContentBlurring(
+          visualEffect = visualEffect,
+          backgroundColors = listOf(Color(0xFF7E57C2), Color(0xFF26C6DA)),
+        )
+      }
+    }
+
+    captureRoot("simple")
+
+    visualEffect.chromaticAberrationMode = ChromaticAberrationMode.Full
+    waitForIdle()
+    captureRoot("full")
   }
 
   companion object {

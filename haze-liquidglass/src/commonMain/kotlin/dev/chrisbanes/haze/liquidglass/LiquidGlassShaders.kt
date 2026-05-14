@@ -7,6 +7,9 @@ internal object LiquidGlassShaders {
   /**
    * SKSL that simulates a layered glass effect with refraction, specular highlights,
    * Fresnel-based ambient response, and soft edges.
+   *
+   * Uses a signed-distance-function (SDF) rounded rectangle for compact, uniform edge
+   * handling and supports multiple surface profiles and chromatic-aberration modes.
    */
   val LIQUID_GLASS_SKSL: String by lazy(mode = LazyThreadSafetyMode.NONE) {
     """
@@ -21,10 +24,12 @@ internal object LiquidGlassShaders {
     uniform float refractionHeight;
     uniform float chromaticAberrationStrength;
     uniform float2 lightPosition;
-    uniform vec4 cornerRadii; // topLeft, topRight, bottomRight, bottomLeft
+    uniform vec4 cornerRadii;
     uniform vec4 tintColor;
-
-    float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+    // Declared as float because AGSL does not support int uniforms.
+    uniform float surfaceProfile;
+    // Declared as float because AGSL does not support int uniforms.
+    uniform float chromaticAberrationMode;
 
     vec2 clampCoord(vec2 coord) {
       return clamp(coord, vec2(0.5, 0.5), layerSize - vec2(0.5, 0.5));
@@ -34,75 +39,104 @@ internal object LiquidGlassShaders {
       return 1.0 - sqrt(max(0.0, 1.0 - x * x));
     }
 
-    float distanceToRoundedRect(vec2 coord) {
-      float width = layerSize.x;
-      float height = layerSize.y;
-
-      float tl = cornerRadii.x;
-      float tr = cornerRadii.y;
-      float br = cornerRadii.z;
-      float bl = cornerRadii.w;
-
-      if (coord.x < tl && coord.y < tl) {
-        vec2 c = vec2(tl, tl);
-        return max(tl - length(coord - c), 0.0);
-      }
-      if (coord.x > width - tr && coord.y < tr) {
-        vec2 c = vec2(width - tr, tr);
-        return max(tr - length(coord - c), 0.0);
-      }
-      if (coord.x > width - br && coord.y > height - br) {
-        vec2 c = vec2(width - br, height - br);
-        return max(br - length(coord - c), 0.0);
-      }
-      if (coord.x < bl && coord.y > height - bl) {
-        vec2 c = vec2(bl, height - bl);
-        return max(bl - length(coord - c), 0.0);
-      }
-
-      float distLeft = coord.x;
-      float distRight = width - coord.x;
-      float distTop = coord.y;
-      float distBottom = height - coord.y;
-      return max(min(min(distLeft, distRight), min(distTop, distBottom)), 0.0);
+    float squircleMap(float x) {
+      return pow(1.0 - pow(1.0 - x, 4.0), 0.25);
     }
 
-    vec2 inwardNormal(vec2 coord) {
-      float width = layerSize.x;
-      float height = layerSize.y;
-
-      float tl = cornerRadii.x;
-      float tr = cornerRadii.y;
-      float br = cornerRadii.z;
-      float bl = cornerRadii.w;
-
-      if (coord.x < tl && coord.y < tl) {
-        vec2 c = vec2(tl, tl);
-        vec2 dir = c - coord;
-        return normalize(dir + vec2(1e-4));
-      }
-      if (coord.x > width - tr && coord.y < tr) {
-        vec2 c = vec2(width - tr, tr);
-        vec2 dir = c - coord;
-        return normalize(dir + vec2(1e-4));
-      }
-      if (coord.x > width - br && coord.y > height - br) {
-        vec2 c = vec2(width - br, height - br);
-        vec2 dir = c - coord;
-        return normalize(dir + vec2(1e-4));
-      }
-      if (coord.x < bl && coord.y > height - bl) {
-        vec2 c = vec2(bl, height - bl);
-        vec2 dir = c - coord;
-        return normalize(dir + vec2(1e-4));
-      }
-
-      float dx = (width - 2.0 * coord.x);
-      float dy = (height - 2.0 * coord.y);
-      vec2 n = vec2(dx, dy);
-      if (dot(n, n) < 1e-8) n = vec2(0.0, 1.0);
-      return normalize(n);
+    float smootherstep(float x) {
+      float t = clamp(x, 0.0, 1.0);
+      return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
     }
+
+    float radiusAt(vec2 coord, vec4 radii) {
+      if (coord.x >= 0.0) {
+        if (coord.y <= 0.0) return radii.y;
+        else return radii.z;
+      } else {
+        if (coord.y <= 0.0) return radii.x;
+        else return radii.w;
+      }
+    }
+
+    float sdRoundedRect(vec2 coord, vec2 halfSize, float radius) {
+      vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
+      float outside = length(max(cornerCoord, 0.0)) - radius;
+      float inside = min(max(cornerCoord.x, cornerCoord.y), 0.0);
+      return outside + inside;
+    }
+
+    vec2 safeNormalize(vec2 value, vec2 fallback) {
+      float len = length(value);
+      return len > 0.0001 ? value / len : fallback;
+    }
+
+    vec2 axisSafeSign(vec2 value) {
+      return vec2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0);
+    }
+
+    vec2 gradSdRoundedRect(vec2 coord, vec2 halfSize, float radius) {
+      vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
+      vec2 coordSign = axisSafeSign(coord);
+      if (cornerCoord.x >= 0.0 || cornerCoord.y >= 0.0) {
+        return coordSign * safeNormalize(max(cornerCoord, 0.0), vec2(0.0));
+      } else {
+        float edgeBlend = smoothstep(-2.0, 2.0, cornerCoord.x - cornerCoord.y);
+        vec2 edgeDir = safeNormalize(
+          mix(vec2(0.0, 1.0), vec2(1.0, 0.0), edgeBlend),
+          vec2(1.0, 0.0)
+        );
+        float cornerProximity = smoothstep(-radius, 0.0, cornerCoord.x) * smoothstep(-radius, 0.0, cornerCoord.y);
+        vec2 arcDir = safeNormalize(-cornerCoord, vec2(0.70710678, 0.70710678));
+        vec2 insideDir = mix(edgeDir, arcDir, cornerProximity);
+        return coordSign * safeNormalize(insideDir, edgeDir);
+      }
+    }
+
+    float evaluateProfile(float t) {
+      // t runs from 0 (at the flat interior) to 1 (at the edge). Invert so x=0 at the edge
+      // and x=1 at the interior, matching the original circleMap/squircleMap parameterisation.
+      float x = 1.0 - clamp(t, 0.0, 1.0);
+      if (surfaceProfile == 1) {
+        return squircleMap(x);
+      } else if (surfaceProfile == 2) {
+        return -circleMap(x);
+      } else if (surfaceProfile == 3) {
+        float convex = circleMap(x);
+        float concave = -circleMap(x);
+        float blend = smootherstep(clamp(t / 0.7, 0.0, 1.0));
+        return mix(convex, concave, blend);
+      }
+      return circleMap(x);
+    }
+
+    float surfaceHeightAt(vec2 coord, float customRadius) {
+      vec2 halfSize = layerSize * 0.5;
+      vec2 centeredCoord = coord - halfSize;
+      float sd = sdRoundedRect(centeredCoord, halfSize, customRadius);
+      float distToEdge = max(-sd, 0.0);
+      float refractionZone = max(refractionHeight, 0.0001);
+      if (distToEdge >= refractionZone) return 0.0;
+      float t = clamp(distToEdge / refractionZone, 0.0, 1.0);
+      return evaluateProfile(t) * refractionZone;
+    }
+
+    float surfaceHeight(vec2 coord) {
+      vec2 halfSize = layerSize * 0.5;
+      vec2 centeredCoord = coord - halfSize;
+      float radius = radiusAt(centeredCoord, cornerRadii);
+      return surfaceHeightAt(coord, radius);
+    }
+
+    vec2 surfaceGradient(vec2 coord) {
+      float sampleStep = 2.0;
+      float left = surfaceHeight(clampCoord(coord - vec2(sampleStep, 0.0)));
+      float right = surfaceHeight(clampCoord(coord + vec2(sampleStep, 0.0)));
+      float up = surfaceHeight(clampCoord(coord - vec2(0.0, sampleStep)));
+      float down = surfaceHeight(clampCoord(coord + vec2(0.0, sampleStep)));
+      return vec2(right - left, down - up) * 0.25;
+    }
+
+    float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 
     vec3 computeContentNormal(vec2 coord) {
       float l = luma(content.eval(clampCoord(coord + vec2(1.0, 0.0))).rgb);
@@ -113,19 +147,13 @@ internal object LiquidGlassShaders {
       return normalize(vec3(grad, 1.0));
     }
 
-    vec3 computeNormal(vec2 coord, vec2 shapeNormal2D) {
-      vec3 shapeNormal = normalize(vec3(shapeNormal2D, 0.5));
-      vec3 contentNormal = computeContentNormal(coord);
-      return normalize(mix(shapeNormal, contentNormal, 0.15));
-    }
-
-    float edgeMask(vec2 coord, float distToEdge) {
+    float edgeMask(float distToEdge) {
       if (edgeSoftness <= 0.0) return 1.0;
       float e = distToEdge / max(edgeSoftness, 0.0001);
       return clamp(e, 0.0, 1.0);
     }
 
-    vec4 sampleChroma(vec2 coord, vec2 chromaOffset) {
+    vec4 sampleChromaSimple(vec2 coord, vec2 chromaOffset) {
       if (chromaticAberrationStrength <= 0.0001) return content.eval(clampCoord(coord));
       vec2 forward = clampCoord(coord + chromaOffset);
       vec2 backward = clampCoord(coord - chromaOffset);
@@ -133,38 +161,103 @@ internal object LiquidGlassShaders {
       return vec4(content.eval(forward).r, base.g, content.eval(backward).b, base.a);
     }
 
+    /**
+     * Full spectral chromatic aberration that samples the refracted content at seven
+     * wavelength offsets (red through purple) and blends them with position-dependent
+     * intensity. Much more expensive than the simple mode but produces a realistic
+     * prismatic edge when chromaticAberrationStrength is high.
+     */
+    vec4 sampleChromaFull(vec2 coord, vec2 chromaOffset) {
+      if (length(chromaOffset) < 0.0001) return content.eval(clampCoord(coord));
+
+      vec4 color = vec4(0.0);
+
+      vec4 red = content.eval(clampCoord(coord + chromaOffset));
+      color.r += red.r / 3.5;
+      color.a += red.a / 7.0;
+
+      vec4 orange = content.eval(clampCoord(coord + chromaOffset * (2.0 / 3.0)));
+      color.r += orange.r / 3.5;
+      color.g += orange.g / 7.0;
+      color.a += orange.a / 7.0;
+
+      vec4 yellow = content.eval(clampCoord(coord + chromaOffset * (1.0 / 3.0)));
+      color.r += yellow.r / 3.5;
+      color.g += yellow.g / 3.5;
+      color.a += yellow.a / 7.0;
+
+      vec4 green = content.eval(clampCoord(coord));
+      color.g += green.g / 3.5;
+      color.a += green.a / 7.0;
+
+      vec4 cyan = content.eval(clampCoord(coord - chromaOffset * (1.0 / 3.0)));
+      color.g += cyan.g / 3.5;
+      color.b += cyan.b / 3.0;
+      color.a += cyan.a / 7.0;
+
+      vec4 blue = content.eval(clampCoord(coord - chromaOffset * (2.0 / 3.0)));
+      color.b += blue.b / 3.0;
+      color.a += blue.a / 7.0;
+
+      vec4 purple = content.eval(clampCoord(coord - chromaOffset));
+      color.r += purple.r / 7.0;
+      color.b += purple.b / 3.0;
+      color.a += purple.a / 7.0;
+
+      return color;
+    }
+
+    vec4 sampleChroma(vec2 coord, vec2 chromaOffset) {
+      if (chromaticAberrationMode == 1) {
+        return sampleChromaFull(coord, chromaOffset);
+      }
+      return sampleChromaSimple(coord, chromaOffset);
+    }
+
     vec4 main(vec2 coord) {
       vec4 base = content.eval(coord);
+      vec2 halfSize = layerSize * 0.5;
+      vec2 centeredCoord = coord - halfSize;
+      float radius = radiusAt(centeredCoord, cornerRadii);
 
-      float distToEdge = distanceToRoundedRect(coord);
-      vec2 normal2D = inwardNormal(coord);
+      // Actual SDF for edge mask and distance (preserves exact shape).
+      float sd = sdRoundedRect(centeredCoord, halfSize, radius);
+      float distToEdge = max(-sd, 0.0);
 
+      float h = surfaceHeight(coord);
       float refractionZone = max(refractionHeight, 0.0001);
-      float normalizedDist = clamp(distToEdge / refractionZone, 0.0, 1.0);
-      float displacementMagnitude = distToEdge >= refractionZone ? 0.0 : circleMap(1.0 - normalizedDist);
-      vec2 displacement = normal2D * displacementMagnitude * refractionZone * refractionStrength;
+      float heightNorm = clamp(h / refractionZone, 0.0, 1.0);
+      float displacementMagnitude = -heightNorm * refractionStrength * 12.0;
 
+      float smoothRadius = max(radius * 1.5, 30.0);
+      float gradRadius = min(smoothRadius, min(halfSize.x, halfSize.y));
+      vec2 centerFallbackDir = vec2(1.0, 0.0);
+      vec2 refractionDir = safeNormalize(
+        gradSdRoundedRect(centeredCoord, halfSize, gradRadius) +
+          depth * safeNormalize(centeredCoord, centerFallbackDir),
+        centerFallbackDir
+      );
+      vec2 displacement = refractionDir * displacementMagnitude;
       vec2 refractCoord = clampCoord(coord + displacement);
 
       vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5;
       vec4 refracted = sampleChroma(refractCoord, chromaOffset);
       vec4 blurred = blurredContent.eval(refractCoord);
 
-      vec3 normal = computeNormal(coord, normal2D);
+      vec2 grad = surfaceGradient(coord);
+      vec3 shapeNormal = normalize(vec3(-grad.x, -grad.y, 1.0));
+      vec3 contentNormal = computeContentNormal(coord);
+      vec3 normal = normalize(mix(shapeNormal, contentNormal, 0.15));
 
       vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));
       vec3 tinted = mix(mixedColor, tintColor.rgb, tintColor.a);
-
       vec2 lightDir2D = normalize(lightPosition - coord);
       vec3 lightDir = normalize(vec3(lightDir2D, 1.0));
       float spec = pow(max(dot(normal, lightDir), 0.0), 24.0) * specularIntensity;
-
       float fresnel = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0);
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
-
       vec3 finalColor = mix(tinted, refracted.rgb, refractionStrength) * ambient + spec;
-
-      float edge = edgeMask(coord, distToEdge);
+      float edge = edgeMask(distToEdge);
       return vec4(finalColor, base.a) * edge;
     }
     """

@@ -10,8 +10,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode
 import dev.chrisbanes.haze.liquidglass.LiquidGlassStyle
 import dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect
+import dev.chrisbanes.haze.liquidglass.SurfaceProfile
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -245,6 +247,60 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
     visualEffect.chromaticAberrationStrength = 0.24f
     waitForIdle()
     captureRoot("on")
+  }
+
+  @Test
+  fun creditCard_surfaceProfile() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      refractionStrength = 0.7f
+      refractionHeight = 0.28f
+      depth = 0.4f
+      specularIntensity = 0.5f
+      shape = RoundedCornerShape(24.dp)
+      surfaceProfile = SurfaceProfile.Squircle
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(24.dp))
+      }
+    }
+
+    captureRoot("squircle")
+
+    visualEffect.surfaceProfile = SurfaceProfile.Concave
+    waitForIdle()
+    captureRoot("concave")
+
+    visualEffect.surfaceProfile = SurfaceProfile.Lip
+    waitForIdle()
+    captureRoot("lip")
+  }
+
+  @Test
+  fun creditCard_chromaticAberrationMode() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      refractionStrength = 0.8f
+      chromaticAberrationStrength = 0.3f
+      depth = 0.45f
+      edgeSoftness = 14.dp
+      shape = RoundedCornerShape(20.dp)
+      chromaticAberrationMode = ChromaticAberrationMode.Simple
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(20.dp))
+      }
+    }
+
+    captureRoot("simple")
+
+    visualEffect.chromaticAberrationMode = ChromaticAberrationMode.Full
+    waitForIdle()
+    captureRoot("full")
   }
 
   companion object {

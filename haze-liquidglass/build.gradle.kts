@@ -31,6 +31,13 @@ kotlin {
       }
     }
 
+    commonTest {
+      dependencies {
+        implementation(kotlin("test"))
+        implementation(libs.assertk)
+      }
+    }
+
     val skikoMain by creating {
       dependsOn(commonMain.get())
     }

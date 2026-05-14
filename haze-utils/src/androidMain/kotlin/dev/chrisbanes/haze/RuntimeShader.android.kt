@@ -81,6 +81,10 @@ private class AndroidRuntimeShaderUniformProvider(
     shader.setFloatUniform(name, value1, value2, value3, value4)
   }
 
+  override fun setIntUniform(name: String, value: Int) {
+    shader.setFloatUniform(name, value.toFloat())
+  }
+
   override fun setChildShader(name: String, shader: Shader) {
     this.shader.setInputShader(name, shader)
   }
