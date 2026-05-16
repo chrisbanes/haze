@@ -58,6 +58,13 @@ internal class RuntimeShaderLiquidGlassDelegate(
         chromaticAberrationStrength = effect.chromaticAberrationStrength.coerceIn(0f, 1f),
         surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),
         chromaticAberrationMode = effect.chromaticAberrationMode.ordinal.toFloat(),
+        contrast = effect.contrast.coerceIn(-1f, 1f),
+        whitePoint = effect.whitePoint.coerceIn(-1f, 1f),
+        chromaMultiplier = effect.chromaMultiplier.coerceIn(0f, 2f),
+        refractionScale = effect.refractionScale.coerceAtLeast(0f),
+        contentNormalBlend = effect.contentNormalBlend.coerceIn(0f, 1f),
+        specularExponent = effect.specularExponent.coerceAtLeast(0f),
+        fresnelExponent = effect.fresnelExponent.coerceAtLeast(0f),
         cornerRadii = layerRadii,
         lightPosition = effect.lightPosition.takeOrElse {
           context.layerSize.center * scaleFactor
@@ -98,6 +105,13 @@ internal class RuntimeShaderLiquidGlassDelegate(
       setFloatUniform("chromaticAberrationStrength", params.chromaticAberrationStrength)
       setFloatUniform("surfaceProfile", params.surfaceProfile)
       setFloatUniform("chromaticAberrationMode", params.chromaticAberrationMode)
+      setFloatUniform("contrast", params.contrast)
+      setFloatUniform("whitePoint", params.whitePoint)
+      setFloatUniform("chromaMultiplier", params.chromaMultiplier)
+      setFloatUniform("refractionScale", params.refractionScale)
+      setFloatUniform("contentNormalBlend", params.contentNormalBlend)
+      setFloatUniform("specularExponent", params.specularExponent)
+      setFloatUniform("fresnelExponent", params.fresnelExponent)
       setFloatUniform(
         "cornerRadii",
         params.cornerRadii.topLeft,
@@ -129,6 +143,13 @@ internal class RuntimeShaderLiquidGlassDelegate(
     val chromaticAberrationStrength: Float,
     val surfaceProfile: Float,
     val chromaticAberrationMode: Float,
+    val contrast: Float,
+    val whitePoint: Float,
+    val chromaMultiplier: Float,
+    val refractionScale: Float,
+    val contentNormalBlend: Float,
+    val specularExponent: Float,
+    val fresnelExponent: Float,
     val cornerRadii: CornerRadii,
     val lightPosition: Offset,
   )

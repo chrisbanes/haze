@@ -23,7 +23,14 @@ internal object LiquidGlassDirtyFields {
   const val SurfaceProfile: Int = Shape shl 1
   const val ChromaticAberrationMode: Int = SurfaceProfile shl 1
   const val Alpha: Int = ChromaticAberrationMode shl 1
-  const val Style: Int = Alpha shl 1
+  const val Contrast: Int = Alpha shl 1
+  const val WhitePoint: Int = Contrast shl 1
+  const val ChromaMultiplier: Int = WhitePoint shl 1
+  const val RefractionScale: Int = ChromaMultiplier shl 1
+  const val ContentNormalBlend: Int = RefractionScale shl 1
+  const val SpecularExponent: Int = ContentNormalBlend shl 1
+  const val FresnelExponent: Int = SpecularExponent shl 1
+  const val Style: Int = FresnelExponent shl 1
 
   const val InvalidateFlags: Int =
     RefractionStrength or
@@ -40,6 +47,13 @@ internal object LiquidGlassDirtyFields {
       SurfaceProfile or
       ChromaticAberrationMode or
       Alpha or
+      Contrast or
+      WhitePoint or
+      ChromaMultiplier or
+      RefractionScale or
+      ContentNormalBlend or
+      SpecularExponent or
+      FresnelExponent or
       Style
 
   fun stringify(dirtyTracker: Bitmask): String {
@@ -58,6 +72,13 @@ internal object LiquidGlassDirtyFields {
       if (SurfaceProfile in dirtyTracker) add("SurfaceProfile")
       if (ChromaticAberrationMode in dirtyTracker) add("ChromaticAberrationMode")
       if (Alpha in dirtyTracker) add("Alpha")
+      if (Contrast in dirtyTracker) add("Contrast")
+      if (WhitePoint in dirtyTracker) add("WhitePoint")
+      if (ChromaMultiplier in dirtyTracker) add("ChromaMultiplier")
+      if (RefractionScale in dirtyTracker) add("RefractionScale")
+      if (ContentNormalBlend in dirtyTracker) add("ContentNormalBlend")
+      if (SpecularExponent in dirtyTracker) add("SpecularExponent")
+      if (FresnelExponent in dirtyTracker) add("FresnelExponent")
       if (Style in dirtyTracker) add("Style")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")

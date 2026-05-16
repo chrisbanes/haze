@@ -50,6 +50,13 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     chromaticAberrationMode = other.chromaticAberrationMode
     shape = other.shape
     alpha = other.alpha
+    contrast = other.contrast
+    whitePoint = other.whitePoint
+    chromaMultiplier = other.chromaMultiplier
+    refractionScale = other.refractionScale
+    contentNormalBlend = other.contentNormalBlend
+    specularExponent = other.specularExponent
+    fresnelExponent = other.fresnelExponent
     style = other.style
   }
 
@@ -461,6 +468,174 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     }
 
   /**
+   * Overall contrast adjustment, in the range `-1f..1f`.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.contrast] value set in [style], if specified.
+   *  - [LiquidGlassStyle.contrast] value set in the [LocalLiquidGlassStyle] composition local.
+   */
+  public var contrast: Float = Float.NaN
+    get() {
+      return field
+        .takeOrElse { style.contrast }
+        .takeOrElse { compositionLocalStyle.contrast }
+        .takeOrElse { LiquidGlassDefaults.contrast }
+    }
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "contrast changed. Current: $field. New: $value" }
+        field = value.coerceIn(-1f, 1f)
+        dirtyTracker += LiquidGlassDirtyFields.Contrast
+      }
+    }
+
+  /**
+   * White point adjustment, in the range `-1f..1f`.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.whitePoint] value set in [style], if specified.
+   *  - [LiquidGlassStyle.whitePoint] value set in the [LocalLiquidGlassStyle] composition local.
+   */
+  public var whitePoint: Float = Float.NaN
+    get() {
+      return field
+        .takeOrElse { style.whitePoint }
+        .takeOrElse { compositionLocalStyle.whitePoint }
+        .takeOrElse { LiquidGlassDefaults.whitePoint }
+    }
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "whitePoint changed. Current: $field. New: $value" }
+        field = value.coerceIn(-1f, 1f)
+        dirtyTracker += LiquidGlassDirtyFields.WhitePoint
+      }
+    }
+
+  /**
+   * Chroma multiplier for saturation control, in the range `0f..2f`.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.chromaMultiplier] value set in [style], if specified.
+   *  - [LiquidGlassStyle.chromaMultiplier] value set in the [LocalLiquidGlassStyle] composition local.
+   */
+  public var chromaMultiplier: Float = Float.NaN
+    get() {
+      return field
+        .takeOrElse { style.chromaMultiplier }
+        .takeOrElse { compositionLocalStyle.chromaMultiplier }
+        .takeOrElse { LiquidGlassDefaults.chromaMultiplier }
+    }
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "chromaMultiplier changed. Current: $field. New: $value" }
+        field = value.coerceIn(0f, 2f)
+        dirtyTracker += LiquidGlassDirtyFields.ChromaMultiplier
+      }
+    }
+
+  /**
+   * Scale factor for refraction distortion.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.refractionScale] value set in [style], if specified.
+   *  - [LiquidGlassStyle.refractionScale] value set in the [LocalLiquidGlassStyle] composition local.
+   */
+  public var refractionScale: Float = Float.NaN
+    get() {
+      return field
+        .takeOrElse { style.refractionScale }
+        .takeOrElse { compositionLocalStyle.refractionScale }
+        .takeOrElse { LiquidGlassDefaults.refractionScale }
+    }
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "refractionScale changed. Current: $field. New: $value" }
+        field = value.coerceAtLeast(0f)
+        dirtyTracker += LiquidGlassDirtyFields.RefractionScale
+      }
+    }
+
+  /**
+   * Blend factor for content normals, in the range `0f..1f`.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.contentNormalBlend] value set in [style], if specified.
+   *  - [LiquidGlassStyle.contentNormalBlend] value set in the [LocalLiquidGlassStyle] composition local.
+   */
+  public var contentNormalBlend: Float = Float.NaN
+    get() {
+      return field
+        .takeOrElse { style.contentNormalBlend }
+        .takeOrElse { compositionLocalStyle.contentNormalBlend }
+        .takeOrElse { LiquidGlassDefaults.contentNormalBlend }
+    }
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "contentNormalBlend changed. Current: $field. New: $value" }
+        field = value.coerceIn(0f, 1f)
+        dirtyTracker += LiquidGlassDirtyFields.ContentNormalBlend
+      }
+    }
+
+  /**
+   * Exponent controlling specular highlight shape.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.specularExponent] value set in [style], if specified.
+   *  - [LiquidGlassStyle.specularExponent] value set in the [LocalLiquidGlassStyle] composition local.
+   */
+  public var specularExponent: Float = Float.NaN
+    get() {
+      return field
+        .takeOrElse { style.specularExponent }
+        .takeOrElse { compositionLocalStyle.specularExponent }
+        .takeOrElse { LiquidGlassDefaults.specularExponent }
+    }
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "specularExponent changed. Current: $field. New: $value" }
+        field = value.coerceAtLeast(0f)
+        dirtyTracker += LiquidGlassDirtyFields.SpecularExponent
+      }
+    }
+
+  /**
+   * Exponent controlling Fresnel edge effect intensity.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [LiquidGlassStyle.fresnelExponent] value set in [style], if specified.
+   *  - [LiquidGlassStyle.fresnelExponent] value set in the [LocalLiquidGlassStyle] composition local.
+   */
+  public var fresnelExponent: Float = Float.NaN
+    get() {
+      return field
+        .takeOrElse { style.fresnelExponent }
+        .takeOrElse { compositionLocalStyle.fresnelExponent }
+        .takeOrElse { LiquidGlassDefaults.fresnelExponent }
+    }
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "fresnelExponent changed. Current: $field. New: $value" }
+        field = value.coerceAtLeast(0f)
+        dirtyTracker += LiquidGlassDirtyFields.FresnelExponent
+      }
+    }
+
+  /**
    * Optional style container that can set multiple parameters at once.
    *
    * There are precedence rules to how each styling property is applied. The order of precedence
@@ -542,6 +717,27 @@ public class LiquidGlassVisualEffect() : VisualEffect {
     }
     if (old.alpha != new.alpha) {
       dirtyTracker += LiquidGlassDirtyFields.Alpha
+    }
+    if (old.contrast != new.contrast) {
+      dirtyTracker += LiquidGlassDirtyFields.Contrast
+    }
+    if (old.whitePoint != new.whitePoint) {
+      dirtyTracker += LiquidGlassDirtyFields.WhitePoint
+    }
+    if (old.chromaMultiplier != new.chromaMultiplier) {
+      dirtyTracker += LiquidGlassDirtyFields.ChromaMultiplier
+    }
+    if (old.refractionScale != new.refractionScale) {
+      dirtyTracker += LiquidGlassDirtyFields.RefractionScale
+    }
+    if (old.contentNormalBlend != new.contentNormalBlend) {
+      dirtyTracker += LiquidGlassDirtyFields.ContentNormalBlend
+    }
+    if (old.specularExponent != new.specularExponent) {
+      dirtyTracker += LiquidGlassDirtyFields.SpecularExponent
+    }
+    if (old.fresnelExponent != new.fresnelExponent) {
+      dirtyTracker += LiquidGlassDirtyFields.FresnelExponent
     }
   }
 

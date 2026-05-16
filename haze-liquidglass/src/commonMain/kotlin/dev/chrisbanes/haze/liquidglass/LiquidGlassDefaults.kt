@@ -26,6 +26,13 @@ public object LiquidGlassDefaults {
   public val surfaceProfile: SurfaceProfile = SurfaceProfile.Circle
   public val chromaticAberrationMode: ChromaticAberrationMode = ChromaticAberrationMode.Simple
   public const val alpha: Float = 1f // Fully opaque
+  public const val contrast: Float = 0f // -1..1 range
+  public const val whitePoint: Float = 0f // -1..1 range
+  public const val chromaMultiplier: Float = 1f // 0..2 range
+  public const val refractionScale: Float = 12f
+  public const val contentNormalBlend: Float = 0.15f
+  public const val specularExponent: Float = 24f
+  public const val fresnelExponent: Float = 3f
 
   /**
    * Default [dev.chrisbanes.haze.liquidglass.LiquidGlassStyle] for usage with [LiquidGlassVisualEffect].
@@ -41,6 +48,13 @@ public object LiquidGlassDefaults {
     refractionHeight = refractionHeight,
     chromaticAberrationStrength = chromaticAberrationStrength,
     alpha = alpha,
+    contrast = contrast,
+    whitePoint = whitePoint,
+    chromaMultiplier = chromaMultiplier,
+    refractionScale = refractionScale,
+    contentNormalBlend = contentNormalBlend,
+    specularExponent = specularExponent,
+    fresnelExponent = fresnelExponent,
     shape = shape,
     surfaceProfile = surfaceProfile,
     chromaticAberrationMode = chromaticAberrationMode,
