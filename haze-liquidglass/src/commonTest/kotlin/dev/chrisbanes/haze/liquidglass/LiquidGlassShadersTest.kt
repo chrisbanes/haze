@@ -11,7 +11,7 @@ import kotlin.test.Test
 class LiquidGlassShadersTest {
 
   @Test
-  fun shader_uses_qmdeve_style_direction_field_only_for_refraction() {
+  fun shader_uses_analytical_gradient_direction_for_refraction() {
     val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
 
     // Direction-only refraction path: analytical rounded-rect gradient with mild smoothing
