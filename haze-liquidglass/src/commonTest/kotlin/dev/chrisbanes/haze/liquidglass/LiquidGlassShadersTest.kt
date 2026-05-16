@@ -60,7 +60,7 @@ class LiquidGlassShadersTest {
   @Test
   fun shader_contains_corner_weighted_dispersion() {
     val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
-    assertThat(shader).contains("float cornerWeight = abs((centeredCoord.x * centeredCoord.y) / (halfSize.x * halfSize.y));")
+    assertThat(shader).contains("float cornerWeight = abs((centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001));")
     assertThat(shader).contains("* cornerWeight;")
   }
 
@@ -71,6 +71,7 @@ class LiquidGlassShadersTest {
     assertThat(shader).contains("uniform float whitePoint;")
     assertThat(shader).contains("uniform float chromaMultiplier;")
     assertThat(shader).contains("vec4 applyColorGrading(vec4 color)")
+    assertThat(shader).contains("clamp((color.rgb - 0.5) * (1.0 + contrast) + 0.5, 0.0, 1.0)")
   }
 
   @Test

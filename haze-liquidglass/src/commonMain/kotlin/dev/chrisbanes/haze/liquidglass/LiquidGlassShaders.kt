@@ -245,7 +245,7 @@ internal object LiquidGlassShaders {
 
       // Contrast
       if (contrast != 0.0) {
-        color.rgb = (color.rgb - 0.5) * (1.0 + contrast) + 0.5;
+        color.rgb = clamp((color.rgb - 0.5) * (1.0 + contrast) + 0.5, 0.0, 1.0);
       }
 
       return color;
@@ -295,7 +295,7 @@ internal object LiquidGlassShaders {
       vec2 displacement = refractionDir * displacementMagnitude;
       vec2 refractCoord = clampCoord(coord + displacement);
 
-      float cornerWeight = abs((centeredCoord.x * centeredCoord.y) / (halfSize.x * halfSize.y));
+      float cornerWeight = abs((centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001));
       vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refracted = sampleChroma(refractCoord, chromaOffset);
       vec4 blurred = blurredContent.eval(refractCoord);
@@ -306,7 +306,8 @@ internal object LiquidGlassShaders {
       vec3 normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend)); // Blend shape + content normals
 
       vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));
-      vec3 tinted = mix(mixedColor, tintColor.rgb, tintColor.a);
+      vec3 graded = applyColorGrading(vec4(mixedColor, 1.0)).rgb;
+      vec3 tinted = mix(graded, tintColor.rgb, tintColor.a);
       vec2 lightDir2D = normalize(lightPosition - coord);
       vec3 lightDir = normalize(vec3(lightDir2D, 1.0));
       float spec = pow(max(dot(normal, lightDir), 0.0), specularExponent) * specularIntensity; // Specular highlight exponent
