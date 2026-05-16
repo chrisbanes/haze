@@ -33,6 +33,10 @@ internal object LiquidGlassShaders {
     uniform float contrast;
     uniform float whitePoint;
     uniform float chromaMultiplier;
+    uniform float refractionScale;
+    uniform float contentNormalBlend;
+    uniform float specularExponent;
+    uniform float fresnelExponent;
 
     vec2 clampCoord(vec2 coord) {
       return clamp(coord, vec2(0.5, 0.5), layerSize - vec2(0.5, 0.5));
@@ -260,16 +264,25 @@ internal object LiquidGlassShaders {
       float refractionZone = max(refractionHeight, 0.0001);
       if (distToEdge >= refractionZone) {
         vec4 base = content.eval(coord);
-        base = applyColorGrading(base);
-        vec3 tinted = mix(base.rgb, tintColor.rgb, tintColor.a);
-        return vec4(tinted, base.a);
+        vec3 graded = applyColorGrading(base).rgb;
+
+        // Deep interior: surface gradient is negligible, use content normal only.
+        vec3 normal = computeContentNormal(coord);
+        vec2 lightDir2D = normalize(lightPosition - coord);
+        vec3 lightDir = normalize(vec3(lightDir2D, 1.0));
+        float fresnel = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), fresnelExponent);
+        float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
+
+        vec3 tinted = mix(graded, tintColor.rgb, tintColor.a);
+        vec3 finalColor = tinted * ambient;
+        return vec4(finalColor, base.a);
       }
 
       vec4 base = content.eval(coord);
 
       float h = surfaceHeight(coord);
       float heightNorm = clamp(h / refractionZone, 0.0, 1.0);
-      float displacementMagnitude = -heightNorm * refractionStrength * 12.0; // Scale factor for refraction displacement
+      float displacementMagnitude = -heightNorm * refractionStrength * refractionScale; // Scale factor for refraction displacement
 
       float smoothRadius = max(radius * 1.5, 30.0);
       float gradRadius = min(smoothRadius, min(halfSize.x, halfSize.y));
@@ -290,14 +303,14 @@ internal object LiquidGlassShaders {
       vec2 grad = surfaceGradient(coord);
       vec3 shapeNormal = normalize(vec3(-grad.x, -grad.y, 1.0));
       vec3 contentNormal = computeContentNormal(coord);
-      vec3 normal = normalize(mix(shapeNormal, contentNormal, 0.15)); // Blend shape + content normals
+      vec3 normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend)); // Blend shape + content normals
 
       vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));
       vec3 tinted = mix(mixedColor, tintColor.rgb, tintColor.a);
       vec2 lightDir2D = normalize(lightPosition - coord);
       vec3 lightDir = normalize(vec3(lightDir2D, 1.0));
-      float spec = pow(max(dot(normal, lightDir), 0.0), 24.0) * specularIntensity; // Specular highlight exponent
-      float fresnel = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0); // Fresnel edge glow exponent
+      float spec = pow(max(dot(normal, lightDir), 0.0), specularExponent) * specularIntensity; // Specular highlight exponent
+      float fresnel = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), fresnelExponent); // Fresnel edge glow exponent
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
       refracted = applyColorGrading(refracted);
       vec3 finalColor = mix(tinted, refracted.rgb, refractionStrength) * ambient + spec;
