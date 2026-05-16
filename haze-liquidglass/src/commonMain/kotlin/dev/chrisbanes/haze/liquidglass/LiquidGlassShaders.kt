@@ -30,6 +30,9 @@ internal object LiquidGlassShaders {
     uniform float surfaceProfile;
     // Declared as float because AGSL does not support int uniforms.
     uniform float chromaticAberrationMode;
+    uniform float contrast;
+    uniform float whitePoint;
+    uniform float chromaMultiplier;
 
     vec2 clampCoord(vec2 coord) {
       return clamp(coord, vec2(0.5, 0.5), layerSize - vec2(0.5, 0.5));
@@ -149,8 +152,8 @@ internal object LiquidGlassShaders {
 
     float edgeMask(float distToEdge) {
       if (edgeSoftness <= 0.0) return 1.0;
-      float e = distToEdge / max(edgeSoftness, 0.0001);
-      return clamp(e, 0.0, 1.0);
+      float e = clamp(distToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0);
+      return smootherstep(e);
     }
 
     vec4 sampleChromaSimple(vec2 coord, vec2 chromaOffset) {
@@ -214,8 +217,37 @@ internal object LiquidGlassShaders {
       return sampleChromaSimple(coord, chromaOffset);
     }
 
+    vec3 srgbToLinear(vec3 s) {
+      return mix(s / 12.92, pow((s + 0.055) / 1.055, vec3(2.4)), step(0.04045, s));
+    }
+
+    vec3 linearToSrgb(vec3 l) {
+      return mix(l * 12.92, 1.055 * pow(l, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, l));
+    }
+
+    vec4 applyColorGrading(vec4 color) {
+      // Saturation (linear sRGB for perceptual uniformity)
+      if (chromaMultiplier != 1.0) {
+        vec3 lin = srgbToLinear(color.rgb);
+        float y = dot(lin, vec3(0.2126, 0.7152, 0.0722));
+        color.rgb = linearToSrgb(mix(vec3(y), lin, chromaMultiplier));
+      }
+
+      // White point
+      if (whitePoint != 0.0) {
+        vec3 target = (whitePoint > 0.0) ? vec3(1.0) : vec3(0.0);
+        color.rgb = mix(color.rgb, target, abs(whitePoint));
+      }
+
+      // Contrast
+      if (contrast != 0.0) {
+        color.rgb = (color.rgb - 0.5) * (1.0 + contrast) + 0.5;
+      }
+
+      return color;
+    }
+
     vec4 main(vec2 coord) {
-      vec4 base = content.eval(coord);
       vec2 halfSize = layerSize * 0.5;
       vec2 centeredCoord = coord - halfSize;
       float radius = radiusAt(centeredCoord, cornerRadii);
@@ -224,8 +256,18 @@ internal object LiquidGlassShaders {
       float sd = sdRoundedRect(centeredCoord, halfSize, radius);
       float distToEdge = max(-sd, 0.0);
 
-      float h = surfaceHeight(coord);
+      // Flat-interior early-out: skip refraction when far from edge.
       float refractionZone = max(refractionHeight, 0.0001);
+      if (distToEdge >= refractionZone) {
+        vec4 base = content.eval(coord);
+        base = applyColorGrading(base);
+        vec3 tinted = mix(base.rgb, tintColor.rgb, tintColor.a);
+        return vec4(tinted, base.a);
+      }
+
+      vec4 base = content.eval(coord);
+
+      float h = surfaceHeight(coord);
       float heightNorm = clamp(h / refractionZone, 0.0, 1.0);
       float displacementMagnitude = -heightNorm * refractionStrength * 12.0; // Scale factor for refraction displacement
 
@@ -240,7 +282,8 @@ internal object LiquidGlassShaders {
       vec2 displacement = refractionDir * displacementMagnitude;
       vec2 refractCoord = clampCoord(coord + displacement);
 
-      vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5;
+      float cornerWeight = abs((centeredCoord.x * centeredCoord.y) / (halfSize.x * halfSize.y));
+      vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refracted = sampleChroma(refractCoord, chromaOffset);
       vec4 blurred = blurredContent.eval(refractCoord);
 
@@ -256,6 +299,7 @@ internal object LiquidGlassShaders {
       float spec = pow(max(dot(normal, lightDir), 0.0), 24.0) * specularIntensity; // Specular highlight exponent
       float fresnel = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), 3.0); // Fresnel edge glow exponent
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
+      refracted = applyColorGrading(refracted);
       vec3 finalColor = mix(tinted, refracted.rgb, refractionStrength) * ambient + spec;
       float edge = edgeMask(distToEdge);
       return vec4(finalColor, base.a) * edge;
