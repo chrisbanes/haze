@@ -14,6 +14,13 @@ plugins {
 
 android {
   namespace = "dev.chrisbanes.haze.sample.shared"
+
+  @Suppress("UnstableApiUsage")
+  testOptions {
+    unitTests {
+      isIncludeAndroidResources = true
+    }
+  }
 }
 
 kotlin {
@@ -110,4 +117,9 @@ kotlin {
       baseName = "HazeSamplesKt"
     }
   }
+}
+
+dependencies {
+  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+  debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
