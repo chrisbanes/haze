@@ -39,6 +39,18 @@ kotlin {
       }
     }
 
+    commonTest {
+      dependencies {
+        implementation(kotlin("test"))
+        implementation(libs.assertk)
+
+        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+        implementation(compose.uiTest)
+
+        implementation(projects.internal.contextTest)
+      }
+    }
+
     androidMain {
       dependencies {
         implementation(libs.ktor.cio)
@@ -73,6 +85,13 @@ kotlin {
 
       dependencies {
         implementation(libs.ktor.cio)
+      }
+    }
+
+    jvmTest {
+      dependencies {
+        implementation(compose.desktop.currentOs)
+        implementation(libs.kotlinx.coroutines.swing)
       }
     }
 
