@@ -206,6 +206,7 @@ package dev.chrisbanes.haze {
     method public void setFloatUniform(String name, float value);
     method public void setFloatUniform(String name, float value1, float value2);
     method public void setFloatUniform(String name, float value1, float value2, float value3, float value4);
+    method public void setIntUniform(String name, int value);
   }
 
   public final class RuntimeShader_androidKt {

@@ -23,6 +23,8 @@ nav:
     - "Materials": blur/materials.md
     - "FAQs": blur/faq.md
     - "Platforms": blur/platforms.md
+  - "Effects":
+    - "Liquid Glass": effects/liquid-glass.md
   - "Custom Effects": custom-effects.md
   - "Performance": performance.md
   - "Recipes": recipes.md

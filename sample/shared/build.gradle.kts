@@ -14,6 +14,13 @@ plugins {
 
 android {
   namespace = "dev.chrisbanes.haze.sample.shared"
+
+  @Suppress("UnstableApiUsage")
+  testOptions {
+    unitTests {
+      isIncludeAndroidResources = true
+    }
+  }
 }
 
 kotlin {
@@ -24,6 +31,7 @@ kotlin {
       dependencies {
         api(projects.haze)
         api(projects.hazeBlur)
+        api(projects.hazeLiquidglass)
         api(projects.hazeMaterials)
 
         api(libs.androidx.navigation.compose)
@@ -35,6 +43,18 @@ kotlin {
 
         api(compose.material3)
         api(libs.compose.material.icons)
+      }
+    }
+
+    commonTest {
+      dependencies {
+        implementation(kotlin("test"))
+        implementation(libs.assertk)
+
+        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+        implementation(compose.uiTest)
+
+        implementation(projects.internal.contextTest)
       }
     }
 
@@ -75,6 +95,13 @@ kotlin {
       }
     }
 
+    jvmTest {
+      dependencies {
+        implementation(compose.desktop.currentOs)
+        implementation(libs.kotlinx.coroutines.swing)
+      }
+    }
+
     named("wasmJsMain") {
       dependsOn(skikoMain)
     }
@@ -90,4 +117,14 @@ kotlin {
       baseName = "HazeSamplesKt"
     }
   }
+}
+
+dependencies {
+  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+  debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// Disable JS tests; they currently fail due to missing browser-side runtime support.
+tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest> {
+  enabled = false
 }
