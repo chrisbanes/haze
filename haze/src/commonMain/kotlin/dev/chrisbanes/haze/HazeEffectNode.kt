@@ -43,7 +43,7 @@ import kotlinx.coroutines.DisposableHandle
  */
 @ExperimentalHazeApi
 public class HazeEffectNode(
-  public var state: HazeState? = null,
+  state: HazeState? = null,
   public var block: (HazeEffectScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
@@ -66,6 +66,15 @@ public class HazeEffectNode(
   override val shouldAutoInvalidate: Boolean = false
 
   internal var dirtyTracker = Bitmask(DirtyFields.Areas)
+
+  public var state: HazeState? = state
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "state changed. Current: $field. New: $value" }
+        dirtyTracker += DirtyFields.Areas
+        field = value
+      }
+    }
 
   private var needsPreDrawInvalidation = false
 
@@ -139,6 +148,8 @@ public class HazeEffectNode(
   internal val visualEffectContext: VisualEffectContext by lazy(LazyThreadSafetyMode.NONE) {
     HazeEffectNodeVisualEffectContext(this)
   }
+
+  private var lastSeenStateAreas: List<HazeArea> = emptyList()
 
   private var _areas: List<HazeArea> = emptyList()
     set(value) {
@@ -362,8 +373,6 @@ public class HazeEffectNode(
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
     if (!isAttached) return@trace
 
-    // Allow the current VisualEffect to update from CompositionLocals/state
-    visualEffect.update(visualEffectContext)
     windowId = getWindowId()
 
     // Read positionStrategy and resolvedStrategy to establish snapshot observation.
@@ -382,6 +391,18 @@ public class HazeEffectNode(
       // Always read state.areas to maintain snapshot observation on HazeState._areas
       // (mutableStateListOf), even when we skip recomputation below.
       val stateAreas = state.areas
+
+      // Detect membership changes in the observed state list. The snapshot
+      // observation fires when items are added or removed, but we gate the
+      // _areas rebuild behind DirtyFields.Areas. If the raw list has changed,
+      // mark ourselves dirty so the filtered / sorted _areas is refreshed.
+      // We copy toList() because stateAreas is a SnapshotStateList reference
+      // and would otherwise mutate lastSeenStateAreas in place.
+      val currentStateAreas = stateAreas.toList()
+      if (currentStateAreas != lastSeenStateAreas) {
+        lastSeenStateAreas = currentStateAreas
+        dirtyTracker += DirtyFields.Areas
+      }
 
       if (DirtyFields.Areas in dirtyTracker) {
         _areas.forEach { area ->
@@ -429,6 +450,9 @@ public class HazeEffectNode(
       )
       if (hazeState.resolvedStrategy != newResolved) {
         hazeState.resolvedStrategy = newResolved
+        // Allow the current VisualEffect to update before we return so it
+        // sees the freshly-computed areas on this pass.
+        visualEffect.update(visualEffectContext)
         // Strategy changes trigger source nodes to recompute area positions via state reads.
         // Exit now to avoid mixing coordinate systems in this frame.
         invalidateIfNeeded()
@@ -487,6 +511,9 @@ public class HazeEffectNode(
         _layerOffset = Offset.Zero
       }
     }
+
+    // Allow the current VisualEffect to update from CompositionLocals/state
+    visualEffect.update(visualEffectContext)
 
     invalidateIfNeeded()
   }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
@@ -15,6 +16,7 @@ import assertk.assertThat
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -211,6 +213,108 @@ class HazeComposeUnitTests : ContextTest() {
 
     assertThat(resolved).isEqualTo(HazePositionStrategy.Local)
   }
+
+  @Test
+  fun test_effect_areas_updated_when_source_added_after_first_draw() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = AreaCapturingVisualEffect()
+    val showSecondSource = mutableStateOf(false)
+
+    setContent {
+      Box {
+        Box(Modifier.hazeSource(hazeState)) { }
+        if (showSecondSource.value) {
+          Spacer(Modifier.hazeSource(hazeState).size(10.dp))
+        }
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.lastAreas).hasSize(1)
+
+    showSecondSource.value = true
+    waitForIdle()
+    assertThat(effect.lastAreas).hasSize(2)
+  }
+
+  @Test
+  fun test_effect_areas_updated_when_source_removed_after_first_draw() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = AreaCapturingVisualEffect()
+    val showSecondSource = mutableStateOf(true)
+
+    setContent {
+      Box {
+        Box(Modifier.hazeSource(hazeState)) { }
+        if (showSecondSource.value) {
+          Spacer(Modifier.hazeSource(hazeState).size(10.dp))
+        }
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.lastAreas).hasSize(2)
+
+    showSecondSource.value = false
+    waitForIdle()
+    assertThat(effect.lastAreas).hasSize(1)
+  }
+
+  @Test
+  fun test_effect_areas_updated_when_state_swapped_after_first_draw() = runComposeUiTest {
+    val state1 = HazeState()
+    val state2 = HazeState()
+    val effect = AreaCapturingVisualEffect()
+    val selectedState = mutableStateOf(state1)
+
+    setContent {
+      Box {
+        Spacer(Modifier.hazeSource(state1).size(10.dp))
+        Spacer(Modifier.hazeSource(state2).size(10.dp))
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(selectedState.value) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.lastAreas).hasSize(1)
+    val initialArea = effect.lastAreas.single()
+
+    selectedState.value = state2
+    waitForIdle()
+    assertThat(effect.lastAreas).hasSize(1)
+    val swappedArea = effect.lastAreas.single()
+    assertThat(swappedArea !== initialArea).isTrue()
+  }
+}
+
+internal class AreaCapturingVisualEffect : VisualEffect {
+  var lastAreas: List<HazeArea> = emptyList()
+
+  override fun update(context: VisualEffectContext) {
+    lastAreas = context.areas
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
 
 internal object HazeAreaTestFactory {
