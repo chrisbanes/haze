@@ -12,7 +12,7 @@ class LiquidGlassShadersTest {
 
   @Test
   fun shader_uses_analytical_gradient_direction_for_refraction() {
-    val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
+    val shader = LiquidGlassShaders.build()
 
     // Direction-only refraction path: analytical rounded-rect gradient with mild smoothing
     // and center bias, instead of deriving displacement direction from `surfaceGradient()`.
@@ -52,21 +52,21 @@ class LiquidGlassShadersTest {
 
   @Test
   fun shader_contains_flat_interior_early_out() {
-    val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
+    val shader = LiquidGlassShaders.build()
     assertThat(shader).contains("if (distToEdge >= refractionZone)")
     assertThat(shader).contains("return vec4(finalColor, base.a);")
   }
 
   @Test
   fun shader_contains_corner_weighted_dispersion() {
-    val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
+    val shader = LiquidGlassShaders.build()
     assertThat(shader).contains("float cornerWeight = abs((centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001));")
     assertThat(shader).contains("* cornerWeight;")
   }
 
   @Test
   fun shader_contains_color_grading() {
-    val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
+    val shader = LiquidGlassShaders.build()
     assertThat(shader).contains("uniform float contrast;")
     assertThat(shader).contains("uniform float whitePoint;")
     assertThat(shader).contains("uniform float chromaMultiplier;")
@@ -76,7 +76,7 @@ class LiquidGlassShadersTest {
 
   @Test
   fun shader_exposes_magic_numbers_as_uniforms() {
-    val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
+    val shader = LiquidGlassShaders.build()
     assertThat(shader).doesNotContain("* 12.0;")
     assertThat(shader).contains("uniform float refractionScale;")
     assertThat(shader).contains("* refractionScale")
@@ -88,13 +88,13 @@ class LiquidGlassShadersTest {
 
   @Test
   fun shader_uses_smootherstep_edge_mask() {
-    val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
+    val shader = LiquidGlassShaders.build()
     assertThat(shader).contains("return smootherstep(e);")
   }
 
   @Test
   fun shader_uses_linear_space_saturation() {
-    val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
+    val shader = LiquidGlassShaders.build()
     assertThat(shader).contains("srgbToLinear")
     assertThat(shader).contains("linearToSrgb")
     assertThat(shader).contains("vec3(0.2126, 0.7152, 0.0722)")
@@ -102,14 +102,14 @@ class LiquidGlassShadersTest {
 
   @Test
   fun shader_flat_interior_has_ambient_lighting() {
-    val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
+    val shader = LiquidGlassShaders.build()
     assertThat(shader).contains("fresnelExponent")
     assertThat(shader).contains("vec3 normal = computeContentNormal(coord);")
   }
 
   @Test
   fun shader_flat_interior_skips_surface_gradient() {
-    val shader = LiquidGlassShaders.LIQUID_GLASS_SKSL
+    val shader = LiquidGlassShaders.build()
     val earlyOutSection = shader.substringAfter("if (distToEdge >= refractionZone)")
       .substringBefore("return vec4(finalColor, base.a);")
     assertThat(earlyOutSection).doesNotContain("surfaceGradient(coord)")

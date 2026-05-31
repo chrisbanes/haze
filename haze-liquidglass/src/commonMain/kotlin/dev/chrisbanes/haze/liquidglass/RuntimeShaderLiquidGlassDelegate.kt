@@ -9,17 +9,15 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asComposeRenderEffect
-import dev.chrisbanes.haze.createBlurRenderEffect
-import dev.chrisbanes.haze.createRuntimeEffect
-import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderLiquidGlassDelegate(
@@ -83,18 +81,7 @@ internal class RuntimeShaderLiquidGlassDelegate(
   }
 
   private fun buildRenderEffect(params: RenderParams): RenderEffect {
-    // Create blur effect for the blurred content input
-    val blurEffect = createBlurRenderEffect(
-      radiusX = params.blurRadiusPx,
-      radiusY = params.blurRadiusPx,
-      tileMode = TileMode.Clamp,
-    )
-
-    return createRuntimeShaderRenderEffect(
-      effect = LIQUID_GLASS_RUNTIME_EFFECT,
-      shaderNames = arrayOf("content", "blurredContent"),
-      inputs = arrayOf(null, blurEffect),
-    ) {
+    return createLiquidGlassRenderEffect(params) {
       setFloatUniform("layerSize", params.layerSize.width, params.layerSize.height)
       setFloatUniform("refractionStrength", params.refractionStrength)
       setFloatUniform("specularIntensity", params.specularIntensity)
@@ -130,7 +117,7 @@ internal class RuntimeShaderLiquidGlassDelegate(
     }.asComposeRenderEffect()
   }
 
-  private data class RenderParams(
+  internal data class RenderParams(
     val layerSize: Size,
     val refractionStrength: Float,
     val specularIntensity: Float,
@@ -153,10 +140,10 @@ internal class RuntimeShaderLiquidGlassDelegate(
     val cornerRadii: CornerRadii,
     val lightPosition: Offset,
   )
-
-  private companion object {
-    val LIQUID_GLASS_RUNTIME_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-      createRuntimeEffect(LiquidGlassShaders.LIQUID_GLASS_SKSL)
-    }
-  }
 }
+
+@OptIn(InternalHazeApi::class)
+internal expect fun createLiquidGlassRenderEffect(
+  params: RuntimeShaderLiquidGlassDelegate.RenderParams,
+  uniforms: RuntimeShaderUniformProvider.() -> Unit,
+): PlatformRenderEffect

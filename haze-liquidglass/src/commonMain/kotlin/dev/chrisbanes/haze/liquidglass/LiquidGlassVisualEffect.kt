@@ -316,6 +316,11 @@ public class LiquidGlassVisualEffect() : VisualEffect {
    *  - This property value, if specified.
    *  - [LiquidGlassStyle.blurRadius] value set in [style], if specified.
    *  - [LiquidGlassStyle.blurRadius] value set in the [LocalLiquidGlassStyle] composition local.
+   *
+   * **Note:** On Android API 33+, this property has no effect when the runtime-shader
+   * delegate is active. Android's `RenderEffect.createRuntimeShaderEffect` supports only
+   * a single content input, so the separate blurred content required for depth mixing is
+   * unavailable and the depth-based blur mixing is skipped.
    */
   public var blurRadius: Dp = Dp.Unspecified
     get() {

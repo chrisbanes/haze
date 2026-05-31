@@ -5,16 +5,19 @@ package dev.chrisbanes.haze.liquidglass
 
 internal object LiquidGlassShaders {
   /**
-   * SKSL that simulates a layered glass effect with refraction, specular highlights,
-   * Fresnel-based ambient response, and soft edges.
+   * Builds the liquid-glass SKSL/AGSL shader.
    *
-   * Uses a signed-distance-function (SDF) rounded rectangle for compact, uniform edge
-   * handling and supports multiple surface profiles and chromatic-aberration modes.
+   * @param hasBlurredContent When `true` the shader declares a `blurredContent`
+   *   uniform and samples from it. When `false` (the default) the shader is a
+   *   single-input variant where `blurred` is aliased to `base`, which is required
+   *   on Android because `RenderEffect.createRuntimeShaderEffect` supports only
+   *   one content input.
    */
-  val LIQUID_GLASS_SKSL: String by lazy(mode = LazyThreadSafetyMode.NONE) {
-    """
+  fun build(
+    hasBlurredContent: Boolean = false,
+  ): String = """
     uniform shader content;
-    uniform shader blurredContent;
+    ${if (hasBlurredContent) "uniform shader blurredContent;" else ""}
     uniform float2 layerSize;
     uniform float refractionStrength;
     uniform float specularIntensity;
@@ -298,7 +301,7 @@ internal object LiquidGlassShaders {
       float cornerWeight = abs((centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001));
       vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refracted = sampleChroma(refractCoord, chromaOffset);
-      vec4 blurred = blurredContent.eval(refractCoord);
+      vec4 blurred = ${if (hasBlurredContent) "blurredContent.eval(refractCoord)" else "base"};
 
       vec2 grad = surfaceGradient(coord);
       vec3 shapeNormal = normalize(vec3(-grad.x, -grad.y, 1.0));
@@ -319,5 +322,4 @@ internal object LiquidGlassShaders {
       return vec4(finalColor, base.a) * edge;
     }
     """
-  }
 }
