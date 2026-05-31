@@ -99,14 +99,17 @@ internal class RenderScriptBlurVisualEffectDelegate(
         layer.clip = blurVisualEffect.shouldClipToNodeBounds()
 
         currentJob = context.coroutineScope.launch(Dispatchers.Main.immediate) {
-          updateSurface(
-            content = layer,
-            blurRadius = blurRadiusPx,
-            context = context,
-            density = density,
-          )
-          // Release the graphics layer
-          graphicsContext.releaseGraphicsLayer(layer)
+          try {
+            updateSurface(
+              content = layer,
+              blurRadius = blurRadiusPx,
+              context = context,
+              density = density,
+            )
+          } finally {
+            // Release the graphics layer even if updateSurface was cancelled
+            graphicsContext.releaseGraphicsLayer(layer)
+          }
 
           if (drawSkipped) {
             // If any draws were skipped, let's trigger a draw invalidation
