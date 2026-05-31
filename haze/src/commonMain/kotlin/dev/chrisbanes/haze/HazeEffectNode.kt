@@ -186,9 +186,11 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
-        runCatching { detachVisualEffect(field) }
+        if (isAttached) {
+          runCatching { detachVisualEffect(field) }
+          attachVisualEffect(value)
+        }
         field = value
-        attachVisualEffect(value)
       }
     }
 

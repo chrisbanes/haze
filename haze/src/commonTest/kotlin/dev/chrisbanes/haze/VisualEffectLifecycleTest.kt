@@ -313,6 +313,25 @@ class VisualEffectLifecycleTest : ContextTest() {
     assertThat(effect.detachCalls).isEqualTo(5)
     assertThat(effect.updateCalls).isGreaterThan(0)
   }
+
+  /**
+   * Verifies that the [HazeEffectNode.visualEffect] setter guards [VisualEffect.attach]
+   * and [VisualEffect.detach] with [isAttached]. A custom effect that reads
+   * node-bound resources (e.g. [CompositionLocal]s) during [attach] must not crash
+   * when the property is set before the node lifecycle allows those reads.
+   */
+  @Test
+  fun visualEffect_setterDefersAttachUntilNodeAttached() {
+    val effect = NodeBoundContextReadingVisualEffect()
+    val node = HazeEffectNode()
+
+    // Should not throw even though the node is unattached and the effect
+    // reads node-bound CompositionLocal values during attach()
+    node.visualEffect = effect
+
+    assertThat(effect.attachCalls).isEqualTo(0)
+    assertThat(effect.detachCalls).isEqualTo(0)
+  }
 }
 
 internal class RecordingVisualEffect : VisualEffect {
@@ -424,6 +443,30 @@ internal class CompositionLocalReadingVisualEffect : VisualEffect {
     updateCalls++
     context.currentValueOf(TestCompositionLocal)
   }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+}
+
+/**
+ * A [VisualEffect] whose [attach] reads a [CompositionLocal] through the context.
+ * Used to verify that the [HazeEffectNode.visualEffect] setter guards attach/detach
+ * until the node is actually attached.
+ */
+internal class NodeBoundContextReadingVisualEffect : VisualEffect {
+  var attachCalls = 0
+  var detachCalls = 0
+
+  override fun attach(context: VisualEffectContext) {
+    attachCalls++
+    // This would throw if called on an unattached node
+    context.currentValueOf(TestCompositionLocal)
+  }
+
+  override fun detach(context: VisualEffectContext) {
+    detachCalls++
+  }
+
+  override fun update(context: VisualEffectContext) = Unit
 
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
