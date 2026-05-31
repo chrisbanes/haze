@@ -14,7 +14,7 @@ android {
 }
 
 kotlin {
-  addDefaultHazeTargets()
+  addDefaultHazeTargets(project)
 
   sourceSets {
     androidMain {

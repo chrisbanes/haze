@@ -15,7 +15,7 @@ android {
 }
 
 kotlin {
-  addDefaultHazeTargets()
+  addDefaultHazeTargets(project)
 
   sourceSets {
     commonMain {

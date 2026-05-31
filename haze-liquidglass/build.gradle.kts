@@ -18,7 +18,7 @@ android {
 }
 
 kotlin {
-  addDefaultHazeTargets()
+  addDefaultHazeTargets(project)
   explicitApi()
 
   sourceSets {

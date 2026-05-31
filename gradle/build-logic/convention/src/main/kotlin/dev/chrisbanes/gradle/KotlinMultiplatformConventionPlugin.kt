@@ -43,16 +43,17 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   }
 }
 
-fun KotlinMultiplatformExtension.addDefaultHazeTargets() {
+fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
   jvm()
   androidTarget {
     publishLibraryVariants("release")
   }
 
-  iosArm64()
-  iosSimulatorArm64()
-
-  macosArm64()
+  if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
+    iosArm64()
+    iosSimulatorArm64()
+    macosArm64()
+  }
 
   @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
   wasmJs {

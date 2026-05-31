@@ -24,7 +24,7 @@ android {
 }
 
 kotlin {
-  addDefaultHazeTargets()
+  addDefaultHazeTargets(project)
 
   sourceSets {
     commonMain {
@@ -71,19 +71,21 @@ kotlin {
       dependsOn(commonMain.get())
     }
 
-    iosMain {
-      dependsOn(skikoMain)
+    if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
+      iosMain {
+        dependsOn(skikoMain)
 
-      dependencies {
-        implementation(libs.ktor.darwin)
+        dependencies {
+          implementation(libs.ktor.darwin)
+        }
       }
-    }
 
-    macosMain {
-      dependsOn(skikoMain)
+      macosMain {
+        dependsOn(skikoMain)
 
-      dependencies {
-        implementation(libs.ktor.darwin)
+        dependencies {
+          implementation(libs.ktor.darwin)
+        }
       }
     }
 
