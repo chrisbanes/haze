@@ -555,6 +555,8 @@ internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
 private val attachedEffectOwners = mutableListOf<Pair<VisualEffect, HazeEffectNode>>()
 
 internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
+  if (effect === EmptyVisualEffect) return // No-op singleton; no ownership needed
+
   val current = attachedEffectOwners
     .firstOrNull { (attachedEffect, _) -> attachedEffect === effect }
     ?.second
@@ -577,6 +579,8 @@ internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
 }
 
 internal fun HazeEffectNode.detachVisualEffect(effect: VisualEffect) {
+  if (effect === EmptyVisualEffect) return // No-op singleton; no ownership needed
+
   try {
     effect.detach(visualEffectContext)
   } finally {
