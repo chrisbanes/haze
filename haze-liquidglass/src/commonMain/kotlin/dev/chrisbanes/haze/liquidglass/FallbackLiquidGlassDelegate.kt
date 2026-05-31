@@ -24,7 +24,7 @@ internal class FallbackLiquidGlassDelegate(
 
   private var cachedShapePath: Path? = null
   private var cachedSize: Size = Size.Zero
-  private var cachedRadiiIsZero: Boolean = true
+  private var cachedRadii: CornerRadii = CornerRadii.zero
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     val tint = effect.tint
@@ -37,12 +37,11 @@ internal class FallbackLiquidGlassDelegate(
       ?: Offset(size.width / 2f, size.height / 3f)
 
     val radii = effect.shape.toCornerRadiiPx(layerSize = size, density = density, layoutDirection = layoutDirection)
-    val radiiIsZero = radii.isZero()
 
-    if (size != cachedSize || radiiIsZero != cachedRadiiIsZero) {
+    if (size != cachedSize || radii != cachedRadii) {
       cachedSize = size
-      cachedRadiiIsZero = radiiIsZero
-      cachedShapePath = if (!radiiIsZero) {
+      cachedRadii = radii
+      cachedShapePath = if (!radii.isZero()) {
         radii.toRoundRect(size).let { Path().apply { addRoundRect(it) } }
       } else {
         null
