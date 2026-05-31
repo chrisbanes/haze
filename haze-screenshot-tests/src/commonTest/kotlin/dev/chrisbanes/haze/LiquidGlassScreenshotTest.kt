@@ -6,11 +6,14 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode
 import dev.chrisbanes.haze.liquidglass.LiquidGlassStyle
@@ -323,6 +326,41 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
     visualEffect.shape = RoundedCornerShape(8.dp)
     waitForIdle()
     captureRoot("8dp")
+  }
+
+  @Test
+  fun creditCard_shape_rtl_asymmetric() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      shape = RoundedCornerShape(topStart = 24.dp, topEnd = 0.dp, bottomEnd = 24.dp, bottomStart = 0.dp)
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+          CreditCardSample(
+            visualEffect = visualEffect,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 0.dp, bottomEnd = 24.dp, bottomStart = 0.dp),
+          )
+        }
+      }
+    }
+
+    captureRoot("ltr")
+
+    setContent {
+      ScreenshotTheme {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+          CreditCardSample(
+            visualEffect = visualEffect,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 0.dp, bottomEnd = 24.dp, bottomStart = 0.dp),
+          )
+        }
+      }
+    }
+
+    waitForIdle()
+    captureRoot("rtl")
   }
 
   companion object {
