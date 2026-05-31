@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.gradle
 
+import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -15,6 +16,12 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
       }
 
       configureAndroid()
+
+      extensions.configure(ApplicationExtension::class.java) {
+        defaultConfig {
+          targetSdk = Versions.TARGET_SDK
+        }
+      }
     }
   }
 }

@@ -5,18 +5,15 @@ package dev.chrisbanes.gradle
 
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.HasUnitTestBuilder
-import com.android.build.gradle.BaseExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
-import org.gradle.kotlin.dsl.configure
 
 fun Project.configureAndroid() {
   android {
-    compileSdkVersion(Versions.COMPILE_SDK)
+    compileSdk = Versions.COMPILE_SDK
 
     defaultConfig {
       minSdk = Versions.MIN_SDK
-      targetSdk = Versions.TARGET_SDK
     }
 
     compileOptions {
@@ -34,7 +31,11 @@ fun Project.configureAndroid() {
   }
 }
 
-private fun Project.android(action: BaseExtension.() -> Unit) = extensions.configure<BaseExtension>(action)
+@Suppress("UNCHECKED_CAST")
+private fun Project.android(action: com.android.build.api.dsl.LibraryExtension.() -> Unit) {
+  val ext = extensions.getByName("android") as com.android.build.api.dsl.LibraryExtension
+  ext.action()
+}
 
 private fun Project.androidComponents(action: AndroidComponentsExtension<*, *, *>.() -> Unit) {
   extensions.configure(AndroidComponentsExtension::class.java, action)
