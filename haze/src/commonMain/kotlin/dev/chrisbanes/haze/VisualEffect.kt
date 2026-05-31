@@ -17,6 +17,9 @@ import androidx.compose.ui.unit.Density
  * VisualEffect instances are single-owner and must not be attached to multiple
  * `Modifier.hazeEffect` nodes at the same time. Reusing the same effect instance
  * across concurrently active nodes will throw an [IllegalStateException].
+ *
+ * The built-in [Empty] singleton is exempt from this restriction and may be shared
+ * safely across any number of nodes.
  */
 @ExperimentalHazeApi
 public interface VisualEffect {
