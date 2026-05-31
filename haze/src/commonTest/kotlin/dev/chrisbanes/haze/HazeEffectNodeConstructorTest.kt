@@ -31,6 +31,22 @@ class HazeEffectNodeConstructorTest {
   }
 
   @Test
+  fun attachVisualEffect_emptyVisualEffectCanBeAttachedToMultipleNodes() {
+    val node1 = HazeEffectNode()
+    val node2 = HazeEffectNode()
+
+    // Both nodes use the default VisualEffect.Empty singleton.
+    // This should not throw.
+    node1.attachVisualEffect(VisualEffect.Empty)
+    try {
+      node2.attachVisualEffect(VisualEffect.Empty)
+    } finally {
+      node1.detachVisualEffect(VisualEffect.Empty)
+      node2.detachVisualEffect(VisualEffect.Empty)
+    }
+  }
+
+  @Test
   fun attachVisualEffect_usesInstanceIdentity_notEquals() {
     val node1 = HazeEffectNode()
     val node2 = HazeEffectNode()

@@ -116,6 +116,6 @@ public interface VisualEffect {
   }
 }
 
-private object EmptyVisualEffect : VisualEffect {
+internal object EmptyVisualEffect : VisualEffect {
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
