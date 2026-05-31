@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Fix Android API 33+ liquid glass runtime shader not binding `blurredContent`. The
+  `RuntimeShaderLiquidGlassDelegate` now uses an `expect`/`actual` factory so that
+  Android receives a single-input shader, avoiding the single-content-input limitation
+  of `RenderEffect.createRuntimeShaderEffect`. The depth-based blur mixing is skipped
+  on Android; all other effects (refraction, specular, Fresnel, chromatic aberration,
+  edge softness, tinting, and color grading) are preserved. ([#947])
+
 ## 2.0.0-alpha02 <small>2026-05-08</small> { id="2.0.0-alpha02" }
 
 Changes since 2.0.0-alpha01.
