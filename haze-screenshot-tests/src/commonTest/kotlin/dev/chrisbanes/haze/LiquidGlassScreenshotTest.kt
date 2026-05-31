@@ -5,12 +5,22 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -310,37 +320,35 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_shape_change_sameSize() = runScreenshotTest {
-    val visualEffect = LiquidGlassVisualEffect().apply {
-      tint = DefaultTint
-      shape = RoundedCornerShape(24.dp)
-    }
+    var shape by mutableStateOf(RoundedCornerShape(24.dp))
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(24.dp))
+        SimpleLiquidGlassCard(
+          tint = DefaultTint,
+          shape = shape,
+        )
       }
     }
 
     captureRoot("24dp")
 
-    visualEffect.shape = RoundedCornerShape(8.dp)
+    shape = RoundedCornerShape(8.dp)
     waitForIdle()
     captureRoot("8dp")
   }
 
   @Test
   fun creditCard_shape_rtl_asymmetric() = runScreenshotTest {
-    val visualEffect = LiquidGlassVisualEffect().apply {
-      tint = DefaultTint
-      shape = RoundedCornerShape(topStart = 24.dp, topEnd = 0.dp, bottomEnd = 24.dp, bottomStart = 0.dp)
-    }
+    var layoutDirection by mutableStateOf(LayoutDirection.Ltr)
+    val shape = RoundedCornerShape(topStart = 24.dp, topEnd = 0.dp, bottomEnd = 24.dp, bottomStart = 0.dp)
 
     setContent {
       ScreenshotTheme {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-          CreditCardSample(
-            visualEffect = visualEffect,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 0.dp, bottomEnd = 24.dp, bottomStart = 0.dp),
+        CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+          SimpleLiquidGlassCard(
+            tint = DefaultTint,
+            shape = shape,
           )
         }
       }
@@ -348,17 +356,7 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
 
     captureRoot("ltr")
 
-    setContent {
-      ScreenshotTheme {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-          CreditCardSample(
-            visualEffect = visualEffect,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 0.dp, bottomEnd = 24.dp, bottomStart = 0.dp),
-          )
-        }
-      }
-    }
-
+    layoutDirection = LayoutDirection.Rtl
     waitForIdle()
     captureRoot("rtl")
   }
@@ -374,6 +372,39 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
       ambientResponse = 0.8f,
       edgeSoftness = 14.dp,
       lightPosition = Offset(64f, -48f),
+    )
+  }
+}
+
+@Composable
+private fun SimpleLiquidGlassCard(
+  tint: Color,
+  shape: RoundedCornerShape,
+) {
+  val hazeState = remember { HazeState() }
+  val effect = remember(tint, shape) {
+    LiquidGlassVisualEffect().apply {
+      this.tint = tint
+      this.shape = shape
+    }
+  }
+
+  Box(Modifier.fillMaxSize()) {
+    Spacer(
+      Modifier
+        .fillMaxSize()
+        .hazeSource(state = hazeState, zIndex = 0f)
+        .background(brush = Brush.linearGradient(listOf(Color.Blue, Color.Cyan))),
+    )
+
+    Box(
+      Modifier
+        .align(Alignment.Center)
+        .size(250.dp, 150.dp)
+        .hazeSource(hazeState, zIndex = 1f)
+        .hazeEffect(state = hazeState) {
+          visualEffect = effect
+        },
     )
   }
 }
