@@ -24,7 +24,7 @@ internal class FallbackLiquidGlassDelegate(
 
   private var cachedShapePath: Path? = null
   private var cachedSize: Size = Size.Zero
-  private var cachedRadii: CornerRadii = CornerRadii(0f, 0f, 0f, 0f)
+  private var cachedRadii: CornerRadii = CornerRadii.zero
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     val tint = effect.tint

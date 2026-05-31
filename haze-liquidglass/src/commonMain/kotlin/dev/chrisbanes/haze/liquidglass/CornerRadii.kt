@@ -17,11 +17,11 @@ internal data class CornerRadii(
   val bottomRight: Float,
   val bottomLeft: Float,
 ) {
-  fun isZero(): Boolean =
-    topLeft == 0f &&
-      topRight == 0f &&
-      bottomRight == 0f &&
-      bottomLeft == 0f
+  fun isZero(): Boolean = this == zero
+
+  companion object {
+    val zero: CornerRadii = CornerRadii(0f, 0f, 0f, 0f)
+  }
 }
 
 internal fun RoundedCornerShape.toCornerRadiiPx(
