@@ -305,6 +305,26 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
     captureRoot("full")
   }
 
+  @Test
+  fun creditCard_shape_change_sameSize() = runScreenshotTest {
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = DefaultTint
+      shape = RoundedCornerShape(24.dp)
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(24.dp))
+      }
+    }
+
+    captureRoot("24dp")
+
+    visualEffect.shape = RoundedCornerShape(8.dp)
+    waitForIdle()
+    captureRoot("8dp")
+  }
+
   companion object {
     val DefaultTint = Color.White.copy(alpha = 0.1f)
 
