@@ -67,5 +67,5 @@ tasks.withType<Test> {
 }
 
 tasks.register("test") {
-  dependsOn("jvmTest", "testAndroid")
+  dependsOn("jvmTest", "testAndroidHostTest")
 }
