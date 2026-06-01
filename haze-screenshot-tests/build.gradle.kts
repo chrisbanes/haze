@@ -69,3 +69,11 @@ tasks.withType<Test> {
 tasks.register("test") {
   dependsOn("jvmTest", "testAndroidHostTest")
 }
+
+// Compose resources plugin generates this task for withDeviceTest() even when
+// no androidDeviceTest source set exists. Disable it to avoid outputDirectory errors.
+tasks.configureEach {
+  if (name == "copyAndroidDeviceTestComposeResourcesToAndroidAssets") {
+    enabled = false
+  }
+}
