@@ -11,27 +11,21 @@ plugins {
   id("io.github.takahirom.roborazzi")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.screenshots"
+kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.screenshots"
+    androidResources.enable = true
 
-  defaultConfig {
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-  }
-
-  testOptions {
-    unitTests {
+    withHostTest {
       isIncludeAndroidResources = true
+    }
 
-      all {
-        it.systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
-      }
+    withDeviceTest {
+      instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
   }
-}
 
-kotlin {
   jvm()
-  androidTarget()
 
   compilerOptions {
     optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
@@ -69,4 +63,9 @@ roborazzi {
 
 tasks.withType<Test> {
   failOnNoDiscoveredTests.set(false)
+  systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
+}
+
+tasks.register("test") {
+  dependsOn("jvmTest", "testAndroid")
 }

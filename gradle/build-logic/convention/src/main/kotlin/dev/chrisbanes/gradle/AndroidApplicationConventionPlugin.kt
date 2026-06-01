@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.gradle
 
-import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -15,13 +14,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         apply("org.gradle.android.cache-fix")
       }
 
-      configureAndroid()
-
-      extensions.configure(ApplicationExtension::class.java) {
-        defaultConfig {
-          targetSdk = Versions.TARGET_SDK
-        }
-      }
+      configureAndroidApplication()
     }
   }
 }

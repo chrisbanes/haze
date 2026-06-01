@@ -11,10 +11,10 @@ package dev.chrisbanes.haze.liquidglass {
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class LiquidGlassDefaults {
-    method public dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode getChromaticAberrationMode();
-    method public androidx.compose.foundation.shape.RoundedCornerShape getShape();
-    method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getStyle();
-    method public dev.chrisbanes.haze.liquidglass.SurfaceProfile getSurfaceProfile();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode getChromaticAberrationMode();
+    method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getStyle();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.SurfaceProfile getSurfaceProfile();
     property public static float alpha;
     property public static float ambientResponse;
     property public androidx.compose.ui.unit.Dp blurRadius;
@@ -56,6 +56,7 @@ package dev.chrisbanes.haze.liquidglass {
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class LiquidGlassStyle {
     ctor public LiquidGlassStyle();
     ctor @KotlinOnly public LiquidGlassStyle(optional androidx.compose.ui.graphics.Color tint, optional float refractionStrength, optional float specularIntensity, optional float depth, optional float ambientResponse, optional androidx.compose.ui.unit.Dp edgeSoftness, optional androidx.compose.ui.geometry.Offset lightPosition, optional androidx.compose.ui.unit.Dp blurRadius, optional float refractionHeight, optional float chromaticAberrationStrength, optional float alpha, optional float contrast, optional float whitePoint, optional float chromaMultiplier, optional float refractionScale, optional float contentNormalBlend, optional float specularExponent, optional float fresnelExponent, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.liquidglass.SurfaceProfile? surfaceProfile, optional dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode? chromaticAberrationMode);
+    method @KotlinOnly public operator androidx.compose.ui.graphics.Color component1();
     method public float component10();
     method public float component11();
     method public float component12();
@@ -72,25 +73,28 @@ package dev.chrisbanes.haze.liquidglass {
     method public float component3();
     method public float component4();
     method public float component5();
+    method @KotlinOnly public operator androidx.compose.ui.unit.Dp component6();
+    method @KotlinOnly public operator androidx.compose.ui.geometry.Offset component7();
+    method @KotlinOnly public operator androidx.compose.ui.unit.Dp component8();
     method public float component9();
-    method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle copy-850nF-A(long tint, float refractionStrength, float specularIntensity, float depth, float ambientResponse, float edgeSoftness, long lightPosition, float blurRadius, float refractionHeight, float chromaticAberrationStrength, float alpha, float contrast, float whitePoint, float chromaMultiplier, float refractionScale, float contentNormalBlend, float specularExponent, float fresnelExponent, androidx.compose.foundation.shape.RoundedCornerShape? shape, dev.chrisbanes.haze.liquidglass.SurfaceProfile? surfaceProfile, dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode? chromaticAberrationMode);
-    method public float getAlpha();
-    method public float getAmbientResponse();
-    method public float getChromaMultiplier();
-    method public dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode? getChromaticAberrationMode();
-    method public float getChromaticAberrationStrength();
-    method public float getContentNormalBlend();
-    method public float getContrast();
-    method public float getDepth();
-    method public float getFresnelExponent();
-    method public float getRefractionHeight();
-    method public float getRefractionScale();
-    method public float getRefractionStrength();
-    method public androidx.compose.foundation.shape.RoundedCornerShape? getShape();
-    method public float getSpecularExponent();
-    method public float getSpecularIntensity();
-    method public dev.chrisbanes.haze.liquidglass.SurfaceProfile? getSurfaceProfile();
-    method public float getWhitePoint();
+    method @KotlinOnly public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle copy(optional androidx.compose.ui.graphics.Color tint, optional float refractionStrength, optional float specularIntensity, optional float depth, optional float ambientResponse, optional androidx.compose.ui.unit.Dp edgeSoftness, optional androidx.compose.ui.geometry.Offset lightPosition, optional androidx.compose.ui.unit.Dp blurRadius, optional float refractionHeight, optional float chromaticAberrationStrength, optional float alpha, optional float contrast, optional float whitePoint, optional float chromaMultiplier, optional float refractionScale, optional float contentNormalBlend, optional float specularExponent, optional float fresnelExponent, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.liquidglass.SurfaceProfile? surfaceProfile, optional dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode? chromaticAberrationMode);
+    method @InaccessibleFromKotlin public float getAlpha();
+    method @InaccessibleFromKotlin public float getAmbientResponse();
+    method @InaccessibleFromKotlin public float getChromaMultiplier();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode? getChromaticAberrationMode();
+    method @InaccessibleFromKotlin public float getChromaticAberrationStrength();
+    method @InaccessibleFromKotlin public float getContentNormalBlend();
+    method @InaccessibleFromKotlin public float getContrast();
+    method @InaccessibleFromKotlin public float getDepth();
+    method @InaccessibleFromKotlin public float getFresnelExponent();
+    method @InaccessibleFromKotlin public float getRefractionHeight();
+    method @InaccessibleFromKotlin public float getRefractionScale();
+    method @InaccessibleFromKotlin public float getRefractionStrength();
+    method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape? getShape();
+    method @InaccessibleFromKotlin public float getSpecularExponent();
+    method @InaccessibleFromKotlin public float getSpecularIntensity();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.SurfaceProfile? getSurfaceProfile();
+    method @InaccessibleFromKotlin public float getWhitePoint();
     property public float alpha;
     property public float ambientResponse;
     property public androidx.compose.ui.unit.Dp blurRadius;
@@ -116,12 +120,12 @@ package dev.chrisbanes.haze.liquidglass {
   }
 
   public static final class LiquidGlassStyle.Companion {
-    method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getUnspecified();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getUnspecified();
     property public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle Unspecified;
   }
 
   public final class LiquidGlassStyleKt {
-    method public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.liquidglass.LiquidGlassStyle> getLocalLiquidGlassStyle();
+    method @InaccessibleFromKotlin public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.liquidglass.LiquidGlassStyle> getLocalLiquidGlassStyle();
     property @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.liquidglass.LiquidGlassStyle> LocalLiquidGlassStyle;
   }
 
@@ -129,42 +133,42 @@ package dev.chrisbanes.haze.liquidglass {
     ctor public LiquidGlassVisualEffect();
     ctor public LiquidGlassVisualEffect(dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect other);
     method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
-    method public float getAlpha();
-    method public float getAmbientResponse();
-    method public float getChromaMultiplier();
-    method public dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode getChromaticAberrationMode();
-    method public float getChromaticAberrationStrength();
-    method public float getContentNormalBlend();
-    method public float getContrast();
-    method public float getDepth();
-    method public float getFresnelExponent();
-    method public float getRefractionHeight();
-    method public float getRefractionScale();
-    method public float getRefractionStrength();
-    method public androidx.compose.foundation.shape.RoundedCornerShape getShape();
-    method public float getSpecularExponent();
-    method public float getSpecularIntensity();
-    method public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getStyle();
-    method public dev.chrisbanes.haze.liquidglass.SurfaceProfile getSurfaceProfile();
-    method public float getWhitePoint();
-    method public void setAlpha(float);
-    method public void setAmbientResponse(float);
-    method public void setChromaMultiplier(float);
-    method public void setChromaticAberrationMode(dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode);
-    method public void setChromaticAberrationStrength(float);
-    method public void setContentNormalBlend(float);
-    method public void setContrast(float);
-    method public void setDepth(float);
-    method public void setFresnelExponent(float);
-    method public void setRefractionHeight(float);
-    method public void setRefractionScale(float);
-    method public void setRefractionStrength(float);
-    method public void setShape(androidx.compose.foundation.shape.RoundedCornerShape);
-    method public void setSpecularExponent(float);
-    method public void setSpecularIntensity(float);
-    method public void setStyle(dev.chrisbanes.haze.liquidglass.LiquidGlassStyle);
-    method public void setSurfaceProfile(dev.chrisbanes.haze.liquidglass.SurfaceProfile);
-    method public void setWhitePoint(float);
+    method @InaccessibleFromKotlin public float getAlpha();
+    method @InaccessibleFromKotlin public float getAmbientResponse();
+    method @InaccessibleFromKotlin public float getChromaMultiplier();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode getChromaticAberrationMode();
+    method @InaccessibleFromKotlin public float getChromaticAberrationStrength();
+    method @InaccessibleFromKotlin public float getContentNormalBlend();
+    method @InaccessibleFromKotlin public float getContrast();
+    method @InaccessibleFromKotlin public float getDepth();
+    method @InaccessibleFromKotlin public float getFresnelExponent();
+    method @InaccessibleFromKotlin public float getRefractionHeight();
+    method @InaccessibleFromKotlin public float getRefractionScale();
+    method @InaccessibleFromKotlin public float getRefractionStrength();
+    method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
+    method @InaccessibleFromKotlin public float getSpecularExponent();
+    method @InaccessibleFromKotlin public float getSpecularIntensity();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getStyle();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.SurfaceProfile getSurfaceProfile();
+    method @InaccessibleFromKotlin public float getWhitePoint();
+    method @InaccessibleFromKotlin public void setAlpha(float);
+    method @InaccessibleFromKotlin public void setAmbientResponse(float);
+    method @InaccessibleFromKotlin public void setChromaMultiplier(float);
+    method @InaccessibleFromKotlin public void setChromaticAberrationMode(dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode);
+    method @InaccessibleFromKotlin public void setChromaticAberrationStrength(float);
+    method @InaccessibleFromKotlin public void setContentNormalBlend(float);
+    method @InaccessibleFromKotlin public void setContrast(float);
+    method @InaccessibleFromKotlin public void setDepth(float);
+    method @InaccessibleFromKotlin public void setFresnelExponent(float);
+    method @InaccessibleFromKotlin public void setRefractionHeight(float);
+    method @InaccessibleFromKotlin public void setRefractionScale(float);
+    method @InaccessibleFromKotlin public void setRefractionStrength(float);
+    method @InaccessibleFromKotlin public void setShape(androidx.compose.foundation.shape.RoundedCornerShape);
+    method @InaccessibleFromKotlin public void setSpecularExponent(float);
+    method @InaccessibleFromKotlin public void setSpecularIntensity(float);
+    method @InaccessibleFromKotlin public void setStyle(dev.chrisbanes.haze.liquidglass.LiquidGlassStyle);
+    method @InaccessibleFromKotlin public void setSurfaceProfile(dev.chrisbanes.haze.liquidglass.SurfaceProfile);
+    method @InaccessibleFromKotlin public void setWhitePoint(float);
     property public float alpha;
     property public float ambientResponse;
     property public androidx.compose.ui.unit.Dp blurRadius;

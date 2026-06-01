@@ -8,9 +8,9 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
+import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 class KotlinMultiplatformConventionPlugin : Plugin<Project> {
@@ -26,7 +26,7 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
         freeCompilerArgs.add("-Xexpect-actual-classes")
       }
 
-      targets.withType<KotlinAndroidTarget> {
+      targets.withType<KotlinMultiplatformAndroidLibraryTarget> {
         compilerOptions {
           jvmTarget.set(JvmTarget.JVM_11)
         }
@@ -45,9 +45,6 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
 
 fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
   jvm()
-  androidTarget {
-    publishLibraryVariants("release")
-  }
 
   if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
     iosArm64()

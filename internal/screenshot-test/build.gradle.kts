@@ -9,15 +9,13 @@ plugins {
   id("io.github.takahirom.roborazzi")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.internal.screenshot"
-}
-
 kotlin {
-  jvm()
-  androidTarget {
-    publishLibraryVariants("release")
+  android {
+    namespace = "dev.chrisbanes.haze.internal.screenshot"
+    androidResources.enable = true
   }
+
+  jvm()
 
   sourceSets {
     commonMain {

@@ -16,23 +16,24 @@ plugins {
   id("dev.drewhamilton.poko")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze"
+kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze"
 
-  defaultConfig {
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    optimization {
+      consumerKeepRules.publish = true
+      consumerKeepRules.file("consumer-rules.pro")
+    }
 
-    consumerProguardFiles("consumer-rules.pro")
-  }
-
-  testOptions {
-    unitTests {
+    withHostTest {
       isIncludeAndroidResources = true
     }
-  }
-}
 
-kotlin {
+    withDeviceTest {
+      instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+  }
+
   addDefaultHazeTargets(project)
   explicitApi()
 

@@ -13,11 +13,13 @@ plugins {
   id("dev.chrisbanes.metalava")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.liquidglass"
-}
-
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.liquidglass"
+
+    withHostTest {}
+  }
+
   addDefaultHazeTargets(project)
   explicitApi()
 

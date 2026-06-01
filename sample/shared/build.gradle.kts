@@ -12,18 +12,16 @@ plugins {
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.sample.shared"
+kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.sample.shared"
+    androidResources.enable = true
 
-  @Suppress("UnstableApiUsage")
-  testOptions {
-    unitTests {
+    withHostTest {
       isIncludeAndroidResources = true
     }
   }
-}
 
-kotlin {
   addDefaultHazeTargets(project)
 
   sourceSets {
@@ -64,6 +62,13 @@ kotlin {
 
         implementation(libs.androidx.media3.exoplayer)
         implementation(libs.androidx.media3.ui)
+      }
+    }
+
+    named("androidHostTest") {
+      dependencies {
+        implementation(libs.androidx.compose.ui.test.junit4)
+        implementation(libs.androidx.compose.ui.test.manifest)
       }
     }
 
@@ -119,11 +124,6 @@ kotlin {
       baseName = "HazeSamplesKt"
     }
   }
-}
-
-dependencies {
-  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-  debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
 // Disable JS tests; they currently fail due to missing browser-side runtime support.

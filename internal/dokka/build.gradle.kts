@@ -11,6 +11,10 @@ plugins {
 }
 
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.docs"
+  }
+
   addDefaultHazeTargets(project)
 }
 
@@ -19,10 +23,6 @@ dependencies {
   dokka(projects.hazeBlur)
   dokka(projects.hazeMaterials)
   dokka(projects.hazeUtils)
-}
-
-android {
-  namespace = "dev.chrisbanes.haze.docs"
 }
 
 dokka {
