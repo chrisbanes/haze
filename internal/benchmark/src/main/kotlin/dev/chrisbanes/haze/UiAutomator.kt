@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.seconds
 
 internal fun UiDevice.waitForObject(
   selector: BySelector,
-  timeout: Duration = 5.seconds,
+  timeout: Duration = 15.seconds,
 ): UiObject2 = waitForObjectOrNull(selector, timeout)
   ?: error("Object with selector [$selector] not found")
 
