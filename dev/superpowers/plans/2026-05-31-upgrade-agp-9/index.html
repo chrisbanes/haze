@@ -1,0 +1,1406 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual effects (blur and more) for Compose Multiplatform">
+      
+      
+        <meta name="author" content="Chris Banes">
+      
+      
+        <link rel="canonical" href="https://chribanes.github.io/haze/dev/superpowers/plans/2026-05-31-upgrade-agp-9/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../media/logo.webp">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Upgrade AGP 8.13.2 → 9.2.1 Implementation Plan - Haze</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=DM+Sans:300,300i,400,400i,700,700i%7CDM+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"DM Sans";--md-code-font:"DM Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Upgrade AGP 8.13.2 → 9.2.1 Implementation Plan - Haze" />
+<meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="og:image" content="https://chribanes.github.io/haze/dev/assets/images/social/superpowers/plans/2026-05-31-upgrade-agp-9.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://chribanes.github.io/haze/dev/superpowers/plans/2026-05-31-upgrade-agp-9/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="Upgrade AGP 8.13.2 → 9.2.1 Implementation Plan - Haze" />
+<meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="twitter:image" content="https://chribanes.github.io/haze/dev/assets/images/social/superpowers/plans/2026-05-31-upgrade-agp-9.png" />
+</head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#upgrade-agp-8132-921-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  <img src="../../../media/logo.webp" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haze
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Upgrade AGP 8.13.2 → 9.2.1 Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  <img src="../../../media/logo.webp" alt="logo">
+
+    </a>
+    Haze
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../core-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blur
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blur
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/materials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Materials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/platforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platforms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Effects
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Effects
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../effects/liquid-glass/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Liquid Glass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../custom-effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Effects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../migrating-2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Haze 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sample code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sample/wasm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🕸️ Sample app (Wasm)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sample/js/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🕸️ Sample app (JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-1-bump-agp-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Bump AGP version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-2-first-build-discover-breakage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: First build — discover breakage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-3-fix-build-logic-compilation-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Fix build logic compilation errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-4-fix-plugin-and-property-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Fix plugin and property issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-5-full-project-build-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Full project build verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6-screenshot-test-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: Screenshot test verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7-full-build-and-final-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7: Full build and final verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<div><h1 id="upgrade-agp-8132-921-implementation-plan">Upgrade AGP 8.13.2 → 9.2.1 Implementation Plan<a class="headerlink" href="#upgrade-agp-8132-921-implementation-plan" title="Permanent link">¶</a></h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Upgrade Android Gradle Plugin from 8.13.2 to 9.2.1 to stay current before 8.x falls out of support.</p>
+<p><strong>Architecture:</strong> Version bump + fix-forward approach. Change the version, build, iteratively fix compilation errors and deprecation warnings. No new AGP 9 features adopted.</p>
+<p><strong>Tech Stack:</strong> AGP 9.2.1, Gradle 9.5.1, Kotlin 2.3.21, compileSdk 36</p>
+<hr>
+<h2 id="file-structure">File Structure<a class="headerlink" href="#file-structure" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gradle/libs.versions.toml</code></td>
+<td>Version catalog — AGP version lives here</td>
+</tr>
+<tr>
+<td><code>gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/Android.kt</code></td>
+<td>Shared Android config using <code>BaseExtension</code> — primary migration target</td>
+</tr>
+<tr>
+<td><code>gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/AndroidApplicationConventionPlugin.kt</code></td>
+<td>Applies <code>com.android.application</code> + cache-fix plugin</td>
+</tr>
+<tr>
+<td><code>gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/AndroidLibraryConventionPlugin.kt</code></td>
+<td>Applies <code>com.android.library</code> + cache-fix plugin</td>
+</tr>
+<tr>
+<td><code>gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/AndroidTestConventionPlugin.kt</code></td>
+<td>Applies <code>com.android.test</code> + cache-fix plugin</td>
+</tr>
+<tr>
+<td><code>gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/KotlinMultiplatformConventionPlugin.kt</code></td>
+<td>KMP config — uses <code>androidTarget</code></td>
+</tr>
+<tr>
+<td><code>gradle/build-logic/convention/build.gradle.kts</code></td>
+<td>Build logic dependencies — <code>android-gradlePlugin</code></td>
+</tr>
+<tr>
+<td><code>gradle.properties</code></td>
+<td>Gradle/Android properties</td>
+</tr>
+<tr>
+<td><code>docs/superpowers/specs/2026-05-31-upgrade-agp-9-design.md</code></td>
+<td>Design spec (already written)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="task-1-bump-agp-version">Task 1: Bump AGP version<a class="headerlink" href="#task-1-bump-agp-version" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>gradle/libs.versions.toml:2</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Change AGP version in version catalog</strong></li>
+</ul>
+<p>In <code>gradle/libs.versions.toml</code>, line 2, change:
+</p><div class="highlight"><pre><span></span><code><span class="n">agp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"8.13.2"</span>
+</code></pre></div>
+to:
+<div class="highlight"><pre><span></span><code><span class="n">agp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"9.2.1"</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Verify the change is correct</strong></li>
+</ul>
+<p>Run: <code>grep 'agp = ' gradle/libs.versions.toml</code>
+Expected: <code>agp = "9.2.1"</code></p>
+<ul>
+<li>[ ] <strong>Step 3: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>gradle/libs.versions.toml
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"Bump AGP to 9.2.1"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-2-first-build-discover-breakage">Task 2: First build — discover breakage<a class="headerlink" href="#task-2-first-build-discover-breakage" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- None yet (diagnostic step)</p>
+<ul>
+<li>[ ] <strong>Step 1: Run debug build to see what breaks</strong></li>
+</ul>
+<p>Run: <code>./gradlew assembleDebug 2&gt;&amp;1 | tail -100</code>
+Expected: Build errors. Read the output carefully to identify:
+1. Compilation errors in <code>gradle/build-logic/</code> (API changes in <code>BaseExtension</code>, <code>AndroidComponentsExtension</code>, etc.)
+2. Plugin application errors (cache-fix plugin incompatibility)
+3. Configuration errors (deprecated Gradle properties)
+4. Dependency resolution failures</p>
+<ul>
+<li>[ ] <strong>Step 2: Categorize the errors</strong></li>
+</ul>
+<p>Document the errors found. Common patterns:
+- <code>Unresolved reference: compileSdkVersion</code> → API renamed
+- <code>Cannot access class 'BaseExtension'</code> → class removed/relocated
+- <code>Plugin 'org.gradle.android.cache-fix' is incompatible</code> → plugin version issue
+- Property warnings/errors in <code>gradle.properties</code></p>
+<hr>
+<h3 id="task-3-fix-build-logic-compilation-errors">Task 3: Fix build logic compilation errors<a class="headerlink" href="#task-3-fix-build-logic-compilation-errors" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/Android.kt</code>
+- Modify: <code>gradle/build-logic/convention/build.gradle.kts</code> (if AGP dependency coordinate changed)</p>
+<p>This task is conditional — fix exactly the errors discovered in Task 2. Below are the most likely scenarios.</p>
+<ul>
+<li>[ ] <strong>Step 1: Fix <code>BaseExtension</code> API changes (if any)</strong></li>
+</ul>
+<p>If <code>BaseExtension</code> APIs changed, update <code>Android.kt</code>. The current code:</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">com.android.build.gradle.BaseExtension</span>
+
+<span class="kd">fun</span><span class="w"> </span><span class="n">Project</span><span class="p">.</span><span class="nf">configureAndroid</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">android</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">compileSdkVersion</span><span class="p">(</span><span class="n">Versions</span><span class="p">.</span><span class="na">COMPILE_SDK</span><span class="p">)</span>
+<span class="w">    </span><span class="n">defaultConfig</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">minSdk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Versions</span><span class="p">.</span><span class="na">MIN_SDK</span>
+<span class="w">      </span><span class="n">targetSdk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Versions</span><span class="p">.</span><span class="na">TARGET_SDK</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">compileOptions</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">sourceCompatibility</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JavaVersion</span><span class="p">.</span><span class="na">VERSION_11</span>
+<span class="w">      </span><span class="n">targetCompatibility</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JavaVersion</span><span class="p">.</span><span class="na">VERSION_11</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="p">}</span>
+
+<span class="kd">private</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="n">Project</span><span class="p">.</span><span class="nf">android</span><span class="p">(</span><span class="n">action</span><span class="p">:</span><span class="w"> </span><span class="n">BaseExtension</span><span class="p">.()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">Unit</span><span class="p">)</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="n">extensions</span><span class="p">.</span><span class="na">configure</span><span class="o">&lt;</span><span class="n">BaseExtension</span><span class="o">&gt;</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+</code></pre></div>
+<p>Likely migrations:
+- <code>compileSdkVersion(X)</code> → <code>compileSdk = X</code>
+- <code>BaseExtension</code> → <code>CommonExtension&lt;*, *, *, *, *, *, *, *&gt;</code> or keep using <code>BaseExtension</code> if it still exists</p>
+<p>Apply the exact fix needed based on the compiler error.</p>
+<ul>
+<li>[ ] <strong>Step 2: Fix <code>AndroidComponentsExtension</code> changes (if any)</strong></li>
+</ul>
+<p>Current code in <code>Android.kt</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">com.android.build.api.variant.AndroidComponentsExtension</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">com.android.build.api.variant.HasUnitTestBuilder</span>
+
+<span class="n">androidComponents</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">beforeVariants</span><span class="p">(</span><span class="n">selector</span><span class="p">().</span><span class="na">withBuildType</span><span class="p">(</span><span class="s">"release"</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">variantBuilder</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">    </span><span class="p">(</span><span class="n">variantBuilder</span><span class="w"> </span><span class="k">as?</span><span class="w"> </span><span class="n">HasUnitTestBuilder</span><span class="p">)</span><span class="o">?.</span><span class="na">apply</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">enableUnitTest</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>If <code>HasUnitTestBuilder</code> moved or <code>enableUnitTest</code> renamed, apply the fix based on the compiler error.</p>
+<ul>
+<li>[ ] <strong>Step 3: Fix build-logic dependency (if needed)</strong></li>
+</ul>
+<p>If the AGP Maven coordinate changed (e.g., <code>com.android.tools.build:gradle</code> artifact renamed), update <code>gradle/build-logic/convention/build.gradle.kts</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">compileOnly</span><span class="p">(</span><span class="n">libs</span><span class="p">.</span><span class="na">android</span><span class="p">.</span><span class="na">gradlePlugin</span><span class="p">)</span><span class="w">  </span><span class="c1">// may need new coordinate</span>
+<span class="w">  </span><span class="c1">// ...</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>And update <code>gradle/libs.versions.toml</code> library entry if needed:
+</p><div class="highlight"><pre><span></span><code><span class="n">android-gradlePlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">module</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"com.android.tools.build:gradle"</span><span class="p">,</span><span class="w"> </span><span class="n">version</span><span class="p">.</span><span class="n">ref</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"agp"</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Verify build-logic compiles</strong></li>
+</ul>
+<p>Run: <code>./gradlew -p gradle/build-logic assemble</code>
+Expected: BUILD SUCCESSFUL</p>
+<ul>
+<li>[ ] <strong>Step 5: Commit build logic fixes</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>gradle/build-logic/
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"Fix build-logic for AGP 9.2.1 API changes"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-4-fix-plugin-and-property-issues">Task 4: Fix plugin and property issues<a class="headerlink" href="#task-4-fix-plugin-and-property-issues" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>gradle.properties</code> (if properties need updating)
+- Modify: <code>gradle/libs.versions.toml</code> (if cache-fix plugin version needs bumping)
+- Modify: <code>gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/AndroidApplicationConventionPlugin.kt</code> (if cache-fix removed)
+- Modify: <code>gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/AndroidLibraryConventionPlugin.kt</code> (if cache-fix removed)
+- Modify: <code>gradle/build-logic/convention/src/main/kotlin/dev/chrisbanes/gradle/AndroidTestConventionPlugin.kt</code> (if cache-fix removed)</p>
+<ul>
+<li>[ ] <strong>Step 1: Check cache-fix plugin compatibility</strong></li>
+</ul>
+<p>Run: <code>./gradlew assembleDebug 2&gt;&amp;1 | grep -i "cache-fix\|incompatible\|obsolete"</code>
+Expected: Either no cache-fix errors (plugin works), or errors about incompatibility.</p>
+<ul>
+<li>[ ] <strong>Step 2a: If cache-fix plugin is compatible — skip to Step 3</strong></li>
+</ul>
+<p>No changes needed.</p>
+<ul>
+<li>[ ] <strong>Step 2b: If cache-fix plugin is incompatible — try version bump</strong></li>
+</ul>
+<p>Check latest version at <a href="https://plugins.gradle.org/plugin/org.gradle.android.cache-fix">https://plugins.gradle.org/plugin/org.gradle.android.cache-fix</a></p>
+<p>Update <code>gradle/libs.versions.toml</code>:
+</p><div class="highlight"><pre><span></span><code><span class="n">cacheFixPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"org.gradle.android.cache-fix"</span><span class="p">,</span><span class="w"> </span><span class="n">version</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"&lt;latest&gt;"</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p>Re-run build. If still incompatible, proceed to Step 2c.</p>
+<ul>
+<li>[ ] <strong>Step 2c: If no compatible cache-fix version exists — remove plugin</strong></li>
+</ul>
+<p>Remove from <code>gradle/libs.versions.toml</code>:
+</p><div class="highlight"><pre><span></span><code><span class="c1"># Delete this line:</span>
+<span class="n">cacheFixPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"org.gradle.android.cache-fix"</span><span class="p">,</span><span class="w"> </span><span class="n">version</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"3.0.3"</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p>Remove from <code>build.gradle.kts</code> (root):
+</p><div class="highlight"><pre><span></span><code><span class="err">#</span><span class="w"> </span><span class="n">Delete</span><span class="w"> </span><span class="k">this</span><span class="w"> </span><span class="n">line</span><span class="p">:</span>
+<span class="n">alias</span><span class="p">(</span><span class="n">libs</span><span class="p">.</span><span class="na">plugins</span><span class="p">.</span><span class="na">cacheFixPlugin</span><span class="p">)</span><span class="w"> </span><span class="n">apply</span><span class="w"> </span><span class="kc">false</span>
+</code></pre></div>
+<p>Remove from each convention plugin that applies it:</p>
+<p><code>AndroidApplicationConventionPlugin.kt</code> — remove <code>apply("org.gradle.android.cache-fix")</code>
+<code>AndroidLibraryConventionPlugin.kt</code> — remove <code>apply("org.gradle.android.cache-fix")</code>
+<code>AndroidTestConventionPlugin.kt</code> — remove <code>apply("org.gradle.android.cache-fix")</code></p>
+<ul>
+<li>[ ] <strong>Step 3: Review and fix Gradle properties</strong></li>
+</ul>
+<p>In <code>gradle.properties</code>, check these properties:</p>
+<div class="highlight"><pre><span></span><code><span class="na">android.suppressUnsupportedCompileSdk</span><span class="o">=</span><span class="s">34</span>
+<span class="na">kotlin.mpp.androidSourceSetLayoutVersion</span><span class="o">=</span><span class="s">2</span>
+</code></pre></div>
+<ul>
+<li>If the build warns about <code>android.suppressUnsupportedCompileSdk</code> being obsolete, remove it</li>
+<li>If the build warns about <code>kotlin.mpp.androidSourceSetLayoutVersion=2</code> being default, remove it</li>
+<li>
+<p>If <code>android.defaults.buildfeatures.*</code> properties cause errors, update or remove them</p>
+</li>
+<li>
+<p>[ ] <strong>Step 4: Commit property/plugin fixes</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>gradle.properties<span class="w"> </span>gradle/libs.versions.toml<span class="w"> </span>gradle/build-logic/
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"Fix Gradle properties and plugin compatibility for AGP 9.2.1"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-5-full-project-build-verification">Task 5: Full project build verification<a class="headerlink" href="#task-5-full-project-build-verification" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- None (verification step)</p>
+<ul>
+<li>[ ] <strong>Step 1: Run full debug build</strong></li>
+</ul>
+<p>Run: <code>./gradlew assembleDebug</code>
+Expected: BUILD SUCCESSFUL</p>
+<ul>
+<li>[ ] <strong>Step 2: Run unit tests</strong></li>
+</ul>
+<p>Run: <code>./gradlew testDebug</code>
+Expected: All tests pass</p>
+<ul>
+<li>[ ] <strong>Step 3: Run lint</strong></li>
+</ul>
+<p>Run: <code>./gradlew lintDebug</code>
+Expected: No new errors (warnings acceptable)</p>
+<ul>
+<li>[ ] <strong>Step 4: Run Spotless formatting</strong></li>
+</ul>
+<p>Run: <code>./gradlew spotlessApply</code>
+Expected: Formatting applied cleanly</p>
+<ul>
+<li>[ ] <strong>Step 5: Commit any formatting changes</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>-A
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"Apply Spotless formatting after AGP upgrade"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-6-screenshot-test-verification">Task 6: Screenshot test verification<a class="headerlink" href="#task-6-screenshot-test-verification" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Possibly: <code>haze-screenshot-tests/src/test/screenshots/</code> (reference images)</p>
+<ul>
+<li>[ ] <strong>Step 1: Run screenshot tests</strong></li>
+</ul>
+<p>Run: <code>./gradlew :haze-screenshot-tests:test</code>
+Expected: Either pass (no rendering changes) or fail (rendering differences from AGP upgrade).</p>
+<ul>
+<li>[ ] <strong>Step 2a: If screenshot tests pass — skip to Step 3</strong></li>
+</ul>
+<p>No changes needed.</p>
+<ul>
+<li>[ ] <strong>Step 2b: If screenshot tests fail — review diffs and regenerate</strong></li>
+</ul>
+<p>Check the diff images in <code>haze-screenshot-tests/build/outputs/roborazzi/</code>. If the differences are minor rendering changes (font hinting, anti-aliasing) caused by the AGP upgrade:</p>
+<p>Run: <code>./gradlew :haze-screenshot-tests:recordRoborazzi</code>
+Expected: New reference images recorded</p>
+<ul>
+<li>[ ] <strong>Step 3: Commit updated screenshot references (if any)</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>haze-screenshot-tests/src/test/screenshots/
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"Update screenshot references for AGP 9.2.1 rendering changes"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-7-full-build-and-final-verification">Task 7: Full build and final verification<a class="headerlink" href="#task-7-full-build-and-final-verification" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- None (final verification)</p>
+<ul>
+<li>[ ] <strong>Step 1: Run full build</strong></li>
+</ul>
+<p>Run: <code>./gradlew build</code>
+Expected: BUILD SUCCESSFUL</p>
+<ul>
+<li>[ ] <strong>Step 2: Verify no deprecation warnings</strong></li>
+</ul>
+<p>Run: <code>./gradlew build 2&gt;&amp;1 | grep -i "deprecat\|obsolete\|removed"</code>
+Expected: No AGP-related deprecation warnings. Kotlin/other deprecation warnings are acceptable.</p>
+<ul>
+<li>[ ] <strong>Step 3: Final commit (if any remaining changes)</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>-A
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"Complete AGP 9.2.1 upgrade verification"</span>
+</code></pre></div>
+<hr>
+<h2 id="verification-summary">Verification Summary<a class="headerlink" href="#verification-summary" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Command</th>
+<th>Expected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Build-logic compiles</td>
+<td><code>./gradlew -p gradle/build-logic assemble</code></td>
+<td>SUCCESS</td>
+</tr>
+<tr>
+<td>Debug build</td>
+<td><code>./gradlew assembleDebug</code></td>
+<td>SUCCESS</td>
+</tr>
+<tr>
+<td>Unit tests</td>
+<td><code>./gradlew testDebug</code></td>
+<td>All pass</td>
+</tr>
+<tr>
+<td>Lint</td>
+<td><code>./gradlew lintDebug</code></td>
+<td>No new errors</td>
+</tr>
+<tr>
+<td>Screenshot tests</td>
+<td><code>./gradlew :haze-screenshot-tests:test</code></td>
+<td>Pass or regenerate</td>
+</tr>
+<tr>
+<td>Full build</td>
+<td><code>./gradlew build</code></td>
+<td>SUCCESS</td>
+</tr>
+<tr>
+<td>Formatting</td>
+<td><code>./gradlew spotlessApply</code></td>
+<td>Clean</td>
+</tr>
+</tbody>
+</table></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.tabs.link", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
