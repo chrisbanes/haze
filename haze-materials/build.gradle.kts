@@ -13,11 +13,11 @@ plugins {
   id("dev.chrisbanes.metalava")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.materials"
-}
-
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.materials"
+  }
+
   addDefaultHazeTargets(project)
   explicitApi()
 

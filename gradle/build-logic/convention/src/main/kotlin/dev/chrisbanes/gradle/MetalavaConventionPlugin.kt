@@ -24,7 +24,7 @@ class MetalavaConventionPlugin : Plugin<Project> {
           .flatMap { it.kotlin.sourceDirectories }
       )
 
-      version.set("1.0.0-alpha13")
+      version.set("1.0.0-alpha14")
     }
 
     tasks.named { it.startsWith("metalavaCheckCompatibility") }.configureEach {

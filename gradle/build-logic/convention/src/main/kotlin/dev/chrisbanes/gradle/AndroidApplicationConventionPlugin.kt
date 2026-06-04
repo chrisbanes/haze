@@ -14,7 +14,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         apply("org.gradle.android.cache-fix")
       }
 
-      configureAndroid()
+      configureAndroidApplication()
     }
   }
 }

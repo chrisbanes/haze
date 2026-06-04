@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
-import com.android.build.api.dsl.ManagedVirtualDevice
 import dev.chrisbanes.gradle.addDefaultHazeTargets
 
 plugins {
@@ -15,32 +14,31 @@ plugins {
   id("dev.drewhamilton.poko")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.blur"
+kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.blur"
+    androidResources.enable = true
 
-  defaultConfig {
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-  }
-
-  @Suppress("UnstableApiUsage")
-  testOptions {
-    unitTests {
+    withHostTest {
       isIncludeAndroidResources = true
     }
 
-    managedDevices {
-      devices {
-        create<ManagedVirtualDevice>("pixel6Api34") {
-          device = "Pixel 6"
-          apiLevel = 34
-          systemImageSource = "aosp_atd"
+    withDeviceTest {
+      instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+      @Suppress("UnstableApiUsage")
+      managedDevices {
+        localDevices {
+          create("pixel6Api34") {
+            device = "Pixel 6"
+            sdkVersion = 34
+            systemImageSource = "aosp_atd"
+          }
         }
       }
     }
   }
-}
 
-kotlin {
   addDefaultHazeTargets(project)
   explicitApi()
 
@@ -59,6 +57,15 @@ kotlin {
       dependencies {
         implementation(libs.androidx.activity)
         implementation(libs.androidx.tracing)
+      }
+    }
+
+    named("androidDeviceTest") {
+      dependencies {
+        implementation(libs.assertk)
+        implementation(libs.androidx.compose.ui.test.junit4)
+        implementation(libs.androidx.compose.ui.test.manifest)
+        implementation(projects.internal.testUtils)
       }
     }
 
@@ -112,13 +119,6 @@ kotlin {
     optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
     optIn.add("dev.chrisbanes.haze.InternalHazeApi")
   }
-}
-
-dependencies {
-  androidTestImplementation(libs.assertk)
-  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-  androidTestImplementation(projects.internal.testUtils)
-  debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
 // Disable JS tests; they currently fail due to missing browser-side runtime support.

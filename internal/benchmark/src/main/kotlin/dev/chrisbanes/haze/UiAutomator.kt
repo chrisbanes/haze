@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.seconds
 
 internal fun UiDevice.waitForObject(
   selector: BySelector,
-  timeout: Duration = 5.seconds,
+  timeout: Duration = 15.seconds,
 ): UiObject2 = waitForObjectOrNull(selector, timeout)
   ?: error("Object with selector [$selector] not found")
 
@@ -36,7 +36,7 @@ internal fun <R> UiDevice.wait(condition: SearchCondition<R>, timeout: Duration)
 }
 
 internal fun UiDevice.setBlurEnabled(enabled: Boolean) {
-  val checkbox = findObject(By.res("blur_enabled"))
+  val checkbox = waitForObject(By.res("blur_enabled"))
   if (checkbox.isChecked != enabled) {
     checkbox.click()
     waitForIdle()

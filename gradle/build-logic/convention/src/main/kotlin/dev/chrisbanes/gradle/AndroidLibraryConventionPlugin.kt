@@ -9,12 +9,10 @@ import org.gradle.api.Project
 class AndroidLibraryConventionPlugin : Plugin<Project> {
   override fun apply(target: Project) {
     with(target) {
-      with(pluginManager) {
-        apply("com.android.library")
-        apply("org.gradle.android.cache-fix")
+      pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+        pluginManager.apply("com.android.kotlin.multiplatform.library")
+        configureKotlinMultiplatformAndroidLibrary()
       }
-
-      configureAndroid()
     }
   }
 }

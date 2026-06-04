@@ -9,11 +9,11 @@ plugins {
   id("dev.chrisbanes.kotlin.multiplatform")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.internal.context"
-}
-
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.internal.context"
+  }
+
   addDefaultHazeTargets(project)
 
   sourceSets {

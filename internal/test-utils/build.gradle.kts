@@ -10,11 +10,11 @@ plugins {
   id("dev.chrisbanes.compose")
 }
 
-android {
-  namespace = "dev.chrisbanes.haze.internal.testutils"
-}
-
 kotlin {
+  android {
+    namespace = "dev.chrisbanes.haze.internal.testutils"
+  }
+
   addDefaultHazeTargets(project)
 
   sourceSets {

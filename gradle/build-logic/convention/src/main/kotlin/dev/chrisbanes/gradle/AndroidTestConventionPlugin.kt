@@ -14,7 +14,7 @@ class AndroidTestConventionPlugin : Plugin<Project> {
         apply("org.gradle.android.cache-fix")
       }
 
-      configureAndroid()
+      configureAndroidTest()
     }
   }
 }
