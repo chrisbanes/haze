@@ -15,6 +15,8 @@ import android.view.Surface
 import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.createBitmap
 import dev.chrisbanes.haze.HazeLogger
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.trySendBlocking
 
@@ -22,6 +24,7 @@ internal class RenderScriptContext(
   val rs: RenderScript,
   val size: IntSize,
 ) {
+  private val lock = ReentrantLock()
   private val blurScript: ScriptIntrinsicBlur
 
   private val inputAlloc: Allocation
@@ -61,29 +64,33 @@ internal class RenderScriptContext(
   }
 
   fun applyBlur(blurRadius: Float) {
-    require(blurRadius in 1f..25f) {
-      "blurRadius needs to be >= 1 and <= 25"
-    }
-    if (isDestroyed) return
+    lock.withLock {
+      require(blurRadius in 1f..25f) {
+        "blurRadius needs to be >= 1 and <= 25"
+      }
+      if (isDestroyed) return@withLock
 
-    blurScript.setRadius(blurRadius.coerceAtMost(25f))
-    blurScript.forEach(outputAlloc)
+      blurScript.setRadius(blurRadius.coerceAtMost(25f))
+      blurScript.forEach(outputAlloc)
 
-    if (!isDestroyed) {
-      outputAlloc.copyTo(outputBitmap)
+      if (!isDestroyed) {
+        outputAlloc.copyTo(outputBitmap)
+      }
     }
   }
 
   suspend fun awaitSurfaceWritten() = channel.receive()
 
   fun release() {
-    HazeLogger.d(TAG) { "Release resources" }
-    isDestroyed = true
+    lock.withLock {
+      HazeLogger.d(TAG) { "Release resources" }
+      isDestroyed = true
 
-    blurScript.destroy()
-    inputAlloc.destroy()
-    outputAlloc.destroy()
-    // Note: rs (RenderScript) is NOT destroyed here — the delegate owns its lifecycle.
+      blurScript.destroy()
+      inputAlloc.destroy()
+      outputAlloc.destroy()
+      // Note: rs (RenderScript) is NOT destroyed here — the delegate owns its lifecycle.
+    }
   }
 
   private companion object {
