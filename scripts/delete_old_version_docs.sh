@@ -10,14 +10,14 @@ bare_versions=()
 
 while IFS= read -r line; do
   version=$(echo "$line" | awk '{print $1}')
-  aliases=$(echo "$line" | grep -o '\[.*\]' | tr -d '[]' | tr ',' '\n' | xargs)
+  version_aliases=$(echo "$line" | grep -o '\[.*\]' | tr -d '[]' | tr ',' '\n' | xargs)
 
   bare_versions+=("$version")
 
-  if echo "$aliases" | grep -qw "latest"; then
+  if echo "$version_aliases" | grep -qw "latest"; then
     latest_alias_version="$version"
   fi
-  if echo "$aliases" | grep -qw "dev"; then
+  if echo "$version_aliases" | grep -qw "dev"; then
     dev_alias_version="$version"
   fi
 done < <(mike list)
