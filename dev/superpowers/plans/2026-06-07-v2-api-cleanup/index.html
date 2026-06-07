@@ -1,0 +1,2044 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual effects (blur and more) for Compose Multiplatform">
+      
+      
+        <meta name="author" content="Chris Banes">
+      
+      
+        <link rel="canonical" href="https://chribanes.github.io/haze/dev/superpowers/plans/2026-06-07-v2-api-cleanup/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../media/logo.webp">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>V2 API Cleanup Implementation Plan - Haze</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=DM+Sans:300,300i,400,400i,700,700i%7CDM+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"DM Sans";--md-code-font:"DM Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  
+<meta property="og:type" content="website" />
+<meta property="og:title" content="V2 API Cleanup Implementation Plan - Haze" />
+<meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="og:image" content="https://chribanes.github.io/haze/dev/assets/images/social/superpowers/plans/2026-06-07-v2-api-cleanup.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="https://chribanes.github.io/haze/dev/superpowers/plans/2026-06-07-v2-api-cleanup/" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:title" content="V2 API Cleanup Implementation Plan - Haze" />
+<meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
+<meta property="twitter:image" content="https://chribanes.github.io/haze/dev/assets/images/social/superpowers/plans/2026-06-07-v2-api-cleanup.png" />
+</head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#v2-api-cleanup-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Haze" class="md-header__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  <img src="../../../media/logo.webp" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haze
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              V2 API Cleanup Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Haze" class="md-nav__button md-logo" aria-label="Haze" data-md-component="logo">
+      
+  <img src="../../../media/logo.webp" alt="logo">
+
+    </a>
+    Haze
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/chrisbanes/haze" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Haze
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../core-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blur
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blur
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/materials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Materials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../blur/platforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platforms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Effects
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Effects
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../effects/liquid-glass/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Liquid Glass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../custom-effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Effects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../migrating-2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Haze 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sample code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sample/wasm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🕸️ Sample app (Wasm)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sample/js/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🕸️ Sample app (JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-1-blur-style-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Blur Style Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-2-blur-style-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: Blur Style Implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-3-liquid-glass-grouped-style-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Liquid Glass Grouped Style Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-4-liquid-glass-grouped-style-types-and-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Liquid Glass Grouped Style Types and Defaults
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-5-liquid-glass-visualeffect-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Liquid Glass VisualEffect Resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6-remove-migration-aliases-and-update-call-sites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: Remove Migration Aliases and Update Call Sites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7-documentation-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7: Documentation Updates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-8-api-snapshots-and-full-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8: API Snapshots and Full Verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#final-review-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Final Review Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<div><h1 id="v2-api-cleanup-implementation-plan">V2 API Cleanup Implementation Plan<a class="headerlink" href="#v2-api-cleanup-implementation-plan" title="Permanent link">¶</a></h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Clean up the v2 API by removing partial v1 migration shims, fixing blur style immutability and empty-list semantics, grouping <code>LiquidGlassStyle</code>, updating docs, and regenerating API snapshots.</p>
+<p><strong>Architecture:</strong> Keep the hard v2 break explicit: blur APIs only live under <code>dev.chrisbanes.haze.blur</code>, liquid glass remains experimental but uses grouped immutable style values, and existing <code>VisualEffect</code> lifecycle behavior stays unchanged. Implement behavior-preserving refactors behind focused unit tests, then update docs and API files.</p>
+<p><strong>Tech Stack:</strong> Kotlin Multiplatform, Jetpack Compose Runtime/UI, assertk, kotlin.test, Gradle, Metalava API snapshots.</p>
+<hr>
+<h2 id="file-structure">File Structure<a class="headerlink" href="#file-structure" title="Permanent link">¶</a></h2>
+<ul>
+<li>Modify <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/MigrationAliases.kt</code>: delete the file if all declarations are removed.</li>
+<li>Modify <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyle.kt</code>: remove deprecated aliases/factories, add defensive list snapshots, and support <code>null</code> as unspecified color effects.</li>
+<li>Modify <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/BlurVisualEffect.kt</code>: store direct color effects as nullable authoring state and resolve empty lists as explicit empty.</li>
+<li>Create <code>haze-blur/src/commonTest/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyleTest.kt</code>: test defensive copies and explicit-empty semantics.</li>
+<li>Modify <code>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyle.kt</code>: replace the flat style with grouped immutable value types.</li>
+<li>Modify <code>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt</code>: build defaults through grouped style values.</li>
+<li>Modify <code>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassVisualEffect.kt</code>: resolve grouped style values with the same precedence as the old flat style.</li>
+<li>Create <code>haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt</code>: test grouped defaults and precedence.</li>
+<li>Modify sample/screenshot/docs source files that construct <code>LiquidGlassStyle</code> directly.</li>
+<li>Modify <code>docs/migrating-2.0.md</code>: document the hard break and grouped liquid glass migration.</li>
+<li>Modify API snapshots in <code>haze-blur/api/api.txt</code>, <code>haze-liquidglass/api/api.txt</code>, and any versioned snapshots required by the project.</li>
+</ul>
+<hr>
+<h3 id="task-1-blur-style-tests">Task 1: Blur Style Tests<a class="headerlink" href="#task-1-blur-style-tests" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Create: <code>haze-blur/src/commonTest/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyleTest.kt</code>
+- Read: <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyle.kt</code>
+- Read: <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/BlurVisualEffect.kt</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Write failing tests for list snapshot and empty-list semantics</strong></li>
+</ul>
+<p>Create <code>haze-blur/src/commonTest/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyleTest.kt</code> with:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Copyright 2026, Christopher Banes and the Haze project contributors</span>
+<span class="c1">// SPDX-License-Identifier: Apache-2.0</span>
+
+<span class="k">package</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur</span>
+
+<span class="k">import</span><span class="w"> </span><span class="nn">androidx.compose.ui.graphics.Color</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">assertk.assertThat</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">assertk.assertions.containsExactly</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">assertk.assertions.isEmpty</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">kotlin.test.Test</span>
+
+<span class="kd">class</span><span class="w"> </span><span class="nc">HazeBlurStyleTest</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">hazeBlurStyle_colorEffectsSnapshotsMutableInput</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">first</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Red</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">second</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Blue</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mutableListOf</span><span class="p">(</span><span class="n">first</span><span class="p">)</span>
+
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">(</span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input</span><span class="p">)</span>
+
+<span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">second</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">style</span><span class="p">.</span><span class="na">colorEffects</span><span class="p">).</span><span class="na">containsExactly</span><span class="p">(</span><span class="n">first</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">hazeBlurStyle_emptyColorEffectsAreExplicitlySpecified</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">inherited</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">(</span><span class="n">colorEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Red</span><span class="p">))</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">(</span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">emptyList</span><span class="p">())</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">effect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BlurVisualEffect</span><span class="p">().</span><span class="na">apply</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">compositionLocalStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inherited</span>
+<span class="w">      </span><span class="k">this</span><span class="p">.</span><span class="na">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">colorEffects</span><span class="p">).</span><span class="na">isEmpty</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">blurVisualEffect_emptyColorEffectsClearsInheritedEffects</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">inherited</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">(</span><span class="n">colorEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Red</span><span class="p">))</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">effect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BlurVisualEffect</span><span class="p">().</span><span class="na">apply</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">compositionLocalStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inherited</span>
+<span class="w">      </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">emptyList</span><span class="p">()</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">colorEffects</span><span class="p">).</span><span class="na">isEmpty</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the focused blur tests and verify failure</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-blur:test<span class="w"> </span>--tests<span class="w"> </span>dev.chrisbanes.haze.blur.HazeBlurStyleTest
+</code></pre></div>
+<p>Expected: FAIL. The snapshot test may pass if the current data class already stores an independent list instance for <code>listOfNotNull</code>, but the explicit-empty tests should fail because empty lists currently fall through to inherited style values.</p>
+<ul>
+<li>[ ] <strong>Step 3: Commit the failing tests</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>haze-blur/src/commonTest/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyleTest.kt
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"test: cover blur style color effect semantics"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-2-blur-style-implementation">Task 2: Blur Style Implementation<a class="headerlink" href="#task-2-blur-style-implementation" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyle.kt</code>
+- Modify: <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/BlurVisualEffect.kt</code>
+- Test: <code>haze-blur/src/commonTest/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyleTest.kt</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Change <code>HazeBlurStyle</code> to distinguish unspecified from empty</strong></li>
+</ul>
+<p>In <code>HazeBlurStyle.kt</code>, replace the <code>data class HazeBlurStyle</code> declaration with a regular immutable class that keeps the public constructor ergonomic but snapshots the list. Use this structure:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@Immutable</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">HazeBlurStyle</span><span class="w"> </span><span class="n">public</span><span class="w"> </span><span class="k">constructor</span><span class="p">(</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">backgroundColor</span><span class="p">:</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">  </span><span class="n">colorEffects</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeColorEffect</span><span class="o">&gt;?</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">blurRadius</span><span class="p">:</span><span class="w"> </span><span class="n">Dp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Dp</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">noiseFactor</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="m">1f</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">fallbackColorEffect</span><span class="p">:</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">public</span><span class="w"> </span><span class="k">constructor</span><span class="p">(</span>
+<span class="w">    </span><span class="n">backgroundColor</span><span class="p">:</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">    </span><span class="n">colorEffect</span><span class="p">:</span><span class="w"> </span><span class="n">HazeColorEffect? </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">    </span><span class="n">blurRadius</span><span class="p">:</span><span class="w"> </span><span class="n">Dp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Dp</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">    </span><span class="n">noiseFactor</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="m">1f</span><span class="p">,</span>
+<span class="w">    </span><span class="n">fallbackColorEffect</span><span class="p">:</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">  </span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="k">this</span><span class="p">(</span>
+<span class="w">    </span><span class="n">backgroundColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backgroundColor</span><span class="p">,</span>
+<span class="w">    </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">colorEffect</span><span class="o">?.</span><span class="na">let</span><span class="p">(</span><span class="o">::</span><span class="n">listOf</span><span class="p">),</span>
+<span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">,</span>
+<span class="w">    </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">noiseFactor</span><span class="p">,</span>
+<span class="w">    </span><span class="n">fallbackColorEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fallbackColorEffect</span><span class="p">,</span>
+<span class="w">  </span><span class="p">)</span>
+
+<span class="w">  </span><span class="kd">internal</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">specifiedColorEffects</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeColorEffect</span><span class="o">&gt;?</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">colorEffects</span><span class="o">?.</span><span class="na">toList</span><span class="p">()</span>
+
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">colorEffects</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeColorEffect</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">specifiedColorEffects</span><span class="p">.</span><span class="na">orEmpty</span><span class="p">()</span>
+
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">operator</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">component1</span><span class="p">():</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backgroundColor</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">operator</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">component2</span><span class="p">():</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeColorEffect</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">colorEffects</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">operator</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">component3</span><span class="p">():</span><span class="w"> </span><span class="n">Dp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">blurRadius</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">operator</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">component4</span><span class="p">():</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">noiseFactor</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">operator</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">component5</span><span class="p">():</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fallbackColorEffect</span>
+
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span>
+<span class="w">    </span><span class="n">backgroundColor</span><span class="p">:</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">backgroundColor</span><span class="p">,</span>
+<span class="w">    </span><span class="n">colorEffects</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeColorEffect</span><span class="o">&gt;?</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">specifiedColorEffects</span><span class="p">,</span>
+<span class="w">    </span><span class="n">blurRadius</span><span class="p">:</span><span class="w"> </span><span class="n">Dp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">blurRadius</span><span class="p">,</span>
+<span class="w">    </span><span class="n">noiseFactor</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">noiseFactor</span><span class="p">,</span>
+<span class="w">    </span><span class="n">fallbackColorEffect</span><span class="p">:</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">fallbackColorEffect</span><span class="p">,</span>
+<span class="w">  </span><span class="p">):</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">(</span>
+<span class="w">    </span><span class="n">backgroundColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backgroundColor</span><span class="p">,</span>
+<span class="w">    </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">colorEffects</span><span class="p">,</span>
+<span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">,</span>
+<span class="w">    </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">noiseFactor</span><span class="p">,</span>
+<span class="w">    </span><span class="n">fallbackColorEffect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fallbackColorEffect</span><span class="p">,</span>
+<span class="w">  </span><span class="p">)</span>
+
+<span class="w">  </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">equals</span><span class="p">(</span><span class="n">other</span><span class="p">:</span><span class="w"> </span><span class="kt">Any?</span><span class="p">):</span><span class="w"> </span><span class="kt">Boolean</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="n">other</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">other</span><span class="w"> </span><span class="k">!is</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">backgroundColor</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">other</span><span class="p">.</span><span class="na">backgroundColor</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">      </span><span class="n">specifiedColorEffects</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">other</span><span class="p">.</span><span class="na">specifiedColorEffects</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">      </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">other</span><span class="p">.</span><span class="na">blurRadius</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">      </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">other</span><span class="p">.</span><span class="na">noiseFactor</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">      </span><span class="n">fallbackColorEffect</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">other</span><span class="p">.</span><span class="na">fallbackColorEffect</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">hashCode</span><span class="p">():</span><span class="w"> </span><span class="kt">Int</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backgroundColor</span><span class="p">.</span><span class="na">hashCode</span><span class="p">()</span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">31</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">specifiedColorEffects</span><span class="p">.</span><span class="na">hashCode</span><span class="p">()</span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">31</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">.</span><span class="na">hashCode</span><span class="p">()</span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">31</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">noiseFactor</span><span class="p">.</span><span class="na">hashCode</span><span class="p">()</span>
+<span class="w">    </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">31</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">fallbackColorEffect</span><span class="p">.</span><span class="na">hashCode</span><span class="p">()</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">result</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">toString</span><span class="p">():</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="s">"HazeBlurStyle("</span><span class="w"> </span><span class="o">+</span>
+<span class="w">      </span><span class="s">"backgroundColor=</span><span class="si">$</span><span class="n">backgroundColor</span><span class="s">, "</span><span class="w"> </span><span class="o">+</span>
+<span class="w">      </span><span class="s">"colorEffects=</span><span class="si">$</span><span class="n">specifiedColorEffects</span><span class="s">, "</span><span class="w"> </span><span class="o">+</span>
+<span class="w">      </span><span class="s">"blurRadius=</span><span class="si">$</span><span class="n">blurRadius</span><span class="s">, "</span><span class="w"> </span><span class="o">+</span>
+<span class="w">      </span><span class="s">"noiseFactor=</span><span class="si">$</span><span class="n">noiseFactor</span><span class="s">, "</span><span class="w"> </span><span class="o">+</span>
+<span class="w">      </span><span class="s">"fallbackColorEffect=</span><span class="si">$</span><span class="n">fallbackColorEffect</span><span class="s">"</span><span class="w"> </span><span class="o">+</span>
+<span class="w">      </span><span class="s">")"</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">companion</span><span class="w"> </span><span class="kd">object</span><span class="w"> </span><span class="err">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">Unspecified</span><span class="p">:</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="p">(</span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Update <code>BlurVisualEffect.colorEffects</code> to store nullable authoring state</strong></li>
+</ul>
+<p>In <code>BlurVisualEffect.kt</code>, replace:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="nv">colorEffects</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeColorEffect</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">emptyList</span><span class="p">()</span>
+</code></pre></div>
+<p>with:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">private</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="nv">directColorEffects</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeColorEffect</span><span class="o">&gt;?</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kd">var</span><span class="w"> </span><span class="nv">colorEffects</span><span class="p">:</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">HazeColorEffect</span><span class="o">&gt;</span>
+<span class="w">  </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">directColorEffects</span>
+<span class="w">      </span><span class="o">?:</span><span class="w"> </span><span class="n">style</span><span class="p">.</span><span class="na">specifiedColorEffects</span>
+<span class="w">      </span><span class="o">?:</span><span class="w"> </span><span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">specifiedColorEffects</span>
+<span class="w">      </span><span class="o">?:</span><span class="w"> </span><span class="n">emptyList</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">set</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">snapshot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="na">toList</span><span class="p">()</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">snapshot</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">directColorEffects</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">HazeLogger</span><span class="p">.</span><span class="na">d</span><span class="p">(</span><span class="n">TAG</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s">"colorEffects changed. Current: </span><span class="si">$</span><span class="n">directColorEffects</span><span class="s">. New: </span><span class="si">$</span><span class="n">snapshot</span><span class="s">"</span><span class="w"> </span><span class="p">}</span>
+<span class="w">      </span><span class="n">directColorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">snapshot</span>
+<span class="w">      </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">BlurDirtyFields</span><span class="p">.</span><span class="na">ColorEffects</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+</code></pre></div>
+<p>Update the copy constructor assignment to keep resolved-copy behavior:</p>
+<div class="highlight"><pre><span></span><code><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">other</span><span class="p">.</span><span class="na">colorEffects</span>
+</code></pre></div>
+<p>Keep it as-is if the source already uses that line.</p>
+<ul>
+<li>[ ] <strong>Step 3: Update style-change dirty tracking for fallback tint</strong></li>
+</ul>
+<p>In <code>BlurVisualEffect.onStyleChanged</code>, replace:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="o">?.</span><span class="na">colorEffects</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="o">?.</span><span class="na">colorEffects</span><span class="p">)</span><span class="w"> </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">BlurDirtyFields</span><span class="p">.</span><span class="na">ColorEffects</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="o">?.</span><span class="na">fallbackColorEffect</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="o">?.</span><span class="na">fallbackColorEffect</span><span class="p">)</span><span class="w"> </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">BlurDirtyFields</span><span class="p">.</span><span class="na">ColorEffects</span>
+</code></pre></div>
+<p>with:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="o">?.</span><span class="na">specifiedColorEffects</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="o">?.</span><span class="na">specifiedColorEffects</span><span class="p">)</span><span class="w"> </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">BlurDirtyFields</span><span class="p">.</span><span class="na">ColorEffects</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="o">?.</span><span class="na">fallbackColorEffect</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="o">?.</span><span class="na">fallbackColorEffect</span><span class="p">)</span><span class="w"> </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">BlurDirtyFields</span><span class="p">.</span><span class="na">FallbackColorEffect</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Run the focused blur tests</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-blur:test<span class="w"> </span>--tests<span class="w"> </span>dev.chrisbanes.haze.blur.HazeBlurStyleTest
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[ ] <strong>Step 5: Run existing blur common tests</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-blur:test
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[ ] <strong>Step 6: Commit blur implementation</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyle.kt<span class="w"> </span>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/BlurVisualEffect.kt
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"fix: clarify blur style color effects"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-3-liquid-glass-grouped-style-tests">Task 3: Liquid Glass Grouped Style Tests<a class="headerlink" href="#task-3-liquid-glass-grouped-style-tests" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Create: <code>haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt</code>
+- Read: <code>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt</code>
+- Read: <code>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassVisualEffect.kt</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Write failing tests for grouped defaults and precedence</strong></li>
+</ul>
+<p>Create <code>haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt</code> with:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Copyright 2026, Christopher Banes and the Haze project contributors</span>
+<span class="c1">// SPDX-License-Identifier: Apache-2.0</span>
+
+<span class="k">package</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.liquidglass</span>
+
+<span class="k">import</span><span class="w"> </span><span class="nn">androidx.compose.foundation.shape.RoundedCornerShape</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">androidx.compose.ui.geometry.Offset</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">androidx.compose.ui.graphics.Color</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">androidx.compose.ui.unit.dp</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">assertk.assertThat</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">assertk.assertions.isEqualTo</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.ExperimentalHazeApi</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">kotlin.test.Test</span>
+
+<span class="nd">@OptIn</span><span class="p">(</span><span class="n">ExperimentalHazeApi</span><span class="o">::</span><span class="n">class</span><span class="p">)</span>
+<span class="kd">class</span><span class="w"> </span><span class="nc">LiquidGlassStyleTest</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">defaultsStyle_resolvesToLiquidGlassDefaults</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">effect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassVisualEffect</span><span class="p">().</span><span class="na">apply</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">compositionLocalStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">style</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">tint</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">tint</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">shape</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">shape</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">refractionStrength</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">refractionStrength</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">refractionHeight</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">refractionHeight</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">refractionScale</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">refractionScale</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">depth</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">depth</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">blurRadius</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">blurRadius</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">specularIntensity</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">specularIntensity</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">specularExponent</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">specularExponent</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">fresnelExponent</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">fresnelExponent</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">ambientResponse</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">ambientResponse</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">alpha</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">alpha</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">contrast</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">contrast</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">whitePoint</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">whitePoint</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">chromaMultiplier</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">chromaMultiplier</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">edgeSoftness</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">edgeSoftness</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">contentNormalBlend</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">contentNormalBlend</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">surfaceProfile</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">surfaceProfile</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">chromaticAberrationStrength</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">chromaticAberrationStrength</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">chromaticAberrationMode</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">LiquidGlassDefaults</span><span class="p">.</span><span class="na">chromaticAberrationMode</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">groupedStyle_partiallySpecifiedValuesInheritFromCompositionLocal</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">localStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">      </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Blue</span><span class="p">,</span>
+<span class="w">      </span><span class="n">shape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="m">12.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">      </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="p">(</span>
+<span class="w">        </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">,</span>
+<span class="w">        </span><span class="n">refractionScale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">8f</span><span class="p">,</span>
+<span class="w">        </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span><span class="p">,</span>
+<span class="w">      </span><span class="p">),</span>
+<span class="w">      </span><span class="n">lighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="p">(</span>
+<span class="w">        </span><span class="n">specularIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.25f</span><span class="p">,</span>
+<span class="w">        </span><span class="n">lightPosition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Offset</span><span class="p">(</span><span class="m">4f</span><span class="p">,</span><span class="w"> </span><span class="m">8f</span><span class="p">),</span>
+<span class="w">      </span><span class="p">),</span>
+<span class="w">      </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span><span class="w"> </span><span class="n">contrast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">),</span>
+<span class="w">      </span><span class="n">rendering</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="p">(</span>
+<span class="w">        </span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">6.</span><span class="n">dp</span><span class="p">,</span>
+<span class="w">        </span><span class="n">surfaceProfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SurfaceProfile</span><span class="p">.</span><span class="na">Concave</span><span class="p">,</span>
+<span class="w">      </span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">directStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">      </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.9f</span><span class="p">),</span>
+<span class="w">      </span><span class="n">lighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="p">(</span><span class="n">ambientResponse</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">),</span>
+<span class="w">      </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="p">(</span><span class="n">whitePoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.1f</span><span class="p">),</span>
+<span class="w">      </span><span class="n">rendering</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="p">(</span><span class="n">chromaticAberrationStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">effect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassVisualEffect</span><span class="p">().</span><span class="na">apply</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">compositionLocalStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">localStyle</span>
+<span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">directStyle</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">refractionStrength</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.9f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">refractionScale</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">8f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">depth</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.3f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">ambientResponse</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.8f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">specularIntensity</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.25f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">lightPosition</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">Offset</span><span class="p">(</span><span class="m">4f</span><span class="p">,</span><span class="w"> </span><span class="m">8f</span><span class="p">))</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">alpha</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">contrast</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.4f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">whitePoint</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.1f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">edgeSoftness</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">6.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">surfaceProfile</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">SurfaceProfile</span><span class="p">.</span><span class="na">Concave</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">chromaticAberrationStrength</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.5f</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">directPropertiesOverrideGroupedStyle</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">effect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassVisualEffect</span><span class="p">().</span><span class="na">apply</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">        </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Blue</span><span class="p">,</span>
+<span class="w">        </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span><span class="p">),</span>
+<span class="w">        </span><span class="n">lighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="p">(</span><span class="n">ambientResponse</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span><span class="p">),</span>
+<span class="w">        </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">),</span>
+<span class="w">        </span><span class="n">rendering</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="p">(</span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">6.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">      </span><span class="p">)</span>
+<span class="w">      </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Red</span>
+<span class="w">      </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span>
+<span class="w">      </span><span class="n">ambientResponse</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.9f</span>
+<span class="w">      </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span>
+<span class="w">      </span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">10.</span><span class="n">dp</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">tint</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Red</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">refractionStrength</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.8f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">ambientResponse</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.9f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">alpha</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">0.5f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">effect</span><span class="p">.</span><span class="na">edgeSoftness</span><span class="p">).</span><span class="na">isEqualTo</span><span class="p">(</span><span class="m">10.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run focused liquid glass tests and verify failure</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-liquidglass:test<span class="w"> </span>--tests<span class="w"> </span>dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest
+</code></pre></div>
+<p>Expected: FAIL because the grouped style types do not exist yet.</p>
+<ul>
+<li>[ ] <strong>Step 3: Commit failing liquid glass tests</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"test: cover liquid glass grouped style semantics"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-4-liquid-glass-grouped-style-types-and-defaults">Task 4: Liquid Glass Grouped Style Types and Defaults<a class="headerlink" href="#task-4-liquid-glass-grouped-style-types-and-defaults" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyle.kt</code>
+- Modify: <code>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt</code>
+- Test: <code>haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Replace flat <code>LiquidGlassStyle</code> with grouped value types</strong></li>
+</ul>
+<p>In <code>LiquidGlassStyle.kt</code>, keep <code>LocalLiquidGlassStyle</code>, then replace the flat style class with:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@ExperimentalHazeApi</span>
+<span class="nd">@Immutable</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">tint</span><span class="p">:</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">shape</span><span class="p">:</span><span class="w"> </span><span class="n">RoundedCornerShape? </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">optics</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">lighting</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">color</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">rendering</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">companion</span><span class="w"> </span><span class="kd">object</span><span class="w"> </span><span class="err">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">Unspecified</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassStyle</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nd">@ExperimentalHazeApi</span>
+<span class="nd">@Immutable</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">LiquidGlassOptics</span><span class="p">(</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">refractionStrength</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">refractionHeight</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">refractionScale</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">depth</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">blurRadius</span><span class="p">:</span><span class="w"> </span><span class="n">Dp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Dp</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">companion</span><span class="w"> </span><span class="kd">object</span><span class="w"> </span><span class="err">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">Unspecified</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nd">@ExperimentalHazeApi</span>
+<span class="nd">@Immutable</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">LiquidGlassLighting</span><span class="p">(</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">specularIntensity</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">specularExponent</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">fresnelExponent</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">ambientResponse</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">lightPosition</span><span class="p">:</span><span class="w"> </span><span class="n">Offset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Offset</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">companion</span><span class="w"> </span><span class="kd">object</span><span class="w"> </span><span class="err">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">Unspecified</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nd">@ExperimentalHazeApi</span>
+<span class="nd">@Immutable</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">LiquidGlassColor</span><span class="p">(</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">alpha</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">contrast</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">whitePoint</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">chromaMultiplier</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">companion</span><span class="w"> </span><span class="kd">object</span><span class="w"> </span><span class="err">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">Unspecified</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nd">@ExperimentalHazeApi</span>
+<span class="nd">@Immutable</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">LiquidGlassRendering</span><span class="p">(</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">edgeSoftness</span><span class="p">:</span><span class="w"> </span><span class="n">Dp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Dp</span><span class="p">.</span><span class="na">Unspecified</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">contentNormalBlend</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">surfaceProfile</span><span class="p">:</span><span class="w"> </span><span class="n">SurfaceProfile? </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">chromaticAberrationStrength</span><span class="p">:</span><span class="w"> </span><span class="kt">Float</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Float</span><span class="p">.</span><span class="na">NaN</span><span class="p">,</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">chromaticAberrationMode</span><span class="p">:</span><span class="w"> </span><span class="n">ChromaticAberrationMode? </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">public</span><span class="w"> </span><span class="kd">companion</span><span class="w"> </span><span class="kd">object</span><span class="w"> </span><span class="err">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">Unspecified</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Rebuild <code>LiquidGlassDefaults.style</code> with groups</strong></li>
+</ul>
+<p>In <code>LiquidGlassDefaults.kt</code>, replace the flat <code>style</code> initializer with:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">  </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tint</span><span class="p">,</span>
+<span class="w">  </span><span class="n">shape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">shape</span><span class="p">,</span>
+<span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="p">(</span>
+<span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">refractionStrength</span><span class="p">,</span>
+<span class="w">    </span><span class="n">refractionHeight</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">refractionHeight</span><span class="p">,</span>
+<span class="w">    </span><span class="n">refractionScale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">refractionScale</span><span class="p">,</span>
+<span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">depth</span><span class="p">,</span>
+<span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">lighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="p">(</span>
+<span class="w">    </span><span class="n">specularIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">specularIntensity</span><span class="p">,</span>
+<span class="w">    </span><span class="n">specularExponent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">specularExponent</span><span class="p">,</span>
+<span class="w">    </span><span class="n">fresnelExponent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fresnelExponent</span><span class="p">,</span>
+<span class="w">    </span><span class="n">ambientResponse</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ambientResponse</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="p">(</span>
+<span class="w">    </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">alpha</span><span class="p">,</span>
+<span class="w">    </span><span class="n">contrast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">contrast</span><span class="p">,</span>
+<span class="w">    </span><span class="n">whitePoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">whitePoint</span><span class="p">,</span>
+<span class="w">    </span><span class="n">chromaMultiplier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">chromaMultiplier</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">rendering</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="p">(</span>
+<span class="w">    </span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">edgeSoftness</span><span class="p">,</span>
+<span class="w">    </span><span class="n">contentNormalBlend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">contentNormalBlend</span><span class="p">,</span>
+<span class="w">    </span><span class="n">surfaceProfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">surfaceProfile</span><span class="p">,</span>
+<span class="w">    </span><span class="n">chromaticAberrationStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">chromaticAberrationStrength</span><span class="p">,</span>
+<span class="w">    </span><span class="n">chromaticAberrationMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">chromaticAberrationMode</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Run focused liquid glass tests and verify remaining failures</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-liquidglass:test<span class="w"> </span>--tests<span class="w"> </span>dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest
+</code></pre></div>
+<p>Expected: FAIL in <code>LiquidGlassVisualEffect</code> compilation because it still reads flat <code>style.refractionStrength</code>, <code>style.specularIntensity</code>, and related properties.</p>
+<ul>
+<li>[ ] <strong>Step 4: Leave grouped style type changes uncommitted for the next task</strong></li>
+</ul>
+<p>Do not commit these implementation changes yet. The module is expected to keep
+failing until Task 5 updates <code>LiquidGlassVisualEffect</code> to read grouped style
+values. Confirm the intended uncommitted files:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>status<span class="w"> </span>--short<span class="w"> </span>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyle.kt<span class="w"> </span>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt
+</code></pre></div>
+<p>Expected: both files are modified.</p>
+<hr>
+<h3 id="task-5-liquid-glass-visualeffect-resolution">Task 5: Liquid Glass VisualEffect Resolution<a class="headerlink" href="#task-5-liquid-glass-visualeffect-resolution" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassVisualEffect.kt</code>
+- Test: <code>haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Add grouped style helper accessors</strong></li>
+</ul>
+<p>In <code>LiquidGlassVisualEffect.kt</code>, add private helper properties near <code>style</code>/<code>compositionLocalStyle</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">styleOptics</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="w"> </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">.</span><span class="na">optics</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">localOptics</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="w"> </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">optics</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">styleLighting</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="w"> </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">.</span><span class="na">lighting</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">localLighting</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="w"> </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">lighting</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">styleColor</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="w"> </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">.</span><span class="na">color</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">localColor</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="w"> </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">color</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">styleRendering</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="w"> </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">.</span><span class="na">rendering</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">localRendering</span><span class="p">:</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="w"> </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">rendering</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Update optics-backed property getters</strong></li>
+</ul>
+<p>Replace these style/local lookups:</p>
+<div class="highlight"><pre><span></span><code><span class="n">style</span><span class="p">.</span><span class="na">refractionStrength</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">refractionStrength</span>
+<span class="n">style</span><span class="p">.</span><span class="na">depth</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">depth</span>
+<span class="n">style</span><span class="p">.</span><span class="na">blurRadius</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">blurRadius</span>
+<span class="n">style</span><span class="p">.</span><span class="na">refractionHeight</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">refractionHeight</span>
+<span class="n">style</span><span class="p">.</span><span class="na">refractionScale</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">refractionScale</span>
+</code></pre></div>
+<p>with:</p>
+<div class="highlight"><pre><span></span><code><span class="n">styleOptics</span><span class="p">.</span><span class="na">refractionStrength</span>
+<span class="n">localOptics</span><span class="p">.</span><span class="na">refractionStrength</span>
+<span class="n">styleOptics</span><span class="p">.</span><span class="na">depth</span>
+<span class="n">localOptics</span><span class="p">.</span><span class="na">depth</span>
+<span class="n">styleOptics</span><span class="p">.</span><span class="na">blurRadius</span>
+<span class="n">localOptics</span><span class="p">.</span><span class="na">blurRadius</span>
+<span class="n">styleOptics</span><span class="p">.</span><span class="na">refractionHeight</span>
+<span class="n">localOptics</span><span class="p">.</span><span class="na">refractionHeight</span>
+<span class="n">styleOptics</span><span class="p">.</span><span class="na">refractionScale</span>
+<span class="n">localOptics</span><span class="p">.</span><span class="na">refractionScale</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Update lighting-backed property getters</strong></li>
+</ul>
+<p>Replace these style/local lookups:</p>
+<div class="highlight"><pre><span></span><code><span class="n">style</span><span class="p">.</span><span class="na">specularIntensity</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">specularIntensity</span>
+<span class="n">style</span><span class="p">.</span><span class="na">ambientResponse</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">ambientResponse</span>
+<span class="n">style</span><span class="p">.</span><span class="na">lightPosition</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">lightPosition</span>
+<span class="n">style</span><span class="p">.</span><span class="na">specularExponent</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">specularExponent</span>
+<span class="n">style</span><span class="p">.</span><span class="na">fresnelExponent</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">fresnelExponent</span>
+</code></pre></div>
+<p>with:</p>
+<div class="highlight"><pre><span></span><code><span class="n">styleLighting</span><span class="p">.</span><span class="na">specularIntensity</span>
+<span class="n">localLighting</span><span class="p">.</span><span class="na">specularIntensity</span>
+<span class="n">styleLighting</span><span class="p">.</span><span class="na">ambientResponse</span>
+<span class="n">localLighting</span><span class="p">.</span><span class="na">ambientResponse</span>
+<span class="n">styleLighting</span><span class="p">.</span><span class="na">lightPosition</span>
+<span class="n">localLighting</span><span class="p">.</span><span class="na">lightPosition</span>
+<span class="n">styleLighting</span><span class="p">.</span><span class="na">specularExponent</span>
+<span class="n">localLighting</span><span class="p">.</span><span class="na">specularExponent</span>
+<span class="n">styleLighting</span><span class="p">.</span><span class="na">fresnelExponent</span>
+<span class="n">localLighting</span><span class="p">.</span><span class="na">fresnelExponent</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Update color-backed property getters</strong></li>
+</ul>
+<p>Replace these style/local lookups:</p>
+<div class="highlight"><pre><span></span><code><span class="n">style</span><span class="p">.</span><span class="na">alpha</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">alpha</span>
+<span class="n">style</span><span class="p">.</span><span class="na">contrast</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">contrast</span>
+<span class="n">style</span><span class="p">.</span><span class="na">whitePoint</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">whitePoint</span>
+<span class="n">style</span><span class="p">.</span><span class="na">chromaMultiplier</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">chromaMultiplier</span>
+</code></pre></div>
+<p>with:</p>
+<div class="highlight"><pre><span></span><code><span class="n">styleColor</span><span class="p">.</span><span class="na">alpha</span>
+<span class="n">localColor</span><span class="p">.</span><span class="na">alpha</span>
+<span class="n">styleColor</span><span class="p">.</span><span class="na">contrast</span>
+<span class="n">localColor</span><span class="p">.</span><span class="na">contrast</span>
+<span class="n">styleColor</span><span class="p">.</span><span class="na">whitePoint</span>
+<span class="n">localColor</span><span class="p">.</span><span class="na">whitePoint</span>
+<span class="n">styleColor</span><span class="p">.</span><span class="na">chromaMultiplier</span>
+<span class="n">localColor</span><span class="p">.</span><span class="na">chromaMultiplier</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 5: Update rendering-backed and top-level property getters</strong></li>
+</ul>
+<p>Replace:</p>
+<div class="highlight"><pre><span></span><code><span class="n">style</span><span class="p">.</span><span class="na">chromaticAberrationStrength</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">chromaticAberrationStrength</span>
+<span class="n">style</span><span class="p">.</span><span class="na">surfaceProfile</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">surfaceProfile</span>
+<span class="n">style</span><span class="p">.</span><span class="na">chromaticAberrationMode</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">chromaticAberrationMode</span>
+<span class="n">style</span><span class="p">.</span><span class="na">edgeSoftness</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">edgeSoftness</span>
+<span class="n">style</span><span class="p">.</span><span class="na">contentNormalBlend</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">contentNormalBlend</span>
+</code></pre></div>
+<p>with:</p>
+<div class="highlight"><pre><span></span><code><span class="n">styleRendering</span><span class="p">.</span><span class="na">chromaticAberrationStrength</span>
+<span class="n">localRendering</span><span class="p">.</span><span class="na">chromaticAberrationStrength</span>
+<span class="n">styleRendering</span><span class="p">.</span><span class="na">surfaceProfile</span>
+<span class="n">localRendering</span><span class="p">.</span><span class="na">surfaceProfile</span>
+<span class="n">styleRendering</span><span class="p">.</span><span class="na">chromaticAberrationMode</span>
+<span class="n">localRendering</span><span class="p">.</span><span class="na">chromaticAberrationMode</span>
+<span class="n">styleRendering</span><span class="p">.</span><span class="na">edgeSoftness</span>
+<span class="n">localRendering</span><span class="p">.</span><span class="na">edgeSoftness</span>
+<span class="n">styleRendering</span><span class="p">.</span><span class="na">contentNormalBlend</span>
+<span class="n">localRendering</span><span class="p">.</span><span class="na">contentNormalBlend</span>
+</code></pre></div>
+<p>Keep <code>tint</code> and <code>shape</code> as top-level style lookups:</p>
+<div class="highlight"><pre><span></span><code><span class="n">style</span><span class="p">.</span><span class="na">tint</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">tint</span>
+<span class="n">style</span><span class="p">.</span><span class="na">shape</span>
+<span class="n">compositionLocalStyle</span><span class="p">.</span><span class="na">shape</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 6: Replace <code>onStyleChanged</code> comparisons with grouped comparisons</strong></li>
+</ul>
+<p>Replace the full body of <code>onStyleChanged(old: LiquidGlassStyle, new: LiquidGlassStyle)</code> with comparisons against group fields:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">refractionStrength</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">refractionStrength</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">RefractionStrength</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">depth</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">depth</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">Depth</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">blurRadius</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">blurRadius</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">BlurRadius</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">refractionHeight</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">refractionHeight</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">RefractionHeight</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">refractionScale</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">optics</span><span class="p">.</span><span class="na">refractionScale</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">RefractionScale</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">specularIntensity</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">specularIntensity</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">SpecularIntensity</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">ambientResponse</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">ambientResponse</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">AmbientResponse</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">lightPosition</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">lightPosition</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">LightPosition</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">specularExponent</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">specularExponent</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">SpecularExponent</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">fresnelExponent</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">lighting</span><span class="p">.</span><span class="na">fresnelExponent</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">FresnelExponent</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">tint</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">tint</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">Tint</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">shape</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">shape</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">Shape</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">color</span><span class="p">.</span><span class="na">alpha</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">color</span><span class="p">.</span><span class="na">alpha</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">Alpha</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">color</span><span class="p">.</span><span class="na">contrast</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">color</span><span class="p">.</span><span class="na">contrast</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">Contrast</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">color</span><span class="p">.</span><span class="na">whitePoint</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">color</span><span class="p">.</span><span class="na">whitePoint</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">WhitePoint</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">color</span><span class="p">.</span><span class="na">chromaMultiplier</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">color</span><span class="p">.</span><span class="na">chromaMultiplier</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">ChromaMultiplier</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">edgeSoftness</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">edgeSoftness</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">EdgeSoftness</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">contentNormalBlend</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">contentNormalBlend</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">ContentNormalBlend</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">surfaceProfile</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">surfaceProfile</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">SurfaceProfile</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">chromaticAberrationStrength</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">chromaticAberrationStrength</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">ChromaticAberration</span>
+<span class="p">}</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">old</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">chromaticAberrationMode</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">new</span><span class="p">.</span><span class="na">rendering</span><span class="p">.</span><span class="na">chromaticAberrationMode</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">dirtyTracker</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">LiquidGlassDirtyFields</span><span class="p">.</span><span class="na">ChromaticAberrationMode</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 7: Run focused liquid glass tests</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-liquidglass:test<span class="w"> </span>--tests<span class="w"> </span>dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[ ] <strong>Step 8: Run all liquid glass tests</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-liquidglass:test
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[ ] <strong>Step 9: Commit grouped liquid glass implementation</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyle.kt<span class="w"> </span>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt<span class="w"> </span>haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassVisualEffect.kt
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"refactor: group liquid glass style values"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-6-remove-migration-aliases-and-update-call-sites">Task 6: Remove Migration Aliases and Update Call Sites<a class="headerlink" href="#task-6-remove-migration-aliases-and-update-call-sites" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Delete: <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/MigrationAliases.kt</code>
+- Modify: <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyle.kt</code>
+- Modify: source files found by the <code>rg</code> commands in this task</p>
+<ul>
+<li>[ ] <strong>Step 1: Find deprecated migration declarations and old call sites</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>rg<span class="w"> </span><span class="s2">"typealias HazeStyle|typealias HazeTint|typealias HazeProgressive|LocalHazeStyle|fun HazeTint|hazeEffect\\(.*style|dev\\.chrisbanes\\.haze\\.materials|LiquidGlassStyle\\("</span><span class="w"> </span>haze<span class="w"> </span>haze-blur<span class="w"> </span>haze-liquidglass<span class="w"> </span>haze-materials<span class="w"> </span>sample<span class="w"> </span>docs<span class="w"> </span>-n
+</code></pre></div>
+<p>Expected: output includes <code>MigrationAliases.kt</code>, deprecated aliases in <code>HazeBlurStyle.kt</code>, docs, and any flat <code>LiquidGlassStyle(...)</code> call sites.</p>
+<ul>
+<li>[ ] <strong>Step 2: Delete root-package migration aliases</strong></li>
+</ul>
+<p>Delete <code>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/MigrationAliases.kt</code>.</p>
+<ul>
+<li>[ ] <strong>Step 3: Remove deprecated blur-package aliases/factories</strong></li>
+</ul>
+<p>In <code>HazeBlurStyle.kt</code>, remove these declarations:</p>
+<div class="highlight"><pre><span></span><code><span class="n">public</span><span class="w"> </span><span class="k">typealias</span><span class="w"> </span><span class="n">HazeStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">LocalHazeStyle</span><span class="p">:</span><span class="w"> </span><span class="n">ProvidableCompositionLocal</span><span class="o">&lt;</span><span class="n">HazeBlurStyle</span><span class="o">&gt;</span><span class="w"> </span><span class="k">get</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LocalHazeBlurStyle</span>
+<span class="n">public</span><span class="w"> </span><span class="k">typealias</span><span class="w"> </span><span class="n">HazeTint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeColorEffect</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">HazeTint</span><span class="p">(</span><span class="n">color</span><span class="p">:</span><span class="w"> </span><span class="n">Color</span><span class="p">,</span><span class="w"> </span><span class="n">blendMode</span><span class="p">:</span><span class="w"> </span><span class="n">BlendMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">DefaultBlendMode</span><span class="p">):</span><span class="w"> </span><span class="n">HazeColorEffect</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">HazeTint</span><span class="p">(</span><span class="n">brush</span><span class="p">:</span><span class="w"> </span><span class="n">Brush</span><span class="p">,</span><span class="w"> </span><span class="n">blendMode</span><span class="p">:</span><span class="w"> </span><span class="n">BlendMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">DefaultBlendMode</span><span class="p">):</span><span class="w"> </span><span class="n">HazeColorEffect</span>
+</code></pre></div>
+<p>Also remove imports that are only used by the deleted factories, such as <code>Brush</code> if no remaining declaration uses it.</p>
+<ul>
+<li>[ ] <strong>Step 4: Update old package imports</strong></li>
+</ul>
+<p>For any source file still importing <code>dev.chrisbanes.haze.materials.*</code>, change imports to <code>dev.chrisbanes.haze.blur.materials.*</code>. For example:</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.materials.HazeMaterials</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 5: Update flat <code>LiquidGlassStyle(...)</code> call sites</strong></li>
+</ul>
+<p>For each flat style call site, move values into groups. Use this mapping:</p>
+<div class="highlight"><pre><span></span><code><span class="n">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">  </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tint</span><span class="p">,</span>
+<span class="w">  </span><span class="n">shape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">shape</span><span class="p">,</span>
+<span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="p">(</span>
+<span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">refractionStrength</span><span class="p">,</span>
+<span class="w">    </span><span class="n">refractionHeight</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">refractionHeight</span><span class="p">,</span>
+<span class="w">    </span><span class="n">refractionScale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">refractionScale</span><span class="p">,</span>
+<span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">depth</span><span class="p">,</span>
+<span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">lighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="p">(</span>
+<span class="w">    </span><span class="n">specularIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">specularIntensity</span><span class="p">,</span>
+<span class="w">    </span><span class="n">specularExponent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">specularExponent</span><span class="p">,</span>
+<span class="w">    </span><span class="n">fresnelExponent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fresnelExponent</span><span class="p">,</span>
+<span class="w">    </span><span class="n">ambientResponse</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ambientResponse</span><span class="p">,</span>
+<span class="w">    </span><span class="n">lightPosition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lightPosition</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassColor</span><span class="p">(</span>
+<span class="w">    </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">alpha</span><span class="p">,</span>
+<span class="w">    </span><span class="n">contrast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">contrast</span><span class="p">,</span>
+<span class="w">    </span><span class="n">whitePoint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">whitePoint</span><span class="p">,</span>
+<span class="w">    </span><span class="n">chromaMultiplier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">chromaMultiplier</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">rendering</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="p">(</span>
+<span class="w">    </span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">edgeSoftness</span><span class="p">,</span>
+<span class="w">    </span><span class="n">contentNormalBlend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">contentNormalBlend</span><span class="p">,</span>
+<span class="w">    </span><span class="n">surfaceProfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">surfaceProfile</span><span class="p">,</span>
+<span class="w">    </span><span class="n">chromaticAberrationStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">chromaticAberrationStrength</span><span class="p">,</span>
+<span class="w">    </span><span class="n">chromaticAberrationMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">chromaticAberrationMode</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Omit group properties whose values are unspecified/default in that call site.</p>
+<ul>
+<li>[ ] <strong>Step 6: Confirm old aliases are gone from source</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>rg<span class="w"> </span><span class="s2">"typealias HazeStyle|typealias HazeTint|typealias HazeProgressive|LocalHazeStyle|fun HazeTint|dev\\.chrisbanes\\.haze\\.materials"</span><span class="w"> </span>haze<span class="w"> </span>haze-blur<span class="w"> </span>haze-liquidglass<span class="w"> </span>haze-materials<span class="w"> </span>sample<span class="w"> </span>-n
+</code></pre></div>
+<p>Expected: no output.</p>
+<ul>
+<li>[ ] <strong>Step 7: Run module compilation/tests</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-blur:test<span class="w"> </span>:haze-liquidglass:test<span class="w"> </span>:haze-materials:compileKotlinMetadata
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[ ] <strong>Step 8: Commit alias removal and call-site updates</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze<span class="w"> </span>haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur<span class="w"> </span>haze-liquidglass<span class="w"> </span>sample<span class="w"> </span>haze-materials
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"refactor: remove v1 blur migration aliases"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-7-documentation-updates">Task 7: Documentation Updates<a class="headerlink" href="#task-7-documentation-updates" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>docs/migrating-2.0.md</code>
+- Optionally modify: <code>docs/effects/liquid-glass.md</code>
+- Optionally modify: <code>docs/blur/usage.md</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Update the migration guide hard-break language</strong></li>
+</ul>
+<p>In <code>docs/migrating-2.0.md</code>, change the overview bullets so they include:</p>
+<div class="highlight"><pre><span></span><code><span class="k">-</span><span class="w"> </span><span class="gs">**Hard source break:**</span> v1 blur convenience names and root-package aliases are removed in v2.
+<span class="k">-</span><span class="w"> </span><span class="gs">**New module dependency:**</span> Blur functionality now requires the <span class="sb">`haze-blur`</span> module.
+<span class="k">-</span><span class="w"> </span><span class="gs">**API nesting:**</span> All blur properties now require a <span class="sb">`blurEffect {}`</span> wrapper.
+<span class="k">-</span><span class="w"> </span><span class="gs">**Package changes:**</span> Blur APIs moved to <span class="sb">`dev.chrisbanes.haze.blur`</span>; blur materials moved to <span class="sb">`dev.chrisbanes.haze.blur.materials`</span>.
+<span class="k">-</span><span class="w"> </span><span class="gs">**Liquid glass style grouping:**</span> <span class="sb">`LiquidGlassStyle`</span> parameters are grouped into <span class="sb">`optics`</span>, <span class="sb">`lighting`</span>, <span class="sb">`color`</span>, and <span class="sb">`rendering`</span>.
+</code></pre></div>
+<p>Remove the “Core modifiers signatures remain the same” claim or rewrite it as:</p>
+<div class="highlight"><pre><span></span><code><span class="k">-</span><span class="w"> </span><span class="sb">`hazeSource`</span> remains in the core module.
+<span class="k">-</span><span class="w"> </span><span class="sb">`hazeEffect`</span> remains in the core module, but blur-specific style parameters moved into <span class="sb">`blurEffect {}`</span>.
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Update v1-to-v2 style examples</strong></li>
+</ul>
+<p>Ensure the style migration example reads:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// v1</span>
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">())</span>
+
+<span class="c1">// v2</span>
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Ensure imports include:</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.blurEffect</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.materials.HazeMaterials</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Add liquid glass grouped style migration example</strong></li>
+</ul>
+<p>Add a section containing:</p>
+<div class="highlight"><pre><span></span><code><span class="gu">### Liquid Glass Style Grouping</span>
+
+Flat <span class="sb">`LiquidGlassStyle`</span> construction has been grouped by concept.
+</code></pre></div>
+<p>and this code:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Before</span>
+<span class="n">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">  </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">),</span>
+<span class="w">  </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span>
+<span class="w">  </span><span class="n">specularIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
+<span class="w">  </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
+<span class="w">  </span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">12.</span><span class="n">dp</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1">// After</span>
+<span class="n">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">  </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">),</span>
+<span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="p">(</span>
+<span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span>
+<span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">lighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="p">(</span>
+<span class="w">    </span><span class="n">specularIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">rendering</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="p">(</span>
+<span class="w">    </span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">12.</span><span class="n">dp</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Run docs text checks by searching for old names</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>rg<span class="w"> </span><span class="s2">"dev\\.chrisbanes\\.haze\\.materials|LocalHazeStyle|HazeTint\\(|HazeStyle\\b|core modifiers.*same|2\\.0\\.0-alpha01"</span><span class="w"> </span>docs<span class="w"> </span>README.md<span class="w"> </span>-n
+</code></pre></div>
+<p>Expected: no stale root-package material imports or claims. <code>HazeBlurStyle</code> and historical v1 examples are acceptable when explicitly labeled.</p>
+<ul>
+<li>[ ] <strong>Step 5: Commit docs</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>docs<span class="w"> </span>README.md
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"docs: update v2 API migration guide"</span>
+</code></pre></div>
+<hr>
+<h3 id="task-8-api-snapshots-and-full-verification">Task 8: API Snapshots and Full Verification<a class="headerlink" href="#task-8-api-snapshots-and-full-verification" title="Permanent link">¶</a></h3>
+<p><strong>Files:</strong>
+- Modify: <code>haze-blur/api/api.txt</code>
+- Modify: <code>haze-liquidglass/api/api.txt</code>
+- Modify: <code>haze/api/api.txt</code> if Metalava reports changes.
+- Modify: <code>haze-materials/api/api.txt</code> if docs/source changes affect signatures.</p>
+<ul>
+<li>[ ] <strong>Step 1: Run API checks to see expected failures</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-blur:metalavaCheckCompatibility<span class="w"> </span>:haze-liquidglass:metalavaCheckCompatibility
+</code></pre></div>
+<p>Expected: FAIL because aliases are removed and grouped liquid glass types changed signatures.</p>
+<ul>
+<li>[ ] <strong>Step 2: Regenerate API snapshots</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-blur:metalavaGenerateSignature<span class="w"> </span>:haze-liquidglass:metalavaGenerateSignature
+</code></pre></div>
+<p>Expected: PASS and update <code>api/api.txt</code> files.</p>
+<p>If Gradle reports different Metalava task names, list module tasks:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-blur:tasks<span class="w"> </span>--all
+./gradlew<span class="w"> </span>:haze-liquidglass:tasks<span class="w"> </span>--all
+</code></pre></div>
+<p>Then run the corresponding signature generation tasks from the output.</p>
+<ul>
+<li>[ ] <strong>Step 3: Verify removed aliases are absent from API snapshots</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>rg<span class="w"> </span><span class="s2">"MigrationAliases|typealias HazeStyle|typealias HazeTint|LocalHazeStyle|HazeTint\\(|hazeEffect\\(.*HazeBlurStyle"</span><span class="w"> </span>haze-blur/api/api.txt<span class="w"> </span>haze-liquidglass/api/api.txt<span class="w"> </span>haze/api/api.txt<span class="w"> </span>haze-materials/api/api.txt
+</code></pre></div>
+<p>Expected: no output.</p>
+<ul>
+<li>[ ] <strong>Step 4: Verify grouped liquid glass API appears</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>rg<span class="w"> </span><span class="s2">"LiquidGlassOptics|LiquidGlassLighting|LiquidGlassColor|LiquidGlassRendering|LiquidGlassStyle\\("</span><span class="w"> </span>haze-liquidglass/api/api.txt
+</code></pre></div>
+<p>Expected: output includes the four group classes and <code>LiquidGlassStyle</code> constructor with grouped parameters.</p>
+<ul>
+<li>[ ] <strong>Step 5: Run targeted module checks</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:haze-blur:test<span class="w"> </span>:haze-liquidglass:test<span class="w"> </span>:haze-materials:check
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[ ] <strong>Step 6: Run broad verification</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>check
+</code></pre></div>
+<p>Expected: PASS. If this is too slow or fails due unrelated platform/tooling issues, capture the failing task and run the narrow affected tasks from Step 5 plus the module API checks.</p>
+<ul>
+<li>[ ] <strong>Step 7: Commit API snapshots and verification fixes</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>haze-blur/api<span class="w"> </span>haze-liquidglass/api<span class="w"> </span>haze/api<span class="w"> </span>haze-materials/api
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"chore: update API snapshots for v2 cleanup"</span>
+</code></pre></div>
+<p>If source changes were needed during verification, include those files in this commit only if they directly fix the API cleanup work.</p>
+<hr>
+<h2 id="final-review-checklist">Final Review Checklist<a class="headerlink" href="#final-review-checklist" title="Permanent link">¶</a></h2>
+<ul>
+<li>[ ] <code>rg "MigrationAliases|LocalHazeStyle|fun HazeTint|typealias HazeStyle|typealias HazeTint" haze haze-blur haze-liquidglass haze-materials sample -n</code> produces no output.</li>
+<li>[ ] <code>rg "dev\\.chrisbanes\\.haze\\.materials" docs README.md haze haze-materials sample -n</code> produces no output except intentionally historical text.</li>
+<li>[ ] <code>./gradlew :haze-blur:test :haze-liquidglass:test :haze-materials:check</code> passes.</li>
+<li>[ ] <code>./gradlew check</code> passes or the final notes document any unrelated blocker with the exact failing task.</li>
+<li>[ ] API snapshots show grouped liquid glass style types and no v1 blur migration aliases.</li>
+</ul></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.tabs.link", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

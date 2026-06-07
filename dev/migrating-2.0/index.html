@@ -831,6 +831,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#liquid-glass-style-grouping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Liquid Glass Style Grouping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#progressive-blurs" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1188,6 +1199,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#liquid-glass-style-grouping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Liquid Glass Style Grouping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#progressive-blurs" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1317,16 +1339,19 @@
 <p>The primary change in v2 is the extraction of blur functionality from the core <code>haze</code> module into a separate <code>haze-blur</code> module. This is part of a new architecture that introduces the <code>VisualEffect</code> interface, allowing Haze to support different types of visual effects beyond just blurring.</p>
 <p><strong>Key Changes:</strong></p>
 <ul>
+<li><strong>Hard source break:</strong> v1 blur convenience names and root-package aliases are removed in v2.</li>
 <li><strong>New module dependency:</strong> Blur functionality now requires the <code>haze-blur</code> module</li>
 <li><strong>API nesting:</strong> All blur properties now require a <code>blurEffect {}</code> wrapper</li>
-<li><strong>Package changes:</strong> Blur-related classes moved to <code>dev.chrisbanes.haze.blur</code> package</li>
+<li><strong>Package changes:</strong> Blur APIs moved to <code>dev.chrisbanes.haze.blur</code>; blur materials moved to <code>dev.chrisbanes.haze.blur.materials</code>.</li>
+<li><strong>Liquid glass style grouping:</strong> <code>LiquidGlassStyle</code> parameters are grouped into <code>optics</code>, <code>lighting</code>, <code>color</code>, and <code>rendering</code>.</li>
 <li><strong>Removed APIs:</strong> <code>rememberHazeState(blurEnabled)</code> parameter removed</li>
 <li><strong>Position strategy:</strong> New <code>HazePositionStrategy</code> configuration on <code>HazeState</code></li>
 <li><strong>Renames:</strong> <code>HazeArea.positionOnScreen</code> → <code>position</code>, <code>VisualEffectContext.positionOnScreen</code> → <code>position</code>, <code>VisualEffectContext.rootBoundsOnScreen</code> → <code>rootBounds</code></li>
 </ul>
 <p><strong>What Hasn't Changed:</strong></p>
 <ul>
-<li>Core modifiers (<code>hazeSource</code>, <code>hazeEffect</code>) signatures remain the same</li>
+<li><code>hazeSource</code> remains in the core module</li>
+<li><code>hazeEffect</code> remains in the core module, but blur-specific style parameters moved into <code>blurEffect {}</code>.</li>
 <li>Platform support unchanged</li>
 <li>Performance characteristics unchanged</li>
 <li><code>HazeEffectScope</code> properties like <code>inputScale</code>, <code>drawContentBehind</code>, <code>canDrawArea</code> unchanged</li>
@@ -1353,6 +1378,7 @@
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeProgressive</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.LocalHazeBlurStyle</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.blurEffect</span><span class="w"> </span><span class="c1">// NEW: extension function</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.materials.HazeMaterials</span>
 </code></pre></div>
 <h2 id="api-migration">API Migration<a class="headerlink" href="#api-migration" title="Permanent link">¶</a></h2>
 <h3 id="basic-blur-configuration">Basic Blur Configuration<a class="headerlink" href="#basic-blur-configuration" title="Permanent link">¶</a></h3>
@@ -1387,16 +1413,41 @@
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">ultraThin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
-<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ultraThin</span>
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 </div>
 </div>
 </div>
+<h3 id="liquid-glass-style-grouping">Liquid Glass Style Grouping<a class="headerlink" href="#liquid-glass-style-grouping" title="Permanent link">¶</a></h3>
+<p>Flat <code>LiquidGlassStyle</code> construction has been grouped by concept.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Before</span>
+<span class="n">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">  </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">),</span>
+<span class="w">  </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span>
+<span class="w">  </span><span class="n">specularIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
+<span class="w">  </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
+<span class="w">  </span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">12.</span><span class="n">dp</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1">// After</span>
+<span class="n">LiquidGlassStyle</span><span class="p">(</span>
+<span class="w">  </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">),</span>
+<span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassOptics</span><span class="p">(</span>
+<span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span>
+<span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">lighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassLighting</span><span class="p">(</span>
+<span class="w">    </span><span class="n">specularIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">rendering</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LiquidGlassRendering</span><span class="p">(</span>
+<span class="w">    </span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">12.</span><span class="n">dp</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
 <h3 id="progressive-blurs">Progressive Blurs<a class="headerlink" href="#progressive-blurs" title="Permanent link">¶</a></h3>
 <div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked id="__tabbed_3_1" name="__tabbed_3" type="radio"><input id="__tabbed_3_2" name="__tabbed_3" type="radio"><div class="tabbed-labels"><label for="__tabbed_3_1">v1</label><label for="__tabbed_3_2">v2</label></div>
 <div class="tabbed-content">
@@ -1631,6 +1682,7 @@
 <li>Change <code>dev.chrisbanes.haze.HazeTint</code> → <code>dev.chrisbanes.haze.blur.HazeColorEffect</code></li>
 <li>Change <code>dev.chrisbanes.haze.HazeProgressive</code> → <code>dev.chrisbanes.haze.blur.HazeProgressive</code></li>
 <li>Change <code>dev.chrisbanes.haze.LocalHazeStyle</code> → <code>dev.chrisbanes.haze.blur.LocalHazeBlurStyle</code></li>
+<li>Change <code>dev.chrisbanes.haze.materials.HazeMaterials</code> → <code>dev.chrisbanes.haze.blur.materials.HazeMaterials</code></li>
 <li>Add <code>import dev.chrisbanes.haze.blur.blurEffect</code></li>
 </ul>
 <p><strong>Wrap blur properties</strong> in <code>blurEffect {}</code>:</p>
