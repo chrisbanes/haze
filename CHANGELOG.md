@@ -7,14 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Breaking Changes
+
+- **Removed APIs:** Delete all v1 migration aliases, including `HazeStyle`, `HazeTint`, `LocalHazeStyle`, and the `HazeTint(...)` factory function in #963
+- **Changed:** `HazeBlurStyle` is now an immutable class rather than a data class. The constructor and `copy()` parameter for `colorEffects` is nullable (`null` = unspecified, `emptyList()` = explicitly empty); the public property remains non-null and returns an empty list when unspecified in #963
+- **Changed:** `LiquidGlassStyle` is restructured into grouped value types: `LiquidGlassOptics`, `LiquidGlassLighting`, `LiquidGlassColor`, and `LiquidGlassRendering` in #963
+
+### Changed
+
+- Liquid glass shader performance, realism, configurability, and sample refactoring in #839
+- Update Jetpack Compose to 1.11.2 in #938
+- Update Compose Multiplatform to 1.11.1 in #956
+- Upgrade AGP to 9.2.1 in #955
+
 ### Fixed
 
+- Fix NPE race between `RenderScriptContext.applyBlur()` and `release()` in #962
+- Fix RenderScript blur temporary graphics layer leak on cancellation in #952
+- Fix dynamic area updates in `HazeEffectNode` in #950
+- Include resolved `CornerRadii` in fallback path cache invalidation in #954
+- Guard `VisualEffect` attach/detach until `HazeEffectNode` is attached in #953
+- Exclude `VisualEffect.Empty` from single-owner registration in #949
 - Fix Android API 33+ liquid glass runtime shader not binding `blurredContent`. The
   `RuntimeShaderLiquidGlassDelegate` now uses an `expect`/`actual` factory so that
   Android receives a single-input shader, avoiding the single-content-input limitation
   of `RenderEffect.createRuntimeShaderEffect`. The depth-based blur mixing is skipped
   on Android; all other effects (refraction, specular, Fresnel, chromatic aberration,
-  edge softness, tinting, and color grading) are preserved. ([#947])
+  edge softness, tinting, and color grading) are preserved in #951
 
 ## 2.0.0-alpha02 <small>2026-05-08</small> { id="2.0.0-alpha02" }
 
