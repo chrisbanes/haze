@@ -8,16 +8,19 @@ The primary change in v2 is the extraction of blur functionality from the core `
 
 **Key Changes:**
 
+- **Hard source break:** v1 blur convenience names and root-package aliases are removed in v2.
 - **New module dependency:** Blur functionality now requires the `haze-blur` module
 - **API nesting:** All blur properties now require a `blurEffect {}` wrapper
-- **Package changes:** Blur-related classes moved to `dev.chrisbanes.haze.blur` package
+- **Package changes:** Blur APIs moved to `dev.chrisbanes.haze.blur`; blur materials moved to `dev.chrisbanes.haze.blur.materials`.
+- **Liquid glass style grouping:** `LiquidGlassStyle` parameters are grouped into `optics`, `lighting`, `color`, and `rendering`.
 - **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed
 - **Position strategy:** New `HazePositionStrategy` configuration on `HazeState`
 - **Renames:** `HazeArea.positionOnScreen` → `position`, `VisualEffectContext.positionOnScreen` → `position`, `VisualEffectContext.rootBoundsOnScreen` → `rootBounds`
 
 **What Hasn't Changed:**
 
-- Core modifiers (`hazeSource`, `hazeEffect`) signatures remain the same
+- `hazeSource` remains in the core module
+- `hazeEffect` remains in the core module, but blur-specific style parameters moved into `blurEffect {}`.
 - Platform support unchanged
 - Performance characteristics unchanged
 - `HazeEffectScope` properties like `inputScale`, `drawContentBehind`, `canDrawArea` unchanged
@@ -54,6 +57,7 @@ import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.HazeProgressive
 import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect // NEW: extension function
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 ```
 
 ## API Migration
@@ -95,13 +99,42 @@ All blur-related properties that were previously set directly on `HazeEffectScop
 === "v2"
 
     ```kotlin
-    val ultraThin = HazeMaterials.ultraThin()
     Modifier.hazeEffect(state = hazeState) {
       blurEffect {
-        style = ultraThin
+        style = HazeMaterials.ultraThin()
       }
     }
     ```
+
+### Liquid Glass Style Grouping
+
+Flat `LiquidGlassStyle` construction has been grouped by concept.
+
+```kotlin
+// Before
+LiquidGlassStyle(
+  tint = Color.White.copy(alpha = 0.12f),
+  refractionStrength = 0.7f,
+  specularIntensity = 0.4f,
+  depth = 0.4f,
+  edgeSoftness = 12.dp,
+)
+
+// After
+LiquidGlassStyle(
+  tint = Color.White.copy(alpha = 0.12f),
+  optics = LiquidGlassOptics(
+    refractionStrength = 0.7f,
+    depth = 0.4f,
+  ),
+  lighting = LiquidGlassLighting(
+    specularIntensity = 0.4f,
+  ),
+  rendering = LiquidGlassRendering(
+    edgeSoftness = 12.dp,
+  ),
+)
+```
 
 ### Progressive Blurs
 
@@ -238,6 +271,7 @@ All blur-related properties that were previously set directly on `HazeEffectScop
   - Change `dev.chrisbanes.haze.HazeTint` → `dev.chrisbanes.haze.blur.HazeColorEffect`
   - Change `dev.chrisbanes.haze.HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
   - Change `dev.chrisbanes.haze.LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeBlurStyle`
+  - Change `dev.chrisbanes.haze.materials.HazeMaterials` → `dev.chrisbanes.haze.blur.materials.HazeMaterials`
   - Add `import dev.chrisbanes.haze.blur.blurEffect`
 
 **Wrap blur properties** in `blurEffect {}`:

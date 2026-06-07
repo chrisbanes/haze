@@ -150,8 +150,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var refractionStrength: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.refractionStrength }
-        .takeOrElse { compositionLocalStyle.refractionStrength }
+        .takeOrElse { styleOptics.refractionStrength }
+        .takeOrElse { localOptics.refractionStrength }
         .takeOrElse { LiquidGlassDefaults.refractionStrength }
     }
     set(value) {
@@ -174,8 +174,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var specularIntensity: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.specularIntensity }
-        .takeOrElse { compositionLocalStyle.specularIntensity }
+        .takeOrElse { styleLighting.specularIntensity }
+        .takeOrElse { localLighting.specularIntensity }
         .takeOrElse { LiquidGlassDefaults.specularIntensity }
     }
     set(value) {
@@ -198,8 +198,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var depth: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.depth }
-        .takeOrElse { compositionLocalStyle.depth }
+        .takeOrElse { styleOptics.depth }
+        .takeOrElse { localOptics.depth }
         .takeOrElse { LiquidGlassDefaults.depth }
     }
     set(value) {
@@ -222,8 +222,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var ambientResponse: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.ambientResponse }
-        .takeOrElse { compositionLocalStyle.ambientResponse }
+        .takeOrElse { styleLighting.ambientResponse }
+        .takeOrElse { localLighting.ambientResponse }
         .takeOrElse { LiquidGlassDefaults.ambientResponse }
     }
     set(value) {
@@ -270,8 +270,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var edgeSoftness: Dp = Dp.Unspecified
     get() {
       return field
-        .takeOrElse { style.edgeSoftness }
-        .takeOrElse { compositionLocalStyle.edgeSoftness }
+        .takeOrElse { styleRendering.edgeSoftness }
+        .takeOrElse { localRendering.edgeSoftness }
         .takeOrElse { LiquidGlassDefaults.edgeSoftness }
     }
     set(value) {
@@ -297,8 +297,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var lightPosition: Offset = Offset.Unspecified
     get() {
       return field
-        .takeOrElse { style.lightPosition }
-        .takeOrElse { compositionLocalStyle.lightPosition }
+        .takeOrElse { styleLighting.lightPosition }
+        .takeOrElse { localLighting.lightPosition }
     }
     set(value) {
       if (value != field) {
@@ -325,8 +325,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var blurRadius: Dp = Dp.Unspecified
     get() {
       return field
-        .takeOrElse { style.blurRadius }
-        .takeOrElse { compositionLocalStyle.blurRadius }
+        .takeOrElse { styleOptics.blurRadius }
+        .takeOrElse { localOptics.blurRadius }
         .takeOrElse { LiquidGlassDefaults.blurRadius }
     }
     set(value) {
@@ -349,8 +349,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var refractionHeight: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.refractionHeight }
-        .takeOrElse { compositionLocalStyle.refractionHeight }
+        .takeOrElse { styleOptics.refractionHeight }
+        .takeOrElse { localOptics.refractionHeight }
         .takeOrElse { LiquidGlassDefaults.refractionHeight }
     }
     set(value) {
@@ -373,8 +373,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var chromaticAberrationStrength: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.chromaticAberrationStrength }
-        .takeOrElse { compositionLocalStyle.chromaticAberrationStrength }
+        .takeOrElse { styleRendering.chromaticAberrationStrength }
+        .takeOrElse { localRendering.chromaticAberrationStrength }
         .takeOrElse { LiquidGlassDefaults.chromaticAberrationStrength }
     }
     set(value) {
@@ -397,7 +397,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   private var _surfaceProfile: SurfaceProfile? = null
 
   public var surfaceProfile: SurfaceProfile
-    get() = _surfaceProfile ?: style.surfaceProfile ?: compositionLocalStyle.surfaceProfile ?: LiquidGlassDefaults.surfaceProfile
+    get() = _surfaceProfile ?: styleRendering.surfaceProfile ?: localRendering.surfaceProfile ?: LiquidGlassDefaults.surfaceProfile
     set(value) {
       if (value != _surfaceProfile) {
         HazeLogger.d(TAG) { "surfaceProfile changed. Current: $_surfaceProfile. New: $value" }
@@ -418,7 +418,7 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   private var _chromaticAberrationMode: ChromaticAberrationMode? = null
 
   public var chromaticAberrationMode: ChromaticAberrationMode
-    get() = _chromaticAberrationMode ?: style.chromaticAberrationMode ?: compositionLocalStyle.chromaticAberrationMode ?: LiquidGlassDefaults.chromaticAberrationMode
+    get() = _chromaticAberrationMode ?: styleRendering.chromaticAberrationMode ?: localRendering.chromaticAberrationMode ?: LiquidGlassDefaults.chromaticAberrationMode
     set(value) {
       if (value != _chromaticAberrationMode) {
         HazeLogger.d(TAG) { "chromaticAberrationMode changed. Current: $_chromaticAberrationMode. New: $value" }
@@ -460,8 +460,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var alpha: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.alpha }
-        .takeOrElse { compositionLocalStyle.alpha }
+        .takeOrElse { styleColor.alpha }
+        .takeOrElse { localColor.alpha }
         .takeOrElse { LiquidGlassDefaults.alpha }
     }
     set(value) {
@@ -484,8 +484,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var contrast: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.contrast }
-        .takeOrElse { compositionLocalStyle.contrast }
+        .takeOrElse { styleColor.contrast }
+        .takeOrElse { localColor.contrast }
         .takeOrElse { LiquidGlassDefaults.contrast }
     }
     set(value) {
@@ -508,8 +508,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var whitePoint: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.whitePoint }
-        .takeOrElse { compositionLocalStyle.whitePoint }
+        .takeOrElse { styleColor.whitePoint }
+        .takeOrElse { localColor.whitePoint }
         .takeOrElse { LiquidGlassDefaults.whitePoint }
     }
     set(value) {
@@ -532,8 +532,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var chromaMultiplier: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.chromaMultiplier }
-        .takeOrElse { compositionLocalStyle.chromaMultiplier }
+        .takeOrElse { styleColor.chromaMultiplier }
+        .takeOrElse { localColor.chromaMultiplier }
         .takeOrElse { LiquidGlassDefaults.chromaMultiplier }
     }
     set(value) {
@@ -556,8 +556,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var refractionScale: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.refractionScale }
-        .takeOrElse { compositionLocalStyle.refractionScale }
+        .takeOrElse { styleOptics.refractionScale }
+        .takeOrElse { localOptics.refractionScale }
         .takeOrElse { LiquidGlassDefaults.refractionScale }
     }
     set(value) {
@@ -580,8 +580,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var contentNormalBlend: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.contentNormalBlend }
-        .takeOrElse { compositionLocalStyle.contentNormalBlend }
+        .takeOrElse { styleRendering.contentNormalBlend }
+        .takeOrElse { localRendering.contentNormalBlend }
         .takeOrElse { LiquidGlassDefaults.contentNormalBlend }
     }
     set(value) {
@@ -604,8 +604,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var specularExponent: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.specularExponent }
-        .takeOrElse { compositionLocalStyle.specularExponent }
+        .takeOrElse { styleLighting.specularExponent }
+        .takeOrElse { localLighting.specularExponent }
         .takeOrElse { LiquidGlassDefaults.specularExponent }
     }
     set(value) {
@@ -628,8 +628,8 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   public var fresnelExponent: Float = Float.NaN
     get() {
       return field
-        .takeOrElse { style.fresnelExponent }
-        .takeOrElse { compositionLocalStyle.fresnelExponent }
+        .takeOrElse { styleLighting.fresnelExponent }
+        .takeOrElse { localLighting.fresnelExponent }
         .takeOrElse { LiquidGlassDefaults.fresnelExponent }
     }
     set(value) {
@@ -660,6 +660,15 @@ public class LiquidGlassVisualEffect() : VisualEffect {
       }
     }
 
+  private val styleOptics: LiquidGlassOptics get() = style.optics
+  private val localOptics: LiquidGlassOptics get() = compositionLocalStyle.optics
+  private val styleLighting: LiquidGlassLighting get() = style.lighting
+  private val localLighting: LiquidGlassLighting get() = compositionLocalStyle.lighting
+  private val styleColor: LiquidGlassColor get() = style.color
+  private val localColor: LiquidGlassColor get() = compositionLocalStyle.color
+  private val styleRendering: LiquidGlassRendering get() = style.rendering
+  private val localRendering: LiquidGlassRendering get() = compositionLocalStyle.rendering
+
   internal var compositionLocalStyle: LiquidGlassStyle = LiquidGlassDefaults.style
     set(value) {
       if (field != value) {
@@ -681,68 +690,68 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   }
 
   private fun onStyleChanged(old: LiquidGlassStyle, new: LiquidGlassStyle) {
-    if (old.refractionStrength != new.refractionStrength) {
+    if (old.optics.refractionStrength != new.optics.refractionStrength) {
       dirtyTracker += LiquidGlassDirtyFields.RefractionStrength
     }
-    if (old.specularIntensity != new.specularIntensity) {
-      dirtyTracker += LiquidGlassDirtyFields.SpecularIntensity
-    }
-    if (old.depth != new.depth) {
+    if (old.optics.depth != new.optics.depth) {
       dirtyTracker += LiquidGlassDirtyFields.Depth
     }
-    if (old.ambientResponse != new.ambientResponse) {
+    if (old.optics.blurRadius != new.optics.blurRadius) {
+      dirtyTracker += LiquidGlassDirtyFields.BlurRadius
+    }
+    if (old.optics.refractionHeight != new.optics.refractionHeight) {
+      dirtyTracker += LiquidGlassDirtyFields.RefractionHeight
+    }
+    if (old.optics.refractionScale != new.optics.refractionScale) {
+      dirtyTracker += LiquidGlassDirtyFields.RefractionScale
+    }
+    if (old.lighting.specularIntensity != new.lighting.specularIntensity) {
+      dirtyTracker += LiquidGlassDirtyFields.SpecularIntensity
+    }
+    if (old.lighting.ambientResponse != new.lighting.ambientResponse) {
       dirtyTracker += LiquidGlassDirtyFields.AmbientResponse
+    }
+    if (old.lighting.lightPosition != new.lighting.lightPosition) {
+      dirtyTracker += LiquidGlassDirtyFields.LightPosition
+    }
+    if (old.lighting.specularExponent != new.lighting.specularExponent) {
+      dirtyTracker += LiquidGlassDirtyFields.SpecularExponent
+    }
+    if (old.lighting.fresnelExponent != new.lighting.fresnelExponent) {
+      dirtyTracker += LiquidGlassDirtyFields.FresnelExponent
     }
     if (old.tint != new.tint) {
       dirtyTracker += LiquidGlassDirtyFields.Tint
     }
-    if (old.edgeSoftness != new.edgeSoftness) {
-      dirtyTracker += LiquidGlassDirtyFields.EdgeSoftness
-    }
-    if (old.lightPosition != new.lightPosition) {
-      dirtyTracker += LiquidGlassDirtyFields.LightPosition
-    }
-    if (old.blurRadius != new.blurRadius) {
-      dirtyTracker += LiquidGlassDirtyFields.BlurRadius
-    }
-    if (old.refractionHeight != new.refractionHeight) {
-      dirtyTracker += LiquidGlassDirtyFields.RefractionHeight
-    }
-    if (old.chromaticAberrationStrength != new.chromaticAberrationStrength) {
-      dirtyTracker += LiquidGlassDirtyFields.ChromaticAberration
-    }
-    if (old.surfaceProfile != new.surfaceProfile) {
-      dirtyTracker += LiquidGlassDirtyFields.SurfaceProfile
-    }
-    if (old.chromaticAberrationMode != new.chromaticAberrationMode) {
-      dirtyTracker += LiquidGlassDirtyFields.ChromaticAberrationMode
-    }
     if (old.shape != new.shape) {
       dirtyTracker += LiquidGlassDirtyFields.Shape
     }
-    if (old.alpha != new.alpha) {
+    if (old.color.alpha != new.color.alpha) {
       dirtyTracker += LiquidGlassDirtyFields.Alpha
     }
-    if (old.contrast != new.contrast) {
+    if (old.color.contrast != new.color.contrast) {
       dirtyTracker += LiquidGlassDirtyFields.Contrast
     }
-    if (old.whitePoint != new.whitePoint) {
+    if (old.color.whitePoint != new.color.whitePoint) {
       dirtyTracker += LiquidGlassDirtyFields.WhitePoint
     }
-    if (old.chromaMultiplier != new.chromaMultiplier) {
+    if (old.color.chromaMultiplier != new.color.chromaMultiplier) {
       dirtyTracker += LiquidGlassDirtyFields.ChromaMultiplier
     }
-    if (old.refractionScale != new.refractionScale) {
-      dirtyTracker += LiquidGlassDirtyFields.RefractionScale
+    if (old.rendering.edgeSoftness != new.rendering.edgeSoftness) {
+      dirtyTracker += LiquidGlassDirtyFields.EdgeSoftness
     }
-    if (old.contentNormalBlend != new.contentNormalBlend) {
+    if (old.rendering.contentNormalBlend != new.rendering.contentNormalBlend) {
       dirtyTracker += LiquidGlassDirtyFields.ContentNormalBlend
     }
-    if (old.specularExponent != new.specularExponent) {
-      dirtyTracker += LiquidGlassDirtyFields.SpecularExponent
+    if (old.rendering.surfaceProfile != new.rendering.surfaceProfile) {
+      dirtyTracker += LiquidGlassDirtyFields.SurfaceProfile
     }
-    if (old.fresnelExponent != new.fresnelExponent) {
-      dirtyTracker += LiquidGlassDirtyFields.FresnelExponent
+    if (old.rendering.chromaticAberrationStrength != new.rendering.chromaticAberrationStrength) {
+      dirtyTracker += LiquidGlassDirtyFields.ChromaticAberration
+    }
+    if (old.rendering.chromaticAberrationMode != new.rendering.chromaticAberrationMode) {
+      dirtyTracker += LiquidGlassDirtyFields.ChromaticAberrationMode
     }
   }
 

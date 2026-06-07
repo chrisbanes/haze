@@ -82,7 +82,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
         context = context,
         blurRadius = blurRadius * intensity,
         noiseFactor = noiseFactor,
-        colorEffects = colorEffects,
+        colorEffects = colorEffects.orEmpty(),
         colorEffectsAlphaModulate = intensity,
         mask = mask,
       )
