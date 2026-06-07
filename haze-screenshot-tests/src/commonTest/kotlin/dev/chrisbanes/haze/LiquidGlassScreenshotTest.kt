@@ -13,6 +13,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode
+import dev.chrisbanes.haze.liquidglass.LiquidGlassLighting
+import dev.chrisbanes.haze.liquidglass.LiquidGlassOptics
+import dev.chrisbanes.haze.liquidglass.LiquidGlassRendering
 import dev.chrisbanes.haze.liquidglass.LiquidGlassStyle
 import dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect
 import dev.chrisbanes.haze.liquidglass.SurfaceProfile
@@ -310,12 +313,18 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
 
     val VibrantStyle = LiquidGlassStyle(
       tint = Color(0xFF3F8CFF).copy(alpha = 0.35f),
-      refractionStrength = 0.55f,
-      specularIntensity = 0.75f,
-      depth = 0.4f,
-      ambientResponse = 0.8f,
-      edgeSoftness = 14.dp,
-      lightPosition = Offset(64f, -48f),
+      optics = LiquidGlassOptics(
+        refractionStrength = 0.55f,
+        depth = 0.4f,
+      ),
+      lighting = LiquidGlassLighting(
+        specularIntensity = 0.75f,
+        ambientResponse = 0.8f,
+        lightPosition = Offset(64f, -48f),
+      ),
+      rendering = LiquidGlassRendering(
+        edgeSoftness = 14.dp,
+      ),
     )
   }
 }

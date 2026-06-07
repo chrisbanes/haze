@@ -125,24 +125,6 @@ public class HazeBlurStyle public constructor(
   }
 }
 
-@Deprecated(
-  message = "HazeStyle has been renamed to HazeBlurStyle",
-  replaceWith = ReplaceWith(
-    expression = "HazeBlurStyle",
-    imports = ["dev.chrisbanes.haze.blur.HazeBlurStyle"],
-  ),
-)
-public typealias HazeStyle = HazeBlurStyle
-
-@Deprecated(
-  message = "LocalHazeStyle has been renamed to LocalHazeBlurStyle",
-  replaceWith = ReplaceWith(
-    expression = "LocalHazeBlurStyle",
-    imports = ["dev.chrisbanes.haze.blur.LocalHazeBlurStyle"],
-  ),
-)
-public val LocalHazeStyle: ProvidableCompositionLocal<HazeBlurStyle> get() = LocalHazeBlurStyle
-
 /**
  * Describes a color effect applied by the haze effect.
  *
@@ -234,54 +216,6 @@ public sealed interface HazeColorEffect {
     ): HazeColorEffect = TintBrush(brush, blendMode)
   }
 }
-
-// Type alias for backward compatibility
-@Deprecated(
-  message = "HazeTint has been renamed to HazeColorEffect",
-  replaceWith = ReplaceWith(
-    expression = "HazeColorEffect",
-    imports = ["dev.chrisbanes.haze.blur.HazeColorEffect"],
-  ),
-)
-public typealias HazeTint = HazeColorEffect
-
-/**
- * Creates a color-based tint effect.
- *
- * @param color The color to tint with.
- * @param blendMode The blend mode to use. Defaults to [HazeColorEffect.DefaultBlendMode].
- */
-@Suppress("FunctionName")
-@Deprecated(
-  message = "Use HazeColorEffect.tint(color, blendMode) instead",
-  replaceWith = ReplaceWith(
-    expression = "HazeColorEffect.tint(color, blendMode)",
-    imports = ["dev.chrisbanes.haze.blur.HazeColorEffect"],
-  ),
-)
-public fun HazeTint(
-  color: Color,
-  blendMode: BlendMode = HazeColorEffect.DefaultBlendMode,
-): HazeColorEffect = HazeColorEffect.tint(color, blendMode)
-
-/**
- * Creates a brush-based tint effect.
- *
- * @param brush The brush to tint with.
- * @param blendMode The blend mode to use. Defaults to [HazeColorEffect.DefaultBlendMode].
- */
-@Suppress("FunctionName")
-@Deprecated(
-  message = "Use HazeColorEffect.tint(brush, blendMode) instead",
-  replaceWith = ReplaceWith(
-    expression = "HazeColorEffect.tint(brush, blendMode)",
-    imports = ["dev.chrisbanes.haze.blur.HazeColorEffect"],
-  ),
-)
-public fun HazeTint(
-  brush: Brush,
-  blendMode: BlendMode = HazeColorEffect.DefaultBlendMode,
-): HazeColorEffect = HazeColorEffect.tint(brush, blendMode)
 
 internal inline fun Float.takeOrElse(block: () -> Float): Float =
   if (this in 0f..1f) this else block()
