@@ -32,6 +32,7 @@ gradle.xml
 # General
 .DS_Store
 .externalNativeBuild
+__pycache__/
 
 # Do not commit plain-text release keys
 app-release.jks
