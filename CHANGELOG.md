@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Breaking Changes
 
 - **Removed APIs:** Delete all v1 migration aliases, including `HazeStyle`, `HazeTint`, `LocalHazeStyle`, and the `HazeTint(...)` factory function in #963
-- **Changed:** `HazeBlurStyle` is now an immutable class rather than a data class. `colorEffects` is nullable (`null` = unspecified, `emptyList()` = explicitly empty) in #963
+- **Changed:** `HazeBlurStyle` is now an immutable class rather than a data class. The constructor and `copy()` parameter for `colorEffects` is nullable (`null` = unspecified, `emptyList()` = explicitly empty); the public property remains non-null and returns an empty list when unspecified in #963
 - **Changed:** `LiquidGlassStyle` is restructured into grouped value types: `LiquidGlassOptics`, `LiquidGlassLighting`, `LiquidGlassColor`, and `LiquidGlassRendering` in #963
 
 ### Changed
