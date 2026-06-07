@@ -252,17 +252,20 @@ public class BlurVisualEffect() : VisualEffect {
    *  - [HazeBlurStyle.colorEffects] value set in [style], if not empty.
    *  - [HazeBlurStyle.colorEffects] value set in the [LocalHazeBlurStyle] composition local.
    */
-  public var colorEffects: List<HazeColorEffect> = emptyList()
+  private var directColorEffects: List<HazeColorEffect>? = null
+
+  public var colorEffects: List<HazeColorEffect>
     get() {
-      return field.takeIf { it.isNotEmpty() }
-        ?: style.colorEffects.takeIf { it.isNotEmpty() }
-        ?: compositionLocalStyle.colorEffects.takeIf { it.isNotEmpty() }
+      return directColorEffects
+        ?: style.specifiedColorEffects
+        ?: compositionLocalStyle.specifiedColorEffects
         ?: emptyList()
     }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "colorEffects changed. Current: $field. New: $value" }
-        field = value
+      val snapshot = value.toList()
+      if (snapshot != directColorEffects) {
+        HazeLogger.d(TAG) { "colorEffects changed. Current: $directColorEffects. New: $snapshot" }
+        directColorEffects = snapshot
         dirtyTracker += BlurDirtyFields.ColorEffects
       }
     }
@@ -401,8 +404,8 @@ public class BlurVisualEffect() : VisualEffect {
   }
 
   private fun onStyleChanged(old: HazeBlurStyle?, new: HazeBlurStyle?) {
-    if (old?.colorEffects != new?.colorEffects) dirtyTracker += BlurDirtyFields.ColorEffects
-    if (old?.fallbackColorEffect != new?.fallbackColorEffect) dirtyTracker += BlurDirtyFields.ColorEffects
+    if (old?.specifiedColorEffects != new?.specifiedColorEffects) dirtyTracker += BlurDirtyFields.ColorEffects
+    if (old?.fallbackColorEffect != new?.fallbackColorEffect) dirtyTracker += BlurDirtyFields.FallbackColorEffect
     if (old?.backgroundColor != new?.backgroundColor) dirtyTracker += BlurDirtyFields.BackgroundColor
     if (old?.noiseFactor != new?.noiseFactor) dirtyTracker += BlurDirtyFields.NoiseFactor
     if (old?.blurRadius != new?.blurRadius) dirtyTracker += BlurDirtyFields.BlurRadius

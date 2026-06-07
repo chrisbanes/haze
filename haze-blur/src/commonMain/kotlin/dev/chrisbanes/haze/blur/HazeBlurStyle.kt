@@ -45,9 +45,9 @@ public val LocalHazeBlurStyle: ProvidableCompositionLocal<HazeBlurStyle> =
  * When the fallback tint is used, the tints provided in [colorEffects] are ignored.
  */
 @Immutable
-public data class HazeBlurStyle(
+public class HazeBlurStyle public constructor(
   public val backgroundColor: Color = Color.Unspecified,
-  public val colorEffects: List<HazeColorEffect> = emptyList(),
+  colorEffects: List<HazeColorEffect>? = null,
   public val blurRadius: Dp = Dp.Unspecified,
   public val noiseFactor: Float = -1f,
   public val fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified,
@@ -60,14 +60,68 @@ public data class HazeBlurStyle(
     fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified,
   ) : this(
     backgroundColor = backgroundColor,
-    colorEffects = listOfNotNull(colorEffect),
+    colorEffects = colorEffect?.let(::listOf),
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
     fallbackColorEffect = fallbackColorEffect,
   )
 
+  internal val specifiedColorEffects: List<HazeColorEffect>? = colorEffects?.toList()
+
+  public val colorEffects: List<HazeColorEffect>
+    get() = specifiedColorEffects.orEmpty()
+
+  public operator fun component1(): Color = backgroundColor
+  public operator fun component2(): List<HazeColorEffect> = colorEffects
+  public operator fun component3(): Dp = blurRadius
+  public operator fun component4(): Float = noiseFactor
+  public operator fun component5(): HazeColorEffect = fallbackColorEffect
+
+  public fun copy(
+    backgroundColor: Color = this.backgroundColor,
+    colorEffects: List<HazeColorEffect>? = this.specifiedColorEffects,
+    blurRadius: Dp = this.blurRadius,
+    noiseFactor: Float = this.noiseFactor,
+    fallbackColorEffect: HazeColorEffect = this.fallbackColorEffect,
+  ): HazeBlurStyle = HazeBlurStyle(
+    backgroundColor = backgroundColor,
+    colorEffects = colorEffects,
+    blurRadius = blurRadius,
+    noiseFactor = noiseFactor,
+    fallbackColorEffect = fallbackColorEffect,
+  )
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is HazeBlurStyle) return false
+    return backgroundColor == other.backgroundColor &&
+      specifiedColorEffects == other.specifiedColorEffects &&
+      blurRadius == other.blurRadius &&
+      noiseFactor == other.noiseFactor &&
+      fallbackColorEffect == other.fallbackColorEffect
+  }
+
+  override fun hashCode(): Int {
+    var result = backgroundColor.hashCode()
+    result = 31 * result + specifiedColorEffects.hashCode()
+    result = 31 * result + blurRadius.hashCode()
+    result = 31 * result + noiseFactor.hashCode()
+    result = 31 * result + fallbackColorEffect.hashCode()
+    return result
+  }
+
+  override fun toString(): String {
+    return "HazeBlurStyle(" +
+      "backgroundColor=$backgroundColor, " +
+      "colorEffects=$specifiedColorEffects, " +
+      "blurRadius=$blurRadius, " +
+      "noiseFactor=$noiseFactor, " +
+      "fallbackColorEffect=$fallbackColorEffect" +
+      ")"
+  }
+
   public companion object {
-    public val Unspecified: HazeBlurStyle = HazeBlurStyle(colorEffects = emptyList())
+    public val Unspecified: HazeBlurStyle = HazeBlurStyle(colorEffects = null)
   }
 }
 
