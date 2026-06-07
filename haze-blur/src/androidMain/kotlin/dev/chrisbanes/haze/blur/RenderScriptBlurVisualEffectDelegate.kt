@@ -171,7 +171,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
         // Then the tints...
         translate(offset = -offset) {
-          for (colorEffect in blurVisualEffect.colorEffects) {
+          for (colorEffect in blurVisualEffect.colorEffects.orEmpty()) {
             drawScrim(
               colorEffect = colorEffect,
               context = context,

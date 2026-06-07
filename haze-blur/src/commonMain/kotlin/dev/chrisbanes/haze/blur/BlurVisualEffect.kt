@@ -252,20 +252,18 @@ public class BlurVisualEffect() : VisualEffect {
    *  - [HazeBlurStyle.colorEffects] value set in [style], if not empty.
    *  - [HazeBlurStyle.colorEffects] value set in the [LocalHazeBlurStyle] composition local.
    */
-  private var directColorEffects: List<HazeColorEffect>? = null
-
-  public var colorEffects: List<HazeColorEffect>
+  public var colorEffects: List<HazeColorEffect>? = null
     get() {
-      return directColorEffects
+      return field
         ?: style.specifiedColorEffects
         ?: compositionLocalStyle.specifiedColorEffects
         ?: emptyList()
     }
     set(value) {
-      val snapshot = value.toList()
-      if (snapshot != directColorEffects) {
-        HazeLogger.d(TAG) { "colorEffects changed. Current: $directColorEffects. New: $snapshot" }
-        directColorEffects = snapshot
+      val snapshot = value?.toList()
+      if (snapshot != field) {
+        HazeLogger.d(TAG) { "colorEffects changed. Current: $field. New: $snapshot" }
+        field = snapshot
         dirtyTracker += BlurDirtyFields.ColorEffects
       }
     }

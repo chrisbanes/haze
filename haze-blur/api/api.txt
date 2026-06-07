@@ -7,7 +7,7 @@ package dev.chrisbanes.haze.blur {
     method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
     method @InaccessibleFromKotlin public float getAlpha();
     method @InaccessibleFromKotlin public boolean getBlurEnabled();
-    method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect> getColorEffects();
+    method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect>? getColorEffects();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.blur.HazeColorEffect getFallbackTint();
     method @InaccessibleFromKotlin public androidx.compose.ui.graphics.Brush? getMask();
     method @InaccessibleFromKotlin public float getNoiseFactor();
@@ -15,7 +15,7 @@ package dev.chrisbanes.haze.blur {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.blur.HazeBlurStyle getStyle();
     method @InaccessibleFromKotlin public void setAlpha(float);
     method @InaccessibleFromKotlin public void setBlurEnabled(boolean);
-    method @InaccessibleFromKotlin public void setColorEffects(java.util.List<? extends dev.chrisbanes.haze.blur.HazeColorEffect>);
+    method @InaccessibleFromKotlin public void setColorEffects(java.util.List<? extends dev.chrisbanes.haze.blur.HazeColorEffect>?);
     method @InaccessibleFromKotlin public void setFallbackTint(dev.chrisbanes.haze.blur.HazeColorEffect);
     method @InaccessibleFromKotlin public void setMask(androidx.compose.ui.graphics.Brush?);
     method @InaccessibleFromKotlin public void setNoiseFactor(float);
@@ -26,7 +26,7 @@ package dev.chrisbanes.haze.blur {
     property public boolean blurEnabled;
     property public androidx.compose.ui.unit.Dp blurRadius;
     property public androidx.compose.ui.draw.BlurredEdgeTreatment blurredEdgeTreatment;
-    property public java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect> colorEffects;
+    property public java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect>? colorEffects;
     property public dev.chrisbanes.haze.blur.HazeColorEffect fallbackTint;
     property public androidx.compose.ui.graphics.Brush? mask;
     property public float noiseFactor;

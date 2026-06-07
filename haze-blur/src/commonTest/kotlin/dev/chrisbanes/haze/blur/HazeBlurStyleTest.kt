@@ -33,7 +33,7 @@ class HazeBlurStyleTest {
       this.style = style
     }
 
-    assertThat(effect.colorEffects).isEmpty()
+    assertThat(effect.colorEffects.orEmpty()).isEmpty()
   }
 
   @Test
@@ -44,6 +44,24 @@ class HazeBlurStyleTest {
       colorEffects = emptyList()
     }
 
-    assertThat(effect.colorEffects).isEmpty()
+    assertThat(effect.colorEffects.orEmpty()).isEmpty()
+  }
+
+  @Test
+  fun blurVisualEffect_nullColorEffectsFallsBackToInheritedStyle() {
+    val inherited = HazeBlurStyle(colorEffect = HazeColorEffect.tint(Color.Red))
+    val effect = BlurVisualEffect().apply {
+      compositionLocalStyle = inherited
+      colorEffects = listOf(HazeColorEffect.tint(Color.Blue))
+    }
+
+    // Verify the direct override is active
+    assertThat(effect.colorEffects.orEmpty()).containsExactly(HazeColorEffect.tint(Color.Blue))
+
+    // Clear the direct override
+    effect.colorEffects = null
+
+    // Should fall back to inherited style
+    assertThat(effect.colorEffects.orEmpty()).containsExactly(HazeColorEffect.tint(Color.Red))
   }
 }
