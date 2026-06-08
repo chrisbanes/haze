@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Haze samples</title>
+  <script type="application/javascript" src="app.js"></script>
+  <!--    <script type="application/javascript" src="skiko.js"></script>-->
+  <script type="application/javascript" src="sample.js"></script>
+  <script type="application/javascript" src="unsupported_browser.js"></script>
+  <!--
+    This is important for mobile devices. See here for more information:
+    https://developer.mozilla.org/en-US/docs/Web/CSS/Viewport_concepts#mobile_viewports
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+<div>
+  <div class="spinner" id="spinner"></div>
+  <div id="warning" style="display: none;">
+    <h3>Your browser doesn't support Wasm =/</h3>
+    <h5>For more information, see <a href="https://kotl.in/wasm-help" style="color: #375fad">https://kotl.in/wasm-help</a>.
+    </h5>
+  </div>
+</div>
+<div id="Sample"></div>
+</body>
+</html>
