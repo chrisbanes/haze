@@ -114,4 +114,20 @@ class LiquidGlassShadersTest {
       .substringBefore("return vec4(finalColor, base.a);")
     assertThat(earlyOutSection).doesNotContain("surfaceGradient(coord)")
   }
+
+  @Test
+  fun shader_singleInputVariantAliasesBlurredContentToBaseContent() {
+    val shader = LiquidGlassShaders.build(hasBlurredContent = false)
+
+    assertThat(shader).doesNotContain("uniform shader blurredContent;")
+    assertThat(shader).contains("vec4 blurred = base;")
+  }
+
+  @Test
+  fun shader_multiInputVariantSamplesBlurredContentSeparately() {
+    val shader = LiquidGlassShaders.build(hasBlurredContent = true)
+
+    assertThat(shader).contains("uniform shader blurredContent;")
+    assertThat(shader).contains("vec4 blurred = blurredContent.eval(refractCoord);")
+  }
 }
