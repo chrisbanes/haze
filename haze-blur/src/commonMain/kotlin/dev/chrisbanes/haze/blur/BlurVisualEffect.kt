@@ -197,7 +197,7 @@ public class BlurVisualEffect() : VisualEffect {
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "noiseFactor changed. Current: $field. New: $value" }
-        field = value
+        field = value.normalizeNoiseFactor()
         dirtyTracker += BlurDirtyFields.NoiseFactor
       }
     }

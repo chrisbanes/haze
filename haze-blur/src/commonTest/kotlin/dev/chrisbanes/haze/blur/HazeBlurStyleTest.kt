@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Color
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEmpty
+import assertk.assertions.isEqualTo
 import kotlin.test.Test
 
 class HazeBlurStyleTest {
@@ -63,5 +64,37 @@ class HazeBlurStyleTest {
 
     // Should fall back to inherited style
     assertThat(effect.colorEffects.orEmpty()).containsExactly(HazeColorEffect.tint(Color.Red))
+  }
+
+  @Test
+  fun blurVisualEffect_noiseFactorAboveRangeClampsInsteadOfFallingBack() {
+    val effect = BlurVisualEffect().apply {
+      compositionLocalStyle = HazeBlurStyle(
+        backgroundColor = Color.Unspecified,
+        colorEffects = null,
+        noiseFactor = 0.2f,
+      )
+      noiseFactor = 2f
+    }
+
+    assertThat(effect.noiseFactor).isEqualTo(1f)
+  }
+
+  @Test
+  fun hazeBlurStyle_noiseFactorAboveRangeClampsInsteadOfFallingBack() {
+    val effect = BlurVisualEffect().apply {
+      compositionLocalStyle = HazeBlurStyle(
+        backgroundColor = Color.Unspecified,
+        colorEffects = null,
+        noiseFactor = 0.2f,
+      )
+      style = HazeBlurStyle(
+        backgroundColor = Color.Unspecified,
+        colorEffects = null,
+        noiseFactor = 2f,
+      )
+    }
+
+    assertThat(effect.noiseFactor).isEqualTo(1f)
   }
 }

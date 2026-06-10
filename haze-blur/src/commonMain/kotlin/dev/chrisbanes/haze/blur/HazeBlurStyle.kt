@@ -49,7 +49,7 @@ public class HazeBlurStyle public constructor(
   public val backgroundColor: Color = Color.Unspecified,
   colorEffects: List<HazeColorEffect>? = null,
   public val blurRadius: Dp = Dp.Unspecified,
-  public val noiseFactor: Float = -1f,
+  noiseFactor: Float = -1f,
   public val fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified,
 ) {
   public constructor(
@@ -67,6 +67,8 @@ public class HazeBlurStyle public constructor(
   )
 
   internal val specifiedColorEffects: List<HazeColorEffect>? = colorEffects?.toList()
+
+  public val noiseFactor: Float = noiseFactor.normalizeNoiseFactor()
 
   public val colorEffects: List<HazeColorEffect>
     get() = specifiedColorEffects.orEmpty()
@@ -219,3 +221,9 @@ public sealed interface HazeColorEffect {
 
 internal inline fun Float.takeOrElse(block: () -> Float): Float =
   if (this in 0f..1f) this else block()
+
+internal fun Float.normalizeNoiseFactor(): Float = when {
+  this > 1f -> 1f
+  this in 0f..1f -> this
+  else -> -1f
+}
