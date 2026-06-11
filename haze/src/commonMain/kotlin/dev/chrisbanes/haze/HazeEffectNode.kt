@@ -91,7 +91,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "position changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.ScreenPosition
+        dirtyTracker += DirtyFields.Position
         field = value
       }
     }
@@ -102,7 +102,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "rootBounds changed. Current: $field. New: $value" }
-        dirtyTracker += DirtyFields.ScreenPosition
+        dirtyTracker += DirtyFields.Position
         field = value
       }
     }
@@ -144,6 +144,20 @@ public class HazeEffectNode(
     get() = _layerOffset
 
   internal var windowId: Any? = null
+
+  /**
+   * Node-local resolved position strategy. This is computed from the configured strategy
+   * and the areas this effect observes. Unlike the previous shared HazeState.resolvedStrategy,
+   * this is per-node to prevent oscillation when effects in different windows disagree.
+   */
+  internal var resolvedPositionStrategy: HazePositionStrategy = HazePositionStrategy.Local
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "resolvedPositionStrategy changed. Current: $field. New: $value" }
+        dirtyTracker += DirtyFields.Position
+        field = value
+      }
+    }
 
   internal val visualEffectContext: VisualEffectContext by lazy(LazyThreadSafetyMode.NONE) {
     HazeEffectNodeVisualEffectContext(this)
@@ -296,14 +310,14 @@ public class HazeEffectNode(
       return
     }
 
-    val resolvedStrategy = state?.resolvedStrategy ?: HazePositionStrategy.Local
-    _position = coordinates.positionForHaze(resolvedStrategy)
+    // Use node-local resolvedPositionStrategy instead of shared state
+    _position = coordinates.positionForHaze(resolvedPositionStrategy)
     _size = coordinates.size.toSize()
     windowId = getWindowId()
 
     val rootLayoutCoords = coordinates.findRootCoordinates()
     rootBounds = Rect(
-      offset = rootLayoutCoords.positionForHaze(resolvedStrategy),
+      offset = rootLayoutCoords.positionForHaze(resolvedPositionStrategy),
       size = rootLayoutCoords.size.toSize(),
     )
 
@@ -377,11 +391,10 @@ public class HazeEffectNode(
 
     windowId = getWindowId()
 
-    // Read positionStrategy and resolvedStrategy to establish snapshot observation.
-    // When the user changes positionStrategy, or Auto promotion changes resolvedStrategy,
-    // this triggers updateEffect() to re-run via onObservedReadsChanged().
+    // Read positionStrategy to establish snapshot observation.
+    // When the user changes positionStrategy, this triggers updateEffect() to re-run
+    // via onObservedReadsChanged().
     state?.positionStrategy
-    state?.resolvedStrategy
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
@@ -438,25 +451,27 @@ public class HazeEffectNode(
       // Foreground (content) blur: always update contentDrawArea since its size,
       // position, and windowId may change every frame with no dirty flag.
       contentDrawArea.size = size
-      contentDrawArea.position = position
+      contentDrawArea.coordinates.localPosition = position
+      contentDrawArea.coordinates.screenPosition = position
       contentDrawArea.windowId = windowId
       _areas = listOf(contentDrawArea)
     }
 
     // Auto-promote position strategy when cross-window is detected
+    // This is now node-local to prevent oscillation between effects in different windows
     state?.let { hazeState ->
       val newResolved = resolvePositionStrategy(
         configured = hazeState.positionStrategy,
         areas = _areas,
         windowId = windowId,
       )
-      if (hazeState.resolvedStrategy != newResolved) {
-        hazeState.resolvedStrategy = newResolved
+      if (resolvedPositionStrategy != newResolved) {
+        resolvedPositionStrategy = newResolved
         // Allow the current VisualEffect to update before we return so it
         // sees the freshly-computed areas on this pass.
         visualEffect.update(visualEffectContext)
-        // Strategy changes trigger source nodes to recompute area positions via state reads.
-        // Exit now to avoid mixing coordinate systems in this frame.
+        // Strategy changes require recomputing positions. Exit now to avoid
+        // mixing coordinate systems in this frame.
         invalidateIfNeeded()
         return@trace
       }
@@ -488,7 +503,7 @@ public class HazeEffectNode(
             var right = Float.NEGATIVE_INFINITY
             var bottom = Float.NEGATIVE_INFINITY
             for (area in areas) {
-              val bounds = area.bounds ?: continue
+              val bounds = area.coordinates.boundsFor(resolvedPositionStrategy, area.size) ?: continue
               left = min(left, bounds.left)
               top = min(top, bounds.top)
               right = max(right, bounds.right)
@@ -545,7 +560,8 @@ public class HazeEffectNode(
       areaOffsets.size != areas.size -> true
       else -> {
         areas.any { area ->
-          val newOffset = position - area.position
+          val areaPosition = area.coordinates.positionFor(resolvedPositionStrategy)
+          val newOffset = position - areaPosition
           !areaOffsets.contains(area) || areaOffsets[area] != newOffset.packedValue
         }
       }
@@ -557,7 +573,8 @@ public class HazeEffectNode(
 
       areaOffsets.clear()
       areas.forEach { area ->
-        val offset = position - area.position
+        val areaPosition = area.coordinates.positionFor(resolvedPositionStrategy)
+        val offset = position - areaPosition
         areaOffsets[area] = offset.packedValue
       }
     }
@@ -643,8 +660,8 @@ internal fun HazeEffectNode.shouldUsePreDrawListener(): Boolean {
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {
   const val InputScale: Int = 0b1
-  const val ScreenPosition: Int = InputScale shl 1
-  const val AreaOffsets: Int = ScreenPosition shl 1
+  const val Position: Int = InputScale shl 1
+  const val AreaOffsets: Int = Position shl 1
   const val Size: Int = AreaOffsets shl 1
   const val Areas: Int = Size shl 1
   const val LayerSize: Int = Areas shl 1
@@ -657,7 +674,7 @@ internal object DirtyFields {
   const val InvalidateFlags: Int =
     InputScale or
       Size or
-      ScreenPosition or
+      Position or
       LayerSize or
       LayerOffset or
       Areas or
@@ -669,7 +686,7 @@ internal object DirtyFields {
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
       if (InputScale in dirtyTracker) add("InputScale")
-      if (ScreenPosition in dirtyTracker) add("ScreenPosition")
+      if (Position in dirtyTracker) add("Position")
       if (AreaOffsets in dirtyTracker) add("AreaOffsets")
       if (Size in dirtyTracker) add("Size")
       if (LayerSize in dirtyTracker) add("LayerSize")
@@ -686,7 +703,7 @@ internal object DirtyFields {
 
 /** Dirty fields that warrant recomputing layer bounds. */
 internal val LayerBoundsDirtyFields: Int =
-  DirtyFields.ScreenPosition or
+  DirtyFields.Position or
     DirtyFields.Size or
     DirtyFields.Areas or
     DirtyFields.ExpandLayer or
@@ -694,4 +711,4 @@ internal val LayerBoundsDirtyFields: Int =
 
 /** Dirty fields that warrant recomputing area offsets. */
 internal val AreaOffsetsDirtyFields: Int =
-  DirtyFields.ScreenPosition or DirtyFields.Areas
+  DirtyFields.Position or DirtyFields.Areas

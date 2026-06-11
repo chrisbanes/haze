@@ -7,6 +7,7 @@ import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Density
@@ -15,6 +16,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
@@ -25,6 +27,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
 
+@OptIn(ExperimentalHazeApi::class)
 class BlurVisualEffectLifecycleTest {
 
   @Test
@@ -128,6 +131,12 @@ private data object FakeVisualEffectContext : VisualEffectContext {
   override val state: HazeState? = null
   override val coroutineScope: CoroutineScope = object : CoroutineScope {
     override val coroutineContext: CoroutineContext = EmptyCoroutineContext
+  }
+
+  override fun positionOf(area: HazeArea): Offset = area.coordinates.localPosition
+  override fun boundsOf(area: HazeArea): Rect? {
+    val position = area.coordinates.localPosition
+    return if (position.isSpecified && area.size.isSpecified) Rect(position, area.size) else null
   }
 
   override fun requirePlatformContext(): PlatformContext = error("Unused in lifecycle tests")

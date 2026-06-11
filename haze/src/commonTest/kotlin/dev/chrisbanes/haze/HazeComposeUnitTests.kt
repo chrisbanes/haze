@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
@@ -16,6 +17,7 @@ import assertk.assertThat
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
@@ -77,7 +79,6 @@ class HazeComposeUnitTests : ContextTest() {
   fun testDefaultPositionStrategyIsAuto() {
     val state = HazeState()
     assertThat(state.positionStrategy).isEqualTo(HazePositionStrategy.Auto)
-    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
   }
 
   @Test
@@ -91,7 +92,6 @@ class HazeComposeUnitTests : ContextTest() {
       }
     }
     waitForIdle()
-    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
   }
 
   @Test
@@ -105,7 +105,6 @@ class HazeComposeUnitTests : ContextTest() {
       }
     }
     waitForIdle()
-    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Screen)
   }
 
   @Test
@@ -117,8 +116,6 @@ class HazeComposeUnitTests : ContextTest() {
       }
     }
     waitForIdle()
-    // Same window, so Auto should resolve to Local
-    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
   }
 
   @Test
@@ -304,6 +301,25 @@ class HazeComposeUnitTests : ContextTest() {
     assertThat(effect.lastAreas).hasSize(1)
     val swappedArea = effect.lastAreas.single()
     assertThat(swappedArea !== initialArea).isTrue()
+  }
+
+  @Test
+  fun test_visualEffectContext_positionStrategy_reflectsEffectNodeResolution() {
+    // Wiring test: verifies that VisualEffectContext.positionStrategy reads through to
+    // HazeEffectNode.resolvedPositionStrategy. The cross-window auto-promotion logic
+    // itself is covered by the resolvePositionStrategy unit tests (and by the dialog
+    // regression test in RecompositionLoopTest on Android host).
+    val node = HazeEffectNode()
+    val context = HazeEffectNodeVisualEffectContext(node)
+
+    // Default is Local.
+    assertThat(context.positionStrategy).isEqualTo(HazePositionStrategy.Local)
+    assertThat(context.positionOf(HazeAreaTestFactory.create(windowId = "ignored"))).isEqualTo(Offset.Unspecified)
+    assertThat(context.boundsOf(HazeAreaTestFactory.create(windowId = "ignored"))).isNull()
+
+    // Setting the node's resolved strategy is reflected in the context.
+    node.resolvedPositionStrategy = HazePositionStrategy.Screen
+    assertThat(context.positionStrategy).isEqualTo(HazePositionStrategy.Screen)
   }
 }
 

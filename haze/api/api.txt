@@ -6,17 +6,26 @@ package dev.chrisbanes.haze {
 
   @androidx.compose.runtime.Stable public final class HazeArea {
     method @InaccessibleFromKotlin public androidx.compose.ui.graphics.layer.GraphicsLayer? getContentLayer();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeCoordinates getCoordinates();
     method @InaccessibleFromKotlin public Object? getKey();
     method @InaccessibleFromKotlin public Object? getWindowId();
     method @InaccessibleFromKotlin public float getZIndex();
     method @InaccessibleFromKotlin public boolean isContentDrawing();
     property @dev.chrisbanes.haze.InternalHazeApi public androidx.compose.ui.graphics.layer.GraphicsLayer? contentLayer;
+    property public dev.chrisbanes.haze.HazeCoordinates coordinates;
     property @dev.chrisbanes.haze.InternalHazeApi public boolean isContentDrawing;
     property public Object? key;
-    property public androidx.compose.ui.geometry.Offset position;
+    property @Deprecated public androidx.compose.ui.geometry.Offset position;
     property public androidx.compose.ui.geometry.Size size;
     property public Object? windowId;
     property public float zIndex;
+  }
+
+  @androidx.compose.runtime.Stable public final class HazeCoordinates {
+    ctor public HazeCoordinates();
+    ctor @KotlinOnly public HazeCoordinates(optional androidx.compose.ui.geometry.Offset localPosition, optional androidx.compose.ui.geometry.Offset screenPosition);
+    property public androidx.compose.ui.geometry.Offset localPosition;
+    property public androidx.compose.ui.geometry.Offset screenPosition;
   }
 
   public final class HazeEffectKt {
@@ -116,7 +125,9 @@ package dev.chrisbanes.haze {
 
   public final class HazeKt {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeSource(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
+    method @InaccessibleFromKotlin public static boolean isUnspecified(dev.chrisbanes.haze.HazeCoordinates);
     method @KotlinOnly @androidx.compose.runtime.Composable public static dev.chrisbanes.haze.HazeState rememberHazeState(optional dev.chrisbanes.haze.HazePositionStrategy positionStrategy);
+    property public static boolean dev.chrisbanes.haze.HazeCoordinates.isUnspecified;
   }
 
   public final class HazeLogger {
@@ -194,14 +205,17 @@ package dev.chrisbanes.haze {
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public interface VisualEffectContext {
+    method public default androidx.compose.ui.geometry.Rect? boundsOf(dev.chrisbanes.haze.HazeArea area);
     method public <T> T currentValueOf(androidx.compose.runtime.CompositionLocal<T> local);
     method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
     method @InaccessibleFromKotlin public kotlinx.coroutines.CoroutineScope getCoroutineScope();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeInputScale getInputScale();
+    method @InaccessibleFromKotlin public default dev.chrisbanes.haze.HazePositionStrategy getPositionStrategy();
     method @InaccessibleFromKotlin public androidx.compose.ui.geometry.Rect getRootBounds();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeState? getState();
     method @InaccessibleFromKotlin public Object? getWindowId();
     method public void invalidateDraw();
+    method @KotlinOnly public default androidx.compose.ui.geometry.Offset positionOf(dev.chrisbanes.haze.HazeArea area);
     method public androidx.compose.ui.unit.Density requireDensity();
     method public androidx.compose.ui.graphics.GraphicsContext requireGraphicsContext();
     method @dev.chrisbanes.haze.InternalHazeApi public dev.chrisbanes.haze.PlatformContext requirePlatformContext();
@@ -211,6 +225,7 @@ package dev.chrisbanes.haze {
     property public abstract androidx.compose.ui.geometry.Offset layerOffset;
     property public abstract androidx.compose.ui.geometry.Size layerSize;
     property public abstract androidx.compose.ui.geometry.Offset position;
+    property public default dev.chrisbanes.haze.HazePositionStrategy positionStrategy;
     property public abstract androidx.compose.ui.geometry.Rect rootBounds;
     property public abstract androidx.compose.ui.geometry.Size size;
     property public abstract dev.chrisbanes.haze.HazeState? state;

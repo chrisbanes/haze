@@ -27,7 +27,7 @@ import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class)
 class VisualEffectLifecycleTest : ContextTest() {
 
   @Test
@@ -410,7 +410,11 @@ internal data object FakeVisualEffectContext : VisualEffectContext {
   override val windowId: Any? = null
   override val areas: List<HazeArea> = emptyList()
   override val state: HazeState? = null
+  override val positionStrategy: HazePositionStrategy = HazePositionStrategy.Local
   override val coroutineScope: kotlinx.coroutines.CoroutineScope = kotlinx.coroutines.CoroutineScope(kotlin.coroutines.EmptyCoroutineContext)
+
+  override fun positionOf(area: HazeArea): Offset = area.coordinates.localPosition
+  override fun boundsOf(area: HazeArea): Rect? = area.coordinates.boundsFor(positionStrategy, area.size)
 
   override fun requireDensity(): androidx.compose.ui.unit.Density = error("Fake")
   override fun <T> currentValueOf(local: androidx.compose.runtime.CompositionLocal<T>): T = error("Fake")

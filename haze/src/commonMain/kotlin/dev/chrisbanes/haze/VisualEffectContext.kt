@@ -79,6 +79,40 @@ public interface VisualEffectContext {
    */
   public val state: HazeState?
 
+  /**
+   * The resolved position strategy for this effect node.
+   * This is the strategy computed from the configured strategy and the areas this effect observes.
+   *
+   * Default implementation returns [HazePositionStrategy.Local] for backward compatibility.
+   */
+  public val positionStrategy: HazePositionStrategy
+    get() = HazePositionStrategy.Local
+
+  // ==================== Area Geometry Helpers ====================
+
+  /**
+   * Returns the position of the given [area] in the coordinate space of this effect's
+   * resolved position strategy.
+   *
+   * This is the preferred way for custom effects to read area positions, as it handles
+   * coordinate space selection automatically.
+   *
+   * Default implementation returns [HazeArea.coordinates]'s local position for backward compatibility.
+   */
+  public fun positionOf(area: HazeArea): Offset {
+    return area.coordinates.localPosition
+  }
+
+  /**
+   * Returns the bounds of the given [area] in the coordinate space of this effect's
+   * resolved position strategy, or `null` if the area's geometry is not yet specified.
+   *
+   * Default implementation computes bounds from local position for backward compatibility.
+   */
+  public fun boundsOf(area: HazeArea): Rect? {
+    return area.coordinates.boundsFor(HazePositionStrategy.Local, area.size)
+  }
+
   // ==================== Platform Accessors ====================
 
   /**
@@ -137,6 +171,15 @@ internal class HazeEffectNodeVisualEffectContext(
   override val windowId: Any? get() = node.windowId
   override val areas: List<HazeArea> get() = node.areas
   override val state: HazeState? get() = node.state
+  override val positionStrategy: HazePositionStrategy get() = node.resolvedPositionStrategy
+
+  override fun positionOf(area: HazeArea): Offset {
+    return area.coordinates.positionFor(node.resolvedPositionStrategy)
+  }
+
+  override fun boundsOf(area: HazeArea): Rect? {
+    return area.coordinates.boundsFor(node.resolvedPositionStrategy, area.size)
+  }
 
   override val coroutineScope: CoroutineScope get() = node.coroutineScope
   override fun requirePlatformContext(): PlatformContext = node.requirePlatformContext()
