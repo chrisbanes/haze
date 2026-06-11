@@ -1,20 +1,18 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(InternalHazeApi::class)
+@file:OptIn(InternalHazeApi::class, ExperimentalHazeApi::class)
 
 package dev.chrisbanes.haze
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
@@ -167,8 +165,7 @@ public class HazeSourceNode(
     lastCoordinates = coordinates
     // Write both local and screen positions so effects can use either coordinate space
     area.coordinates.localPosition = coordinates.positionInRoot()
-    area.coordinates.screenPosition = runCatching { coordinates.positionOnScreen() }
-      .getOrDefault(Offset.Unspecified)
+    area.coordinates.screenPosition = coordinates.safePositionOnScreen()
     area.size = coordinates.size.toSize()
     area.windowId = getWindowId()
 

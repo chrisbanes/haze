@@ -27,7 +27,7 @@ import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class)
 class VisualEffectLifecycleTest : ContextTest() {
 
   @Test

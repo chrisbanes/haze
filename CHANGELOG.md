@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **`HazeCoordinates`** (Experimental) — new value class on `HazeArea` exposing both `localPosition` and `screenPosition`, so custom `VisualEffect` implementations can read the geometry of an area in either coordinate space. A new `HazeCoordinates.isUnspecified` extension reports when either position has not yet been laid out.
+- **`VisualEffectContext` helpers** (Experimental) — `positionOf(area)`, `boundsOf(area)`, and a `positionStrategy` property that read geometry in the effect's resolved coordinate space. Custom effects should prefer these over reading `HazeArea.position` / `HazeArea.coordinates` directly.
+
+### Deprecated
+
+- `HazeArea.position` is deprecated in favour of `HazeArea.coordinates.localPosition` (or, inside a `VisualEffect`, `VisualEffectContext.positionOf(area)`). The setter now writes through to `coordinates.localPosition` for source compatibility.
+
+### Fixed
+
+- **Fix cross-window recomposition livelock** in #974. When a `HazeState` is shared between effects in different windows (e.g. a host composable and a `Dialog`), the previously-shared `HazeState.resolvedStrategy` oscillated between `Local` and `Screen`, causing an infinite recomposition loop. The resolved position strategy is now per-effect (`HazeEffectNode.resolvedPositionStrategy`), so effects in different windows no longer stomp on each other.
+
 ## 2.0.0-alpha03 <small>2026-06-08</small> { id="2.0.0-alpha03" }
 
 ### Breaking Changes

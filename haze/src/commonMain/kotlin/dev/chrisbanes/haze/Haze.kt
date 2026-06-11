@@ -1,7 +1,7 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(InternalHazeApi::class)
+@file:OptIn(InternalHazeApi::class, ExperimentalHazeApi::class)
 
 package dev.chrisbanes.haze
 
@@ -35,8 +35,6 @@ public fun rememberHazeState(
 @Stable
 public class HazeState {
   public var positionStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Auto)
-
-  internal var resolvedStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Local)
 
   private val _areas = mutableStateListOf<HazeArea>()
   public val areas: List<HazeArea> get() = _areas

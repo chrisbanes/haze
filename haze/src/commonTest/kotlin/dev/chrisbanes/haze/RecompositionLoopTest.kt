@@ -23,8 +23,15 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import assertk.assertThat
+import assertk.assertions.isNotNull
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TestTimeSource
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
@@ -105,15 +112,9 @@ class RecompositionLoopTest : ContextTest() {
   fun openingDialogWithSharedStateAndHostEffect_doesNotInfiniteLoop() = runComposeUiTest {
     val hazeState = HazeState()
     val showDialog = mutableStateOf(false)
-    var detectLoop = false
-    var updateCount = 0
-    val loopDetector = {
-      if (detectLoop && ++updateCount > 20) {
-        throw AssertionError("HazeEffect updates did not settle after opening dialog")
-      }
-    }
-    val hostEffect = LoopDetectingVisualEffect(loopDetector)
-    val dialogEffect = LoopDetectingVisualEffect(loopDetector)
+    val detector = LivelockDetector()
+    val hostEffect = LoopDetectingVisualEffect(detector::onUpdate)
+    val dialogEffect = LoopDetectingVisualEffect(detector::onUpdate)
 
     setContent {
       Box(Modifier.hazeSource(hazeState).size(100.dp)) {
@@ -140,7 +141,7 @@ class RecompositionLoopTest : ContextTest() {
     }
     waitForIdle()
 
-    detectLoop = true
+    detector.arm()
     showDialog.value = true
 
     awaitIdleWithTimeout("after opening dialog with shared HazeState")
@@ -270,6 +271,89 @@ class RecompositionLoopTest : ContextTest() {
 
     awaitIdleWithTimeout("after LazyColumn item count change")
   }
+
+  @Test
+  fun livelockDetector_ignoresUpdatesBeforeArm() {
+    val time = TestTimeSource()
+    val detector = LivelockDetector(timeSource = time)
+
+    // 50 tight updates before arm() must be ignored, no throw.
+    repeat(50) {
+      time += 1.milliseconds
+      detector.onUpdate()
+    }
+  }
+
+  @Test
+  fun livelockDetector_doesNotThrow_forBurstBelowThreshold() {
+    val time = TestTimeSource()
+    val detector = LivelockDetector(timeSource = time)
+    detector.arm()
+
+    // 50 updates within the window is below the 100 threshold.
+    repeat(50) {
+      time += 5.milliseconds
+      detector.onUpdate()
+    }
+  }
+
+  @Test
+  fun livelockDetector_throws_whenBurstExceedsThreshold() {
+    val time = TestTimeSource()
+    val detector = LivelockDetector(timeSource = time)
+    detector.arm()
+
+    // 100 updates within 500ms — at the threshold, no throw.
+    repeat(100) {
+      time += 2.milliseconds
+      detector.onUpdate()
+    }
+    // The 101st update throws.
+    val ex = runCatching {
+      time += 2.milliseconds
+      detector.onUpdate()
+    }.exceptionOrNull()
+    assertThat(ex).isNotNull()
+  }
+
+  @Test
+  fun livelockDetector_doesNotThrow_whenIdleGapEvictsWindow() {
+    val time = TestTimeSource()
+    val detector = LivelockDetector(window = 100.milliseconds, maxUpdatesPerWindow = 10, timeSource = time)
+    detector.arm()
+
+    // 8 updates in 50ms — within threshold.
+    repeat(8) {
+      time += 5.milliseconds
+      detector.onUpdate()
+    }
+    // Long idle gap evicts the window.
+    time += 200.milliseconds
+    detector.onUpdate()
+    // 8 more updates — still within threshold because the window evicted.
+    repeat(8) {
+      time += 5.milliseconds
+      detector.onUpdate()
+    }
+  }
+
+  @Test
+  fun livelockDetector_armClearsWindow() {
+    val time = TestTimeSource()
+    val detector = LivelockDetector(timeSource = time)
+    detector.arm()
+    repeat(50) {
+      time += 2.milliseconds
+      detector.onUpdate()
+    }
+    // Re-arm: window resets to empty.
+    detector.arm()
+    // 50 fresh updates should not throw.
+    repeat(50) {
+      time += 2.milliseconds
+      detector.onUpdate()
+    }
+  }
 }
 
 @Composable
@@ -296,4 +380,48 @@ private class LoopDetectingVisualEffect(
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
+}
+
+/**
+ * Detects a recomposition livelock: a sustained burst of `update()` calls with no idle gap.
+ *
+ * The detector tracks a sliding window of recent update timestamps. A livelock is flagged when
+ * [maxUpdatesPerWindow] or more updates arrive within [window] of each other.
+ *
+ * This is meaningfully stronger than a simple update-count cap: a burst of 50 updates during
+ * dialog placement is normal (gaps within the window), but a continuous stream of 200 updates
+ * within 500ms is not.
+ *
+ * The [timeSource] is injected so the detector can be unit-tested without sleeping. Production
+ * callers should pass [TimeSource.Monotonic], which is the only choice suitable for measuring
+ * elapsed time (wall clocks can jump backwards).
+ */
+internal class LivelockDetector(
+  private val window: Duration = 500.milliseconds,
+  private val maxUpdatesPerWindow: Int = 100,
+  private val timeSource: TimeSource = TimeSource.Monotonic,
+) {
+  private var armed = false
+  private val recentUpdates = ArrayDeque<TimeMark>()
+
+  fun arm() {
+    armed = true
+    recentUpdates.clear()
+  }
+
+  fun onUpdate() {
+    if (!armed) return
+    val now = timeSource.markNow()
+    recentUpdates.addLast(now)
+    // Drop entries older than the window from the head.
+    while (recentUpdates.isNotEmpty() && now - recentUpdates.first() > window) {
+      recentUpdates.removeFirst()
+    }
+    if (recentUpdates.size > maxUpdatesPerWindow) {
+      throw AssertionError(
+        "Livelock detected: VisualEffect.update() fired ${recentUpdates.size} times " +
+          "within $window (threshold = $maxUpdatesPerWindow).",
+      )
+    }
+  }
 }
