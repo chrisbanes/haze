@@ -414,7 +414,7 @@ internal class LivelockDetector(
     val now = timeSource.markNow()
     recentUpdates.addLast(now)
     // Drop entries older than the window from the head.
-    while (recentUpdates.isNotEmpty() && now - recentUpdates.first() > window) {
+    while (recentUpdates.isNotEmpty() && recentUpdates.first().elapsedNow() > window) {
       recentUpdates.removeFirst()
     }
     if (recentUpdates.size > maxUpdatesPerWindow) {
