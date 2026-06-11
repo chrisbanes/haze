@@ -11,7 +11,6 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
 import kotlin.test.Test
 
-@OptIn(ExperimentalHazeApi::class)
 class HazeCoordinatesTest {
 
   @Test
