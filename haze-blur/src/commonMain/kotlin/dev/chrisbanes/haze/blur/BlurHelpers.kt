@@ -184,7 +184,7 @@ internal fun DrawScope.createScaledContentLayer(
       translate(layerOffset - context.position) {
         for (area in context.areas) {
           val position = Snapshot.withoutReadObservation {
-            area.position.takeOrElse { Offset.Zero }
+            context.positionOf(area).takeOrElse { Offset.Zero }
           }
           translate(position) {
             // Draw the content into our effect layer. Use withoutReadObservation to avoid

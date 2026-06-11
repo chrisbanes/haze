@@ -17,10 +17,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlinx.coroutines.TimeoutCancellationException
@@ -97,6 +99,51 @@ class RecompositionLoopTest : ContextTest() {
     showSource.value = false
 
     awaitIdleWithTimeout("after removing source node")
+  }
+
+  @Test
+  fun openingDialogWithSharedStateAndHostEffect_doesNotInfiniteLoop() = runComposeUiTest {
+    val hazeState = HazeState()
+    val showDialog = mutableStateOf(false)
+    var detectLoop = false
+    var updateCount = 0
+    val loopDetector = {
+      if (detectLoop && ++updateCount > 20) {
+        throw AssertionError("HazeEffect updates did not settle after opening dialog")
+      }
+    }
+    val hostEffect = LoopDetectingVisualEffect(loopDetector)
+    val dialogEffect = LoopDetectingVisualEffect(loopDetector)
+
+    setContent {
+      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
+        GradientBox(
+          Modifier
+            .hazeEffect(hazeState) {
+              visualEffect = hostEffect
+            }
+            .size(100.dp),
+        )
+      }
+
+      if (showDialog.value) {
+        Dialog(onDismissRequest = {}) {
+          GradientBox(
+            Modifier
+              .hazeEffect(hazeState) {
+                visualEffect = dialogEffect
+              }
+              .size(100.dp),
+          )
+        }
+      }
+    }
+    waitForIdle()
+
+    detectLoop = true
+    showDialog.value = true
+
+    awaitIdleWithTimeout("after opening dialog with shared HazeState")
   }
 
   @Test
@@ -239,4 +286,14 @@ private fun GradientBox(modifier: Modifier = Modifier) {
       ),
     ),
   )
+}
+
+private class LoopDetectingVisualEffect(
+  private val onUpdate: () -> Unit,
+) : VisualEffect {
+  override fun update(context: VisualEffectContext) {
+    onUpdate()
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }

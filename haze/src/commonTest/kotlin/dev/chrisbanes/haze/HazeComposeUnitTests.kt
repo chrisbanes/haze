@@ -77,6 +77,7 @@ class HazeComposeUnitTests : ContextTest() {
   fun testDefaultPositionStrategyIsAuto() {
     val state = HazeState()
     assertThat(state.positionStrategy).isEqualTo(HazePositionStrategy.Auto)
+    // resolvedStrategy is no longer updated by effects; it's always Local by default
     assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
   }
 
@@ -91,6 +92,7 @@ class HazeComposeUnitTests : ContextTest() {
       }
     }
     waitForIdle()
+    // resolvedStrategy is no longer updated by effects; it's always Local by default
     assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
   }
 
@@ -105,7 +107,8 @@ class HazeComposeUnitTests : ContextTest() {
       }
     }
     waitForIdle()
-    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Screen)
+    // resolvedStrategy is no longer updated by effects; it's always Local by default
+    assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
   }
 
   @Test
@@ -117,7 +120,7 @@ class HazeComposeUnitTests : ContextTest() {
       }
     }
     waitForIdle()
-    // Same window, so Auto should resolve to Local
+    // resolvedStrategy is no longer updated by effects; it's always Local by default
     assertThat(state.resolvedStrategy).isEqualTo(HazePositionStrategy.Local)
   }
 

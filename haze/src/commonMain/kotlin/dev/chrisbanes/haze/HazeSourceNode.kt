@@ -8,10 +8,13 @@ package dev.chrisbanes.haze
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
@@ -111,13 +114,7 @@ public class HazeSourceNode(
 
   override fun onObservedReadsChanged() {
     observeReads {
-      // Observe resolvedStrategy so that when it changes (e.g. Auto promotes to Screen),
-      // we recompute the area's position using the new strategy.
-      val strategy = state.resolvedStrategy
-      lastCoordinates?.let { coords ->
-        area.position = coords.positionForHaze(strategy)
-      }
-
+      // Observe pre-draw listeners only. Position is now updated directly in onPositioned.
       if (area.preDrawListeners.isEmpty()) {
         disablePreDrawListener()
       } else {
@@ -150,7 +147,7 @@ public class HazeSourceNode(
     // up to the first draw. We need onGloballyPositioned which tends to happen after
     // the first pass
     Snapshot.withoutReadObservation {
-      if (area.position.isUnspecified) {
+      if (area.coordinates.isUnspecified) {
         onPositioned(coordinates, "onPlaced")
       }
     }
@@ -168,12 +165,16 @@ public class HazeSourceNode(
     }
 
     lastCoordinates = coordinates
-    area.position = coordinates.positionForHaze(state.resolvedStrategy)
+    // Write both local and screen positions so effects can use either coordinate space
+    area.coordinates.localPosition = coordinates.positionInRoot()
+    area.coordinates.screenPosition = runCatching { coordinates.positionOnScreen() }
+      .getOrDefault(Offset.Unspecified)
     area.size = coordinates.size.toSize()
     area.windowId = getWindowId()
 
     HazeLogger.d(TAG) {
-      "$source: position=${area.position}, size=${area.size}"
+      "$source: localPosition=${area.coordinates.localPosition}, " +
+        "screenPosition=${area.coordinates.screenPosition}, size=${area.size}"
     }
   }
 

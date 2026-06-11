@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.node.ModifierNodeElement
@@ -65,10 +66,50 @@ internal fun resolvePositionStrategy(
 }
 
 @Stable
+public class HazeCoordinates(
+  localPosition: Offset = Offset.Unspecified,
+  screenPosition: Offset = Offset.Unspecified,
+) {
+  public var localPosition: Offset by mutableStateOf(localPosition)
+    internal set
+
+  public var screenPosition: Offset by mutableStateOf(screenPosition)
+    internal set
+
+  internal fun positionFor(strategy: HazePositionStrategy): Offset = when (strategy) {
+    HazePositionStrategy.Local,
+    HazePositionStrategy.Auto,
+    -> localPosition
+    HazePositionStrategy.Screen -> screenPosition
+  }
+
+  internal fun boundsFor(strategy: HazePositionStrategy, size: Size): Rect? {
+    val position = positionFor(strategy)
+    return if (position.isSpecified && size.isSpecified) Rect(position, size) else null
+  }
+}
+
+/**
+ * Returns `true` if either [HazeCoordinates.localPosition] or [HazeCoordinates.screenPosition]
+ * is [Offset.Unspecified].
+ */
+public val HazeCoordinates.isUnspecified: Boolean
+  get() = localPosition.isUnspecified || screenPosition.isUnspecified
+
+@Stable
 public class HazeArea internal constructor() {
 
-  public var position: Offset by mutableStateOf(Offset.Unspecified)
-    internal set
+  public val coordinates: HazeCoordinates = HazeCoordinates()
+
+  @Deprecated(
+    message = "Use coordinates.localPosition or VisualEffectContext helpers instead.",
+    replaceWith = ReplaceWith("coordinates.localPosition"),
+  )
+  public var position: Offset
+    get() = coordinates.localPosition
+    internal set(value) {
+      coordinates.localPosition = value
+    }
 
   public var size: Size by mutableStateOf(Size.Unspecified)
     internal set
@@ -93,12 +134,6 @@ public class HazeArea internal constructor() {
   public var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
 
-  internal val bounds: Rect?
-    get() = when {
-      size.isSpecified && position.isSpecified -> Rect(position, size)
-      else -> null
-    }
-
   internal var contentDrawing: Boolean = false
 
   @InternalHazeApi
@@ -107,7 +142,8 @@ public class HazeArea internal constructor() {
 
   public override fun toString(): String = buildString {
     append("HazeArea(")
-    append("position=$position, ")
+    append("localPosition=${coordinates.localPosition}, ")
+    append("screenPosition=${coordinates.screenPosition}, ")
     append("size=$size, ")
     append("zIndex=$zIndex")
     append(")")
@@ -115,7 +151,8 @@ public class HazeArea internal constructor() {
 }
 
 internal fun HazeArea.reset() {
-  position = Offset.Unspecified
+  coordinates.localPosition = Offset.Unspecified
+  coordinates.screenPosition = Offset.Unspecified
   size = Size.Unspecified
   contentDrawing = false
 }
