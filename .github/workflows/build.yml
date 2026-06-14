@@ -37,7 +37,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Compile iOS arm64 target and run simulator tests
-        run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Tests -Phaze.enableAppleTests
+        run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Test -Phaze.enableAppleTests
 
       - name: Upload reports
         if: failure()

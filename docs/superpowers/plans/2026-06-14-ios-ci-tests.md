@@ -4,7 +4,7 @@
 
 **Goal:** Enable iOS simulator unit tests on CI while preserving fast default local checks.
 
-**Architecture:** Add a root Gradle aggregate task that explicitly names the library modules included in the iOS simulator correctness gate. Make `haze` native simulator and host tests opt-in through a Gradle property, then update the existing macOS CI job to run the iOS compile check and aggregate simulator tests together.
+**Architecture:** Use Gradle's built-in task-name matching so `iosSimulatorArm64Test` runs every matching subproject task from the root project. Make `haze` native simulator and host tests opt-in through a Gradle property, then update the existing macOS CI job to run the iOS compile check and simulator tests together.
 
 **Tech Stack:** Gradle Kotlin DSL, Kotlin Multiplatform, Kotlin/Native iOS simulator tests, GitHub Actions.
 
@@ -12,68 +12,31 @@
 
 ## File Structure
 
-- Modify `build.gradle.kts`: defines the root aggregate task `iosSimulatorArm64Tests`.
 - Modify `haze/build.gradle.kts`: makes native simulator and host tests opt-in through `haze.enableAppleTests`.
-- Modify `.github/workflows/build.yml`: runs the aggregate task in `mac_build` and uploads test-result artifacts.
+- Modify `.github/workflows/build.yml`: runs `iosSimulatorArm64Test` in `mac_build` and uploads test-result artifacts.
 
-### Task 1: Add Root iOS Simulator Test Aggregate
+### Task 1: Verify Built-In iOS Simulator Task Selection
 
 **Files:**
-- Modify: `build.gradle.kts`
+- No file edits.
 
-- [ ] **Step 1: Verify the aggregate task does not exist yet**
-
-Run:
-
-```bash
-./gradlew iosSimulatorArm64Tests --dry-run
-```
-
-Expected: FAIL with a Gradle message that task `iosSimulatorArm64Tests` was not found in root project `haze-root`.
-
-- [ ] **Step 2: Register the aggregate task**
-
-In `build.gradle.kts`, add this block after the `plugins` block:
-
-```kotlin
-tasks.register("iosSimulatorArm64Tests") {
-  description = "Runs iOS simulator tests for library modules."
-  group = org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP
-
-  dependsOn(
-    ":haze:iosSimulatorArm64Test",
-    ":haze-blur:iosSimulatorArm64Test",
-    ":haze-liquidglass:iosSimulatorArm64Test",
-  )
-}
-```
-
-Use the fully qualified `LifecycleBasePlugin` name so no import is needed.
-
-- [ ] **Step 3: Verify the aggregate task resolves**
+- [ ] **Step 1: Verify the unqualified task name resolves**
 
 Run:
 
 ```bash
-./gradlew iosSimulatorArm64Tests --dry-run
+./gradlew iosSimulatorArm64Test -Phaze.enableAppleTests --dry-run
 ```
 
-Expected: PASS. Output includes these task paths:
+Expected: PASS. Output includes matching task paths from the modules that expose iOS
+simulator tests, including:
 
 ```text
 :haze:iosSimulatorArm64Test SKIPPED
 :haze-blur:iosSimulatorArm64Test SKIPPED
 :haze-liquidglass:iosSimulatorArm64Test SKIPPED
-:iosSimulatorArm64Tests SKIPPED
-```
-
-- [ ] **Step 4: Commit the aggregate task**
-
-Run:
-
-```bash
-git add build.gradle.kts
-git commit -m "Add iOS simulator test aggregate"
+:haze-materials:iosSimulatorArm64Test SKIPPED
+:haze-utils:iosSimulatorArm64Test SKIPPED
 ```
 
 ### Task 2: Make Haze Native Tests Opt-In
@@ -190,7 +153,7 @@ with:
 
 ```yaml
       - name: Compile iOS arm64 target and run simulator tests
-        run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Tests -Phaze.enableAppleTests
+        run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Test -Phaze.enableAppleTests
 ```
 
 - [ ] **Step 3: Upload test results on macOS failures**
@@ -215,7 +178,7 @@ with:
 Run:
 
 ```bash
-rg -n "Compile iOS arm64 target and run simulator tests|iosSimulatorArm64Tests|-Phaze.enableAppleTests|build/test-results" .github/workflows/build.yml
+rg -n "Compile iOS arm64 target and run simulator tests|iosSimulatorArm64Test|-Phaze.enableAppleTests|build/test-results" .github/workflows/build.yml
 ```
 
 Expected: output includes all four searched terms.
@@ -234,12 +197,12 @@ git commit -m "Run iOS simulator tests on CI"
 **Files:**
 - No file edits.
 
-- [ ] **Step 1: Verify the aggregate command intended for local reproduction**
+- [ ] **Step 1: Verify the simulator command intended for local reproduction**
 
 Run:
 
 ```bash
-./gradlew iosSimulatorArm64Tests -Phaze.enableAppleTests --dry-run
+./gradlew iosSimulatorArm64Test -Phaze.enableAppleTests --dry-run
 ```
 
 Expected: PASS. Output includes:
@@ -255,7 +218,7 @@ Expected: PASS. Output includes:
 Run:
 
 ```bash
-./gradlew compileKotlinIosArm64 iosSimulatorArm64Tests -Phaze.enableAppleTests --dry-run
+./gradlew compileKotlinIosArm64 iosSimulatorArm64Test -Phaze.enableAppleTests --dry-run
 ```
 
 Expected: PASS. Output includes:
@@ -269,15 +232,15 @@ Expected: PASS. Output includes:
 :haze-liquidglass:iosSimulatorArm64Test SKIPPED
 ```
 
-- [ ] **Step 3: Run the real iOS simulator aggregate on macOS**
+- [ ] **Step 3: Run the real iOS simulator tests on macOS**
 
 Run:
 
 ```bash
-./gradlew iosSimulatorArm64Tests -Phaze.enableAppleTests
+./gradlew iosSimulatorArm64Test -Phaze.enableAppleTests
 ```
 
-Expected: PASS. The command links and executes iOS simulator tests for `haze`, `haze-blur`, and `haze-liquidglass`.
+Expected: PASS. The command links and executes all iOS simulator tests exposed by the build.
 
 - [ ] **Step 4: Run formatting/checks for touched files**
 
@@ -303,6 +266,6 @@ Expected: working tree is clean. The latest commits are:
 ```text
 Run iOS simulator tests on CI
 Make Haze native tests opt-in
-Add iOS simulator test aggregate
+Verify built-in iOS simulator task selection
 Document iOS CI test design
 ```
