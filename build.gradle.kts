@@ -22,3 +22,14 @@ plugins {
   alias(libs.plugins.poko) apply false
   alias(libs.plugins.dokka)
 }
+
+tasks.register("iosSimulatorArm64Tests") {
+  description = "Runs iOS simulator tests for library modules."
+  group = org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP
+
+  dependsOn(
+    ":haze:iosSimulatorArm64Test",
+    ":haze-blur:iosSimulatorArm64Test",
+    ":haze-liquidglass:iosSimulatorArm64Test",
+  )
+}
