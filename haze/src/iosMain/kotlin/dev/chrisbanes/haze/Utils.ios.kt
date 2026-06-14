@@ -9,7 +9,11 @@ import androidx.compose.ui.uikit.LocalUIView
 import platform.UIKit.UIView
 
 internal actual fun CompositionLocalConsumerModifierNode.getWindowId(): Any? {
-  return uikitWindowId(currentValueOf(LocalUIView))
+  return try {
+    uikitWindowId(currentValueOf(LocalUIView))
+  } catch (_: IllegalStateException) {
+    null
+  }
 }
 
 internal fun uikitWindowId(view: UIView): Any = view
