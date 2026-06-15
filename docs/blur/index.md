@@ -19,7 +19,7 @@ dependencies {
     implementation("dev.chrisbanes.haze:haze-blur:<version>")
 
     // Optional: Pre-built blur styles
-    implementation("dev.chrisbanes.haze:haze-materials:<version>")
+    implementation("dev.chrisbanes.haze:haze-blur-materials:<version>")
 }
 ```
 
