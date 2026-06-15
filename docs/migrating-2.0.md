@@ -79,7 +79,7 @@ import dev.chrisbanes.haze.blur.blurEffect // NEW: extension function
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 ```
 
-`HazeDefaults` is now `HazeBlurDefaults`.
+Blur-specific defaults from `HazeDefaults` are now in `HazeBlurDefaults`. `HazeDefaults.drawContentBehind` has no direct replacement; leave `drawContentBehind` unset or set it directly on `HazeEffectScope`.
 
 ## API Migration
 
@@ -286,7 +286,8 @@ LiquidGlassStyle(
 | *N/A* | `rememberHazeState(positionStrategy)` | New parameter, defaults to `Auto` |
 | *N/A* | `HazeCoordinates` | New value storing local and screen positions for each area |
 | *N/A* | `VisualEffectContext.positionOf(area)` / `boundsOf(area)` | Preferred helpers for custom effects |
-| `dev.chrisbanes.haze.HazeDefaults` | `dev.chrisbanes.haze.blur.HazeBlurDefaults` | Renamed + package change |
+| `dev.chrisbanes.haze.HazeDefaults` blur defaults | `dev.chrisbanes.haze.blur.HazeBlurDefaults` | Blur-specific defaults moved to the blur module |
+| `dev.chrisbanes.haze.HazeDefaults.drawContentBehind` | `HazeEffectScope.drawContentBehind` | Set directly in the `hazeEffect` block if needed |
 | `dev.chrisbanes.haze.HazeStyle` | `dev.chrisbanes.haze.blur.HazeBlurStyle` | Renamed + package change |
 | `dev.chrisbanes.haze.HazeTint` | `dev.chrisbanes.haze.blur.HazeColorEffect` | Renamed + package change |
 | `dev.chrisbanes.haze.HazeProgressive` | `dev.chrisbanes.haze.blur.HazeProgressive` | Package change |
@@ -307,7 +308,8 @@ LiquidGlassStyle(
 
 **Update imports** for blur-related classes:
 
-  - Change `dev.chrisbanes.haze.HazeDefaults` → `dev.chrisbanes.haze.blur.HazeBlurDefaults`
+  - Change blur-specific `dev.chrisbanes.haze.HazeDefaults` usage → `dev.chrisbanes.haze.blur.HazeBlurDefaults`
+  - Change `HazeDefaults.drawContentBehind` usage → direct `drawContentBehind` assignment in the `hazeEffect` block
   - Change `dev.chrisbanes.haze.HazeStyle` → `dev.chrisbanes.haze.blur.HazeBlurStyle`
   - Change `dev.chrisbanes.haze.HazeTint` → `dev.chrisbanes.haze.blur.HazeColorEffect`
   - Change `dev.chrisbanes.haze.HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
