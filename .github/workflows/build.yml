@@ -36,8 +36,8 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Compile iOS arm64 native target
-        run: ./gradlew compileKotlinIosArm64
+      - name: Compile iOS arm64 target and run simulator tests
+        run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Test -Phaze.enableAppleTests
 
       - name: Upload reports
         if: failure()
@@ -46,6 +46,7 @@ jobs:
           name: mac-reports
           path: |
             **/build/reports/**
+            **/build/test-results/**
 
   linux_build:
     if: "!contains(github.event.head_commit.message, 'skip ci')"

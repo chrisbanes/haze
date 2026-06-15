@@ -111,15 +111,17 @@ tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest> {
   enabled = false
 }
 
+val enableAppleTests = providers.gradleProperty("haze.enableAppleTests").isPresent
+
 /**
- * Disable Mac host and iOS sim tests. They have a high CI cost (mostly linking) but
- * provide little value over the quicker JVM + Android tests
+ * Disable Mac host and iOS sim tests by default. They have a high CI cost (mostly
+ * linking), but CI can opt in to iOS simulator coverage with -Phaze.enableAppleTests.
  */
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest> {
-  enabled = false
+  enabled = enableAppleTests
 }
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeHostTest> {
-  enabled = false
+  enabled = enableAppleTests
 }
 
 poko {
