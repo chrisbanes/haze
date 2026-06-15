@@ -4,7 +4,7 @@ Pre-built blur style implementations that match common design systems.
 
 ## Download
 
-[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze-materials)](https://search.maven.org/search?q=g:dev.chrisbanes.haze)
+[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze-blur-materials)](https://search.maven.org/search?q=g:dev.chrisbanes.haze)
 
 ```kotlin
 repositories {
@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation("dev.chrisbanes.haze:haze-materials:<version>")
+    implementation("dev.chrisbanes.haze:haze-blur-materials:<version>")
 }
 ```
 

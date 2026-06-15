@@ -47,7 +47,7 @@ Each effect is provided in a separate module, allowing you to include only the e
 
 - **haze** - Core infrastructure (`VisualEffect`, `HazeState`, modifiers)
 - **haze-blur** - Blur effect implementation
-- **haze-materials** - Pre-built blur styles (Material, Cupertino, Fluent)
+- **haze-blur-materials** - Pre-built blur styles (Material, Cupertino, Fluent)
 - **haze-utils** - Shared utilities for platform-specific rendering
 
 ### Module Dependencies
@@ -55,7 +55,7 @@ Each effect is provided in a separate module, allowing you to include only the e
 ```
 haze (core)
 ├── haze-blur (blur effect)
-│   └── haze-materials (blur styles)
+│   └── haze-blur-materials (blur styles)
 └── haze-utils (platform utilities)
 ```
 

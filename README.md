@@ -27,7 +27,7 @@ Haze provides hardware-accelerated visual effects for Compose Multiplatform — 
 dependencies {
     implementation("dev.chrisbanes.haze:haze:<version>")
     implementation("dev.chrisbanes.haze:haze-blur:<version>")
-    implementation("dev.chrisbanes.haze:haze-materials:<version>")
+    implementation("dev.chrisbanes.haze:haze-blur-materials:<version>")
 }
 ```
 

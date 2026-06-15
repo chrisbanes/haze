@@ -10,12 +10,14 @@ The primary change in v2 is the extraction of blur functionality from the core `
 
 - **Hard source break:** v1 blur convenience names and root-package aliases are removed in v2.
 - **New module dependency:** Blur functionality now requires the `haze-blur` module
+- **Materials artifact rename:** Blur material presets are now published as `haze-blur-materials`.
 - **API nesting:** All blur properties now require a `blurEffect {}` wrapper
 - **Package changes:** Blur APIs moved to `dev.chrisbanes.haze.blur`; blur materials moved to `dev.chrisbanes.haze.blur.materials`.
+- **Removed v1 aliases:** `haze`, `hazeChild`, `HazeDefaults`, `HazeStyle`, `HazeTint`, `LocalHazeStyle`, and `HazeDialog` are removed.
 - **Liquid glass style grouping:** `LiquidGlassStyle` parameters are grouped into `optics`, `lighting`, `color`, and `rendering`.
-- **Removed APIs:** `rememberHazeState(blurEnabled)` parameter removed
+- **Removed APIs:** `HazeState.blurEnabled` and the `rememberHazeState(blurEnabled)` parameter removed.
 - **Position strategy:** New `HazePositionStrategy` configuration on `HazeState`
-- **Renames:** `HazeArea.positionOnScreen` → `position`, `VisualEffectContext.positionOnScreen` → `position`, `VisualEffectContext.rootBoundsOnScreen` → `rootBounds`
+- **Geometry changes:** `HazeArea.positionOnScreen` is replaced by `HazeArea.coordinates`; `VisualEffectContext` now exposes `position`, `rootBounds`, `positionOf(area)`, and `boundsOf(area)`.
 
 **What Hasn't Changed:**
 
@@ -33,10 +35,26 @@ In addition to the core `haze` module, you now need to explicitly add the `haze-
 
 ```kotlin
 dependencies {
-  implementation("dev.chrisbanes.haze:haze:2.0.0-alpha01")
-  implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha01") // NEW in v2
+  implementation("dev.chrisbanes.haze:haze:2.0.0-alpha03")
+  implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha03") // NEW in v2
 }
 ```
+
+### Rename the Materials Artifact
+
+If you use the pre-built Material, Cupertino, or Fluent blur styles, replace the v1 materials artifact with the renamed v2 artifact:
+
+```kotlin
+dependencies {
+  // v1
+  implementation("dev.chrisbanes.haze:haze-materials:1.7.2")
+
+  // v2
+  implementation("dev.chrisbanes.haze:haze-blur-materials:2.0.0-alpha03")
+}
+```
+
+`haze-materials` is the old 1.x artifact. It does not publish 2.0 versions.
 
 ### Update Imports
 
@@ -48,6 +66,7 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.LocalHazeStyle
+import dev.chrisbanes.haze.materials.HazeMaterials
 ```
 
 **V2 imports:**
@@ -60,6 +79,8 @@ import dev.chrisbanes.haze.blur.blurEffect // NEW: extension function
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 ```
 
+Blur-specific defaults from `HazeDefaults` are now in `HazeBlurDefaults`. `HazeDefaults.drawContentBehind` has no direct replacement; leave `drawContentBehind` unset or set it directly on `HazeEffectScope`.
+
 ## API Migration
 
 ### Basic Blur Configuration
@@ -71,7 +92,7 @@ All blur-related properties that were previously set directly on `HazeEffectScop
     ```kotlin
     Modifier.hazeEffect(state = hazeState) {
       blurRadius = 20.dp
-      colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.7f)))
+      tints = listOf(HazeTint(Color.Black.copy(alpha = 0.7f)))
       noiseFactor = 0.15f
     }
     ```
@@ -210,7 +231,7 @@ LiquidGlassStyle(
 
     ``` kotlin
     Modifier.hazeEffect {
-      colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
+      tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
       progressive = HazeProgressive.verticalGradient(...)
     }
     ```
@@ -230,6 +251,9 @@ LiquidGlassStyle(
 
 | V1 Location | V2 Location | Notes |
 |-------------|-------------|-------|
+| `Modifier.haze(state)` | `Modifier.hazeSource(state)` | `haze` was a deprecated alias in v1 and is removed in v2 |
+| `Modifier.hazeChild(...)` | `Modifier.hazeEffect(...)` | `hazeChild` was a deprecated alias in v1 and is removed in v2 |
+| `Modifier.hazeEffect(state, style = style)` | `Modifier.hazeEffect(state) { blurEffect { this.style = style } }` | Style parameter removed from the core effect modifier |
 | `HazeEffectScope.blurRadius` | `BlurVisualEffect.blurRadius` | Inside `blurEffect {}` |
 | `HazeEffectScope.tints` | `BlurVisualEffect.colorEffects` | Inside `blurEffect {}` |
 | `HazeEffectScope.noiseFactor` | `BlurVisualEffect.noiseFactor` | Inside `blurEffect {}` |
@@ -244,29 +268,48 @@ LiquidGlassStyle(
 | `HazeEffectScope.inputScale` | `HazeEffectScope.inputScale` | **Unchanged** - still on scope |
 | `HazeEffectScope.drawContentBehind` | `HazeEffectScope.drawContentBehind` | **Unchanged** - still on scope |
 | `HazeEffectScope.clipToAreasBounds` | `HazeEffectScope.clipToAreasBounds` | **Unchanged** - still on scope |
+| `HazeEffectScope.expandLayerBounds` | `HazeEffectScope.expandLayerBounds` | **Unchanged** - still on scope |
+| `HazeEffectScope.forceInvalidateOnPreDraw` | `HazeEffectScope.forceInvalidateOnPreDraw` | **Unchanged** - still on scope |
 | `HazeEffectScope.canDrawArea` | `HazeEffectScope.canDrawArea` | **Unchanged** - still on scope |
 | `rememberHazeState(blurEnabled)` | *Removed* | Use `blurEffect { blurEnabled = ... }` |
-| `HazeArea.positionOnScreen` | `HazeArea.position` | Renamed |
+| `HazeState.blurEnabled` | *Removed* | Use `blurEffect { blurEnabled = ... }` on each effect |
+| `HazeState.contentLayer` | *Removed* | Internal implementation detail from old single-source model |
+| `HazeState.positionOnScreen` | *Removed* | Internal/deprecated geometry property from old model |
+| `HazeArea.positionOnScreen` | `HazeArea.coordinates.localPosition` or `HazeArea.coordinates.screenPosition` | Coordinate model now stores both spaces |
 | `VisualEffectContext.positionOnScreen` | `VisualEffectContext.position` | Renamed |
 | `VisualEffectContext.rootBoundsOnScreen` | `VisualEffectContext.rootBounds` | Renamed |
+| `VisualEffectContext.visualEffect` | *Removed* | Custom effects should read their own properties directly |
+| `VisualEffect.calculateInputScaleFactor()` | *Removed* | Use `VisualEffect.shouldDrawContentBehind(context)`, `HazeEffectScope.inputScale`, or effect-specific logic as needed |
+| `VisualEffect.requireInvalidation()` | *Removed* | Call `VisualEffectContext.invalidateDraw()` from `update` or other lifecycle paths |
+| `VisualEffect.detach()` | `VisualEffect.detach(context)` | Detach now receives the attached context |
 | *N/A* | `HazeState.positionStrategy` | New — configurable position calculation |
 | *N/A* | `rememberHazeState(positionStrategy)` | New parameter, defaults to `Auto` |
+| *N/A* | `HazeCoordinates` | New value storing local and screen positions for each area |
+| *N/A* | `VisualEffectContext.positionOf(area)` / `boundsOf(area)` | Preferred helpers for custom effects |
+| `dev.chrisbanes.haze.HazeDefaults` blur defaults | `dev.chrisbanes.haze.blur.HazeBlurDefaults` | Blur-specific defaults moved to the blur module |
+| `dev.chrisbanes.haze.HazeDefaults.drawContentBehind` | `HazeEffectScope.drawContentBehind` | Set directly in the `hazeEffect` block if needed |
 | `dev.chrisbanes.haze.HazeStyle` | `dev.chrisbanes.haze.blur.HazeBlurStyle` | Renamed + package change |
 | `dev.chrisbanes.haze.HazeTint` | `dev.chrisbanes.haze.blur.HazeColorEffect` | Renamed + package change |
 | `dev.chrisbanes.haze.HazeProgressive` | `dev.chrisbanes.haze.blur.HazeProgressive` | Package change |
 | `dev.chrisbanes.haze.LocalHazeStyle` | `dev.chrisbanes.haze.blur.LocalHazeBlurStyle` | Renamed + package change |
+| `dev.chrisbanes.haze.materials.*` | `dev.chrisbanes.haze.blur.materials.*` | Package moved; artifact also renamed to `haze-blur-materials` |
+| `dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi` | *Removed* | Materials APIs are no longer annotated with this opt-in |
+| `HazeDialog` | *Removed* | Use regular Compose dialogs with `hazeSource` / `hazeEffect` where needed |
 
 ## Step-by-Step Migration
 
 **Update dependencies** in your `build.gradle.kts`:
 
    ```kotlin
-    implementation("dev.chrisbanes.haze:haze:2.0.0-alpha01")
-    implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha01") // Add this
+    implementation("dev.chrisbanes.haze:haze:2.0.0-alpha03")
+    implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha03") // Add this for blur effects
+    implementation("dev.chrisbanes.haze:haze-blur-materials:2.0.0-alpha03") // Add this for material presets
    ```
 
 **Update imports** for blur-related classes:
 
+  - Change blur-specific `dev.chrisbanes.haze.HazeDefaults` usage → `dev.chrisbanes.haze.blur.HazeBlurDefaults`
+  - Change `HazeDefaults.drawContentBehind` usage → direct `drawContentBehind` assignment in the `hazeEffect` block
   - Change `dev.chrisbanes.haze.HazeStyle` → `dev.chrisbanes.haze.blur.HazeBlurStyle`
   - Change `dev.chrisbanes.haze.HazeTint` → `dev.chrisbanes.haze.blur.HazeColorEffect`
   - Change `dev.chrisbanes.haze.HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
@@ -288,19 +331,27 @@ LiquidGlassStyle(
 **Update Material style usage**:
 
    - Change `hazeEffect(state, style = ...)` to `hazeEffect(state) { blurEffect { style = ... } }`
+   - Change the dependency from `haze-materials` to `haze-blur-materials`
+
+**Replace removed aliases**:
+
+   - Change `Modifier.haze(state)` to `Modifier.hazeSource(state)`
+   - Change `Modifier.hazeChild(...)` to `Modifier.hazeEffect(...)`
+   - Remove `HazeDialog` usage and compose dialogs directly
 
 ## Position Strategy
 
 V2 introduces a configurable position calculation strategy that fixes blur misalignment in split-window modes (e.g. Huawei Parallel Space). In most cases, no action is needed — the default `Auto` strategy handles everything.
 
-**If you use `HazeArea.positionOnScreen`** in custom effects, rename to `position`:
+**If you use `HazeArea.positionOnScreen`** in custom effects, read the coordinate space you need:
 
 ```kotlin
 // v1
 val pos = area.positionOnScreen
 
 // v2
-val pos = area.position
+val localPos = area.coordinates.localPosition
+val screenPos = area.coordinates.screenPosition
 ```
 
 **If you implement custom `VisualEffect`s**, update `VisualEffectContext` references:
@@ -313,6 +364,23 @@ context.rootBoundsOnScreen
 // v2
 context.position
 context.rootBounds
+```
+
+Prefer the context helpers when working with source areas, because they respect `HazePositionStrategy`:
+
+```kotlin
+val areaPosition = context.positionOf(area)
+val areaBounds = context.boundsOf(area)
+```
+
+Also update lifecycle overrides:
+
+```kotlin
+// v1
+override fun detach() = Unit
+
+// v2
+override fun detach(context: VisualEffectContext) = Unit
 ```
 
 **If you need to force screen coordinates** (e.g. for a custom cross-window setup):
