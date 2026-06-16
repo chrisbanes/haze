@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -95,6 +96,48 @@ internal fun CreditCardContentBlurring(
           this.visualEffect = visualEffect
         },
     )
+  }
+}
+
+@Composable
+internal fun SourceTransitionSample(
+  visualEffect: VisualEffect,
+  showSource: Boolean,
+) {
+  val hazeState = rememberHazeState()
+
+  Box(
+    modifier = Modifier
+      .fillMaxSize()
+      .background(Color.Black),
+  ) {
+    if (showSource) {
+      CreditCardBackground(
+        backgroundColors = listOf(Color(0xFF1E88E5), Color(0xFFE91E63)),
+        modifier = Modifier
+          .fillMaxSize()
+          .hazeSource(state = hazeState, zIndex = 0f),
+      )
+    }
+
+    Box(
+      modifier = Modifier
+        .align(Alignment.TopCenter)
+        .fillMaxWidth()
+        .height(176.dp)
+        .hazeEffect(state = hazeState) {
+          this.visualEffect = visualEffect
+        },
+    ) {
+      Text(
+        text = "Transition",
+        color = Color.White,
+        style = MaterialTheme.typography.headlineSmall,
+        modifier = Modifier
+          .align(Alignment.CenterStart)
+          .padding(horizontal = 32.dp),
+      )
+    }
   }
 }
 
