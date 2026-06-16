@@ -66,6 +66,7 @@ internal fun DrawScope.createScaledContentLayer(
   scaleFactor: Float,
   layerSize: Size,
   layerOffset: Offset,
+  existingLayer: GraphicsLayer? = null,
 ): GraphicsLayer? {
   val scaledLayerSize = (layerSize * scaleFactor).roundToIntSize()
 
@@ -74,7 +75,8 @@ internal fun DrawScope.createScaledContentLayer(
   }
 
   val graphicsContext = context.requireGraphicsContext()
-  val layer = graphicsContext.createGraphicsLayer()
+  val layer = existingLayer?.takeUnless { it.isReleased }
+    ?: graphicsContext.createGraphicsLayer()
 
   layer.record(size = scaledLayerSize) {
     if (backgroundColor.alpha > 0f) {
