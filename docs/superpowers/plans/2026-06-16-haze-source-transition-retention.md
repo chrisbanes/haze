@@ -106,7 +106,7 @@ internal class RetainedOutputRecordingVisualEffect : VisualEffect, RetainedOutpu
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew :haze:commonTest --tests dev.chrisbanes.haze.VisualEffectLifecycleTest`
+Run: `./gradlew :haze:jvmTest --tests dev.chrisbanes.haze.VisualEffectRetainedOutputTest`
 
 Expected: compilation fails because `RetainedOutputVisualEffect` does not exist.
 
@@ -145,7 +145,7 @@ Call `clearRetainedOutput()` when `state`, `size`, or `layerSize` changes, and i
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `./gradlew :haze:commonTest --tests dev.chrisbanes.haze.VisualEffectLifecycleTest`
+Run: `./gradlew :haze:jvmTest --tests dev.chrisbanes.haze.VisualEffectRetainedOutputTest`
 
 Expected: PASS.
 
@@ -201,7 +201,7 @@ private class RetainedTrackingBlurDelegate : BlurVisualEffect.Delegate, Retained
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew :haze-blur:commonTest --tests dev.chrisbanes.haze.blur.BlurVisualEffectLifecycleTest`
+Run: `./gradlew :haze-blur:jvmTest --tests dev.chrisbanes.haze.blur.BlurVisualEffectLifecycleTest`
 
 Expected: compilation fails because `RetainedOutputDelegate` and `BlurVisualEffect.canDrawRetainedOutput` do not exist.
 
@@ -238,7 +238,7 @@ Make `RenderScriptBlurVisualEffectDelegate` implement `RetainedOutputDelegate`. 
 
 - [ ] **Step 4: Run Blur tests**
 
-Run: `./gradlew :haze-blur:commonTest --tests dev.chrisbanes.haze.blur.BlurVisualEffectLifecycleTest`
+Run: `./gradlew :haze-blur:jvmTest --tests dev.chrisbanes.haze.blur.BlurVisualEffectLifecycleTest`
 
 Expected: PASS.
 
@@ -277,7 +277,7 @@ Add a fake context and delegate matching the Blur lifecycle test pattern.
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./gradlew :haze-liquidglass:commonTest --tests dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest`
+Run: `./gradlew :haze-liquidglass:jvmTest --tests dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest`
 
 Expected: compilation fails because LiquidGlass does not implement retained-output APIs.
 
@@ -298,7 +298,7 @@ In `RuntimeShaderLiquidGlassDelegate`, own a reusable `GraphicsLayer`, track ret
 
 - [ ] **Step 4: Run LiquidGlass tests**
 
-Run: `./gradlew :haze-liquidglass:commonTest --tests dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest`
+Run: `./gradlew :haze-liquidglass:jvmTest --tests dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest`
 
 Expected: PASS.
 
@@ -312,9 +312,9 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :haze:commonTest --tests dev.chrisbanes.haze.VisualEffectLifecycleTest
-./gradlew :haze-blur:commonTest --tests dev.chrisbanes.haze.blur.BlurVisualEffectLifecycleTest
-./gradlew :haze-liquidglass:commonTest --tests dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest
+./gradlew :haze:jvmTest --tests dev.chrisbanes.haze.VisualEffectRetainedOutputTest
+./gradlew :haze-blur:jvmTest --tests dev.chrisbanes.haze.blur.BlurVisualEffectLifecycleTest
+./gradlew :haze-liquidglass:jvmTest --tests dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest
 ```
 
 Expected: all PASS.
