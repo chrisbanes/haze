@@ -52,7 +52,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private val blurVisualEffect: BlurVisualEffect,
   private val graphicsContext: GraphicsContext,
   private val platformContext: PlatformContext,
-) : BlurVisualEffect.Delegate {
+) : BlurVisualEffect.Delegate, RetainedOutputDelegate {
 
   @Volatile
   private var renderScript = RenderScript.create(platformContext.applicationContext)
@@ -63,6 +63,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
   private var currentJob: Job? = null
   private var drawSkipped: Boolean = false
+  private var retainedOutputAvailable: Boolean = false
 
   @Volatile
   private var trimGeneration = 0
@@ -86,7 +87,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
     HazeLogger.d(TAG) { "drawEffect. blurRadius=${blurRadiusPx}px. scaleFactor=$scaleFactor" }
 
-    if (shouldUpdateLayer()) {
+    val hasDrawableSourceLayers = context.hasDrawableSourceLayers()
+
+    if (hasDrawableSourceLayers && shouldUpdateLayer()) {
       drawSkipped = false
 
       createScaledContentLayer(
@@ -117,9 +120,11 @@ internal class RenderScriptBlurVisualEffectDelegate(
           }
         }
       }
-    } else {
+    } else if (hasDrawableSourceLayers) {
       // Mark this draw as skipped
       drawSkipped = true
+    } else if (!canDrawRetainedOutput()) {
+      return
     }
 
     context.withGraphicsLayer { layer ->
@@ -219,6 +224,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
         .onFailure { HazeLogger.d(TAG) { "Failed to recreate RenderScript after trim" } }
       // Bump generation so in-flight coroutines know their context is stale
       trimGeneration++
+      retainedOutputAvailable = false
       // Force the next draw to recreate the layer from scratch
       drawSkipped = true
       context.invalidateDraw()
@@ -287,6 +293,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
             ) {
               drawImage(output.asImageBitmap())
             }
+            retainedOutputAvailable = true
           }
         } else {
           // If the blur radius is 0, we just copy the input content into our contentLayer
@@ -297,6 +304,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
           ) {
             drawLayer(paddedContent)
           }
+          retainedOutputAvailable = true
         }
 
         HazeLogger.d(TAG) { "Output updated in layer" }
@@ -353,8 +361,19 @@ internal class RenderScriptBlurVisualEffectDelegate(
       .also { renderScriptContext = it }
   }
 
+  override fun canDrawRetainedOutput(): Boolean {
+    return retainedOutputAvailable &&
+      !contentLayer.isReleased &&
+      contentLayer.size != IntSize.Zero
+  }
+
+  override fun clearRetainedOutput() {
+    retainedOutputAvailable = false
+  }
+
   override fun detach() {
     currentJob?.cancel()
+    retainedOutputAvailable = false
     graphicsContext.releaseGraphicsLayer(contentLayer)
     renderScriptContext?.release()
     runCatching { renderScript.destroy() }
@@ -405,6 +424,14 @@ private fun Surface.drawGraphicsLayer(
         drawLayer(layer)
       }
     }
+  }
+}
+
+private fun VisualEffectContext.hasDrawableSourceLayers(): Boolean {
+  return areas.any { area ->
+    area.contentLayer
+      ?.takeUnless { it.isReleased }
+      ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 } != null
   }
 }
 

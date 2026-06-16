@@ -123,8 +123,9 @@ internal object EmptyVisualEffect : VisualEffect {
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
 
-internal interface RetainedOutputVisualEffect {
-  fun canDrawRetainedOutput(context: VisualEffectContext): Boolean
+@InternalHazeApi
+public interface RetainedOutputVisualEffect {
+  public fun canDrawRetainedOutput(context: VisualEffectContext): Boolean
 
-  fun clearRetainedOutput()
+  public fun clearRetainedOutput()
 }

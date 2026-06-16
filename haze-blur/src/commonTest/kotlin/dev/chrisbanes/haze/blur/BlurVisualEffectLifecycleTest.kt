@@ -117,6 +117,24 @@ class BlurVisualEffectLifecycleTest {
     effect.blurRadius = HazeBlurDefaults.blurRadius * 3
     assertThat(effect.blurRadius).isEqualTo(HazeBlurDefaults.blurRadius * 3)
   }
+
+  @Test
+  fun retainedOutputAvailabilityReflectsDelegate() {
+    val effect = BlurVisualEffect()
+    val delegate = RetainedTrackingBlurDelegate()
+    effect.delegate = delegate
+
+    assertThat(effect.canDrawRetainedOutput(FakeVisualEffectContext)).isFalse()
+
+    delegate.retainedOutputAvailable = true
+
+    assertThat(effect.canDrawRetainedOutput(FakeVisualEffectContext)).isTrue()
+
+    effect.clearRetainedOutput()
+
+    assertThat(delegate.clearCount).isEqualTo(1)
+    assertThat(effect.canDrawRetainedOutput(FakeVisualEffectContext)).isFalse()
+  }
 }
 
 private data object FakeVisualEffectContext : VisualEffectContext {
@@ -161,4 +179,18 @@ private class TrackingDelegate : BlurVisualEffect.Delegate {
   override fun detach() {
     detachCount++
   }
+}
+
+private class RetainedTrackingBlurDelegate : BlurVisualEffect.Delegate, RetainedOutputDelegate {
+  var retainedOutputAvailable = false
+  var clearCount = 0
+
+  override fun canDrawRetainedOutput(): Boolean = retainedOutputAvailable
+
+  override fun clearRetainedOutput() {
+    clearCount++
+    retainedOutputAvailable = false
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }

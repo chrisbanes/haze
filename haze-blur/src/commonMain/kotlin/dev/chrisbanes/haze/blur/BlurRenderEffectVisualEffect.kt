@@ -24,17 +24,29 @@ import kotlin.math.min
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RenderEffectBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
-) : BlurVisualEffect.Delegate {
+) : BlurVisualEffect.Delegate, RetainedOutputDelegate {
   private var renderEffect: RenderEffect? = null
   private var scaledContentLayer: GraphicsLayer? = null
   private var lastScaledLayerSize: Size? = null
   private var graphicsContext: GraphicsContext? = null
+  private var retainedOutputAvailable: Boolean = false
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     // Calculate scaled layer size to detect size changes (needs re-allocation)
     val scaleFactor = blurVisualEffect.resolveInputScaleFactor(context.inputScale)
     val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {
       Size(it.width.toFloat(), it.height.toFloat())
+    }
+    val hasDrawableSourceLayers = context.hasDrawableSourceLayers()
+
+    if (!hasDrawableSourceLayers) {
+      val retainedLayer = scaledContentLayer
+        ?.takeUnless { it.isReleased }
+        ?.takeIf { retainedOutputAvailable }
+        ?: return
+
+      drawRetainedLayer(retainedLayer, context, scaleFactor)
+      return
     }
 
     // Allocate the scaled content layer once, re-recording into it each frame
@@ -43,6 +55,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
       scaledContentLayer?.let { graphicsContext!!.releaseGraphicsLayer(it) }
       scaledContentLayer = graphicsContext!!.createGraphicsLayer()
       lastScaledLayerSize = currentScaledSize
+      retainedOutputAvailable = false
     }
 
     val layer = scaledContentLayer!!
@@ -57,10 +70,18 @@ internal class RenderEffectBlurVisualEffectDelegate(
       backgroundColor = blurVisualEffect.backgroundColor,
       existingLayer = layer,
     ) ?: return
+    retainedOutputAvailable = true
 
+    drawRetainedLayer(resultLayer, context, scaleFactor)
+  }
+
+  private fun DrawScope.drawRetainedLayer(
+    layer: GraphicsLayer,
+    context: VisualEffectContext,
+    scaleFactor: Float,
+  ) {
     val clip = blurVisualEffect.shouldClipToNodeBounds()
-    resultLayer.clip = clip
-
+    layer.clip = clip
     drawScaledContent(
       offset = -context.layerOffset,
       scaledSize = size * scaleFactor,
@@ -83,6 +104,14 @@ internal class RenderEffectBlurVisualEffectDelegate(
     }
   }
 
+  override fun canDrawRetainedOutput(): Boolean {
+    return retainedOutputAvailable && scaledContentLayer?.isReleased == false
+  }
+
+  override fun clearRetainedOutput() {
+    retainedOutputAvailable = false
+  }
+
   override fun detach() {
     scaledContentLayer?.let { layer ->
       graphicsContext?.releaseGraphicsLayer(layer)
@@ -90,6 +119,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
     scaledContentLayer = null
     lastScaledLayerSize = null
     graphicsContext = null
+    retainedOutputAvailable = false
   }
 
   private fun updateRenderEffectIfDirty(context: VisualEffectContext) {
@@ -102,6 +132,15 @@ internal class RenderEffectBlurVisualEffectDelegate(
 
   companion object {
     const val TAG = "RenderEffectBlurVisualEffectDelegate"
+  }
+}
+
+@OptIn(InternalHazeApi::class)
+private fun VisualEffectContext.hasDrawableSourceLayers(): Boolean {
+  return areas.any { area ->
+    area.contentLayer
+      ?.takeUnless { it.isReleased }
+      ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 } != null
   }
 }
 
