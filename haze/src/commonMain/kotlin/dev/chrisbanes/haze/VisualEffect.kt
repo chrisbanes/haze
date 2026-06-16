@@ -122,3 +122,9 @@ public interface VisualEffect {
 internal object EmptyVisualEffect : VisualEffect {
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
+
+internal interface RetainedOutputVisualEffect {
+  fun canDrawRetainedOutput(context: VisualEffectContext): Boolean
+
+  fun clearRetainedOutput()
+}

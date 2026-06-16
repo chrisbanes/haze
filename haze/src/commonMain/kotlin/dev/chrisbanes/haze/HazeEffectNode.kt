@@ -71,6 +71,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "state changed. Current: $field. New: $value" }
+        clearRetainedOutput()
         dirtyTracker += DirtyFields.Areas
         field = value
       }
@@ -113,6 +114,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "size changed. Current: $field. New: $value" }
+        clearRetainedOutput()
         dirtyTracker += DirtyFields.Size
         field = value
       }
@@ -123,6 +125,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "layerSize changed. Current: $field. New: $value" }
+        clearRetainedOutput()
         dirtyTracker += DirtyFields.LayerSize
         field = value
       }
@@ -272,6 +275,7 @@ public class HazeEffectNode(
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
     contentDrawArea.releaseLayer()
+    clearRetainedOutput()
     detachVisualEffect(visualEffect)
   }
 
@@ -348,7 +352,9 @@ public class HazeEffectNode(
 
       if (this@HazeEffectNode.size.isSpecified && this@HazeEffectNode.layerSize.isSpecified) {
         if (state != null) {
-          if (areas.isNotEmpty()) {
+          val canDrawRetainedOutput =
+            (visualEffect as? RetainedOutputVisualEffect)?.canDrawRetainedOutput(visualEffectContext) == true
+          if (areas.isNotEmpty() || canDrawRetainedOutput) {
             // If the state is not null and we have some areas, let's perform background blurring
             with(visualEffect) {
               draw(visualEffectContext)
@@ -578,6 +584,10 @@ public class HazeEffectNode(
         areaOffsets[area] = offset.packedValue
       }
     }
+  }
+
+  private fun clearRetainedOutput() {
+    (visualEffect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
   }
 
   private companion object {

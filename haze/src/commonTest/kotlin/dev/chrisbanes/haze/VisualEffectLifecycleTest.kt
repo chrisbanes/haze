@@ -332,6 +332,59 @@ class VisualEffectLifecycleTest : ContextTest() {
     assertThat(effect.attachCalls).isEqualTo(0)
     assertThat(effect.detachCalls).isEqualTo(0)
   }
+
+  @Test
+  fun visualEffect_retainedOutputDrawnWhenBackgroundAreasDisappear() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+    val showSource = mutableStateOf(true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        if (showSource.value) {
+          Spacer(Modifier.size(100.dp).hazeSource(hazeState))
+        }
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.drawCalls).isGreaterThan(0)
+    assertThat(effect.lastDrawAreaCount).isGreaterThan(0)
+
+    val beforeRemovalDraws = effect.drawCalls
+    showSource.value = false
+    waitForIdle()
+
+    assertThat(effect.drawCalls).isGreaterThan(beforeRemovalDraws)
+    assertThat(effect.lastDrawAreaCount).isEqualTo(0)
+  }
+
+  @Test
+  fun visualEffect_retainedOutputNotDrawnWhenNeverAvailable() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeEffect(hazeState) {
+            visualEffect = effect
+          },
+      )
+    }
+
+    waitForIdle()
+
+    assertThat(effect.drawCalls).isEqualTo(0)
+  }
 }
 
 internal class RecordingVisualEffect : VisualEffect {
@@ -473,4 +526,28 @@ internal class NodeBoundContextReadingVisualEffect : VisualEffect {
   override fun update(context: VisualEffectContext) = Unit
 
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
+}
+
+internal class RetainedOutputRecordingVisualEffect : VisualEffect, RetainedOutputVisualEffect {
+  var drawCalls = 0
+  var lastDrawAreaCount = -1
+  var retainedOutputAvailable = false
+  var clearCalls = 0
+
+  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return retainedOutputAvailable
+  }
+
+  override fun clearRetainedOutput() {
+    clearCalls++
+    retainedOutputAvailable = false
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) {
+    drawCalls++
+    lastDrawAreaCount = context.areas.size
+    if (context.areas.isNotEmpty()) {
+      retainedOutputAvailable = true
+    }
+  }
 }
