@@ -107,4 +107,37 @@ class VisualEffectRetainedOutputTest : ContextTest() {
     assertThat(effect.drawCalls).isGreaterThan(beforeRemovalDraws)
     assertThat(effect.lastDrawAreaCount).isEqualTo(0)
   }
+
+  @Test
+  fun visualEffect_retainedOutputClearedWhenAllBackgroundAreasAreFilteredOut() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+    val allowSource = mutableStateOf(true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Spacer(Modifier.size(100.dp).hazeSource(hazeState))
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+              canDrawArea = { allowSource.value }
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.drawCalls).isGreaterThan(0)
+    assertThat(effect.lastDrawAreaCount).isGreaterThan(0)
+
+    val beforeFilterDraws = effect.drawCalls
+    allowSource.value = false
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isGreaterThan(0)
+    assertThat(effect.drawCalls).isEqualTo(beforeFilterDraws)
+    assertThat(effect.retainedOutputAvailable).isEqualTo(false)
+  }
 }

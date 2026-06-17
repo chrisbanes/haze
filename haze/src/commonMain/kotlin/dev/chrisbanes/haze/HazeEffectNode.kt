@@ -434,7 +434,8 @@ public class HazeEffectNode(
           (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
             ?.takeIf { it.state == this.state }
 
-        _areas = stateAreas.orEmpty()
+        val unfilteredAreas = stateAreas.orEmpty()
+        val filteredAreas = unfilteredAreas
           .also {
             HazeLogger.d(TAG) { "Background Areas observing: $it" }
           }
@@ -451,6 +452,11 @@ public class HazeEffectNode(
           }
           .toMutableList()
           .apply { sortBy(HazeArea::zIndex) }
+        _areas = filteredAreas
+
+        if (unfilteredAreas.isNotEmpty() && filteredAreas.isEmpty()) {
+          clearRetainedOutput()
+        }
       }
     } else {
       // Foreground (content) blur: always update contentDrawArea since its size,
