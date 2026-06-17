@@ -66,6 +66,12 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private var retainedOutputAvailable: Boolean = false
 
   @Volatile
+  private var retainedOutputPending: Boolean = false
+
+  @Volatile
+  private var retainedOutputGeneration: Int = 0
+
+  @Volatile
   private var trimGeneration = 0
 
   private val contentLayer: GraphicsLayer = graphicsContext.createGraphicsLayer()
@@ -100,6 +106,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
         backgroundColor = blurVisualEffect.backgroundColor,
       )?.let { layer ->
         layer.clip = blurVisualEffect.shouldClipToNodeBounds()
+        retainedOutputPending = true
+        val retainedOutputGenerationAtStart = retainedOutputGeneration
 
         currentJob = context.coroutineScope.launch(Dispatchers.Main.immediate) {
           try {
@@ -108,8 +116,10 @@ internal class RenderScriptBlurVisualEffectDelegate(
               blurRadius = blurRadiusPx,
               context = context,
               density = density,
+              retainedOutputGenerationAtStart = retainedOutputGenerationAtStart,
             )
           } finally {
+            retainedOutputPending = false
             // Release the graphics layer even if updateSurface was cancelled
             graphicsContext.releaseGraphicsLayer(layer)
           }
@@ -124,6 +134,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
       // Mark this draw as skipped
       drawSkipped = true
     } else if (!canDrawRetainedOutput()) {
+      if (retainedOutputPending) {
+        drawSkipped = true
+      }
       return
     }
 
@@ -224,7 +237,9 @@ internal class RenderScriptBlurVisualEffectDelegate(
         .onFailure { HazeLogger.d(TAG) { "Failed to recreate RenderScript after trim" } }
       // Bump generation so in-flight coroutines know their context is stale
       trimGeneration++
+      retainedOutputGeneration++
       retainedOutputAvailable = false
+      retainedOutputPending = false
       // Force the next draw to recreate the layer from scratch
       drawSkipped = true
       context.invalidateDraw()
@@ -236,6 +251,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     blurRadius: Float,
     context: VisualEffectContext,
     density: Density,
+    retainedOutputGenerationAtStart: Int,
   ) {
     val generationAtStart = trimGeneration
 
@@ -246,12 +262,12 @@ internal class RenderScriptBlurVisualEffectDelegate(
     try {
       traceAsync("Haze-RenderScriptBlurEffect-updateSurface", 0) {
         // If a trim happened before we even started, bail out
-        if (trimGeneration != generationAtStart) return@traceAsync
+        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
 
         val rs = getRenderScriptContext(paddedContent.size)
 
-        // If a trim happened while we were getting the context, bail out
-        if (trimGeneration != generationAtStart) {
+        // If the retained output was cleared while we were getting the context, bail out
+        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) {
           renderScriptContext?.release()
           renderScriptContext = null
           return@traceAsync
@@ -271,8 +287,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
           rs.awaitSurfaceWritten()
         }
 
-        // If a trim happened during surface operations, bail out before using stale data
-        if (trimGeneration != generationAtStart) return@traceAsync
+        // If the retained output was cleared during surface operations, bail out before using stale data
+        if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
 
         if (blurRadius > 0f) {
           // Now apply the blur on a background thread
@@ -283,6 +299,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
           }
 
           trace("Haze-RenderScriptBlurEffect-updateSurface-drawToContentLayer") {
+            if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@trace
+
             // Finally draw the updated bitmap to our drawing graphics layer
             val output = rs.outputBitmap
 
@@ -296,6 +314,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
             retainedOutputAvailable = true
           }
         } else {
+          if (!isUpdateCurrent(generationAtStart, retainedOutputGenerationAtStart)) return@traceAsync
+
           // If the blur radius is 0, we just copy the input content into our contentLayer
           contentLayer.record(
             density = density,
@@ -315,6 +335,14 @@ internal class RenderScriptBlurVisualEffectDelegate(
         graphicsContext.releaseGraphicsLayer(paddedContent)
       }
     }
+  }
+
+  private fun isUpdateCurrent(
+    trimGenerationAtStart: Int,
+    retainedOutputGenerationAtStart: Int,
+  ): Boolean {
+    return trimGeneration == trimGenerationAtStart &&
+      retainedOutputGeneration == retainedOutputGenerationAtStart
   }
 
   /**
@@ -367,13 +395,21 @@ internal class RenderScriptBlurVisualEffectDelegate(
       contentLayer.size != IntSize.Zero
   }
 
+  override fun shouldDrawRetainedOutput(): Boolean {
+    return canDrawRetainedOutput() || retainedOutputPending
+  }
+
   override fun clearRetainedOutput() {
+    retainedOutputGeneration++
     retainedOutputAvailable = false
+    retainedOutputPending = false
   }
 
   override fun detach() {
     currentJob?.cancel()
+    retainedOutputGeneration++
     retainedOutputAvailable = false
+    retainedOutputPending = false
     graphicsContext.releaseGraphicsLayer(contentLayer)
     renderScriptContext?.release()
     runCatching { renderScript.destroy() }

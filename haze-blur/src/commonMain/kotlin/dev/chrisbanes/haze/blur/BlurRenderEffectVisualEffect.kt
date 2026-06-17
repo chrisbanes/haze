@@ -45,6 +45,11 @@ internal class RenderEffectBlurVisualEffectDelegate(
         ?.takeIf { retainedOutputAvailable }
         ?: return
 
+      if (lastScaledLayerSize != currentScaledSize) {
+        retainedOutputAvailable = false
+        return
+      }
+
       drawRetainedLayer(retainedLayer, context, scaleFactor)
       return
     }

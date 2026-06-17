@@ -127,5 +127,9 @@ internal object EmptyVisualEffect : VisualEffect {
 public interface RetainedOutputVisualEffect {
   public fun canDrawRetainedOutput(context: VisualEffectContext): Boolean
 
+  public fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return canDrawRetainedOutput(context)
+  }
+
   public fun clearRetainedOutput()
 }

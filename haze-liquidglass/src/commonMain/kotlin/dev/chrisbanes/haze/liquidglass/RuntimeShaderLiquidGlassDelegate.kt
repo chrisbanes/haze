@@ -48,6 +48,11 @@ internal class RuntimeShaderLiquidGlassDelegate(
         ?.takeIf { retainedOutputAvailable }
         ?: return
 
+      if (lastScaledLayerSize != currentScaledSize) {
+        retainedOutputAvailable = false
+        return
+      }
+
       drawRetainedLayer(
         layer = retainedLayer,
         context = context,

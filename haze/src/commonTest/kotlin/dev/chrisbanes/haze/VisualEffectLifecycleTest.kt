@@ -479,15 +479,21 @@ internal class RetainedOutputRecordingVisualEffect : VisualEffect, RetainedOutpu
   var drawCalls = 0
   var lastDrawAreaCount = -1
   var retainedOutputAvailable = false
+  var pendingRetainedOutput = false
   var clearCalls = 0
 
   override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean {
     return retainedOutputAvailable
   }
 
+  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return retainedOutputAvailable || pendingRetainedOutput
+  }
+
   override fun clearRetainedOutput() {
     clearCalls++
     retainedOutputAvailable = false
+    pendingRetainedOutput = false
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {

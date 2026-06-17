@@ -134,6 +134,10 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     return (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true
   }
 
+  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return (delegate as? RetainedOutputDelegate)?.shouldDrawRetainedOutput() == true
+  }
+
   override fun clearRetainedOutput() {
     (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
   }
@@ -432,6 +436,8 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
 internal interface RetainedOutputDelegate {
   fun canDrawRetainedOutput(): Boolean
+
+  fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
 
   fun clearRetainedOutput()
 }

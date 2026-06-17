@@ -136,15 +136,24 @@ class LiquidGlassStyleTest {
     effect.delegate = delegate
 
     assertThat(effect.canDrawRetainedOutput(FakeLiquidGlassContext)).isFalse()
+    assertThat(effect.shouldDrawRetainedOutput(FakeLiquidGlassContext)).isFalse()
 
     delegate.retainedOutputAvailable = true
 
     assertThat(effect.canDrawRetainedOutput(FakeLiquidGlassContext)).isTrue()
+    assertThat(effect.shouldDrawRetainedOutput(FakeLiquidGlassContext)).isTrue()
+
+    delegate.retainedOutputAvailable = false
+    delegate.pendingRetainedOutput = true
+
+    assertThat(effect.canDrawRetainedOutput(FakeLiquidGlassContext)).isFalse()
+    assertThat(effect.shouldDrawRetainedOutput(FakeLiquidGlassContext)).isTrue()
 
     effect.clearRetainedOutput()
 
     assertThat(delegate.clearCount).isEqualTo(1)
     assertThat(effect.canDrawRetainedOutput(FakeLiquidGlassContext)).isFalse()
+    assertThat(effect.shouldDrawRetainedOutput(FakeLiquidGlassContext)).isFalse()
   }
 }
 
@@ -181,13 +190,17 @@ private class RetainedTrackingLiquidGlassDelegate :
   RetainedOutputDelegate {
 
   var retainedOutputAvailable = false
+  var pendingRetainedOutput = false
   var clearCount = 0
 
   override fun canDrawRetainedOutput(): Boolean = retainedOutputAvailable
 
+  override fun shouldDrawRetainedOutput(): Boolean = retainedOutputAvailable || pendingRetainedOutput
+
   override fun clearRetainedOutput() {
     clearCount++
     retainedOutputAvailable = false
+    pendingRetainedOutput = false
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) = Unit

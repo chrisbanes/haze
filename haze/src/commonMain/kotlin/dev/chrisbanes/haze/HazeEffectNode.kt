@@ -352,8 +352,8 @@ public class HazeEffectNode(
 
       if (this@HazeEffectNode.size.isSpecified && this@HazeEffectNode.layerSize.isSpecified) {
         if (state != null) {
-          val canDrawRetainedOutput = canDrawRetainedOutput()
-          if (areas.isNotEmpty() || canDrawRetainedOutput) {
+          val shouldDrawRetainedOutput = shouldDrawRetainedOutput()
+          if (areas.isNotEmpty() || shouldDrawRetainedOutput) {
             // If the state is not null and we have some areas, let's perform background blurring
             with(visualEffect) {
               draw(visualEffectContext)
@@ -523,7 +523,7 @@ public class HazeEffectNode(
           height = clippedLayerBounds.height.coerceAtLeast(0f),
         )
         _layerOffset = position - clippedLayerBounds.topLeft
-      } else if (canDrawRetainedOutput()) {
+      } else if (shouldDrawRetainedOutput()) {
         // Keep the previous layer bounds for source transition gaps. Recomputing
         // bounds with no areas collapses to the node size and clears the retained layer.
       } else if (state == null && size.isSpecified && !visualEffect.shouldClipToNodeBounds() && shouldExpandLayer()) {
@@ -592,8 +592,8 @@ public class HazeEffectNode(
     (visualEffect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
   }
 
-  private fun canDrawRetainedOutput(): Boolean {
-    return (visualEffect as? RetainedOutputVisualEffect)?.canDrawRetainedOutput(visualEffectContext) == true
+  private fun shouldDrawRetainedOutput(): Boolean {
+    return (visualEffect as? RetainedOutputVisualEffect)?.shouldDrawRetainedOutput(visualEffectContext) == true
   }
 
   private companion object {

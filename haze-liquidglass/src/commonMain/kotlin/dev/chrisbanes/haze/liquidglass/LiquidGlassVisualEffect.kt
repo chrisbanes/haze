@@ -128,6 +128,10 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
     return (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true
   }
 
+  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return (delegate as? RetainedOutputDelegate)?.shouldDrawRetainedOutput() == true
+  }
+
   override fun clearRetainedOutput() {
     (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
   }
@@ -771,6 +775,8 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
 
 internal interface RetainedOutputDelegate {
   fun canDrawRetainedOutput(): Boolean
+
+  fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
 
   fun clearRetainedOutput()
 }

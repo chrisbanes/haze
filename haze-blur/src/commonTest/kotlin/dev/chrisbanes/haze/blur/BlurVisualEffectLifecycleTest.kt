@@ -125,15 +125,24 @@ class BlurVisualEffectLifecycleTest {
     effect.delegate = delegate
 
     assertThat(effect.canDrawRetainedOutput(FakeVisualEffectContext)).isFalse()
+    assertThat(effect.shouldDrawRetainedOutput(FakeVisualEffectContext)).isFalse()
 
     delegate.retainedOutputAvailable = true
 
     assertThat(effect.canDrawRetainedOutput(FakeVisualEffectContext)).isTrue()
+    assertThat(effect.shouldDrawRetainedOutput(FakeVisualEffectContext)).isTrue()
+
+    delegate.retainedOutputAvailable = false
+    delegate.pendingRetainedOutput = true
+
+    assertThat(effect.canDrawRetainedOutput(FakeVisualEffectContext)).isFalse()
+    assertThat(effect.shouldDrawRetainedOutput(FakeVisualEffectContext)).isTrue()
 
     effect.clearRetainedOutput()
 
     assertThat(delegate.clearCount).isEqualTo(1)
     assertThat(effect.canDrawRetainedOutput(FakeVisualEffectContext)).isFalse()
+    assertThat(effect.shouldDrawRetainedOutput(FakeVisualEffectContext)).isFalse()
   }
 }
 
@@ -183,13 +192,17 @@ private class TrackingDelegate : BlurVisualEffect.Delegate {
 
 private class RetainedTrackingBlurDelegate : BlurVisualEffect.Delegate, RetainedOutputDelegate {
   var retainedOutputAvailable = false
+  var pendingRetainedOutput = false
   var clearCount = 0
 
   override fun canDrawRetainedOutput(): Boolean = retainedOutputAvailable
 
+  override fun shouldDrawRetainedOutput(): Boolean = retainedOutputAvailable || pendingRetainedOutput
+
   override fun clearRetainedOutput() {
     clearCount++
     retainedOutputAvailable = false
+    pendingRetainedOutput = false
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
