@@ -71,6 +71,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "state changed. Current: $field. New: $value" }
+        clearRetainedOutput()
         dirtyTracker += DirtyFields.Areas
         field = value
       }
@@ -113,6 +114,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "size changed. Current: $field. New: $value" }
+        clearRetainedOutput()
         dirtyTracker += DirtyFields.Size
         field = value
       }
@@ -123,6 +125,7 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "layerSize changed. Current: $field. New: $value" }
+        clearRetainedOutput()
         dirtyTracker += DirtyFields.LayerSize
         field = value
       }
@@ -272,6 +275,7 @@ public class HazeEffectNode(
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
     contentDrawArea.releaseLayer()
+    clearRetainedOutput()
     detachVisualEffect(visualEffect)
   }
 
@@ -348,7 +352,8 @@ public class HazeEffectNode(
 
       if (this@HazeEffectNode.size.isSpecified && this@HazeEffectNode.layerSize.isSpecified) {
         if (state != null) {
-          if (areas.isNotEmpty()) {
+          val shouldDrawRetainedOutput = shouldDrawRetainedOutput()
+          if (areas.isNotEmpty() || shouldDrawRetainedOutput) {
             // If the state is not null and we have some areas, let's perform background blurring
             with(visualEffect) {
               draw(visualEffectContext)
@@ -429,7 +434,8 @@ public class HazeEffectNode(
           (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
             ?.takeIf { it.state == this.state }
 
-        _areas = stateAreas.orEmpty()
+        val unfilteredAreas = stateAreas.orEmpty()
+        val filteredAreas = unfilteredAreas
           .also {
             HazeLogger.d(TAG) { "Background Areas observing: $it" }
           }
@@ -446,6 +452,11 @@ public class HazeEffectNode(
           }
           .toMutableList()
           .apply { sortBy(HazeArea::zIndex) }
+        _areas = filteredAreas
+
+        if (unfilteredAreas.isNotEmpty() && filteredAreas.isEmpty()) {
+          clearRetainedOutput()
+        }
       }
     } else {
       // Foreground (content) blur: always update contentDrawArea since its size,
@@ -518,6 +529,9 @@ public class HazeEffectNode(
           height = clippedLayerBounds.height.coerceAtLeast(0f),
         )
         _layerOffset = position - clippedLayerBounds.topLeft
+      } else if (shouldDrawRetainedOutput()) {
+        // Keep the previous layer bounds for source transition gaps. Recomputing
+        // bounds with no areas collapses to the node size and clears the retained layer.
       } else if (state == null && size.isSpecified && !visualEffect.shouldClipToNodeBounds() && shouldExpandLayer()) {
         val rect = size.toRect()
         val expanded = visualEffect.calculateLayerBounds(rect, requireDensity())
@@ -578,6 +592,14 @@ public class HazeEffectNode(
         areaOffsets[area] = offset.packedValue
       }
     }
+  }
+
+  private fun clearRetainedOutput() {
+    (visualEffect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
+  }
+
+  private fun shouldDrawRetainedOutput(): Boolean {
+    return (visualEffect as? RetainedOutputVisualEffect)?.shouldDrawRetainedOutput(visualEffectContext) == true
   }
 
   private companion object {

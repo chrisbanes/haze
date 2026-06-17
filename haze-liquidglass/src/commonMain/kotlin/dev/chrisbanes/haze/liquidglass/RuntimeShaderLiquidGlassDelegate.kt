@@ -8,10 +8,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -22,22 +25,86 @@ import dev.chrisbanes.haze.asComposeRenderEffect
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderLiquidGlassDelegate(
   private val effect: LiquidGlassVisualEffect,
-) : LiquidGlassVisualEffect.Delegate {
+) : LiquidGlassVisualEffect.Delegate, RetainedOutputDelegate {
   private var renderEffect: RenderEffect? = null
   private var lastParams: RenderParams? = null
+  private var contentLayer: GraphicsLayer? = null
+  private var lastScaledLayerSize: Size? = null
+  private var graphicsContext: GraphicsContext? = null
+  private var retainedOutputAvailable: Boolean = false
 
   override fun DrawScope.draw(context: VisualEffectContext) {
-    val density = context.requireDensity()
-    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     val scaleFactor = effect.resolveInputScaleFactor(context.inputScale)
     val layerSize = context.layerSize * scaleFactor
     val clipToNodeBounds = effect.shouldClipToNodeBounds()
-    createAndDrawScaledContentLayer(
+    val currentScaledSize = layerSize.roundToIntSize().let {
+      Size(it.width.toFloat(), it.height.toFloat())
+    }
+    val hasDrawableSourceLayers = context.hasDrawableSourceLayers()
+
+    if (!hasDrawableSourceLayers) {
+      val retainedLayer = contentLayer
+        ?.takeUnless { it.isReleased }
+        ?.takeIf { retainedOutputAvailable }
+        ?: return
+
+      if (lastScaledLayerSize != currentScaledSize) {
+        retainedOutputAvailable = false
+        return
+      }
+
+      drawRetainedLayer(
+        layer = retainedLayer,
+        context = context,
+        scaleFactor = scaleFactor,
+        layerSize = layerSize,
+        clipToNodeBounds = clipToNodeBounds,
+      )
+      return
+    }
+
+    if (contentLayer == null || contentLayer!!.isReleased || lastScaledLayerSize != currentScaledSize) {
+      graphicsContext = context.requireGraphicsContext()
+      contentLayer?.let { graphicsContext!!.releaseGraphicsLayer(it) }
+      contentLayer = graphicsContext!!.createGraphicsLayer()
+      lastScaledLayerSize = currentScaledSize
+      retainedOutputAvailable = false
+    }
+
+    val layer = createScaledContentLayer(
       context = context,
       scaleFactor = scaleFactor,
-      clipToNodeBounds = clipToNodeBounds,
+      layerSize = context.layerSize,
+      layerOffset = context.layerOffset,
+      existingLayer = contentLayer,
       backgroundColor = Color.Transparent,
+    ) ?: return
+    retainedOutputAvailable = true
+
+    drawRetainedLayer(
+      layer = layer,
+      context = context,
+      scaleFactor = scaleFactor,
+      layerSize = layerSize,
+      clipToNodeBounds = clipToNodeBounds,
+    )
+  }
+
+  private fun DrawScope.drawRetainedLayer(
+    layer: GraphicsLayer,
+    context: VisualEffectContext,
+    scaleFactor: Float,
+    layerSize: Size,
+    clipToNodeBounds: Boolean,
+  ) {
+    layer.clip = clipToNodeBounds
+    drawScaledContent(
+      offset = -context.layerOffset,
+      scaledSize = size * scaleFactor,
+      clip = clipToNodeBounds,
     ) {
+      val density = context.requireDensity()
+      val layoutDirection = context.currentValueOf(LocalLayoutDirection)
       val layerRadii = effect.shape.toCornerRadiiPx(
         layerSize = layerSize,
         density = density,
@@ -74,10 +141,28 @@ internal class RuntimeShaderLiquidGlassDelegate(
         lastParams = params
       }
 
-      it.renderEffect = renderEffect
-      it.alpha = effect.alpha
-      drawLayer(it)
+      layer.renderEffect = renderEffect
+      layer.alpha = effect.alpha
+      drawLayer(layer)
     }
+  }
+
+  override fun canDrawRetainedOutput(): Boolean {
+    return retainedOutputAvailable && contentLayer?.isReleased == false
+  }
+
+  override fun clearRetainedOutput() {
+    retainedOutputAvailable = false
+  }
+
+  override fun detach() {
+    contentLayer?.let { layer ->
+      graphicsContext?.releaseGraphicsLayer(layer)
+    }
+    contentLayer = null
+    lastScaledLayerSize = null
+    graphicsContext = null
+    retainedOutputAvailable = false
   }
 
   private fun buildRenderEffect(params: RenderParams): RenderEffect {
@@ -140,6 +225,15 @@ internal class RuntimeShaderLiquidGlassDelegate(
     val cornerRadii: CornerRadii,
     val lightPosition: Offset,
   )
+}
+
+@OptIn(InternalHazeApi::class)
+private fun VisualEffectContext.hasDrawableSourceLayers(): Boolean {
+  return areas.any { area ->
+    area.contentLayer
+      ?.takeUnless { it.isReleased }
+      ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 } != null
+  }
 }
 
 @OptIn(InternalHazeApi::class)

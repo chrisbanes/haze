@@ -474,3 +474,33 @@ internal class NodeBoundContextReadingVisualEffect : VisualEffect {
 
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
+
+internal class RetainedOutputRecordingVisualEffect : VisualEffect, RetainedOutputVisualEffect {
+  var drawCalls = 0
+  var lastDrawAreaCount = -1
+  var retainedOutputAvailable = false
+  var pendingRetainedOutput = false
+  var clearCalls = 0
+
+  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return retainedOutputAvailable
+  }
+
+  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return retainedOutputAvailable || pendingRetainedOutput
+  }
+
+  override fun clearRetainedOutput() {
+    clearCalls++
+    retainedOutputAvailable = false
+    pendingRetainedOutput = false
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) {
+    drawCalls++
+    lastDrawAreaCount = context.areas.size
+    if (context.areas.isNotEmpty()) {
+      retainedOutputAvailable = true
+    }
+  }
+}

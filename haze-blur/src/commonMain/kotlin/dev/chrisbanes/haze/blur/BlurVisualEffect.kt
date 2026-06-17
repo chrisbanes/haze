@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
@@ -47,7 +48,7 @@ import dev.chrisbanes.haze.VisualEffectContext
  * ```
  */
 @Stable
-public class BlurVisualEffect() : VisualEffect {
+public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   /** Creates a new [BlurVisualEffect] copying all properties from [other]. */
   public constructor(other: BlurVisualEffect) : this() {
@@ -128,6 +129,18 @@ public class BlurVisualEffect() : VisualEffect {
     delegate.onTrimMemory(context, level).also {
       clearRenderEffectCache()
     }
+
+  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true
+  }
+
+  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return (delegate as? RetainedOutputDelegate)?.shouldDrawRetainedOutput() == true
+  }
+
+  override fun clearRetainedOutput() {
+    (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
+  }
 
   override fun shouldClipToNodeBounds(): Boolean = blurredEdgeTreatment.shape != null
 
@@ -419,6 +432,14 @@ public class BlurVisualEffect() : VisualEffect {
   internal companion object {
     const val TAG = "BlurVisualEffect"
   }
+}
+
+internal interface RetainedOutputDelegate {
+  fun canDrawRetainedOutput(): Boolean
+
+  fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
+
+  fun clearRetainedOutput()
 }
 
 internal expect fun BlurVisualEffect.updateDelegate(

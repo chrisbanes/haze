@@ -54,6 +54,14 @@ kotlin {
         implementation(projects.internal.screenshotTest)
       }
     }
+
+    jvmTest {
+      kotlin.srcDir("src/jvmTest/kotlin")
+
+      dependencies {
+        implementation(compose.desktop.currentOs)
+      }
+    }
   }
 }
 

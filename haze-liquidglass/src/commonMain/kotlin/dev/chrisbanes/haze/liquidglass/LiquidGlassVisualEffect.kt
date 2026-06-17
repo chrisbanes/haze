@@ -22,6 +22,7 @@ import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
@@ -32,7 +33,7 @@ import dev.chrisbanes.haze.VisualEffectContext
  */
 @ExperimentalHazeApi
 @Stable
-public class LiquidGlassVisualEffect() : VisualEffect {
+public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   /** Creates a new [LiquidGlassVisualEffect] copying all properties from [other]. */
   public constructor(other: LiquidGlassVisualEffect) : this() {
@@ -121,6 +122,18 @@ public class LiquidGlassVisualEffect() : VisualEffect {
 
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
     delegate.onTrimMemory(context, level)
+  }
+
+  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true
+  }
+
+  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return (delegate as? RetainedOutputDelegate)?.shouldDrawRetainedOutput() == true
+  }
+
+  override fun clearRetainedOutput() {
+    (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
   }
 
   override fun shouldClipToNodeBounds(): Boolean = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
@@ -758,6 +771,14 @@ public class LiquidGlassVisualEffect() : VisualEffect {
   internal companion object {
     const val TAG = "LiquidGlassVisualEffect"
   }
+}
+
+internal interface RetainedOutputDelegate {
+  fun canDrawRetainedOutput(): Boolean
+
+  fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
+
+  fun clearRetainedOutput()
 }
 
 internal expect fun LiquidGlassVisualEffect.updateDelegate(

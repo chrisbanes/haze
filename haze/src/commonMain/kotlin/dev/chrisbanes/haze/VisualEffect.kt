@@ -122,3 +122,14 @@ public interface VisualEffect {
 internal object EmptyVisualEffect : VisualEffect {
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
+
+@InternalHazeApi
+public interface RetainedOutputVisualEffect {
+  public fun canDrawRetainedOutput(context: VisualEffectContext): Boolean
+
+  public fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+    return canDrawRetainedOutput(context)
+  }
+
+  public fun clearRetainedOutput()
+}
