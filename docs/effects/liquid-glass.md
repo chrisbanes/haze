@@ -1,5 +1,8 @@
 # Liquid Glass
 
+!!! danger "Not yet published"
+    This module is currently under active development and is **not published to Maven Central**. It exists in the repository for experimentation and internal development only. Do not attempt to add it as a Gradle dependency.
+
 A refraction-driven glass effect inspired by iOS "liquid" glass. It combines refraction, depth blur, tint, Fresnel/ambient lift, and specular highlights with optional rounded shapes and dispersion.
 
 !!! warning "Experimental"
