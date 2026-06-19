@@ -60,12 +60,7 @@ Changes since 2.0.0-alpha01.
 
 A new `haze-liquidglass` module adds an iOS-style liquid glass refraction effect. It renders refraction, depth blur, specular highlights, Fresnel ambient lift, chromatic aberration, and soft tinted glass through a custom AGSL runtime shader, with a Canvas-based fallback for platforms without runtime shader support.
 
-The module is gated behind `@ExperimentalHazeApi` and publishing is disabled until the API stabilizes.
-
-```kotlin
-implementation("dev.chrisbanes.haze:haze:2.0.0-alpha02")
-implementation("dev.chrisbanes.haze:haze-liquidglass:2.0.0-alpha02")
-```
+The module is gated behind `@ExperimentalHazeApi` and **is not yet published to Maven Central**. It exists in the repository for internal development and testing only.
 
 Usage:
 
