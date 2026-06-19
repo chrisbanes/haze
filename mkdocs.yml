@@ -8,6 +8,9 @@ remote_branch: gh-pages
 strict: true
 
 docs_dir: docs
+exclude_docs: |
+  specs/**
+  superpowers/**
 
 repo_name: "Haze"
 repo_url: "https://github.com/chrisbanes/haze"
