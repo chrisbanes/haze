@@ -70,6 +70,8 @@ jobs:
           retention-days: 1
           path: |
             docs/
+            !docs/specs/**
+            !docs/superpowers/**
 
   deploy_docs:
     runs-on: macos-26
@@ -143,6 +145,9 @@ jobs:
 
           echo "version=$docs_version" >> "$GITHUB_OUTPUT"
           echo "aliases=$docs_aliases" >> "$GITHUB_OUTPUT"
+
+      - name: Remove checkout docs directory
+        run: rm -rf docs
 
       - name: Download docs builds
         uses: actions/download-artifact@v8
