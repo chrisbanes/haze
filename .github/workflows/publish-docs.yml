@@ -8,6 +8,20 @@ on:
       - '*'
   pull_request:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Docs version to deploy'
+        required: true
+        type: string
+      aliases:
+        description: 'Optional comma-separated aliases to deploy, such as latest or dev'
+        required: false
+        type: string
+      delete_old_versions:
+        description: 'Delete old docs versions after deployment'
+        required: true
+        default: true
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -85,6 +99,51 @@ jobs:
         run: cat gradle.properties | grep --color=never VERSION_NAME >> $GITHUB_OUTPUT
         id: version
 
+      - name: Resolve docs deployment
+        id: docs
+        env:
+          INPUT_DOCS_VERSION: ${{ inputs.version }}
+          INPUT_DOCS_ALIASES: ${{ inputs.aliases }}
+          VERSION_NAME: ${{ steps.version.outputs.VERSION_NAME }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            docs_version="$INPUT_DOCS_VERSION"
+            docs_aliases="$INPUT_DOCS_ALIASES"
+          elif echo "$VERSION_NAME" | grep --quiet "SNAPSHOT"; then
+            docs_version="dev"
+            docs_aliases=""
+          else
+            docs_version="$VERSION_NAME"
+            docs_aliases="latest"
+          fi
+
+          docs_version="$(printf '%s' "$docs_version" | xargs)"
+          docs_aliases="$(printf '%s' "$docs_aliases" | tr ',' ' ' | xargs)"
+
+          if [ -z "$docs_version" ]; then
+            echo "Docs version must not be blank"
+            exit 1
+          fi
+
+          case "$docs_version" in
+            *[!a-zA-Z0-9._-]*)
+              echo "Docs version contains invalid characters: $docs_version"
+              exit 1
+              ;;
+          esac
+
+          for docs_alias in $docs_aliases; do
+            case "$docs_alias" in
+              *[!a-zA-Z0-9._-]*)
+                echo "Docs alias contains invalid characters: $docs_alias"
+                exit 1
+                ;;
+            esac
+          done
+
+          echo "version=$docs_version" >> "$GITHUB_OUTPUT"
+          echo "aliases=$docs_aliases" >> "$GITHUB_OUTPUT"
+
       - name: Download docs builds
         uses: actions/download-artifact@v8
         with:
@@ -97,19 +156,14 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git fetch origin gh-pages --depth=1
 
-      - name: Deploy dev docs with mike 🗿
-        if: ${{ success() && contains(steps.version.outputs.VERSION_NAME, 'SNAPSHOT') }}
+      - name: Deploy docs with mike 🗿
         env:
-          HAZE_VERSION: "dev"
-        run: mike deploy -u --push "$HAZE_VERSION"
-
-      - name: Deploy release docs with mike 🚀
-        if: ${{ success() && !contains(steps.version.outputs.VERSION_NAME , 'SNAPSHOT') }}
-        env:
-          HAZE_VERSION: ${{ steps.version.outputs.VERSION_NAME }}
-        run: mike deploy -u --push "$HAZE_VERSION" latest
+          DOCS_ALIASES: ${{ steps.docs.outputs.aliases }}
+          HAZE_VERSION: ${{ steps.docs.outputs.version }}
+        run: mike deploy -u --push "$HAZE_VERSION" $DOCS_ALIASES
 
       - name: Delete old doc versions
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.delete_old_versions }}
         run: |
           git fetch origin gh-pages --depth=1
           scripts/delete_old_version_docs.sh
