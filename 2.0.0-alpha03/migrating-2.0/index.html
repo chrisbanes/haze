@@ -523,88 +523,6 @@
   
   
   
-    
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Effects
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Effects
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../effects/liquid-glass/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Liquid Glass
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
     <li class="md-nav__item">
       <a href="../custom-effects/" class="md-nav__link">
         
@@ -774,6 +692,17 @@
     <span class="md-ellipsis">
       
         Add the haze-blur Module
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rename-the-materials-artifact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rename the Materials Artifact
       
     </span>
   </a>
@@ -1149,6 +1078,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#rename-the-materials-artifact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rename the Materials Artifact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#update-imports" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1341,12 +1281,14 @@
 <ul>
 <li><strong>Hard source break:</strong> v1 blur convenience names and root-package aliases are removed in v2.</li>
 <li><strong>New module dependency:</strong> Blur functionality now requires the <code>haze-blur</code> module</li>
+<li><strong>Materials artifact rename:</strong> Blur material presets are now published as <code>haze-blur-materials</code>.</li>
 <li><strong>API nesting:</strong> All blur properties now require a <code>blurEffect {}</code> wrapper</li>
 <li><strong>Package changes:</strong> Blur APIs moved to <code>dev.chrisbanes.haze.blur</code>; blur materials moved to <code>dev.chrisbanes.haze.blur.materials</code>.</li>
+<li><strong>Removed v1 aliases:</strong> <code>haze</code>, <code>hazeChild</code>, <code>HazeDefaults</code>, <code>HazeStyle</code>, <code>HazeTint</code>, <code>LocalHazeStyle</code>, and <code>HazeDialog</code> are removed.</li>
 <li><strong>Liquid glass style grouping:</strong> <code>LiquidGlassStyle</code> parameters are grouped into <code>optics</code>, <code>lighting</code>, <code>color</code>, and <code>rendering</code>.</li>
-<li><strong>Removed APIs:</strong> <code>rememberHazeState(blurEnabled)</code> parameter removed</li>
+<li><strong>Removed APIs:</strong> <code>HazeState.blurEnabled</code> and the <code>rememberHazeState(blurEnabled)</code> parameter removed.</li>
 <li><strong>Position strategy:</strong> New <code>HazePositionStrategy</code> configuration on <code>HazeState</code></li>
-<li><strong>Renames:</strong> <code>HazeArea.positionOnScreen</code> → <code>position</code>, <code>VisualEffectContext.positionOnScreen</code> → <code>position</code>, <code>VisualEffectContext.rootBoundsOnScreen</code> → <code>rootBounds</code></li>
+<li><strong>Geometry changes:</strong> <code>HazeArea.positionOnScreen</code> is replaced by <code>HazeArea.coordinates</code>; <code>VisualEffectContext</code> now exposes <code>position</code>, <code>rootBounds</code>, <code>positionOf(area)</code>, and <code>boundsOf(area)</code>.</li>
 </ul>
 <p><strong>What Hasn't Changed:</strong></p>
 <ul>
@@ -1360,10 +1302,21 @@
 <h3 id="add-the-haze-blur-module">Add the haze-blur Module<a class="headerlink" href="#add-the-haze-blur-module" title="Permanent link">¶</a></h3>
 <p>In addition to the core <code>haze</code> module, you now need to explicitly add the <code>haze-blur</code> module to use blur effects:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0-alpha01"</span><span class="p">)</span>
-<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0-alpha01"</span><span class="p">)</span><span class="w"> </span><span class="c1">// NEW in v2</span>
+<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0-alpha03"</span><span class="p">)</span>
+<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0-alpha03"</span><span class="p">)</span><span class="w"> </span><span class="c1">// NEW in v2</span>
 <span class="p">}</span>
 </code></pre></div>
+<h3 id="rename-the-materials-artifact">Rename the Materials Artifact<a class="headerlink" href="#rename-the-materials-artifact" title="Permanent link">¶</a></h3>
+<p>If you use the pre-built Material, Cupertino, or Fluent blur styles, replace the v1 materials artifact with the renamed v2 artifact:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// v1</span>
+<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-materials:1.7.2"</span><span class="p">)</span>
+
+<span class="w">  </span><span class="c1">// v2</span>
+<span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur-materials:2.0.0-alpha03"</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>haze-materials</code> is the old 1.x artifact. It does not publish 2.0 versions.</p>
 <h3 id="update-imports">Update Imports<a class="headerlink" href="#update-imports" title="Permanent link">¶</a></h3>
 <p>Several blur-related classes have moved to the <code>dev.chrisbanes.haze.blur</code> package:</p>
 <p><strong>V1 imports:</strong>
@@ -1371,6 +1324,7 @@
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.HazeTint</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.HazeProgressive</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.LocalHazeStyle</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.materials.HazeMaterials</span>
 </code></pre></div>
 <p><strong>V2 imports:</strong>
 </p><div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeBlurStyle</span>
@@ -1380,6 +1334,7 @@
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.blurEffect</span><span class="w"> </span><span class="c1">// NEW: extension function</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.materials.HazeMaterials</span>
 </code></pre></div>
+<p>Blur-specific defaults from <code>HazeDefaults</code> are now in <code>HazeBlurDefaults</code>. <code>HazeDefaults.drawContentBehind</code> has no direct replacement; leave <code>drawContentBehind</code> unset or set it directly on <code>HazeEffectScope</code>.</p>
 <h2 id="api-migration">API Migration<a class="headerlink" href="#api-migration" title="Permanent link">¶</a></h2>
 <h3 id="basic-blur-configuration">Basic Blur Configuration<a class="headerlink" href="#basic-blur-configuration" title="Permanent link">¶</a></h3>
 <p>All blur-related properties that were previously set directly on <code>HazeEffectScope</code> now need to be wrapped in a <code>blurEffect {}</code> block.</p>
@@ -1388,7 +1343,7 @@
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span>
-<span class="w">  </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">)))</span>
+<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">)))</span>
 <span class="w">  </span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.15f</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1518,7 +1473,7 @@
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">colorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeColorEffect</span><span class="p">.</span><span class="na">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">)))</span>
+<span class="w">  </span><span class="n">tints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span><span class="n">HazeTint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Black</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">)))</span>
 <span class="w">  </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(...)</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1544,6 +1499,21 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>Modifier.haze(state)</code></td>
+<td><code>Modifier.hazeSource(state)</code></td>
+<td><code>haze</code> was a deprecated alias in v1 and is removed in v2</td>
+</tr>
+<tr>
+<td><code>Modifier.hazeChild(...)</code></td>
+<td><code>Modifier.hazeEffect(...)</code></td>
+<td><code>hazeChild</code> was a deprecated alias in v1 and is removed in v2</td>
+</tr>
+<tr>
+<td><code>Modifier.hazeEffect(state, style = style)</code></td>
+<td><code>Modifier.hazeEffect(state) { blurEffect { this.style = style } }</code></td>
+<td>Style parameter removed from the core effect modifier</td>
+</tr>
 <tr>
 <td><code>HazeEffectScope.blurRadius</code></td>
 <td><code>BlurVisualEffect.blurRadius</code></td>
@@ -1615,6 +1585,16 @@
 <td><strong>Unchanged</strong> - still on scope</td>
 </tr>
 <tr>
+<td><code>HazeEffectScope.expandLayerBounds</code></td>
+<td><code>HazeEffectScope.expandLayerBounds</code></td>
+<td><strong>Unchanged</strong> - still on scope</td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.forceInvalidateOnPreDraw</code></td>
+<td><code>HazeEffectScope.forceInvalidateOnPreDraw</code></td>
+<td><strong>Unchanged</strong> - still on scope</td>
+</tr>
+<tr>
 <td><code>HazeEffectScope.canDrawArea</code></td>
 <td><code>HazeEffectScope.canDrawArea</code></td>
 <td><strong>Unchanged</strong> - still on scope</td>
@@ -1625,9 +1605,24 @@
 <td>Use <code>blurEffect { blurEnabled = ... }</code></td>
 </tr>
 <tr>
+<td><code>HazeState.blurEnabled</code></td>
+<td><em>Removed</em></td>
+<td>Use <code>blurEffect { blurEnabled = ... }</code> on each effect</td>
+</tr>
+<tr>
+<td><code>HazeState.contentLayer</code></td>
+<td><em>Removed</em></td>
+<td>Internal implementation detail from old single-source model</td>
+</tr>
+<tr>
+<td><code>HazeState.positionOnScreen</code></td>
+<td><em>Removed</em></td>
+<td>Internal/deprecated geometry property from old model</td>
+</tr>
+<tr>
 <td><code>HazeArea.positionOnScreen</code></td>
-<td><code>HazeArea.position</code></td>
-<td>Renamed</td>
+<td><code>HazeArea.coordinates.localPosition</code> or <code>HazeArea.coordinates.screenPosition</code></td>
+<td>Coordinate model now stores both spaces</td>
 </tr>
 <tr>
 <td><code>VisualEffectContext.positionOnScreen</code></td>
@@ -1640,6 +1635,26 @@
 <td>Renamed</td>
 </tr>
 <tr>
+<td><code>VisualEffectContext.visualEffect</code></td>
+<td><em>Removed</em></td>
+<td>Custom effects should read their own properties directly</td>
+</tr>
+<tr>
+<td><code>VisualEffect.calculateInputScaleFactor()</code></td>
+<td><em>Removed</em></td>
+<td>Use <code>VisualEffect.shouldDrawContentBehind(context)</code>, <code>HazeEffectScope.inputScale</code>, or effect-specific logic as needed</td>
+</tr>
+<tr>
+<td><code>VisualEffect.requireInvalidation()</code></td>
+<td><em>Removed</em></td>
+<td>Call <code>VisualEffectContext.invalidateDraw()</code> from <code>update</code> or other lifecycle paths</td>
+</tr>
+<tr>
+<td><code>VisualEffect.detach()</code></td>
+<td><code>VisualEffect.detach(context)</code></td>
+<td>Detach now receives the attached context</td>
+</tr>
+<tr>
 <td><em>N/A</em></td>
 <td><code>HazeState.positionStrategy</code></td>
 <td>New — configurable position calculation</td>
@@ -1648,6 +1663,26 @@
 <td><em>N/A</em></td>
 <td><code>rememberHazeState(positionStrategy)</code></td>
 <td>New parameter, defaults to <code>Auto</code></td>
+</tr>
+<tr>
+<td><em>N/A</em></td>
+<td><code>HazeCoordinates</code></td>
+<td>New value storing local and screen positions for each area</td>
+</tr>
+<tr>
+<td><em>N/A</em></td>
+<td><code>VisualEffectContext.positionOf(area)</code> / <code>boundsOf(area)</code></td>
+<td>Preferred helpers for custom effects</td>
+</tr>
+<tr>
+<td><code>dev.chrisbanes.haze.HazeDefaults</code> blur defaults</td>
+<td><code>dev.chrisbanes.haze.blur.HazeBlurDefaults</code></td>
+<td>Blur-specific defaults moved to the blur module</td>
+</tr>
+<tr>
+<td><code>dev.chrisbanes.haze.HazeDefaults.drawContentBehind</code></td>
+<td><code>HazeEffectScope.drawContentBehind</code></td>
+<td>Set directly in the <code>hazeEffect</code> block if needed</td>
 </tr>
 <tr>
 <td><code>dev.chrisbanes.haze.HazeStyle</code></td>
@@ -1669,15 +1704,33 @@
 <td><code>dev.chrisbanes.haze.blur.LocalHazeBlurStyle</code></td>
 <td>Renamed + package change</td>
 </tr>
+<tr>
+<td><code>dev.chrisbanes.haze.materials.*</code></td>
+<td><code>dev.chrisbanes.haze.blur.materials.*</code></td>
+<td>Package moved; artifact also renamed to <code>haze-blur-materials</code></td>
+</tr>
+<tr>
+<td><code>dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi</code></td>
+<td><em>Removed</em></td>
+<td>Materials APIs are no longer annotated with this opt-in</td>
+</tr>
+<tr>
+<td><code>HazeDialog</code></td>
+<td><em>Removed</em></td>
+<td>Use regular Compose dialogs with <code>hazeSource</code> / <code>hazeEffect</code> where needed</td>
+</tr>
 </tbody>
 </table>
 <h2 id="step-by-step-migration">Step-by-Step Migration<a class="headerlink" href="#step-by-step-migration" title="Permanent link">¶</a></h2>
 <p><strong>Update dependencies</strong> in your <code>build.gradle.kts</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="w"> </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0-alpha01"</span><span class="p">)</span>
-<span class="w"> </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0-alpha01"</span><span class="p">)</span><span class="w"> </span><span class="c1">// Add this</span>
+<div class="highlight"><pre><span></span><code><span class="w"> </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0-alpha03"</span><span class="p">)</span>
+<span class="w"> </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:2.0.0-alpha03"</span><span class="p">)</span><span class="w"> </span><span class="c1">// Add this for blur effects</span>
+<span class="w"> </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur-materials:2.0.0-alpha03"</span><span class="p">)</span><span class="w"> </span><span class="c1">// Add this for material presets</span>
 </code></pre></div>
 <p><strong>Update imports</strong> for blur-related classes:</p>
 <ul>
+<li>Change blur-specific <code>dev.chrisbanes.haze.HazeDefaults</code> usage → <code>dev.chrisbanes.haze.blur.HazeBlurDefaults</code></li>
+<li>Change <code>HazeDefaults.drawContentBehind</code> usage → direct <code>drawContentBehind</code> assignment in the <code>hazeEffect</code> block</li>
 <li>Change <code>dev.chrisbanes.haze.HazeStyle</code> → <code>dev.chrisbanes.haze.blur.HazeBlurStyle</code></li>
 <li>Change <code>dev.chrisbanes.haze.HazeTint</code> → <code>dev.chrisbanes.haze.blur.HazeColorEffect</code></li>
 <li>Change <code>dev.chrisbanes.haze.HazeProgressive</code> → <code>dev.chrisbanes.haze.blur.HazeProgressive</code></li>
@@ -1699,15 +1752,23 @@
 <p><strong>Update Material style usage</strong>:</p>
 <ul>
 <li>Change <code>hazeEffect(state, style = ...)</code> to <code>hazeEffect(state) { blurEffect { style = ... } }</code></li>
+<li>Change the dependency from <code>haze-materials</code> to <code>haze-blur-materials</code></li>
+</ul>
+<p><strong>Replace removed aliases</strong>:</p>
+<ul>
+<li>Change <code>Modifier.haze(state)</code> to <code>Modifier.hazeSource(state)</code></li>
+<li>Change <code>Modifier.hazeChild(...)</code> to <code>Modifier.hazeEffect(...)</code></li>
+<li>Remove <code>HazeDialog</code> usage and compose dialogs directly</li>
 </ul>
 <h2 id="position-strategy">Position Strategy<a class="headerlink" href="#position-strategy" title="Permanent link">¶</a></h2>
 <p>V2 introduces a configurable position calculation strategy that fixes blur misalignment in split-window modes (e.g. Huawei Parallel Space). In most cases, no action is needed — the default <code>Auto</code> strategy handles everything.</p>
-<p><strong>If you use <code>HazeArea.positionOnScreen</code></strong> in custom effects, rename to <code>position</code>:</p>
+<p><strong>If you use <code>HazeArea.positionOnScreen</code></strong> in custom effects, read the coordinate space you need:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// v1</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">pos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">area</span><span class="p">.</span><span class="na">positionOnScreen</span>
 
 <span class="c1">// v2</span>
-<span class="kd">val</span><span class="w"> </span><span class="nv">pos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">area</span><span class="p">.</span><span class="na">position</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">localPos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">area</span><span class="p">.</span><span class="na">coordinates</span><span class="p">.</span><span class="na">localPosition</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">screenPos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">area</span><span class="p">.</span><span class="na">coordinates</span><span class="p">.</span><span class="na">screenPosition</span>
 </code></pre></div>
 <p><strong>If you implement custom <code>VisualEffect</code>s</strong>, update <code>VisualEffectContext</code> references:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// v1</span>
@@ -1717,6 +1778,17 @@
 <span class="c1">// v2</span>
 <span class="n">context</span><span class="p">.</span><span class="na">position</span>
 <span class="n">context</span><span class="p">.</span><span class="na">rootBounds</span>
+</code></pre></div>
+<p>Prefer the context helpers when working with source areas, because they respect <code>HazePositionStrategy</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">areaPosition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">positionOf</span><span class="p">(</span><span class="n">area</span><span class="p">)</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">areaBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="na">boundsOf</span><span class="p">(</span><span class="n">area</span><span class="p">)</span>
+</code></pre></div>
+<p>Also update lifecycle overrides:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// v1</span>
+<span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Unit</span>
+
+<span class="c1">// v2</span>
+<span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">detach</span><span class="p">(</span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="n">VisualEffectContext</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">Unit</span>
 </code></pre></div>
 <p><strong>If you need to force screen coordinates</strong> (e.g. for a custom cross-window setup):</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">(</span><span class="n">positionStrategy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePositionStrategy</span><span class="p">.</span><span class="na">Screen</span><span class="p">)</span>

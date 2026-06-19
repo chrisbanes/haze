@@ -681,88 +681,6 @@
   
   
   
-    
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Effects
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Effects
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../effects/liquid-glass/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Liquid Glass
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
     <li class="md-nav__item">
       <a href="../custom-effects/" class="md-nav__link">
         
@@ -1193,17 +1111,17 @@
 <ul>
 <li><strong>haze</strong> - Core infrastructure (<code>VisualEffect</code>, <code>HazeState</code>, modifiers)</li>
 <li><strong>haze-blur</strong> - Blur effect implementation</li>
-<li><strong>haze-materials</strong> - Pre-built blur styles (Material, Cupertino, Fluent)</li>
+<li><strong>haze-blur-materials</strong> - Pre-built blur styles (Material, Cupertino, Fluent)</li>
 <li><strong>haze-utils</strong> - Shared utilities for platform-specific rendering</li>
 </ul>
 <h3 id="module-dependencies">Module Dependencies<a class="headerlink" href="#module-dependencies" title="Permanent link">¶</a></h3>
 <div class="highlight"><pre><span></span><code>haze (core)
 ├── haze-blur (blur effect)
-│   └── haze-materials (blur styles)
+│   └── haze-blur-materials (blur styles)
 └── haze-utils (platform utilities)
 </code></pre></div>
 <p>Future effects will follow the same pattern:
-- <strong>haze-liquidglass</strong> - Refraction-based liquid glass effect with rounded-shape SDF and optional chromatic aberration
+- <strong>haze-liquidglass</strong> (source-only, not yet published) - Refraction-based liquid glass effect with rounded-shape SDF and optional chromatic aberration
 - Custom third-party effect modules</p>
 <h2 id="effect-registration-pattern">Effect Registration Pattern<a class="headerlink" href="#effect-registration-pattern" title="Permanent link">¶</a></h2>
 <p>Effect implementations provide builder extension functions on <code>HazeEffectScope</code> for convenient configuration:</p>
