@@ -3,18 +3,23 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
@@ -36,6 +41,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.BlurVisualEffect
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect
 import haze_root.haze_screenshot_tests.generated.resources.Res
 import haze_root.haze_screenshot_tests.generated.resources.photo
@@ -137,6 +143,60 @@ internal fun SourceTransitionSample(
           .align(Alignment.CenterStart)
           .padding(horizontal = 32.dp),
       )
+    }
+  }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun StickyHeaderListSample(
+  visualEffect: VisualEffect,
+) {
+  val hazeState = rememberHazeState()
+
+  LazyColumn(
+    modifier = Modifier
+      .fillMaxSize()
+      .background(Color.Black),
+  ) {
+    stickyHeader {
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .height(104.dp)
+          .hazeEffect(state = hazeState) {
+            inputScale = HazeInputScale.Auto
+            this.visualEffect = visualEffect
+          },
+      ) {
+        Text(
+          text = "Header",
+          color = Color.White,
+          style = MaterialTheme.typography.headlineMedium,
+          modifier = Modifier
+            .align(Alignment.CenterStart)
+            .padding(horizontal = 32.dp),
+        )
+      }
+    }
+
+    items(StickyHeaderRows) { colors ->
+      Row(
+        modifier = Modifier
+          .hazeSource(hazeState)
+          .fillMaxWidth()
+          .height(144.dp)
+          .background(Color.Black),
+      ) {
+        colors.forEach { color ->
+          Box(
+            modifier = Modifier
+              .fillMaxHeight()
+              .weight(1f)
+              .background(color),
+          )
+        }
+      }
     }
   }
 }
@@ -336,6 +396,27 @@ fun ContentAtEdges(visualEffect: VisualEffect) {
     }
   }
 }
+
+internal fun stickyHeaderBlurVisualEffect(): BlurVisualEffect {
+  return BlurVisualEffect().apply {
+    blurRadius = 24.dp
+    colorEffects = listOf(
+      HazeColorEffect.tint(
+        Color.White.copy(alpha = 0.18f),
+        HazeColorEffect.DefaultBlendMode,
+      ),
+    )
+  }
+}
+
+private val StickyHeaderRows = listOf(
+  listOf(Color(0xFFE53935), Color(0xFF1E88E5), Color(0xFF43A047), Color(0xFFFDD835)),
+  listOf(Color(0xFF8E24AA), Color(0xFFFFB300), Color(0xFF00ACC1), Color(0xFFD81B60)),
+  listOf(Color(0xFF3949AB), Color(0xFFFF7043), Color(0xFF7CB342), Color(0xFF546E7A)),
+  listOf(Color(0xFF00E5FF), Color(0xFFFF1744), Color(0xFFFFFF00), Color(0xFF00E676)),
+  listOf(Color(0xFF212121), Color(0xFFFFFFFF), Color(0xFF2962FF), Color(0xFFFF6D00)),
+  listOf(Color(0xFFAA00FF), Color(0xFF64DD17), Color(0xFFFFD600), Color(0xFF00B8D4)),
+)
 
 internal val LoremIpsum by lazy {
   """

@@ -140,22 +140,35 @@ public class HazeSourceNode(
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    // If the position has not been placed yet, we use the value on onPlaced,
-    // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
-    // up to the first draw. We need onGloballyPositioned which tends to happen after
-    // the first pass
     Snapshot.withoutReadObservation {
-      if (area.coordinates.isUnspecified) {
-        onPositioned(coordinates, "onPlaced")
-      }
+      // onPlaced is needed before first draw because onGloballyPositioned can arrive
+      // after screenshot tests capture the first frame (#433).
+      //
+      // Lazy-list scroll can update local/root positions every placement while
+      // onGloballyPositioned is too sparse for sticky haze headers (#994). Keep
+      // screen coordinates guarded/authoritative via onGloballyPositioned, but
+      // allow local coordinates to refresh from placement.
+      onPositioned(
+        coordinates = coordinates,
+        source = "onPlaced",
+        updateScreenPosition = area.coordinates.screenPosition.isUnspecified,
+      )
     }
   }
 
   override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-    onPositioned(coordinates, "onGloballyPositioned")
+    onPositioned(
+      coordinates = coordinates,
+      source = "onGloballyPositioned",
+      updateScreenPosition = true,
+    )
   }
 
-  private fun onPositioned(coordinates: LayoutCoordinates, source: String) {
+  private fun onPositioned(
+    coordinates: LayoutCoordinates,
+    source: String,
+    updateScreenPosition: Boolean,
+  ) {
     if (!isAttached) {
       // This shouldn't happen, but it does...
       // https://github.com/chrisbanes/haze/issues/665
@@ -165,7 +178,9 @@ public class HazeSourceNode(
     lastCoordinates = coordinates
     // Write both local and screen positions so effects can use either coordinate space
     area.coordinates.localPosition = coordinates.positionInRoot()
-    area.coordinates.screenPosition = coordinates.safePositionOnScreen()
+    if (updateScreenPosition) {
+      area.coordinates.screenPosition = coordinates.safePositionOnScreen()
+    }
     area.size = coordinates.size.toSize()
     area.windowId = getWindowId()
 

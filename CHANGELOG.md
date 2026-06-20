@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Fix cross-window recomposition livelock** in #974. When a `HazeState` is shared between effects in different windows (e.g. a host composable and a `Dialog`), the previously-shared `HazeState.resolvedStrategy` oscillated between `Local` and `Screen`, causing an infinite recomposition loop. The resolved position strategy is now per-effect (`HazeEffectNode.resolvedPositionStrategy`), so effects in different windows no longer stomp on each other.
+- Fix sticky header haze scroll sync in #994. `HazeSourceNode` now refreshes local coordinates from every `onPlaced`, and observed area-position reads dirty `HazeEffectNode` area offsets so sticky headers blur the currently visible content while scrolling.
 
 ## 2.0.0-alpha03 <small>2026-06-08</small> { id="2.0.0-alpha03" }
 

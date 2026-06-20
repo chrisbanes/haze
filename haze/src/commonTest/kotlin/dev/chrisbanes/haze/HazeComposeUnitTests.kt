@@ -3,20 +3,31 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
@@ -303,6 +314,64 @@ class HazeComposeUnitTests : ContextTest() {
     assertThat(swappedArea !== initialArea).isTrue()
   }
 
+  @OptIn(ExperimentalFoundationApi::class)
+  @Test
+  fun test_stickyHeader_areaPosition_updatesDuringScrollGesture() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = AreaGeometryCapturingVisualEffect()
+
+    setContent {
+      LazyColumn(
+        modifier = Modifier
+          .size(width = 320.dp, height = 480.dp)
+          .testTag("sticky-header-list"),
+      ) {
+        stickyHeader {
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(96.dp)
+              .hazeEffect(hazeState) {
+                visualEffect = effect
+              },
+          )
+        }
+
+        item {
+          Box(
+            modifier = Modifier
+              .hazeSource(hazeState)
+              .fillMaxWidth()
+              .height(1200.dp)
+              .background(Color.Red),
+          )
+        }
+      }
+    }
+
+    waitForIdle()
+    effect.updateSamples.clear()
+
+    onNodeWithTag("sticky-header-list").performTouchInput {
+      down(center)
+      repeat(12) {
+        moveBy(Offset(x = 0f, y = -24f))
+        advanceEventTime(16)
+      }
+      up()
+    }
+    waitForIdle()
+
+    val areaPositions = effect.updateSamples
+      .map { it.areaPosition.y }
+      .distinct()
+
+    assertThat(areaPositions.size).isGreaterThan(1)
+    // Swiping up scrolls the source content upward on screen, so its root Y
+    // position decreases over the gesture.
+    assertThat(areaPositions.first()).isGreaterThan(areaPositions.last())
+  }
+
   @Test
   fun test_visualEffectContext_positionStrategy_reflectsEffectNodeResolution() {
     // Wiring test: verifies that VisualEffectContext.positionStrategy reads through to
@@ -321,6 +390,29 @@ class HazeComposeUnitTests : ContextTest() {
     node.resolvedPositionStrategy = HazePositionStrategy.Screen
     assertThat(context.positionStrategy).isEqualTo(HazePositionStrategy.Screen)
   }
+}
+
+internal data class AreaGeometrySample(
+  val effectPosition: Offset,
+  val areaPosition: Offset,
+  val areaBounds: Rect?,
+  val layerOffset: Offset,
+)
+
+internal class AreaGeometryCapturingVisualEffect : VisualEffect {
+  val updateSamples = mutableListOf<AreaGeometrySample>()
+
+  override fun update(context: VisualEffectContext) {
+    val area = context.areas.singleOrNull() ?: return
+    updateSamples += AreaGeometrySample(
+      effectPosition = context.position,
+      areaPosition = context.positionOf(area),
+      areaBounds = context.boundsOf(area),
+      layerOffset = context.layerOffset,
+    )
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }
 
 internal class AreaCapturingVisualEffect : VisualEffect {

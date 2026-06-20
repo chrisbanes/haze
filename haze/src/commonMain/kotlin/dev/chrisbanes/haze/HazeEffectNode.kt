@@ -288,16 +288,20 @@ public class HazeEffectNode(
   }
 
   override fun onObservedReadsChanged() {
+    dirtyTracker += DirtyFields.AreaPositionReads
     observeReads(::updateEffect)
   }
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
-    // If the position has not been placed yet, we use the value on onPlaced,
-    // otherwise we ignore it. This primarily fixes screenshot tests which only run tests
-    // up to the first draw. We need onGloballyPositioned which tends to happen after
-    // the first pass
     Snapshot.withoutReadObservation {
-      if (position.isUnspecified) {
+      // onPlaced is needed before first draw because onGloballyPositioned can arrive
+      // after screenshot tests capture the first frame (#433).
+      //
+      // Lazy-list scroll can update local/root positions every placement while
+      // onGloballyPositioned is too sparse for sticky haze headers (#994). Keep
+      // screen coordinates guarded/authoritative via onGloballyPositioned, but
+      // allow local coordinates to refresh from placement.
+      if (resolvedPositionStrategy != HazePositionStrategy.Screen || position.isUnspecified) {
         onPositioned(coordinates, "onPlaced")
       }
     }
@@ -684,7 +688,8 @@ internal object DirtyFields {
   const val InputScale: Int = 0b1
   const val Position: Int = InputScale shl 1
   const val AreaOffsets: Int = Position shl 1
-  const val Size: Int = AreaOffsets shl 1
+  const val AreaPositionReads: Int = AreaOffsets shl 1
+  const val Size: Int = AreaPositionReads shl 1
   const val Areas: Int = Size shl 1
   const val LayerSize: Int = Areas shl 1
   const val LayerOffset: Int = LayerSize shl 1
@@ -697,6 +702,7 @@ internal object DirtyFields {
     InputScale or
       Size or
       Position or
+      AreaOffsets or
       LayerSize or
       LayerOffset or
       Areas or
@@ -710,6 +716,7 @@ internal object DirtyFields {
       if (InputScale in dirtyTracker) add("InputScale")
       if (Position in dirtyTracker) add("Position")
       if (AreaOffsets in dirtyTracker) add("AreaOffsets")
+      if (AreaPositionReads in dirtyTracker) add("AreaPositionReads")
       if (Size in dirtyTracker) add("Size")
       if (LayerSize in dirtyTracker) add("LayerSize")
       if (LayerOffset in dirtyTracker) add("LayerOffset")
@@ -723,14 +730,17 @@ internal object DirtyFields {
   }
 }
 
+/** Dirty fields that warrant recomputing area offsets. */
+internal val AreaOffsetsDirtyFields: Int =
+  DirtyFields.Position or
+    DirtyFields.Areas or
+    DirtyFields.AreaPositionReads
+
 /** Dirty fields that warrant recomputing layer bounds. */
 internal val LayerBoundsDirtyFields: Int =
   DirtyFields.Position or
+    DirtyFields.AreaOffsets or
     DirtyFields.Size or
     DirtyFields.Areas or
     DirtyFields.ExpandLayer or
     DirtyFields.ClipToAreas
-
-/** Dirty fields that warrant recomputing area offsets. */
-internal val AreaOffsetsDirtyFields: Int =
-  DirtyFields.Position or DirtyFields.Areas

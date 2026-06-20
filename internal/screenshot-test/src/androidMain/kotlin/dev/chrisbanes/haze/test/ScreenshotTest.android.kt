@@ -9,6 +9,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.RoborazziRule
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -59,5 +61,11 @@ private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
 
     override fun waitForIdle() {
       rule.waitForIdle()
+    }
+
+    override fun swipeUpOnRoot() {
+      rule.onRoot().performTouchInput {
+        swipeUp()
+      }
     }
   }
