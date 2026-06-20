@@ -69,9 +69,11 @@ Effect implementations provide builder extension functions on `HazeEffectScope` 
 
 ```kotlin
 // Blur effect example
+val style = HazeMaterials.thin()
+
 modifier = Modifier.hazeEffect(state) {
     blurEffect {
-        style = HazeMaterials.thin()
+        this.style = style
         progressive = HazeProgressive.verticalGradient(...)
     }
 }

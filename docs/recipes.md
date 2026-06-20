@@ -8,6 +8,7 @@ Blurring the content behind app bars is a common use case, so how can we use Haz
 
 ``` kotlin
 val hazeState = rememberHazeState()
+val style = HazeMaterials.thin()
 
 Scaffold(
   topBar = {
@@ -17,7 +18,7 @@ Scaffold(
       modifier = Modifier
         .hazeEffect(state = hazeState) {
           blurEffect {
-            style = HazeMaterials.thin()
+            this.style = style
           }
         }
         .fillMaxWidth(),
@@ -31,7 +32,7 @@ Scaffold(
       modifier = Modifier
         .hazeEffect(state = hazeState) {
           blurEffect {
-            style = HazeMaterials.thin()
+            this.style = style
           }
         }
         .fillMaxWidth(),
@@ -61,6 +62,7 @@ Since we can have multiple nodes using `Modifier.hazeSource`, we can use the mod
 
 ```kotlin
 val hazeState = rememberHazeState()
+val style = HazeMaterials.thin()
 
 LazyColumn(...) {
   stickyHeader {
@@ -68,7 +70,7 @@ LazyColumn(...) {
       modifier = Modifier
         .hazeEffect(state = hazeState) {
           blurEffect {
-            style = HazeMaterials.thin()
+            this.style = style
           }
         },
     )

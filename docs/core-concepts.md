@@ -41,10 +41,12 @@ Parameters:
 Applies a visual effect to a composable, drawing blurred content from areas marked with `Modifier.hazeSource`.
 
 ```kotlin
+val style = HazeMaterials.thin()
+
 TopAppBar(
     modifier = Modifier.hazeEffect(state = hazeState) {
         blurEffect {
-            style = HazeMaterials.thin()
+            this.style = style
         }
     }
 )
