@@ -1368,9 +1368,11 @@
 </code></pre></div>
 </div>
 <div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
+
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">ultraThin</span><span class="p">()</span>
+<span class="w">    </span><span class="k">this</span><span class="p">.</span><span class="na">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1751,7 +1753,7 @@
 </ul>
 <p><strong>Update Material style usage</strong>:</p>
 <ul>
-<li>Change <code>hazeEffect(state, style = ...)</code> to <code>hazeEffect(state) { blurEffect { style = ... } }</code></li>
+<li>Change <code>hazeEffect(state, style = style)</code> to <code>val style = ...</code> followed by <code>hazeEffect(state) { blurEffect { this.style = style } }</code></li>
 <li>Change the dependency from <code>haze-materials</code> to <code>haze-blur-materials</code></li>
 </ul>
 <p><strong>Replace removed aliases</strong>:</p>

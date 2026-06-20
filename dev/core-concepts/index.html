@@ -1392,10 +1392,12 @@
 </ul>
 <h3 id="modifierhazeeffect">Modifier.hazeEffect<a class="headerlink" href="#modifierhazeeffect" title="Permanent link">¶</a></h3>
 <p>Applies a visual effect to a composable, drawing blurred content from areas marked with <code>Modifier.hazeSource</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="n">TopAppBar</span><span class="p">(</span>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
+
+<span class="n">TopAppBar</span><span class="p">(</span>
 <span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
+<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">)</span>
