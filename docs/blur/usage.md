@@ -12,6 +12,7 @@ Blurs content from elsewhere in the UI that's marked with `hazeSource`:
 
 ```kotlin
 val hazeState = rememberHazeState()
+val style = HazeMaterials.thin()
 
 Box {
   LazyColumn(
@@ -26,7 +27,7 @@ Box {
     modifier = Modifier
       .hazeEffect(state = hazeState) {
         blurEffect {
-          style = HazeMaterials.thin()
+          this.style = style
         }
       }
       .fillMaxWidth(),
@@ -41,12 +42,14 @@ Blurs the content within the composable itself. No `HazeState` or `hazeSource` n
 ```kotlin
 @Composable
 fun HazeExample(modifier: Modifier = Modifier) {
+  val style = HazeMaterials.thin()
+
   Box(modifier = modifier) {
     Foreground(
       modifier = Modifier
         .hazeEffect {
           blurEffect {
-            style = HazeMaterials.thin()
+            this.style = style
           }
         }
         .fillMaxSize()
@@ -324,6 +327,7 @@ You can blur dialog backgrounds over content. **Important**: Tints display as a 
 ```kotlin
 val hazeState = rememberHazeState()
 var showDialog by remember { mutableStateOf(false) }
+val style = HazeMaterials.regular()
 
 Box {
   if (showDialog) {
@@ -339,7 +343,7 @@ Box {
         Box(
           Modifier.hazeEffect(state = hazeState) {
             blurEffect {
-              style = HazeMaterials.regular()
+              this.style = style
             }
           },
         ) {

@@ -41,6 +41,7 @@ The blur effect is applied using the `blurEffect {}` builder within `Modifier.ha
 
 ```kotlin
 val hazeState = rememberHazeState()
+val style = HazeMaterials.thin()
 
 Box {
     LazyColumn(
@@ -55,7 +56,7 @@ Box {
         modifier = Modifier
             .hazeEffect(state = hazeState) {
                 blurEffect {
-                    style = HazeMaterials.thin()
+                    this.style = style
                 }
             }
     )

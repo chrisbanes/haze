@@ -28,6 +28,8 @@ Class reference: [HazeMaterials](../api/haze-materials/dev.chrisbanes.haze.blur.
 
 ```kotlin
 Box {
+  val style = HazeMaterials.thin()
+
   LazyColumn(
     modifier = Modifier.hazeSource(state = hazeState)
   ) {
@@ -37,7 +39,7 @@ Box {
   TopAppBar(
     modifier = Modifier.hazeEffect(state = hazeState) {
       blurEffect {
-        style = HazeMaterials.thin()
+        this.style = style
       }
     }
   )
@@ -59,8 +61,10 @@ Class reference: [CupertinoMaterials](../api/haze-materials/dev.chrisbanes.haze.
 ### Usage
 
 ```kotlin
+val style = CupertinoMaterials.thin()
+
 blurEffect {
-  style = CupertinoMaterials.thin()
+  this.style = style
 }
 ```
 
@@ -77,8 +81,10 @@ Class reference: [FluentMaterials](../api/haze-materials/dev.chrisbanes.haze.blu
 ### Usage
 
 ```kotlin
+val style = FluentMaterials.thin()
+
 blurEffect {
-  style = FluentMaterials.thin()
+  this.style = style
 }
 ```
 

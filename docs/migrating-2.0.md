@@ -120,9 +120,11 @@ All blur-related properties that were previously set directly on `HazeEffectScop
 === "v2"
 
     ```kotlin
+    val style = HazeMaterials.ultraThin()
+
     Modifier.hazeEffect(state = hazeState) {
       blurEffect {
-        style = HazeMaterials.ultraThin()
+        this.style = style
       }
     }
     ```
@@ -330,7 +332,7 @@ LiquidGlassStyle(
 
 **Update Material style usage**:
 
-   - Change `hazeEffect(state, style = ...)` to `hazeEffect(state) { blurEffect { style = ... } }`
+   - Change `hazeEffect(state, style = style)` to `val style = ...` followed by `hazeEffect(state) { blurEffect { this.style = style } }`
    - Change the dependency from `haze-materials` to `haze-blur-materials`
 
 **Replace removed aliases**:
