@@ -7648,6 +7648,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
 <li><strong>Fix cross-window recomposition livelock</strong> in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/974" title="GitHub Issue chrisbanes/haze #974">#974</a>. When a <code>HazeState</code> is shared between effects in different windows (e.g. a host composable and a <code>Dialog</code>), the previously-shared <code>HazeState.resolvedStrategy</code> oscillated between <code>Local</code> and <code>Screen</code>, causing an infinite recomposition loop. The resolved position strategy is now per-effect (<code>HazeEffectNode.resolvedPositionStrategy</code>), so effects in different windows no longer stomp on each other.</li>
+<li>Fix sticky header haze scroll sync in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/994" title="GitHub Issue chrisbanes/haze #994">#994</a>. <code>HazeSourceNode</code> now refreshes local coordinates from every <code>onPlaced</code>, and observed area-position reads dirty <code>HazeEffectNode</code> area offsets so sticky headers blur the currently visible content while scrolling.</li>
 </ul>
 <h2 id="2.0.0-alpha03">2.0.0-alpha03 <small>2026-06-08</small><a class="headerlink" href="#2.0.0-alpha03" title="Permanent link">¶</a></h2>
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">¶</a></h3>
