@@ -1,6 +1,7 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+
 import org.gradle.caching.http.HttpBuildCache
 
 pluginManagement {
