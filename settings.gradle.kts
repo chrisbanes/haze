@@ -1,6 +1,7 @@
 // Copyright 2023, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import org.gradle.caching.http.HttpBuildCache
 
 pluginManagement {
   includeBuild("gradle/build-logic")
@@ -46,6 +47,38 @@ develocity {
     }
 
     uploadInBackground.set(!isCi)
+  }
+}
+
+val remoteBuildCacheUrl = providers.gradleProperty("remoteBuildCacheUrl")
+val remoteBuildCacheUsername = providers.gradleProperty("remoteBuildCacheUsername")
+val remoteBuildCachePassword = providers.gradleProperty("remoteBuildCachePassword")
+val remoteBuildCacheUrlValue = remoteBuildCacheUrl.orNull?.takeIf(String::isNotBlank)
+val remoteBuildCacheUsernameValue = remoteBuildCacheUsername.orNull?.takeIf(String::isNotBlank)
+val remoteBuildCachePasswordValue = remoteBuildCachePassword.orNull?.takeIf(String::isNotBlank)
+val isRemoteBuildCacheEnabled = providers.gradleProperty("remoteBuildCacheEnabled")
+  .map(String::toBoolean)
+  .getOrElse(false) &&
+  remoteBuildCacheUrlValue != null &&
+  remoteBuildCacheUsernameValue != null &&
+  remoteBuildCachePasswordValue != null
+val isRemoteBuildCachePushEnabled = isRemoteBuildCacheEnabled &&
+  providers.gradleProperty("remoteBuildCachePush")
+    .map(String::toBoolean)
+    .getOrElse(false)
+
+buildCache {
+  remote<HttpBuildCache> {
+    isEnabled = isRemoteBuildCacheEnabled
+    isPush = isRemoteBuildCachePushEnabled
+
+    if (isRemoteBuildCacheEnabled) {
+      url = uri(remoteBuildCacheUrlValue!!)
+      credentials {
+        username = remoteBuildCacheUsernameValue!!
+        password = remoteBuildCachePasswordValue!!
+      }
+    }
   }
 }
 
