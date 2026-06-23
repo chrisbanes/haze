@@ -8,7 +8,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SkikoComposeUiTest
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.runSkikoComposeUiTest
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.InternalRoborazziApi
@@ -56,5 +58,11 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
 
   override fun waitForIdle() {
     this@createScreenshotUiTest.waitForIdle()
+  }
+
+  override fun swipeUpOnRoot() {
+    this@createScreenshotUiTest.onRoot().performTouchInput {
+      swipeUp()
+    }
   }
 }

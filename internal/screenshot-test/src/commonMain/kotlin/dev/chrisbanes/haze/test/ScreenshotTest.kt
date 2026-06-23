@@ -16,4 +16,5 @@ interface ScreenshotUiTest {
   fun setContent(content: @Composable () -> Unit)
   fun captureRoot(nameSuffix: String? = null)
   fun waitForIdle()
+  fun swipeUpOnRoot()
 }
