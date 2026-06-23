@@ -36,19 +36,23 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Compile iOS arm64 target and run simulator tests
-        if: github.event_name != 'push' || (github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1')
-        run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Test -Phaze.enableAppleTests
-
-      - name: Compile iOS arm64 target and run simulator tests with remote build cache
+      - name: Enable remote build cache
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1')
-        run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Test -Phaze.enableAppleTests
+        run: |
+          {
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheUrl=${ORG_GRADLE_PROJECT_remoteBuildCacheUrl}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheUsername=${ORG_GRADLE_PROJECT_remoteBuildCacheUsername}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCachePassword=${ORG_GRADLE_PROJECT_remoteBuildCachePassword}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheEnabled=true"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCachePush=true"
+          } >> "$GITHUB_ENV"
         env:
           ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
           ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}
           ORG_GRADLE_PROJECT_remoteBuildCachePassword: ${{ secrets.GRADLE_REMOTE_CACHE_PASSWORD }}
-          ORG_GRADLE_PROJECT_remoteBuildCacheEnabled: true
-          ORG_GRADLE_PROJECT_remoteBuildCachePush: true
+
+      - name: Compile iOS arm64 target and run simulator tests
+        run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Test -Phaze.enableAppleTests
 
       - name: Upload reports
         if: failure()
@@ -76,19 +80,23 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Assemble and check
-        if: github.event_name != 'push' || (github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1')
-        run: ./gradlew check assembleDebug -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
-
-      - name: Assemble and check with remote build cache
+      - name: Enable remote build cache
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1')
-        run: ./gradlew check assembleDebug -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
+        run: |
+          {
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheUrl=${ORG_GRADLE_PROJECT_remoteBuildCacheUrl}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheUsername=${ORG_GRADLE_PROJECT_remoteBuildCacheUsername}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCachePassword=${ORG_GRADLE_PROJECT_remoteBuildCachePassword}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheEnabled=true"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCachePush=true"
+          } >> "$GITHUB_ENV"
         env:
           ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
           ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}
           ORG_GRADLE_PROJECT_remoteBuildCachePassword: ${{ secrets.GRADLE_REMOTE_CACHE_PASSWORD }}
-          ORG_GRADLE_PROJECT_remoteBuildCacheEnabled: true
-          ORG_GRADLE_PROJECT_remoteBuildCachePush: true
+
+      - name: Assemble and check
+        run: ./gradlew check assembleDebug -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
 
       - name: Upload reports + Roborazzi outputs
         if: failure()
@@ -122,35 +130,31 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run instrumentation tests on emulator
-        if: github.event_name != 'push' || (github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1')
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
-          script: ./gradlew connectedDebugAndroidTest connectedAndroidDeviceTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
-
-      - name: Run instrumentation tests on emulator with remote build cache
+      - name: Enable remote build cache
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/v1')
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
-          script: ./gradlew connectedDebugAndroidTest connectedAndroidDeviceTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
+        run: |
+          {
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheUrl=${ORG_GRADLE_PROJECT_remoteBuildCacheUrl}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheUsername=${ORG_GRADLE_PROJECT_remoteBuildCacheUsername}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCachePassword=${ORG_GRADLE_PROJECT_remoteBuildCachePassword}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheEnabled=true"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCachePush=true"
+          } >> "$GITHUB_ENV"
         env:
           ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
           ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}
           ORG_GRADLE_PROJECT_remoteBuildCachePassword: ${{ secrets.GRADLE_REMOTE_CACHE_PASSWORD }}
-          ORG_GRADLE_PROJECT_remoteBuildCacheEnabled: true
-          ORG_GRADLE_PROJECT_remoteBuildCachePush: true
+
+      - name: Run instrumentation tests on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -noaudio -no-snapshot-save
+          script: ./gradlew connectedDebugAndroidTest connectedAndroidDeviceTest -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
 
       - name: Upload instrumentation reports
         if: failure()
@@ -180,6 +184,20 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      - name: Enable remote build cache
+        run: |
+          {
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheUrl=${ORG_GRADLE_PROJECT_remoteBuildCacheUrl}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheUsername=${ORG_GRADLE_PROJECT_remoteBuildCacheUsername}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCachePassword=${ORG_GRADLE_PROJECT_remoteBuildCachePassword}"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCacheEnabled=true"
+            echo "ORG_GRADLE_PROJECT_remoteBuildCachePush=true"
+          } >> "$GITHUB_ENV"
+        env:
+          ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
+          ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}
+          ORG_GRADLE_PROJECT_remoteBuildCachePassword: ${{ secrets.GRADLE_REMOTE_CACHE_PASSWORD }}
+
       - name: Deploy to Sonatype
         run: ./gradlew publish --no-configuration-cache
         env:
@@ -188,8 +206,3 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_KEY_PASSWORD }}
-          ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
-          ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}
-          ORG_GRADLE_PROJECT_remoteBuildCachePassword: ${{ secrets.GRADLE_REMOTE_CACHE_PASSWORD }}
-          ORG_GRADLE_PROJECT_remoteBuildCacheEnabled: true
-          ORG_GRADLE_PROJECT_remoteBuildCachePush: true
