@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+import org.gradle.caching.http.HttpBuildCache
+
 pluginManagement {
   includeBuild("gradle/build-logic")
 
@@ -46,6 +48,38 @@ develocity {
     }
 
     uploadInBackground.set(!isCi)
+  }
+}
+
+fun gradleProperty(name: String): String? =
+  providers.gradleProperty(name).orNull?.takeIf(String::isNotBlank)
+
+fun gradleBooleanProperty(name: String): Boolean =
+  providers.gradleProperty(name).map(String::toBoolean).getOrElse(false)
+
+val remoteBuildCacheUrl = gradleProperty("remoteBuildCacheUrl")
+val remoteBuildCacheUsername = gradleProperty("remoteBuildCacheUsername")
+val remoteBuildCachePassword = gradleProperty("remoteBuildCachePassword")
+val isRemoteBuildCacheEnabled = gradleBooleanProperty("remoteBuildCacheEnabled")
+
+buildCache {
+  remote<HttpBuildCache> {
+    if (
+      isRemoteBuildCacheEnabled &&
+      remoteBuildCacheUrl != null &&
+      remoteBuildCacheUsername != null &&
+      remoteBuildCachePassword != null
+    ) {
+      isEnabled = true
+      isPush = gradleBooleanProperty("remoteBuildCachePush")
+      url = uri(remoteBuildCacheUrl)
+      credentials {
+        username = remoteBuildCacheUsername
+        password = remoteBuildCachePassword
+      }
+    } else {
+      isEnabled = false
+    }
   }
 }
 
