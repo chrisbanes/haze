@@ -276,6 +276,7 @@ public class HazeEffectNode(
   override fun onDetach() {
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
+    resetPendingInvalidations()
     contentDrawArea.releaseLayer()
     clearRetainedOutput()
     detachVisualEffect(visualEffect)
@@ -557,6 +558,10 @@ public class HazeEffectNode(
 
   private fun onPostDraw() {
     dirtyTracker = Bitmask()
+    resetPendingInvalidations()
+  }
+
+  private fun resetPendingInvalidations() {
     needsPreDrawInvalidation = false
     needsDirtyFieldsInvalidation = false
   }
