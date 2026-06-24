@@ -31,6 +31,8 @@ android {
   }
 
   packaging {
+    jniLibs.keepDebugSymbols += "**/libandroidx.graphics.path.so"
+
     resources.excludes += setOf(
       // Exclude AndroidX version files
       "META-INF/*.version",

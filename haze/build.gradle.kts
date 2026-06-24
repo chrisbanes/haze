@@ -3,8 +3,6 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
-import org.jetbrains.compose.ExperimentalComposeLibrary
-
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
@@ -40,9 +38,9 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        api(compose.ui)
+        api(libs.compose.ui)
         implementation(projects.hazeUtils)
-        implementation(compose.foundation)
+        implementation(libs.compose.foundation)
         implementation(libs.androidx.collection)
       }
     }
@@ -85,8 +83,7 @@ kotlin {
         implementation(kotlin("test"))
         implementation(libs.assertk)
 
-        @OptIn(ExperimentalComposeLibrary::class)
-        implementation(compose.uiTest)
+        implementation(libs.compose.ui.test)
 
         implementation(projects.internal.contextTest)
         implementation(projects.internal.testUtils)

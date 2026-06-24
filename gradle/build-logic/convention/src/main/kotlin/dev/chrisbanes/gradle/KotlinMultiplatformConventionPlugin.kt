@@ -57,7 +57,7 @@ fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
     browser()
   }
 
-  js(IR) {
+  js {
     browser()
   }
 }

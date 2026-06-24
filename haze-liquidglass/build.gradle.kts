@@ -28,8 +28,8 @@ kotlin {
       dependencies {
         api(projects.haze)
         implementation(projects.hazeUtils)
-        implementation(compose.ui)
-        implementation(compose.foundation)
+        implementation(libs.compose.ui)
+        implementation(libs.compose.foundation)
       }
     }
 

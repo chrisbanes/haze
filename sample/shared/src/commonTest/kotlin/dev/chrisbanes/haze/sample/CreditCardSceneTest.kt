@@ -8,7 +8,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test

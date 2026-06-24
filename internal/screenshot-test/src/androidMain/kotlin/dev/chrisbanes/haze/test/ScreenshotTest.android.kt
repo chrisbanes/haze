@@ -7,10 +7,11 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.RoborazziRule
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -36,7 +37,7 @@ actual abstract class ScreenshotTest : ContextTest() {
   )
 }
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
 actual fun ScreenshotTest.runScreenshotTest(
   relaxedTolerance: Boolean,
   block: ScreenshotUiTest.() -> Unit,
@@ -44,6 +45,7 @@ actual fun ScreenshotTest.runScreenshotTest(
   createScreenshotUiTest(composeTestRule).block()
 }
 
+@OptIn(ExperimentalRoborazziApi::class)
 private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
   object : ScreenshotUiTest {
     override fun setContent(content: @Composable () -> Unit) {

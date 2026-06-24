@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.tasks.Copy
+
 plugins {
   id("dev.chrisbanes.root")
 
@@ -21,4 +24,33 @@ plugins {
   alias(libs.plugins.roborazzi) apply false
   alias(libs.plugins.poko) apply false
   alias(libs.plugins.dokka)
+}
+
+subprojects {
+  tasks.withType<Copy>().configureEach {
+    if (name.endsWith("TestDevelopmentExecutableCompileSync")) {
+      duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+  }
+
+  dependencies {
+    components {
+      listOf(
+        "coil-core-iosarm64",
+        "coil-core-iossimulatorarm64",
+        "coil-core-js",
+        "coil-core-jvm",
+        "coil-core-macosarm64",
+        "coil-core-wasm-js",
+      ).forEach { module ->
+        withModule("io.coil-kt.coil3:$module") {
+          allVariants {
+            withDependencies {
+              removeIf { it.group == "org.jetbrains.skiko" && it.name == "skiko" }
+            }
+          }
+        }
+      }
+    }
+  }
 }

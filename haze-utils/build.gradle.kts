@@ -24,7 +24,7 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        api(compose.ui)
+        api(libs.compose.ui)
       }
     }
 
