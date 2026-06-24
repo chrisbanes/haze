@@ -60,10 +60,6 @@ kotlin {
       iosMain {
         dependsOn(skikoMain)
       }
-
-      macosMain {
-        dependsOn(skikoMain)
-      }
     }
 
     jvmMain {
@@ -111,7 +107,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest> {
 val enableAppleTests = providers.gradleProperty("haze.enableAppleTests").isPresent
 
 /**
- * Disable Mac host and iOS sim tests by default. They have a high CI cost (mostly
+ * Disable native host and iOS sim tests by default. They have a high CI cost (mostly
  * linking), but CI can opt in to iOS simulator coverage with -Phaze.enableAppleTests.
  */
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest> {

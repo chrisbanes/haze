@@ -5,9 +5,8 @@ package dev.chrisbanes.haze
 
 import kotlinx.coroutines.DisposableHandle
 
-// TODO: Split appleMain into iosMain/macosMain and implement memory-pressure observers.
+// TODO: Move to iosMain and implement memory-pressure observers.
 // iOS: UIApplicationDidReceiveMemoryWarningNotification
-// macOS: DISPATCH_SOURCE_TYPE_MEMORYPRESSURE or NSProcessInfo.reactive
 
 internal actual fun registerTrimMemoryCallback(
   context: PlatformContext,

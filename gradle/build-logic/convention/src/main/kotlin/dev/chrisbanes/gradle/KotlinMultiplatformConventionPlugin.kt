@@ -64,7 +64,6 @@ fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
   if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
     iosArm64()
     iosSimulatorArm64()
-    macosArm64()
   }
 
   @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)

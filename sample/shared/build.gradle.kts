@@ -85,14 +85,6 @@ kotlin {
           implementation(libs.ktor.darwin)
         }
       }
-
-      macosMain {
-        dependsOn(skikoMain)
-
-        dependencies {
-          implementation(libs.ktor.darwin)
-        }
-      }
     }
 
     jvmMain {

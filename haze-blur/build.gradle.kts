@@ -77,10 +77,6 @@ kotlin {
       iosMain {
         dependsOn(skikoMain)
       }
-
-      macosMain {
-        dependsOn(skikoMain)
-      }
     }
 
     jvmMain {
