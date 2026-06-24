@@ -6,6 +6,11 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.modifier.ModifierLocalModifierNode
+import androidx.compose.ui.modifier.ProvidableModifierLocal
+import androidx.compose.ui.modifier.modifierLocalOf
+import androidx.compose.ui.modifier.modifierLocalProvider
+import androidx.compose.ui.node.invalidateDraw
 
 internal enum class HazeInvalidationNodeType {
   Source,
@@ -45,7 +50,32 @@ internal inline fun recordHazeInvalidation(event: () -> HazeInvalidationEvent) {
   activeHazeInvalidationRecorder?.events?.add(event())
 }
 
-internal fun Modifier.hazeInvalidationTag(tag: String): Modifier = this
+private val ModifierLocalHazeInvalidationTag: ProvidableModifierLocal<String?> =
+  modifierLocalOf { null }
+
+internal fun Modifier.hazeInvalidationTag(tag: String): Modifier {
+  return modifierLocalProvider(ModifierLocalHazeInvalidationTag) { tag }
+}
+
+private fun ModifierLocalModifierNode.currentHazeInvalidationTag(): String? {
+  return if (isHazeInvalidationTrackingActive) {
+    ModifierLocalHazeInvalidationTag.current
+  } else {
+    null
+  }
+}
+
+internal fun HazeEffectNode.invalidateHazeDraw(reason: HazeInvalidationReason) {
+  recordHazeInvalidation {
+    HazeInvalidationEvent(
+      tag = currentHazeInvalidationTag(),
+      nodeType = HazeInvalidationNodeType.Effect,
+      invalidationType = HazeInvalidationType.Draw,
+      reason = reason,
+    )
+  }
+  invalidateDraw()
+}
 
 internal fun withHazeInvalidationTracking(block: () -> Unit) {
   val previousRecorder = activeHazeInvalidationRecorder

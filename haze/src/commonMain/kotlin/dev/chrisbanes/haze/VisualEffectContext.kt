@@ -10,7 +10,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.node.currentValueOf
-import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.unit.Density
@@ -186,7 +185,7 @@ internal class HazeEffectNodeVisualEffectContext(
   override fun requireDensity(): Density = node.requireDensity()
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = node.currentValueOf(local)
   override fun requireGraphicsContext(): GraphicsContext = node.requireGraphicsContext()
-  override fun invalidateDraw() = node.invalidateDraw()
+  override fun invalidateDraw() = node.invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
 }
 
 // ==================== Optional Extension Helpers ====================

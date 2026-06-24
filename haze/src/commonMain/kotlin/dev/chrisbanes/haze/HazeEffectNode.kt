@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.modifier.ModifierLocalModifierNode
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
@@ -25,7 +26,6 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.findNearestAncestor
-import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
@@ -47,6 +47,7 @@ public class HazeEffectNode(
   public var block: (HazeEffectScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
+  ModifierLocalModifierNode,
   GlobalPositionAwareModifierNode,
   LayoutAwareModifierNode,
   ObserverModifierNode,
@@ -250,7 +251,7 @@ public class HazeEffectNode(
     OnPreDrawListener {
       if (!needsPreDrawInvalidation) {
         needsPreDrawInvalidation = true
-        invalidateDraw()
+        invalidateHazeDraw(HazeInvalidationReason.PreDraw)
       }
     }
   }
@@ -568,7 +569,7 @@ public class HazeEffectNode(
     }
 
     if (invalidateRequired) {
-      invalidateDraw()
+      invalidateHazeDraw(HazeInvalidationReason.DirtyFields)
     }
   }
 
