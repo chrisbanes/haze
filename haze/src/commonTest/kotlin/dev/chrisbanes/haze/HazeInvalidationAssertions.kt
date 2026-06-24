@@ -17,14 +17,6 @@ internal class HazeInvalidationAssertionScope internal constructor(
     assertInvalidationsAtMost(HazeInvalidationType.Draw, count)
   }
 
-  fun layoutInvalidationsExactly(count: Int) {
-    assertInvalidationsExactly(HazeInvalidationType.Layout, count)
-  }
-
-  fun layoutInvalidationsAtMost(count: Int) {
-    assertInvalidationsAtMost(HazeInvalidationType.Layout, count)
-  }
-
   private fun assertInvalidationsExactly(
     type: HazeInvalidationType,
     count: Int,

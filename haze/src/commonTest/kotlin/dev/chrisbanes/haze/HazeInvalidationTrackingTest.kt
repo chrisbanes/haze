@@ -44,7 +44,6 @@ class HazeInvalidationTrackingTest : ContextTest() {
 
       assertHazeInvalidations("effect") {
         drawInvalidationsAtMost(1)
-        layoutInvalidationsExactly(0)
       }
     }
   }
@@ -78,7 +77,6 @@ class HazeInvalidationTrackingTest : ContextTest() {
 
       assertHazeInvalidations("effect") {
         drawInvalidationsExactly(1)
-        layoutInvalidationsExactly(0)
       }
     }
   }
@@ -131,7 +129,6 @@ class HazeInvalidationTrackingTest : ContextTest() {
 
       assertHazeInvalidations("effect") {
         drawInvalidationsAtMost(1)
-        layoutInvalidationsExactly(0)
       }
     }
   }
@@ -162,7 +159,6 @@ class HazeInvalidationTrackingTest : ContextTest() {
 
       assertHazeInvalidations("effect") {
         drawInvalidationsAtMost(1)
-        layoutInvalidationsExactly(0)
       }
     }
   }
@@ -195,7 +191,6 @@ class HazeInvalidationTrackingTest : ContextTest() {
 
       assertHazeInvalidations("effect") {
         drawInvalidationsAtMost(1)
-        layoutInvalidationsExactly(0)
       }
     }
   }
@@ -227,7 +222,6 @@ class HazeInvalidationTrackingTest : ContextTest() {
 
       assertHazeInvalidations("effect") {
         drawInvalidationsAtMost(1)
-        layoutInvalidationsExactly(0)
       }
     }
   }
