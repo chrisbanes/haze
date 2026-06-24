@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.modifier.ModifierLocalModifierNode
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
@@ -25,7 +26,6 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.findNearestAncestor
-import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
@@ -47,6 +47,7 @@ public class HazeEffectNode(
   public var block: (HazeEffectScope.() -> Unit)? = null,
 ) : Modifier.Node(),
   CompositionLocalConsumerModifierNode,
+  ModifierLocalModifierNode,
   GlobalPositionAwareModifierNode,
   LayoutAwareModifierNode,
   ObserverModifierNode,
@@ -78,6 +79,7 @@ public class HazeEffectNode(
     }
 
   private var needsPreDrawInvalidation = false
+  private var needsDirtyFieldsInvalidation = false
 
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
@@ -250,7 +252,7 @@ public class HazeEffectNode(
     OnPreDrawListener {
       if (!needsPreDrawInvalidation) {
         needsPreDrawInvalidation = true
-        invalidateDraw()
+        invalidateHazeDraw(HazeInvalidationReason.PreDraw)
       }
     }
   }
@@ -274,6 +276,7 @@ public class HazeEffectNode(
   override fun onDetach() {
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
+    resetPendingInvalidations()
     contentDrawArea.releaseLayer()
     clearRetainedOutput()
     detachVisualEffect(visualEffect)
@@ -555,7 +558,12 @@ public class HazeEffectNode(
 
   private fun onPostDraw() {
     dirtyTracker = Bitmask()
+    resetPendingInvalidations()
+  }
+
+  private fun resetPendingInvalidations() {
     needsPreDrawInvalidation = false
+    needsDirtyFieldsInvalidation = false
   }
 
   private fun invalidateIfNeeded() {
@@ -567,8 +575,9 @@ public class HazeEffectNode(
         "Dirty params=${DirtyFields.stringify(dirtyTracker)}"
     }
 
-    if (invalidateRequired) {
-      invalidateDraw()
+    if (invalidateRequired && !needsDirtyFieldsInvalidation) {
+      needsDirtyFieldsInvalidation = true
+      invalidateHazeDraw(HazeInvalidationReason.DirtyFields)
     }
   }
 
