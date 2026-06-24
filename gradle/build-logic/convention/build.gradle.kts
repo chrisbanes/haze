@@ -13,6 +13,12 @@ java {
   }
 }
 
+kotlin {
+  compilerOptions {
+    allWarningsAsErrors.set(true)
+  }
+}
+
 spotless {
   kotlin {
     target("src/**/*.kt")
