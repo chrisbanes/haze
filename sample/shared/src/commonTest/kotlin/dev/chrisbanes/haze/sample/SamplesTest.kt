@@ -6,7 +6,7 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 

@@ -25,7 +25,7 @@ kotlin {
     commonMain {
       dependencies {
         api(projects.hazeBlur)
-        implementation(compose.material3)
+        implementation(libs.compose.material3)
       }
     }
   }

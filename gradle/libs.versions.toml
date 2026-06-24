@@ -8,6 +8,8 @@ androidx-test-ext-junit = "1.3.0"
 assertk = "0.28.1"
 coil = "3.4.0"
 compose-multiplatform = "1.11.1"
+# Material3 does not publish every Compose Multiplatform version.
+compose-material3 = "1.9.0"
 kotlinx-coroutines-swing = "1.11.0"
 kotlinx-serialization = "1.11.0"
 ktlint = "1.0.1"
@@ -64,6 +66,13 @@ androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navi
 androidx-tracing = "androidx.tracing:tracing-ktx:1.3.0"
 
 compose-material-icons = "org.jetbrains.compose.material:material-icons-core:1.7.3"
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "compose-material3" }
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
+compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose-multiplatform" }
+compose-ui-test-junit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "compose-multiplatform" }
 
 assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assertk" }
 

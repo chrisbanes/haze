@@ -3,8 +3,6 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
-import org.jetbrains.compose.ExperimentalComposeLibrary
-
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
@@ -40,9 +38,9 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        api(compose.ui)
+        api(libs.compose.ui)
         implementation(projects.hazeUtils)
-        implementation(compose.foundation)
+        implementation(libs.compose.foundation)
         implementation(libs.androidx.collection)
       }
     }
@@ -60,10 +58,6 @@ kotlin {
 
     if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
       iosMain {
-        dependsOn(skikoMain)
-      }
-
-      macosMain {
         dependsOn(skikoMain)
       }
     }
@@ -85,8 +79,7 @@ kotlin {
         implementation(kotlin("test"))
         implementation(libs.assertk)
 
-        @OptIn(ExperimentalComposeLibrary::class)
-        implementation(compose.uiTest)
+        implementation(libs.compose.ui.test)
 
         implementation(projects.internal.contextTest)
         implementation(projects.internal.testUtils)
@@ -114,7 +107,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest> {
 val enableAppleTests = providers.gradleProperty("haze.enableAppleTests").isPresent
 
 /**
- * Disable Mac host and iOS sim tests by default. They have a high CI cost (mostly
+ * Disable native host and iOS sim tests by default. They have a high CI cost (mostly
  * linking), but CI can opt in to iOS simulator coverage with -Phaze.enableAppleTests.
  */
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest> {

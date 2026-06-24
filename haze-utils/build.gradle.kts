@@ -24,7 +24,7 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        api(compose.ui)
+        api(libs.compose.ui)
       }
     }
 
@@ -40,10 +40,6 @@ kotlin {
 
     if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
       iosMain {
-        dependsOn(skikoMain)
-      }
-
-      macosMain {
         dependsOn(skikoMain)
       }
     }

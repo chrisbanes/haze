@@ -3,6 +3,9 @@
 
 package dev.chrisbanes.haze
 
+import kotlin.js.ExperimentalWasmJsInterop
+
 internal actual fun epochTimeMillis(): Long = dateNow().toLong()
 
+@OptIn(ExperimentalWasmJsInterop::class)
 private fun dateNow(): Double = js("Date.now()")

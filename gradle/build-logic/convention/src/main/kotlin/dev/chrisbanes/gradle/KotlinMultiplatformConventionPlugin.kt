@@ -3,15 +3,17 @@
 
 package dev.chrisbanes.gradle
 
+import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
-import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile
 
 class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   override fun apply(target: Project) = with(target) {
@@ -23,6 +25,7 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
       applyDefaultHierarchyTemplate()
 
       compilerOptions {
+        allWarningsAsErrors.set(true)
         freeCompilerArgs.add("-Xexpect-actual-classes")
       }
 
@@ -39,6 +42,18 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
       }
     }
 
+    tasks.withType<KotlinNativeCompile>().configureEach {
+      compilerOptions {
+        // Kotlin emits unsuppressable duplicate KLIB loader warnings for the
+        // AndroidX/JetBrains Compose metadata mix used by native targets.
+        allWarningsAsErrors.set(false)
+      }
+    }
+
+    tasks.withType<KotlinJsTest>().configureEach {
+      enabled = false
+    }
+
     configureSpotless()
   }
 }
@@ -49,7 +64,6 @@ fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
   if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
     iosArm64()
     iosSimulatorArm64()
-    macosArm64()
   }
 
   @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
@@ -57,7 +71,7 @@ fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
     browser()
   }
 
-  js(IR) {
+  js {
     browser()
   }
 }

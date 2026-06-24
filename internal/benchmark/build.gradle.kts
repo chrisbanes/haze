@@ -22,6 +22,13 @@ android {
   targetProjectPath = ":sample:android"
   experimentalProperties["android.experimental.self-instrumenting"] = true
 
+  packaging {
+    jniLibs.keepDebugSymbols += setOf(
+      "**/libbenchmarkNative.so",
+      "**/libtracing_perfetto.so",
+    )
+  }
+
   testOptions.managedDevices.localDevices {
     create("pixel5Api30") {
       device = "Pixel 5"

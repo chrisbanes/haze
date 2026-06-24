@@ -35,11 +35,13 @@ kotlin {
         api(libs.androidx.navigation.compose)
         api(libs.kotlinx.serialization.json)
 
-        implementation(libs.coil.compose)
+        implementation("io.coil-kt.coil3:coil-compose:${libs.versions.coil.get()}") {
+          exclude(group = "org.jetbrains.skiko", module = "skiko")
+        }
         implementation(libs.coil.ktor)
         implementation(libs.ktor.core)
 
-        api(compose.material3)
+        api(libs.compose.material3)
         api(libs.compose.material.icons)
       }
     }
@@ -49,8 +51,7 @@ kotlin {
         implementation(kotlin("test"))
         implementation(libs.assertk)
 
-        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-        implementation(compose.uiTest)
+        implementation(libs.compose.ui.test)
 
         implementation(projects.internal.contextTest)
       }
@@ -84,14 +85,6 @@ kotlin {
           implementation(libs.ktor.darwin)
         }
       }
-
-      macosMain {
-        dependsOn(skikoMain)
-
-        dependencies {
-          implementation(libs.ktor.darwin)
-        }
-      }
     }
 
     jvmMain {
@@ -111,10 +104,30 @@ kotlin {
 
     named("wasmJsMain") {
       dependsOn(skikoMain)
+
+      dependencies {
+        implementation(npm("ws", "8.18.3"))
+      }
     }
 
     named("jsMain") {
       dependsOn(skikoMain)
+
+      dependencies {
+        implementation(npm("ws", "8.18.3"))
+      }
+    }
+
+    named("wasmJsTest") {
+      dependencies {
+        implementation(npm("ws", "8.18.3"))
+      }
+    }
+
+    named("jsTest") {
+      dependencies {
+        implementation(npm("ws", "8.18.3"))
+      }
     }
   }
 

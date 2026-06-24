@@ -46,8 +46,8 @@ kotlin {
     commonMain {
       dependencies {
         api(projects.haze)
-        api(compose.ui)
-        implementation(compose.foundation)
+        api(libs.compose.ui)
+        implementation(libs.compose.foundation)
         implementation(libs.androidx.collection)
         implementation(projects.hazeUtils)
       }
@@ -77,10 +77,6 @@ kotlin {
       iosMain {
         dependsOn(skikoMain)
       }
-
-      macosMain {
-        dependsOn(skikoMain)
-      }
     }
 
     jvmMain {
@@ -100,8 +96,7 @@ kotlin {
         implementation(libs.assertk)
         implementation(kotlin("test"))
 
-        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-        implementation(compose.uiTest)
+        implementation(libs.compose.ui.test)
 
         implementation(projects.internal.contextTest)
         implementation(projects.internal.testUtils)

@@ -22,12 +22,11 @@ kotlin {
       dependencies {
         api(projects.internal.contextTest)
 
-        api(compose.components.resources)
-        api(compose.foundation)
-        api(compose.material3)
+        api(libs.compose.components.resources)
+        api(libs.compose.foundation)
+        api(libs.compose.material3)
 
-        @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-        api(compose.uiTest)
+        api(libs.compose.ui.test)
       }
     }
 
@@ -36,7 +35,7 @@ kotlin {
         implementation(libs.androidx.test.ext.junit)
         implementation(libs.androidx.compose.ui.test.manifest)
 
-        implementation(compose.desktop.uiTestJUnit4)
+        implementation(libs.compose.ui.test.junit4)
 
         implementation(libs.robolectric)
 
@@ -50,7 +49,7 @@ kotlin {
     jvmMain {
       dependencies {
         implementation(compose.desktop.currentOs)
-        implementation(compose.desktop.uiTestJUnit4)
+        implementation(libs.compose.ui.test.junit4)
 
         implementation(libs.roborazzi.core)
         implementation(libs.roborazzi.compose.desktop)

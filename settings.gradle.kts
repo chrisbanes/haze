@@ -119,7 +119,3 @@ include(
   ":sample:desktop",
   ":sample:web",
 )
-
-if (!providers.gradleProperty("haze.disableAppleTargets").isPresent) {
-  include(":sample:macos")
-}

@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
-import org.jetbrains.compose.ExperimentalComposeLibrary
-
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
@@ -36,9 +34,9 @@ kotlin {
       dependencies {
         api(projects.hazeBlur)
         api(projects.hazeLiquidglass)
-        api(compose.foundation)
-        api(compose.material3)
-        api(compose.components.resources)
+        api(libs.compose.foundation)
+        api(libs.compose.material3)
+        api(libs.compose.components.resources)
       }
     }
 
@@ -47,8 +45,7 @@ kotlin {
         implementation(kotlin("test"))
         implementation(libs.assertk)
 
-        @OptIn(ExperimentalComposeLibrary::class)
-        implementation(compose.uiTest)
+        implementation(libs.compose.ui.test)
 
         implementation(projects.internal.contextTest)
         implementation(projects.internal.screenshotTest)
@@ -81,6 +78,10 @@ tasks.register("test") {
 // Compose resources plugin generates this task for withDeviceTest() even when
 // no androidDeviceTest source set exists. Disable it to avoid outputDirectory errors.
 tasks.configureEach {
+  if (name == "finalizeTestRoborazziAndroidHostTest") {
+    mustRunAfter("finalizeTestRoborazziJvm")
+  }
+
   if (name == "copyAndroidDeviceTestComposeResourcesToAndroidAssets") {
     enabled = false
   }
