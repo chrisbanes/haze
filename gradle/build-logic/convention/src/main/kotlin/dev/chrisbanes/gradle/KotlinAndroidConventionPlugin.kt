@@ -12,6 +12,7 @@ class KotlinAndroidConventionPlugin : Plugin<Project> {
   override fun apply(target: Project) = with(target) {
     tasks.withType<KotlinCompilationTask<*>>().configureEach {
       compilerOptions {
+        // AGP creates Kotlin compilation tasks directly, so configure them by type.
         allWarningsAsErrors.set(true)
       }
     }

@@ -29,6 +29,7 @@ plugins {
 subprojects {
   tasks.withType<Copy>().configureEach {
     if (name.endsWith("TestDevelopmentExecutableCompileSync")) {
+      // Kotlin/JS copies duplicate Skiko runtime files from main and test resources.
       duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
   }

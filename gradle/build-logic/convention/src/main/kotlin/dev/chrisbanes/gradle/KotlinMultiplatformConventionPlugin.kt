@@ -13,7 +13,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile
 
 class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   override fun apply(target: Project) = with(target) {
@@ -42,11 +42,11 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
       }
     }
 
-    tasks.withType<KotlinCompilationTask<*>>().configureEach {
-      if (isNativeCompilationTask()) {
-        compilerOptions {
-          allWarningsAsErrors.set(false)
-        }
+    tasks.withType<KotlinNativeCompile>().configureEach {
+      compilerOptions {
+        // Kotlin emits unsuppressable duplicate KLIB loader warnings for the
+        // AndroidX/JetBrains Compose metadata mix used by native targets.
+        allWarningsAsErrors.set(false)
       }
     }
 
@@ -56,13 +56,6 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
 
     configureSpotless()
   }
-}
-
-private fun KotlinCompilationTask<*>.isNativeCompilationTask(): Boolean {
-  return name.contains("Apple") ||
-    name.contains("Ios") ||
-    name.contains("Macos") ||
-    name.contains("Native")
 }
 
 fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
