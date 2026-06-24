@@ -13,8 +13,16 @@ internal class HazeInvalidationAssertionScope internal constructor(
     assertInvalidationsExactly(HazeInvalidationType.Draw, count)
   }
 
+  fun drawInvalidationsAtMost(count: Int) {
+    assertInvalidationsAtMost(HazeInvalidationType.Draw, count)
+  }
+
   fun layoutInvalidationsExactly(count: Int) {
     assertInvalidationsExactly(HazeInvalidationType.Layout, count)
+  }
+
+  fun layoutInvalidationsAtMost(count: Int) {
+    assertInvalidationsAtMost(HazeInvalidationType.Layout, count)
   }
 
   private fun assertInvalidationsExactly(
@@ -28,6 +36,21 @@ internal class HazeInvalidationAssertionScope internal constructor(
       matchingEvents.size,
       "Haze $type invalidations for tag '$tag'. All events: ${hazeInvalidationEvents()}",
     ).isEqualTo(count)
+  }
+
+  private fun assertInvalidationsAtMost(
+    type: HazeInvalidationType,
+    count: Int,
+  ) {
+    val allEvents = hazeInvalidationEvents()
+    val matchingEvents = allEvents.filter {
+      it.tag == tag && it.invalidationType == type
+    }
+    assertThat(
+      matchingEvents.size <= count,
+      "Haze $type invalidations for tag '$tag' expected at most $count. " +
+        "Actual=${matchingEvents.size}. All events: $allEvents",
+    ).isEqualTo(true)
   }
 }
 

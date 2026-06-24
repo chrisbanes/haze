@@ -79,6 +79,7 @@ public class HazeEffectNode(
     }
 
   private var needsPreDrawInvalidation = false
+  private var needsDirtyFieldsInvalidation = false
 
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
@@ -557,6 +558,7 @@ public class HazeEffectNode(
   private fun onPostDraw() {
     dirtyTracker = Bitmask()
     needsPreDrawInvalidation = false
+    needsDirtyFieldsInvalidation = false
   }
 
   private fun invalidateIfNeeded() {
@@ -568,7 +570,8 @@ public class HazeEffectNode(
         "Dirty params=${DirtyFields.stringify(dirtyTracker)}"
     }
 
-    if (invalidateRequired) {
+    if (invalidateRequired && !needsDirtyFieldsInvalidation) {
+      needsDirtyFieldsInvalidation = true
       invalidateHazeDraw(HazeInvalidationReason.DirtyFields)
     }
   }

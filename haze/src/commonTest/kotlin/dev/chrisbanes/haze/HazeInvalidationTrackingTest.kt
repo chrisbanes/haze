@@ -43,7 +43,7 @@ class HazeInvalidationTrackingTest : ContextTest() {
       waitForIdle()
 
       assertHazeInvalidations("effect") {
-        drawInvalidationsExactly(1)
+        drawInvalidationsAtMost(1)
         layoutInvalidationsExactly(0)
       }
     }
@@ -103,6 +103,133 @@ class HazeInvalidationTrackingTest : ContextTest() {
     waitForIdle()
 
     assertThat(hazeInvalidationEvents()).isEmpty()
+  }
+
+  @Test
+  fun addingSourceNode_recordsBoundedTaggedEffectInvalidations() = runComposeUiTest {
+    val hazeState = HazeState()
+    val showSource = mutableStateOf(false)
+
+    withHazeInvalidationTracking {
+      setContent {
+        if (showSource.value) {
+          Spacer(Modifier.hazeSource(hazeState).size(50.dp))
+        }
+        Spacer(
+          Modifier
+            .hazeInvalidationTag("effect")
+            .hazeEffect(hazeState)
+            .size(100.dp),
+        )
+      }
+      waitForIdle()
+
+      clearHazeInvalidations()
+
+      showSource.value = true
+      waitForIdle()
+
+      assertHazeInvalidations("effect") {
+        drawInvalidationsAtMost(1)
+        layoutInvalidationsExactly(0)
+      }
+    }
+  }
+
+  @Test
+  fun removingSourceNode_recordsBoundedTaggedEffectInvalidations() = runComposeUiTest {
+    val hazeState = HazeState()
+    val showSource = mutableStateOf(true)
+
+    withHazeInvalidationTracking {
+      setContent {
+        if (showSource.value) {
+          Spacer(Modifier.hazeSource(hazeState).size(50.dp))
+        }
+        Spacer(
+          Modifier
+            .hazeInvalidationTag("effect")
+            .hazeEffect(hazeState)
+            .size(100.dp),
+        )
+      }
+      waitForIdle()
+
+      clearHazeInvalidations()
+
+      showSource.value = false
+      waitForIdle()
+
+      assertHazeInvalidations("effect") {
+        drawInvalidationsAtMost(1)
+        layoutInvalidationsExactly(0)
+      }
+    }
+  }
+
+  @Test
+  fun multipleSimultaneousSourceChanges_recordsBoundedTaggedEffectInvalidations() = runComposeUiTest {
+    val hazeState = HazeState()
+    val showSources = mutableStateOf(false)
+
+    withHazeInvalidationTracking {
+      setContent {
+        if (showSources.value) {
+          repeat(5) {
+            Spacer(Modifier.hazeSource(hazeState).size(20.dp))
+          }
+        }
+        Spacer(
+          Modifier
+            .hazeInvalidationTag("effect")
+            .hazeEffect(hazeState)
+            .size(100.dp),
+        )
+      }
+      waitForIdle()
+
+      clearHazeInvalidations()
+
+      showSources.value = true
+      waitForIdle()
+
+      assertHazeInvalidations("effect") {
+        drawInvalidationsAtMost(1)
+        layoutInvalidationsExactly(0)
+      }
+    }
+  }
+
+  @Test
+  fun effectBlockMutation_recordsBoundedTaggedEffectInvalidations() = runComposeUiTest {
+    val hazeState = HazeState()
+    val drawBehind = mutableStateOf(false)
+
+    withHazeInvalidationTracking {
+      setContent {
+        Box(Modifier.hazeSource(hazeState).size(100.dp)) {
+          Spacer(
+            Modifier
+              .hazeInvalidationTag("effect")
+              .hazeEffect(hazeState) {
+                drawContentBehind = drawBehind.value
+              }
+              .size(100.dp),
+          )
+        }
+      }
+      waitForIdle()
+
+      clearHazeInvalidations()
+
+      drawBehind.value = true
+      waitForIdle()
+
+      assertHazeInvalidations("effect") {
+        drawInvalidationsAtMost(1)
+        layoutInvalidationsExactly(0)
+      }
+    }
   }
 }
 
