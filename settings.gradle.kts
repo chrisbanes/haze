@@ -61,17 +61,24 @@ val remoteBuildCacheUrl = gradleProperty("remoteBuildCacheUrl")
 val remoteBuildCacheUsername = gradleProperty("remoteBuildCacheUsername")
 val remoteBuildCachePassword = gradleProperty("remoteBuildCachePassword")
 val isRemoteBuildCachePushEnabled = gradleBooleanProperty("remoteBuildCachePush")
+val isRemoteBuildCacheEnabled =
+  remoteBuildCacheUrl != null &&
+    remoteBuildCacheUsername != null &&
+    remoteBuildCachePassword != null
 
 buildCache {
+  local {
+    isEnabled = !isCi || !isRemoteBuildCacheEnabled
+    if (!isEnabled) {
+      logger.lifecycle("Local build cache disabled because remote build cache is enabled on CI")
+    }
+  }
+
   remote<HttpBuildCache> {
-    if (
-      remoteBuildCacheUrl != null &&
-      remoteBuildCacheUsername != null &&
-      remoteBuildCachePassword != null
-    ) {
+    if (isRemoteBuildCacheEnabled) {
       isEnabled = true
       isPush = isRemoteBuildCachePushEnabled
-      url = uri(remoteBuildCacheUrl)
+      url = uri(checkNotNull(remoteBuildCacheUrl))
       credentials {
         username = remoteBuildCacheUsername
         password = remoteBuildCachePassword

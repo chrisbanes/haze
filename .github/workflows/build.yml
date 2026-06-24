@@ -35,6 +35,9 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-home-cache-excludes: |
+            caches/build-cache-1
 
       - name: Compile iOS arm64 target and run simulator tests
         run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Test -Phaze.enableAppleTests
@@ -69,6 +72,9 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-home-cache-excludes: |
+            caches/build-cache-1
 
       - name: Assemble and check
         run: ./gradlew check assembleDebug -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
@@ -103,6 +109,9 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-home-cache-excludes: |
+            caches/build-cache-1
 
       - name: Enable KVM
         run: |
@@ -153,6 +162,9 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-home-cache-excludes: |
+            caches/build-cache-1
 
       - name: Deploy to Sonatype
         run: ./gradlew publish --no-configuration-cache
