@@ -10,17 +10,24 @@ internal class HazeInvalidationAssertionScope internal constructor(
   private val tag: String,
 ) {
   fun drawInvalidationsExactly(count: Int) {
-    assertThat(eventsOfType(HazeInvalidationType.Draw).size).isEqualTo(count)
+    assertInvalidationsExactly(HazeInvalidationType.Draw, count)
   }
 
   fun layoutInvalidationsExactly(count: Int) {
-    assertThat(eventsOfType(HazeInvalidationType.Layout).size).isEqualTo(count)
+    assertInvalidationsExactly(HazeInvalidationType.Layout, count)
   }
 
-  private fun eventsOfType(type: HazeInvalidationType): List<HazeInvalidationEvent> {
-    return hazeInvalidationEvents().filter { event ->
-      event.tag == tag && event.invalidationType == type
+  private fun assertInvalidationsExactly(
+    type: HazeInvalidationType,
+    count: Int,
+  ) {
+    val matchingEvents = hazeInvalidationEvents().filter {
+      it.tag == tag && it.invalidationType == type
     }
+    assertThat(
+      matchingEvents.size,
+      "Haze $type invalidations for tag '$tag'. All events: ${hazeInvalidationEvents()}",
+    ).isEqualTo(count)
   }
 }
 

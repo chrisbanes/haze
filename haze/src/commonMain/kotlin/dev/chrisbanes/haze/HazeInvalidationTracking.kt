@@ -30,12 +30,38 @@ internal data class HazeInvalidationEvent(
   val reason: HazeInvalidationReason,
 )
 
+@PublishedApi
+internal class HazeInvalidationRecorder {
+  val events = mutableListOf<HazeInvalidationEvent>()
+}
+
+@PublishedApi
+internal var activeHazeInvalidationRecorder: HazeInvalidationRecorder? = null
+
+internal val isHazeInvalidationTrackingActive: Boolean
+  get() = activeHazeInvalidationRecorder != null
+
+internal inline fun recordHazeInvalidation(event: () -> HazeInvalidationEvent) {
+  activeHazeInvalidationRecorder?.events?.add(event())
+}
+
 internal fun Modifier.hazeInvalidationTag(tag: String): Modifier = this
 
 internal fun withHazeInvalidationTracking(block: () -> Unit) {
-  block()
+  val previousRecorder = activeHazeInvalidationRecorder
+  val recorder = HazeInvalidationRecorder()
+  activeHazeInvalidationRecorder = recorder
+  try {
+    block()
+  } finally {
+    activeHazeInvalidationRecorder = previousRecorder
+  }
 }
 
-internal fun clearHazeInvalidations() = Unit
+internal fun clearHazeInvalidations() {
+  activeHazeInvalidationRecorder?.events?.clear()
+}
 
-internal fun hazeInvalidationEvents(): List<HazeInvalidationEvent> = emptyList()
+internal fun hazeInvalidationEvents(): List<HazeInvalidationEvent> {
+  return activeHazeInvalidationRecorder?.events.orEmpty()
+}
