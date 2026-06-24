@@ -60,25 +60,31 @@ fun gradleBooleanProperty(name: String): Boolean =
 val remoteBuildCacheUrl = gradleProperty("remoteBuildCacheUrl")
 val remoteBuildCacheUsername = gradleProperty("remoteBuildCacheUsername")
 val remoteBuildCachePassword = gradleProperty("remoteBuildCachePassword")
-val isRemoteBuildCacheEnabled = gradleBooleanProperty("remoteBuildCacheEnabled")
+val isRemoteBuildCachePushEnabled = gradleBooleanProperty("remoteBuildCachePush")
 
 buildCache {
   remote<HttpBuildCache> {
     if (
-      isRemoteBuildCacheEnabled &&
       remoteBuildCacheUrl != null &&
       remoteBuildCacheUsername != null &&
       remoteBuildCachePassword != null
     ) {
       isEnabled = true
-      isPush = gradleBooleanProperty("remoteBuildCachePush")
+      isPush = isRemoteBuildCachePushEnabled
       url = uri(remoteBuildCacheUrl)
       credentials {
         username = remoteBuildCacheUsername
         password = remoteBuildCachePassword
       }
+      logger.lifecycle("Remote build cache enabled (push: $isRemoteBuildCachePushEnabled)")
     } else {
       isEnabled = false
+      logger.lifecycle(
+        "Remote build cache disabled " +
+          "(url present: ${remoteBuildCacheUrl != null}, " +
+          "username present: ${remoteBuildCacheUsername != null}, " +
+          "password present: ${remoteBuildCachePassword != null})",
+      )
     }
   }
 }
