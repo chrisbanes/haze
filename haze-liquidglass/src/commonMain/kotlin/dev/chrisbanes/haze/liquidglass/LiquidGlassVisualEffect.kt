@@ -330,10 +330,9 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
    *  - [LiquidGlassStyle.blurRadius] value set in [style], if specified.
    *  - [LiquidGlassStyle.blurRadius] value set in the [LocalLiquidGlassStyle] composition local.
    *
-   * **Note:** On Android API 33+, this property has no effect when the runtime-shader
-   * delegate is active. Android's `RenderEffect.createRuntimeShaderEffect` supports only
-   * a single content input, so the separate blurred content required for depth mixing is
-   * unavailable and the depth-based blur mixing is skipped.
+   * **Note:** On Android API 33+, the runtime-shader delegate uses a native platform
+   * blur render effect as a separate underlay pass. Skiko targets use a separate
+   * platform blur render effect as the blurred content input to the runtime shader.
    */
   public var blurRadius: Dp = Dp.Unspecified
     get() {

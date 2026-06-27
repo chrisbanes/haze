@@ -622,7 +622,7 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun horizontalPager_half() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
       colorEffects = listOf(DefaultTint)
-      blurRadius = 8.dp
+      blurRadius = 16.dp
     }
 
     setContent {
