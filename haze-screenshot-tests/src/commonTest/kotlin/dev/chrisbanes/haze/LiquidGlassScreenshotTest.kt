@@ -194,6 +194,36 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_blurRadiusWithRefraction() = runScreenshotTest {
+    val shape = RoundedCornerShape(28.dp)
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = Color.White.copy(alpha = 0.08f)
+      refractionStrength = 0.85f
+      depth = 0.9f
+      blurRadius = 0.dp
+      specularIntensity = 0f
+      ambientResponse = 0f
+      edgeSoftness = 0.dp
+      this.shape = shape
+    }
+
+    setContent {
+      ScreenshotTheme {
+        LiquidGlassBlurRadiusSample(
+          visualEffect = visualEffect,
+          shape = shape,
+        )
+      }
+    }
+
+    captureRoot("zero")
+
+    visualEffect.blurRadius = 32.dp
+    waitForIdle()
+    captureRoot("strong")
+  }
+
+  @Test
   fun creditCard_lightPosition() = runScreenshotTest {
     val visualEffect = LiquidGlassVisualEffect().apply {
       tint = DefaultTint
