@@ -73,13 +73,17 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 ```kotlin
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.HazeProgressive
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect // NEW: extension function
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 ```
 
 Blur-specific defaults from `HazeDefaults` are now in `HazeBlurDefaults`. `HazeDefaults.drawContentBehind` has no direct replacement; leave `drawContentBehind` unset or set it directly on `HazeEffectScope`.
+
+### HazeProgressive moved to core
+
+`HazeProgressive` now lives in `dev.chrisbanes.haze.HazeProgressive` because progressive masks are shared by blur and liquid glass. The old `dev.chrisbanes.haze.blur.HazeProgressive` name remains as a deprecated typealias for source compatibility during the v2 alpha cycle.
 
 ## API Migration
 
@@ -292,7 +296,7 @@ LiquidGlassStyle(
 | `dev.chrisbanes.haze.HazeDefaults.drawContentBehind` | `HazeEffectScope.drawContentBehind` | Set directly in the `hazeEffect` block if needed |
 | `dev.chrisbanes.haze.HazeStyle` | `dev.chrisbanes.haze.blur.HazeBlurStyle` | Renamed + package change |
 | `dev.chrisbanes.haze.HazeTint` | `dev.chrisbanes.haze.blur.HazeColorEffect` | Renamed + package change |
-| `dev.chrisbanes.haze.HazeProgressive` | `dev.chrisbanes.haze.blur.HazeProgressive` | Package change |
+| `dev.chrisbanes.haze.HazeProgressive` | `dev.chrisbanes.haze.HazeProgressive` | Unchanged core location; `dev.chrisbanes.haze.blur.HazeProgressive` remains as a deprecated typealias during the v2 alpha cycle |
 | `dev.chrisbanes.haze.LocalHazeStyle` | `dev.chrisbanes.haze.blur.LocalHazeBlurStyle` | Renamed + package change |
 | `dev.chrisbanes.haze.materials.*` | `dev.chrisbanes.haze.blur.materials.*` | Package moved; artifact also renamed to `haze-blur-materials` |
 | `dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi` | *Removed* | Materials APIs are no longer annotated with this opt-in |
@@ -314,7 +318,7 @@ LiquidGlassStyle(
   - Change `HazeDefaults.drawContentBehind` usage → direct `drawContentBehind` assignment in the `hazeEffect` block
   - Change `dev.chrisbanes.haze.HazeStyle` → `dev.chrisbanes.haze.blur.HazeBlurStyle`
   - Change `dev.chrisbanes.haze.HazeTint` → `dev.chrisbanes.haze.blur.HazeColorEffect`
-  - Change `dev.chrisbanes.haze.HazeProgressive` → `dev.chrisbanes.haze.blur.HazeProgressive`
+  - Keep `dev.chrisbanes.haze.HazeProgressive`; `dev.chrisbanes.haze.blur.HazeProgressive` remains as a deprecated typealias during the v2 alpha cycle
   - Change `dev.chrisbanes.haze.LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeBlurStyle`
   - Change `dev.chrisbanes.haze.materials.HazeMaterials` → `dev.chrisbanes.haze.blur.materials.HazeMaterials`
   - Add `import dev.chrisbanes.haze.blur.blurEffect`
