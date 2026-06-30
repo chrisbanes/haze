@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode
 import dev.chrisbanes.haze.liquidglass.LiquidGlassLighting
@@ -186,6 +187,30 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
         LiquidGlassBlurRadiusSample(
           visualEffect = visualEffect,
           shape = shape,
+        )
+      }
+    }
+
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_fallbackTintAndEdge() = runScreenshotTest {
+    val shape = RoundedCornerShape(28.dp)
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = Color.White.copy(alpha = 0.18f)
+      edgeSoftness = 12.dp
+      specularIntensity = 0.4f
+      ambientResponse = 0.5f
+      this.shape = shape
+    }
+
+    setContent {
+      ScreenshotTheme {
+        LiquidGlassBlurRadiusSample(
+          visualEffect = visualEffect,
+          shape = shape,
+          clipShape = false,
         )
       }
     }
@@ -399,6 +424,9 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
 private fun LiquidGlassBlurRadiusSample(
   visualEffect: LiquidGlassVisualEffect,
   shape: RoundedCornerShape,
+  clipShape: Boolean = true,
+  cardWidth: Dp = 520.dp,
+  cardHeight: Dp = 320.dp,
 ) {
   val hazeState = remember { HazeState() }
 
@@ -440,8 +468,8 @@ private fun LiquidGlassBlurRadiusSample(
     Box(
       modifier = Modifier
         .align(Alignment.Center)
-        .size(width = 520.dp, height = 320.dp)
-        .clip(shape)
+        .size(width = cardWidth, height = cardHeight)
+        .then(if (clipShape) Modifier.clip(shape) else Modifier)
         .hazeEffect(state = hazeState) {
           this.visualEffect = visualEffect
         },

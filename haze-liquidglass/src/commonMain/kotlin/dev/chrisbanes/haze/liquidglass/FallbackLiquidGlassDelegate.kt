@@ -33,6 +33,7 @@ internal class FallbackLiquidGlassDelegate(
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     val edgeSoftnessPx = with(context.requireDensity()) { effect.edgeSoftness.toPx() }
+    val edgeAlpha = fallbackEdgeAlpha(effect.ambientResponse)
     val highlightCenter = effect.lightPosition.takeUnless { it == Offset.Unspecified }
       ?: Offset(size.width / 2f, size.height / 3f)
 
@@ -80,13 +81,18 @@ internal class FallbackLiquidGlassDelegate(
       if (edgeSoftnessPx > 0f) {
         val softness = edgeSoftnessPx
         val stroke = Stroke(width = softness * 2f)
-        val edgeBrush = Brush.radialGradient(
-          colors = listOf(Color.White.copy(alpha = 0.12f), Color.Transparent),
-          center = Offset(size.width / 2f, size.height / 2f),
-          radius = size.maxDimension,
+        val edgeBrush = Brush.linearGradient(
+          colors = listOf(
+            Color.White.copy(alpha = edgeAlpha),
+            Color.Transparent,
+          ),
+          start = Offset.Zero,
+          end = Offset(size.width, size.height),
         )
         if (shapePath != null) {
-          drawPath(path = shapePath, brush = edgeBrush, style = stroke)
+          clipPath(shapePath) {
+            drawPath(path = shapePath, brush = edgeBrush, style = stroke)
+          }
         } else {
           drawRect(brush = edgeBrush, style = stroke)
         }
@@ -94,3 +100,5 @@ internal class FallbackLiquidGlassDelegate(
     }
   }
 }
+
+internal fun fallbackEdgeAlpha(ambientResponse: Float): Float = 0.18f * ambientResponse.coerceIn(0f, 1f)
