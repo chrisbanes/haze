@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
@@ -119,6 +120,7 @@ internal class RuntimeShaderLiquidGlassDelegate(
         tint = effect.tint,
         edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() },
         blurRadiusPx = with(density) { effect.blurRadius.toPx() },
+        progressive = effect.progressive,
         refractionHeightPx = effect.refractionHeight.coerceIn(0f, 1f) * layerSize.minDimension,
         chromaticAberrationStrength = effect.chromaticAberrationStrength.coerceIn(0f, 1f),
         surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),
@@ -211,6 +213,7 @@ internal class RuntimeShaderLiquidGlassDelegate(
     val tint: Color,
     val edgeSoftnessPx: Float,
     val blurRadiusPx: Float,
+    val progressive: HazeProgressive?,
     val refractionHeightPx: Float,
     val chromaticAberrationStrength: Float,
     val surfaceProfile: Float,

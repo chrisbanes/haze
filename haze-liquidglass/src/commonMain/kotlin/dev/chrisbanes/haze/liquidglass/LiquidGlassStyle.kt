@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeProgressive
 
 /**
  * A [ProvidableCompositionLocal] which provides the default [LiquidGlassStyle] for all
@@ -43,6 +44,7 @@ public data class LiquidGlassOptics(
   val refractionScale: Float = Float.NaN,
   val depth: Float = Float.NaN,
   val blurRadius: Dp = Dp.Unspecified,
+  val progressive: HazeProgressive? = null,
 ) {
   public companion object {
     public val Unspecified: LiquidGlassOptics = LiquidGlassOptics()
