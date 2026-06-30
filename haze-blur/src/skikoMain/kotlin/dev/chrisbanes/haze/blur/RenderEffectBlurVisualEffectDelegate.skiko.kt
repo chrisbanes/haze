@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.blur
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.VisualEffectContext
 
 internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(

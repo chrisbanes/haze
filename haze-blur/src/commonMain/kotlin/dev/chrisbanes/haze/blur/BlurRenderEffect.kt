@@ -22,6 +22,7 @@ import dev.chrisbanes.haze.HazeBlendMode
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.blendForeground
 import dev.chrisbanes.haze.createBlendColorFilter

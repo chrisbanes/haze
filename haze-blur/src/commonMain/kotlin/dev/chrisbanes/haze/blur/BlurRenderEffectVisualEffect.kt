@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.ceil
@@ -151,13 +152,13 @@ private fun VisualEffectContext.hasDrawableSourceLayers(): Boolean {
 
 internal expect fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,
-  progressive: HazeProgressive,
+  progressive: RootHazeProgressive,
   contentLayer: GraphicsLayer,
   context: VisualEffectContext,
 )
 
 internal fun DrawScope.drawProgressiveWithMultipleLayers(
-  progressive: HazeProgressive.LinearGradient,
+  progressive: RootHazeProgressive.LinearGradient,
   stepHeight: Dp = 64.dp,
   block: (mask: Brush, intensity: Float) -> Unit,
 ) {

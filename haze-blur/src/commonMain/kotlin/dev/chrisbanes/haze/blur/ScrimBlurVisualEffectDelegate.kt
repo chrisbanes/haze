@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.asBrush
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class ScrimBlurVisualEffectDelegate(
