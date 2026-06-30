@@ -30,21 +30,11 @@ import dev.chrisbanes.haze.createBlendRenderEffect
 import dev.chrisbanes.haze.createBlurRenderEffect
 import dev.chrisbanes.haze.createColorFilterRenderEffect
 import dev.chrisbanes.haze.createOffsetRenderEffect
-import dev.chrisbanes.haze.createRuntimeEffect
-import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
+import dev.chrisbanes.haze.createProgressiveBlurRenderEffect
 import dev.chrisbanes.haze.createShaderRenderEffect
 import dev.chrisbanes.haze.isRuntimeShaderRenderEffectSupported
-import dev.chrisbanes.haze.then
 import dev.chrisbanes.haze.toHazeBlendMode
 import dev.chrisbanes.haze.toPlatformColorFilter
-
-private val VERTICAL_BLUR_SHADER by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(HazeBlurShaders.VERTICAL_BLUR_SKSL)
-}
-
-private val HORIZONTAL_BLUR_SHADER by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(HazeBlurShaders.HORIZONTAL_BLUR_SKSL)
-}
 
 @RequiresApi(31)
 internal fun createRenderEffect(
@@ -63,7 +53,12 @@ internal fun createRenderEffect(
   val blur = if (progressiveShader != null && isRuntimeShaderRenderEffectSupported()) {
     // If we've been provided with a progressive/gradient blur shader, we need to use
     // our custom blur via a runtime shader (requires runtime shader support)
-    createGradientBlurRenderEffect(blurRadiusPx, size, offset, progressiveShader)
+    createProgressiveBlurRenderEffect(
+      blurRadiusPx = blurRadiusPx,
+      size = size,
+      offset = offset,
+      mask = progressiveShader,
+    )
   } else {
     // Platform-specific blur creation
     createBlurRenderEffect(
@@ -261,26 +256,6 @@ private fun PlatformRenderEffect.withMask(
     blendMode = blendMode,
     offset = offset,
   )
-}
-
-private fun createGradientBlurRenderEffect(
-  blurRadiusPx: Float,
-  size: Size,
-  offset: Offset,
-  mask: Shader,
-): PlatformRenderEffect {
-  fun shader(vertical: Boolean): PlatformRenderEffect = createRuntimeShaderRenderEffect(
-    effect = if (vertical) VERTICAL_BLUR_SHADER else HORIZONTAL_BLUR_SHADER,
-    shaderNames = arrayOf("content"),
-    inputs = arrayOf(null),
-  ) {
-    setFloatUniform("blurRadius", blurRadiusPx)
-    setFloatUniform("crop", offset.x, offset.y, offset.x + size.width, offset.y + size.height)
-    setChildShader("mask", mask)
-  }
-
-  // Our blur runtime shader is separated, therefore requires two passes, one in each direction
-  return shader(vertical = false).then(shader(vertical = true))
 }
 
 private fun Brush.toShader(size: Size): Shader? = when (this) {

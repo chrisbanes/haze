@@ -173,6 +173,10 @@ package dev.chrisbanes.haze {
     ctor public PlatformRuntimeEffect(String sksl);
   }
 
+  public final class ProgressiveBlurRenderEffectKt {
+    method @KotlinOnly @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRenderEffect createProgressiveBlurRenderEffect(float blurRadiusPx, androidx.compose.ui.geometry.Size size, androidx.compose.ui.geometry.Offset offset, androidx.compose.ui.graphics.Shader mask);
+  }
+
   public final class RenderEffectKt {
     method @KotlinOnly @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRenderEffect blendForeground(dev.chrisbanes.haze.PlatformRenderEffect, dev.chrisbanes.haze.PlatformRenderEffect foreground, dev.chrisbanes.haze.HazeBlendMode blendMode, optional androidx.compose.ui.geometry.Offset offset);
   }

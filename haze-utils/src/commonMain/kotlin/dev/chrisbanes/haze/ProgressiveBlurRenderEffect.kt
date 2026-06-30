@@ -1,13 +1,58 @@
 // Copyright 2024, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze.blur
+@file:OptIn(InternalHazeApi::class)
 
-/**
- * Contains the SKSL shader code used by Haze for blur effects.
- * These shaders are shared between Android (API 33+) and Skiko platforms.
- */
-internal object HazeBlurShaders {
+package dev.chrisbanes.haze
+
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Shader
+
+@InternalHazeApi
+public fun createProgressiveBlurRenderEffect(
+  blurRadiusPx: Float,
+  size: Size,
+  offset: Offset,
+  mask: Shader,
+): PlatformRenderEffect {
+  val crop = floatArrayOf(
+    offset.x,
+    offset.y,
+    offset.x + size.width,
+    offset.y + size.height,
+  )
+
+  val horizontal = createRuntimeShaderRenderEffect(
+    effect = HORIZONTAL_PROGRESSIVE_BLUR_EFFECT,
+    shaderNames = arrayOf("content"),
+    inputs = arrayOf(null),
+  ) {
+    setFloatUniform("blurRadius", blurRadiusPx)
+    setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
+    setChildShader("mask", mask)
+  }
+
+  return createRuntimeShaderRenderEffect(
+    effect = VERTICAL_PROGRESSIVE_BLUR_EFFECT,
+    shaderNames = arrayOf("content"),
+    inputs = arrayOf(horizontal),
+  ) {
+    setFloatUniform("blurRadius", blurRadiusPx)
+    setFloatUniform("crop", crop[0], crop[1], crop[2], crop[3])
+    setChildShader("mask", mask)
+  }
+}
+
+private val VERTICAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(ProgressiveBlurShaders.VERTICAL_BLUR_SKSL)
+}
+
+private val HORIZONTAL_PROGRESSIVE_BLUR_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(ProgressiveBlurShaders.HORIZONTAL_BLUR_SKSL)
+}
+
+private object ProgressiveBlurShaders {
   /**
    * SKSL for vertical blur pass with mask support.
    */
