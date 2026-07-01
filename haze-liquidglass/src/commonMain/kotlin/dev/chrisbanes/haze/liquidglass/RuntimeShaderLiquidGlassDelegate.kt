@@ -9,7 +9,6 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -27,7 +26,7 @@ import dev.chrisbanes.haze.asComposeRenderEffect
 internal class RuntimeShaderLiquidGlassDelegate(
   private val effect: LiquidGlassVisualEffect,
 ) : LiquidGlassVisualEffect.Delegate, RetainedOutputDelegate {
-  private var renderEffect: RenderEffect? = null
+  private var renderEffects: LiquidGlassRenderEffects? = null
   private var lastParams: RenderParams? = null
   private var contentLayer: GraphicsLayer? = null
   private var lastScaledLayerSize: Size? = null
@@ -138,12 +137,22 @@ internal class RuntimeShaderLiquidGlassDelegate(
         },
       )
 
-      if (params != lastParams || renderEffect == null) {
-        renderEffect = buildRenderEffect(params)
+      if (params != lastParams || renderEffects == null) {
+        renderEffects = buildRenderEffects(params)
         lastParams = params
       }
 
-      layer.renderEffect = renderEffect
+      val currentRenderEffects = renderEffects ?: return@drawScaledContent
+
+      currentRenderEffects.underlay
+        ?.takeIf { params.depth > 0f }
+        ?.let { underlay ->
+          layer.renderEffect = underlay.asComposeRenderEffect()
+          layer.alpha = effect.alpha * params.depth
+          drawLayer(layer)
+        }
+
+      layer.renderEffect = currentRenderEffects.overlay.asComposeRenderEffect()
       layer.alpha = effect.alpha
       drawLayer(layer)
     }
@@ -167,8 +176,8 @@ internal class RuntimeShaderLiquidGlassDelegate(
     retainedOutputAvailable = false
   }
 
-  private fun buildRenderEffect(params: RenderParams): RenderEffect {
-    return createLiquidGlassRenderEffect(params) {
+  private fun buildRenderEffects(params: RenderParams): LiquidGlassRenderEffects {
+    return createLiquidGlassRenderEffects(params) {
       setFloatUniform("layerSize", params.layerSize.width, params.layerSize.height)
       setFloatUniform("refractionStrength", params.refractionStrength)
       setFloatUniform("specularIntensity", params.specularIntensity)
@@ -201,7 +210,7 @@ internal class RuntimeShaderLiquidGlassDelegate(
         params.tint.blue,
         params.tint.alpha,
       )
-    }.asComposeRenderEffect()
+    }
   }
 
   internal data class RenderParams(
@@ -240,7 +249,13 @@ private fun VisualEffectContext.hasDrawableSourceLayers(): Boolean {
 }
 
 @OptIn(InternalHazeApi::class)
-internal expect fun createLiquidGlassRenderEffect(
+internal data class LiquidGlassRenderEffects(
+  val overlay: PlatformRenderEffect,
+  val underlay: PlatformRenderEffect? = null,
+)
+
+@OptIn(InternalHazeApi::class)
+internal expect fun createLiquidGlassRenderEffects(
   params: RuntimeShaderLiquidGlassDelegate.RenderParams,
   uniforms: RuntimeShaderUniformProvider.() -> Unit,
-): PlatformRenderEffect
+): LiquidGlassRenderEffects

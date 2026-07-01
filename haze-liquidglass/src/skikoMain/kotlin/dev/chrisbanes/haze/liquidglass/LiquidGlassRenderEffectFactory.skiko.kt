@@ -16,18 +16,20 @@ import dev.chrisbanes.haze.createRuntimeEffect
 import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 
 @InternalHazeApi
-internal actual fun createLiquidGlassRenderEffect(
+internal actual fun createLiquidGlassRenderEffects(
   params: RuntimeShaderLiquidGlassDelegate.RenderParams,
   uniforms: RuntimeShaderUniformProvider.() -> Unit,
-): PlatformRenderEffect {
+): LiquidGlassRenderEffects {
   val blurEffect = params.createBlurRenderEffect()
 
-  return createRuntimeShaderRenderEffect(
+  val overlay = createRuntimeShaderRenderEffect(
     effect = LIQUID_GLASS_RUNTIME_EFFECT,
     shaderNames = arrayOf("content", "blurredContent"),
     inputs = arrayOf(null, blurEffect),
     uniforms = uniforms,
   )
+
+  return LiquidGlassRenderEffects(overlay = overlay)
 }
 
 private fun RuntimeShaderLiquidGlassDelegate.RenderParams.createBlurRenderEffect(): PlatformRenderEffect? {
