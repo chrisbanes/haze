@@ -17,7 +17,8 @@ internal object LiquidGlassDirtyFields {
   const val EdgeSoftness: Int = Tint shl 1
   const val LightPosition: Int = EdgeSoftness shl 1
   const val BlurRadius: Int = LightPosition shl 1
-  const val RefractionHeight: Int = BlurRadius shl 1
+  const val Progressive: Int = BlurRadius shl 1
+  const val RefractionHeight: Int = Progressive shl 1
   const val ChromaticAberration: Int = RefractionHeight shl 1
   const val Shape: Int = ChromaticAberration shl 1
   const val SurfaceProfile: Int = Shape shl 1
@@ -41,6 +42,7 @@ internal object LiquidGlassDirtyFields {
       EdgeSoftness or
       LightPosition or
       BlurRadius or
+      Progressive or
       RefractionHeight or
       ChromaticAberration or
       Shape or
@@ -66,6 +68,7 @@ internal object LiquidGlassDirtyFields {
       if (EdgeSoftness in dirtyTracker) add("EdgeSoftness")
       if (LightPosition in dirtyTracker) add("LightPosition")
       if (BlurRadius in dirtyTracker) add("BlurRadius")
+      if (Progressive in dirtyTracker) add("Progressive")
       if (RefractionHeight in dirtyTracker) add("RefractionHeight")
       if (ChromaticAberration in dirtyTracker) add("ChromaticAberration")
       if (Shape in dirtyTracker) add("Shape")

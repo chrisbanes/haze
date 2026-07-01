@@ -52,7 +52,7 @@ class LiquidGlassShadersTest {
 
   @Test
   fun shader_contains_flat_interior_early_out() {
-    val shader = LiquidGlassShaders.build()
+    val shader = LiquidGlassShaders.build(hasBlurredContent = true)
     assertThat(shader).contains("if (distToEdge >= refractionZone)")
     assertThat(shader).contains("return vec4(finalColor, base.a);")
   }
@@ -109,18 +109,41 @@ class LiquidGlassShadersTest {
 
   @Test
   fun shader_flat_interior_skips_surface_gradient() {
-    val shader = LiquidGlassShaders.build()
+    val shader = LiquidGlassShaders.build(hasBlurredContent = true)
     val earlyOutSection = shader.substringAfter("if (distToEdge >= refractionZone)")
       .substringBefore("return vec4(finalColor, base.a);")
     assertThat(earlyOutSection).doesNotContain("surfaceGradient(coord)")
   }
 
   @Test
-  fun shader_singleInputVariantAliasesBlurredContentToBaseContent() {
+  fun shader_flat_interior_mixesBlurredContentForDepth() {
+    val shader = LiquidGlassShaders.build(hasBlurredContent = true)
+    val earlyOutSection = shader.substringAfter("if (distToEdge >= refractionZone)")
+      .substringBefore("return vec4(finalColor, base.a);")
+
+    assertThat(earlyOutSection).contains("vec4 blurred = sampleBlurredContent(coord);")
+    assertThat(earlyOutSection).contains("mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0))")
+  }
+
+  @Test
+  fun shader_singleInputVariantDoesNotApproximateBlurredContent() {
     val shader = LiquidGlassShaders.build(hasBlurredContent = false)
 
     assertThat(shader).doesNotContain("uniform shader blurredContent;")
-    assertThat(shader).contains("vec4 blurred = base;")
+    assertThat(shader).doesNotContain("uniform float blurRadius;")
+    assertThat(shader).doesNotContain("sampleBlurredContent")
+    assertThat(shader).doesNotContain("radius * 0.5")
+    assertThat(shader).doesNotContain("radius * 0.35")
+    assertThat(shader).doesNotContain("vec2 farAxis")
+    assertThat(shader).contains("float overlayAlpha =")
+  }
+
+  @Test
+  fun shader_singleInputVariantPremultipliesOverlayColor() {
+    val shader = LiquidGlassShaders.build(hasBlurredContent = false)
+
+    assertThat(shader).contains("return vec4(finalColor * overlayAlpha, base.a * overlayAlpha);")
+    assertThat(shader).contains("return vec4(overlayColor, base.a * overlayAlpha);")
   }
 
   @Test
@@ -128,6 +151,66 @@ class LiquidGlassShadersTest {
     val shader = LiquidGlassShaders.build(hasBlurredContent = true)
 
     assertThat(shader).contains("uniform shader blurredContent;")
-    assertThat(shader).contains("vec4 blurred = blurredContent.eval(refractCoord);")
+    assertThat(shader).contains("return blurredContent.eval(clampCoord(coord));")
+    assertThat(shader).contains("vec4 blurred = sampleBlurredContent(refractCoord);")
+  }
+
+  @Test
+  fun shader_multiInputVariantUsesBlurredRefractionForDepth() {
+    val shader = LiquidGlassShaders.build(hasBlurredContent = true)
+
+    val refractedSection = shader
+      .substringAfter("vec4 refracted = sampleChroma(refractCoord, chromaOffset);")
+      .substringBefore("vec2 grad = surfaceGradient(coord);")
+    val returnSection = shader
+      .substringAfter("vec3 tinted = mix(graded, tintColor.rgb, tintColor.a);")
+      .substringBefore("return vec4(finalColor, base.a) * edge;")
+
+    assertThat(refractedSection).contains("vec4 blurred = sampleBlurredContent(refractCoord);")
+    assertThat(refractedSection).contains(
+      "vec3 refractedColor = applyColorGrading(vec4(mix(refracted.rgb, blurred.rgb, clamp(depth, 0.0, 1.0)), 1.0)).rgb;",
+    )
+    assertThat(returnSection).contains("mix(tinted, refractedColor, refractionStrength)")
+  }
+
+  @Test
+  fun shader_refractedColorPathAppliesColorGrading() {
+    val overlayShader = LiquidGlassShaders.build(hasBlurredContent = false)
+    val dualInputShader = LiquidGlassShaders.build(hasBlurredContent = true)
+    val singleInputShader = LiquidGlassShaders.build(
+      contentMode = LiquidGlassShaders.ContentMode.SingleBlurredInput,
+    )
+
+    assertThat(overlayShader).contains(
+      "vec3 refractedColor = applyColorGrading(refracted).rgb;",
+    )
+    assertThat(dualInputShader).contains(
+      "vec3 refractedColor = applyColorGrading(vec4(mix(refracted.rgb, blurred.rgb, clamp(depth, 0.0, 1.0)), 1.0)).rgb;",
+    )
+    assertThat(singleInputShader).contains(
+      "vec3 refractedColor = applyColorGrading(refracted).rgb;",
+    )
+  }
+
+  @Test
+  fun shader_singleBlurredInputVariantTreatsContentAsBlurred() {
+    val shader = LiquidGlassShaders.build(
+      contentMode = LiquidGlassShaders.ContentMode.SingleBlurredInput,
+    )
+
+    assertThat(shader).doesNotContain("uniform shader blurredContent;")
+    assertThat(shader).contains("vec3 refractedColor = applyColorGrading(refracted).rgb;")
+    assertThat(shader).contains("return vec4(finalColor, base.a);")
+    assertThat(shader).contains("return vec4(finalColor, base.a) * edge;")
+    assertThat(shader).doesNotContain("return vec4(overlayColor, base.a * overlayAlpha);")
+    assertThat(shader).doesNotContain("return vec4(finalColor * overlayAlpha, base.a * overlayAlpha);")
+  }
+
+  @Test
+  fun outputMaskShaderClipsOutsideRoundedShape() {
+    val shader = LiquidGlassShaders.buildOutputMask()
+
+    assertThat(shader).contains("if (sd > 0.0) return 0.0;")
+    assertThat(shader).contains("return content.eval(coord) * shapeMask(coord);")
   }
 }

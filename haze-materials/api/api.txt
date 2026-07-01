@@ -30,4 +30,3 @@ package dev.chrisbanes.haze.blur.materials {
   }
 
 }
-

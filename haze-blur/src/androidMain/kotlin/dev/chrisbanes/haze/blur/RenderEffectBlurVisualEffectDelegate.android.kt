@@ -14,8 +14,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.withGraphicsLayer
 
 @OptIn(InternalHazeApi::class)
@@ -24,7 +26,7 @@ private const val USE_RUNTIME_SHADER = true
 @RequiresApi(31)
 internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,
-  progressive: HazeProgressive,
+  progressive: RootHazeProgressive,
   contentLayer: GraphicsLayer,
   context: VisualEffectContext,
 ) {
@@ -36,7 +38,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
       // Finally draw the layer
       drawLayer(contentLayer)
     }
-  } else if (progressive is HazeProgressive.LinearGradient && !progressive.preferPerformance) {
+  } else if (progressive is RootHazeProgressive.LinearGradient && !progressive.preferPerformance) {
     // If it's a linear gradient, and the 'preferPerformance' flag is not enabled, we can use
     // our slow approximated version
     drawLinearGradientProgressiveEffectUsingLayers(
@@ -59,7 +61,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
 
 private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEffectUsingLayers(
   drawScope: DrawScope,
-  progressive: HazeProgressive.LinearGradient,
+  progressive: RootHazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
   context: VisualEffectContext,
 ) = with(drawScope) {

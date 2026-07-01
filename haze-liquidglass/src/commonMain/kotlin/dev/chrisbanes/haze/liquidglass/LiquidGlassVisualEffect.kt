@@ -22,6 +22,7 @@ import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
@@ -58,7 +59,11 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
     contentNormalBlend = other.contentNormalBlend
     specularExponent = other.specularExponent
     fresnelExponent = other.fresnelExponent
+    compositionLocalStyle = other.compositionLocalStyle
     style = other.style
+    if (other.progressiveOverrideSpecified) {
+      progressive = other._progressive
+    }
   }
 
   private var isAttached: Boolean = false
@@ -330,10 +335,8 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
    *  - [LiquidGlassStyle.blurRadius] value set in [style], if specified.
    *  - [LiquidGlassStyle.blurRadius] value set in the [LocalLiquidGlassStyle] composition local.
    *
-   * **Note:** On Android API 33+, this property has no effect when the runtime-shader
-   * delegate is active. Android's `RenderEffect.createRuntimeShaderEffect` supports only
-   * a single content input, so the separate blurred content required for depth mixing is
-   * unavailable and the depth-based blur mixing is skipped.
+   * **Note:** On Android API 33+ and Skiko targets, the runtime-shader delegate uses
+   * a platform blur render effect as the blurred content input to the runtime shader.
    */
   public var blurRadius: Dp = Dp.Unspecified
     get() {
@@ -349,6 +352,41 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
         dirtyTracker += LiquidGlassDirtyFields.BlurRadius
       }
     }
+
+  private var progressiveOverrideSpecified: Boolean = false
+  private var _progressive: HazeProgressive? = null
+
+  /**
+   * Parameters for enabling progressive blur, or null for a uniform blur effect.
+   *
+   * Setting this property directly, including to null, overrides values inherited from [style]
+   * and [LocalLiquidGlassStyle]. Call [clearProgressiveOverride] to restore inherited values.
+   */
+  public var progressive: HazeProgressive?
+    get() {
+      return if (progressiveOverrideSpecified) {
+        _progressive
+      } else {
+        styleOptics.progressive ?: localOptics.progressive
+      }
+    }
+    set(value) {
+      if (!progressiveOverrideSpecified || value != _progressive) {
+        HazeLogger.d(TAG) { "progressive changed. Current: $_progressive. New: $value" }
+        progressiveOverrideSpecified = true
+        _progressive = value
+        dirtyTracker += LiquidGlassDirtyFields.Progressive
+      }
+    }
+
+  public fun clearProgressiveOverride() {
+    if (progressiveOverrideSpecified) {
+      HazeLogger.d(TAG) { "progressive override cleared. Current: $_progressive" }
+      progressiveOverrideSpecified = false
+      _progressive = null
+      dirtyTracker += LiquidGlassDirtyFields.Progressive
+    }
+  }
 
   /**
    * Height of the refraction zone expressed as a fraction of the smallest dimension (0f..1f).
@@ -711,6 +749,9 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
     }
     if (old.optics.blurRadius != new.optics.blurRadius) {
       dirtyTracker += LiquidGlassDirtyFields.BlurRadius
+    }
+    if (old.optics.progressive != new.optics.progressive) {
+      dirtyTracker += LiquidGlassDirtyFields.Progressive
     }
     if (old.optics.refractionHeight != new.optics.refractionHeight) {
       dirtyTracker += LiquidGlassDirtyFields.RefractionHeight

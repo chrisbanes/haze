@@ -26,7 +26,6 @@ import dev.chrisbanes.haze.blur.BlurVisualEffect
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.HazeProgressive
 import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.test.ScreenshotTest
@@ -622,12 +621,12 @@ class HazeScreenshotTest : ScreenshotTest() {
   fun horizontalPager_half() = runScreenshotTest {
     val blurVisualEffect = BlurVisualEffect().apply {
       colorEffects = listOf(DefaultTint)
-      blurRadius = 8.dp
+      blurRadius = 16.dp
     }
 
     setContent {
       ScreenshotTheme {
-        CreditCardPagerSample(visualEffect = blurVisualEffect, pagerPosition = .5f)
+        CreditCardPagerSample(visualEffect = blurVisualEffect, pagerPosition = .49f)
       }
     }
     captureRoot()

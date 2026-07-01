@@ -130,6 +130,18 @@ class LiquidGlassStyleTest {
   }
 
   @Test
+  fun fallbackEdgeAlpha_clampsRawStyleAmbientResponse() {
+    val effect = LiquidGlassVisualEffect().apply {
+      style = LiquidGlassStyle(
+        lighting = LiquidGlassLighting(ambientResponse = 2f),
+      )
+    }
+
+    assertThat(fallbackEdgeAlpha(effect.ambientResponse)).isEqualTo(0.18f)
+    assertThat(fallbackEdgeAlpha(-1f)).isEqualTo(0f)
+  }
+
+  @Test
   fun retainedOutputAvailabilityReflectsDelegate() {
     val effect = LiquidGlassVisualEffect()
     val delegate = RetainedTrackingLiquidGlassDelegate()

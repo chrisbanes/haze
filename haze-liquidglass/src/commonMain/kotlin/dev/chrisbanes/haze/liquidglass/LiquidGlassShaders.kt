@@ -4,20 +4,35 @@
 package dev.chrisbanes.haze.liquidglass
 
 internal object LiquidGlassShaders {
+  enum class ContentMode {
+    OverlayWithExternalUnderlay,
+    DualInput,
+    SingleBlurredInput,
+  }
+
   /**
    * Builds the liquid-glass SKSL/AGSL shader.
    *
-   * @param hasBlurredContent When `true` the shader declares a `blurredContent`
-   *   uniform and samples from it. When `false` (the default) the shader is a
-   *   single-input variant where `blurred` is aliased to `base`, which is required
-   *   on Android because `RenderEffect.createRuntimeShaderEffect` supports only
-   *   one content input.
+   * @param hasBlurredContent When `true` the shader declares and samples a
+   *   `blurredContent` uniform. When `false` (the default), the shader emits the
+   *   compatibility overlay mode for legacy callers that composite an external
+   *   blurred underlay themselves.
    */
   fun build(
     hasBlurredContent: Boolean = false,
+  ): String = build(
+    contentMode = if (hasBlurredContent) {
+      ContentMode.DualInput
+    } else {
+      ContentMode.OverlayWithExternalUnderlay
+    },
+  )
+
+  fun build(
+    contentMode: ContentMode,
   ): String = """
     uniform shader content;
-    ${if (hasBlurredContent) "uniform shader blurredContent;" else ""}
+    ${if (contentMode == ContentMode.DualInput) "uniform shader blurredContent;" else ""}
     uniform float2 layerSize;
     uniform float refractionStrength;
     uniform float specularIntensity;
@@ -224,6 +239,8 @@ internal object LiquidGlassShaders {
       return sampleChromaSimple(coord, chromaOffset);
     }
 
+    ${blurredContentSampler(contentMode)}
+
     vec3 srgbToLinear(vec3 s) {
       return mix(s / 12.92, pow((s + 0.055) / 1.055, vec3(2.4)), step(0.04045, s));
     }
@@ -267,7 +284,8 @@ internal object LiquidGlassShaders {
       float refractionZone = max(refractionHeight, 0.0001);
       if (distToEdge >= refractionZone) {
         vec4 base = content.eval(coord);
-        vec3 graded = applyColorGrading(base).rgb;
+        ${flatInteriorDepthMix(contentMode)}
+        vec3 graded = applyColorGrading(vec4(mixedColor, base.a)).rgb;
 
         // Deep interior: surface gradient is negligible, use content normal only.
         vec3 normal = computeContentNormal(coord);
@@ -278,7 +296,7 @@ internal object LiquidGlassShaders {
 
         vec3 tinted = mix(graded, tintColor.rgb, tintColor.a);
         vec3 finalColor = tinted * ambient;
-        return vec4(finalColor, base.a);
+        ${flatInteriorReturn(contentMode)}
       }
 
       vec4 base = content.eval(coord);
@@ -301,14 +319,15 @@ internal object LiquidGlassShaders {
       float cornerWeight = abs((centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001));
       vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
       vec4 refracted = sampleChroma(refractCoord, chromaOffset);
-      vec4 blurred = ${if (hasBlurredContent) "blurredContent.eval(refractCoord)" else "base"};
+      ${refractedDepthSample(contentMode)}
+      ${refractedColor(contentMode)}
 
       vec2 grad = surfaceGradient(coord);
       vec3 shapeNormal = normalize(vec3(-grad.x, -grad.y, 1.0));
       vec3 contentNormal = computeContentNormal(coord);
       vec3 normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend)); // Blend shape + content normals
 
-      vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));
+      ${refractedDepthMix(contentMode)}
       vec3 graded = applyColorGrading(vec4(mixedColor, 1.0)).rgb;
       vec3 tinted = mix(graded, tintColor.rgb, tintColor.a);
       vec2 lightDir2D = normalize(lightPosition - coord);
@@ -316,10 +335,139 @@ internal object LiquidGlassShaders {
       float spec = pow(max(dot(normal, lightDir), 0.0), specularExponent) * specularIntensity; // Specular highlight exponent
       float fresnel = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), fresnelExponent); // Fresnel edge glow exponent
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
-      refracted = applyColorGrading(refracted);
-      vec3 finalColor = mix(tinted, refracted.rgb, refractionStrength) * ambient + spec;
-      float edge = edgeMask(distToEdge);
-      return vec4(finalColor, base.a) * edge;
+      ${refractedReturn(contentMode)}
     }
     """
+
+  fun buildOutputMask(): String = """
+    uniform shader content;
+    uniform float2 layerSize;
+    uniform float edgeSoftness;
+    uniform vec4 cornerRadii;
+
+    float smootherstep(float x) {
+      float t = clamp(x, 0.0, 1.0);
+      return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+    }
+
+    float radiusAt(vec2 coord, vec4 radii) {
+      if (coord.x >= 0.0) {
+        if (coord.y <= 0.0) return radii.y;
+        else return radii.z;
+      } else {
+        if (coord.y <= 0.0) return radii.x;
+        else return radii.w;
+      }
+    }
+
+    float sdRoundedRect(vec2 coord, vec2 halfSize, float radius) {
+      vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
+      float outside = length(max(cornerCoord, 0.0)) - radius;
+      float inside = min(max(cornerCoord.x, cornerCoord.y), 0.0);
+      return outside + inside;
+    }
+
+    float shapeMask(vec2 coord) {
+      vec2 halfSize = layerSize * 0.5;
+      vec2 centeredCoord = coord - halfSize;
+      float radius = radiusAt(centeredCoord, cornerRadii);
+      float sd = sdRoundedRect(centeredCoord, halfSize, radius);
+      if (sd > 0.0) return 0.0;
+      if (edgeSoftness <= 0.0) return 1.0;
+
+      float distToEdge = max(-sd, 0.0);
+      float e = clamp(distToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0);
+      return smootherstep(e);
+    }
+
+    vec4 main(vec2 coord) {
+      return content.eval(coord) * shapeMask(coord);
+    }
+    """
+
+  private fun blurredContentSampler(contentMode: ContentMode): String = when (contentMode) {
+    ContentMode.DualInput ->
+      """
+    vec4 sampleBlurredContent(vec2 coord) {
+      return blurredContent.eval(clampCoord(coord));
+    }
+    """
+
+    ContentMode.SingleBlurredInput,
+    ContentMode.OverlayWithExternalUnderlay,
+    -> """
+    """
+  }
+
+  private fun flatInteriorDepthMix(contentMode: ContentMode): String = when (contentMode) {
+    ContentMode.DualInput ->
+      """
+        vec4 blurred = sampleBlurredContent(coord);
+        vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));
+    """
+
+    ContentMode.SingleBlurredInput,
+    ContentMode.OverlayWithExternalUnderlay,
+    -> """
+        vec3 mixedColor = base.rgb;
+    """
+  }
+
+  private fun flatInteriorReturn(contentMode: ContentMode): String = when (contentMode) {
+    ContentMode.DualInput,
+    ContentMode.SingleBlurredInput,
+    -> "return vec4(finalColor, base.a);"
+
+    ContentMode.OverlayWithExternalUnderlay ->
+      """
+        float overlayAlpha = 1.0 - clamp(depth, 0.0, 1.0);
+        return vec4(finalColor * overlayAlpha, base.a * overlayAlpha);
+    """
+  }
+
+  private fun refractedDepthSample(contentMode: ContentMode): String = when (contentMode) {
+    ContentMode.DualInput -> "vec4 blurred = sampleBlurredContent(refractCoord);"
+    ContentMode.SingleBlurredInput,
+    ContentMode.OverlayWithExternalUnderlay,
+    -> ""
+  }
+
+  private fun refractedColor(contentMode: ContentMode): String = when (contentMode) {
+    ContentMode.DualInput ->
+      "vec3 refractedColor = applyColorGrading(vec4(mix(refracted.rgb, blurred.rgb, clamp(depth, 0.0, 1.0)), 1.0)).rgb;"
+
+    ContentMode.SingleBlurredInput,
+    ContentMode.OverlayWithExternalUnderlay,
+    -> "vec3 refractedColor = applyColorGrading(refracted).rgb;"
+  }
+
+  private fun refractedDepthMix(contentMode: ContentMode): String = when (contentMode) {
+    ContentMode.DualInput -> "vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));"
+    ContentMode.SingleBlurredInput,
+    ContentMode.OverlayWithExternalUnderlay,
+    -> "vec3 mixedColor = base.rgb;"
+  }
+
+  private fun refractedReturn(contentMode: ContentMode): String = when (contentMode) {
+    ContentMode.DualInput,
+    ContentMode.SingleBlurredInput,
+    -> """
+      vec3 finalColor = mix(tinted, refractedColor, refractionStrength) * ambient + spec;
+      float edge = edgeMask(distToEdge);
+      return vec4(finalColor, base.a) * edge;
+    """
+
+    ContentMode.OverlayWithExternalUnderlay ->
+      """
+      float depthAmount = clamp(depth, 0.0, 1.0);
+      float refractionAmount = clamp(refractionStrength, 0.0, 1.0);
+      float baseCoeff = (1.0 - depthAmount) * (1.0 - refractionAmount);
+      float refractedCoeff = refractionAmount;
+      float overlayAlpha = baseCoeff + refractedCoeff;
+      vec3 baseColor = tinted * ambient;
+      vec3 refractedColorPremul = refractedColor * ambient;
+      vec3 overlayColor = baseColor * baseCoeff + refractedColorPremul * refractedCoeff + spec;
+      return vec4(overlayColor, base.a * overlayAlpha);
+    """
+  }
 }

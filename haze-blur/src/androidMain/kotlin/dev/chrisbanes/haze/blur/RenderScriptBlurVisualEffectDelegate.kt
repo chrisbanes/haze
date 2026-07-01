@@ -38,6 +38,7 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.traceAsync
 import dev.chrisbanes.haze.withGraphicsLayer

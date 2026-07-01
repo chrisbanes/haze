@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect

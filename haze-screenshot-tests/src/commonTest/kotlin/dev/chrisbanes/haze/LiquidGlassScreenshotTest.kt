@@ -5,12 +5,23 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.liquidglass.ChromaticAberrationMode
 import dev.chrisbanes.haze.liquidglass.LiquidGlassLighting
@@ -155,6 +166,86 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
     visualEffect.specularIntensity = 0.7f
     waitForIdle()
     captureRoot("high")
+  }
+
+  @Test
+  fun creditCard_blurRadius() = runScreenshotTest {
+    val shape = RoundedCornerShape(28.dp)
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = Color.White.copy(alpha = 0.08f)
+      refractionStrength = 0f
+      depth = 0.9f
+      blurRadius = 32.dp
+      specularIntensity = 0f
+      ambientResponse = 0f
+      edgeSoftness = 0.dp
+      this.shape = shape
+    }
+
+    setContent {
+      ScreenshotTheme {
+        LiquidGlassBlurRadiusSample(
+          visualEffect = visualEffect,
+          shape = shape,
+        )
+      }
+    }
+
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_fallbackTintAndEdge() = runScreenshotTest {
+    val shape = RoundedCornerShape(28.dp)
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = Color.White.copy(alpha = 0.18f)
+      edgeSoftness = 12.dp
+      specularIntensity = 0.4f
+      ambientResponse = 0.5f
+      this.shape = shape
+    }
+
+    setContent {
+      ScreenshotTheme {
+        LiquidGlassBlurRadiusSample(
+          visualEffect = visualEffect,
+          shape = shape,
+          clipShape = false,
+        )
+      }
+    }
+
+    captureRoot()
+  }
+
+  @Test
+  fun creditCard_blurRadiusWithRefraction() = runScreenshotTest {
+    val shape = RoundedCornerShape(28.dp)
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = Color.White.copy(alpha = 0.08f)
+      refractionStrength = 0.85f
+      depth = 0.9f
+      blurRadius = 0.dp
+      specularIntensity = 0f
+      ambientResponse = 0f
+      edgeSoftness = 0.dp
+      this.shape = shape
+    }
+
+    setContent {
+      ScreenshotTheme {
+        LiquidGlassBlurRadiusSample(
+          visualEffect = visualEffect,
+          shape = shape,
+        )
+      }
+    }
+
+    captureRoot("zero")
+
+    visualEffect.blurRadius = 32.dp
+    waitForIdle()
+    captureRoot("strong")
   }
 
   @Test
@@ -328,3 +419,71 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
     )
   }
 }
+
+@Composable
+private fun LiquidGlassBlurRadiusSample(
+  visualEffect: LiquidGlassVisualEffect,
+  shape: RoundedCornerShape,
+  clipShape: Boolean = true,
+  cardWidth: Dp = 520.dp,
+  cardHeight: Dp = 320.dp,
+) {
+  val hazeState = remember { HazeState() }
+
+  Box(Modifier.fillMaxSize()) {
+    Canvas(
+      modifier = Modifier
+        .fillMaxSize()
+        .hazeSource(state = hazeState, zIndex = 0f),
+    ) {
+      drawRect(Color(0xFF101820))
+
+      val stripeWidth = 18.dp.toPx()
+      var x = 0f
+      var stripeIndex = 0
+      while (x < size.width) {
+        drawRect(
+          color = StripeColors[stripeIndex % StripeColors.size],
+          topLeft = Offset(x, 0f),
+          size = Size(stripeWidth, size.height),
+        )
+        x += stripeWidth
+        stripeIndex++
+      }
+
+      val lineSpacing = 34.dp.toPx()
+      val strokeWidth = 5.dp.toPx()
+      var y = 0f
+      while (y < size.height) {
+        drawLine(
+          color = GridLineColor,
+          start = Offset(0f, y),
+          end = Offset(size.width, y),
+          strokeWidth = strokeWidth,
+        )
+        y += lineSpacing
+      }
+    }
+
+    Box(
+      modifier = Modifier
+        .align(Alignment.Center)
+        .size(width = cardWidth, height = cardHeight)
+        .then(if (clipShape) Modifier.clip(shape) else Modifier)
+        .hazeEffect(state = hazeState) {
+          this.visualEffect = visualEffect
+        },
+    )
+  }
+}
+
+private val StripeColors = listOf(
+  Color(0xFF061A40),
+  Color(0xFFFFD166),
+  Color(0xFF118AB2),
+  Color(0xFFEF476F),
+  Color(0xFF06D6A0),
+  Color(0xFFFFFFFF),
+)
+
+private val GridLineColor = Color(0xFF111111).copy(alpha = 0.65f)
