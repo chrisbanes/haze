@@ -386,7 +386,8 @@ internal object LiquidGlassShaders {
     """
 
   private fun blurredContentSampler(contentMode: ContentMode): String = when (contentMode) {
-    ContentMode.DualInput -> """
+    ContentMode.DualInput ->
+      """
     vec4 sampleBlurredContent(vec2 coord) {
       return blurredContent.eval(clampCoord(coord));
     }
@@ -399,7 +400,8 @@ internal object LiquidGlassShaders {
   }
 
   private fun flatInteriorDepthMix(contentMode: ContentMode): String = when (contentMode) {
-    ContentMode.DualInput -> """
+    ContentMode.DualInput ->
+      """
         vec4 blurred = sampleBlurredContent(coord);
         vec3 mixedColor = mix(base.rgb, blurred.rgb, clamp(depth, 0.0, 1.0));
     """
@@ -416,7 +418,8 @@ internal object LiquidGlassShaders {
     ContentMode.SingleBlurredInput,
     -> "return vec4(finalColor, base.a);"
 
-    ContentMode.OverlayWithExternalUnderlay -> """
+    ContentMode.OverlayWithExternalUnderlay ->
+      """
         float overlayAlpha = 1.0 - clamp(depth, 0.0, 1.0);
         return vec4(finalColor * overlayAlpha, base.a * overlayAlpha);
     """
@@ -454,7 +457,8 @@ internal object LiquidGlassShaders {
       return vec4(finalColor, base.a) * edge;
     """
 
-    ContentMode.OverlayWithExternalUnderlay -> """
+    ContentMode.OverlayWithExternalUnderlay ->
+      """
       float depthAmount = clamp(depth, 0.0, 1.0);
       float refractionAmount = clamp(refractionStrength, 0.0, 1.0);
       float baseCoeff = (1.0 - depthAmount) * (1.0 - refractionAmount);

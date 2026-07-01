@@ -626,7 +626,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardPagerSample(visualEffect = blurVisualEffect, pagerPosition = .5f)
+        CreditCardPagerSample(visualEffect = blurVisualEffect, pagerPosition = .49f)
       }
     }
     captureRoot()
