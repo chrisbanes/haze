@@ -1,7 +1,7 @@
 # Liquid Glass
 
 !!! danger "Not yet published"
-    This module is currently under active development and is **not published to Maven Central**. It exists in the repository for experimentation and internal development only. Do not attempt to add it as a Gradle dependency.
+    The Liquid Glass modules are currently under active development and are **not published to Maven Central**. They exist in the repository for experimentation and internal development only. Do not attempt to add them as Gradle dependencies.
 
 A refraction-driven glass effect inspired by iOS "liquid" glass. It combines refraction, depth blur, tint, Fresnel/ambient lift, and specular highlights with optional rounded shapes and dispersion.
 
@@ -43,6 +43,57 @@ val myStyle = LiquidGlassStyle(
 
 CompositionLocalProvider(LocalLiquidGlassStyle provides myStyle) {
   // All liquid glass effects in this scope will use myStyle as their baseline
+}
+```
+
+## Materials
+
+The `haze-liquidglass-materials` module contains pre-built `LiquidGlassStyle` presets for common surfaces. It is split from `haze-blur-materials` so blur materials can remain published without depending on the unpublished Liquid Glass runtime.
+
+!!! danger "Not yet published"
+    `haze-liquidglass-materials` is not published while `haze-liquidglass` is still experimental. When these modules are ready to ship, use `haze-liquidglass-materials` for the presets instead of `haze-blur-materials`.
+
+Future dependency:
+
+```kotlin
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation("dev.chrisbanes.haze:haze-liquidglass:<version>")
+  implementation("dev.chrisbanes.haze:haze-liquidglass-materials:<version>")
+}
+```
+
+Available presets:
+
+- `HazeLiquidGlassMaterials.Card`: rounded card surface with moderate blur and subtle lighting.
+- `HazeLiquidGlassMaterials.FloatingControl`: pill-shaped floating control with stronger refraction and highlights.
+- `HazeLiquidGlassMaterials.Bar`: edge-to-edge bar surface with deeper blur and no edge softness.
+
+```kotlin
+Box(
+  Modifier
+    .size(180.dp)
+    .hazeEffect(state = hazeState) {
+      liquidGlassEffect {
+        style = HazeLiquidGlassMaterials.Card
+      }
+    }
+)
+```
+
+You can use a preset as a baseline and override individual values:
+
+```kotlin
+liquidGlassEffect {
+  style = HazeLiquidGlassMaterials.FloatingControl
+  tint = Color.White.copy(alpha = 0.20f)
+  progressive = HazeProgressive.verticalGradient(
+    startIntensity = 1f,
+    endIntensity = 0.25f,
+  )
 }
 ```
 
