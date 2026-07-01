@@ -1,4 +1,4 @@
-// Copyright 2025, Christopher Banes and the Haze project contributors
+// Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
 
@@ -9,13 +9,13 @@ plugins {
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
   id("org.jetbrains.dokka")
-  id("com.vanniktech.maven.publish")
+  // Publishing is disabled until haze-liquidglass is published.
   id("dev.chrisbanes.metalava")
 }
 
 kotlin {
   android {
-    namespace = "dev.chrisbanes.haze.materials"
+    namespace = "dev.chrisbanes.haze.liquidglass.materials"
   }
 
   addDefaultHazeTargets(project)
@@ -24,7 +24,7 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        api(projects.hazeBlur)
+        api(projects.hazeLiquidglass)
         implementation(libs.compose.material3)
       }
     }

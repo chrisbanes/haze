@@ -106,6 +106,7 @@ include(
   ":haze",
   ":haze-blur",
   ":haze-liquidglass",
+  ":haze-liquidglass-materials",
   ":haze-utils",
   ":haze-materials",
   ":haze-screenshot-tests",

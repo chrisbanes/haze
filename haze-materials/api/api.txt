@@ -30,18 +30,3 @@ package dev.chrisbanes.haze.blur.materials {
   }
 
 }
-
-package dev.chrisbanes.haze.materials {
-
-  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeLiquidGlassMaterials {
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getBar();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getCard();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle getFloatingControl();
-    property @androidx.compose.runtime.Stable public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle Bar;
-    property @androidx.compose.runtime.Stable public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle Card;
-    property @androidx.compose.runtime.Stable public dev.chrisbanes.haze.liquidglass.LiquidGlassStyle FloatingControl;
-    field public static final dev.chrisbanes.haze.materials.HazeLiquidGlassMaterials INSTANCE;
-  }
-
-}
-
