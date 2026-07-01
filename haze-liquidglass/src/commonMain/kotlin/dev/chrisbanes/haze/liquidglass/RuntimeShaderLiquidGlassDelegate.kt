@@ -29,6 +29,7 @@ internal class RuntimeShaderLiquidGlassDelegate(
   private var renderEffects: LiquidGlassRenderEffects? = null
   private var lastParams: RenderParams? = null
   private var contentLayer: GraphicsLayer? = null
+  private var underlayContentLayer: GraphicsLayer? = null
   private var lastScaledLayerSize: Size? = null
   private var graphicsContext: GraphicsContext? = null
   private var retainedOutputAvailable: Boolean = false
@@ -55,6 +56,9 @@ internal class RuntimeShaderLiquidGlassDelegate(
 
       drawRetainedLayer(
         layer = retainedLayer,
+        underlayLayer = underlayContentLayer
+          ?.takeUnless { it.isReleased }
+          ?.takeIf { retainedOutputAvailable },
         context = context,
         scaleFactor = scaleFactor,
         layerSize = layerSize,
@@ -66,7 +70,9 @@ internal class RuntimeShaderLiquidGlassDelegate(
     if (contentLayer == null || contentLayer!!.isReleased || lastScaledLayerSize != currentScaledSize) {
       graphicsContext = context.requireGraphicsContext()
       contentLayer?.let { graphicsContext!!.releaseGraphicsLayer(it) }
+      underlayContentLayer?.let { graphicsContext!!.releaseGraphicsLayer(it) }
       contentLayer = graphicsContext!!.createGraphicsLayer()
+      underlayContentLayer = graphicsContext!!.createGraphicsLayer()
       lastScaledLayerSize = currentScaledSize
       retainedOutputAvailable = false
     }
@@ -79,10 +85,20 @@ internal class RuntimeShaderLiquidGlassDelegate(
       existingLayer = contentLayer,
       backgroundColor = Color.Transparent,
     ) ?: return
+
+    val underlayLayer = createScaledContentLayer(
+      context = context,
+      scaleFactor = scaleFactor,
+      layerSize = context.layerSize,
+      layerOffset = context.layerOffset,
+      existingLayer = underlayContentLayer,
+      backgroundColor = Color.Transparent,
+    ) ?: return
     retainedOutputAvailable = true
 
     drawRetainedLayer(
       layer = layer,
+      underlayLayer = underlayLayer,
       context = context,
       scaleFactor = scaleFactor,
       layerSize = layerSize,
@@ -92,12 +108,14 @@ internal class RuntimeShaderLiquidGlassDelegate(
 
   private fun DrawScope.drawRetainedLayer(
     layer: GraphicsLayer,
+    underlayLayer: GraphicsLayer?,
     context: VisualEffectContext,
     scaleFactor: Float,
     layerSize: Size,
     clipToNodeBounds: Boolean,
   ) {
     layer.clip = clipToNodeBounds
+    underlayLayer?.clip = clipToNodeBounds
     drawScaledContent(
       offset = -context.layerOffset,
       scaledSize = size * scaleFactor,
@@ -144,13 +162,15 @@ internal class RuntimeShaderLiquidGlassDelegate(
 
       val currentRenderEffects = renderEffects ?: return@drawScaledContent
 
-      currentRenderEffects.underlay
-        ?.takeIf { params.depth > 0f }
-        ?.let { underlay ->
-          layer.renderEffect = underlay.asComposeRenderEffect()
-          layer.alpha = effect.alpha * params.depth
-          drawLayer(layer)
+      if (params.depth > 0f) {
+        val currentUnderlayLayer = underlayLayer
+        val underlay = currentRenderEffects.underlay
+        if (currentUnderlayLayer != null && underlay != null) {
+          currentUnderlayLayer.renderEffect = underlay.asComposeRenderEffect()
+          currentUnderlayLayer.alpha = effect.alpha * params.depth
+          drawLayer(currentUnderlayLayer)
         }
+      }
 
       layer.renderEffect = currentRenderEffects.overlay.asComposeRenderEffect()
       layer.alpha = effect.alpha
@@ -170,7 +190,11 @@ internal class RuntimeShaderLiquidGlassDelegate(
     contentLayer?.let { layer ->
       graphicsContext?.releaseGraphicsLayer(layer)
     }
+    underlayContentLayer?.let { layer ->
+      graphicsContext?.releaseGraphicsLayer(layer)
+    }
     contentLayer = null
+    underlayContentLayer = null
     lastScaledLayerSize = null
     graphicsContext = null
     retainedOutputAvailable = false
