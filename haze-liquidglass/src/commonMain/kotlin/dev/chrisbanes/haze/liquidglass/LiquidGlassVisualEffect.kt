@@ -335,9 +335,8 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
    *  - [LiquidGlassStyle.blurRadius] value set in [style], if specified.
    *  - [LiquidGlassStyle.blurRadius] value set in the [LocalLiquidGlassStyle] composition local.
    *
-   * **Note:** On Android API 33+, the runtime-shader delegate uses a native platform
-   * blur render effect as a separate underlay pass. Skiko targets use a separate
-   * platform blur render effect as the blurred content input to the runtime shader.
+   * **Note:** On Android API 33+ and Skiko targets, the runtime-shader delegate uses
+   * a platform blur render effect as the blurred content input to the runtime shader.
    */
   public var blurRadius: Dp = Dp.Unspecified
     get() {
