@@ -720,6 +720,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#hazeprogressive-moved-to-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HazeProgressive moved to core
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1099,6 +1110,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#hazeprogressive-moved-to-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HazeProgressive moved to core
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1329,12 +1351,14 @@
 <p><strong>V2 imports:</strong>
 </p><div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeBlurStyle</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeColorEffect</span>
-<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeProgressive</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.HazeProgressive</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.LocalHazeBlurStyle</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.blurEffect</span><span class="w"> </span><span class="c1">// NEW: extension function</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.materials.HazeMaterials</span>
 </code></pre></div>
 <p>Blur-specific defaults from <code>HazeDefaults</code> are now in <code>HazeBlurDefaults</code>. <code>HazeDefaults.drawContentBehind</code> has no direct replacement; leave <code>drawContentBehind</code> unset or set it directly on <code>HazeEffectScope</code>.</p>
+<h3 id="hazeprogressive-moved-to-core">HazeProgressive moved to core<a class="headerlink" href="#hazeprogressive-moved-to-core" title="Permanent link">¶</a></h3>
+<p><code>HazeProgressive</code> now lives in <code>dev.chrisbanes.haze.HazeProgressive</code> because progressive masks are shared by blur and liquid glass. The old <code>dev.chrisbanes.haze.blur.HazeProgressive</code> name remains as a deprecated typealias for source compatibility during the v2 alpha cycle.</p>
 <h2 id="api-migration">API Migration<a class="headerlink" href="#api-migration" title="Permanent link">¶</a></h2>
 <h3 id="basic-blur-configuration">Basic Blur Configuration<a class="headerlink" href="#basic-blur-configuration" title="Permanent link">¶</a></h3>
 <p>All blur-related properties that were previously set directly on <code>HazeEffectScope</code> now need to be wrapped in a <code>blurEffect {}</code> block.</p>
@@ -1698,8 +1722,8 @@
 </tr>
 <tr>
 <td><code>dev.chrisbanes.haze.HazeProgressive</code></td>
-<td><code>dev.chrisbanes.haze.blur.HazeProgressive</code></td>
-<td>Package change</td>
+<td><code>dev.chrisbanes.haze.HazeProgressive</code></td>
+<td>Unchanged core location; <code>dev.chrisbanes.haze.blur.HazeProgressive</code> remains as a deprecated typealias during the v2 alpha cycle</td>
 </tr>
 <tr>
 <td><code>dev.chrisbanes.haze.LocalHazeStyle</code></td>
@@ -1735,7 +1759,7 @@
 <li>Change <code>HazeDefaults.drawContentBehind</code> usage → direct <code>drawContentBehind</code> assignment in the <code>hazeEffect</code> block</li>
 <li>Change <code>dev.chrisbanes.haze.HazeStyle</code> → <code>dev.chrisbanes.haze.blur.HazeBlurStyle</code></li>
 <li>Change <code>dev.chrisbanes.haze.HazeTint</code> → <code>dev.chrisbanes.haze.blur.HazeColorEffect</code></li>
-<li>Change <code>dev.chrisbanes.haze.HazeProgressive</code> → <code>dev.chrisbanes.haze.blur.HazeProgressive</code></li>
+<li>Keep <code>dev.chrisbanes.haze.HazeProgressive</code>; <code>dev.chrisbanes.haze.blur.HazeProgressive</code> remains as a deprecated typealias during the v2 alpha cycle</li>
 <li>Change <code>dev.chrisbanes.haze.LocalHazeStyle</code> → <code>dev.chrisbanes.haze.blur.LocalHazeBlurStyle</code></li>
 <li>Change <code>dev.chrisbanes.haze.materials.HazeMaterials</code> → <code>dev.chrisbanes.haze.blur.materials.HazeMaterials</code></li>
 <li>Add <code>import dev.chrisbanes.haze.blur.blurEffect</code></li>
