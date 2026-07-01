@@ -171,7 +171,7 @@ progressive = HazeProgressive.horizontalGradient(
 )
 ```
 
-Class documentation: [HazeProgressive.LinearGradient](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-linear-gradient/index.html)
+Class documentation: [HazeProgressive.LinearGradient](../api/haze/dev.chrisbanes.haze/-haze-progressive/-linear-gradient/index.html)
 
 ### Radial Gradient
 
@@ -181,7 +181,7 @@ A gradient radiating from a center point:
 progressive = HazeProgressive.RadialGradient()
 ```
 
-Class documentation: [HazeProgressive.RadialGradient](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-radial-gradient/index.html)
+Class documentation: [HazeProgressive.RadialGradient](../api/haze/dev.chrisbanes.haze/-haze-progressive/-radial-gradient/index.html)
 
 ### Custom Brush
 
@@ -193,7 +193,7 @@ progressive = HazeProgressive.Brush(
 )
 ```
 
-Class documentation: [HazeProgressive.Brush](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-progressive/-brush/index.html)
+Class documentation: [HazeProgressive.Brush](../api/haze/dev.chrisbanes.haze/-haze-progressive/-brush/index.html)
 
 !!! warning "Performance of Progressive Blur"
 
