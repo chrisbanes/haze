@@ -54,27 +54,61 @@ internal class RuntimeShaderLiquidGlassDelegate(
         return
       }
 
-      drawRetainedLayer(
-        layer = retainedLayer,
-        underlayLayer = underlayContentLayer
-          ?.takeUnless { it.isReleased }
-          ?.takeIf { retainedOutputAvailable },
+      val params = buildRenderParams(
         context = context,
         scaleFactor = scaleFactor,
         layerSize = layerSize,
+      )
+      val currentRenderEffects = getRenderEffects(params)
+      val needsUnderlayLayer = shouldDrawUnderlay(params, currentRenderEffects)
+      val retainedUnderlayLayer = underlayContentLayer
+        ?.takeUnless { it.isReleased }
+        ?.takeIf { retainedOutputAvailable }
+        ?.takeIf { needsUnderlayLayer }
+
+      if (needsUnderlayLayer && retainedUnderlayLayer == null) {
+        retainedOutputAvailable = false
+        return
+      }
+
+      drawRetainedLayer(
+        layer = retainedLayer,
+        underlayLayer = retainedUnderlayLayer,
+        context = context,
+        scaleFactor = scaleFactor,
+        params = params,
+        renderEffects = currentRenderEffects,
         clipToNodeBounds = clipToNodeBounds,
       )
       return
     }
+
+    val params = buildRenderParams(
+      context = context,
+      scaleFactor = scaleFactor,
+      layerSize = layerSize,
+    )
+    val currentRenderEffects = getRenderEffects(params)
+    val needsUnderlayLayer = shouldDrawUnderlay(params, currentRenderEffects)
 
     if (contentLayer == null || contentLayer!!.isReleased || lastScaledLayerSize != currentScaledSize) {
       graphicsContext = context.requireGraphicsContext()
       contentLayer?.let { graphicsContext!!.releaseGraphicsLayer(it) }
       underlayContentLayer?.let { graphicsContext!!.releaseGraphicsLayer(it) }
       contentLayer = graphicsContext!!.createGraphicsLayer()
-      underlayContentLayer = graphicsContext!!.createGraphicsLayer()
+      underlayContentLayer = if (needsUnderlayLayer) {
+        graphicsContext!!.createGraphicsLayer()
+      } else {
+        null
+      }
       lastScaledLayerSize = currentScaledSize
       retainedOutputAvailable = false
+    } else if (needsUnderlayLayer && underlayContentLayer?.isReleased != false) {
+      graphicsContext = graphicsContext ?: context.requireGraphicsContext()
+      underlayContentLayer = graphicsContext!!.createGraphicsLayer()
+    } else if (!needsUnderlayLayer && underlayContentLayer != null) {
+      underlayContentLayer?.let { graphicsContext?.releaseGraphicsLayer(it) }
+      underlayContentLayer = null
     }
 
     val layer = createScaledContentLayer(
@@ -86,14 +120,18 @@ internal class RuntimeShaderLiquidGlassDelegate(
       backgroundColor = Color.Transparent,
     ) ?: return
 
-    val underlayLayer = createScaledContentLayer(
-      context = context,
-      scaleFactor = scaleFactor,
-      layerSize = context.layerSize,
-      layerOffset = context.layerOffset,
-      existingLayer = underlayContentLayer,
-      backgroundColor = Color.Transparent,
-    ) ?: return
+    val underlayLayer = if (needsUnderlayLayer) {
+      createScaledContentLayer(
+        context = context,
+        scaleFactor = scaleFactor,
+        layerSize = context.layerSize,
+        layerOffset = context.layerOffset,
+        existingLayer = underlayContentLayer,
+        backgroundColor = Color.Transparent,
+      ) ?: return
+    } else {
+      null
+    }
     retainedOutputAvailable = true
 
     drawRetainedLayer(
@@ -101,7 +139,8 @@ internal class RuntimeShaderLiquidGlassDelegate(
       underlayLayer = underlayLayer,
       context = context,
       scaleFactor = scaleFactor,
-      layerSize = layerSize,
+      params = params,
+      renderEffects = currentRenderEffects,
       clipToNodeBounds = clipToNodeBounds,
     )
   }
@@ -111,7 +150,8 @@ internal class RuntimeShaderLiquidGlassDelegate(
     underlayLayer: GraphicsLayer?,
     context: VisualEffectContext,
     scaleFactor: Float,
-    layerSize: Size,
+    params: RenderParams,
+    renderEffects: LiquidGlassRenderEffects,
     clipToNodeBounds: Boolean,
   ) {
     layer.clip = clipToNodeBounds
@@ -121,50 +161,9 @@ internal class RuntimeShaderLiquidGlassDelegate(
       scaledSize = size * scaleFactor,
       clip = clipToNodeBounds,
     ) {
-      val density = context.requireDensity()
-      val layoutDirection = context.currentValueOf(LocalLayoutDirection)
-      val layerRadii = effect.shape.toCornerRadiiPx(
-        layerSize = layerSize,
-        density = density,
-        layoutDirection = layoutDirection,
-      )
-      val params = RenderParams(
-        layerSize = layerSize,
-        refractionStrength = effect.refractionStrength.coerceIn(0f, 1f),
-        specularIntensity = effect.specularIntensity.coerceIn(0f, 1f),
-        depth = effect.depth.coerceIn(0f, 1f),
-        ambientResponse = effect.ambientResponse.coerceIn(0f, 1f),
-        tint = effect.tint,
-        edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() },
-        blurRadiusPx = with(density) { effect.blurRadius.toPx() },
-        progressive = effect.progressive,
-        refractionHeightPx = effect.refractionHeight.coerceIn(0f, 1f) * layerSize.minDimension,
-        chromaticAberrationStrength = effect.chromaticAberrationStrength.coerceIn(0f, 1f),
-        surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),
-        chromaticAberrationMode = effect.chromaticAberrationMode.ordinal.toFloat(),
-        contrast = effect.contrast.coerceIn(-1f, 1f),
-        whitePoint = effect.whitePoint.coerceIn(-1f, 1f),
-        chromaMultiplier = effect.chromaMultiplier.coerceIn(0f, 2f),
-        refractionScale = effect.refractionScale.coerceAtLeast(0f),
-        contentNormalBlend = effect.contentNormalBlend.coerceIn(0f, 1f),
-        specularExponent = effect.specularExponent.coerceAtLeast(0f),
-        fresnelExponent = effect.fresnelExponent.coerceAtLeast(0f),
-        cornerRadii = layerRadii,
-        lightPosition = effect.lightPosition.takeOrElse {
-          context.layerSize.center * scaleFactor
-        },
-      )
-
-      if (params != lastParams || renderEffects == null) {
-        renderEffects = buildRenderEffects(params)
-        lastParams = params
-      }
-
-      val currentRenderEffects = renderEffects ?: return@drawScaledContent
-
-      if (params.depth > 0f) {
+      if (shouldDrawUnderlay(params, renderEffects)) {
         val currentUnderlayLayer = underlayLayer
-        val underlay = currentRenderEffects.underlay
+        val underlay = renderEffects.underlay
         if (currentUnderlayLayer != null && underlay != null) {
           currentUnderlayLayer.renderEffect = underlay.asComposeRenderEffect()
           currentUnderlayLayer.alpha = effect.alpha * params.depth
@@ -172,7 +171,7 @@ internal class RuntimeShaderLiquidGlassDelegate(
         }
       }
 
-      layer.renderEffect = currentRenderEffects.overlay.asComposeRenderEffect()
+      layer.renderEffect = renderEffects.overlay.asComposeRenderEffect()
       layer.alpha = effect.alpha
       drawLayer(layer)
     }
@@ -198,6 +197,61 @@ internal class RuntimeShaderLiquidGlassDelegate(
     lastScaledLayerSize = null
     graphicsContext = null
     retainedOutputAvailable = false
+  }
+
+  private fun DrawScope.buildRenderParams(
+    context: VisualEffectContext,
+    scaleFactor: Float,
+    layerSize: Size,
+  ): RenderParams {
+    val density = context.requireDensity()
+    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
+    val layerRadii = effect.shape.toCornerRadiiPx(
+      layerSize = layerSize,
+      density = density,
+      layoutDirection = layoutDirection,
+    )
+    return RenderParams(
+      layerSize = layerSize,
+      refractionStrength = effect.refractionStrength.coerceIn(0f, 1f),
+      specularIntensity = effect.specularIntensity.coerceIn(0f, 1f),
+      depth = effect.depth.coerceIn(0f, 1f),
+      ambientResponse = effect.ambientResponse.coerceIn(0f, 1f),
+      tint = effect.tint,
+      edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() },
+      blurRadiusPx = with(density) { effect.blurRadius.toPx() },
+      progressive = effect.progressive,
+      refractionHeightPx = effect.refractionHeight.coerceIn(0f, 1f) * layerSize.minDimension,
+      chromaticAberrationStrength = effect.chromaticAberrationStrength.coerceIn(0f, 1f),
+      surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),
+      chromaticAberrationMode = effect.chromaticAberrationMode.ordinal.toFloat(),
+      contrast = effect.contrast.coerceIn(-1f, 1f),
+      whitePoint = effect.whitePoint.coerceIn(-1f, 1f),
+      chromaMultiplier = effect.chromaMultiplier.coerceIn(0f, 2f),
+      refractionScale = effect.refractionScale.coerceAtLeast(0f),
+      contentNormalBlend = effect.contentNormalBlend.coerceIn(0f, 1f),
+      specularExponent = effect.specularExponent.coerceAtLeast(0f),
+      fresnelExponent = effect.fresnelExponent.coerceAtLeast(0f),
+      cornerRadii = layerRadii,
+      lightPosition = effect.lightPosition.takeOrElse {
+        context.layerSize.center * scaleFactor
+      },
+    )
+  }
+
+  private fun getRenderEffects(params: RenderParams): LiquidGlassRenderEffects {
+    if (params != lastParams || renderEffects == null) {
+      renderEffects = buildRenderEffects(params)
+      lastParams = params
+    }
+    return checkNotNull(renderEffects)
+  }
+
+  private fun shouldDrawUnderlay(
+    params: RenderParams,
+    renderEffects: LiquidGlassRenderEffects,
+  ): Boolean {
+    return params.depth > 0f && renderEffects.underlay != null
   }
 
   private fun buildRenderEffects(params: RenderParams): LiquidGlassRenderEffects {
