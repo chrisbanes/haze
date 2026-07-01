@@ -421,7 +421,7 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
 }
 
 @Composable
-private fun LiquidGlassBlurRadiusSample(
+internal fun LiquidGlassBlurRadiusSample(
   visualEffect: LiquidGlassVisualEffect,
   shape: RoundedCornerShape,
   clipShape: Boolean = true,
