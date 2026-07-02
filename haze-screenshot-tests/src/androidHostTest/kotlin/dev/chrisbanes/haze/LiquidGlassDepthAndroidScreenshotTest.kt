@@ -23,7 +23,7 @@ class LiquidGlassDepthAndroidScreenshotTest : ScreenshotTest() {
     val shape = RoundedCornerShape(28.dp)
     val visualEffect = LiquidGlassVisualEffect().apply {
       tint = Color.White.copy(alpha = 0.08f)
-      refractionStrength = 0.35f
+      refractionStrength = 0f
       depth = 0f
       blurRadius = 32.dp
       specularIntensity = 0f
