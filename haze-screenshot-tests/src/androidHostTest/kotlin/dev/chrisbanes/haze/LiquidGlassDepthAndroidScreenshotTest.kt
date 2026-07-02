@@ -13,7 +13,7 @@ import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
 import org.robolectric.annotation.Config
 
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w393dp-h698dp-440dpi")
 class LiquidGlassDepthAndroidScreenshotTest : ScreenshotTest() {
 
   @Test

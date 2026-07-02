@@ -166,7 +166,9 @@ internal class RuntimeShaderLiquidGlassDelegate(
         val underlay = renderEffects.underlay
         if (currentUnderlayLayer != null && underlay != null) {
           currentUnderlayLayer.renderEffect = underlay.asComposeRenderEffect()
-          currentUnderlayLayer.alpha = effect.alpha * params.depth
+          // The overlay shader already encodes depth in its output alpha. Keep the
+          // underlay at full effect alpha so compositing matches the dual-input path.
+          currentUnderlayLayer.alpha = effect.alpha
           drawLayer(currentUnderlayLayer)
         }
       }
