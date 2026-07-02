@@ -36,6 +36,13 @@ public data class LiquidGlassStyle(
   }
 }
 
+/**
+ * Optical properties for [LiquidGlassStyle].
+ *
+ * @param depth Depth perception factor. On Android, values greater than `0f` require drawing an
+ * additional blurred underlay for the glass content, which has a rendering cost. Use `0f` when
+ * depth layering is not needed.
+ */
 @ExperimentalHazeApi
 @Immutable
 public data class LiquidGlassOptics(
