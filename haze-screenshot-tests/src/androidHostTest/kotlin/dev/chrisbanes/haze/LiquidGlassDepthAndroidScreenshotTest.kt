@@ -19,16 +19,28 @@ class LiquidGlassDepthAndroidScreenshotTest : ScreenshotTest() {
   @Test
   fun liquidGlass_depthProgression() = runScreenshotTest(relaxedTolerance = true) {
     val shape = RoundedCornerShape(28.dp)
+    val visualEffect = liquidGlassDepthProgressionVisualEffect(
+      depth = 0f,
+      shape = shape,
+    )
 
     setContent {
       ScreenshotTheme {
-        LiquidGlassDepthComparisonSample(
-          visualEffects = liquidGlassDepthProgressionVisualEffects(shape),
+        LiquidGlassDepthSingleSample(
+          visualEffect = visualEffect,
           shape = shape,
         )
       }
     }
 
-    captureRoot("comparison")
+    captureRoot("0")
+
+    visualEffect.depth = 0.5f
+    waitForIdle()
+    captureRoot("50")
+
+    visualEffect.depth = 1f
+    waitForIdle()
+    captureRoot("100")
   }
 }

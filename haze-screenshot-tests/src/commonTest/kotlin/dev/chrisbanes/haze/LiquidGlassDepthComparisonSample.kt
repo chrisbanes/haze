@@ -24,17 +24,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect
 
-internal fun liquidGlassDepthProgressionVisualEffects(
-  shape: RoundedCornerShape,
-): List<LiquidGlassVisualEffect> {
-  return listOf(0f, 0.5f, 1f).map { depth ->
-    liquidGlassDepthProgressionVisualEffect(
-      depth = depth,
-      shape = shape,
-    )
-  }
-}
-
 internal fun liquidGlassDepthProgressionVisualEffect(
   depth: Float,
   shape: RoundedCornerShape,
