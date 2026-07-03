@@ -883,7 +883,7 @@
 <li><strong>tint</strong>: Glass tint (defaults to white 12% alpha).</li>
 <li><strong>refractionStrength</strong>: Distortion strength <code>0..1</code> (default 0.7).</li>
 <li><strong>refractionHeight</strong>: Fraction of the shortest side that participates in refraction (default 0.25). Lower values pull the effect toward the edges; higher values push it deeper into the interior.</li>
-<li><strong>depth / blurRadius</strong>: Blur is applied before liquid glass refraction so refracted content can soften with depth. Higher <code>depth</code> increases the visual contribution of blurred content.</li>
+<li><strong>depth / blurRadius</strong>: Blur is applied before liquid glass refraction so refracted content can soften with depth. Higher <code>depth</code> increases the visual contribution of blurred content. On Android, any <code>depth &gt; 0f</code> requires drawing an additional blurred underlay for the glass content, so use <code>depth = 0f</code> when depth layering is not needed.</li>
 <li><strong>progressive</strong>: Optional progressive blur mask. Use <code>HazeProgressive.verticalGradient</code>, <code>horizontalGradient</code>, <code>HazeProgressive.RadialGradient</code>, or <code>forShader</code> to vary blur radius across the glass surface.</li>
 <li><strong>specularIntensity</strong>: Highlight strength <code>0..1</code> (default 0.4).</li>
 <li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.5).</li>
