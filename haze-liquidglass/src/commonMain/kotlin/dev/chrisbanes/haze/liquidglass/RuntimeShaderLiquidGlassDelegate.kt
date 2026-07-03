@@ -190,17 +190,21 @@ internal class RuntimeShaderLiquidGlassDelegate(
       clip = clipToNodeBounds,
     ) {
       if (shouldDrawCompositedLayer(params, renderEffects)) {
-        val currentUnderlayLayer = underlayLayer
-        val underlay = renderEffects.underlay
         val currentCompositedLayer = compositedLayer
         val outputMask = renderEffects.outputMask
-        if (currentUnderlayLayer != null && underlay != null && currentCompositedLayer != null && outputMask != null) {
+        if (currentCompositedLayer != null && outputMask != null) {
           currentCompositedLayer.renderEffect = outputMask.asComposeRenderEffect()
           currentCompositedLayer.alpha = effect.alpha
           currentCompositedLayer.record(size = params.layerSize.roundToIntSize()) {
-            currentUnderlayLayer.renderEffect = underlay.asComposeRenderEffect()
-            currentUnderlayLayer.alpha = 1f
-            drawLayer(currentUnderlayLayer)
+            if (shouldDrawUnderlay(params, renderEffects)) {
+              val currentUnderlayLayer = underlayLayer
+              val underlay = renderEffects.underlay
+              if (currentUnderlayLayer != null && underlay != null) {
+                currentUnderlayLayer.renderEffect = underlay.asComposeRenderEffect()
+                currentUnderlayLayer.alpha = 1f
+                drawLayer(currentUnderlayLayer)
+              }
+            }
 
             layer.renderEffect = renderEffects.overlay.asComposeRenderEffect()
             layer.alpha = 1f
@@ -311,7 +315,8 @@ internal class RuntimeShaderLiquidGlassDelegate(
     params: RenderParams,
     renderEffects: LiquidGlassRenderEffects,
   ): Boolean {
-    return shouldDrawUnderlay(params, renderEffects) && renderEffects.outputMask != null
+    return renderEffects.outputMask != null &&
+      (params.edgeSoftnessPx > 0f || !params.cornerRadii.isZero())
   }
 
   private fun buildRenderEffects(params: RenderParams): LiquidGlassRenderEffects {

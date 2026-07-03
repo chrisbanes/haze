@@ -6,7 +6,9 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -42,5 +44,32 @@ class LiquidGlassDepthAndroidScreenshotTest : ScreenshotTest() {
     visualEffect.depth = 1f
     waitForIdle()
     captureRoot("100")
+  }
+
+  @Test
+  fun liquidGlass_depthZeroMasksShape() = runScreenshotTest(relaxedTolerance = true) {
+    val shape = RoundedCornerShape(48.dp)
+    val visualEffect = LiquidGlassVisualEffect().apply {
+      tint = Color.White.copy(alpha = 0.28f)
+      refractionStrength = 0f
+      depth = 0f
+      blurRadius = 32.dp
+      specularIntensity = 0f
+      ambientResponse = 0f
+      edgeSoftness = 16.dp
+      this.shape = shape
+    }
+
+    setContent {
+      ScreenshotTheme {
+        LiquidGlassBlurRadiusSample(
+          visualEffect = visualEffect,
+          shape = shape,
+          clipShape = false,
+        )
+      }
+    }
+
+    captureRoot()
   }
 }
