@@ -152,6 +152,7 @@ internal fun HazeArea.reset() {
   coordinates.localPosition = Offset.Unspecified
   coordinates.screenPosition = Offset.Unspecified
   size = Size.Unspecified
+  windowId = null
   contentDrawing = false
 }
 

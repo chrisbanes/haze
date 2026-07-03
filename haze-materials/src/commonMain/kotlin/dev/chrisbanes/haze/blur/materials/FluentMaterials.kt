@@ -34,9 +34,9 @@ public object FluentMaterials {
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeBlurStyle = hazeAcrylicMaterial(
     containerColor = if (isDark) {
-      Color(0x545454)
+      Color(0xFF545454)
     } else {
-      Color(0xD3D3D3)
+      Color(0xFFD3D3D3)
     },
     fallbackColor = if (isDark) {
       Color(0x545454, 0.64f)
@@ -93,14 +93,14 @@ public object FluentMaterials {
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeBlurStyle = hazeAcrylicMaterial(
     containerColor = if (isDark) {
-      Color(0x202020)
+      Color(0xFF202020)
     } else {
-      Color(0xF3F3F3)
+      Color(0xFFF3F3F3)
     },
     fallbackColor = if (isDark) {
-      Color(0x1C1C1C)
+      Color(0xFF1C1C1C)
     } else {
-      Color(0xEEEEEE)
+      Color(0xFFEEEEEE)
     },
     isDark = isDark,
     lightTintOpacity = 0f,
@@ -118,14 +118,14 @@ public object FluentMaterials {
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeBlurStyle = hazeAcrylicMaterial(
     containerColor = if (isDark) {
-      Color(0x2C2C2C)
+      Color(0xFF2C2C2C)
     } else {
-      Color(0xFCFCFC)
+      Color(0xFFFCFCFC)
     },
     fallbackColor = if (isDark) {
-      Color(0x2C2C2C)
+      Color(0xFF2C2C2C)
     } else {
-      Color(0xF9F9F9)
+      Color(0xFFF9F9F9)
     },
     isDark = isDark,
     lightTintOpacity = 0f,
@@ -143,9 +143,9 @@ public object FluentMaterials {
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeBlurStyle = hazeMicaMaterial(
     containerColor = if (isDark) {
-      Color(0x202020)
+      Color(0xFF202020)
     } else {
-      Color(0xF3F3F3)
+      Color(0xFFF3F3F3)
     },
     isDark = isDark,
     lightTintOpacity = 0.5f,
@@ -163,9 +163,9 @@ public object FluentMaterials {
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
   ): HazeBlurStyle = hazeMicaMaterial(
     containerColor = if (isDark) {
-      Color(0x0A0A0A)
+      Color(0xFF0A0A0A)
     } else {
-      Color(0xDADADA)
+      Color(0xFFDADADA)
     },
     isDark = isDark,
     lightTintOpacity = 0.5f,

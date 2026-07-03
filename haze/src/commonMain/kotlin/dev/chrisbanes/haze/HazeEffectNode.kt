@@ -111,6 +111,7 @@ public class HazeEffectNode(
     }
 
   private val areaOffsets = MutableObjectLongMap<HazeArea>()
+  private val areaZIndexes = MutableObjectLongMap<HazeArea>()
 
   private var _size: Size = Size.Unspecified
     set(value) {
@@ -206,8 +207,8 @@ public class HazeEffectNode(
       if (value != field) {
         HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
         if (isAttached) {
-          runCatching { detachVisualEffect(field) }
           attachVisualEffect(value)
+          runCatching { detachVisualEffect(field) }
         }
         field = value
       }
@@ -277,6 +278,8 @@ public class HazeEffectNode(
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
     resetPendingInvalidations()
+    _areas = emptyList()
+    areaZIndexes.clear()
     contentDrawArea.releaseLayer()
     clearRetainedOutput()
     detachVisualEffect(visualEffect)
@@ -426,7 +429,7 @@ public class HazeEffectNode(
       // We copy toList() because stateAreas is a SnapshotStateList reference
       // and would otherwise mutate lastSeenStateAreas in place.
       val currentStateAreas = stateAreas.toList()
-      if (currentStateAreas != lastSeenStateAreas) {
+      if (currentStateAreas != lastSeenStateAreas || haveAreaZIndexesChanged(currentStateAreas)) {
         lastSeenStateAreas = currentStateAreas
         dirtyTracker += DirtyFields.Areas
       }
@@ -464,8 +467,10 @@ public class HazeEffectNode(
         if (unfilteredAreas.isNotEmpty() && filteredAreas.isEmpty()) {
           clearRetainedOutput()
         }
+        updateAreaZIndexes(currentStateAreas)
       }
     } else {
+      areaZIndexes.clear()
       // Foreground (content) blur: always update contentDrawArea since its size,
       // position, and windowId may change every frame with no dirty flag.
       contentDrawArea.size = size
@@ -604,6 +609,20 @@ public class HazeEffectNode(
         val offset = position - areaPosition
         areaOffsets[area] = offset.packedValue
       }
+    }
+  }
+
+  private fun haveAreaZIndexesChanged(stateAreas: List<HazeArea>): Boolean {
+    if (areaZIndexes.size != stateAreas.size) return true
+    return stateAreas.any { area ->
+      !areaZIndexes.contains(area) || areaZIndexes[area] != area.zIndex.toRawBits().toLong()
+    }
+  }
+
+  private fun updateAreaZIndexes(stateAreas: List<HazeArea>) {
+    areaZIndexes.clear()
+    stateAreas.forEach { area ->
+      areaZIndexes[area] = area.zIndex.toRawBits().toLong()
     }
   }
 

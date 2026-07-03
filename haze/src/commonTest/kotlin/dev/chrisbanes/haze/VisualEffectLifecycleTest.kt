@@ -332,6 +332,65 @@ class VisualEffectLifecycleTest : ContextTest() {
     assertThat(effect.attachCalls).isEqualTo(0)
     assertThat(effect.detachCalls).isEqualTo(0)
   }
+
+  @Test
+  fun hazeEffect_detachRemovesPreDrawListenerFromSourceAreas() = runComposeUiTest {
+    val hazeState = HazeState()
+    val showEffect = mutableStateOf(true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Spacer(Modifier.size(100.dp).hazeSource(hazeState))
+        if (showEffect.value) {
+          Spacer(
+            Modifier
+              .size(100.dp)
+              .hazeEffect(hazeState) {
+                forceInvalidateOnPreDraw = true
+              },
+          )
+        }
+      }
+    }
+
+    waitForIdle()
+    val area = hazeState.areas.single()
+    assertThat(area.preDrawListeners.size).isEqualTo(1)
+
+    showEffect.value = false
+    waitForIdle()
+
+    assertThat(area.preDrawListeners.size).isEqualTo(0)
+  }
+
+  @Test
+  fun hazeEffect_zIndexChangeRebuildsAreaOrder() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = AreaOrderRecordingVisualEffect()
+    val firstZIndex = mutableStateOf(0f)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Spacer(Modifier.size(100.dp).hazeSource(hazeState, zIndex = firstZIndex.value))
+        Spacer(Modifier.size(100.dp).hazeSource(hazeState, zIndex = 1f))
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.updateZIndexes).isEqualTo(listOf(0f, 1f))
+
+    firstZIndex.value = 2f
+    waitForIdle()
+
+    assertThat(effect.updateZIndexes).isEqualTo(listOf(1f, 2f))
+  }
 }
 
 internal class RecordingVisualEffect : VisualEffect {
@@ -374,6 +433,16 @@ internal class DrawBehindProbeVisualEffect(
   override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
     shouldDrawContentBehindCalls++
     return returnValue
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+}
+
+internal class AreaOrderRecordingVisualEffect : VisualEffect {
+  var updateZIndexes: List<Float> = emptyList()
+
+  override fun update(context: VisualEffectContext) {
+    updateZIndexes = context.areas.map(HazeArea::zIndex)
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
