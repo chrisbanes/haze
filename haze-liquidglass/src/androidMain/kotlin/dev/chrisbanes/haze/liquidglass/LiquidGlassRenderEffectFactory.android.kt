@@ -25,32 +25,25 @@ internal actual fun createLiquidGlassRenderEffects(
 ): LiquidGlassRenderEffects {
   val blurEffect = params.createBlurRenderEffect()
 
-  val blurredUnderlay = createRuntimeShaderRenderEffect(
-    effect = LIQUID_GLASS_OUTPUT_MASK_EFFECT,
-    shaderNames = arrayOf("content"),
-    inputs = arrayOf(blurEffect),
-  ) {
-    setMaskUniforms(params)
-  }
-
-  val rawOverlay = createRuntimeShaderRenderEffect(
+  val overlay = createRuntimeShaderRenderEffect(
     effect = LIQUID_GLASS_OVERLAY_EFFECT,
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
     uniforms = uniforms,
   )
 
-  val maskedOverlay = createRuntimeShaderRenderEffect(
+  val outputMask = createRuntimeShaderRenderEffect(
     effect = LIQUID_GLASS_OUTPUT_MASK_EFFECT,
     shaderNames = arrayOf("content"),
-    inputs = arrayOf(rawOverlay),
+    inputs = arrayOf(null),
   ) {
     setMaskUniforms(params)
   }
 
   return LiquidGlassRenderEffects(
-    overlay = maskedOverlay,
-    underlay = blurredUnderlay,
+    overlay = overlay,
+    underlay = blurEffect,
+    outputMask = outputMask,
   )
 }
 
