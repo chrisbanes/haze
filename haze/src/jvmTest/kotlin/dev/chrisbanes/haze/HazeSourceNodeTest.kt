@@ -14,10 +14,11 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
+import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
-class HazeSourceNodeTest {
+class HazeSourceNodeTest : ContextTest() {
 
   @Test
   fun onResetReleasesLayerAndClearsWindowId() = runComposeUiTest {
