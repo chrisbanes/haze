@@ -91,7 +91,11 @@ public object FluentMaterials {
   @ReadOnlyComposable
   public fun acrylicBase(
     isDark: Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
-  ): HazeBlurStyle = hazeAcrylicMaterial(
+  ): HazeBlurStyle = acrylicBaseStyle(isDark)
+
+  internal fun acrylicBaseStyle(
+    isDark: Boolean,
+  ): HazeBlurStyle = hazeAcrylicMaterialStyle(
     containerColor = if (isDark) {
       Color(0xFF202020)
     } else {
@@ -186,6 +190,28 @@ public object FluentMaterials {
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
     darkLuminosityOpacity: Float,
+  ): HazeBlurStyle = hazeMaterialStyle(
+    containerColor = containerColor,
+    fallbackColor = fallbackColor,
+    isDark = isDark,
+    blurRadius = blurRadius,
+    noiseFactor = noiseFactor,
+    lightTintOpacity = lightTintOpacity,
+    lightLuminosityOpacity = lightLuminosityOpacity,
+    darkTintOpacity = darkTintOpacity,
+    darkLuminosityOpacity = darkLuminosityOpacity,
+  )
+
+  private fun hazeMaterialStyle(
+    containerColor: Color,
+    isDark: Boolean,
+    fallbackColor: Color,
+    blurRadius: Dp,
+    noiseFactor: Float,
+    lightTintOpacity: Float,
+    lightLuminosityOpacity: Float,
+    darkTintOpacity: Float,
+    darkLuminosityOpacity: Float,
   ): HazeBlurStyle = HazeBlurStyle(
     blurRadius = blurRadius,
     noiseFactor = noiseFactor,
@@ -217,7 +243,25 @@ public object FluentMaterials {
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
     darkLuminosityOpacity: Float,
-  ): HazeBlurStyle = hazeMaterial(
+  ): HazeBlurStyle = hazeAcrylicMaterialStyle(
+    containerColor = containerColor,
+    fallbackColor = fallbackColor,
+    isDark = isDark,
+    lightTintOpacity = lightTintOpacity,
+    lightLuminosityOpacity = lightLuminosityOpacity,
+    darkTintOpacity = darkTintOpacity,
+    darkLuminosityOpacity = darkLuminosityOpacity,
+  )
+
+  private fun hazeAcrylicMaterialStyle(
+    containerColor: Color,
+    fallbackColor: Color = containerColor,
+    isDark: Boolean = containerColor.luminance() < 0.5f,
+    lightTintOpacity: Float,
+    lightLuminosityOpacity: Float,
+    darkTintOpacity: Float,
+    darkLuminosityOpacity: Float,
+  ): HazeBlurStyle = hazeMaterialStyle(
     containerColor = containerColor,
     fallbackColor = fallbackColor,
     isDark = isDark,
