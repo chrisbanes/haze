@@ -174,7 +174,7 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
     val visualEffect = LiquidGlassVisualEffect().apply {
       tint = Color.White.copy(alpha = 0.08f)
       refractionStrength = 0f
-      depth = 0.9f
+      depth = 1f
       blurRadius = 32.dp
       specularIntensity = 0f
       ambientResponse = 0f
@@ -421,7 +421,7 @@ class LiquidGlassScreenshotTest : ScreenshotTest() {
 }
 
 @Composable
-private fun LiquidGlassBlurRadiusSample(
+internal fun LiquidGlassBlurRadiusSample(
   visualEffect: LiquidGlassVisualEffect,
   shape: RoundedCornerShape,
   clipShape: Boolean = true,

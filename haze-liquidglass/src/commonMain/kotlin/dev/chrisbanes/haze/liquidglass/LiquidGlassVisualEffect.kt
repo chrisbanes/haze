@@ -207,6 +207,9 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
   /**
    * Depth perception factor (0 = flat, 1 = deep layered glass).
    *
+   * On Android, values greater than `0f` require drawing an additional blurred underlay for the
+   * glass content, which has a rendering cost. Use `0f` when depth layering is not needed.
+   *
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.

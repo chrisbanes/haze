@@ -13,7 +13,7 @@ A refraction-driven glass effect inspired by iOS "liquid" glass. It combines ref
 - **tint**: Glass tint (defaults to white 12% alpha).
 - **refractionStrength**: Distortion strength `0..1` (default 0.7).
 - **refractionHeight**: Fraction of the shortest side that participates in refraction (default 0.25). Lower values pull the effect toward the edges; higher values push it deeper into the interior.
-- **depth / blurRadius**: Blur is applied before liquid glass refraction so refracted content can soften with depth. Higher `depth` increases the visual contribution of blurred content.
+- **depth / blurRadius**: Blur is applied before liquid glass refraction so refracted content can soften with depth. Higher `depth` increases the visual contribution of blurred content. On Android, any `depth > 0f` requires drawing an additional blurred underlay for the glass content, so use `depth = 0f` when depth layering is not needed.
 - **progressive**: Optional progressive blur mask. Use `HazeProgressive.verticalGradient`, `horizontalGradient`, `HazeProgressive.RadialGradient`, or `forShader` to vary blur radius across the glass surface.
 - **specularIntensity**: Highlight strength `0..1` (default 0.4).
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.5).

@@ -19,26 +19,32 @@ import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @InternalHazeApi
-internal actual fun createLiquidGlassRenderEffect(
+internal actual fun createLiquidGlassRenderEffects(
   params: RuntimeShaderLiquidGlassDelegate.RenderParams,
   uniforms: RuntimeShaderUniformProvider.() -> Unit,
-): PlatformRenderEffect {
+): LiquidGlassRenderEffects {
   val blurEffect = params.createBlurRenderEffect()
 
-  val glass = createRuntimeShaderRenderEffect(
-    effect = LIQUID_GLASS_RUNTIME_EFFECT,
+  val overlay = createRuntimeShaderRenderEffect(
+    effect = LIQUID_GLASS_OVERLAY_EFFECT,
     shaderNames = arrayOf("content"),
-    inputs = arrayOf(blurEffect),
+    inputs = arrayOf(null),
     uniforms = uniforms,
   )
 
-  return createRuntimeShaderRenderEffect(
+  val outputMask = createRuntimeShaderRenderEffect(
     effect = LIQUID_GLASS_OUTPUT_MASK_EFFECT,
     shaderNames = arrayOf("content"),
-    inputs = arrayOf(glass),
+    inputs = arrayOf(null),
   ) {
     setMaskUniforms(params)
   }
+
+  return LiquidGlassRenderEffects(
+    overlay = overlay,
+    underlay = blurEffect,
+    outputMask = outputMask,
+  )
 }
 
 private fun RuntimeShaderLiquidGlassDelegate.RenderParams.createBlurRenderEffect(): PlatformRenderEffect? {
@@ -59,10 +65,10 @@ private fun RuntimeShaderLiquidGlassDelegate.RenderParams.createBlurRenderEffect
   }
 }
 
-private val LIQUID_GLASS_RUNTIME_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+private val LIQUID_GLASS_OVERLAY_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(
     LiquidGlassShaders.build(
-      contentMode = LiquidGlassShaders.ContentMode.SingleBlurredInput,
+      contentMode = LiquidGlassShaders.ContentMode.OverlayWithExternalUnderlay,
     ),
   )
 }
