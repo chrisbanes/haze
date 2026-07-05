@@ -84,6 +84,25 @@ Box(
 )
 ```
 
+### Retained Output
+
+Liquid glass can retain and redraw its last captured output when all source areas disappear. This
+keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.
+For privacy-sensitive surfaces, disable retained output on the shared effect scope:
+
+```kotlin
+Box(
+  Modifier
+    .size(180.dp)
+    .hazeEffect(state = hazeState) {
+      retainOutputWhenSourceUnavailable = false
+      liquidGlassEffect {
+        style = HazeLiquidGlassMaterials.Card
+      }
+    }
+)
+```
+
 You can use a preset as a baseline and override individual values:
 
 ```kotlin

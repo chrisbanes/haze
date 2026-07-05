@@ -78,6 +78,18 @@ public interface HazeEffectScope {
   public var expandLayerBounds: Boolean?
 
   /**
+   * Whether this effect may continue drawing its last retained output after all source areas become
+   * unavailable.
+   *
+   * This defaults to `true`, which keeps source transitions visually smooth when source content is
+   * temporarily removed. Set this to `false` for privacy-sensitive surfaces where stale source
+   * pixels must be cleared as soon as there is no source content to draw.
+   *
+   * This only affects effects that support retained output.
+   */
+  public var retainOutputWhenSourceUnavailable: Boolean
+
+  /**
    * Force draw invalidation from pre-draw events of contributing [HazeArea]s.
    *
    * When enabled, Haze will register a pre-draw listener and invalidate this effect node

@@ -66,7 +66,8 @@ modifier = Modifier.hazeEffect(state = hazeState) {
     inputScale = HazeInputScale.Auto
     drawContentBehind = true
     canDrawArea = { area -> true }
-    
+    retainOutputWhenSourceUnavailable = true
+
     // Effect-specific configuration
     blurEffect {
         // ...
@@ -96,6 +97,22 @@ An optional filter function that controls which source areas should be included 
 canDrawArea = { area ->
     // return true to include, false to exclude
     area.key != "exclude_me"
+}
+```
+
+#### retainOutputWhenSourceUnavailable
+
+Some effects can retain and redraw their last output when all source areas disappear. This keeps
+source transitions visually smooth, for example when content is temporarily removed while an
+effect surface remains visible.
+
+The default is `true`. For privacy-sensitive UI, set this to `false` so stale source pixels are
+cleared as soon as there is no source content to draw:
+
+```kotlin
+Modifier.hazeEffect(state = hazeState) {
+    retainOutputWhenSourceUnavailable = false
+    blurEffect { /* ... */ }
 }
 ```
 

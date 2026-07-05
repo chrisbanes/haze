@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
@@ -106,6 +108,147 @@ class VisualEffectRetainedOutputTest : ContextTest() {
 
     assertThat(effect.drawCalls).isGreaterThan(beforeRemovalDraws)
     assertThat(effect.lastDrawAreaCount).isEqualTo(0)
+  }
+
+  @Test
+  fun visualEffect_retainedOutputNotDrawnWhenDisabled() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+    val showSource = mutableStateOf(true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        if (showSource.value) {
+          Spacer(Modifier.size(100.dp).hazeSource(hazeState))
+        }
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+              retainOutputWhenSourceUnavailable = false
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.drawCalls).isGreaterThan(0)
+    assertThat(effect.lastDrawAreaCount).isGreaterThan(0)
+
+    val beforeRemovalDraws = effect.drawCalls
+    showSource.value = false
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isGreaterThan(0)
+    assertThat(effect.drawCalls).isEqualTo(beforeRemovalDraws)
+    assertThat(effect.retainedOutputAvailable).isEqualTo(false)
+  }
+
+  @Test
+  fun visualEffect_pendingRetainedOutputNotDrawnWhenDisabled() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+    val showSource = mutableStateOf(true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        if (showSource.value) {
+          Spacer(Modifier.size(100.dp).hazeSource(hazeState))
+        }
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+              retainOutputWhenSourceUnavailable = false
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.drawCalls).isGreaterThan(0)
+    assertThat(effect.lastDrawAreaCount).isGreaterThan(0)
+
+    val beforeRemovalDraws = effect.drawCalls
+    effect.retainedOutputAvailable = false
+    effect.pendingRetainedOutput = true
+    showSource.value = false
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isGreaterThan(0)
+    assertThat(effect.drawCalls).isEqualTo(beforeRemovalDraws)
+    assertThat(effect.pendingRetainedOutput).isEqualTo(false)
+  }
+
+  @Test
+  fun visualEffect_retainedOutputNotDrawnWhenDisabledAndAreasHaveNoContentLayers() = runComposeUiTest {
+    val hazeState = HazeState()
+    val area = HazeArea().apply {
+      coordinates.localPosition = Offset.Zero
+      coordinates.screenPosition = Offset.Zero
+      size = Size(100f, 100f)
+    }
+    hazeState.addArea(area)
+    val effect = RetainedOutputRecordingVisualEffect().apply {
+      retainedOutputAvailable = true
+    }
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeEffect(hazeState) {
+            visualEffect = effect
+            retainOutputWhenSourceUnavailable = false
+          },
+      )
+    }
+
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isGreaterThan(0)
+    assertThat(effect.drawCalls).isEqualTo(0)
+    assertThat(effect.retainedOutputAvailable).isEqualTo(false)
+  }
+
+  @Test
+  fun visualEffect_retainedOutputClearedWhenDisabledAfterBeingAvailable() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+    val showSource = mutableStateOf(true)
+    val retainOutput = mutableStateOf(true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        if (showSource.value) {
+          Spacer(Modifier.size(100.dp).hazeSource(hazeState))
+        }
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+              retainOutputWhenSourceUnavailable = retainOutput.value
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.drawCalls).isGreaterThan(0)
+    assertThat(effect.retainedOutputAvailable).isEqualTo(true)
+
+    showSource.value = false
+    waitForIdle()
+    assertThat(effect.retainedOutputAvailable).isEqualTo(true)
+
+    retainOutput.value = false
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isGreaterThan(0)
+    assertThat(effect.retainedOutputAvailable).isEqualTo(false)
   }
 
   @Test
