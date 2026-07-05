@@ -48,9 +48,9 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
     blurRadius = other.blurRadius
     refractionHeight = other.refractionHeight
     chromaticAberrationStrength = other.chromaticAberrationStrength
-    surfaceProfile = other.surfaceProfile
-    chromaticAberrationMode = other.chromaticAberrationMode
-    shape = other.shape
+    _surfaceProfile = other._surfaceProfile
+    _chromaticAberrationMode = other._chromaticAberrationMode
+    _shape = other._shape
     alpha = other.alpha
     contrast = other.contrast
     whitePoint = other.whitePoint
@@ -462,6 +462,18 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
     }
 
   /**
+   * Clears the direct [surfaceProfile] override and restores inherited values from [style] and
+   * [LocalLiquidGlassStyle].
+   */
+  public fun clearSurfaceProfileOverride() {
+    if (_surfaceProfile != null) {
+      HazeLogger.d(TAG) { "surfaceProfile override cleared. Current: $_surfaceProfile" }
+      _surfaceProfile = null
+      dirtyTracker += LiquidGlassDirtyFields.SurfaceProfile
+    }
+  }
+
+  /**
    * Quality mode for chromatic aberration (color dispersion).
    *
    * There are precedence rules to how this styling property is applied:
@@ -483,6 +495,18 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
     }
 
   /**
+   * Clears the direct [chromaticAberrationMode] override and restores inherited values from [style]
+   * and [LocalLiquidGlassStyle].
+   */
+  public fun clearChromaticAberrationModeOverride() {
+    if (_chromaticAberrationMode != null) {
+      HazeLogger.d(TAG) { "chromaticAberrationMode override cleared. Current: $_chromaticAberrationMode" }
+      _chromaticAberrationMode = null
+      dirtyTracker += LiquidGlassDirtyFields.ChromaticAberrationMode
+    }
+  }
+
+  /**
    * Shape applied to the glass. Defaults to [RoundedCornerShape] with 16.dp corners.
    *
    * There are precedence rules to how this styling property is applied:
@@ -502,6 +526,18 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
         dirtyTracker += LiquidGlassDirtyFields.Shape
       }
     }
+
+  /**
+   * Clears the direct [shape] override and restores inherited values from [style] and
+   * [LocalLiquidGlassStyle].
+   */
+  public fun clearShapeOverride() {
+    if (_shape != null) {
+      HazeLogger.d(TAG) { "shape override cleared. Current: $_shape" }
+      _shape = null
+      dirtyTracker += LiquidGlassDirtyFields.Shape
+    }
+  }
 
   /**
    * Overall opacity for the effect, in the range `0f..1f`.
