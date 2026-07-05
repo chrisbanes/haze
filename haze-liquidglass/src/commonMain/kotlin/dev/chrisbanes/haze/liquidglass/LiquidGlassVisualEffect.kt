@@ -109,12 +109,13 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
     }
   }
 
+  override fun DrawScope.prepareDraw(context: VisualEffectContext) {
+    selectDelegateForDraw(context)
+  }
+
   override fun DrawScope.draw(context: VisualEffectContext) {
     try {
-      if (needsDelegateSelection) {
-        delegate = updateDelegate(context, this)
-        needsDelegateSelection = false
-      }
+      selectDelegateForDraw(context)
       with(delegate) { draw(context) }
     } finally {
       resetDirtyTracker()
@@ -741,6 +742,13 @@ public class LiquidGlassVisualEffect() : VisualEffect, RetainedOutputVisualEffec
 
   private fun resetDirtyTracker() {
     dirtyTracker = Bitmask()
+  }
+
+  private fun DrawScope.selectDelegateForDraw(context: VisualEffectContext) {
+    if (needsDelegateSelection) {
+      delegate = updateDelegate(context, this)
+      needsDelegateSelection = false
+    }
   }
 
   private fun onStyleChanged(old: LiquidGlassStyle, new: LiquidGlassStyle) {

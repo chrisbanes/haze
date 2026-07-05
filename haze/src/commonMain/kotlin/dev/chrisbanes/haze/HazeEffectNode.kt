@@ -384,6 +384,9 @@ public class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
+          with(visualEffect) {
+            prepareDraw(visualEffectContext)
+          }
           if (drawContentBehind || visualEffect.shouldDrawContentBehind(visualEffectContext)) {
             drawLayer(contentLayer)
           }
