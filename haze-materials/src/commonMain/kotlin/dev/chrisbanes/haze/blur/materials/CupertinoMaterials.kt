@@ -86,30 +86,42 @@ public object CupertinoMaterials {
     darkForegroundColor = Color(color = 0x252525, alpha = 0.9f),
   )
 
-  @ReadOnlyComposable
-  @Composable
   private fun hazeMaterial(
-    containerColor: Color = MaterialTheme.colorScheme.surface,
-    isDark: Boolean = containerColor.luminance() < 0.5f,
+    containerColor: Color,
     lightBackgroundColor: Color,
     lightForegroundColor: Color,
     darkBackgroundColor: Color,
     darkForegroundColor: Color,
-  ): HazeBlurStyle = HazeBlurStyle(
-    blurRadius = 24.dp,
-    backgroundColor = MaterialTheme.colorScheme.surface,
-    colorEffects = listOf(
-      HazeColorEffect.tint(
-        color = if (isDark) darkBackgroundColor else lightBackgroundColor,
-        blendMode = if (isDark) BlendMode.Overlay else BlendMode.ColorDodge,
-      ),
-      HazeColorEffect.tint(
-        color = if (isDark) darkForegroundColor else lightForegroundColor,
-        blendMode = HazeColorEffect.DefaultBlendMode,
-      ),
-    ),
+  ): HazeBlurStyle = cupertinoMaterialStyle(
+    containerColor = containerColor,
+    lightBackgroundColor = lightBackgroundColor,
+    lightForegroundColor = lightForegroundColor,
+    darkBackgroundColor = darkBackgroundColor,
+    darkForegroundColor = darkForegroundColor,
   )
 }
+
+internal fun cupertinoMaterialStyle(
+  containerColor: Color,
+  isDark: Boolean = containerColor.luminance() < 0.5f,
+  lightBackgroundColor: Color,
+  lightForegroundColor: Color,
+  darkBackgroundColor: Color,
+  darkForegroundColor: Color,
+): HazeBlurStyle = HazeBlurStyle(
+  blurRadius = 24.dp,
+  backgroundColor = containerColor,
+  colorEffects = listOf(
+    HazeColorEffect.tint(
+      color = if (isDark) darkBackgroundColor else lightBackgroundColor,
+      blendMode = if (isDark) BlendMode.Overlay else BlendMode.ColorDodge,
+    ),
+    HazeColorEffect.tint(
+      color = if (isDark) darkForegroundColor else lightForegroundColor,
+      blendMode = HazeColorEffect.DefaultBlendMode,
+    ),
+  ),
+)
 
 private fun Color(color: Int, alpha: Float): Color {
   return Color(color).copy(alpha = alpha)
