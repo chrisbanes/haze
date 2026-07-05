@@ -469,6 +469,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#retainoutputwhensourceunavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        retainOutputWhenSourceUnavailable
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1196,6 +1207,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#retainoutputwhensourceunavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        retainOutputWhenSourceUnavailable
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1411,6 +1433,7 @@
 <span class="w">    </span><span class="n">inputScale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInputScale</span><span class="p">.</span><span class="na">Auto</span>
 <span class="w">    </span><span class="n">drawContentBehind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 <span class="w">    </span><span class="n">canDrawArea</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">area</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="n">retainOutputWhenSourceUnavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 
 <span class="w">    </span><span class="c1">// Effect-specific configuration</span>
 <span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
@@ -1433,6 +1456,17 @@
 <div class="highlight"><pre><span></span><code><span class="n">canDrawArea</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">area</span><span class="w"> </span><span class="o">-&gt;</span>
 <span class="w">    </span><span class="c1">// return true to include, false to exclude</span>
 <span class="w">    </span><span class="n">area</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">"exclude_me"</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="retainoutputwhensourceunavailable">retainOutputWhenSourceUnavailable<a class="headerlink" href="#retainoutputwhensourceunavailable" title="Permanent link">¶</a></h4>
+<p>Some effects can retain and redraw their last output when all source areas disappear. This keeps
+source transitions visually smooth, for example when content is temporarily removed while an
+effect surface remains visible.</p>
+<p>The default is <code>true</code>. For privacy-sensitive UI, set this to <code>false</code> so stale source pixels are
+cleared as soon as there is no source content to draw:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">retainOutputWhenSourceUnavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="foreground-vs-background-effects">Foreground vs Background Effects<a class="headerlink" href="#foreground-vs-background-effects" title="Permanent link">¶</a></h2>

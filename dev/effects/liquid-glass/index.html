@@ -813,6 +813,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Materials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#retained-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retained Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -939,6 +956,21 @@
 <span class="w">  </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
 <span class="w">    </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">liquidGlassEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeLiquidGlassMaterials</span><span class="p">.</span><span class="na">Card</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">)</span>
+</code></pre></div>
+<h3 id="retained-output">Retained Output<a class="headerlink" href="#retained-output" title="Permanent link">¶</a></h3>
+<p>Liquid glass can retain and redraw its last captured output when all source areas disappear. This
+keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.
+For privacy-sensitive surfaces, disable retained output on the shared effect scope:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
+<span class="w">  </span><span class="n">Modifier</span>
+<span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">retainOutputWhenSourceUnavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
 <span class="w">      </span><span class="n">liquidGlassEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeLiquidGlassMaterials</span><span class="p">.</span><span class="na">Card</span>
 <span class="w">      </span><span class="p">}</span>

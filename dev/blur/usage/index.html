@@ -487,6 +487,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Background Blurring (Most Common)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#retained-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retained Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1106,6 +1123,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Background Blurring (Most Common)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#retained-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retained Output
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1382,6 +1416,17 @@
 <span class="w">      </span><span class="p">}</span>
 <span class="w">      </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">(),</span>
 <span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="retained-output">Retained Output<a class="headerlink" href="#retained-output" title="Permanent link">¶</a></h4>
+<p>Background blur may keep drawing the last captured output when all source areas disappear. This is
+intentional and helps source transitions avoid flashing to empty content. If the source may contain
+private content, disable retained output on the effect scope:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">retainOutputWhenSourceUnavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">  </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="foreground-blurring">Foreground Blurring<a class="headerlink" href="#foreground-blurring" title="Permanent link">¶</a></h3>
