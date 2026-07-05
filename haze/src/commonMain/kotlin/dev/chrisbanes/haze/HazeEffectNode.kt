@@ -241,6 +241,20 @@ public class HazeEffectNode(
       }
     }
 
+  override var retainOutputWhenSourceUnavailable: Boolean = true
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) {
+          "retainOutputWhenSourceUnavailable changed. Current $field. New: $value"
+        }
+        if (!value) {
+          clearRetainedOutput()
+        }
+        dirtyTracker += DirtyFields.RetainOutput
+        field = value
+      }
+    }
+
   override var forceInvalidateOnPreDraw: Boolean = false
     set(value) {
       if (value != field) {
@@ -362,8 +376,17 @@ public class HazeEffectNode(
 
       if (this@HazeEffectNode.size.isSpecified && this@HazeEffectNode.layerSize.isSpecified) {
         if (state != null) {
-          val shouldDrawRetainedOutput = shouldDrawRetainedOutput()
-          if (areas.isNotEmpty() || shouldDrawRetainedOutput) {
+          val hasDrawableSourceLayers = hasDrawableSourceLayers()
+          if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers) {
+            clearRetainedOutput()
+          }
+
+          val shouldDrawEffect = if (retainOutputWhenSourceUnavailable) {
+            areas.isNotEmpty() || shouldDrawRetainedOutput()
+          } else {
+            hasDrawableSourceLayers
+          }
+          if (shouldDrawEffect) {
             // If the state is not null and we have some areas, let's perform background blurring
             with(visualEffect) {
               draw(visualEffectContext)
@@ -464,7 +487,9 @@ public class HazeEffectNode(
           .apply { sortBy(HazeArea::zIndex) }
         _areas = filteredAreas
 
-        if (unfilteredAreas.isNotEmpty() && filteredAreas.isEmpty()) {
+        if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers()) {
+          clearRetainedOutput()
+        } else if (unfilteredAreas.isNotEmpty() && filteredAreas.isEmpty()) {
           clearRetainedOutput()
         }
         updateAreaZIndexes(currentStateAreas)
@@ -631,7 +656,16 @@ public class HazeEffectNode(
   }
 
   private fun shouldDrawRetainedOutput(): Boolean {
-    return (visualEffect as? RetainedOutputVisualEffect)?.shouldDrawRetainedOutput(visualEffectContext) == true
+    return retainOutputWhenSourceUnavailable &&
+      (visualEffect as? RetainedOutputVisualEffect)?.shouldDrawRetainedOutput(visualEffectContext) == true
+  }
+
+  private fun hasDrawableSourceLayers(): Boolean {
+    return areas.any { area ->
+      area.contentLayer
+        ?.takeUnless { it.isReleased }
+        ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 } != null
+    }
   }
 
   private companion object {
@@ -724,7 +758,8 @@ internal object DirtyFields {
   const val DrawContentBehind: Int = LayerOffset shl 1
   const val ClipToAreas: Int = DrawContentBehind shl 1
   const val ExpandLayer: Int = ClipToAreas shl 1
-  const val ForcePreDraw: Int = ExpandLayer shl 1
+  const val RetainOutput: Int = ExpandLayer shl 1
+  const val ForcePreDraw: Int = RetainOutput shl 1
 
   const val InvalidateFlags: Int =
     InputScale or
@@ -737,6 +772,7 @@ internal object DirtyFields {
       DrawContentBehind or
       ClipToAreas or
       ExpandLayer or
+      RetainOutput or
       ForcePreDraw
 
   fun stringify(dirtyTracker: Bitmask): String {
@@ -752,6 +788,7 @@ internal object DirtyFields {
       if (DrawContentBehind in dirtyTracker) add("DrawContentBehind")
       if (ClipToAreas in dirtyTracker) add("ClipToAreas")
       if (ExpandLayer in dirtyTracker) add("ExpandLayer")
+      if (RetainOutput in dirtyTracker) add("RetainOutput")
       if (ForcePreDraw in dirtyTracker) add("ForcePreDraw")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
@@ -771,4 +808,5 @@ internal val LayerBoundsDirtyFields: Int =
     DirtyFields.Size or
     DirtyFields.Areas or
     DirtyFields.ExpandLayer or
-    DirtyFields.ClipToAreas
+    DirtyFields.ClipToAreas or
+    DirtyFields.RetainOutput

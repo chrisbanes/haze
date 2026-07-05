@@ -83,6 +83,7 @@ package dev.chrisbanes.haze {
     method @InaccessibleFromKotlin public Boolean? getExpandLayerBounds();
     method @InaccessibleFromKotlin public boolean getForceInvalidateOnPreDraw();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeInputScale getInputScale();
+    method @InaccessibleFromKotlin public boolean getRetainOutputWhenSourceUnavailable();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.VisualEffect getVisualEffect();
     method @InaccessibleFromKotlin public void setCanDrawArea(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeArea,java.lang.Boolean>?);
     method @InaccessibleFromKotlin public void setClipToAreasBounds(Boolean?);
@@ -90,6 +91,7 @@ package dev.chrisbanes.haze {
     method @InaccessibleFromKotlin public void setExpandLayerBounds(Boolean?);
     method @InaccessibleFromKotlin public void setForceInvalidateOnPreDraw(boolean);
     method @InaccessibleFromKotlin public void setInputScale(dev.chrisbanes.haze.HazeInputScale);
+    method @InaccessibleFromKotlin public void setRetainOutputWhenSourceUnavailable(boolean);
     method @InaccessibleFromKotlin public void setVisualEffect(dev.chrisbanes.haze.VisualEffect);
     property @dev.chrisbanes.haze.ExperimentalHazeApi public abstract kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
     property public abstract Boolean? clipToAreasBounds;
@@ -97,6 +99,7 @@ package dev.chrisbanes.haze {
     property public abstract Boolean? expandLayerBounds;
     property public abstract boolean forceInvalidateOnPreDraw;
     property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
+    property public abstract boolean retainOutputWhenSourceUnavailable;
     property public abstract dev.chrisbanes.haze.VisualEffect visualEffect;
   }
 

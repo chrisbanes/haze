@@ -35,6 +35,21 @@ Box {
 }
 ```
 
+#### Retained Output
+
+Background blur may keep drawing the last captured output when all source areas disappear. This is
+intentional and helps source transitions avoid flashing to empty content. If the source may contain
+private content, disable retained output on the effect scope:
+
+```kotlin
+Modifier.hazeEffect(state = hazeState) {
+  retainOutputWhenSourceUnavailable = false
+  blurEffect {
+    // ...
+  }
+}
+```
+
 ### Foreground Blurring
 
 Blurs the content within the composable itself. No `HazeState` or `hazeSource` needed:
