@@ -254,6 +254,7 @@ package dev.chrisbanes.haze {
     method public default void detach(dev.chrisbanes.haze.VisualEffectContext context);
     method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
     method public default void onTrimMemory(dev.chrisbanes.haze.VisualEffectContext context, dev.chrisbanes.haze.TrimMemoryLevel level);
+    method public default void prepareDraw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
     method public default boolean shouldClipToNodeBounds();
     method public default boolean shouldDrawContentBehind(dev.chrisbanes.haze.VisualEffectContext context);
     method public default boolean shouldPreferClipToAreaBounds();
