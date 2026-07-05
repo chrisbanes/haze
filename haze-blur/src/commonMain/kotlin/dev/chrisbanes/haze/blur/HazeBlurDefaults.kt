@@ -68,9 +68,8 @@ public object HazeBlurDefaults {
    * Default values for [BlurVisualEffect.blurEnabled]. This function only returns `true` on
    * platforms where we know blurring works reliably.
    *
-   * This is not the same as everywhere where it technically works. The key omission here
-   * is Android SDK Level 31, which is known to have some issues with
-   * RenderNode invalidation.
+   * This is not the same as everywhere where it technically works. Some platforms may
+   * still need extra invalidation workarounds for reliable redraws.
    *
    * The devices excluded by this function may change in the future.
    */

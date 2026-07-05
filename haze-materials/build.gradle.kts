@@ -16,6 +16,8 @@ plugins {
 kotlin {
   android {
     namespace = "dev.chrisbanes.haze.materials"
+
+    withHostTest {}
   }
 
   addDefaultHazeTargets(project)
@@ -26,6 +28,13 @@ kotlin {
       dependencies {
         api(projects.hazeBlur)
         implementation(libs.compose.material3)
+      }
+    }
+
+    commonTest {
+      dependencies {
+        implementation(kotlin("test"))
+        implementation(libs.assertk)
       }
     }
   }

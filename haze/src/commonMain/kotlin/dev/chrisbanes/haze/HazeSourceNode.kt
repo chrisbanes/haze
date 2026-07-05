@@ -229,7 +229,11 @@ public class HazeSourceNode(
       area.contentDrawing = false
       HazeLogger.d(TAG) { "end draw()" }
 
-      launchPreDraw()
+      Snapshot.withoutReadObservation {
+        if (area.preDrawListeners.isNotEmpty()) {
+          enablePreDrawListener()
+        }
+      }
     }
   }
 
@@ -242,6 +246,7 @@ public class HazeSourceNode(
 
   override fun onReset() {
     HazeLogger.d(TAG) { "onReset. Resetting HazeArea: $area" }
+    area.releaseLayer()
     area.reset()
   }
 
