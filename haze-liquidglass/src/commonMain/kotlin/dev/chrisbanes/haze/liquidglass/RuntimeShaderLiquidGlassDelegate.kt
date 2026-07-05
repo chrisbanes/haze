@@ -19,6 +19,7 @@ import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
+import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asComposeRenderEffect
 
@@ -239,6 +240,17 @@ internal class RuntimeShaderLiquidGlassDelegate(
   }
 
   override fun detach() {
+    releaseRetainedResources()
+  }
+
+  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+    if (level.severity >= TrimMemoryLevel.MODERATE.severity) {
+      releaseRetainedResources()
+      context.invalidateDraw()
+    }
+  }
+
+  private fun releaseRetainedResources() {
     contentLayer?.let { layer ->
       graphicsContext?.releaseGraphicsLayer(layer)
     }
@@ -253,6 +265,8 @@ internal class RuntimeShaderLiquidGlassDelegate(
     compositedContentLayer = null
     lastScaledLayerSize = null
     graphicsContext = null
+    renderEffects = null
+    lastParams = null
     retainedOutputAvailable = false
   }
 
