@@ -24,6 +24,17 @@ import androidx.compose.ui.unit.Density
 @ExperimentalHazeApi
 public interface VisualEffect {
   /**
+   * Prepares the effect for an upcoming draw.
+   *
+   * This is called during drawing before draw-order decisions that may depend on
+   * draw-scope-specific state.
+   *
+   * @param context The context providing access to geometry, configuration, and platform
+   * capabilities for rendering the effect.
+   */
+  public fun DrawScope.prepareDraw(context: VisualEffectContext): Unit = Unit
+
+  /**
    * Draws the effect.
    *
    * @param context The context providing access to geometry, configuration, and platform

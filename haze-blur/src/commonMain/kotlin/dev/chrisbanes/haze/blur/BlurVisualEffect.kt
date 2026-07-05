@@ -110,12 +110,13 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     }
   }
 
+  override fun DrawScope.prepareDraw(context: VisualEffectContext) {
+    selectDelegateForDraw(context)
+  }
+
   override fun DrawScope.draw(context: VisualEffectContext) {
     try {
-      if (needsDelegateSelection) {
-        delegate = updateDelegate(context, this)
-        needsDelegateSelection = false
-      }
+      selectDelegateForDraw(context)
       with(delegate) { draw(context) }
     } finally {
       resetDirtyTracker()
@@ -147,6 +148,13 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   private fun resetDirtyTracker() {
     dirtyTracker = Bitmask()
+  }
+
+  private fun DrawScope.selectDelegateForDraw(context: VisualEffectContext) {
+    if (needsDelegateSelection) {
+      delegate = updateDelegate(context, this)
+      needsDelegateSelection = false
+    }
   }
 
   private var _blurEnabled: Boolean? = null
