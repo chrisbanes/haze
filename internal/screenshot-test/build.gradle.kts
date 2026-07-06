@@ -55,5 +55,11 @@ kotlin {
         implementation(libs.roborazzi.compose.desktop)
       }
     }
+
+    jvmTest {
+      dependencies {
+        implementation(kotlin("test"))
+      }
+    }
   }
 }

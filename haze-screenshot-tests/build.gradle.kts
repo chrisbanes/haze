@@ -2,6 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import org.gradle.api.tasks.testing.TestDescriptor
+import org.gradle.api.tasks.testing.TestOutputEvent
+import org.gradle.api.tasks.testing.TestOutputListener
+
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
@@ -64,11 +69,29 @@ kotlin {
 
 roborazzi {
   outputDir.set(project.layout.projectDirectory.dir("screenshots"))
+
+  @OptIn(ExperimentalRoborazziApi::class)
+  separateOutputDirs.set(true)
 }
 
 tasks.withType<Test> {
   failOnNoDiscoveredTests.set(false)
   systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
+
+  addTestOutputListener(
+    object : TestOutputListener {
+      override fun onOutput(
+        testDescriptor: TestDescriptor,
+        outputEvent: TestOutputEvent,
+      ) {
+        outputEvent.message.lineSequence()
+          .filter { it.contains("Roborazzi image diff:") }
+          .forEach { line ->
+            logger.lifecycle("${testDescriptor.className} > ${testDescriptor.name}: ${line.trim()}")
+          }
+      }
+    },
+  )
 }
 
 tasks.register("test") {
@@ -78,10 +101,6 @@ tasks.register("test") {
 // Compose resources plugin generates this task for withDeviceTest() even when
 // no androidDeviceTest source set exists. Disable it to avoid outputDirectory errors.
 tasks.configureEach {
-  if (name == "finalizeTestRoborazziAndroidHostTest") {
-    mustRunAfter("finalizeTestRoborazziJvm")
-  }
-
   if (name == "copyAndroidDeviceTestComposeResourcesToAndroidAssets") {
     enabled = false
   }
