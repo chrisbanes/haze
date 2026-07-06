@@ -55,5 +55,13 @@ kotlin {
         implementation(libs.roborazzi.compose.desktop)
       }
     }
+
+    jvmTest {
+      kotlin.srcDir("src/jvmTest/kotlin")
+
+      dependencies {
+        implementation(kotlin("test"))
+      }
+    }
   }
 }

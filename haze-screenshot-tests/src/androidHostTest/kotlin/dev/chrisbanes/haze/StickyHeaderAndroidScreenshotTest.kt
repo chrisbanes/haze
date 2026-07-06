@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config
 class StickyHeaderAndroidScreenshotTest : ScreenshotTest() {
 
   @Test
-  fun blur_stickyHeader_updatesAfterScroll() = runScreenshotTest(relaxedTolerance = true) {
+  fun blur_stickyHeader_updatesAfterScroll() = runScreenshotTest {
     val visualEffect = stickyHeaderBlurVisualEffect()
 
     setContent {

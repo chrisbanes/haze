@@ -41,15 +41,9 @@ actual abstract class ScreenshotTest : ContextTest() {
 
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 actual fun ScreenshotTest.runScreenshotTest(
-  relaxedTolerance: Boolean,
   block: ScreenshotUiTest.() -> Unit,
 ) {
-  val options = if (relaxedTolerance) {
-    HazeRoborazziDefaults.relaxedRoborazziOptions
-  } else {
-    HazeRoborazziDefaults.roborazziOptions
-  }
-  provideRoborazziContext().setRuleOverrideRoborazziOptions(options)
+  provideRoborazziContext().setRuleOverrideRoborazziOptions(HazeRoborazziDefaults.roborazziOptions)
   createScreenshotUiTest(composeTestRule).block()
 }
 

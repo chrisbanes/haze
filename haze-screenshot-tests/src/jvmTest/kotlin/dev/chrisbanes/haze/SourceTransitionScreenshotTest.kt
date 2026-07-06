@@ -21,7 +21,7 @@ import kotlin.test.Test
 class SourceTransitionScreenshotTest : ScreenshotTest() {
 
   @Test
-  fun blur_sourceRemoved_retainsLastOutput() = runScreenshotTest(relaxedTolerance = true) {
+  fun blur_sourceRemoved_retainsLastOutput() = runScreenshotTest {
     val visualEffect = BlurVisualEffect().apply {
       blurRadius = 16.dp
       colorEffects = listOf(
@@ -51,7 +51,7 @@ class SourceTransitionScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun liquidGlass_sourceRemoved_retainsLastOutput() = runScreenshotTest(relaxedTolerance = true) {
+  fun liquidGlass_sourceRemoved_retainsLastOutput() = runScreenshotTest {
     val visualEffect = LiquidGlassVisualEffect().apply {
       tint = Color.White.copy(alpha = 0.12f)
       refractionStrength = 0.45f

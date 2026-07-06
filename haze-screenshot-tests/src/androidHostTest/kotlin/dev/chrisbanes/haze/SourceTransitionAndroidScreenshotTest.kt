@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 class SourceTransitionAndroidScreenshotTest : ScreenshotTest() {
 
   @Test
-  fun blur_sourceRemoved_retainsLastOutput() = runScreenshotTest(relaxedTolerance = true) {
+  fun blur_sourceRemoved_retainsLastOutput() = runScreenshotTest {
     val visualEffect = BlurVisualEffect().apply {
       blurRadius = 16.dp
       colorEffects = listOf(

@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 class LiquidGlassDepthAndroidScreenshotTest : ScreenshotTest() {
 
   @Test
-  fun liquidGlass_depthProgression() = runScreenshotTest(relaxedTolerance = true) {
+  fun liquidGlass_depthProgression() = runScreenshotTest {
     val shape = RoundedCornerShape(28.dp)
     val visualEffect = liquidGlassDepthProgressionVisualEffect(
       depth = 0f,
@@ -47,7 +47,7 @@ class LiquidGlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun liquidGlass_depthZeroMasksShape() = runScreenshotTest(relaxedTolerance = true) {
+  fun liquidGlass_depthZeroMasksShape() = runScreenshotTest {
     val shape = RoundedCornerShape(48.dp)
     val visualEffect = LiquidGlassVisualEffect().apply {
       tint = Color.White.copy(alpha = 0.28f)

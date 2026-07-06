@@ -13,7 +13,7 @@ import kotlin.test.Test
 class LiquidGlassDepthDesktopScreenshotTest : ScreenshotTest() {
 
   @Test
-  fun liquidGlass_depthProgression() = runScreenshotTest(relaxedTolerance = true) {
+  fun liquidGlass_depthProgression() = runScreenshotTest {
     val shape = RoundedCornerShape(28.dp)
     val visualEffect = liquidGlassDepthProgressionVisualEffect(
       depth = 0f,

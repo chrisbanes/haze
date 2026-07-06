@@ -22,20 +22,14 @@ actual abstract class ScreenshotTest : ContextTest()
 
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 actual fun ScreenshotTest.runScreenshotTest(
-  relaxedTolerance: Boolean,
   block: ScreenshotUiTest.() -> Unit,
 ) {
-  val options = if (relaxedTolerance) {
-    HazeRoborazziDefaults.relaxedRoborazziOptions
-  } else {
-    HazeRoborazziDefaults.roborazziOptions
-  }
   runSkikoComposeUiTest(
     size = Size(1080f, 1920f),
     density = Density(2.75f),
   ) {
     provideRoborazziContext().apply {
-      setRuleOverrideRoborazziOptions(options)
+      setRuleOverrideRoborazziOptions(HazeRoborazziDefaults.roborazziOptions)
       setRuleOverrideOutputDirectory("screenshots/desktop")
     }
     createScreenshotUiTest().block()
