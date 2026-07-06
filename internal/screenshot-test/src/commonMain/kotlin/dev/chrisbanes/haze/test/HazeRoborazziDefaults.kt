@@ -8,7 +8,7 @@ import com.dropbox.differ.SimpleImageComparator
 import com.github.takahirom.roborazzi.RoborazziOptions
 import kotlin.math.roundToInt
 
-private const val CHANGE_THRESHOLD = 0.01f
+private const val CHANGE_THRESHOLD = 0.008f
 private const val MAX_DISTANCE = 0.02f
 private const val H_SHIFT = 2
 private const val V_SHIFT = 2

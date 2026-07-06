@@ -18,7 +18,7 @@ class HazeRoborazziDefaultsTest {
 
     val result = validator(
       ComparisonResult(
-        pixelDifferences = 100,
+        pixelDifferences = 80,
         pixelCount = 10_000,
         width = 100,
         height = 100,
@@ -28,8 +28,8 @@ class HazeRoborazziDefaultsTest {
     assertTrue(result)
     assertEquals(
       listOf(
-        "Roborazzi image diff: 1.00% unmatched " +
-          "(100/10000 pixels, threshold 1.00%, maxDistance 0.02, hShift 2, vShift 2)",
+        "Roborazzi image diff: 0.80% unmatched " +
+          "(80/10000 pixels, threshold 0.80%, maxDistance 0.02, hShift 2, vShift 2)",
       ),
       messages,
     )
@@ -41,7 +41,7 @@ class HazeRoborazziDefaultsTest {
 
     val result = validator(
       ComparisonResult(
-        pixelDifferences = 101,
+        pixelDifferences = 81,
         pixelCount = 10_000,
         width = 100,
         height = 100,
