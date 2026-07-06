@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class HazeRoborazziDefaultsTest {
 
   @Test
-  fun resultValidator_logsDiffPercentage() {
+  fun resultValidator_doesNotLogPassingDiffs() {
     val messages = mutableListOf<String>()
     val validator = createRoborazziResultValidator(log = messages::add)
 
@@ -26,18 +26,13 @@ class HazeRoborazziDefaultsTest {
     )
 
     assertTrue(result)
-    assertEquals(
-      listOf(
-        "Roborazzi image diff: 0.80% unmatched " +
-          "(80/10000 pixels, threshold 0.80%, maxDistance 0.02, hShift 2, vShift 2)",
-      ),
-      messages,
-    )
+    assertEquals(emptyList(), messages)
   }
 
   @Test
-  fun resultValidator_rejectsDiffsOverThreshold() {
-    val validator = createRoborazziResultValidator(log = {})
+  fun resultValidator_logsFailingDiffPercentage() {
+    val messages = mutableListOf<String>()
+    val validator = createRoborazziResultValidator(log = messages::add)
 
     val result = validator(
       ComparisonResult(
@@ -49,5 +44,12 @@ class HazeRoborazziDefaultsTest {
     )
 
     assertFalse(result)
+    assertEquals(
+      listOf(
+        "Roborazzi image diff: 0.81% unmatched " +
+          "(81/10000 pixels, threshold 0.80%, maxDistance 0.02, hShift 2, vShift 2)",
+      ),
+      messages,
+    )
   }
 }

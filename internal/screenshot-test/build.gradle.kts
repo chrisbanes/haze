@@ -57,8 +57,6 @@ kotlin {
     }
 
     jvmTest {
-      kotlin.srcDir("src/jvmTest/kotlin")
-
       dependencies {
         implementation(kotlin("test"))
       }
