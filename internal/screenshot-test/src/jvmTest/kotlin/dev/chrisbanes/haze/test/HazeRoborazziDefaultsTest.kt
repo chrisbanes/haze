@@ -29,7 +29,7 @@ class HazeRoborazziDefaultsTest {
     assertEquals(
       listOf(
         "Roborazzi image diff: 1.00% unmatched " +
-          "(100/10000 pixels, threshold 1.00%, maxDistance 0.01, hShift 2, vShift 2)",
+          "(100/10000 pixels, threshold 1.00%, maxDistance 0.02, hShift 2, vShift 2)",
       ),
       messages,
     )
