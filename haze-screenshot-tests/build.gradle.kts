@@ -57,6 +57,14 @@ kotlin {
       }
     }
 
+    val androidHostTest by getting {
+      dependencies {
+        implementation(libs.androidx.compose.ui.test.junit4)
+        implementation(libs.androidx.navigation3.runtime)
+        implementation(libs.androidx.navigation3.ui)
+      }
+    }
+
     jvmTest {
       kotlin.srcDir("src/jvmTest/kotlin")
 
