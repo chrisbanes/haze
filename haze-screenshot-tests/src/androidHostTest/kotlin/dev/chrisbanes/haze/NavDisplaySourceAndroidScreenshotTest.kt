@@ -40,6 +40,7 @@ import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.navigation3.rememberHazeSourceSceneDecoratorStrategy
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -54,7 +55,7 @@ class NavDisplaySourceAndroidScreenshotTest : ScreenshotTest() {
 
   @Test
   fun blur_navDisplaySource_midTransition_matchesSceneSources() = captureMidTransition(
-    sourcePlacement = NavigationSourcePlacement.NavDisplay,
+    sourcePlacement = NavigationSourcePlacement.SceneDecorator,
   )
 
   private fun captureMidTransition(sourcePlacement: NavigationSourcePlacement) = runScreenshotTest {
@@ -80,7 +81,7 @@ class NavDisplaySourceAndroidScreenshotTest : ScreenshotTest() {
 
 private enum class NavigationSourcePlacement {
   SceneContent,
-  NavDisplay,
+  SceneDecorator,
 }
 
 @Composable
@@ -91,23 +92,23 @@ private fun NavigationSample(
   val hazeState = remember { HazeState() }
 
   SharedTransitionLayout {
-    val sceneDecoratorStrategy = rememberNavigationBarSceneDecoratorStrategy(
+    val hazeSourceDecoratorStrategy =
+      rememberHazeSourceSceneDecoratorStrategy<String>(hazeState)
+    val navigationBarDecoratorStrategy = rememberNavigationBarSceneDecoratorStrategy(
       hazeState = hazeState,
       sharedTransitionScope = this,
     )
     NavDisplay(
       backStack = backStack,
-      modifier = Modifier
-        .fillMaxSize()
-        .then(
-          if (sourcePlacement == NavigationSourcePlacement.NavDisplay) {
-            Modifier.hazeSource(hazeState)
-          } else {
-            Modifier
-          },
-        ),
+      modifier = Modifier.fillMaxSize(),
       onBack = {},
-      sceneDecoratorStrategies = listOf(sceneDecoratorStrategy),
+      sceneDecoratorStrategies = when (sourcePlacement) {
+        NavigationSourcePlacement.SceneContent -> listOf(navigationBarDecoratorStrategy)
+        NavigationSourcePlacement.SceneDecorator -> listOf(
+          hazeSourceDecoratorStrategy,
+          navigationBarDecoratorStrategy,
+        )
+      },
       sharedTransitionScope = this,
       transitionSpec = {
         (slideInHorizontally(tween(1000)) + fadeIn(tween(1000))) togetherWith
@@ -117,15 +118,13 @@ private fun NavigationSample(
         NavEntry(sceneKey) {
           TestScene(
             sceneKey = sceneKey,
-            modifier = Modifier
-              .fillMaxSize()
-              .then(
-                if (sourcePlacement == NavigationSourcePlacement.SceneContent) {
-                  Modifier.hazeSource(hazeState)
-                } else {
-                  Modifier
-                },
-              ),
+            modifier = Modifier.fillMaxSize().then(
+              if (sourcePlacement == NavigationSourcePlacement.SceneContent) {
+                Modifier.hazeSource(hazeState)
+              } else {
+                Modifier
+              },
+            ),
           )
         }
       },
