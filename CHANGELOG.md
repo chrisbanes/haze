@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added progressive blur support to Glass.
-- Added initial Glass material style presets.
 - **`HazeCoordinates`** — new value class on `HazeArea` exposing both `localPosition` and `screenPosition`, so custom `VisualEffect` implementations can read the geometry of an area in either coordinate space. A new `HazeCoordinates.isUnspecified` extension reports when either position has not yet been laid out.
 - **`VisualEffectContext` helpers** (Experimental) — `positionOf(area)`, `boundsOf(area)`, and a `positionStrategy` property that read geometry in the effect's resolved coordinate space. Custom effects should prefer these over reading `HazeArea.position` / `HazeArea.coordinates` directly.
 
