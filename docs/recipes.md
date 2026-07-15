@@ -10,7 +10,14 @@ val hazeSourceDecorator =
 
 NavDisplay(
   backStack = backStack,
-  entryProvider = entryProvider,
+  entryProvider = { destination ->
+    NavEntry(destination) {
+      DestinationContent(
+        destination = destination,
+        hazeState = hazeState,
+      )
+    }
+  },
   sceneDecoratorStrategies = listOf(
     hazeSourceDecorator,
     navigationBarDecorator,
