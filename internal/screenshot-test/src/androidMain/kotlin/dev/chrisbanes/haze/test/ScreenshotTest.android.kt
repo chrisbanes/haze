@@ -3,8 +3,12 @@
 
 package dev.chrisbanes.haze.test
 
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -13,6 +17,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.InternalRoborazziApi
+import com.github.takahirom.roborazzi.RoboComponent
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.RoborazziRule
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -50,6 +55,8 @@ actual fun ScreenshotTest.runScreenshotTest(
 @OptIn(ExperimentalRoborazziApi::class)
 private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
   object : ScreenshotUiTest {
+    override val supportsRuntimeBlur: Boolean = Build.VERSION.SDK_INT >= 31
+
     override fun setContent(content: @Composable () -> Unit) {
       rule.setContent(content)
       rule.waitForIdle()
@@ -61,6 +68,14 @@ private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
         else -> "${roboOutputName()}_$nameSuffix.png"
       }
       rule.onRoot().captureRoboImage(output)
+    }
+
+    override fun captureRootPixels(): PixelMap {
+      val bitmap = RoboComponent.Compose(
+        node = rule.onRoot().fetchSemanticsNode("Failed to capture root pixels"),
+        roborazziOptions = HazeRoborazziDefaults.roborazziOptions,
+      ).image
+      return requireNotNull(bitmap).asImageBitmap().toPixelMap()
     }
 
     override fun waitForIdle() {

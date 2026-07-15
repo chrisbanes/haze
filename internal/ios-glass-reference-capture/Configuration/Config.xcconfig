@@ -1,0 +1,3 @@
+PRODUCT_NAME=Glass Reference Capture
+PRODUCT_BUNDLE_IDENTIFIER=dev.chrisbanes.haze.glassreferencecapture
+IPHONEOS_DEPLOYMENT_TARGET=26.0

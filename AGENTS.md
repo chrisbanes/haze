@@ -33,12 +33,12 @@ locally before opening a PR, and regenerate snapshots with
 ## VisualEffect Implementation Patterns
 
 When authoring or modifying `VisualEffect` implementations (e.g., `BlurVisualEffect`,
-`LiquidGlassVisualEffect`), follow these conventions:
+`GlassVisualEffect`), follow these conventions:
 
 - Annotate the class with `@Stable` for Compose skippability.
 - Use a `needsDelegateSelection` flag to defer delegate creation from `update()` to `draw()`,
   avoiding work on frames where no draw occurs.
-- Expose a `Local*Style` composition local (e.g., `LocalLiquidGlassStyle`) and a matching
+- Expose a `Local*Style` composition local (e.g., `LocalGlassStyle`) and a matching
   `*Defaults.style` property.
 - Resolve style properties with three-tier precedence: direct property value → `style` parameter
   → composition local → defaults.

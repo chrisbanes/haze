@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -27,8 +29,43 @@ import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-@OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class)
+@OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class, InternalHazeApi::class)
 class VisualEffectLifecycleTest : ContextTest() {
+
+  @Test
+  fun visualEffectContext_contentVersionDefaultsToUnknown() {
+    assertThat(FakeVisualEffectContext.contentVersionOf(HazeArea())).isEqualTo(null)
+  }
+
+  @Test
+  fun visualEffect_contentVersionIncreasesAfterSourceContentChanges() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sourceContent = mutableStateOf(0)
+    val effect = ContentVersionRecordingVisualEffect()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Box(Modifier.size(100.dp).hazeSource(hazeState)) {
+          Spacer(Modifier.size(sourceContent.value.dp))
+        }
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    val initialVersion = requireNotNull(effect.versions.lastOrNull())
+
+    sourceContent.value = 1
+    waitForIdle()
+
+    assertThat(requireNotNull(effect.versions.lastOrNull())).isGreaterThan(initialVersion)
+  }
 
   @Test
   fun visualEffect_attachCalledWhenSet() = runComposeUiTest {
@@ -211,6 +248,29 @@ class VisualEffectLifecycleTest : ContextTest() {
     val rect = effect.lastForegroundRect
     assertThat(rect).isNotNull()
     assertThat(rect!!.topLeft).isEqualTo(Offset.Zero)
+  }
+
+  @Test
+  fun visualEffect_invalidateLayerBoundsRecalculatesDynamicBounds() = runComposeUiTest {
+    val effect = DynamicBoundsVisualEffect()
+
+    setContent {
+      Box(
+        Modifier
+          .size(80.dp)
+          .hazeEffect {
+            visualEffect = effect
+          },
+      )
+    }
+
+    waitForIdle()
+    val initialWidth = effect.calculatedWidths.last()
+
+    effect.requestedPadding = 12f
+    waitForIdle()
+
+    assertThat(effect.calculatedWidths.last()).isEqualTo(initialWidth + 24f)
   }
 
   @Test
@@ -425,6 +485,14 @@ internal class RecordingVisualEffect : VisualEffect {
   }
 }
 
+private class ContentVersionRecordingVisualEffect : VisualEffect {
+  val versions = mutableListOf<Long?>()
+
+  override fun DrawScope.draw(context: VisualEffectContext) {
+    versions += context.areas.singleOrNull()?.let(context::contentVersionOf)
+  }
+}
+
 internal class DrawBehindProbeVisualEffect(
   private val returnValue: Boolean,
 ) : VisualEffect {
@@ -464,6 +532,25 @@ internal class LayerBoundsRecordingVisualEffect : VisualEffect {
       lastForegroundRect = rect
     }
     return rect
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+}
+
+private class DynamicBoundsVisualEffect : VisualEffect {
+  var requestedPadding by mutableStateOf(0f)
+  private var appliedPadding = Float.NaN
+  val calculatedWidths = mutableListOf<Float>()
+
+  override fun update(context: VisualEffectContext) {
+    if (appliedPadding != requestedPadding) {
+      appliedPadding = requestedPadding
+      context.invalidateLayerBounds()
+    }
+  }
+
+  override fun calculateLayerBounds(rect: Rect, density: androidx.compose.ui.unit.Density): Rect {
+    return rect.inflate(appliedPadding).also { calculatedWidths += it.width }
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) = Unit

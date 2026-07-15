@@ -216,6 +216,7 @@ public class HazeSourceNode(
           this@draw.drawContentSafely()
           HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
         }
+        area.contentVersion++
 
         // Now we draw `content` into the window canvas
         drawLayer(contentLayer)

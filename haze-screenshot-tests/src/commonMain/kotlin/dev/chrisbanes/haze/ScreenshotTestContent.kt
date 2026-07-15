@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +43,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.BlurVisualEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.liquidglass.LiquidGlassVisualEffect
 import haze_root.haze_screenshot_tests.generated.resources.Res
 import haze_root.haze_screenshot_tests.generated.resources.photo
 import kotlin.math.roundToInt
@@ -51,11 +51,13 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 internal fun CreditCardSample(
   visualEffect: VisualEffect,
+  visualEffects: List<VisualEffect> = listOf(visualEffect),
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   numberCards: Int = 1,
 ) {
+  require(visualEffects.size == numberCards)
   val hazeState = remember { HazeState() }
 
   Box {
@@ -77,7 +79,7 @@ internal fun CreditCardSample(
         index = index,
         shape = shape,
         enabled = enabled,
-        visualEffect = visualEffect,
+        visualEffect = visualEffects[index],
         modifier = Modifier
           .align(Alignment.Center),
       )
@@ -203,13 +205,18 @@ internal fun StickyHeaderListSample(
 
 @Composable
 internal fun CreditCardPagerSample(
-  visualEffect: VisualEffect,
+  visualEffects: List<VisualEffect>,
   pagerPosition: Float,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
-  numberCards: Int = 2,
+  onPagerState: (PagerState) -> Unit = {},
+  onPageComposed: (Int, VisualEffect) -> Unit = { _, _ -> },
 ) {
+  require(visualEffects.isNotEmpty())
+  require(pagerPosition.isFinite() && pagerPosition in 0f..visualEffects.lastIndex.toFloat()) {
+    "pagerPosition must be within the visual effects list"
+  }
   val hazeState = remember { HazeState() }
 
   Box {
@@ -221,9 +228,12 @@ internal fun CreditCardPagerSample(
         .hazeSource(state = hazeState, zIndex = 0f),
     )
     val positionIndex = pagerPosition.roundToInt()
-    val pagerState = PagerState(positionIndex, pagerPosition - positionIndex) {
-      numberCards
-    }
+    val pagerState = rememberPagerState(
+      initialPage = positionIndex,
+      initialPageOffsetFraction = pagerPosition - positionIndex,
+      pageCount = { visualEffects.size },
+    )
+    onPagerState(pagerState)
 
     HorizontalPager(
       pagerState,
@@ -231,13 +241,14 @@ internal fun CreditCardPagerSample(
       modifier = Modifier.align(Alignment.Center),
     ) { index ->
       // Our card
+      onPageComposed(index, visualEffects[index])
       CreditCard(
         reverseIndex = 0,
         hazeState = hazeState,
         index = index,
         shape = shape,
         enabled = enabled,
-        visualEffect = visualEffect,
+        visualEffect = visualEffects[index],
         baseWidth = 0.9f,
       )
     }
@@ -275,14 +286,6 @@ private fun CreditCard(
   modifier: Modifier = Modifier,
   baseWidth: Float = .7f,
 ) {
-  val perCardEffect = remember(visualEffect) {
-    when (visualEffect) {
-      is BlurVisualEffect -> BlurVisualEffect(visualEffect)
-      is LiquidGlassVisualEffect -> LiquidGlassVisualEffect(visualEffect)
-      else -> visualEffect
-    }
-  }
-
   Box(
     modifier = modifier
       .fillMaxWidth(baseWidth - (reverseIndex * 0.05f))
@@ -294,7 +297,7 @@ private fun CreditCard(
       .then(
         if (enabled) {
           Modifier.hazeEffect(state = hazeState) {
-            this.visualEffect = perCardEffect
+            this.visualEffect = visualEffect
           }
         } else {
           Modifier

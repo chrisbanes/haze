@@ -13,15 +13,15 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class SamplesTest : ContextTest() {
   @Test
-  fun samplesList_keepsBlurAndLiquidGlassAsSeparateEntries() = runComposeUiTest {
+  fun samplesList_keepsBlurAndGlassAsSeparateEntries() = runComposeUiTest {
     setContent {
       Samples(
         appTitle = "Haze Samples",
-        samples = listOf(Sample.CreditCard, Sample.LiquidGlass),
+        samples = listOf(Sample.CreditCard, Sample.Glass),
       )
     }
 
     onNodeWithTag("Credit Card").assertIsDisplayed()
-    onNodeWithTag("Liquid Glass").assertIsDisplayed()
+    onNodeWithTag("Glass").assertIsDisplayed()
   }
 }

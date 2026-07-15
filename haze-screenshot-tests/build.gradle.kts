@@ -38,7 +38,7 @@ kotlin {
     commonMain {
       dependencies {
         api(projects.hazeBlur)
-        api(projects.hazeLiquidglass)
+        api(projects.hazeGlass)
         api(libs.compose.foundation)
         api(libs.compose.material3)
         api(libs.compose.components.resources)
@@ -85,6 +85,13 @@ tasks.withType<Test> {
   failOnNoDiscoveredTests.set(false)
   systemProperties["robolectric.pixelCopyRenderMode"] = "hardware"
 
+  // Android host screenshots combine Robolectric, Compose, and Skia; the full suite exceeds 512m
+  // in isolation. Keep 2g scoped here and serialize it after jvmTest to limit peak usage; profile
+  // before broadening this setting or increasing the heap.
+  if (name == "testAndroidHostTest") {
+    maxHeapSize = "2g"
+  }
+
   addTestOutputListener(
     object : TestOutputListener {
       override fun onOutput(
@@ -103,6 +110,12 @@ tasks.withType<Test> {
 
 tasks.register("test") {
   dependsOn("jvmTest", "testAndroidHostTest")
+}
+
+tasks.configureEach {
+  if (name == "testAndroidHostTest") {
+    mustRunAfter("jvmTest")
+  }
 }
 
 // Compose resources plugin generates this task for withDeviceTest() even when

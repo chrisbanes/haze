@@ -256,6 +256,7 @@ package dev.chrisbanes.haze {
     method public default androidx.compose.ui.geometry.Rect calculateLayerBounds(androidx.compose.ui.geometry.Rect rect, androidx.compose.ui.unit.Density density);
     method public default void detach(dev.chrisbanes.haze.VisualEffectContext context);
     method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
+    method public default void drawForeground(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
     method public default void onTrimMemory(dev.chrisbanes.haze.VisualEffectContext context, dev.chrisbanes.haze.TrimMemoryLevel level);
     method public default void prepareDraw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
     method public default boolean shouldClipToNodeBounds();
@@ -272,6 +273,7 @@ package dev.chrisbanes.haze {
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public interface VisualEffectContext {
     method public default androidx.compose.ui.geometry.Rect? boundsOf(dev.chrisbanes.haze.HazeArea area);
+    method @dev.chrisbanes.haze.InternalHazeApi public default Long? contentVersionOf(dev.chrisbanes.haze.HazeArea area);
     method public <T> T currentValueOf(androidx.compose.runtime.CompositionLocal<T> local);
     method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
     method @InaccessibleFromKotlin public kotlinx.coroutines.CoroutineScope getCoroutineScope();
@@ -281,6 +283,7 @@ package dev.chrisbanes.haze {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeState? getState();
     method @InaccessibleFromKotlin public Object? getWindowId();
     method public void invalidateDraw();
+    method public default void invalidateLayerBounds();
     method @KotlinOnly public default androidx.compose.ui.geometry.Offset positionOf(dev.chrisbanes.haze.HazeArea area);
     method public androidx.compose.ui.unit.Density requireDensity();
     method public androidx.compose.ui.graphics.GraphicsContext requireGraphicsContext();

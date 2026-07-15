@@ -134,6 +134,14 @@ public class HazeArea internal constructor() {
 
   internal var contentDrawing: Boolean = false
 
+  /**
+   * Monotonically increasing version of successfully recorded content.
+   *
+   * This intentionally survives [reset] so an area reused by a modifier node cannot report a
+   * stale version as newly recorded content.
+   */
+  internal var contentVersion: Long = 0
+
   @InternalHazeApi
   public val isContentDrawing: Boolean
     get() = contentDrawing

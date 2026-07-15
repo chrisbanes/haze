@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +35,8 @@ import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class HazeScreenshotTest : ScreenshotTest() {
 
@@ -74,10 +78,15 @@ class HazeScreenshotTest : ScreenshotTest() {
       colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
     }
+    val visualEffects = List(3) { BlurVisualEffect(blurVisualEffect) }
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = blurVisualEffect, numberCards = 3)
+        CreditCardSample(
+          visualEffect = visualEffects.first(),
+          visualEffects = visualEffects,
+          numberCards = 3,
+        )
       }
     }
     captureRoot()
@@ -98,14 +107,24 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     waitForIdle()
     captureRoot("default")
+    val defaultPixels = captureRootPixels().snapshot()
 
     blurVisualEffect.blurEnabled = false
     waitForIdle()
     captureRoot("disabled")
+    val disabledPixels = captureRootPixels().snapshot()
 
     blurVisualEffect.blurEnabled = true
     waitForIdle()
     captureRoot("enabled")
+
+    if (supportsRuntimeBlur) {
+      val blurChangedPixelRatio = defaultPixels.changedPixelRatio(disabledPixels)
+      assertTrue(
+        blurChangedPixelRatio > 0.01f,
+        "Expected disabling blur to affect more than 1% of pixels, got $blurChangedPixelRatio",
+      )
+    }
   }
 
   @Test
@@ -198,14 +217,30 @@ class HazeScreenshotTest : ScreenshotTest() {
     }
 
     captureRoot()
+    val initialPixels = captureRootPixels().snapshot()
 
     blurVisualEffect.alpha = 0.2f
     waitForIdle()
     captureRoot("20")
+    val alpha20Pixels = captureRootPixels().snapshot()
 
     blurVisualEffect.alpha = 0.7f
     waitForIdle()
     captureRoot("70")
+    val alpha70Pixels = captureRootPixels().snapshot()
+
+    assertTrue(
+      initialPixels.changedPixelRatio(alpha20Pixels) > 0.01f,
+      "Expected changing alpha from the initial value to 0.2 to affect more than 1% of pixels",
+    )
+    assertTrue(
+      alpha20Pixels.changedPixelRatio(alpha70Pixels) > 0.01f,
+      "Expected changing alpha from 0.2 to 0.7 to affect more than 1% of pixels",
+    )
+    assertTrue(
+      initialPixels.changedPixelRatio(alpha70Pixels) > 0.01f,
+      "Expected changing alpha from the initial value to 0.7 to affect more than 1% of pixels",
+    )
   }
 
   @Test
@@ -263,10 +298,15 @@ class HazeScreenshotTest : ScreenshotTest() {
       blurRadius = 8.dp
       progressive = HazeProgressive.verticalGradient()
     }
+    val visualEffects = List(3) { BlurVisualEffect(blurVisualEffect) }
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = blurVisualEffect, numberCards = 3)
+        CreditCardSample(
+          visualEffect = visualEffects.first(),
+          visualEffects = visualEffects,
+          numberCards = 3,
+        )
       }
     }
     captureRoot()
@@ -326,6 +366,7 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     waitForIdle()
     captureRoot("magenta")
+    val magentaPixels = captureRootPixels().snapshot()
 
     blurVisualEffect.colorEffects = listOf(
       HazeColorEffect.tint(
@@ -335,6 +376,7 @@ class HazeScreenshotTest : ScreenshotTest() {
     )
     waitForIdle()
     captureRoot("yellow")
+    val yellowPixels = captureRootPixels().snapshot()
 
     blurVisualEffect.colorEffects = listOf(
       HazeColorEffect.tint(
@@ -344,6 +386,20 @@ class HazeScreenshotTest : ScreenshotTest() {
     )
     waitForIdle()
     captureRoot("red")
+    val redPixels = captureRootPixels().snapshot()
+
+    assertTrue(
+      magentaPixels.changedPixelRatio(yellowPixels) > 0.01f,
+      "Expected changing child tint from magenta to yellow to affect more than 1% of pixels",
+    )
+    assertTrue(
+      yellowPixels.changedPixelRatio(redPixels) > 0.01f,
+      "Expected changing child tint from yellow to red to affect more than 1% of pixels",
+    )
+    assertTrue(
+      magentaPixels.changedPixelRatio(redPixels) > 0.01f,
+      "Expected changing child tint from magenta to red to affect more than 1% of pixels",
+    )
   }
 
   @Test
@@ -608,10 +664,11 @@ class HazeScreenshotTest : ScreenshotTest() {
       colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
     }
+    val visualEffects = List(2) { BlurVisualEffect(blurVisualEffect) }
 
     setContent {
       ScreenshotTheme {
-        CreditCardPagerSample(visualEffect = blurVisualEffect, pagerPosition = .25f)
+        CreditCardPagerSample(visualEffects = visualEffects, pagerPosition = .25f)
       }
     }
     captureRoot()
@@ -623,10 +680,11 @@ class HazeScreenshotTest : ScreenshotTest() {
       colorEffects = listOf(DefaultTint)
       blurRadius = 16.dp
     }
+    val visualEffects = List(2) { BlurVisualEffect(blurVisualEffect) }
 
     setContent {
       ScreenshotTheme {
-        CreditCardPagerSample(visualEffect = blurVisualEffect, pagerPosition = .49f)
+        CreditCardPagerSample(visualEffects = visualEffects, pagerPosition = .49f)
       }
     }
     captureRoot()
@@ -638,10 +696,11 @@ class HazeScreenshotTest : ScreenshotTest() {
       colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
     }
+    val visualEffects = List(3) { BlurVisualEffect(blurVisualEffect) }
 
     setContent {
       ScreenshotTheme {
-        CreditCardPagerSample(visualEffect = blurVisualEffect, pagerPosition = .75f, numberCards = 3)
+        CreditCardPagerSample(visualEffects = visualEffects, pagerPosition = .75f)
       }
     }
     captureRoot()
@@ -653,13 +712,80 @@ class HazeScreenshotTest : ScreenshotTest() {
       colorEffects = listOf(DefaultTint)
       blurRadius = 8.dp
     }
+    val visualEffects = List(3) { BlurVisualEffect(blurVisualEffect) }
 
     setContent {
       ScreenshotTheme {
-        CreditCardPagerSample(visualEffect = blurVisualEffect, pagerPosition = 1.75f, numberCards = 3)
+        CreditCardPagerSample(visualEffects = visualEffects, pagerPosition = 1.75f)
       }
     }
     captureRoot()
+  }
+
+  @Test
+  fun horizontalPager_preservesStateAndEffectOwnershipAcrossPageChanges() = runScreenshotTest {
+    val baseEffect = BlurVisualEffect().apply {
+      colorEffects = listOf(DefaultTint)
+      blurRadius = 8.dp
+    }
+    val threePageEffects = List(3) { BlurVisualEffect(baseEffect) }
+    val twoPageEffects = List(2) { BlurVisualEffect(baseEffect) }
+    var pageCount by mutableStateOf(3)
+    var recompositionToken by mutableStateOf(0)
+    var requestedPage by mutableStateOf(0)
+    var pagerState: PagerState? = null
+    val composedEffects = mutableMapOf<Int, VisualEffect>()
+
+    setContent {
+      ScreenshotTheme {
+        val visualEffects = remember(pageCount) {
+          if (pageCount == 2) twoPageEffects else threePageEffects
+        }
+        LaunchedEffect(requestedPage) {
+          pagerState?.scrollToPage(requestedPage)
+        }
+        CreditCardPagerSample(
+          visualEffects = visualEffects,
+          pagerPosition = 0f,
+          backgroundColors = if (recompositionToken == 0) {
+            listOf(Color.Blue, Color.Cyan)
+          } else {
+            listOf(Color.Cyan, Color.Blue)
+          },
+          onPagerState = { pagerState = it },
+          onPageComposed = { page, effect -> composedEffects[page] = effect },
+        )
+      }
+    }
+
+    waitForIdle()
+    val initialPagerState = requireNotNull(pagerState)
+    recompositionToken++
+    waitForIdle()
+    assertTrue(pagerState === initialPagerState)
+
+    requestedPage = 2
+    waitForIdle()
+    assertEquals(2, initialPagerState.currentPage)
+    assertTrue(composedEffects.keys.containsAll((0..2).toList()))
+    assertTrue(composedEffects.all { (page, effect) -> effect === threePageEffects[page] })
+    assertTrue(
+      composedEffects[0] !== composedEffects[1] && composedEffects[1] !== composedEffects[2],
+    )
+
+    threePageEffects[0].blurRadius = 16.dp
+    assertEquals(8.dp, threePageEffects[1].blurRadius)
+
+    pageCount = 2
+    waitForIdle()
+    assertTrue(pagerState === initialPagerState)
+    assertTrue(initialPagerState.currentPage < pageCount)
+
+    pageCount = 3
+    requestedPage = 0
+    waitForIdle()
+    assertTrue(pagerState === initialPagerState)
+    assertTrue(composedEffects[0] === threePageEffects[0])
   }
 
   @Test

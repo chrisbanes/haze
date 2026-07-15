@@ -1,0 +1,11 @@
+# Generated capture tool output
+build/
+DerivedData/
+
+# Local Xcode user state
+xcuserdata/
+*.xcuserstate
+
+# Locally staged reference captures
+captures/
+staged-captures/
