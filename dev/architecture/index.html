@@ -1121,7 +1121,7 @@
 └── haze-utils (platform utilities)
 </code></pre></div>
 <p>Future effects will follow the same pattern:
-- <strong>haze-liquidglass</strong> (source-only, not yet published) - Refraction-based liquid glass effect with rounded-shape SDF and optional chromatic aberration
+- <strong>haze-glass</strong> (source-only, not yet published) - Refraction-based Glass effect with rounded-shape SDF and optional chromatic aberration
 - Custom third-party effect modules</p>
 <h2 id="effect-registration-pattern">Effect Registration Pattern<a class="headerlink" href="#effect-registration-pattern" title="Permanent link">¶</a></h2>
 <p>Effect implementations provide builder extension functions on <code>HazeEffectScope</code> for convenient configuration:</p>
@@ -1137,8 +1137,8 @@
 </code></pre></div>
 <p>Future effects will follow the same pattern:
 </p><div class="highlight"><pre><span></span><code><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">liquidglassEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// liquidglass-specific properties</span>
+<span class="w">    </span><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Glass-specific properties</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>

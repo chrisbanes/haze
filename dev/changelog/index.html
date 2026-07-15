@@ -827,10 +827,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-haze-liquidglass-module-experimental" class="md-nav__link">
+  <a href="#new-haze-glass-module-experimental" class="md-nav__link">
     <span class="md-ellipsis">
       
-        New haze-liquidglass Module (Experimental)
+        New haze-glass Module (Experimental)
       
     </span>
   </a>
@@ -4369,10 +4369,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#new-haze-liquidglass-module-experimental" class="md-nav__link">
+  <a href="#new-haze-glass-module-experimental" class="md-nav__link">
     <span class="md-ellipsis">
       
-        New haze-liquidglass Module (Experimental)
+        New haze-glass Module (Experimental)
       
     </span>
   </a>
@@ -7660,14 +7660,13 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
-<li>Added progressive blur support to liquid glass.</li>
-<li>Added initial liquid glass material style presets.</li>
+<li>Added progressive blur support to Glass.</li>
 <li><strong><code>HazeCoordinates</code></strong> — new value class on <code>HazeArea</code> exposing both <code>localPosition</code> and <code>screenPosition</code>, so custom <code>VisualEffect</code> implementations can read the geometry of an area in either coordinate space. A new <code>HazeCoordinates.isUnspecified</code> extension reports when either position has not yet been laid out.</li>
 <li><strong><code>VisualEffectContext</code> helpers</strong> (Experimental) — <code>positionOf(area)</code>, <code>boundsOf(area)</code>, and a <code>positionStrategy</code> property that read geometry in the effect's resolved coordinate space. Custom effects should prefer these over reading <code>HazeArea.position</code> / <code>HazeArea.coordinates</code> directly.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
-<li>Changed liquid glass blur composition so blur participates in refracted content.</li>
+<li>Changed Glass blur composition so blur participates in refracted content.</li>
 <li>Moved <code>HazeProgressive</code> to the core <code>dev.chrisbanes.haze</code> package with a deprecated blur-package typealias.</li>
 </ul>
 <h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">¶</a></h3>
@@ -7684,11 +7683,11 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <ul>
 <li><strong>Removed APIs:</strong> Delete all v1 migration aliases, including <code>HazeStyle</code>, <code>HazeTint</code>, <code>LocalHazeStyle</code>, and the <code>HazeTint(...)</code> factory function in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/963" title="GitHub Issue chrisbanes/haze #963">#963</a></li>
 <li><strong>Changed:</strong> <code>HazeBlurStyle</code> is now an immutable class rather than a data class. The constructor and <code>copy()</code> parameter for <code>colorEffects</code> is nullable (<code>null</code> = unspecified, <code>emptyList()</code> = explicitly empty); the public property remains non-null and returns an empty list when unspecified in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/963" title="GitHub Issue chrisbanes/haze #963">#963</a></li>
-<li><strong>Changed:</strong> <code>LiquidGlassStyle</code> is restructured into grouped value types: <code>LiquidGlassOptics</code>, <code>LiquidGlassLighting</code>, <code>LiquidGlassColor</code>, and <code>LiquidGlassRendering</code> in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/963" title="GitHub Issue chrisbanes/haze #963">#963</a></li>
+<li><strong>Changed:</strong> <code>GlassStyle</code> is restructured into grouped value types: <code>GlassOptics</code>, <code>GlassLighting</code>, <code>GlassColor</code>, and <code>GlassRendering</code> in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/963" title="GitHub Issue chrisbanes/haze #963">#963</a></li>
 </ul>
 <h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">¶</a></h3>
 <ul>
-<li>Liquid glass shader performance, realism, configurability, and sample refactoring in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/839" title="GitHub Issue chrisbanes/haze #839">#839</a></li>
+<li>Glass shader performance, realism, configurability, and sample refactoring in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/839" title="GitHub Issue chrisbanes/haze #839">#839</a></li>
 <li>Update Jetpack Compose to 1.11.2 in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/938" title="GitHub Issue chrisbanes/haze #938">#938</a></li>
 <li>Update Compose Multiplatform to 1.11.1 in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/956" title="GitHub Issue chrisbanes/haze #956">#956</a></li>
 <li>Upgrade AGP to 9.2.1 in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/955" title="GitHub Issue chrisbanes/haze #955">#955</a></li>
@@ -7701,8 +7700,8 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Include resolved <code>CornerRadii</code> in fallback path cache invalidation in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/954" title="GitHub Issue chrisbanes/haze #954">#954</a></li>
 <li>Guard <code>VisualEffect</code> attach/detach until <code>HazeEffectNode</code> is attached in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/953" title="GitHub Issue chrisbanes/haze #953">#953</a></li>
 <li>Exclude <code>VisualEffect.Empty</code> from single-owner registration in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/949" title="GitHub Issue chrisbanes/haze #949">#949</a></li>
-<li>Fix Android API 33+ liquid glass runtime shader not binding <code>blurredContent</code>. The
-  <code>RuntimeShaderLiquidGlassDelegate</code> now uses an <code>expect</code>/<code>actual</code> factory so that
+<li>Fix Android API 33+ Glass runtime shader not binding <code>blurredContent</code>. The
+  <code>RuntimeShaderGlassDelegate</code> now uses an <code>expect</code>/<code>actual</code> factory so that
   Android receives a single-input shader, avoiding the single-content-input limitation
   of <code>RenderEffect.createRuntimeShaderEffect</code>. The depth-based blur mixing is skipped
   on Android; all other effects (refraction, specular, Fresnel, chromatic aberration,
@@ -7711,12 +7710,12 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="2.0.0-alpha02">2.0.0-alpha02 <small>2026-05-08</small><a class="headerlink" href="#2.0.0-alpha02" title="Permanent link">¶</a></h2>
 <p>Changes since 2.0.0-alpha01.</p>
 <h3 id="highlights">Highlights<a class="headerlink" href="#highlights" title="Permanent link">¶</a></h3>
-<h4 id="new-haze-liquidglass-module-experimental">New <code>haze-liquidglass</code> Module (Experimental)<a class="headerlink" href="#new-haze-liquidglass-module-experimental" title="Permanent link">¶</a></h4>
-<p>A new <code>haze-liquidglass</code> module adds an iOS-style liquid glass refraction effect. It renders refraction, depth blur, specular highlights, Fresnel ambient lift, chromatic aberration, and soft tinted glass through a custom AGSL runtime shader, with a Canvas-based fallback for platforms without runtime shader support.</p>
+<h4 id="new-haze-glass-module-experimental">New <code>haze-glass</code> Module (Experimental)<a class="headerlink" href="#new-haze-glass-module-experimental" title="Permanent link">¶</a></h4>
+<p>A new <code>haze-glass</code> module adds a Glass refraction effect calibrated against Apple's iOS Liquid Glass material. It renders refraction, depth blur, specular highlights, Fresnel ambient lift, chromatic aberration, and soft tinted glass through a custom AGSL runtime shader, with a Canvas-based fallback for platforms without runtime shader support.</p>
 <p>The module is gated behind <code>@ExperimentalHazeApi</code> and <strong>is not yet published to Maven Central</strong>. It exists in the repository for internal development and testing only.</p>
 <p>Usage:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">liquidGlassEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">)</span>
 <span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span>
 <span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span>
@@ -7731,7 +7730,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><strong>Depth blur</strong> mixing original and blurred content</li>
 <li><strong>Specular highlights</strong> and <strong>Fresnel ambient response</strong> driven by a virtual light source</li>
 <li><strong>Chromatic aberration</strong> in Simple (fast) or Full (spectral) modes</li>
-<li><strong><code>LiquidGlassStyle</code></strong> container with <code>LocalLiquidGlassStyle</code> composition local for scoped defaults</li>
+<li><strong><code>GlassStyle</code></strong> container with <code>LocalGlassStyle</code> composition local for scoped defaults</li>
 <li>All properties follow the standard three-tier precedence: direct → style → composition local → defaults</li>
 </ul>
 <h3 id="breaking-changes_1">Breaking Changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">¶</a></h3>
@@ -7759,7 +7758,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">¶</a></h3>
 <ul>
 <li>Add recomposition testing (count + loop detection + instrumentation) in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/919" title="GitHub Issue chrisbanes/haze #919">#919</a></li>
-<li>Add <code>haze-liquidglass</code> module with liquid glass refraction effect — see <a href="#highlights">Highlights</a> above</li>
+<li>Add <code>haze-glass</code> module with Glass refraction effect — see <a href="#highlights">Highlights</a> above</li>
 </ul>
 <h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">¶</a></h3>
 <ul>
