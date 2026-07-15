@@ -15,7 +15,10 @@ expect fun ScreenshotTest.runScreenshotTest(
 interface ScreenshotUiTest {
   val supportsRuntimeBlur: Boolean
   fun setContent(content: @Composable () -> Unit)
-  fun captureRoot(nameSuffix: String? = null)
+  fun captureRoot(
+    nameSuffix: String? = null,
+    unmatchedPixelThreshold: Float? = null,
+  )
   fun captureRootPixels(): PixelMap
   fun waitForIdle()
   fun swipeUpOnRoot()

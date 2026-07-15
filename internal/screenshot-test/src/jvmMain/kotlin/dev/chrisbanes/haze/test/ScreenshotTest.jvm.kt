@@ -47,12 +47,18 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
     this@createScreenshotUiTest.setContent(content)
   }
 
-  override fun captureRoot(nameSuffix: String?) {
+  override fun captureRoot(
+    nameSuffix: String?,
+    unmatchedPixelThreshold: Float?,
+  ) {
     val output = when {
       nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.png"
       else -> "${roboOutputName()}_$nameSuffix.png"
     }
-    this@createScreenshotUiTest.onRoot().captureRoboImage(output)
+    val options = unmatchedPixelThreshold
+      ?.let(HazeRoborazziDefaults::roborazziOptions)
+      ?: HazeRoborazziDefaults.roborazziOptions
+    this@createScreenshotUiTest.onRoot().captureRoboImage(output, options)
   }
 
   override fun captureRootPixels(): PixelMap =

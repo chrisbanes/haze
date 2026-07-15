@@ -14,28 +14,34 @@ private const val H_SHIFT = 2
 private const val V_SHIFT = 2
 
 object HazeRoborazziDefaults {
-  val roborazziOptions = RoborazziOptions(
-    compareOptions = RoborazziOptions.CompareOptions(
-      resultValidator = createRoborazziResultValidator(),
-      imageComparator = SimpleImageComparator(
-        maxDistance = MAX_DISTANCE,
-        hShift = H_SHIFT,
-        vShift = V_SHIFT,
+  val roborazziOptions = roborazziOptions()
+
+  internal fun roborazziOptions(
+    unmatchedPixelThreshold: Float = UNMATCHED_PIXEL_THRESHOLD,
+  ): RoborazziOptions =
+    RoborazziOptions(
+      compareOptions = RoborazziOptions.CompareOptions(
+        resultValidator = createRoborazziResultValidator(unmatchedPixelThreshold),
+        imageComparator = SimpleImageComparator(
+          maxDistance = MAX_DISTANCE,
+          hShift = H_SHIFT,
+          vShift = V_SHIFT,
+        ),
       ),
-    ),
-  )
+    )
 }
 
 internal fun createRoborazziResultValidator(
+  unmatchedPixelThreshold: Float = UNMATCHED_PIXEL_THRESHOLD,
   log: (String) -> Unit = ::println,
 ): (ComparisonResult) -> Boolean = { result ->
   val changedPixelsRatio = result.changedPixelsRatio()
-  val valid = changedPixelsRatio <= UNMATCHED_PIXEL_THRESHOLD
+  val valid = changedPixelsRatio <= unmatchedPixelThreshold
   if (!valid) {
     log(
       "Roborazzi image diff: ${changedPixelsRatio.formatAsPercentage()}% unmatched " +
         "(${result.pixelDifferences}/${result.pixelCount} pixels, " +
-        "threshold ${UNMATCHED_PIXEL_THRESHOLD.formatAsPercentage()}%, " +
+        "threshold ${unmatchedPixelThreshold.formatAsPercentage()}%, " +
         "maxDistance ${MAX_DISTANCE.formatTwoDecimals()}, hShift $H_SHIFT, vShift $V_SHIFT)",
     )
   }

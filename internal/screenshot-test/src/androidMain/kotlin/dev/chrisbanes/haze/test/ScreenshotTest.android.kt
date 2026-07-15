@@ -62,12 +62,18 @@ private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
       rule.waitForIdle()
     }
 
-    override fun captureRoot(nameSuffix: String?) {
+    override fun captureRoot(
+      nameSuffix: String?,
+      unmatchedPixelThreshold: Float?,
+    ) {
       val output = when {
         nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.png"
         else -> "${roboOutputName()}_$nameSuffix.png"
       }
-      rule.onRoot().captureRoboImage(output)
+      val options = unmatchedPixelThreshold
+        ?.let(HazeRoborazziDefaults::roborazziOptions)
+        ?: HazeRoborazziDefaults.roborazziOptions
+      rule.onRoot().captureRoboImage(output, options)
     }
 
     override fun captureRootPixels(): PixelMap {
