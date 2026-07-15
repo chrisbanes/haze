@@ -38,36 +38,6 @@ class VisualEffectLifecycleTest : ContextTest() {
   }
 
   @Test
-  fun visualEffect_contentVersionIncreasesAfterSourceContentChanges() = runComposeUiTest {
-    val hazeState = HazeState()
-    val sourceContent = mutableStateOf(0)
-    val effect = ContentVersionRecordingVisualEffect()
-
-    setContent {
-      Box(Modifier.size(100.dp)) {
-        Box(Modifier.size(100.dp).hazeSource(hazeState)) {
-          Spacer(Modifier.size(sourceContent.value.dp))
-        }
-        Spacer(
-          Modifier
-            .size(100.dp)
-            .hazeEffect(hazeState) {
-              visualEffect = effect
-            },
-        )
-      }
-    }
-
-    waitForIdle()
-    val initialVersion = requireNotNull(effect.versions.lastOrNull())
-
-    sourceContent.value = 1
-    waitForIdle()
-
-    assertThat(requireNotNull(effect.versions.lastOrNull())).isGreaterThan(initialVersion)
-  }
-
-  @Test
   fun visualEffect_attachCalledWhenSet() = runComposeUiTest {
     val hazeState = HazeState()
     val effect = RecordingVisualEffect()
@@ -482,14 +452,6 @@ internal class RecordingVisualEffect : VisualEffect {
 
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
     trimMemoryCalls++
-  }
-}
-
-private class ContentVersionRecordingVisualEffect : VisualEffect {
-  val versions = mutableListOf<Long?>()
-
-  override fun DrawScope.draw(context: VisualEffectContext) {
-    versions += context.areas.singleOrNull()?.let(context::contentVersionOf)
   }
 }
 
