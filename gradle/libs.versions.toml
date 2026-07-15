@@ -19,6 +19,7 @@ ktor = "3.5.1"
 jetpack-compose = "1.11.4"
 metalava = "0.5.0"
 navigation-compose = "2.9.2"
+compose-navigation3 = "1.1.1"
 robolectric = "4.16.1"
 roborazzi = "1.68.0"
 spotless = "8.8.0"
@@ -69,6 +70,7 @@ compose-material-icons = "org.jetbrains.compose.material:material-icons-core:1.7
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "compose-material3" }
+compose-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "compose-navigation3" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
 compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose-multiplatform" }
