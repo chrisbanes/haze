@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Clean up the v2 API by removing partial v1 migration shims, fixing blur style immutability and empty-list semantics, grouping `LiquidGlassStyle`, updating docs, and regenerating API snapshots.
+**Goal:** Clean up the v2 API by removing partial v1 migration shims, fixing blur style immutability and empty-list semantics, grouping `GlassStyle`, updating docs, and regenerating API snapshots.
 
-**Architecture:** Keep the hard v2 break explicit: blur APIs only live under `dev.chrisbanes.haze.blur`, liquid glass remains experimental but uses grouped immutable style values, and existing `VisualEffect` lifecycle behavior stays unchanged. Implement behavior-preserving refactors behind focused unit tests, then update docs and API files.
+**Architecture:** Keep the hard v2 break explicit: blur APIs only live under `dev.chrisbanes.haze.blur`, Glass remains experimental but uses grouped immutable style values, and existing `VisualEffect` lifecycle behavior stays unchanged. Implement behavior-preserving refactors behind focused unit tests, then update docs and API files.
 
 **Tech Stack:** Kotlin Multiplatform, Jetpack Compose Runtime/UI, assertk, kotlin.test, Gradle, Metalava API snapshots.
 
@@ -16,13 +16,13 @@
 - Modify `haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyle.kt`: remove deprecated aliases/factories, add defensive list snapshots, and support `null` as unspecified color effects.
 - Modify `haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur/BlurVisualEffect.kt`: store direct color effects as nullable authoring state and resolve empty lists as explicit empty.
 - Create `haze-blur/src/commonTest/kotlin/dev/chrisbanes/haze/blur/HazeBlurStyleTest.kt`: test defensive copies and explicit-empty semantics.
-- Modify `haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyle.kt`: replace the flat style with grouped immutable value types.
-- Modify `haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt`: build defaults through grouped style values.
-- Modify `haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassVisualEffect.kt`: resolve grouped style values with the same precedence as the old flat style.
-- Create `haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt`: test grouped defaults and precedence.
-- Modify sample/screenshot/docs source files that construct `LiquidGlassStyle` directly.
-- Modify `docs/migrating-2.0.md`: document the hard break and grouped liquid glass migration.
-- Modify API snapshots in `haze-blur/api/api.txt`, `haze-liquidglass/api/api.txt`, and any versioned snapshots required by the project.
+- Modify `haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassStyle.kt`: replace the flat style with grouped immutable value types.
+- Modify `haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassDefaults.kt`: build defaults through grouped style values.
+- Modify `haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassVisualEffect.kt`: resolve grouped style values with the same precedence as the old flat style.
+- Create `haze-glass/src/commonTest/kotlin/dev/chrisbanes/haze/glass/GlassStyleTest.kt`: test grouped defaults and precedence.
+- Modify sample/screenshot/docs source files that construct `GlassStyle` directly.
+- Modify `docs/migrating-2.0.md`: document the hard break and grouped Glass migration.
+- Modify API snapshots in `haze-blur/api/api.txt`, `haze-glass/api/api.txt`, and any versioned snapshots required by the project.
 
 ---
 
@@ -289,22 +289,22 @@ git commit -m "fix: clarify blur style color effects"
 
 ---
 
-### Task 3: Liquid Glass Grouped Style Tests
+### Task 3: Glass Grouped Style Tests
 
 **Files:**
-- Create: `haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt`
-- Read: `haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt`
-- Read: `haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassVisualEffect.kt`
+- Create: `haze-glass/src/commonTest/kotlin/dev/chrisbanes/haze/glass/GlassStyleTest.kt`
+- Read: `haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassDefaults.kt`
+- Read: `haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassVisualEffect.kt`
 
 - [ ] **Step 1: Write failing tests for grouped defaults and precedence**
 
-Create `haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt` with:
+Create `haze-glass/src/commonTest/kotlin/dev/chrisbanes/haze/glass/GlassStyleTest.kt` with:
 
 ```kotlin
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package dev.chrisbanes.haze.liquidglass
+package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
@@ -316,63 +316,63 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class)
-class LiquidGlassStyleTest {
+class GlassStyleTest {
 
   @Test
-  fun defaultsStyle_resolvesToLiquidGlassDefaults() {
-    val effect = LiquidGlassVisualEffect().apply {
-      compositionLocalStyle = LiquidGlassDefaults.style
+  fun defaultsStyle_resolvesToGlassDefaults() {
+    val effect = GlassVisualEffect().apply {
+      compositionLocalStyle = GlassDefaults.style
     }
 
-    assertThat(effect.tint).isEqualTo(LiquidGlassDefaults.tint)
-    assertThat(effect.shape).isEqualTo(LiquidGlassDefaults.shape)
-    assertThat(effect.refractionStrength).isEqualTo(LiquidGlassDefaults.refractionStrength)
-    assertThat(effect.refractionHeight).isEqualTo(LiquidGlassDefaults.refractionHeight)
-    assertThat(effect.refractionScale).isEqualTo(LiquidGlassDefaults.refractionScale)
-    assertThat(effect.depth).isEqualTo(LiquidGlassDefaults.depth)
-    assertThat(effect.blurRadius).isEqualTo(LiquidGlassDefaults.blurRadius)
-    assertThat(effect.specularIntensity).isEqualTo(LiquidGlassDefaults.specularIntensity)
-    assertThat(effect.specularExponent).isEqualTo(LiquidGlassDefaults.specularExponent)
-    assertThat(effect.fresnelExponent).isEqualTo(LiquidGlassDefaults.fresnelExponent)
-    assertThat(effect.ambientResponse).isEqualTo(LiquidGlassDefaults.ambientResponse)
-    assertThat(effect.alpha).isEqualTo(LiquidGlassDefaults.alpha)
-    assertThat(effect.contrast).isEqualTo(LiquidGlassDefaults.contrast)
-    assertThat(effect.whitePoint).isEqualTo(LiquidGlassDefaults.whitePoint)
-    assertThat(effect.chromaMultiplier).isEqualTo(LiquidGlassDefaults.chromaMultiplier)
-    assertThat(effect.edgeSoftness).isEqualTo(LiquidGlassDefaults.edgeSoftness)
-    assertThat(effect.contentNormalBlend).isEqualTo(LiquidGlassDefaults.contentNormalBlend)
-    assertThat(effect.surfaceProfile).isEqualTo(LiquidGlassDefaults.surfaceProfile)
-    assertThat(effect.chromaticAberrationStrength).isEqualTo(LiquidGlassDefaults.chromaticAberrationStrength)
-    assertThat(effect.chromaticAberrationMode).isEqualTo(LiquidGlassDefaults.chromaticAberrationMode)
+    assertThat(effect.tint).isEqualTo(GlassDefaults.tint)
+    assertThat(effect.shape).isEqualTo(GlassDefaults.shape)
+    assertThat(effect.refractionStrength).isEqualTo(GlassDefaults.refractionStrength)
+    assertThat(effect.refractionHeight).isEqualTo(GlassDefaults.refractionHeight)
+    assertThat(effect.refractionScale).isEqualTo(GlassDefaults.refractionScale)
+    assertThat(effect.depth).isEqualTo(GlassDefaults.depth)
+    assertThat(effect.blurRadius).isEqualTo(GlassDefaults.blurRadius)
+    assertThat(effect.specularIntensity).isEqualTo(GlassDefaults.specularIntensity)
+    assertThat(effect.specularExponent).isEqualTo(GlassDefaults.specularExponent)
+    assertThat(effect.fresnelExponent).isEqualTo(GlassDefaults.fresnelExponent)
+    assertThat(effect.ambientResponse).isEqualTo(GlassDefaults.ambientResponse)
+    assertThat(effect.alpha).isEqualTo(GlassDefaults.alpha)
+    assertThat(effect.contrast).isEqualTo(GlassDefaults.contrast)
+    assertThat(effect.whitePoint).isEqualTo(GlassDefaults.whitePoint)
+    assertThat(effect.chromaMultiplier).isEqualTo(GlassDefaults.chromaMultiplier)
+    assertThat(effect.edgeSoftness).isEqualTo(GlassDefaults.edgeSoftness)
+    assertThat(effect.contentNormalBlend).isEqualTo(GlassDefaults.contentNormalBlend)
+    assertThat(effect.surfaceProfile).isEqualTo(GlassDefaults.surfaceProfile)
+    assertThat(effect.chromaticAberrationStrength).isEqualTo(GlassDefaults.chromaticAberrationStrength)
+    assertThat(effect.chromaticAberrationMode).isEqualTo(GlassDefaults.chromaticAberrationMode)
   }
 
   @Test
   fun groupedStyle_partiallySpecifiedValuesInheritFromCompositionLocal() {
-    val localStyle = LiquidGlassStyle(
+    val localStyle = GlassStyle(
       tint = Color.Blue,
       shape = RoundedCornerShape(12.dp),
-      optics = LiquidGlassOptics(
+      optics = GlassOptics(
         refractionStrength = 0.2f,
         refractionScale = 8f,
         depth = 0.3f,
       ),
-      lighting = LiquidGlassLighting(
+      lighting = GlassLighting(
         specularIntensity = 0.25f,
         lightPosition = Offset(4f, 8f),
       ),
-      color = LiquidGlassColor(alpha = 0.7f, contrast = 0.4f),
-      rendering = LiquidGlassRendering(
+      color = GlassColor(alpha = 0.7f, contrast = 0.4f),
+      rendering = GlassRendering(
         edgeSoftness = 6.dp,
         surfaceProfile = SurfaceProfile.Concave,
       ),
     )
-    val directStyle = LiquidGlassStyle(
-      optics = LiquidGlassOptics(refractionStrength = 0.9f),
-      lighting = LiquidGlassLighting(ambientResponse = 0.8f),
-      color = LiquidGlassColor(whitePoint = 0.1f),
-      rendering = LiquidGlassRendering(chromaticAberrationStrength = 0.5f),
+    val directStyle = GlassStyle(
+      optics = GlassOptics(refractionStrength = 0.9f),
+      lighting = GlassLighting(ambientResponse = 0.8f),
+      color = GlassColor(whitePoint = 0.1f),
+      rendering = GlassRendering(chromaticAberrationStrength = 0.5f),
     )
-    val effect = LiquidGlassVisualEffect().apply {
+    val effect = GlassVisualEffect().apply {
       compositionLocalStyle = localStyle
       style = directStyle
     }
@@ -393,13 +393,13 @@ class LiquidGlassStyleTest {
 
   @Test
   fun directPropertiesOverrideGroupedStyle() {
-    val effect = LiquidGlassVisualEffect().apply {
-      style = LiquidGlassStyle(
+    val effect = GlassVisualEffect().apply {
+      style = GlassStyle(
         tint = Color.Blue,
-        optics = LiquidGlassOptics(refractionStrength = 0.2f),
-        lighting = LiquidGlassLighting(ambientResponse = 0.3f),
-        color = LiquidGlassColor(alpha = 0.4f),
-        rendering = LiquidGlassRendering(edgeSoftness = 6.dp),
+        optics = GlassOptics(refractionStrength = 0.2f),
+        lighting = GlassLighting(ambientResponse = 0.3f),
+        color = GlassColor(alpha = 0.4f),
+        rendering = GlassRendering(edgeSoftness = 6.dp),
       )
       tint = Color.Red
       refractionStrength = 0.8f
@@ -417,57 +417,57 @@ class LiquidGlassStyleTest {
 }
 ```
 
-- [ ] **Step 2: Run focused liquid glass tests and verify failure**
+- [ ] **Step 2: Run focused Glass tests and verify failure**
 
 Run:
 
 ```bash
-./gradlew :haze-liquidglass:test --tests dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest
+./gradlew :haze-glass:test --tests dev.chrisbanes.haze.glass.GlassStyleTest
 ```
 
 Expected: FAIL because the grouped style types do not exist yet.
 
-- [ ] **Step 3: Commit failing liquid glass tests**
+- [ ] **Step 3: Commit failing Glass tests**
 
 Run:
 
 ```bash
-git add haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt
-git commit -m "test: cover liquid glass grouped style semantics"
+git add haze-glass/src/commonTest/kotlin/dev/chrisbanes/haze/glass/GlassStyleTest.kt
+git commit -m "test: cover Glass grouped style semantics"
 ```
 
 ---
 
-### Task 4: Liquid Glass Grouped Style Types and Defaults
+### Task 4: Glass Grouped Style Types and Defaults
 
 **Files:**
-- Modify: `haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyle.kt`
-- Modify: `haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt`
-- Test: `haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt`
+- Modify: `haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassStyle.kt`
+- Modify: `haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassDefaults.kt`
+- Test: `haze-glass/src/commonTest/kotlin/dev/chrisbanes/haze/glass/GlassStyleTest.kt`
 
-- [ ] **Step 1: Replace flat `LiquidGlassStyle` with grouped value types**
+- [ ] **Step 1: Replace flat `GlassStyle` with grouped value types**
 
-In `LiquidGlassStyle.kt`, keep `LocalLiquidGlassStyle`, then replace the flat style class with:
+In `GlassStyle.kt`, keep `LocalGlassStyle`, then replace the flat style class with:
 
 ```kotlin
 @ExperimentalHazeApi
 @Immutable
-public data class LiquidGlassStyle(
+public data class GlassStyle(
   val tint: Color = Color.Unspecified,
   val shape: RoundedCornerShape? = null,
-  val optics: LiquidGlassOptics = LiquidGlassOptics.Unspecified,
-  val lighting: LiquidGlassLighting = LiquidGlassLighting.Unspecified,
-  val color: LiquidGlassColor = LiquidGlassColor.Unspecified,
-  val rendering: LiquidGlassRendering = LiquidGlassRendering.Unspecified,
+  val optics: GlassOptics = GlassOptics.Unspecified,
+  val lighting: GlassLighting = GlassLighting.Unspecified,
+  val color: GlassColor = GlassColor.Unspecified,
+  val rendering: GlassRendering = GlassRendering.Unspecified,
 ) {
   public companion object {
-    public val Unspecified: LiquidGlassStyle = LiquidGlassStyle()
+    public val Unspecified: GlassStyle = GlassStyle()
   }
 }
 
 @ExperimentalHazeApi
 @Immutable
-public data class LiquidGlassOptics(
+public data class GlassOptics(
   val refractionStrength: Float = Float.NaN,
   val refractionHeight: Float = Float.NaN,
   val refractionScale: Float = Float.NaN,
@@ -475,13 +475,13 @@ public data class LiquidGlassOptics(
   val blurRadius: Dp = Dp.Unspecified,
 ) {
   public companion object {
-    public val Unspecified: LiquidGlassOptics = LiquidGlassOptics()
+    public val Unspecified: GlassOptics = GlassOptics()
   }
 }
 
 @ExperimentalHazeApi
 @Immutable
-public data class LiquidGlassLighting(
+public data class GlassLighting(
   val specularIntensity: Float = Float.NaN,
   val specularExponent: Float = Float.NaN,
   val fresnelExponent: Float = Float.NaN,
@@ -489,26 +489,26 @@ public data class LiquidGlassLighting(
   val lightPosition: Offset = Offset.Unspecified,
 ) {
   public companion object {
-    public val Unspecified: LiquidGlassLighting = LiquidGlassLighting()
+    public val Unspecified: GlassLighting = GlassLighting()
   }
 }
 
 @ExperimentalHazeApi
 @Immutable
-public data class LiquidGlassColor(
+public data class GlassColor(
   val alpha: Float = Float.NaN,
   val contrast: Float = Float.NaN,
   val whitePoint: Float = Float.NaN,
   val chromaMultiplier: Float = Float.NaN,
 ) {
   public companion object {
-    public val Unspecified: LiquidGlassColor = LiquidGlassColor()
+    public val Unspecified: GlassColor = GlassColor()
   }
 }
 
 @ExperimentalHazeApi
 @Immutable
-public data class LiquidGlassRendering(
+public data class GlassRendering(
   val edgeSoftness: Dp = Dp.Unspecified,
   val contentNormalBlend: Float = Float.NaN,
   val surfaceProfile: SurfaceProfile? = null,
@@ -516,39 +516,39 @@ public data class LiquidGlassRendering(
   val chromaticAberrationMode: ChromaticAberrationMode? = null,
 ) {
   public companion object {
-    public val Unspecified: LiquidGlassRendering = LiquidGlassRendering()
+    public val Unspecified: GlassRendering = GlassRendering()
   }
 }
 ```
 
-- [ ] **Step 2: Rebuild `LiquidGlassDefaults.style` with groups**
+- [ ] **Step 2: Rebuild `GlassDefaults.style` with groups**
 
-In `LiquidGlassDefaults.kt`, replace the flat `style` initializer with:
+In `GlassDefaults.kt`, replace the flat `style` initializer with:
 
 ```kotlin
-public val style: LiquidGlassStyle = LiquidGlassStyle(
+public val style: GlassStyle = GlassStyle(
   tint = tint,
   shape = shape,
-  optics = LiquidGlassOptics(
+  optics = GlassOptics(
     refractionStrength = refractionStrength,
     refractionHeight = refractionHeight,
     refractionScale = refractionScale,
     depth = depth,
     blurRadius = blurRadius,
   ),
-  lighting = LiquidGlassLighting(
+  lighting = GlassLighting(
     specularIntensity = specularIntensity,
     specularExponent = specularExponent,
     fresnelExponent = fresnelExponent,
     ambientResponse = ambientResponse,
   ),
-  color = LiquidGlassColor(
+  color = GlassColor(
     alpha = alpha,
     contrast = contrast,
     whitePoint = whitePoint,
     chromaMultiplier = chromaMultiplier,
   ),
-  rendering = LiquidGlassRendering(
+  rendering = GlassRendering(
     edgeSoftness = edgeSoftness,
     contentNormalBlend = contentNormalBlend,
     surfaceProfile = surfaceProfile,
@@ -558,49 +558,49 @@ public val style: LiquidGlassStyle = LiquidGlassStyle(
 )
 ```
 
-- [ ] **Step 3: Run focused liquid glass tests and verify remaining failures**
+- [ ] **Step 3: Run focused Glass tests and verify remaining failures**
 
 Run:
 
 ```bash
-./gradlew :haze-liquidglass:test --tests dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest
+./gradlew :haze-glass:test --tests dev.chrisbanes.haze.glass.GlassStyleTest
 ```
 
-Expected: FAIL in `LiquidGlassVisualEffect` compilation because it still reads flat `style.refractionStrength`, `style.specularIntensity`, and related properties.
+Expected: FAIL in `GlassVisualEffect` compilation because it still reads flat `style.refractionStrength`, `style.specularIntensity`, and related properties.
 
 - [ ] **Step 4: Leave grouped style type changes uncommitted for the next task**
 
 Do not commit these implementation changes yet. The module is expected to keep
-failing until Task 5 updates `LiquidGlassVisualEffect` to read grouped style
+failing until Task 5 updates `GlassVisualEffect` to read grouped style
 values. Confirm the intended uncommitted files:
 
 ```bash
-git status --short haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyle.kt haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt
+git status --short haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassStyle.kt haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassDefaults.kt
 ```
 
 Expected: both files are modified.
 
 ---
 
-### Task 5: Liquid Glass VisualEffect Resolution
+### Task 5: Glass VisualEffect Resolution
 
 **Files:**
-- Modify: `haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassVisualEffect.kt`
-- Test: `haze-liquidglass/src/commonTest/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyleTest.kt`
+- Modify: `haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassVisualEffect.kt`
+- Test: `haze-glass/src/commonTest/kotlin/dev/chrisbanes/haze/glass/GlassStyleTest.kt`
 
 - [ ] **Step 1: Add grouped style helper accessors**
 
-In `LiquidGlassVisualEffect.kt`, add private helper properties near `style`/`compositionLocalStyle`:
+In `GlassVisualEffect.kt`, add private helper properties near `style`/`compositionLocalStyle`:
 
 ```kotlin
-private val styleOptics: LiquidGlassOptics get() = style.optics
-private val localOptics: LiquidGlassOptics get() = compositionLocalStyle.optics
-private val styleLighting: LiquidGlassLighting get() = style.lighting
-private val localLighting: LiquidGlassLighting get() = compositionLocalStyle.lighting
-private val styleColor: LiquidGlassColor get() = style.color
-private val localColor: LiquidGlassColor get() = compositionLocalStyle.color
-private val styleRendering: LiquidGlassRendering get() = style.rendering
-private val localRendering: LiquidGlassRendering get() = compositionLocalStyle.rendering
+private val styleOptics: GlassOptics get() = style.optics
+private val localOptics: GlassOptics get() = compositionLocalStyle.optics
+private val styleLighting: GlassLighting get() = style.lighting
+private val localLighting: GlassLighting get() = compositionLocalStyle.lighting
+private val styleColor: GlassColor get() = style.color
+private val localColor: GlassColor get() = compositionLocalStyle.color
+private val styleRendering: GlassRendering get() = style.rendering
+private val localRendering: GlassRendering get() = compositionLocalStyle.rendering
 ```
 
 - [ ] **Step 2: Update optics-backed property getters**
@@ -738,101 +738,101 @@ compositionLocalStyle.shape
 
 - [ ] **Step 6: Replace `onStyleChanged` comparisons with grouped comparisons**
 
-Replace the full body of `onStyleChanged(old: LiquidGlassStyle, new: LiquidGlassStyle)` with comparisons against group fields:
+Replace the full body of `onStyleChanged(old: GlassStyle, new: GlassStyle)` with comparisons against group fields:
 
 ```kotlin
 if (old.optics.refractionStrength != new.optics.refractionStrength) {
-  dirtyTracker += LiquidGlassDirtyFields.RefractionStrength
+  dirtyTracker += GlassDirtyFields.RefractionStrength
 }
 if (old.optics.depth != new.optics.depth) {
-  dirtyTracker += LiquidGlassDirtyFields.Depth
+  dirtyTracker += GlassDirtyFields.Depth
 }
 if (old.optics.blurRadius != new.optics.blurRadius) {
-  dirtyTracker += LiquidGlassDirtyFields.BlurRadius
+  dirtyTracker += GlassDirtyFields.BlurRadius
 }
 if (old.optics.refractionHeight != new.optics.refractionHeight) {
-  dirtyTracker += LiquidGlassDirtyFields.RefractionHeight
+  dirtyTracker += GlassDirtyFields.RefractionHeight
 }
 if (old.optics.refractionScale != new.optics.refractionScale) {
-  dirtyTracker += LiquidGlassDirtyFields.RefractionScale
+  dirtyTracker += GlassDirtyFields.RefractionScale
 }
 if (old.lighting.specularIntensity != new.lighting.specularIntensity) {
-  dirtyTracker += LiquidGlassDirtyFields.SpecularIntensity
+  dirtyTracker += GlassDirtyFields.SpecularIntensity
 }
 if (old.lighting.ambientResponse != new.lighting.ambientResponse) {
-  dirtyTracker += LiquidGlassDirtyFields.AmbientResponse
+  dirtyTracker += GlassDirtyFields.AmbientResponse
 }
 if (old.lighting.lightPosition != new.lighting.lightPosition) {
-  dirtyTracker += LiquidGlassDirtyFields.LightPosition
+  dirtyTracker += GlassDirtyFields.LightPosition
 }
 if (old.lighting.specularExponent != new.lighting.specularExponent) {
-  dirtyTracker += LiquidGlassDirtyFields.SpecularExponent
+  dirtyTracker += GlassDirtyFields.SpecularExponent
 }
 if (old.lighting.fresnelExponent != new.lighting.fresnelExponent) {
-  dirtyTracker += LiquidGlassDirtyFields.FresnelExponent
+  dirtyTracker += GlassDirtyFields.FresnelExponent
 }
 if (old.tint != new.tint) {
-  dirtyTracker += LiquidGlassDirtyFields.Tint
+  dirtyTracker += GlassDirtyFields.Tint
 }
 if (old.shape != new.shape) {
-  dirtyTracker += LiquidGlassDirtyFields.Shape
+  dirtyTracker += GlassDirtyFields.Shape
 }
 if (old.color.alpha != new.color.alpha) {
-  dirtyTracker += LiquidGlassDirtyFields.Alpha
+  dirtyTracker += GlassDirtyFields.Alpha
 }
 if (old.color.contrast != new.color.contrast) {
-  dirtyTracker += LiquidGlassDirtyFields.Contrast
+  dirtyTracker += GlassDirtyFields.Contrast
 }
 if (old.color.whitePoint != new.color.whitePoint) {
-  dirtyTracker += LiquidGlassDirtyFields.WhitePoint
+  dirtyTracker += GlassDirtyFields.WhitePoint
 }
 if (old.color.chromaMultiplier != new.color.chromaMultiplier) {
-  dirtyTracker += LiquidGlassDirtyFields.ChromaMultiplier
+  dirtyTracker += GlassDirtyFields.ChromaMultiplier
 }
 if (old.rendering.edgeSoftness != new.rendering.edgeSoftness) {
-  dirtyTracker += LiquidGlassDirtyFields.EdgeSoftness
+  dirtyTracker += GlassDirtyFields.EdgeSoftness
 }
 if (old.rendering.contentNormalBlend != new.rendering.contentNormalBlend) {
-  dirtyTracker += LiquidGlassDirtyFields.ContentNormalBlend
+  dirtyTracker += GlassDirtyFields.ContentNormalBlend
 }
 if (old.rendering.surfaceProfile != new.rendering.surfaceProfile) {
-  dirtyTracker += LiquidGlassDirtyFields.SurfaceProfile
+  dirtyTracker += GlassDirtyFields.SurfaceProfile
 }
 if (old.rendering.chromaticAberrationStrength != new.rendering.chromaticAberrationStrength) {
-  dirtyTracker += LiquidGlassDirtyFields.ChromaticAberration
+  dirtyTracker += GlassDirtyFields.ChromaticAberration
 }
 if (old.rendering.chromaticAberrationMode != new.rendering.chromaticAberrationMode) {
-  dirtyTracker += LiquidGlassDirtyFields.ChromaticAberrationMode
+  dirtyTracker += GlassDirtyFields.ChromaticAberrationMode
 }
 ```
 
-- [ ] **Step 7: Run focused liquid glass tests**
+- [ ] **Step 7: Run focused Glass tests**
 
 Run:
 
 ```bash
-./gradlew :haze-liquidglass:test --tests dev.chrisbanes.haze.liquidglass.LiquidGlassStyleTest
+./gradlew :haze-glass:test --tests dev.chrisbanes.haze.glass.GlassStyleTest
 ```
 
 Expected: PASS.
 
-- [ ] **Step 8: Run all liquid glass tests**
+- [ ] **Step 8: Run all Glass tests**
 
 Run:
 
 ```bash
-./gradlew :haze-liquidglass:test
+./gradlew :haze-glass:test
 ```
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit grouped liquid glass implementation**
+- [ ] **Step 9: Commit grouped Glass implementation**
 
 Run:
 
 ```bash
-git add haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassStyle.kt haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassDefaults.kt haze-liquidglass/src/commonMain/kotlin/dev/chrisbanes/haze/liquidglass/LiquidGlassVisualEffect.kt
-git commit -m "refactor: group liquid glass style values"
+git add haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassStyle.kt haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassDefaults.kt haze-glass/src/commonMain/kotlin/dev/chrisbanes/haze/glass/GlassVisualEffect.kt
+git commit -m "refactor: group Glass style values"
 ```
 
 ---
@@ -849,10 +849,10 @@ git commit -m "refactor: group liquid glass style values"
 Run:
 
 ```bash
-rg "typealias HazeStyle|typealias HazeTint|typealias HazeProgressive|LocalHazeStyle|fun HazeTint|hazeEffect\\(.*style|dev\\.chrisbanes\\.haze\\.materials|LiquidGlassStyle\\(" haze haze-blur haze-liquidglass haze-materials sample docs -n
+rg "typealias HazeStyle|typealias HazeTint|typealias HazeProgressive|LocalHazeStyle|fun HazeTint|hazeEffect\\(.*style|dev\\.chrisbanes\\.haze\\.materials|GlassStyle\\(" haze haze-blur haze-glass haze-materials sample docs -n
 ```
 
-Expected: output includes `MigrationAliases.kt`, deprecated aliases in `HazeBlurStyle.kt`, docs, and any flat `LiquidGlassStyle(...)` call sites.
+Expected: output includes `MigrationAliases.kt`, deprecated aliases in `HazeBlurStyle.kt`, docs, and any flat `GlassStyle(...)` call sites.
 
 - [ ] **Step 2: Delete root-package migration aliases**
 
@@ -880,35 +880,35 @@ For any source file still importing `dev.chrisbanes.haze.materials.*`, change im
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 ```
 
-- [ ] **Step 5: Update flat `LiquidGlassStyle(...)` call sites**
+- [ ] **Step 5: Update flat `GlassStyle(...)` call sites**
 
 For each flat style call site, move values into groups. Use this mapping:
 
 ```kotlin
-LiquidGlassStyle(
+GlassStyle(
   tint = tint,
   shape = shape,
-  optics = LiquidGlassOptics(
+  optics = GlassOptics(
     refractionStrength = refractionStrength,
     refractionHeight = refractionHeight,
     refractionScale = refractionScale,
     depth = depth,
     blurRadius = blurRadius,
   ),
-  lighting = LiquidGlassLighting(
+  lighting = GlassLighting(
     specularIntensity = specularIntensity,
     specularExponent = specularExponent,
     fresnelExponent = fresnelExponent,
     ambientResponse = ambientResponse,
     lightPosition = lightPosition,
   ),
-  color = LiquidGlassColor(
+  color = GlassColor(
     alpha = alpha,
     contrast = contrast,
     whitePoint = whitePoint,
     chromaMultiplier = chromaMultiplier,
   ),
-  rendering = LiquidGlassRendering(
+  rendering = GlassRendering(
     edgeSoftness = edgeSoftness,
     contentNormalBlend = contentNormalBlend,
     surfaceProfile = surfaceProfile,
@@ -925,7 +925,7 @@ Omit group properties whose values are unspecified/default in that call site.
 Run:
 
 ```bash
-rg "typealias HazeStyle|typealias HazeTint|typealias HazeProgressive|LocalHazeStyle|fun HazeTint|dev\\.chrisbanes\\.haze\\.materials" haze haze-blur haze-liquidglass haze-materials sample -n
+rg "typealias HazeStyle|typealias HazeTint|typealias HazeProgressive|LocalHazeStyle|fun HazeTint|dev\\.chrisbanes\\.haze\\.materials" haze haze-blur haze-glass haze-materials sample -n
 ```
 
 Expected: no output.
@@ -935,7 +935,7 @@ Expected: no output.
 Run:
 
 ```bash
-./gradlew :haze-blur:test :haze-liquidglass:test :haze-materials:compileKotlinMetadata
+./gradlew :haze-blur:test :haze-glass:test :haze-materials:compileKotlinMetadata
 ```
 
 Expected: PASS.
@@ -945,7 +945,7 @@ Expected: PASS.
 Run:
 
 ```bash
-git add haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur haze-liquidglass sample haze-materials
+git add haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze haze-blur/src/commonMain/kotlin/dev/chrisbanes/haze/blur haze-glass sample haze-materials
 git commit -m "refactor: remove v1 blur migration aliases"
 ```
 
@@ -955,7 +955,7 @@ git commit -m "refactor: remove v1 blur migration aliases"
 
 **Files:**
 - Modify: `docs/migrating-2.0.md`
-- Optionally modify: `docs/effects/liquid-glass.md`
+- Optionally modify: `docs/effects/glass.md`
 - Optionally modify: `docs/blur/usage.md`
 
 - [ ] **Step 1: Update the migration guide hard-break language**
@@ -967,7 +967,7 @@ In `docs/migrating-2.0.md`, change the overview bullets so they include:
 - **New module dependency:** Blur functionality now requires the `haze-blur` module.
 - **API nesting:** All blur properties now require a `blurEffect {}` wrapper.
 - **Package changes:** Blur APIs moved to `dev.chrisbanes.haze.blur`; blur materials moved to `dev.chrisbanes.haze.blur.materials`.
-- **Liquid glass style grouping:** `LiquidGlassStyle` parameters are grouped into `optics`, `lighting`, `color`, and `rendering`.
+- **Glass style grouping:** `GlassStyle` parameters are grouped into `optics`, `lighting`, `color`, and `rendering`.
 ```
 
 Remove the “Core modifiers signatures remain the same” claim or rewrite it as:
@@ -1000,21 +1000,21 @@ import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 ```
 
-- [ ] **Step 3: Add liquid glass grouped style migration example**
+- [ ] **Step 3: Add Glass grouped style migration example**
 
 Add a section containing:
 
 ```markdown
-### Liquid Glass Style Grouping
+### Glass Style Grouping
 
-Flat `LiquidGlassStyle` construction has been grouped by concept.
+Flat `GlassStyle` construction has been grouped by concept.
 ```
 
 and this code:
 
 ```kotlin
 // Before
-LiquidGlassStyle(
+GlassStyle(
   tint = Color.White.copy(alpha = 0.12f),
   refractionStrength = 0.7f,
   specularIntensity = 0.4f,
@@ -1023,16 +1023,16 @@ LiquidGlassStyle(
 )
 
 // After
-LiquidGlassStyle(
+GlassStyle(
   tint = Color.White.copy(alpha = 0.12f),
-  optics = LiquidGlassOptics(
+  optics = GlassOptics(
     refractionStrength = 0.7f,
     depth = 0.4f,
   ),
-  lighting = LiquidGlassLighting(
+  lighting = GlassLighting(
     specularIntensity = 0.4f,
   ),
-  rendering = LiquidGlassRendering(
+  rendering = GlassRendering(
     edgeSoftness = 12.dp,
   ),
 )
@@ -1063,7 +1063,7 @@ git commit -m "docs: update v2 API migration guide"
 
 **Files:**
 - Modify: `haze-blur/api/api.txt`
-- Modify: `haze-liquidglass/api/api.txt`
+- Modify: `haze-glass/api/api.txt`
 - Modify: `haze/api/api.txt` if Metalava reports changes.
 - Modify: `haze-materials/api/api.txt` if docs/source changes affect signatures.
 
@@ -1072,17 +1072,17 @@ git commit -m "docs: update v2 API migration guide"
 Run:
 
 ```bash
-./gradlew :haze-blur:metalavaCheckCompatibility :haze-liquidglass:metalavaCheckCompatibility
+./gradlew :haze-blur:metalavaCheckCompatibility :haze-glass:metalavaCheckCompatibility
 ```
 
-Expected: FAIL because aliases are removed and grouped liquid glass types changed signatures.
+Expected: FAIL because aliases are removed and grouped Glass types changed signatures.
 
 - [ ] **Step 2: Regenerate API snapshots**
 
 Run:
 
 ```bash
-./gradlew :haze-blur:metalavaGenerateSignature :haze-liquidglass:metalavaGenerateSignature
+./gradlew :haze-blur:metalavaGenerateSignature :haze-glass:metalavaGenerateSignature
 ```
 
 Expected: PASS and update `api/api.txt` files.
@@ -1091,7 +1091,7 @@ If Gradle reports different Metalava task names, list module tasks:
 
 ```bash
 ./gradlew :haze-blur:tasks --all
-./gradlew :haze-liquidglass:tasks --all
+./gradlew :haze-glass:tasks --all
 ```
 
 Then run the corresponding signature generation tasks from the output.
@@ -1101,27 +1101,27 @@ Then run the corresponding signature generation tasks from the output.
 Run:
 
 ```bash
-rg "MigrationAliases|typealias HazeStyle|typealias HazeTint|LocalHazeStyle|HazeTint\\(|hazeEffect\\(.*HazeBlurStyle" haze-blur/api/api.txt haze-liquidglass/api/api.txt haze/api/api.txt haze-materials/api/api.txt
+rg "MigrationAliases|typealias HazeStyle|typealias HazeTint|LocalHazeStyle|HazeTint\\(|hazeEffect\\(.*HazeBlurStyle" haze-blur/api/api.txt haze-glass/api/api.txt haze/api/api.txt haze-materials/api/api.txt
 ```
 
 Expected: no output.
 
-- [ ] **Step 4: Verify grouped liquid glass API appears**
+- [ ] **Step 4: Verify grouped Glass API appears**
 
 Run:
 
 ```bash
-rg "LiquidGlassOptics|LiquidGlassLighting|LiquidGlassColor|LiquidGlassRendering|LiquidGlassStyle\\(" haze-liquidglass/api/api.txt
+rg "GlassOptics|GlassLighting|GlassColor|GlassRendering|GlassStyle\\(" haze-glass/api/api.txt
 ```
 
-Expected: output includes the four group classes and `LiquidGlassStyle` constructor with grouped parameters.
+Expected: output includes the four group classes and `GlassStyle` constructor with grouped parameters.
 
 - [ ] **Step 5: Run targeted module checks**
 
 Run:
 
 ```bash
-./gradlew :haze-blur:test :haze-liquidglass:test :haze-materials:check
+./gradlew :haze-blur:test :haze-glass:test :haze-materials:check
 ```
 
 Expected: PASS.
@@ -1141,7 +1141,7 @@ Expected: PASS. If this is too slow or fails due unrelated platform/tooling issu
 Run:
 
 ```bash
-git add haze-blur/api haze-liquidglass/api haze/api haze-materials/api
+git add haze-blur/api haze-glass/api haze/api haze-materials/api
 git commit -m "chore: update API snapshots for v2 cleanup"
 ```
 
@@ -1151,8 +1151,8 @@ If source changes were needed during verification, include those files in this c
 
 ## Final Review Checklist
 
-- [ ] `rg "MigrationAliases|LocalHazeStyle|fun HazeTint|typealias HazeStyle|typealias HazeTint" haze haze-blur haze-liquidglass haze-materials sample -n` produces no output.
+- [ ] `rg "MigrationAliases|LocalHazeStyle|fun HazeTint|typealias HazeStyle|typealias HazeTint" haze haze-blur haze-glass haze-materials sample -n` produces no output.
 - [ ] `rg "dev\\.chrisbanes\\.haze\\.materials" docs README.md haze haze-materials sample -n` produces no output except intentionally historical text.
-- [ ] `./gradlew :haze-blur:test :haze-liquidglass:test :haze-materials:check` passes.
+- [ ] `./gradlew :haze-blur:test :haze-glass:test :haze-materials:check` passes.
 - [ ] `./gradlew check` passes or the final notes document any unrelated blocker with the exact failing task.
-- [ ] API snapshots show grouped liquid glass style types and no v1 blur migration aliases.
+- [ ] API snapshots show grouped Glass style types and no v1 blur migration aliases.

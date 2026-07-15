@@ -60,7 +60,7 @@ haze (core)
 ```
 
 Future effects will follow the same pattern:
-- **haze-liquidglass** (source-only, not yet published) - Refraction-based liquid glass effect with rounded-shape SDF and optional chromatic aberration
+- **haze-glass** (source-only, not yet published) - Refraction-based Glass effect with rounded-shape SDF and optional chromatic aberration
 - Custom third-party effect modules
 
 ## Effect Registration Pattern
@@ -82,8 +82,8 @@ modifier = Modifier.hazeEffect(state) {
 Future effects will follow the same pattern:
 ```kotlin
 modifier = Modifier.hazeEffect(state) {
-    liquidglassEffect {
-        // liquidglass-specific properties
+    glassEffect {
+        // Glass-specific properties
     }
 }
 ```

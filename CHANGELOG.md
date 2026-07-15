@@ -9,14 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added progressive blur support to liquid glass.
-- Added initial liquid glass material style presets.
+- Added progressive blur support to Glass.
 - **`HazeCoordinates`** — new value class on `HazeArea` exposing both `localPosition` and `screenPosition`, so custom `VisualEffect` implementations can read the geometry of an area in either coordinate space. A new `HazeCoordinates.isUnspecified` extension reports when either position has not yet been laid out.
 - **`VisualEffectContext` helpers** (Experimental) — `positionOf(area)`, `boundsOf(area)`, and a `positionStrategy` property that read geometry in the effect's resolved coordinate space. Custom effects should prefer these over reading `HazeArea.position` / `HazeArea.coordinates` directly.
 
 ### Changed
 
-- Changed liquid glass blur composition so blur participates in refracted content.
+- Changed Glass blur composition so blur participates in refracted content.
 - Moved `HazeProgressive` to the core `dev.chrisbanes.haze` package with a deprecated blur-package typealias.
 
 ### Deprecated
@@ -34,11 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Removed APIs:** Delete all v1 migration aliases, including `HazeStyle`, `HazeTint`, `LocalHazeStyle`, and the `HazeTint(...)` factory function in #963
 - **Changed:** `HazeBlurStyle` is now an immutable class rather than a data class. The constructor and `copy()` parameter for `colorEffects` is nullable (`null` = unspecified, `emptyList()` = explicitly empty); the public property remains non-null and returns an empty list when unspecified in #963
-- **Changed:** `LiquidGlassStyle` is restructured into grouped value types: `LiquidGlassOptics`, `LiquidGlassLighting`, `LiquidGlassColor`, and `LiquidGlassRendering` in #963
+- **Changed:** `GlassStyle` is restructured into grouped value types: `GlassOptics`, `GlassLighting`, `GlassColor`, and `GlassRendering` in #963
 
 ### Changed
 
-- Liquid glass shader performance, realism, configurability, and sample refactoring in #839
+- Glass shader performance, realism, configurability, and sample refactoring in #839
 - Update Jetpack Compose to 1.11.2 in #938
 - Update Compose Multiplatform to 1.11.1 in #956
 - Upgrade AGP to 9.2.1 in #955
@@ -51,8 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Include resolved `CornerRadii` in fallback path cache invalidation in #954
 - Guard `VisualEffect` attach/detach until `HazeEffectNode` is attached in #953
 - Exclude `VisualEffect.Empty` from single-owner registration in #949
-- Fix Android API 33+ liquid glass runtime shader not binding `blurredContent`. The
-  `RuntimeShaderLiquidGlassDelegate` now uses an `expect`/`actual` factory so that
+- Fix Android API 33+ Glass runtime shader not binding `blurredContent`. The
+  `RuntimeShaderGlassDelegate` now uses an `expect`/`actual` factory so that
   Android receives a single-input shader, avoiding the single-content-input limitation
   of `RenderEffect.createRuntimeShaderEffect`. The depth-based blur mixing is skipped
   on Android; all other effects (refraction, specular, Fresnel, chromatic aberration,
@@ -64,9 +63,9 @@ Changes since 2.0.0-alpha01.
 
 ### Highlights
 
-#### New `haze-liquidglass` Module (Experimental)
+#### New `haze-glass` Module (Experimental)
 
-A new `haze-liquidglass` module adds an iOS-style liquid glass refraction effect. It renders refraction, depth blur, specular highlights, Fresnel ambient lift, chromatic aberration, and soft tinted glass through a custom AGSL runtime shader, with a Canvas-based fallback for platforms without runtime shader support.
+A new `haze-glass` module adds a Glass refraction effect calibrated against Apple's iOS Liquid Glass material. It renders refraction, depth blur, specular highlights, Fresnel ambient lift, chromatic aberration, and soft tinted glass through a custom AGSL runtime shader, with a Canvas-based fallback for platforms without runtime shader support.
 
 The module is gated behind `@ExperimentalHazeApi` and **is not yet published to Maven Central**. It exists in the repository for internal development and testing only.
 
@@ -74,7 +73,7 @@ Usage:
 
 ```kotlin
 Modifier.hazeEffect(state = hazeState) {
-  liquidGlassEffect {
+  glassEffect {
     tint = Color.White.copy(alpha = 0.12f)
     refractionStrength = 0.7f
     depth = 0.4f
@@ -90,7 +89,7 @@ Key features:
 - **Depth blur** mixing original and blurred content
 - **Specular highlights** and **Fresnel ambient response** driven by a virtual light source
 - **Chromatic aberration** in Simple (fast) or Full (spectral) modes
-- **`LiquidGlassStyle`** container with `LocalLiquidGlassStyle` composition local for scoped defaults
+- **`GlassStyle`** container with `LocalGlassStyle` composition local for scoped defaults
 - All properties follow the standard three-tier precedence: direct → style → composition local → defaults
 
 ### Breaking Changes
@@ -116,7 +115,7 @@ Key features:
 
 ### Added
 * Add recomposition testing (count + loop detection + instrumentation) in #919
-* Add `haze-liquidglass` module with liquid glass refraction effect — see [Highlights](#highlights) above
+* Add `haze-glass` module with Glass refraction effect — see [Highlights](#highlights) above
 
 ### Fixed
 * Fix `IllegalStateException` from `currentValueOf` on unattached node in #921

@@ -16,7 +16,7 @@ rather than preserving old call sites.
 - Preserve ergonomic `HazeBlurStyle` construction while making its immutable
   contract defensible.
 - Allow callers to explicitly clear inherited blur color effects.
-- Reshape `LiquidGlassStyle` while `haze-liquidglass` is still experimental.
+- Reshape `GlassStyle` while `haze-glass` is still experimental.
 - Update migration docs and tests so future changes do not reintroduce the same
   ambiguity.
 
@@ -70,40 +70,40 @@ precedence rule. Its setter should defensively snapshot the supplied list, and
 its getter should return the resolved value used for drawing. If an unresolved
 authoring value is needed internally, keep that as private state.
 
-## Liquid Glass Style Shape
+## Glass Style Shape
 
-`haze-liquidglass` remains experimental, so this cleanup should also tidy the
-wide `LiquidGlassStyle` API before users build against the flat 21-property
+`haze-glass` remains experimental, so this cleanup should also tidy the
+wide `GlassStyle` API before users build against the flat 21-property
 constructor. The goal is to keep rendering behavior and tuned defaults the same
 while making the API easier to scan, document, and evolve.
 
 Replace the flat style with grouped immutable value types:
 
-- `LiquidGlassStyle`
+- `GlassStyle`
   - `tint: Color`
   - `shape: RoundedCornerShape?`
-  - `optics: LiquidGlassOptics`
-  - `lighting: LiquidGlassLighting`
-  - `color: LiquidGlassColor`
-  - `rendering: LiquidGlassRendering`
-- `LiquidGlassOptics`
+  - `optics: GlassOptics`
+  - `lighting: GlassLighting`
+  - `color: GlassColor`
+  - `rendering: GlassRendering`
+- `GlassOptics`
   - `refractionStrength`
   - `refractionHeight`
   - `refractionScale`
   - `depth`
   - `blurRadius`
-- `LiquidGlassLighting`
+- `GlassLighting`
   - `specularIntensity`
   - `specularExponent`
   - `fresnelExponent`
   - `ambientResponse`
   - `lightPosition`
-- `LiquidGlassColor`
+- `GlassColor`
   - `alpha`
   - `contrast`
   - `whitePoint`
   - `chromaMultiplier`
-- `LiquidGlassRendering`
+- `GlassRendering`
   - `edgeSoftness`
   - `contentNormalBlend`
   - `surfaceProfile`
@@ -113,18 +113,18 @@ Replace the flat style with grouped immutable value types:
 Each group should use the same unspecified-value convention as the current flat
 style: `Float.NaN` for unresolved numeric floats, `Dp.Unspecified` for unresolved
 distances, `Offset.Unspecified` for unresolved light position, and nullable enum
-or shape values where `null` means inherit. `LiquidGlassStyle.Unspecified` should
-compose the unspecified group values, and `LiquidGlassDefaults.style` should
+or shape values where `null` means inherit. `GlassStyle.Unspecified` should
+compose the unspecified group values, and `GlassDefaults.style` should
 compose the fully resolved default group values.
 
-`LiquidGlassVisualEffect` may keep its direct mutable properties for convenient
+`GlassVisualEffect` may keep its direct mutable properties for convenient
 per-effect overrides. Internally, style resolution should read from the grouped
 style objects using the same precedence as today:
 
 1. Direct property value, if specified.
-2. Matching value in `LiquidGlassVisualEffect.style`, if specified.
-3. Matching value in `LocalLiquidGlassStyle`, if specified.
-4. `LiquidGlassDefaults`.
+2. Matching value in `GlassVisualEffect.style`, if specified.
+3. Matching value in `LocalGlassStyle`, if specified.
+4. `GlassDefaults`.
 
 Rename only where it reduces ambiguity. The initial grouped names above preserve
 the current property names, so migration is mostly moving values into the right
@@ -146,7 +146,7 @@ break:
   `dev.chrisbanes.haze.blur.materials`.
 - Mention that old root-package blur names are intentionally removed rather than
   deprecated for the v2 hard break.
-- Add a liquid glass section showing how flat `LiquidGlassStyle` construction
+- Add a Glass section showing how flat `GlassStyle` construction
   moves into grouped `optics`, `lighting`, `color`, and `rendering` values.
 
 ## Tests
@@ -158,13 +158,13 @@ Add focused tests covering the new contract:
   style and composition-local effects.
 - `HazeBlurStyle(colorEffects = emptyList())` explicitly clears inherited local
   effects when used as the effect style.
-- `LiquidGlassStyle` group defaults resolve to the same effective values as the
+- `GlassStyle` group defaults resolve to the same effective values as the
   current flat defaults.
-- A partially specified `LiquidGlassStyle` group inherits unspecified values from
-  `LocalLiquidGlassStyle` and `LiquidGlassDefaults` with the same precedence as
+- A partially specified `GlassStyle` group inherits unspecified values from
+  `LocalGlassStyle` and `GlassDefaults` with the same precedence as
   the current flat style.
 - API snapshots no longer include the removed migration aliases or forwarding
-  overloads, and show the grouped liquid glass style API instead of the flat
+  overloads, and show the grouped Glass style API instead of the flat
   21-property constructor.
 
 These tests should be narrow and local to the affected modules. Existing visual
@@ -177,6 +177,6 @@ This is acceptable for v2, but the migration guide must be precise and
 actionable. The second risk is accidental behavioral change in default blur
 styles; defensive list copying should not affect defaults, and explicit empty
 semantics should only affect call sites that intentionally use an empty list.
-The liquid glass grouping carries a higher implementation risk because every
+The Glass grouping carries a higher implementation risk because every
 flat style field must be mapped into a group without changing resolved rendering
 values. Focused default-resolution tests should catch this.

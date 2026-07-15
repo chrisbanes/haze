@@ -24,10 +24,10 @@ class CreditCardSamplesTest : ContextTest() {
   }
 
   @Test
-  fun liquidGlassSample_keepsBenchmarkCardTag() = runComposeUiTest {
+  fun glassSample_keepsBenchmarkCardTag() = runComposeUiTest {
     setContent {
       val navController = rememberNavController()
-      LiquidGlassCreditCardSample(navController = navController)
+      GlassCreditCardSample(navController = navController)
     }
 
     onNodeWithTag("credit_card_2").assertIsDisplayed()

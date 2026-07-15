@@ -5,8 +5,11 @@ package dev.chrisbanes.haze.test
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SkikoComposeUiTest
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -38,17 +41,28 @@ actual fun ScreenshotTest.runScreenshotTest(
 
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
 private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiTest {
+  override val supportsRuntimeBlur: Boolean = true
+
   override fun setContent(content: @Composable () -> Unit) {
     this@createScreenshotUiTest.setContent(content)
   }
 
-  override fun captureRoot(nameSuffix: String?) {
+  override fun captureRoot(
+    nameSuffix: String?,
+    unmatchedPixelThreshold: Float?,
+  ) {
     val output = when {
       nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.png"
       else -> "${roboOutputName()}_$nameSuffix.png"
     }
-    this@createScreenshotUiTest.onRoot().captureRoboImage(output)
+    val options = unmatchedPixelThreshold
+      ?.let(HazeRoborazziDefaults::roborazziOptions)
+      ?: HazeRoborazziDefaults.roborazziOptions
+    this@createScreenshotUiTest.onRoot().captureRoboImage(output, options)
   }
+
+  override fun captureRootPixels(): PixelMap =
+    this@createScreenshotUiTest.onRoot().captureToImage().toPixelMap()
 
   override fun waitForIdle() {
     this@createScreenshotUiTest.waitForIdle()

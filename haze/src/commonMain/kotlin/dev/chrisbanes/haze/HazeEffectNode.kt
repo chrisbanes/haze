@@ -389,11 +389,17 @@ public class HazeEffectNode(
           if (shouldDrawEffect) {
             // If the state is not null and we have some areas, let's perform background blurring
             with(visualEffect) {
+              prepareDraw(visualEffectContext)
               draw(visualEffectContext)
             }
           }
           // Finally we draw the content over the background
           drawContentSafely()
+          if (shouldDrawEffect) {
+            with(visualEffect) {
+              drawForeground(visualEffectContext)
+            }
+          }
         } else {
           // Else we're doing content (foreground) blurring, so we need to use our
           // contentDrawArea
@@ -407,6 +413,7 @@ public class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
+          contentDrawArea.contentVersion++
           with(visualEffect) {
             prepareDraw(visualEffectContext)
           }
@@ -415,6 +422,7 @@ public class HazeEffectNode(
           }
           with(visualEffect) {
             draw(visualEffectContext)
+            drawForeground(visualEffectContext)
           }
         }
       } else {
@@ -544,6 +552,10 @@ public class HazeEffectNode(
       }
     }
 
+    // Allow the current VisualEffect to update from CompositionLocals/state before calculating
+    // bounds, so it can request a bounds refresh for values observed during this update.
+    visualEffect.update(visualEffectContext)
+
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
         val clippedLayerBounds = Rect(position, size)
@@ -583,10 +595,12 @@ public class HazeEffectNode(
       }
     }
 
-    // Allow the current VisualEffect to update from CompositionLocals/state
-    visualEffect.update(visualEffectContext)
-
     invalidateIfNeeded()
+  }
+
+  internal fun invalidateVisualEffectLayerBounds() {
+    dirtyTracker += DirtyFields.VisualEffectLayerBounds
+    invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
   }
 
   private fun onPostDraw() {
@@ -763,6 +777,7 @@ internal object DirtyFields {
   const val ExpandLayer: Int = ClipToAreas shl 1
   const val RetainOutput: Int = ExpandLayer shl 1
   const val ForcePreDraw: Int = RetainOutput shl 1
+  const val VisualEffectLayerBounds: Int = ForcePreDraw shl 1
 
   const val InvalidateFlags: Int =
     InputScale or
@@ -776,7 +791,8 @@ internal object DirtyFields {
       ClipToAreas or
       ExpandLayer or
       RetainOutput or
-      ForcePreDraw
+      ForcePreDraw or
+      VisualEffectLayerBounds
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
@@ -793,6 +809,7 @@ internal object DirtyFields {
       if (ExpandLayer in dirtyTracker) add("ExpandLayer")
       if (RetainOutput in dirtyTracker) add("RetainOutput")
       if (ForcePreDraw in dirtyTracker) add("ForcePreDraw")
+      if (VisualEffectLayerBounds in dirtyTracker) add("VisualEffectLayerBounds")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }
@@ -812,4 +829,5 @@ internal val LayerBoundsDirtyFields: Int =
     DirtyFields.Areas or
     DirtyFields.ExpandLayer or
     DirtyFields.ClipToAreas or
-    DirtyFields.RetainOutput
+    DirtyFields.RetainOutput or
+    DirtyFields.VisualEffectLayerBounds

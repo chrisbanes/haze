@@ -52,4 +52,22 @@ class HazeRoborazziDefaultsTest {
       messages,
     )
   }
+
+  @Test
+  fun roborazziOptions_acceptsCustomThreshold() {
+    val options = HazeRoborazziDefaults.roborazziOptions(
+      unmatchedPixelThreshold = 0.014f,
+    )
+
+    assertTrue(
+      options.compareOptions.resultValidator(
+        ComparisonResult(
+          pixelDifferences = 13_100,
+          pixelCount = 1_000_000,
+          width = 1_000,
+          height = 1_000,
+        ),
+      ),
+    )
+  }
 }

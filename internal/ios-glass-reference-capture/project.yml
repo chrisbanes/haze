@@ -1,0 +1,44 @@
+name: GlassReferenceCapture
+options:
+  deploymentTarget:
+    iOS: "26.0"
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    SUPPORTED_PLATFORMS: iphonesimulator
+    CODE_SIGNING_ALLOWED: NO
+targets:
+  CaptureApp:
+    type: application
+    platform: iOS
+    sources:
+      - App
+    configFiles:
+      Debug: Configuration/Config.xcconfig
+      Release: Configuration/Config.xcconfig
+    settings:
+      base:
+        INFOPLIST_FILE: App/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: dev.chrisbanes.haze.glassreferencecapture
+        PRODUCT_MODULE_NAME: CaptureApp
+        TARGETED_DEVICE_FAMILY: "1"
+    scheme:
+      commandLineArguments:
+        --capture-scene uniform-light: true
+      testTargets:
+        - CaptureAppTests
+  CaptureAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - AppTests
+    dependencies:
+      - target: CaptureApp
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Glass Reference Capture.app/Glass Reference Capture"

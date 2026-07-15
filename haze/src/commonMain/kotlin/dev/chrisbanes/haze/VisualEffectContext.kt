@@ -112,6 +112,14 @@ public interface VisualEffectContext {
     return area.coordinates.boundsFor(HazePositionStrategy.Local, area.size)
   }
 
+  /**
+   * Returns the version of content most recently recorded for [area], or `null` when unknown.
+   *
+   * The default keeps external [VisualEffectContext] implementations source-compatible.
+   */
+  @InternalHazeApi
+  public fun contentVersionOf(area: HazeArea): Long? = null
+
   // ==================== Platform Accessors ====================
 
   /**
@@ -150,6 +158,11 @@ public interface VisualEffectContext {
    * Requests a redraw of the effect.
    */
   public fun invalidateDraw()
+
+  /** Requests layer-bounds recomputation and a redraw. */
+  public fun invalidateLayerBounds() {
+    invalidateDraw()
+  }
 }
 
 /**
@@ -180,12 +193,15 @@ internal class HazeEffectNodeVisualEffectContext(
     return area.coordinates.boundsFor(node.resolvedPositionStrategy, area.size)
   }
 
+  override fun contentVersionOf(area: HazeArea): Long = area.contentVersion
+
   override val coroutineScope: CoroutineScope get() = node.coroutineScope
   override fun requirePlatformContext(): PlatformContext = node.requirePlatformContext()
   override fun requireDensity(): Density = node.requireDensity()
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = node.currentValueOf(local)
   override fun requireGraphicsContext(): GraphicsContext = node.requireGraphicsContext()
   override fun invalidateDraw() = node.invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
+  override fun invalidateLayerBounds() = node.invalidateVisualEffectLayerBounds()
 }
 
 // ==================== Optional Extension Helpers ====================

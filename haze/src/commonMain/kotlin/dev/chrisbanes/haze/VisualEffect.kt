@@ -42,6 +42,9 @@ public interface VisualEffect {
    */
   public fun DrawScope.draw(context: VisualEffectContext)
 
+  /** Draws an optional effect pass above composable content. */
+  public fun DrawScope.drawForeground(context: VisualEffectContext): Unit = Unit
+
   /**
    * Called when this effect is attached to a context.
    *

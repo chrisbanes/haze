@@ -9,9 +9,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import assertk.assertThat
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.blur.BlurVisualEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -49,5 +54,44 @@ class SourceTransitionAndroidScreenshotTest : ScreenshotTest() {
     showSource = false
     waitForIdle()
     captureRoot("source_removed")
+  }
+
+  @Test
+  @Config(sdk = [35], qualifiers = "w393dp-h698dp-440dpi")
+  fun glass_sourceRemoved_reprocessesRetainedCapture() = runScreenshotTest {
+    val visualEffect = GlassVisualEffect().apply {
+      tint = Color.White.copy(alpha = 0.12f)
+      refractionStrength = 0.45f
+      depth = 0.35f
+      specularIntensity = 0.45f
+    }
+    var showSource by mutableStateOf(true)
+
+    setContent {
+      ScreenshotTheme {
+        SourceTransitionSample(
+          visualEffect = visualEffect,
+          showSource = showSource,
+        )
+      }
+    }
+
+    val withSource = captureRootPixels().snapshot()
+    showSource = false
+    waitForIdle()
+    val retained = captureRootPixels().snapshot()
+    visualEffect.tint = Color.Magenta.copy(alpha = 0.24f)
+    waitForIdle()
+    val reprocessed = captureRootPixels().snapshot()
+
+    val retainedBounds = IntRect(0, 0, withSource.width, withSource.height / 4)
+    assertThat(
+      withSource.crop(retainedBounds)
+        .meanAbsoluteDifference(retained.crop(retainedBounds)),
+    ).isLessThan(1f / 255f)
+    assertThat(
+      retained.crop(retainedBounds)
+        .changedPixelRatio(reprocessed.crop(retainedBounds)),
+    ).isGreaterThan(0.01f)
   }
 }

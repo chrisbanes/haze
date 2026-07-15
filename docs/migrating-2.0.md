@@ -14,7 +14,7 @@ The primary change in v2 is the extraction of blur functionality from the core `
 - **API nesting:** All blur properties now require a `blurEffect {}` wrapper
 - **Package changes:** Blur APIs moved to `dev.chrisbanes.haze.blur`; blur materials moved to `dev.chrisbanes.haze.blur.materials`.
 - **Removed v1 aliases:** `haze`, `hazeChild`, `HazeDefaults`, `HazeStyle`, `HazeTint`, `LocalHazeStyle`, and `HazeDialog` are removed.
-- **Liquid glass style grouping:** `LiquidGlassStyle` parameters are grouped into `optics`, `lighting`, `color`, and `rendering`.
+- **Glass style grouping:** `GlassStyle` parameters are grouped into `optics`, `lighting`, `color`, and `rendering`.
 - **Removed APIs:** `HazeState.blurEnabled` and the `rememberHazeState(blurEnabled)` parameter removed.
 - **Position strategy:** New `HazePositionStrategy` configuration on `HazeState`
 - **Geometry changes:** `HazeArea.positionOnScreen` is replaced by `HazeArea.coordinates`; `VisualEffectContext` now exposes `position`, `rootBounds`, `positionOf(area)`, and `boundsOf(area)`.
@@ -83,7 +83,7 @@ Blur-specific defaults from `HazeDefaults` are now in `HazeBlurDefaults`. `HazeD
 
 ### HazeProgressive moved to core
 
-`HazeProgressive` now lives in `dev.chrisbanes.haze.HazeProgressive` because progressive masks are shared by blur and liquid glass. The old `dev.chrisbanes.haze.blur.HazeProgressive` name remains as a deprecated typealias for source compatibility during the v2 alpha cycle.
+`HazeProgressive` now lives in `dev.chrisbanes.haze.HazeProgressive` because progressive masks are shared by blur and Glass. The old `dev.chrisbanes.haze.blur.HazeProgressive` name remains as a deprecated typealias for source compatibility during the v2 alpha cycle.
 
 ## API Migration
 
@@ -133,13 +133,13 @@ All blur-related properties that were previously set directly on `HazeEffectScop
     }
     ```
 
-### Liquid Glass Style Grouping
+### Glass Style Grouping
 
-Flat `LiquidGlassStyle` construction has been grouped by concept.
+Flat `GlassStyle` construction has been grouped by concept.
 
 ```kotlin
 // Before
-LiquidGlassStyle(
+GlassStyle(
   tint = Color.White.copy(alpha = 0.12f),
   refractionStrength = 0.7f,
   specularIntensity = 0.4f,
@@ -148,16 +148,16 @@ LiquidGlassStyle(
 )
 
 // After
-LiquidGlassStyle(
+GlassStyle(
   tint = Color.White.copy(alpha = 0.12f),
-  optics = LiquidGlassOptics(
+  optics = GlassOptics(
     refractionStrength = 0.7f,
     depth = 0.4f,
   ),
-  lighting = LiquidGlassLighting(
+  lighting = GlassLighting(
     specularIntensity = 0.4f,
   ),
-  rendering = LiquidGlassRendering(
+  rendering = GlassRendering(
     edgeSoftness = 12.dp,
   ),
 )

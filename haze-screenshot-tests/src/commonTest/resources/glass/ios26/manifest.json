@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "platform": "iOS 26",
+  "osBuild": "23D8133",
+  "device": "iPhone 17",
+  "scale": 3,
+  "colorSpace": "RGB",
+  "material": "Regular",
+  "tint": "transparent",
+  "scenes": {
+    "uniform-light.png": {
+      "appearance": "light",
+      "background": "uniform"
+    },
+    "uniform-dark.png": {
+      "appearance": "dark",
+      "background": "uniform"
+    },
+    "grid-light.png": {
+      "appearance": "light",
+      "background": "grid"
+    },
+    "grid-dark.png": {
+      "appearance": "dark",
+      "background": "grid"
+    }
+  },
+  "surfaces": {
+    "capsule": {
+      "x": 180,
+      "y": 270,
+      "width": 720,
+      "height": 192
+    },
+    "card": {
+      "x": 120,
+      "y": 672,
+      "width": 840,
+      "height": 528
+    },
+    "panel": {
+      "x": 60,
+      "y": 1380,
+      "width": 960,
+      "height": 660
+    }
+  },
+  "producer": {
+    "xcode": "Xcode 26.3\nBuild version 17C529",
+    "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-3 / iOS 26.3 / 26.3.1",
+    "revision": "bf7beb5362af7ee2051dd23ce754c9fdeed86578"
+  }
+}
