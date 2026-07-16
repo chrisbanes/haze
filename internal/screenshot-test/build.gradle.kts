@@ -43,6 +43,7 @@ kotlin {
         implementation(libs.roborazzi.android)
         implementation(libs.roborazzi.compose)
         implementation(libs.roborazzi.junit)
+        implementation(libs.webp.imageio)
       }
     }
 
@@ -53,6 +54,7 @@ kotlin {
 
         implementation(libs.roborazzi.core)
         implementation(libs.roborazzi.compose.desktop)
+        implementation(libs.webp.imageio)
       }
     }
 

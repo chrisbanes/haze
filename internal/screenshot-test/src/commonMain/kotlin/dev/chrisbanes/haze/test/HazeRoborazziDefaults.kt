@@ -5,14 +5,18 @@ package dev.chrisbanes.haze.test
 
 import com.dropbox.differ.ImageComparator.ComparisonResult
 import com.dropbox.differ.SimpleImageComparator
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import com.github.takahirom.roborazzi.LosslessWebPImageIoFormat
 import com.github.takahirom.roborazzi.RoborazziOptions
 import kotlin.math.roundToInt
 
+private const val RESIZE_SCALE = 0.7
 private const val UNMATCHED_PIXEL_THRESHOLD = 0.008f
 private const val MAX_DISTANCE = 0.02f
 private const val H_SHIFT = 2
 private const val V_SHIFT = 2
 
+@OptIn(ExperimentalRoborazziApi::class)
 object HazeRoborazziDefaults {
   val roborazziOptions = roborazziOptions()
 
@@ -20,6 +24,10 @@ object HazeRoborazziDefaults {
     unmatchedPixelThreshold: Float = UNMATCHED_PIXEL_THRESHOLD,
   ): RoborazziOptions =
     RoborazziOptions(
+      recordOptions = RoborazziOptions.RecordOptions(
+        resizeScale = RESIZE_SCALE,
+        imageIoFormat = LosslessWebPImageIoFormat(),
+      ),
       compareOptions = RoborazziOptions.CompareOptions(
         resultValidator = createRoborazziResultValidator(unmatchedPixelThreshold),
         imageComparator = SimpleImageComparator(

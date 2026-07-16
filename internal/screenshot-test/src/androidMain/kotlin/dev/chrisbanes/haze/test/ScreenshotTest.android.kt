@@ -67,8 +67,8 @@ private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
       unmatchedPixelThreshold: Float?,
     ) {
       val output = when {
-        nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.png"
-        else -> "${roboOutputName()}_$nameSuffix.png"
+        nameSuffix.isNullOrEmpty() -> "${roboOutputName()}.webp"
+        else -> "${roboOutputName()}_$nameSuffix.webp"
       }
       val options = unmatchedPixelThreshold
         ?.let(HazeRoborazziDefaults::roborazziOptions)

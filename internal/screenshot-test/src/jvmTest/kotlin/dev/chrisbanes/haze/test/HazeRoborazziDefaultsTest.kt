@@ -59,6 +59,7 @@ class HazeRoborazziDefaultsTest {
       unmatchedPixelThreshold = 0.014f,
     )
 
+    assertEquals(0.7, options.recordOptions.resizeScale)
     assertTrue(
       options.compareOptions.resultValidator(
         ComparisonResult(
