@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#navigation3" class="md-skip">
+        <a href="#scaffold" class="md-skip">
           Skip to content
         </a>
       
@@ -634,17 +634,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#navigation3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Navigation3
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#scaffold" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -861,17 +850,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#navigation3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Navigation3
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#scaffold" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -915,30 +893,7 @@
 
   <h1>Recipes</h1>
 
-<div><h2 id="navigation3">Navigation3<a class="headerlink" href="#navigation3" title="Permanent link">¶</a></h2>
-<p>The <code>haze-navigation3</code> artifact provides a Haze source for every ordinary Navigation3 scene. Add the Haze decorator first so later decorators that add effect-backed bars render above the source:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
-<span class="kd">val</span><span class="w"> </span><span class="nv">hazeSourceDecorator</span><span class="w"> </span><span class="o">=</span>
-<span class="w">  </span><span class="n">rememberHazeSourceSceneDecoratorStrategy</span><span class="o">&lt;</span><span class="n">Destination</span><span class="o">&gt;</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span>
-
-<span class="n">NavDisplay</span><span class="p">(</span>
-<span class="w">  </span><span class="n">backStack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backStack</span><span class="p">,</span>
-<span class="w">  </span><span class="n">entryProvider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">destination</span><span class="w"> </span><span class="o">-&gt;</span>
-<span class="w">    </span><span class="n">NavEntry</span><span class="p">(</span><span class="n">destination</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">DestinationContent</span><span class="p">(</span>
-<span class="w">        </span><span class="n">destination</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">destination</span><span class="p">,</span>
-<span class="w">        </span><span class="n">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
-<span class="w">      </span><span class="p">)</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="n">sceneDecoratorStrategies</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">listOf</span><span class="p">(</span>
-<span class="w">    </span><span class="n">hazeSourceDecorator</span><span class="p">,</span>
-<span class="w">    </span><span class="n">navigationBarDecorator</span><span class="p">,</span>
-<span class="w">  </span><span class="p">),</span>
-<span class="p">)</span>
-</code></pre></div>
-<p>Navigation3 does not apply scene decorators to <code>OverlayScene</code>, so this helper does not provide overlay sources.</p>
-<h2 id="scaffold">Scaffold<a class="headerlink" href="#scaffold" title="Permanent link">¶</a></h2>
+<div><h2 id="scaffold">Scaffold<a class="headerlink" href="#scaffold" title="Permanent link">¶</a></h2>
 <p>Blurring the content behind app bars is a common use case, so how can we use Haze with <code>Scaffold</code>? It's pretty much the same as above:</p>
 <div class="admonition tip">
 <p class="admonition-title">Multiple hazeEffects</p>
