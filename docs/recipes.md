@@ -1,32 +1,4 @@
 
-## Navigation3
-
-The `haze-navigation3` artifact provides a Haze source for every ordinary Navigation3 scene. Add the Haze decorator first so later decorators that add effect-backed bars render above the source:
-
-``` kotlin
-val hazeState = rememberHazeState()
-val hazeSourceDecorator =
-  rememberHazeSourceSceneDecoratorStrategy<Destination>(hazeState)
-
-NavDisplay(
-  backStack = backStack,
-  entryProvider = { destination ->
-    NavEntry(destination) {
-      DestinationContent(
-        destination = destination,
-        hazeState = hazeState,
-      )
-    }
-  },
-  sceneDecoratorStrategies = listOf(
-    hazeSourceDecorator,
-    navigationBarDecorator,
-  ),
-)
-```
-
-Navigation3 does not apply scene decorators to `OverlayScene`, so this helper does not provide overlay sources.
-
 ## Scaffold
 
 Blurring the content behind app bars is a common use case, so how can we use Haze with `Scaffold`? It's pretty much the same as above:

@@ -32,8 +32,6 @@ dependencies {
     // For blur effects:
     implementation("dev.chrisbanes.haze:haze-blur:<version>")
 
-    // For Navigation3 scene integration:
-    implementation("dev.chrisbanes.haze:haze-navigation3:<version>")
 }
 ```
 

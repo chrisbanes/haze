@@ -51,16 +51,10 @@ kotlin {
         implementation(libs.assertk)
 
         implementation(libs.compose.ui.test)
+        implementation(libs.compose.navigation3.ui)
 
         implementation(projects.internal.contextTest)
         implementation(projects.internal.screenshotTest)
-      }
-    }
-
-    val androidHostTest by getting {
-      dependencies {
-        implementation(projects.hazeNavigation3)
-        implementation(libs.androidx.compose.ui.test.junit4)
       }
     }
 
