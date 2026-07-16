@@ -16,15 +16,22 @@ struct PixelInsets: Codable, Equatable, Sendable {
     let trailing: Int
 }
 
+struct CaptureSurface: Codable, Equatable, Sendable {
+    let frame: PixelRect
+    let cornerRadius: Int
+    let role: CalibrationRole
+}
+
 struct CaptureReady: Codable, Equatable, Sendable {
     let schemaVersion: Int
     let scene: CaptureScene
+    let page: ReferencePage
     let scale: Double
     let colorSpace: String
     let framebuffer: PixelRect
     let safeAreaInsets: PixelInsets
     let viewport: PixelRect
-    let surfaces: [String: PixelRect]
+    let surfaces: [String: CaptureSurface]
 
     static func make(
         scene: CaptureScene,
@@ -53,8 +60,9 @@ struct CaptureReady: Codable, Equatable, Sendable {
         )
 
         return CaptureReady(
-            schemaVersion: 1,
+            schemaVersion: 2,
             scene: scene,
+            page: scene.page,
             scale: Double(scale),
             colorSpace: "sRGB",
             framebuffer: PixelRect(
@@ -75,8 +83,15 @@ struct CaptureReady: Codable, Equatable, Sendable {
                 width: pixels(ReferenceLayout.viewportSize.width),
                 height: pixels(ReferenceLayout.viewportSize.height),
             ),
-            surfaces: Dictionary(uniqueKeysWithValues: ReferenceSurface.allCases.map { surface in
-                (surface.rawValue, pixelRect(ReferenceLayout.surfaceFrames[surface]!))
+            surfaces: Dictionary(uniqueKeysWithValues: ReferenceLayout.surfaces(for: scene.page).map { surface in
+                (
+                    surface.id,
+                    CaptureSurface(
+                        frame: pixelRect(surface.frame),
+                        cornerRadius: pixels(surface.cornerRadius),
+                        role: surface.role,
+                    )
+                )
             }),
         )
     }

@@ -1,6 +1,6 @@
 # iOS Glass Reference Capture
 
-This checked-in Xcode project renders four pinned scenes using Apple's iOS Liquid Glass Regular
+This checked-in Xcode project renders 24 pinned scenes using Apple's iOS Liquid Glass Regular
 material and captures their measured 1080x2160-pixel viewports. The capture script owns simulator
 discovery, build, readiness validation, lossless cropping, manifest generation, bundle validation,
 and optional atomic import.
@@ -9,7 +9,8 @@ and optional atomic import.
 
 - Xcode 26.3 with the iOS 26.3 simulator runtime installed.
 - The `com.apple.CoreSimulator.SimDeviceType.iPhone-17` simulator device type.
-- `jq`, `sips`, and Git available on `PATH`.
+- `jq`, `sips`, Python 3, and Git available on `PATH`. Python uses only its standard-library JSON
+  parser to reject duplicate object keys before `jq` performs schema validation.
 - A clean Git worktree, including no untracked files. Git-ignored tool output under `build/` does not
   make the worktree dirty.
 
@@ -38,14 +39,27 @@ Run these from `internal/ios-glass-reference-capture`:
 ./scripts/capture-references.sh --import
 ```
 
-The default command always performs a fresh Release build and capture. It validates a temporary
-five-file bundle before atomically refreshing `build/captures/current`, which contains only:
+The default command always performs a fresh Release build and capture. Six pages are captured:
+`baseline`, `size-small`, `size-medium`, `size-large`, `aspect`, and `roundness`. Every page has
+`uniform-light`, `uniform-dark`, `grid-light`, and `grid-dark` variants. Baseline keeps the legacy
+variant filenames; calibration files use `<page>-<variant>.png`.
+
+The script validates a temporary exact 25-file bundle before atomically refreshing
+`build/captures/current`. It contains only `manifest.json` and these 24 PNGs:
 
 - `manifest.json`
-- `uniform-light.png`
-- `uniform-dark.png`
-- `grid-light.png`
-- `grid-dark.png`
+- `uniform-light.png`, `uniform-dark.png`, `grid-light.png`, `grid-dark.png`
+- `size-small-{uniform-light,uniform-dark,grid-light,grid-dark}.png`
+- `size-medium-{uniform-light,uniform-dark,grid-light,grid-dark}.png`
+- `size-large-{uniform-light,uniform-dark,grid-light,grid-dark}.png`
+- `aspect-{uniform-light,uniform-dark,grid-light,grid-dark}.png`
+- `roundness-{uniform-light,uniform-dark,grid-light,grid-dark}.png`
+
+The schema-2 manifest records each scene's page, appearance, and background. Its globally unique
+surface entries record page and sweep axis, pixel frame, logical point dimensions, corner radius in
+points and pixels, and `training`, `holdout`, or baseline `regression` role. Readiness payloads also
+use schema 2 and identify the raw scene, selected page, and only that page's surfaces. Metadata
+repeated across a page's four variants must be identical.
 
 Full simulator screenshots and readiness payloads remain outside the staged bundle under
 `build/captures/framebuffers` and `build/captures/readiness` for diagnosis. A failed capture or
@@ -58,8 +72,8 @@ state. Locks are never assumed stale or deleted by a non-owner; investigate a re
 before manually resolving a lock left by an ungraceful machine/process termination.
 
 `--import` does not reuse stale staging. It performs another complete fresh capture, copies exactly
-the manifest and four PNGs to a sibling temporary directory, validates that directory, and then
-atomically replaces the entire five-file resource bundle at
+the manifest and 24 PNGs to a sibling temporary directory, validates that directory, and then
+atomically replaces the entire 25-file resource bundle at
 `haze-screenshot-tests/src/commonTest/resources/glass/ios26`. If installation fails before
 the commit rename, the previous resource bundle is restored by sibling rename and the command exits
 nonzero. Termination signals are ignored only while the old and new directories are renamed, so the
@@ -77,12 +91,12 @@ use the fixed defaults.
 
 ## Intentional Regeneration Workflow
 
-1. Run the default command and inspect the four cropped images, `manifest.json`, and retained
+1. Run the default command and inspect all 24 cropped images, `manifest.json`, and retained
    readiness/framebuffer diagnostics.
 2. Run `--validate-only build/captures/current` for an explicit validation pass.
 3. Run `--import` only when intentionally regenerating accepted references. It fresh-captures all
    scenes again before replacement.
-4. Review the complete five-file resource diff. Acceptance and committing of those resources is a
+4. Review the complete 25-file resource diff. Acceptance and committing of those resources is a
    separate task.
 
 ## Troubleshooting

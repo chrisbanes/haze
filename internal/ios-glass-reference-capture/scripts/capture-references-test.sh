@@ -7,6 +7,110 @@ validator="$script_dir/capture-references.sh"
 bundle_dir="$(mktemp -d)"
 trap 'rm -rf "$bundle_dir"' EXIT
 
+readonly REFERENCE_PAGES=(baseline size-small size-medium size-large aspect roundness)
+readonly REFERENCE_VARIANTS=(uniform-light uniform-dark grid-light grid-dark)
+
+scene_name() {
+    local page="$1"
+    local variant="$2"
+
+    if [[ "$page" == baseline ]]; then
+        printf '%s' "$variant"
+    else
+        printf '%s-%s' "$page" "$variant"
+    fi
+}
+
+expected_scene_files() {
+    local page
+    local variant
+
+    for page in "${REFERENCE_PAGES[@]}"; do
+        for variant in "${REFERENCE_VARIANTS[@]}"; do
+            printf '%s.png\n' "$(scene_name "$page" "$variant")"
+        done
+    done
+}
+
+PAGE_SURFACE_CONTRACT="$(jq -c -n '
+    def surface($frame; $logicalSize; $cornerPoints; $cornerPixels; $role; $sweepAxis):
+        {frame: $frame, logicalSize: $logicalSize,
+         cornerRadius: {points: $cornerPoints, pixels: $cornerPixels},
+         role: $role, sweepAxis: $sweepAxis};
+    {
+      baseline: {
+        capsule: surface({x:180,y:270,width:720,height:192}; {width:240,height:64}; 32; 96; "regression"; "baseline"),
+        card: surface({x:120,y:672,width:840,height:528}; {width:280,height:176}; 28; 84; "regression"; "baseline"),
+        panel: surface({x:60,y:1380,width:960,height:660}; {width:320,height:220}; 24; 72; "regression"; "baseline")
+      },
+      "size-small": {
+        "size-44": surface({x:441,y:120,width:198,height:132}; {width:66,height:44}; 11; 33; "training"; "size"),
+        "size-64": surface({x:396,y:432,width:288,height:192}; {width:96,height:64}; 16; 48; "holdout"; "size"),
+        "size-88": surface({x:342,y:864,width:396,height:264}; {width:132,height:88}; 22; 66; "training"; "size")
+      },
+      "size-medium": {
+        "size-112": surface({x:288,y:72,width:504,height:336}; {width:168,height:112}; 28; 84; "holdout"; "size"),
+        "size-144": surface({x:216,y:552,width:648,height:432}; {width:216,height:144}; 36; 108; "training"; "size"),
+        "size-176": surface({x:144,y:1152,width:792,height:528}; {width:264,height:176}; 44; 132; "holdout"; "size")
+      },
+      "size-large": {
+        "size-220": surface({x:45,y:750,width:990,height:660}; {width:330,height:220}; 55; 165; "training"; "size")
+      },
+      aspect: {
+        "aspect-1": surface({x:420,y:72,width:240,height:240}; {width:80,height:80}; 20; 60; "training"; "aspect"),
+        "aspect-1_5": surface({x:360,y:456,width:360,height:240}; {width:120,height:80}; 20; 60; "holdout"; "aspect"),
+        "aspect-2": surface({x:300,y:840,width:480,height:240}; {width:160,height:80}; 20; 60; "training"; "aspect"),
+        "aspect-3": surface({x:180,y:1224,width:720,height:240}; {width:240,height:80}; 20; 60; "holdout"; "aspect"),
+        "aspect-4": surface({x:60,y:1608,width:960,height:240}; {width:320,height:80}; 20; 60; "training"; "aspect")
+      },
+      roundness: {
+        "roundness-0": surface({x:180,y:72,width:720,height:288}; {width:240,height:96}; 0; 0; "training"; "roundness"),
+        "roundness-12": surface({x:180,y:456,width:720,height:288}; {width:240,height:96}; 12; 36; "holdout"; "roundness"),
+        "roundness-24": surface({x:180,y:840,width:720,height:288}; {width:240,height:96}; 24; 72; "training"; "roundness"),
+        "roundness-36": surface({x:180,y:1224,width:720,height:288}; {width:240,height:96}; 36; 108; "holdout"; "roundness"),
+        "roundness-48": surface({x:180,y:1608,width:720,height:288}; {width:240,height:96}; 48; 144; "training"; "roundness")
+      }
+    }
+')"
+readonly PAGE_SURFACE_CONTRACT
+page_surface_contract_path="$bundle_dir/page-surface-contract.json"
+printf '%s\n' "$PAGE_SURFACE_CONTRACT" > "$page_surface_contract_path"
+
+expected_scenes_json() {
+    local result='{}'
+    local page
+    local variant
+    local scene
+    local background
+    local appearance
+
+    for page in "${REFERENCE_PAGES[@]}"; do
+        for variant in "${REFERENCE_VARIANTS[@]}"; do
+            scene="$(scene_name "$page" "$variant")"
+            background="${variant%%-*}"
+            appearance="${variant##*-}"
+            result="$(jq -c \
+                --arg filename "$scene.png" \
+                --arg page "$page" \
+                --arg background "$background" \
+                --arg appearance "$appearance" \
+                '. + {($filename): {page: $page, appearance: $appearance, background: $background}}' \
+                <<< "$result")"
+        done
+    done
+    printf '%s\n' "$result"
+}
+
+manifest_surfaces_json() {
+    jq -c '
+        reduce (to_entries[]) as $page ({};
+            reduce ($page.value | to_entries[]) as $surface (.;
+                .[$surface.key] = ($surface.value + {page: $page.key})
+            )
+        )
+    ' <<< "$PAGE_SURFACE_CONTRACT"
+}
+
 expect_success() {
     if ! "$@"; then
         printf 'Expected success: %s\n' "$*" >&2
@@ -21,20 +125,33 @@ expect_failure() {
     fi
 }
 
-snapshot_five_file_bundle() {
+expect_failure_containing() {
+    local expected="$1"
+    local output
+    shift
+
+    if output="$({ "$@"; } 2>&1)"; then
+        printf 'Expected failure: %s\n' "$*" >&2
+        exit 1
+    fi
+    if [[ "$output" != *"$expected"* ]]; then
+        printf 'Expected failure containing %s: %s\nOutput:\n%s\n' \
+            "$expected" "$*" "$output" >&2
+        exit 1
+    fi
+    printf '%s\n' "$output" >&2
+}
+
+snapshot_complete_bundle() {
     local source="$1"
     local destination="$2"
     local filename
 
     mkdir "$destination"
-    for filename in \
-        manifest.json \
-        uniform-light.png \
-        uniform-dark.png \
-        grid-light.png \
-        grid-dark.png; do
+    cp "$source/manifest.json" "$destination/manifest.json"
+    while IFS= read -r filename; do
         cp "$source/$filename" "$destination/$filename"
-    done
+    done < <(expected_scene_files)
 }
 
 assert_bundle_matches_snapshot() {
@@ -43,9 +160,37 @@ assert_bundle_matches_snapshot() {
     local context="$3"
 
     if ! diff -r "$expected" "$actual" >/dev/null; then
-        printf '%s did not preserve exact five-file bundle\n' "$context" >&2
+        printf '%s did not preserve exact 25-file bundle\n' "$context" >&2
         exit 1
     fi
+}
+
+write_json_with_leading_duplicate() {
+    local source="$1"
+    local destination="$2"
+    local duplicate_member="$3"
+    local compact
+
+    compact="$(jq -c . "$source")"
+    printf '{%s,%s\n' "$duplicate_member" "${compact#\{}" > "$destination"
+}
+
+write_json_with_nested_disjoint_object_duplicate() {
+    local source="$1"
+    local destination="$2"
+    local compact
+
+    compact="$(jq -c . "$source")"
+    python3 -c '
+import sys
+
+text = sys.stdin.read().strip()
+marker = "\"capsule\":{"
+replacement = "\"capsule\":{\"frame\":{\"bogus\":1},"
+if marker not in text:
+    raise SystemExit("unable to inject nested duplicate")
+print(text.replace(marker, replacement, 1))
+' <<< "$compact" > "$destination"
 }
 
 read_sips_property() {
@@ -146,12 +291,18 @@ guard let image = NSBitmapImageRep(data: input),
 try jpeg.write(to: URL(fileURLWithPath: arguments[2]))
 SWIFT
 
-for scene in uniform-light.png uniform-dark.png grid-light.png grid-dark.png; do
-    cp "$source_png" "$bundle_dir/$scene"
-done
+fixture_dir="$bundle_dir/fixture"
+mkdir "$fixture_dir"
+while IFS= read -r scene; do
+    cp "$source_png" "$fixture_dir/$scene"
+done < <(expected_scene_files)
 
-jq -n --arg color_space "$source_color_space" '{
-    schemaVersion: 1,
+valid_manifest="$bundle_dir/manifest.valid.json"
+jq -n \
+    --arg color_space "$source_color_space" \
+    --argjson scenes "$(expected_scenes_json)" \
+    --argjson surfaces "$(manifest_surfaces_json)" '{
+    schemaVersion: 2,
     platform: "iOS 26",
     osBuild: "23A5297f",
     device: "iPhone 17",
@@ -159,38 +310,33 @@ jq -n --arg color_space "$source_color_space" '{
     scale: 3,
     material: "Regular",
     tint: "transparent",
-    scenes: {
-        "uniform-light.png": { background: "uniform", appearance: "light" },
-        "uniform-dark.png": { background: "uniform", appearance: "dark" },
-        "grid-light.png": { background: "grid", appearance: "light" },
-        "grid-dark.png": { background: "grid", appearance: "dark" }
-    },
-    surfaces: {
-        capsule: { x: 180, y: 270, width: 720, height: 192 },
-        card: { x: 120, y: 672, width: 840, height: 528 },
-        panel: { x: 60, y: 1380, width: 960, height: 660 }
-    },
+    scenes: $scenes,
+    surfaces: $surfaces,
     producer: {
         xcode: "26.0",
         runtime: "iOS 26.0",
         revision: "test"
     }
-}' > "$bundle_dir/manifest.json"
-cp "$bundle_dir/manifest.json" "$bundle_dir/manifest.valid.json"
+}' > "$valid_manifest"
+cp "$valid_manifest" "$fixture_dir/manifest.json"
 
-expect_success "$validator" --validate-only "$bundle_dir"
+expect_success "$validator" --validate-only "$fixture_dir"
+PYTHON3="$bundle_dir/missing-python3" \
+    expect_failure_containing \
+        'Required command not found' \
+        "$validator" --validate-only "$fixture_dir"
 
-swift "$jpeg_helper" "$source_png" "$bundle_dir/uniform-light.png"
-expect_failure "$validator" --validate-only "$bundle_dir"
-cp "$source_png" "$bundle_dir/uniform-light.png"
+swift "$jpeg_helper" "$source_png" "$fixture_dir/uniform-light.png"
+expect_failure "$validator" --validate-only "$fixture_dir"
+cp "$source_png" "$fixture_dir/uniform-light.png"
 
-jq '.colorSpace = "mismatched-color-space"' "$bundle_dir/manifest.valid.json" > "$bundle_dir/manifest.json"
-expect_failure "$validator" --validate-only "$bundle_dir"
-cp "$bundle_dir/manifest.valid.json" "$bundle_dir/manifest.json"
+jq '.colorSpace = "mismatched-color-space"' "$valid_manifest" > "$fixture_dir/manifest.json"
+expect_failure "$validator" --validate-only "$fixture_dir"
+cp "$valid_manifest" "$fixture_dir/manifest.json"
 
-bundle_parent="$(dirname "$bundle_dir")"
-bundle_name="$(basename "$bundle_dir")"
-expected_bundle_dir="$(CDPATH= cd -- "$bundle_dir" && pwd -P)"
+bundle_parent="$(dirname "$fixture_dir")"
+bundle_name="$(basename "$fixture_dir")"
+expected_bundle_dir="$(CDPATH= cd -- "$fixture_dir" && pwd -P)"
 expected_output="Validated iOS Glass reference bundle: $expected_bundle_dir"
 if ! relative_output="$(
     cd "$bundle_parent"
@@ -204,21 +350,44 @@ if [[ "$relative_output" != "$expected_output" ]]; then
     exit 1
 fi
 
-rm "$bundle_dir/uniform-light.png"
-expect_failure "$validator" --validate-only "$bundle_dir"
-cp "$source_png" "$bundle_dir/uniform-light.png"
+rm "$fixture_dir/size-large-grid-dark.png"
+expect_failure "$validator" --validate-only "$fixture_dir"
+cp "$source_png" "$fixture_dir/size-large-grid-dark.png"
 
-swift "$swift_helper" "$bundle_dir/uniform-light.png" 1079 2160
-expect_failure "$validator" --validate-only "$bundle_dir"
-cp "$source_png" "$bundle_dir/uniform-light.png"
+cp "$source_png" "$fixture_dir/extra.png"
+expect_failure "$validator" --validate-only "$fixture_dir"
+rm "$fixture_dir/extra.png"
 
-jq '.platform = "iOS 25"' "$bundle_dir/manifest.valid.json" > "$bundle_dir/manifest.json"
-expect_failure "$validator" --validate-only "$bundle_dir"
-cp "$bundle_dir/manifest.valid.json" "$bundle_dir/manifest.json"
+for duplicate_member in \
+    '"schemaVersion":{"bogus":1}' \
+    '"producer":"bogus"'; do
+    write_json_with_leading_duplicate \
+        "$valid_manifest" \
+        "$fixture_dir/manifest.json" \
+        "$duplicate_member"
+    expect_failure_containing \
+        'duplicate object key' \
+        "$validator" --validate-only "$fixture_dir"
+done
+write_json_with_nested_disjoint_object_duplicate \
+    "$valid_manifest" \
+    "$fixture_dir/manifest.json"
+expect_failure_containing \
+    'duplicate object key' \
+    "$validator" --validate-only "$fixture_dir"
+cp "$valid_manifest" "$fixture_dir/manifest.json"
 
-jq '.surfaces.panel.y = 1600' "$bundle_dir/manifest.valid.json" > "$bundle_dir/manifest.json"
-expect_failure "$validator" --validate-only "$bundle_dir"
-cp "$bundle_dir/manifest.valid.json" "$bundle_dir/manifest.json"
+swift "$swift_helper" "$fixture_dir/uniform-light.png" 1079 2160
+expect_failure "$validator" --validate-only "$fixture_dir"
+cp "$source_png" "$fixture_dir/uniform-light.png"
+
+jq '.platform = "iOS 25"' "$valid_manifest" > "$fixture_dir/manifest.json"
+expect_failure "$validator" --validate-only "$fixture_dir"
+cp "$valid_manifest" "$fixture_dir/manifest.json"
+
+jq '.surfaces.panel.frame.y = 1600' "$valid_manifest" > "$fixture_dir/manifest.json"
+expect_failure "$validator" --validate-only "$fixture_dir"
+cp "$valid_manifest" "$fixture_dir/manifest.json"
 
 fake_command_dir="$bundle_dir/fake-commands"
 mkdir -p "$fake_command_dir"
@@ -380,13 +549,111 @@ case "$1 $2" in
         [[ "$5" == 'dev.chrisbanes.haze.glassreferencecapture' ]]
         [[ "$6" == '--capture-scene' ]]
         scene="$7"
+        case "$scene" in
+            size-small-*) page=size-small ;;
+            size-medium-*) page=size-medium ;;
+            size-large-*) page=size-large ;;
+            aspect-*) page=aspect ;;
+            roundness-*) page=roundness ;;
+            *) page=baseline ;;
+        esac
         if [[ "${FAKE_FAIL_SCENE:-}" == "$scene" ]]; then
             printf 'Intentional fake launch failure for %s\n' "$scene" >&2
             exit 92
         fi
-        cat > "$FAKE_DATA_CONTAINER/Documents/capture-ready.json" <<READY
-{"schemaVersion":1,"scene":"$scene","scale":3,"colorSpace":"sRGB","framebuffer":{"x":0,"y":0,"width":1206,"height":2622},"safeAreaInsets":{"top":186,"leading":0,"bottom":102,"trailing":0},"viewport":{"x":63,"y":231,"width":1080,"height":2160},"surfaces":{"capsule":{"x":180,"y":270,"width":720,"height":192},"card":{"x":120,"y":672,"width":840,"height":528},"panel":{"x":60,"y":1380,"width":960,"height":660}}}
-READY
+        readiness_scene="${FAKE_READINESS_SCENE_OVERRIDE:-$scene}"
+        readiness_page="${FAKE_READINESS_PAGE_OVERRIDE:-$page}"
+        readiness_surfaces="$(jq -nc \
+            --arg page "$page" \
+            --slurpfile contract "$FAKE_PAGE_SURFACE_CONTRACT_PATH" '
+            $contract[0][$page] | with_entries(.value = {
+                frame: .value.frame,
+                cornerRadius: .value.cornerRadius.pixels,
+                role: .value.role
+            })
+        ')"
+        if [[ "${FAKE_CONFLICT_SCENE:-}" == "$scene" ]]; then
+            readiness_surfaces="$(jq -c 'to_entries | .[0].value.frame.x += 1 | from_entries' \
+                <<< "$readiness_surfaces")"
+        fi
+        if [[ "${FAKE_ALTERED_FRAME_SCENE:-}" == "$scene" ]]; then
+            readiness_surfaces="$(jq -c 'to_entries | .[0].value.frame.x += 1 | from_entries' \
+                <<< "$readiness_surfaces")"
+        fi
+        if [[ "${FAKE_ALTERED_RADIUS_SCENE:-}" == "$scene" ]]; then
+            readiness_surfaces="$(jq -c 'to_entries | .[0].value.cornerRadius -= 1 | from_entries' \
+                <<< "$readiness_surfaces")"
+        fi
+        if [[ "${FAKE_INVALID_ROLE_SCENE:-}" == "$scene" ]]; then
+            readiness_surfaces="$(jq -c 'to_entries | .[0].value.role = "invalid" | from_entries' \
+                <<< "$readiness_surfaces")"
+        fi
+        if [[ "${FAKE_INVALID_RADIUS_SCENE:-}" == "$scene" ]]; then
+            readiness_surfaces="$(jq -c 'to_entries | .[0].value.cornerRadius = -1 | from_entries' \
+                <<< "$readiness_surfaces")"
+        fi
+        if [[ "${FAKE_INVALID_BOUNDS_SCENE:-}" == "$scene" ]]; then
+            readiness_surfaces="$(jq -c 'to_entries | .[0].value.frame.x = -1 | from_entries' \
+                <<< "$readiness_surfaces")"
+        fi
+        jq -n \
+            --argjson schemaVersion "${FAKE_READINESS_SCHEMA_VERSION:-2}" \
+            --arg scene "$readiness_scene" \
+            --arg page "$readiness_page" \
+            --argjson surfaces "$readiness_surfaces" '{
+            schemaVersion: $schemaVersion,
+            scene: $scene,
+            page: $page,
+            scale: 3,
+            colorSpace: "sRGB",
+            framebuffer: {x: 0, y: 0, width: 1206, height: 2622},
+            safeAreaInsets: {top: 186, leading: 0, bottom: 102, trailing: 0},
+            viewport: {x: 63, y: 231, width: 1080, height: 2160},
+            surfaces: $surfaces
+        }' > "$FAKE_DATA_CONTAINER/Documents/capture-ready.json"
+        duplicate_nested=0
+        case "${FAKE_DUPLICATE_READINESS_CASE:-}" in
+            object-to-scalar)
+                duplicate_member='"schemaVersion":{"bogus":1}'
+                ;;
+            scalar-to-object)
+                duplicate_member='"framebuffer":"bogus"'
+                ;;
+            disjoint-object)
+                duplicate_member=''
+                duplicate_nested=1
+                ;;
+            '')
+                duplicate_member=''
+                ;;
+            *)
+                printf 'Unknown duplicate readiness case: %s\n' \
+                    "$FAKE_DUPLICATE_READINESS_CASE" >&2
+                exit 98
+                ;;
+        esac
+        if [[ "$duplicate_nested" -eq 1 ]]; then
+            compact_readiness="$(jq -c . \
+                "$FAKE_DATA_CONTAINER/Documents/capture-ready.json")"
+            python3 -c '
+import sys
+
+text = sys.stdin.read().strip()
+marker = "\"capsule\":{"
+replacement = "\"capsule\":{\"frame\":{\"bogus\":1},"
+if marker not in text:
+    raise SystemExit("unable to inject nested duplicate readiness object")
+print(text.replace(marker, replacement, 1))
+' <<< "$compact_readiness" \
+                > "$FAKE_DATA_CONTAINER/Documents/capture-ready.json"
+        elif [[ -n "$duplicate_member" ]]; then
+            compact_readiness="$(jq -c . \
+                "$FAKE_DATA_CONTAINER/Documents/capture-ready.json")"
+            printf '{%s,%s\n' \
+                "$duplicate_member" \
+                "${compact_readiness#\{}" \
+                > "$FAKE_DATA_CONTAINER/Documents/capture-ready.json"
+        fi
         printf 'dev.chrisbanes.haze.glassreferencecapture: 12345\n'
         ;;
     'simctl io')
@@ -562,7 +829,8 @@ run_full_fake_capture() {
 
     effective_repo_root="${TEST_REPO_ROOT:-$(git -C "$capture_tool_dir" rev-parse --show-toplevel)}"
     effective_import_destination="${TEST_IMPORT_DESTINATION:-$full_fake_import_destination}"
-    FAKE_XCRUN_LOG="$full_fake_xcrun_log" \
+    FAKE_PAGE_SURFACE_CONTRACT_PATH="$page_surface_contract_path" \
+        FAKE_XCRUN_LOG="$full_fake_xcrun_log" \
         FAKE_XCODEBUILD_LOG="$full_fake_xcodebuild_log" \
         FAKE_SIPS_LOG="$full_fake_sips_log" \
         FAKE_DATA_CONTAINER="$full_fake_data_container" \
@@ -584,12 +852,7 @@ run_full_fake_capture() {
 
 FAKE_CAPTURE_TAG=initial expect_success run_full_fake_capture --import
 
-for expected_file in \
-    manifest.json \
-    uniform-light.png \
-    uniform-dark.png \
-    grid-light.png \
-    grid-dark.png; do
+for expected_file in manifest.json $(expected_scene_files); do
     if [[ ! -f "$full_fake_import_destination/$expected_file" ]]; then
         printf 'Imported bundle is missing %s\n' "$expected_file" >&2
         exit 1
@@ -606,14 +869,21 @@ for imported_path in "$full_fake_import_destination"/*; do
         imported_file_count=$((imported_file_count + 1))
     fi
 done
-if [[ "$imported_file_count" -ne 5 ]]; then
-    printf 'Expected exactly five imported files, found %s\n' "$imported_file_count" >&2
+if [[ "$imported_file_count" -ne 25 ]]; then
+    printf 'Expected exactly 25 imported files, found %s\n' "$imported_file_count" >&2
     exit 1
 fi
+assert_bundle_matches_snapshot \
+    "$full_fake_import_destination" \
+    "$full_fake_capture_root/current" \
+    'Atomic import'
 
 expected_revision="$(git -C "$script_dir/../../.." rev-parse HEAD)"
-if ! jq -e --arg revision "$expected_revision" '
-    .schemaVersion == 1 and
+if ! jq -e \
+    --arg revision "$expected_revision" \
+    --argjson scenes "$(expected_scenes_json)" \
+    --argjson surfaces "$(manifest_surfaces_json)" '
+    .schemaVersion == 2 and
     .platform == "iOS 26" and
     .osBuild == "23D127" and
     .device == "iPhone 17" and
@@ -624,26 +894,25 @@ if ! jq -e --arg revision "$expected_revision" '
     .producer.xcode == "Xcode 26.3\nBuild version 17C529" and
     .producer.runtime == "com.apple.CoreSimulator.SimRuntime.iOS-26-3 / iOS 26.3 / 26.3" and
     .producer.revision == $revision and
-    .scenes == {
-        "uniform-light.png": { appearance: "light", background: "uniform" },
-        "uniform-dark.png": { appearance: "dark", background: "uniform" },
-        "grid-light.png": { appearance: "light", background: "grid" },
-        "grid-dark.png": { appearance: "dark", background: "grid" }
-    } and
-    .surfaces == {
-        capsule: { x: 180, y: 270, width: 720, height: 192 },
-        card: { x: 120, y: 672, width: 840, height: 528 },
-        panel: { x: 60, y: 1380, width: 960, height: 660 }
-    }
+    .scenes == $scenes and
+    .surfaces == $surfaces
 ' "$full_fake_import_destination/manifest.json" >/dev/null; then
     printf 'Imported manifest does not contain measured producer metadata\n' >&2
     exit 1
 fi
 
-expected_launches="simctl launch --terminate-running-process AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA dev.chrisbanes.haze.glassreferencecapture --capture-scene uniform-light
-simctl launch --terminate-running-process AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA dev.chrisbanes.haze.glassreferencecapture --capture-scene uniform-dark
-simctl launch --terminate-running-process AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA dev.chrisbanes.haze.glassreferencecapture --capture-scene grid-light
-simctl launch --terminate-running-process AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA dev.chrisbanes.haze.glassreferencecapture --capture-scene grid-dark"
+expected_launches=""
+for page in "${REFERENCE_PAGES[@]}"; do
+    for variant in "${REFERENCE_VARIANTS[@]}"; do
+        expected_invocation="simctl launch --terminate-running-process AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA dev.chrisbanes.haze.glassreferencecapture --capture-scene $(scene_name "$page" "$variant")"
+        if [[ -n "$expected_launches" ]]; then
+            expected_launches="$expected_launches
+$expected_invocation"
+        else
+            expected_launches="$expected_invocation"
+        fi
+    done
+done
 actual_launches=""
 while IFS= read -r invocation; do
     case "$invocation" in
@@ -659,6 +928,30 @@ $invocation"
 done < "$full_fake_xcrun_log"
 if [[ "$actual_launches" != "$expected_launches" ]]; then
     printf 'Unexpected scene capture order:\n%s\n' "$actual_launches" >&2
+    exit 1
+fi
+
+for duplicate_case in object-to-scalar scalar-to-object disjoint-object; do
+    FAKE_DUPLICATE_READINESS_CASE="$duplicate_case" \
+        expect_failure_containing 'duplicate object key' run_full_fake_capture
+done
+FAKE_READINESS_SCHEMA_VERSION=1 expect_failure run_full_fake_capture
+FAKE_READINESS_PAGE_OVERRIDE=size-small expect_failure run_full_fake_capture
+FAKE_READINESS_SCENE_OVERRIDE=grid-dark expect_failure run_full_fake_capture
+FAKE_ALTERED_FRAME_SCENE=uniform-light \
+    expect_failure_containing \
+        'strict schema-2 contract for scene uniform-light page baseline' \
+        run_full_fake_capture
+FAKE_ALTERED_RADIUS_SCENE=uniform-light \
+    expect_failure_containing \
+        'strict schema-2 contract for scene uniform-light page baseline' \
+        run_full_fake_capture
+FAKE_CONFLICT_SCENE=uniform-dark expect_failure run_full_fake_capture
+FAKE_INVALID_ROLE_SCENE=uniform-light expect_failure run_full_fake_capture
+FAKE_INVALID_RADIUS_SCENE=uniform-light expect_failure run_full_fake_capture
+FAKE_INVALID_BOUNDS_SCENE=uniform-light expect_failure run_full_fake_capture
+if [[ -d "$full_fake_lock_dir" ]]; then
+    printf 'Readiness fault injection leaked capture lock\n' >&2
     exit 1
 fi
 
@@ -707,7 +1000,7 @@ chmod +x "$fake_mv_dir/mv"
 
 canonical_import_destination="$(CDPATH= cd -- "$full_fake_import_destination" && pwd -P)"
 install_failure_snapshot="$bundle_dir/install-failure-snapshot"
-snapshot_five_file_bundle "$full_fake_import_destination" "$install_failure_snapshot"
+snapshot_complete_bundle "$full_fake_import_destination" "$install_failure_snapshot"
 PATH="$fake_mv_dir:$PATH" \
     FAKE_MV_FAIL_TARGET="$canonical_import_destination" \
     FAKE_MV_STATE="$fake_mv_state" \
@@ -725,7 +1018,7 @@ assert_bundle_matches_snapshot \
 restore_failure_parent="$bundle_dir/restore-failure-parent"
 restore_failure_destination="$restore_failure_parent/ios26"
 mkdir "$restore_failure_parent"
-snapshot_five_file_bundle "$full_fake_import_destination" "$restore_failure_destination"
+snapshot_complete_bundle "$full_fake_import_destination" "$restore_failure_destination"
 canonical_restore_failure_destination="$(CDPATH= cd -- "$restore_failure_destination" && pwd -P)"
 restore_failure_state="$bundle_dir/restore-failure-state"
 PATH="$fake_mv_dir:$PATH" \
@@ -966,12 +1259,7 @@ fake_repo_root="$bundle_dir/fake repo root"
 fake_import_parent_relative='haze-screenshot-tests/src/commonTest/resources/glass'
 fake_repo_import_destination="$fake_repo_root/$fake_import_parent_relative/ios26"
 mkdir -p "$fake_repo_import_destination"
-for expected_file in \
-    manifest.json \
-    uniform-light.png \
-    uniform-dark.png \
-    grid-light.png \
-    grid-dark.png; do
+for expected_file in manifest.json $(expected_scene_files); do
     cp "$full_fake_import_destination/$expected_file" \
         "$fake_repo_import_destination/$expected_file"
 done

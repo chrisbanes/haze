@@ -6,7 +6,8 @@ XCODEBUILD=${XCODEBUILD:-xcodebuild}
 JQ=${JQ:-jq}
 SIPS=${SIPS:-sips}
 GIT=${GIT:-git}
-readonly XCRUN XCODEBUILD JQ SIPS GIT
+PYTHON3=${PYTHON3:-python3}
+readonly XCRUN XCODEBUILD JQ SIPS GIT PYTHON3
 readonly RUNTIME_ID=com.apple.CoreSimulator.SimRuntime.iOS-26-3
 readonly DEVICE_TYPE_ID=com.apple.CoreSimulator.SimDeviceType.iPhone-17
 readonly DEVICE_NAME='Haze Glass Reference'
@@ -45,22 +46,43 @@ readonly VIEWPORT_WIDTH=1080
 readonly VIEWPORT_HEIGHT=2160
 readonly FRAMEBUFFER_WIDTH=1206
 readonly FRAMEBUFFER_HEIGHT=2622
-readonly CAPTURE_SCENES=(
+readonly REFERENCE_PAGES=(
+    baseline
+    size-small
+    size-medium
+    size-large
+    aspect
+    roundness
+)
+readonly REFERENCE_VARIANTS=(
     uniform-light
     uniform-dark
     grid-light
     grid-dark
 )
-readonly SCENE_NAMES=(
-    grid-dark.png
-    grid-light.png
-    uniform-dark.png
-    uniform-light.png
-)
-readonly SURFACE_NAMES=(
-    capsule
-    card
-    panel
+# page|id|pixel x|pixel y|pixel width|pixel height|point width|point height|
+# corner points|corner pixels|role|sweep axis
+readonly REFERENCE_SURFACE_RECORDS=(
+    'baseline|capsule|180|270|720|192|240|64|32|96|regression|baseline'
+    'baseline|card|120|672|840|528|280|176|28|84|regression|baseline'
+    'baseline|panel|60|1380|960|660|320|220|24|72|regression|baseline'
+    'size-small|size-44|441|120|198|132|66|44|11|33|training|size'
+    'size-small|size-64|396|432|288|192|96|64|16|48|holdout|size'
+    'size-small|size-88|342|864|396|264|132|88|22|66|training|size'
+    'size-medium|size-112|288|72|504|336|168|112|28|84|holdout|size'
+    'size-medium|size-144|216|552|648|432|216|144|36|108|training|size'
+    'size-medium|size-176|144|1152|792|528|264|176|44|132|holdout|size'
+    'size-large|size-220|45|750|990|660|330|220|55|165|training|size'
+    'aspect|aspect-1|420|72|240|240|80|80|20|60|training|aspect'
+    'aspect|aspect-1_5|360|456|360|240|120|80|20|60|holdout|aspect'
+    'aspect|aspect-2|300|840|480|240|160|80|20|60|training|aspect'
+    'aspect|aspect-3|180|1224|720|240|240|80|20|60|holdout|aspect'
+    'aspect|aspect-4|60|1608|960|240|320|80|20|60|training|aspect'
+    'roundness|roundness-0|180|72|720|288|240|96|0|0|training|roundness'
+    'roundness|roundness-12|180|456|720|288|240|96|12|36|holdout|roundness'
+    'roundness|roundness-24|180|840|720|288|240|96|24|72|training|roundness'
+    'roundness|roundness-36|180|1224|720|288|240|96|36|108|holdout|roundness'
+    'roundness|roundness-48|180|1608|720|288|240|96|48|144|training|roundness'
 )
 
 capture_staging_path=''
@@ -411,6 +433,140 @@ usage() {
     printf 'Usage: %s [--import | --validate-only DIRECTORY]\n' "${0##*/}" >&2
 }
 
+scene_name() {
+    local page="$1"
+    local variant="$2"
+
+    if [[ "$page" == baseline ]]; then
+        printf '%s' "$variant"
+    else
+        printf '%s-%s' "$page" "$variant"
+    fi
+}
+
+expected_scene_files() {
+    local page
+    local variant
+
+    for page in "${REFERENCE_PAGES[@]}"; do
+        for variant in "${REFERENCE_VARIANTS[@]}"; do
+            printf '%s.png\n' "$(scene_name "$page" "$variant")"
+        done
+    done
+}
+
+surface_contract_json() {
+    local selected_page="${1:-}"
+
+    printf '%s\n' "${REFERENCE_SURFACE_RECORDS[@]}" | "$JQ" -Rnc \
+        --arg selected_page "$selected_page" '
+        [inputs | split("|") |
+            select($selected_page == "" or .[0] == $selected_page) |
+            {
+                key: .[1],
+                page: .[0],
+                value: {
+                    frame: {x: (.[2] | tonumber), y: (.[3] | tonumber),
+                        width: (.[4] | tonumber), height: (.[5] | tonumber)},
+                    logicalSize: {width: (.[6] | tonumber), height: (.[7] | tonumber)},
+                    cornerRadius: {points: (.[8] | tonumber), pixels: (.[9] | tonumber)},
+                    role: .[10],
+                    sweepAxis: .[11]
+                }
+            }
+        ] as $records |
+        if ($records | map(.key) | unique | length) != ($records | length) then
+            error("duplicate surface id")
+        else
+            reduce $records[] as $record ({};
+                .[$record.key] = ($record.value +
+                    if $selected_page == "" then {page: $record.page} else {} end)
+            )
+        end
+    '
+}
+
+readiness_surface_contract_json() {
+    local page="$1"
+
+    surface_contract_json "$page" | "$JQ" -c '
+        with_entries(.value = {
+            frame: .value.frame,
+            cornerRadius: .value.cornerRadius.pixels,
+            role: .value.role
+        })
+    '
+}
+
+expected_scenes_json() {
+    local page
+    local variant
+    local scene
+
+    for page in "${REFERENCE_PAGES[@]}"; do
+        for variant in "${REFERENCE_VARIANTS[@]}"; do
+            scene="$(scene_name "$page" "$variant")"
+            printf '%s|%s|%s\n' "$page" "$variant" "$scene"
+        done
+    done | "$JQ" -Rnc '
+        reduce (inputs | split("|")) as $record ({};
+            .[($record[2] + ".png")] = {
+                page: $record[0],
+                appearance: ($record[1] | split("-")[1]),
+                background: ($record[1] | split("-")[0])
+            }
+        )
+    '
+}
+
+is_expected_scene_file() {
+    local candidate="$1"
+    local expected
+
+    while IFS= read -r expected; do
+        if [[ "$candidate" == "$expected" ]]; then
+            return 0
+        fi
+    done < <(expected_scene_files)
+    return 1
+}
+
+validate_unique_json_keys() {
+    local json_path="$1"
+
+    if ! run_with_timeout_capture \
+        "$COMMAND_TIMEOUT_SECONDS" \
+        'validating unique JSON object keys' \
+        "$PYTHON3" -c '
+import json
+import sys
+
+class DuplicateKeyError(ValueError):
+    pass
+
+def reject_duplicate_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise DuplicateKeyError(key)
+        result[key] = value
+    return result
+
+try:
+    with open(sys.argv[1], encoding="utf-8") as source:
+        json.load(source, object_pairs_hook=reject_duplicate_keys)
+except DuplicateKeyError as error:
+    print(f"duplicate object key: {error.args[0]}")
+    raise SystemExit(1)
+except (OSError, UnicodeError, json.JSONDecodeError) as error:
+    print(f"invalid JSON: {error}")
+    raise SystemExit(1)
+' "$json_path"; then
+        fail "JSON key validation failed for $json_path: $timed_command_output"
+        return 1
+    fi
+}
+
 read_png_property() {
     local png_path="$1"
     local property="$2"
@@ -448,61 +604,46 @@ read_png_property() {
 
 validate_manifest() {
     local manifest_path="$1"
-    local surface
-    local x
-    local y
-    local width
-    local height
+    local expected_scenes
+    local expected_surfaces
 
-    if ! "$JQ" -e '
+    validate_unique_json_keys "$manifest_path"
+    expected_scenes="$(expected_scenes_json)"
+    expected_surfaces="$(surface_contract_json)"
+
+    if ! "$JQ" -e \
+        --argjson expected_scenes "$expected_scenes" \
+        --argjson expected_surfaces "$expected_surfaces" \
+        --argjson viewport_width "$VIEWPORT_WIDTH" \
+        --argjson viewport_height "$VIEWPORT_HEIGHT" '
+        .schemaVersion == 2 and
         .platform == "iOS 26" and
         (.osBuild | type == "string" and length > 0) and
-        (.device | type == "string" and length > 0) and
-        (.scale | type == "number" and . > 0) and
+        .device == "iPhone 17" and
+        .scale == 3 and
         (.colorSpace | type == "string" and length > 0) and
         .material == "Regular" and
         .tint == "transparent" and
-        ([.scenes | keys[]] | sort) == (["grid-dark.png", "grid-light.png", "uniform-dark.png", "uniform-light.png"] | sort) and
-        ([.surfaces | keys[]] | sort) == (["capsule", "card", "panel"] | sort) and
-        ([.surfaces[] | .x, .y, .width, .height] | all(type == "number"))
-    ' "$manifest_path" >/dev/null; then
-        fail "Manifest does not satisfy the rendering-plan contract"
-        return 1
-    fi
-
-    if ! "$JQ" -e '
-        .schemaVersion == 1 and
-        .device == "iPhone 17" and
-        .scale == 3 and
-        .scenes == {
-            "uniform-light.png": { appearance: "light", background: "uniform" },
-            "uniform-dark.png": { appearance: "dark", background: "uniform" },
-            "grid-light.png": { appearance: "light", background: "grid" },
-            "grid-dark.png": { appearance: "dark", background: "grid" }
-        } and
+        .scenes == $expected_scenes and
+        .surfaces == $expected_surfaces and
         (.producer.xcode | type == "string" and length > 0) and
         (.producer.runtime | type == "string" and length > 0) and
         (.producer.revision | type == "string" and length > 0) and
-        all(.surfaces[]; .x >= 0 and .y >= 0 and .width > 0 and .height > 0) and
-        .surfaces.capsule == { x: 180, y: 270, width: 720, height: 192 } and
-        .surfaces.card == { x: 120, y: 672, width: 840, height: 528 } and
-        .surfaces.panel == { x: 60, y: 1380, width: 960, height: 660 }
+        all(.surfaces[];
+            (.page | type == "string" and length > 0) and
+            (.sweepAxis | IN("baseline", "size", "aspect", "roundness")) and
+            (.role | IN("training", "holdout", "regression")) and
+            .frame.x >= 0 and .frame.y >= 0 and
+            .frame.width > 0 and .frame.height > 0 and
+            (.frame.x + .frame.width) <= $viewport_width and
+            (.frame.y + .frame.height) <= $viewport_height and
+            .logicalSize.width > 0 and .logicalSize.height > 0 and
+            .cornerRadius.points >= 0 and .cornerRadius.pixels >= 0 and
+            .cornerRadius.pixels <= ([.frame.width, .frame.height] | min) / 2)
     ' "$manifest_path" >/dev/null; then
         fail "Manifest has invalid metadata or surface geometry"
         return 1
     fi
-
-    for surface in "${SURFACE_NAMES[@]}"; do
-        x="$("$JQ" -er --arg surface "$surface" '.surfaces[$surface].x' "$manifest_path")"
-        y="$("$JQ" -er --arg surface "$surface" '.surfaces[$surface].y' "$manifest_path")"
-        width="$("$JQ" -er --arg surface "$surface" '.surfaces[$surface].width' "$manifest_path")"
-        height="$("$JQ" -er --arg surface "$surface" '.surfaces[$surface].height' "$manifest_path")"
-
-        if ((x + width > VIEWPORT_WIDTH || y + height > VIEWPORT_HEIGHT)); then
-            fail "Surface $surface is outside the ${VIEWPORT_WIDTH}x${VIEWPORT_HEIGHT} viewport"
-            return 1
-        fi
-    done
 }
 
 validate_bundle() {
@@ -517,6 +658,8 @@ validate_bundle() {
     local color_space
     local common_color_space=""
     local manifest_color_space
+    local bundle_path
+    local filename
 
     if [[ ! -d "$requested_directory" ]]; then
         fail "Bundle directory does not exist: $requested_directory"
@@ -525,25 +668,41 @@ validate_bundle() {
 
     require_command "$JQ"
     require_command "$SIPS"
+    require_command "$PYTHON3"
 
     bundle_directory="$(CDPATH= cd -- "$requested_directory" && pwd -P)"
     manifest_path="$bundle_directory/manifest.json"
-    if [[ ! -f "$manifest_path" ]]; then
+    if [[ ! -f "$manifest_path" || -L "$manifest_path" ]]; then
         fail "Bundle is missing manifest.json: $bundle_directory"
         return 1
     fi
 
-    for scene in "${SCENE_NAMES[@]}"; do
+    while IFS= read -r scene; do
         png_path="$bundle_directory/$scene"
-        if [[ ! -f "$png_path" ]]; then
+        if [[ ! -f "$png_path" || -L "$png_path" ]]; then
             fail "Bundle is missing required PNG: $scene"
             return 1
         fi
+    done < <(expected_scene_files)
+
+    for bundle_path in \
+        "$bundle_directory"/* \
+        "$bundle_directory"/.[!.]* \
+        "$bundle_directory"/..?*; do
+        if [[ ! -e "$bundle_path" && ! -L "$bundle_path" ]]; then
+            continue
+        fi
+        filename="${bundle_path##*/}"
+        if [[ "$filename" == manifest.json ]] || is_expected_scene_file "$filename"; then
+            continue
+        fi
+        fail "Bundle contains unexpected entry: $filename"
+        return 1
     done
 
     validate_manifest "$manifest_path"
 
-    for scene in "${SCENE_NAMES[@]}"; do
+    while IFS= read -r scene; do
         png_path="$bundle_directory/$scene"
         read_png_property "$png_path" format
         image_format="$png_property_value"
@@ -570,7 +729,7 @@ validate_bundle() {
             fail "PNG $scene color space $color_space does not match $common_color_space"
             return 1
         fi
-    done
+    done < <(expected_scene_files)
 
     if [[ "$common_color_space" != *RGB* ]]; then
         fail "PNG color space must contain RGB, found $common_color_space"
@@ -725,8 +884,7 @@ wait_for_readiness() {
 
     while ((attempt < 75)); do
         if [[ -f "$readiness_path" ]] &&
-            "$JQ" -e --arg scene "$scene" \
-                'type == "object" and .scene == $scene' \
+            "$JQ" -e 'type == "object"' \
                 "$readiness_path" >/dev/null 2>&1; then
             return 0
         fi
@@ -743,73 +901,52 @@ wait_for_readiness() {
 validate_readiness() {
     local readiness_path="$1"
     local scene="$2"
+    local page="$3"
+    local expected_surfaces
+
+    validate_unique_json_keys "$readiness_path"
+    expected_surfaces="$(readiness_surface_contract_json "$page")"
 
     if ! "$JQ" -e \
         --arg scene "$scene" \
+        --arg page "$page" \
+        --argjson expected_surfaces "$expected_surfaces" \
         --argjson framebuffer_width "$FRAMEBUFFER_WIDTH" \
         --argjson framebuffer_height "$FRAMEBUFFER_HEIGHT" \
         --argjson viewport_width "$VIEWPORT_WIDTH" \
         --argjson viewport_height "$VIEWPORT_HEIGHT" '
-            def allNumbers($values): all($values[]; type == "number");
-            .schemaVersion == 1 and
+            .schemaVersion == 2 and
             .scene == $scene and
+            .page == $page and
             .scale == 3 and
             .colorSpace == "sRGB" and
-            allNumbers([
-                .framebuffer.x,
-                .framebuffer.y,
-                .framebuffer.width,
-                .framebuffer.height,
-                .safeAreaInsets.top,
-                .safeAreaInsets.leading,
-                .safeAreaInsets.bottom,
-                .safeAreaInsets.trailing,
-                .viewport.x,
-                .viewport.y,
-                .viewport.width,
-                .viewport.height,
-                .surfaces.capsule.x,
-                .surfaces.capsule.y,
-                .surfaces.capsule.width,
-                .surfaces.capsule.height,
-                .surfaces.card.x,
-                .surfaces.card.y,
-                .surfaces.card.width,
-                .surfaces.card.height,
-                .surfaces.panel.x,
-                .surfaces.panel.y,
-                .surfaces.panel.width,
-                .surfaces.panel.height
-            ]) and
             .framebuffer == {
                 x: 0,
                 y: 0,
                 width: $framebuffer_width,
                 height: $framebuffer_height
             } and
-            all([
-                .safeAreaInsets.top,
-                .safeAreaInsets.leading,
-                .safeAreaInsets.bottom,
-                .safeAreaInsets.trailing
-            ][]; . >= 0) and
-            .viewport.width == $viewport_width and
-            .viewport.height == $viewport_height and
-            .viewport.x == ((.framebuffer.width - .viewport.width) / 2) and
-            .viewport.y == ((.framebuffer.height - .viewport.height) / 2) and
-            .viewport.x >= .framebuffer.x and
-            .viewport.y >= (.framebuffer.y + .safeAreaInsets.top) and
-            (.viewport.x + .viewport.width) <=
-                (.framebuffer.x + .framebuffer.width) and
-            (.viewport.y + .viewport.height) <=
-                (.framebuffer.y + .framebuffer.height - .safeAreaInsets.bottom) and
-            .surfaces == {
-                capsule: { x: 180, y: 270, width: 720, height: 192 },
-                card: { x: 120, y: 672, width: 840, height: 528 },
-                panel: { x: 60, y: 1380, width: 960, height: 660 }
-            }
+            .safeAreaInsets == {top: 186, leading: 0, bottom: 102, trailing: 0} and
+            .viewport == {x: 63, y: 231, width: $viewport_width, height: $viewport_height} and
+            .surfaces == $expected_surfaces and
+            all(.surfaces | to_entries[];
+                (.key | type == "string" and length > 0) and
+                .value.role == $expected_surfaces[.key].role and
+                all([
+                    .value.cornerRadius,
+                    .value.frame.x,
+                    .value.frame.y,
+                    .value.frame.width,
+                    .value.frame.height
+                ][]; type == "number" and floor == .) and
+                .value.cornerRadius >= 0 and
+                .value.cornerRadius <= ([.value.frame.width, .value.frame.height] | min) / 2 and
+                .value.frame.x >= 0 and .value.frame.y >= 0 and
+                .value.frame.width > 0 and .value.frame.height > 0 and
+                (.value.frame.x + .value.frame.width) <= $viewport_width and
+                (.value.frame.y + .value.frame.height) <= $viewport_height)
         ' "$readiness_path" >/dev/null; then
-        fail "Readiness payload does not satisfy the strict pixel contract for scene $scene"
+        fail "Readiness payload does not satisfy the strict schema-2 contract for scene $scene page $page"
         return 1
     fi
 }
@@ -882,10 +1019,11 @@ validate_full_frame_png() {
 }
 
 capture_scene() {
-    local scene="$1"
-    local capture_stage="$2"
-    local framebuffer_run="$3"
-    local readiness_run="$4"
+    local page="$1"
+    local scene="$2"
+    local capture_stage="$3"
+    local framebuffer_run="$4"
+    local readiness_run="$5"
     local data_container
     local documents_directory
     local readiness_path
@@ -923,9 +1061,29 @@ capture_scene() {
     fi
 
     wait_for_readiness "$readiness_path" "$scene"
-    validate_readiness "$readiness_path" "$scene"
+    validate_readiness "$readiness_path" "$scene" "$page"
     cp "$readiness_path" "$readiness_run/$scene.json"
-    latest_readiness_without_scene="$("$JQ" -cS 'del(.scene)' "$readiness_path")"
+    latest_readiness_without_scene="$("$JQ" -cS 'del(.scene, .surfaces)' "$readiness_path")"
+    latest_manifest_surfaces="$("$JQ" -cS \
+        --arg page "$page" \
+        --argjson contract "$(surface_contract_json "$page")" '
+        .surfaces | with_entries(
+            .value = {
+                page: $page,
+                sweepAxis: $contract[.key].sweepAxis,
+                frame: .value.frame,
+                logicalSize: {
+                    width: (.value.frame.width / 3),
+                    height: (.value.frame.height / 3)
+                },
+                cornerRadius: {
+                    points: (.value.cornerRadius / 3),
+                    pixels: .value.cornerRadius
+                },
+                role: .value.role
+            }
+        )
+    ' "$readiness_path")"
 
     viewport_x="$("$JQ" -er '.viewport.x' "$readiness_path")"
     viewport_y="$("$JQ" -er '.viewport.y' "$readiness_path")"
@@ -961,6 +1119,7 @@ capture_scene() {
 
 write_manifest() {
     local capture_stage="$1"
+    local captured_surfaces="$2"
     local runtime_description
 
     runtime_description="$selected_runtime_identifier / $selected_runtime_name / $selected_runtime_version"
@@ -970,8 +1129,10 @@ write_manifest() {
         --arg runtime "$runtime_description" \
         --arg revision "$pinned_revision" \
         --arg osBuild "$selected_runtime_build" \
-        --arg colorSpace "$capture_color_space" '{
-            schemaVersion: 1,
+        --arg colorSpace "$capture_color_space" \
+        --argjson scenes "$(expected_scenes_json)" \
+        --argjson surfaces "$captured_surfaces" '{
+            schemaVersion: 2,
             platform: "iOS 26",
             osBuild: $osBuild,
             device: "iPhone 17",
@@ -979,17 +1140,8 @@ write_manifest() {
             colorSpace: $colorSpace,
             material: "Regular",
             tint: "transparent",
-            scenes: {
-                "uniform-light.png": { appearance: "light", background: "uniform" },
-                "uniform-dark.png": { appearance: "dark", background: "uniform" },
-                "grid-light.png": { appearance: "light", background: "grid" },
-                "grid-dark.png": { appearance: "dark", background: "grid" }
-            },
-            surfaces: {
-                capsule: { x: 180, y: 270, width: 720, height: 192 },
-                card: { x: 120, y: 672, width: 840, height: 528 },
-                panel: { x: 60, y: 1380, width: 960, height: 660 }
-            },
+            scenes: $scenes,
+            surfaces: $surfaces,
             producer: {
                 xcode: $xcode,
                 runtime: $runtime,
@@ -1064,8 +1216,11 @@ capture_fresh() {
     local capture_stage
     local framebuffer_run
     local readiness_run
+    local page
+    local variant
     local scene
-    local common_readiness=''
+    local page_readiness
+    local captured_surfaces='{}'
 
     mkdir -p "$CAPTURE_ROOT" "$CAPTURE_ROOT/framebuffers" "$CAPTURE_ROOT/readiness"
     capture_stage="$(mktemp -d "$CAPTURE_ROOT/.current.capture.XXXXXX")"
@@ -1077,25 +1232,42 @@ capture_fresh() {
     build_and_install_app
 
     capture_color_space=''
-    for scene in "${CAPTURE_SCENES[@]}"; do
-        capture_scene "$scene" "$capture_stage" "$framebuffer_run" "$readiness_run"
+    for page in "${REFERENCE_PAGES[@]}"; do
+        page_readiness=''
+        for variant in "${REFERENCE_VARIANTS[@]}"; do
+            scene="$(scene_name "$page" "$variant")"
+            capture_scene "$page" "$scene" "$capture_stage" "$framebuffer_run" "$readiness_run"
 
-        if [[ -z "$common_readiness" ]]; then
-            common_readiness="$latest_readiness_without_scene"
-        elif [[ "$latest_readiness_without_scene" != "$common_readiness" ]]; then
-            fail "Readiness metadata changed between capture scenes (latest: $scene)"
-            return 1
-        fi
+            if [[ -z "$page_readiness" ]]; then
+                page_readiness="$latest_readiness_without_scene"
+            elif [[ "$latest_readiness_without_scene" != "$page_readiness" ]]; then
+                fail "Readiness metadata changed between variants for page $page (latest: $scene)"
+                return 1
+            fi
 
-        if [[ -z "$capture_color_space" ]]; then
-            capture_color_space="$measured_png_color_space"
-        elif [[ "$measured_png_color_space" != "$capture_color_space" ]]; then
-            fail "Cropped PNG color space changed between capture scenes (latest: $scene)"
-            return 1
-        fi
+            if ! "$JQ" -ne \
+                --argjson existing "$captured_surfaces" \
+                --argjson incoming "$latest_manifest_surfaces" '
+                all($incoming | to_entries[];
+                    $existing[.key] == null or $existing[.key] == .value)
+            ' >/dev/null; then
+                fail "Conflicting repeated surface metadata for scene $scene"
+                return 1
+            fi
+            captured_surfaces="$("$JQ" -cS \
+                --argjson incoming "$latest_manifest_surfaces" \
+                '. * $incoming' <<< "$captured_surfaces")"
+
+            if [[ -z "$capture_color_space" ]]; then
+                capture_color_space="$measured_png_color_space"
+            elif [[ "$measured_png_color_space" != "$capture_color_space" ]]; then
+                fail "Cropped PNG color space changed between capture scenes (latest: $scene)"
+                return 1
+            fi
+        done
     done
 
-    write_manifest "$capture_stage"
+    write_manifest "$capture_stage" "$captured_surfaces"
     validate_bundle "$capture_stage" >/dev/null
     verify_pinned_provenance
     atomic_replace_directory "$capture_stage" "$CAPTURE_ROOT/current"
@@ -1116,9 +1288,9 @@ import_current_bundle() {
     import_staging_path="$(mktemp -d "$destination_parent/.$destination_name.import.XXXXXX")"
 
     cp "$CAPTURE_ROOT/current/manifest.json" "$import_staging_path/manifest.json"
-    for scene in "${SCENE_NAMES[@]}"; do
+    while IFS= read -r scene; do
         cp "$CAPTURE_ROOT/current/$scene" "$import_staging_path/$scene"
-    done
+    done < <(expected_scene_files)
 
     validate_bundle "$import_staging_path" >/dev/null
     verify_pinned_provenance
@@ -1138,6 +1310,7 @@ capture_mode() {
         "$JQ" \
         "$SIPS" \
         "$GIT" \
+        "$PYTHON3" \
         cp \
         mkdir \
         mktemp \

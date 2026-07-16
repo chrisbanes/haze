@@ -6,15 +6,9 @@ struct ReferenceSceneView: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             background
-            glass(in: Capsule(), frame: ReferenceLayout.surfaceFrames[.capsule]!)
-            glass(
-                in: RoundedRectangle(cornerRadius: 28),
-                frame: ReferenceLayout.surfaceFrames[.card]!,
-            )
-            glass(
-                in: RoundedRectangle(cornerRadius: 24),
-                frame: ReferenceLayout.surfaceFrames[.panel]!,
-            )
+            ForEach(ReferenceLayout.surfaces(for: scene.page)) { surface in
+                glass(surface)
+            }
         }
         .frame(
             width: ReferenceLayout.viewportSize.width,
@@ -29,7 +23,7 @@ struct ReferenceSceneView: View {
         Canvas { context, size in
             context.fill(
                 Path(CGRect(origin: .zero, size: size)),
-                with: .color(scene.background),
+                with: .color(scene.backgroundColor),
             )
 
             guard scene.isGrid else {
@@ -63,6 +57,16 @@ struct ReferenceSceneView: View {
                 path.addLine(to: CGPoint(x: size.width, y: y))
                 context.stroke(path, with: .color(horizontalLineColor), lineWidth: 1)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func glass(_ surface: ReferenceSurface) -> some View {
+        switch surface.shape {
+        case .capsule:
+            glass(in: Capsule(), frame: surface.frame)
+        case let .roundedRectangle(cornerRadius):
+            glass(in: RoundedRectangle(cornerRadius: cornerRadius), frame: surface.frame)
         }
     }
 
