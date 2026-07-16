@@ -1,9 +1,0 @@
-// Signature format: 4.0
-package dev.chrisbanes.haze.navigation3 {
-
-  public final class HazeNavigation3Kt {
-    method @KotlinOnly @androidx.compose.runtime.Composable public static <T> androidx.navigation3.scene.SceneDecoratorStrategy<T> rememberHazeSourceSceneDecoratorStrategy(dev.chrisbanes.haze.HazeState state);
-  }
-
-}
-

@@ -57,13 +57,6 @@ kotlin {
       }
     }
 
-    val androidHostTest by getting {
-      dependencies {
-        implementation(projects.hazeNavigation3)
-        implementation(libs.androidx.compose.ui.test.junit4)
-      }
-    }
-
     jvmTest {
       kotlin.srcDir("src/jvmTest/kotlin")
 
