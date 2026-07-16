@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "platform": "iOS 26",
   "osBuild": "23D8133",
   "device": "iPhone 17",
@@ -9,45 +9,511 @@
   "tint": "transparent",
   "scenes": {
     "uniform-light.png": {
+      "page": "baseline",
       "appearance": "light",
       "background": "uniform"
     },
     "uniform-dark.png": {
+      "page": "baseline",
       "appearance": "dark",
       "background": "uniform"
     },
     "grid-light.png": {
+      "page": "baseline",
       "appearance": "light",
       "background": "grid"
     },
     "grid-dark.png": {
+      "page": "baseline",
+      "appearance": "dark",
+      "background": "grid"
+    },
+    "size-small-uniform-light.png": {
+      "page": "size-small",
+      "appearance": "light",
+      "background": "uniform"
+    },
+    "size-small-uniform-dark.png": {
+      "page": "size-small",
+      "appearance": "dark",
+      "background": "uniform"
+    },
+    "size-small-grid-light.png": {
+      "page": "size-small",
+      "appearance": "light",
+      "background": "grid"
+    },
+    "size-small-grid-dark.png": {
+      "page": "size-small",
+      "appearance": "dark",
+      "background": "grid"
+    },
+    "size-medium-uniform-light.png": {
+      "page": "size-medium",
+      "appearance": "light",
+      "background": "uniform"
+    },
+    "size-medium-uniform-dark.png": {
+      "page": "size-medium",
+      "appearance": "dark",
+      "background": "uniform"
+    },
+    "size-medium-grid-light.png": {
+      "page": "size-medium",
+      "appearance": "light",
+      "background": "grid"
+    },
+    "size-medium-grid-dark.png": {
+      "page": "size-medium",
+      "appearance": "dark",
+      "background": "grid"
+    },
+    "size-large-uniform-light.png": {
+      "page": "size-large",
+      "appearance": "light",
+      "background": "uniform"
+    },
+    "size-large-uniform-dark.png": {
+      "page": "size-large",
+      "appearance": "dark",
+      "background": "uniform"
+    },
+    "size-large-grid-light.png": {
+      "page": "size-large",
+      "appearance": "light",
+      "background": "grid"
+    },
+    "size-large-grid-dark.png": {
+      "page": "size-large",
+      "appearance": "dark",
+      "background": "grid"
+    },
+    "aspect-uniform-light.png": {
+      "page": "aspect",
+      "appearance": "light",
+      "background": "uniform"
+    },
+    "aspect-uniform-dark.png": {
+      "page": "aspect",
+      "appearance": "dark",
+      "background": "uniform"
+    },
+    "aspect-grid-light.png": {
+      "page": "aspect",
+      "appearance": "light",
+      "background": "grid"
+    },
+    "aspect-grid-dark.png": {
+      "page": "aspect",
+      "appearance": "dark",
+      "background": "grid"
+    },
+    "roundness-uniform-light.png": {
+      "page": "roundness",
+      "appearance": "light",
+      "background": "uniform"
+    },
+    "roundness-uniform-dark.png": {
+      "page": "roundness",
+      "appearance": "dark",
+      "background": "uniform"
+    },
+    "roundness-grid-light.png": {
+      "page": "roundness",
+      "appearance": "light",
+      "background": "grid"
+    },
+    "roundness-grid-dark.png": {
+      "page": "roundness",
       "appearance": "dark",
       "background": "grid"
     }
   },
   "surfaces": {
+    "aspect-1": {
+      "cornerRadius": {
+        "pixels": 60,
+        "points": 20
+      },
+      "frame": {
+        "height": 240,
+        "width": 240,
+        "x": 420,
+        "y": 72
+      },
+      "logicalSize": {
+        "height": 80,
+        "width": 80
+      },
+      "page": "aspect",
+      "role": "training",
+      "sweepAxis": "aspect"
+    },
+    "aspect-1_5": {
+      "cornerRadius": {
+        "pixels": 60,
+        "points": 20
+      },
+      "frame": {
+        "height": 240,
+        "width": 360,
+        "x": 360,
+        "y": 456
+      },
+      "logicalSize": {
+        "height": 80,
+        "width": 120
+      },
+      "page": "aspect",
+      "role": "holdout",
+      "sweepAxis": "aspect"
+    },
+    "aspect-2": {
+      "cornerRadius": {
+        "pixels": 60,
+        "points": 20
+      },
+      "frame": {
+        "height": 240,
+        "width": 480,
+        "x": 300,
+        "y": 840
+      },
+      "logicalSize": {
+        "height": 80,
+        "width": 160
+      },
+      "page": "aspect",
+      "role": "training",
+      "sweepAxis": "aspect"
+    },
+    "aspect-3": {
+      "cornerRadius": {
+        "pixels": 60,
+        "points": 20
+      },
+      "frame": {
+        "height": 240,
+        "width": 720,
+        "x": 180,
+        "y": 1224
+      },
+      "logicalSize": {
+        "height": 80,
+        "width": 240
+      },
+      "page": "aspect",
+      "role": "holdout",
+      "sweepAxis": "aspect"
+    },
+    "aspect-4": {
+      "cornerRadius": {
+        "pixels": 60,
+        "points": 20
+      },
+      "frame": {
+        "height": 240,
+        "width": 960,
+        "x": 60,
+        "y": 1608
+      },
+      "logicalSize": {
+        "height": 80,
+        "width": 320
+      },
+      "page": "aspect",
+      "role": "training",
+      "sweepAxis": "aspect"
+    },
     "capsule": {
-      "x": 180,
-      "y": 270,
-      "width": 720,
-      "height": 192
+      "cornerRadius": {
+        "pixels": 96,
+        "points": 32
+      },
+      "frame": {
+        "height": 192,
+        "width": 720,
+        "x": 180,
+        "y": 270
+      },
+      "logicalSize": {
+        "height": 64,
+        "width": 240
+      },
+      "page": "baseline",
+      "role": "regression",
+      "sweepAxis": "baseline"
     },
     "card": {
-      "x": 120,
-      "y": 672,
-      "width": 840,
-      "height": 528
+      "cornerRadius": {
+        "pixels": 84,
+        "points": 28
+      },
+      "frame": {
+        "height": 528,
+        "width": 840,
+        "x": 120,
+        "y": 672
+      },
+      "logicalSize": {
+        "height": 176,
+        "width": 280
+      },
+      "page": "baseline",
+      "role": "regression",
+      "sweepAxis": "baseline"
     },
     "panel": {
-      "x": 60,
-      "y": 1380,
-      "width": 960,
-      "height": 660
+      "cornerRadius": {
+        "pixels": 72,
+        "points": 24
+      },
+      "frame": {
+        "height": 660,
+        "width": 960,
+        "x": 60,
+        "y": 1380
+      },
+      "logicalSize": {
+        "height": 220,
+        "width": 320
+      },
+      "page": "baseline",
+      "role": "regression",
+      "sweepAxis": "baseline"
+    },
+    "roundness-0": {
+      "cornerRadius": {
+        "pixels": 0,
+        "points": 0
+      },
+      "frame": {
+        "height": 288,
+        "width": 720,
+        "x": 180,
+        "y": 72
+      },
+      "logicalSize": {
+        "height": 96,
+        "width": 240
+      },
+      "page": "roundness",
+      "role": "training",
+      "sweepAxis": "roundness"
+    },
+    "roundness-12": {
+      "cornerRadius": {
+        "pixels": 36,
+        "points": 12
+      },
+      "frame": {
+        "height": 288,
+        "width": 720,
+        "x": 180,
+        "y": 456
+      },
+      "logicalSize": {
+        "height": 96,
+        "width": 240
+      },
+      "page": "roundness",
+      "role": "holdout",
+      "sweepAxis": "roundness"
+    },
+    "roundness-24": {
+      "cornerRadius": {
+        "pixels": 72,
+        "points": 24
+      },
+      "frame": {
+        "height": 288,
+        "width": 720,
+        "x": 180,
+        "y": 840
+      },
+      "logicalSize": {
+        "height": 96,
+        "width": 240
+      },
+      "page": "roundness",
+      "role": "training",
+      "sweepAxis": "roundness"
+    },
+    "roundness-36": {
+      "cornerRadius": {
+        "pixels": 108,
+        "points": 36
+      },
+      "frame": {
+        "height": 288,
+        "width": 720,
+        "x": 180,
+        "y": 1224
+      },
+      "logicalSize": {
+        "height": 96,
+        "width": 240
+      },
+      "page": "roundness",
+      "role": "holdout",
+      "sweepAxis": "roundness"
+    },
+    "roundness-48": {
+      "cornerRadius": {
+        "pixels": 144,
+        "points": 48
+      },
+      "frame": {
+        "height": 288,
+        "width": 720,
+        "x": 180,
+        "y": 1608
+      },
+      "logicalSize": {
+        "height": 96,
+        "width": 240
+      },
+      "page": "roundness",
+      "role": "training",
+      "sweepAxis": "roundness"
+    },
+    "size-112": {
+      "cornerRadius": {
+        "pixels": 84,
+        "points": 28
+      },
+      "frame": {
+        "height": 336,
+        "width": 504,
+        "x": 288,
+        "y": 72
+      },
+      "logicalSize": {
+        "height": 112,
+        "width": 168
+      },
+      "page": "size-medium",
+      "role": "holdout",
+      "sweepAxis": "size"
+    },
+    "size-144": {
+      "cornerRadius": {
+        "pixels": 108,
+        "points": 36
+      },
+      "frame": {
+        "height": 432,
+        "width": 648,
+        "x": 216,
+        "y": 552
+      },
+      "logicalSize": {
+        "height": 144,
+        "width": 216
+      },
+      "page": "size-medium",
+      "role": "training",
+      "sweepAxis": "size"
+    },
+    "size-176": {
+      "cornerRadius": {
+        "pixels": 132,
+        "points": 44
+      },
+      "frame": {
+        "height": 528,
+        "width": 792,
+        "x": 144,
+        "y": 1152
+      },
+      "logicalSize": {
+        "height": 176,
+        "width": 264
+      },
+      "page": "size-medium",
+      "role": "holdout",
+      "sweepAxis": "size"
+    },
+    "size-220": {
+      "cornerRadius": {
+        "pixels": 165,
+        "points": 55
+      },
+      "frame": {
+        "height": 660,
+        "width": 990,
+        "x": 45,
+        "y": 750
+      },
+      "logicalSize": {
+        "height": 220,
+        "width": 330
+      },
+      "page": "size-large",
+      "role": "training",
+      "sweepAxis": "size"
+    },
+    "size-44": {
+      "cornerRadius": {
+        "pixels": 33,
+        "points": 11
+      },
+      "frame": {
+        "height": 132,
+        "width": 198,
+        "x": 441,
+        "y": 120
+      },
+      "logicalSize": {
+        "height": 44,
+        "width": 66
+      },
+      "page": "size-small",
+      "role": "training",
+      "sweepAxis": "size"
+    },
+    "size-64": {
+      "cornerRadius": {
+        "pixels": 48,
+        "points": 16
+      },
+      "frame": {
+        "height": 192,
+        "width": 288,
+        "x": 396,
+        "y": 432
+      },
+      "logicalSize": {
+        "height": 64,
+        "width": 96
+      },
+      "page": "size-small",
+      "role": "holdout",
+      "sweepAxis": "size"
+    },
+    "size-88": {
+      "cornerRadius": {
+        "pixels": 66,
+        "points": 22
+      },
+      "frame": {
+        "height": 264,
+        "width": 396,
+        "x": 342,
+        "y": 864
+      },
+      "logicalSize": {
+        "height": 88,
+        "width": 132
+      },
+      "page": "size-small",
+      "role": "training",
+      "sweepAxis": "size"
     }
   },
   "producer": {
     "xcode": "Xcode 26.3\nBuild version 17C529",
     "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-3 / iOS 26.3 / 26.3.1",
-    "revision": "bf7beb5362af7ee2051dd23ce754c9fdeed86578"
+    "revision": "1e2c78d3e04568988d2b4ef4154442e4bd2f00d5"
   }
 }
