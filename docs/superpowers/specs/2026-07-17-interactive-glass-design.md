@@ -53,9 +53,9 @@ Modifier.hazeEffect(state) {
 }
 ```
 
-`GlassInteraction.Default` and `GlassInteraction.Disabled` preserve current non-interactive
-behavior. `GlassInteraction.Enabled` is the explicit convenience opt-in that enables all three
-channels with conservative values. A custom configuration must also opt in explicitly:
+`GlassInteraction()` and `GlassInteraction.Disabled` preserve current non-interactive behavior.
+`GlassInteraction.Enabled` is the explicit convenience opt-in that enables all three channels with
+conservative values. A custom configuration must also opt in explicitly:
 
 ```kotlin
 GlassInteraction(
@@ -97,8 +97,7 @@ The public API uses the following concrete shape:
   `GlassVisualEffect`; the copy constructor copies that property.
 - `GlassInteraction` is a stable data class with `enabled`, `lighting`, `optics`, `transform`,
   `motion`, `interactionSource`, and `reducedMotion` properties.
-- `GlassInteraction.Default`, `GlassInteraction.Disabled`, and `GlassInteraction()` are equal and
-  have `enabled = false`.
+- `GlassInteraction.Disabled` is equal to `GlassInteraction()` and has `enabled = false`.
 - `GlassInteraction.Enabled` is equal to `GlassInteraction(enabled = true)` and retains the same
   default channel values.
 - Changing only `enabled` preserves the remaining configuration, allowing a caller to turn a
