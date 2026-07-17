@@ -27,8 +27,16 @@ actual abstract class ScreenshotTest : ContextTest()
 actual fun ScreenshotTest.runScreenshotTest(
   block: ScreenshotUiTest.() -> Unit,
 ) {
+  runScreenshotTest(size = Size(1080f, 1920f), block = block)
+}
+
+@OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
+fun ScreenshotTest.runScreenshotTest(
+  size: Size,
+  block: ScreenshotUiTest.() -> Unit,
+) {
   runSkikoComposeUiTest(
-    size = Size(1080f, 1920f),
+    size = size,
     density = Density(2.75f),
   ) {
     provideRoborazziContext().apply {
