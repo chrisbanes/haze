@@ -155,13 +155,13 @@ internal fun calculateAdaptiveGeometryResponseForLogicalGeometry(
     return AdaptiveGeometryResponse.Identity
   }
 
-  val size = smoothstepFeature(shortestSideDp, 48f, 240f)
+  val size = smoothstepFeature(shortestSideDp, 48f, 176f)
   val aspect = smoothstepFeature(aspectRatio, 1f, 3.5f)
   val roundness = smoothstepFeature(symmetricRoundness, 0f, 1f)
   return AdaptiveGeometryResponse(
-    blurScale = lerp(0.72f, 1f, size) * lerp(1f, 0.92f, aspect),
-    displacementScale = lerp(1.4f, 0.9f, size) * lerp(1f, 1.1f, aspect),
-    reachScale = lerp(1.2f, 0.9f, size) * lerp(0.95f, 1.05f, roundness),
+    blurScale = lerp(0.3f, 1.1f, size),
+    displacementScale = 4f * lerp(1f, 1.1f, aspect),
+    reachScale = 3f * lerp(0.95f, 1.05f, roundness),
     toneGain = 1f,
     neutralLiftWeight = 0f,
   )

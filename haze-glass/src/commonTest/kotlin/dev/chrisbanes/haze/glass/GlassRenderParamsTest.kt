@@ -78,8 +78,8 @@ class GlassRenderParamsTest {
     )
 
     assertThat(response(1f)).isEqualTo(response(48f))
-    assertThat(response(1_000f)).isEqualTo(response(240f))
-    assertResponseDeltaBelow(response(111.99f), response(112.01f), 0.001f)
+    assertThat(response(1_000f)).isEqualTo(response(176f))
+    assertResponseDeltaBelow(response(175.99f), response(176.01f), 0.001f)
   }
 
   @Test
@@ -154,37 +154,38 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun adaptiveOptics_outputsAreFiniteAndBounded() {
+  fun adaptiveOptics_defaultStrengthOutputsAreFiniteAndBounded() {
     val responses = listOf(
       calculateAdaptiveGeometryResponseForLogicalGeometry(48f, 1f, 0f),
       calculateAdaptiveGeometryResponseForLogicalGeometry(112f, 1.5f, 0.5f),
-      calculateAdaptiveGeometryResponseForLogicalGeometry(240f, 3.5f, 1f),
-    )
+      calculateAdaptiveGeometryResponseForLogicalGeometry(176f, 3.5f, 1f),
+    ).map { it.resolve(refractionStrength = 0.7f) }
 
     responses.forEach { response ->
       response.values().forEach { value ->
         assertThat(value.isFinite()).isEqualTo(true)
       }
-      assertThat(response.blurScale in 0.6624f..1f).isEqualTo(true)
-      assertThat(response.displacementScale in 0.9f..1.54f).isEqualTo(true)
-      assertThat(response.reachScale in 0.855f..1.26f).isEqualTo(true)
+      assertThat(response.blurScale in 0.51f..1.07f).isEqualTo(true)
+      assertThat(response.displacementScale in 3.1f..3.38f).isEqualTo(true)
+      assertThat(response.reachScale in 2.295f..2.505f).isEqualTo(true)
       assertThat(response.toneGain).isEqualTo(1f)
       assertThat(response.neutralLiftWeight).isEqualTo(0f)
     }
   }
 
   @Test
-  fun adaptiveOptics_followHazeGeometryRules() {
+  fun adaptiveOptics_useIndependentGeometryFeatures() {
     val small = calculateAdaptiveGeometryResponseForLogicalGeometry(48f, 1f, 0f)
-    val large = calculateAdaptiveGeometryResponseForLogicalGeometry(240f, 1f, 0f)
+    val large = calculateAdaptiveGeometryResponseForLogicalGeometry(176f, 1f, 0f)
     val elongated = calculateAdaptiveGeometryResponseForLogicalGeometry(48f, 3.5f, 0f)
     val rounded = calculateAdaptiveGeometryResponseForLogicalGeometry(48f, 1f, 1f)
 
-    assertThat(small).isEqualTo(AdaptiveGeometryResponse(0.72f, 1.4f, 1.14f, 1f, 0f))
-    assertThat(large).isEqualTo(AdaptiveGeometryResponse(1f, 0.9f, 0.9f * 0.95f, 1f, 0f))
-    assertThat(elongated.blurScale).isLessThan(small.blurScale)
-    assertThat(elongated.displacementScale).isGreaterThan(small.displacementScale)
-    assertThat(rounded.reachScale).isGreaterThan(small.reachScale)
+    assertThat(small).isEqualTo(AdaptiveGeometryResponse(0.3f, 4f, 3f * 0.95f, 1f, 0f))
+    assertThat(large).isEqualTo(AdaptiveGeometryResponse(1.1f, 4f, 3f * 0.95f, 1f, 0f))
+    assertThat(elongated).isEqualTo(
+      AdaptiveGeometryResponse(0.3f, 4f * 1.1f, 3f * 0.95f, 1f, 0f),
+    )
+    assertThat(rounded).isEqualTo(AdaptiveGeometryResponse(0.3f, 4f, 3f * 1.05f, 1f, 0f))
   }
 
   @Test
@@ -421,7 +422,7 @@ class GlassRenderParamsTest {
       cornerRadiiPx = CornerRadii.zero,
     )
 
-    assertThat(resolved.blurRadiusPx).isLessThan(GlassOptics.Absolute().blurRadius.value)
+    assertThat(resolved.blurRadiusPx).isGreaterThan(GlassOptics.Absolute().blurRadius.value)
     assertThat(padding).isEqualTo(expectedLayerPadding(effect, rect, density))
   }
 
