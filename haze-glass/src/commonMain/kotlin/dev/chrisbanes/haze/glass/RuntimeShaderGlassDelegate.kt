@@ -479,57 +479,44 @@ internal class RuntimeShaderGlassDelegate(
     val scaleFactor = coordinates.scaleFactor
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
-    val effectiveBlurRadiusPx = effectiveSemanticBlurRadiusPx(
-      with(density) { effect.blurRadius.toPx() },
-    )
     val unscaledRadii = effect.shape.toCornerRadiiPx(
       layerSize = context.size,
       density = density,
       layoutDirection = layoutDirection,
     )
     val scaledRadii = unscaledRadii * scaleFactor
-    val geometryProfile = calculateRegularGeometryProfile(
-      materialSize = coordinates.materialSize,
-      cornerRadii = scaledRadii,
-      blurRadiusPx = effectiveBlurRadiusPx * scaleFactor,
-      refractionHeight = effect.refractionHeight,
+    val resolvedOptics = resolveGlassOptics(
+      optics = effect.optics,
+      materialSizePx = context.size,
+      density = density,
+      cornerRadiiPx = unscaledRadii,
     )
-    // The profile itself is geometry-only. Configured refraction strength naturally scales every
-    // coupled optical term, including zero, without selecting a default-only calibration branch.
-    val resolvedGeometry = geometryProfile.resolve(effect.refractionStrength)
-    val geometryBlurRadiusPx = effectiveBlurRadiusPx * resolvedGeometry.blurScale
-    val scaledBlurRadiusPx = geometryBlurRadiusPx * scaleFactor
-    val scaledBlurSigmaPx = if (geometryBlurRadiusPx > 0f) {
-      SemanticBlurKernel.radiusToSigma(geometryBlurRadiusPx) * scaleFactor
-    } else {
-      0f
-    }
     val lightPosition = effect.lightPosition
       .takeOrElse { context.size.center } * scaleFactor
     return GlassRenderParams(
       coordinates = coordinates,
-      refractionStrength = resolvedGeometry.refractionStrength,
+      refractionStrength = resolvedOptics.refractionStrength,
       specularIntensity = effect.specularIntensity.coerceIn(0f, 1f),
-      depth = effect.depth.coerceIn(0f, 1f),
+      depth = resolvedOptics.depth,
       ambientResponse = effect.ambientResponse.coerceIn(0f, 1f),
       tint = effect.tint,
       edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() } * scaleFactor,
-      blurRadiusPx = scaledBlurRadiusPx,
-      blurSigmaPx = scaledBlurSigmaPx,
-      progressive = effect.progressive,
-      refractionHeightPx = resolvedGeometry.profileReachPx,
+      blurRadiusPx = resolvedOptics.blurRadiusPx * scaleFactor,
+      blurSigmaPx = resolvedOptics.blurSigmaPx * scaleFactor,
+      progressive = resolvedOptics.progressive,
+      refractionHeightPx = resolvedOptics.refractionHeightPx * scaleFactor,
       chromaticAberrationStrength = effect.chromaticAberrationStrength.coerceIn(0f, 1f),
       surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),
       chromaticAberrationMode = effect.chromaticAberrationMode.ordinal.toFloat(),
       contrast = effect.contrast.coerceIn(-1f, 1f),
       whitePoint = effect.whitePoint.coerceIn(-1f, 1f),
       chromaMultiplier = effect.chromaMultiplier.coerceIn(0f, 2f),
-      refractionScalePx = effect.refractionScale.coerceAtLeast(0f) * scaleFactor,
+      refractionScalePx = resolvedOptics.refractionScalePx * scaleFactor,
       contentNormalBlend = effect.contentNormalBlend.coerceIn(0f, 1f),
       specularExponent = effect.specularExponent.coerceAtLeast(0f),
       fresnelExponent = effect.fresnelExponent.coerceAtLeast(0f),
-      geometryToneGain = resolvedGeometry.toneGain,
-      geometryNeutralLift = resolvedGeometry.neutralLiftWeight,
+      geometryToneGain = resolvedOptics.toneGain,
+      geometryNeutralLift = resolvedOptics.neutralLiftWeight,
       cornerRadii = scaledRadii,
       lightPosition = lightPosition,
       sampleStepPx = 2f * scaleFactor,

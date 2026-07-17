@@ -11,7 +11,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeProgressive
 
 /**
  * A [ProvidableCompositionLocal] which provides the default [GlassStyle] for all
@@ -26,35 +25,13 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
 public data class GlassStyle(
   val tint: Color = Color.Unspecified,
   val shape: RoundedCornerShape? = null,
-  val optics: GlassOptics = GlassOptics.Unspecified,
+  val optics: GlassOptics? = null,
   val lighting: GlassLighting = GlassLighting.Unspecified,
   val color: GlassColor = GlassColor.Unspecified,
   val rendering: GlassRendering = GlassRendering.Unspecified,
 ) {
   public companion object {
     public val Unspecified: GlassStyle = GlassStyle()
-  }
-}
-
-/**
- * Optical properties for [GlassStyle].
- *
- * @param depth Depth perception factor. Values greater than `0f` require drawing an additional
- * blurred sample for the glass content, which has a rendering cost. Use `0f` when depth layering
- * is not needed.
- */
-@ExperimentalHazeApi
-@Immutable
-public data class GlassOptics(
-  val refractionStrength: Float = Float.NaN,
-  val refractionHeight: Float = Float.NaN,
-  val refractionScale: Float = Float.NaN,
-  val depth: Float = Float.NaN,
-  val blurRadius: Dp = Dp.Unspecified,
-  val progressive: HazeProgressive? = null,
-) {
-  public companion object {
-    public val Unspecified: GlassOptics = GlassOptics()
   }
 }
 

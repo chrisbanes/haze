@@ -15,174 +15,18 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import kotlin.math.abs
-import kotlin.math.ceil
 
 private const val PixelTolerance = 1f / 255f
 private const val FloatingPointEpsilon = 1e-6f
 private const val MinimumChangedRatio = 0.01f
 private const val EdgePositionTolerancePx = 1f
 private const val MinimumDisplacementConfidence = .005f
-private const val UnclippedRedCarrierContrast = .6f
-private const val WeakRedCarrierDeviation = .0065f
-
-internal data class MetricBand(val min: Float, val max: Float) {
-  init {
-    require(min <= max) { "MetricBand min must not exceed max" }
-  }
-
-  operator fun contains(value: Float): Boolean = value in min..max
-}
-
-internal data class GlassReferenceBands(
-  val displacementPx: MetricBand,
-  val blurAttenuation: MetricBand,
-  val interiorLumaShift: MetricBand,
-)
-
-internal data class GlassOpticalMetrics(
-  val displacementPx: Float,
-  val blurAttenuation: Float,
-  val interiorLumaShift: Float,
-)
-
 internal data class RefractionStrengthMetrics(
   val disabledDisplacementPx: Float,
   val enabledDisplacementPx: Float,
   val directionalDisplacementDeltaPx: Float,
   val edgeBandResidualChangedPixelRatio: Float,
 )
-
-internal enum class GlassAppearance(val fileName: String) { Light("light"), Dark("dark") }
-
-internal enum class GlassSurface(val referenceBounds: IntRect) {
-  Capsule(IntRect(180, 270, 900, 462)),
-  Card(IntRect(120, 672, 960, 1200)),
-  Panel(IntRect(60, 1380, 1020, 2040)),
-}
-
-internal data class GlassReferenceKey(
-  val appearance: GlassAppearance,
-  val surface: GlassSurface,
-)
-
-/*
- * Opaque refracted screenshots do not expose alpha coverage. Their apparent luminance edge mixes
- * source-grid phase, refraction, tone, and backend quantization, so it cannot provide an invariant
- * material-width observable. Task 7 separately enforces geometry through alpha silhouette,
- * hard-clip, corner, padding, scale, and shape invariants. These bands intentionally contain only
- * optical observables derived from paired grid/uniform captures.
- */
-internal val Ios26RegularReferenceMetrics = mapOf(
-  GlassReferenceKey(GlassAppearance.Light, GlassSurface.Capsule) to
-    GlassOpticalMetrics(-1.6625061f, .04242347f, .05534905f),
-  GlassReferenceKey(GlassAppearance.Light, GlassSurface.Card) to
-    GlassOpticalMetrics(-.7538605f, 0f, .02857155f),
-  GlassReferenceKey(GlassAppearance.Light, GlassSurface.Panel) to
-    GlassOpticalMetrics(-.7777786f, .00241895f, .02864403f),
-  GlassReferenceKey(GlassAppearance.Dark, GlassSurface.Capsule) to
-    GlassOpticalMetrics(-.7862549f, .01405199f, .00119604f),
-  GlassReferenceKey(GlassAppearance.Dark, GlassSurface.Card) to
-    GlassOpticalMetrics(-.22807312f, .00067111f, .00567346f),
-  GlassReferenceKey(GlassAppearance.Dark, GlassSurface.Panel) to
-    GlassOpticalMetrics(-.13253021f, .00105703f, .01514573f),
-)
-
-/** Displacement uses ±max(10%, 1px); normalized optical metrics use ±max(10%, 1/255). */
-internal val Ios26RegularReferenceBands = Ios26RegularReferenceMetrics.mapValues { (_, value) ->
-  GlassReferenceBands(
-    value.displacementPx.band(1f),
-    value.blurAttenuation.band(PixelTolerance),
-    value.interiorLumaShift.band(PixelTolerance),
-  )
-}
-
-private fun Float.band(minimum: Float): MetricBand {
-  val tolerance = maxOf(abs(this) * .1f, minimum)
-  return MetricBand(this - tolerance, this + tolerance)
-}
-
-internal fun measureGlassOpticalMetrics(
-  grid: PixelSnapshot,
-  uniform: PixelSnapshot,
-  surfaceBounds: IntRect,
-  backgroundBounds: IntRect,
-  gridSpacingPx: Int,
-): GlassOpticalMetrics {
-  grid.requireComparableSnapshot(uniform)
-  grid.requireContains(surfaceBounds, "Surface bounds")
-  grid.requireContains(backgroundBounds, "Background bounds")
-  val centerY = (surfaceBounds.top + surfaceBounds.bottom) / 2
-  val expected = ceil((surfaceBounds.left + gridSpacingPx / 8f) / gridSpacingPx) * gridSpacingPx
-  val search = maxOf(4, gridSpacingPx * 7 / 24)
-  val range = maxOf(0, expected.toInt() - search)..minOf(grid.width - 1, expected.toInt() + search)
-  val interior = surfaceBounds.middleQuarter()
-  val sourceEnergy = grid.highFrequencyEnergy(backgroundBounds)
-  require(sourceEnergy > FloatingPointEpsilon) { "Background must contain source detail" }
-  return GlassOpticalMetrics(
-    pairedGridDisplacementPx(
-      grid,
-      uniform,
-      centerY,
-      range,
-      expected,
-      referenceY = backgroundBounds.top + gridSpacingPx / 2,
-    ),
-    grid.highFrequencyEnergy(interior) / sourceEnergy,
-    uniform.meanLuminance(interior) - uniform.meanLuminance(backgroundBounds),
-  )
-}
-
-internal fun pairedGridDisplacementPx(
-  grid: PixelSnapshot,
-  uniform: PixelSnapshot,
-  y: Int,
-  range: IntRange,
-  expected: Float,
-  referenceY: Int = y,
-): Float {
-  grid.requireComparableSnapshot(uniform)
-  require(y in 0 until grid.height) { "Displacement y must be within the snapshot" }
-  require(referenceY in 0 until grid.height) { "Displacement reference y must be within the snapshot" }
-  require(range.first >= 0 && range.last < grid.width) { "Displacement range must be within the snapshot" }
-  fun signal(channel: Int, scanY: Int) = range.map { x ->
-    abs(grid[x, scanY].channel(channel) - uniform[x, scanY].channel(channel))
-  }
-  val maxChannelResidual = range.map { x ->
-    val first = grid[x, y]
-    val second = uniform[x, y]
-    maxOf(
-      abs(first.red - second.red),
-      abs(first.green - second.green),
-      abs(first.blue - second.blue),
-    )
-  }
-  val subCodeResidual = maxChannelResidual.average() <= PixelTolerance &&
-    maxChannelResidual.any { it > FloatingPointEpsilon }
-  val sourceContrasts = (0..2).associateWith { signal(it, referenceY).maxOrNull() ?: Float.MAX_VALUE }
-  val candidateDeviations = (0..2).associateWith { signal(it, y).standardDeviation() }
-  val carrierOrder = if (sourceContrasts.getValue(0) <= UnclippedRedCarrierContrast) {
-    if (candidateDeviations.getValue(0) < WeakRedCarrierDeviation) {
-      listOf(1, 0, 2)
-    } else {
-      listOf(0, 1, 2)
-    }
-  } else {
-    (0..2).sortedBy(sourceContrasts::getValue)
-  }
-  val attempts = carrierOrder.map { channel ->
-    runCatching {
-      pairedCarrierDisplacementPx(
-        source = signal(channel, referenceY),
-        candidate = signal(channel, y),
-        range = range,
-        expected = expected,
-        subCodeResidual = subCodeResidual,
-      )
-    }
-  }
-  attempts.firstOrNull { it.isSuccess }?.let { return it.getOrThrow() }
-  throw attempts.firstNotNullOf { it.exceptionOrNull() }
-}
 
 internal fun pairedCarrierDisplacementDeltaPx(
   disabledCarrier: PixelSnapshot,
@@ -239,70 +83,6 @@ internal fun pairedCarrierDisplacementDeltaPx(
     return indices.sumOf { index -> ((range.first + index) * values[index]).toDouble() }.toFloat() / weight
   }
   return centroid(candidate, "Enabled") - centroid(source, "Disabled")
-}
-
-private fun pairedCarrierDisplacementPx(
-  source: List<Float>,
-  candidate: List<Float>,
-  range: IntRange,
-  expected: Float,
-  subCodeResidual: Boolean,
-): Float {
-  check(source.maxOrNull()?.let { it > PixelTolerance } == true) {
-    "Displacement reference feature is missing"
-  }
-  val sourcePeak = range.first + source.indices.maxBy { source[it] }
-  check(abs(sourcePeak - expected) <= 2f) { "Displacement reference phase does not match expected" }
-  if (candidate.average() <= PixelTolerance) {
-    if (subCodeResidual) return 0f
-    error("Displacement feature is missing")
-  }
-  val sourceContrast = source.max()
-  val candidateContrast = candidate.max()
-  val confidence = candidateContrast * (1f - sourceContrast) / sourceContrast
-  check(confidence >= MinimumDisplacementConfidence) {
-    "Displacement feature has insufficient confidence: $confidence"
-  }
-  val candidateDeviation = candidate.standardDeviation()
-  check(candidateDeviation >= PixelTolerance * .25f) {
-    "Displacement residual is diffuse rather than localized: deviation=$candidateDeviation, confidence=$confidence"
-  }
-  val peakIndex = candidate.indices.maxBy { candidate[it] }
-  val exclusionRadius = maxOf(2, candidate.size / 3)
-  val secondPeak = candidate.indices
-    .filter { abs(it - peakIndex) > exclusionRadius }
-    .maxOfOrNull { candidate[it] } ?: 0f
-  val total = candidate.sum()
-  check(
-    secondPeak < candidate[peakIndex] * .85f ||
-      (candidate[peakIndex] + secondPeak) / total < .5f,
-  ) {
-    "Displacement feature is ambiguous: peak=$peakIndex/${candidate[peakIndex]}, second=$secondPeak"
-  }
-  check(total > FloatingPointEpsilon) { "Displacement feature has no confidence" }
-  val sourceThreshold = maxOf(PixelTolerance, source.max() * .1f)
-  val candidateThreshold = maxOf(PixelTolerance, candidate.max() * .1f)
-  val sourceOnset = source.indexOfFirst { it >= sourceThreshold }
-  val candidateOnset = candidate.indexOfFirst { it >= candidateThreshold }
-  check(sourceOnset >= 0 && candidateOnset >= 0) { "Displacement feature onset is missing" }
-  val centroidThreshold = maxOf(PixelTolerance, candidate.max() * .25f)
-  val centroidIndices = candidate.indices.filter { candidate[it] >= centroidThreshold }
-  val centroidWeight = centroidIndices.sumOf { candidate[it].toDouble() }.toFloat()
-  val actual = centroidIndices.sumOf { index ->
-    ((range.first + index) * candidate[index]).toDouble()
-  }.toFloat() / centroidWeight
-  val residual = actual - expected
-  val onsetDirection = kotlin.math.sign((candidateOnset - sourceOnset).toFloat())
-  val direction = if (onsetDirection == 0f) kotlin.math.sign(residual) else onsetDirection
-  return direction * abs(residual)
-}
-
-// Red is stable below clipping contrast; weak residuals use green's extra quantization headroom.
-// For stronger source lines, prefer the least-clipped carrier and fall back only when invalid.
-private fun Color.channel(index: Int): Float = when (index) {
-  0 -> red
-  1 -> green
-  else -> blue
 }
 
 private fun List<Float>.standardDeviation(): Float {
@@ -674,22 +454,6 @@ private fun PixelSnapshot.requireContains(bounds: IntRect, label: String) {
   ) {
     "$label $bounds must be within ${width}x$height snapshot bounds"
   }
-}
-
-private fun IntRect.middleQuarter() = IntRect(
-  left + width * 3 / 8,
-  top + height * 3 / 8,
-  right - width * 3 / 8,
-  bottom - height * 3 / 8,
-)
-
-private fun PixelSnapshot.meanLuminance(bounds: IntRect): Float {
-  requireContains(bounds, "Luminance bounds")
-  var total = 0f
-  for (y in bounds.top until bounds.bottom) {
-    for (x in bounds.left until bounds.right) total += this[x, y].luminance()
-  }
-  return total / (bounds.width * bounds.height)
 }
 
 internal fun PixelSnapshot.assertZeroAlphaHasZeroRgb(

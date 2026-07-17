@@ -150,7 +150,7 @@ GlassStyle(
 // After
 GlassStyle(
   tint = Color.White.copy(alpha = 0.12f),
-  optics = GlassOptics(
+  optics = GlassOptics.Absolute(
     refractionStrength = 0.7f,
     depth = 0.4f,
   ),

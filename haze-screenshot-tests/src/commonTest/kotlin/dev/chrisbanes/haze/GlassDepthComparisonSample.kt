@@ -22,7 +22,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.test.ScreenshotTheme
+import dev.chrisbanes.haze.test.ScreenshotUiTest
 
 internal fun glassDepthProgressionVisualEffect(
   depth: Float,
@@ -30,13 +33,43 @@ internal fun glassDepthProgressionVisualEffect(
 ): GlassVisualEffect {
   return GlassVisualEffect().apply {
     tint = Color.White.copy(alpha = 0.12f)
-    refractionStrength = 0.7f
-    this.depth = depth
-    blurRadius = 32.dp
+    optics = GlassOptics.Absolute(depth = depth, blurRadius = 32.dp)
     specularIntensity = 0.4f
     ambientResponse = 0.5f
     edgeSoftness = 8.dp
     this.shape = shape
+  }
+}
+
+internal fun ScreenshotUiTest.assertGlassDepthProgression() {
+  val shape = RoundedCornerShape(28.dp)
+  val visualEffect = glassDepthProgressionVisualEffect(depth = 0f, shape = shape)
+
+  setContent {
+    ScreenshotTheme {
+      GlassDepthSingleSample(
+        visualEffect = visualEffect,
+        shape = shape,
+      )
+    }
+  }
+
+  val depth0 = captureRootPixels().snapshot()
+
+  visualEffect.updateAbsoluteOptics { copy(depth = 0.5f) }
+  waitForIdle()
+  val depth50 = captureRootPixels().snapshot()
+
+  visualEffect.updateAbsoluteOptics { copy(depth = 1f) }
+  waitForIdle()
+  val depth100 = captureRootPixels().snapshot()
+
+  assertDepthProgression(depth0, depth50, depth100)
+
+  listOf(0f to "0", 0.5f to "50", 1f to "100").forEach { (depth, snapshotName) ->
+    visualEffect.updateAbsoluteOptics { copy(depth = depth) }
+    waitForIdle()
+    captureRoot(snapshotName)
   }
 }
 
