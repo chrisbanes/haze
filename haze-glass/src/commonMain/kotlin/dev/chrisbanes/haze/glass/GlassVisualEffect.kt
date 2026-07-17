@@ -23,14 +23,13 @@ import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
-import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 
 /**
- * A [VisualEffect] implementation that simulates Apple's iOS Liquid Glass look:
+ * A [VisualEffect] implementation that renders a translucent refractive glass material.
  * refraction, depth layering, specular highlights, and soft tinted glass.
  */
 @ExperimentalHazeApi
@@ -39,15 +38,12 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   /** Creates a new [GlassVisualEffect] copying all properties from [other]. */
   public constructor(other: GlassVisualEffect) : this() {
-    refractionStrength = other.refractionStrength
+    _optics = other._optics
     specularIntensity = other.specularIntensity
-    depth = other.depth
     ambientResponse = other.ambientResponse
     tint = other.tint
     edgeSoftness = other.edgeSoftness
     lightPosition = other.lightPosition
-    blurRadius = other.blurRadius
-    refractionHeight = other.refractionHeight
     chromaticAberrationStrength = other.chromaticAberrationStrength
     _surfaceProfile = other._surfaceProfile
     _chromaticAberrationMode = other._chromaticAberrationMode
@@ -56,15 +52,11 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     contrast = other.contrast
     whitePoint = other.whitePoint
     chromaMultiplier = other.chromaMultiplier
-    refractionScale = other.refractionScale
     contentNormalBlend = other.contentNormalBlend
     specularExponent = other.specularExponent
     fresnelExponent = other.fresnelExponent
     compositionLocalStyle = other.compositionLocalStyle
     style = other.style
-    if (other.progressiveOverrideSpecified) {
-      progressive = other._progressive
-    }
   }
 
   private var isAttached: Boolean = false
@@ -160,25 +152,23 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   }
 
   override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    val effectiveBlurRadiusPx = effectiveSemanticBlurRadiusPx(with(density) { blurRadius.toPx() })
-    val resolvedBlurScale = if (
+    val validGeometry =
       rect.width.isFinite() && rect.height.isFinite() && rect.width > 0f && rect.height > 0f
-    ) {
-      // Layout direction only permutes the corner radii, while calibration uses their minimum.
-      val cornerRadii = shape.toCornerRadiiPx(rect.size, density, LayoutDirection.Ltr)
-      calculateRegularGeometryProfile(
-        materialSize = rect.size,
-        cornerRadii = cornerRadii,
-        blurRadiusPx = effectiveBlurRadiusPx,
-        refractionHeight = refractionHeight,
-      ).resolve(refractionStrength).blurScale
+    val cornerRadii = if (validGeometry) {
+      shape.toCornerRadiiPx(rect.size, density, LayoutDirection.Ltr)
     } else {
-      1f
+      CornerRadii.zero
     }
+    val resolved = resolveGlassOptics(
+      optics = optics,
+      materialSizePx = rect.size,
+      density = density,
+      cornerRadiiPx = cornerRadii,
+    )
     val paddingPx = calculateGlassSamplePaddingPx(
-      blurRadiusPx = effectiveBlurRadiusPx * resolvedBlurScale,
-      refractionScale = refractionScale,
-      refractionStrength = refractionStrength,
+      blurRadiusPx = resolved.blurRadiusPx,
+      refractionScale = resolved.refractionScalePx,
+      refractionStrength = resolved.refractionStrength,
       chromaticAberrationStrength = chromaticAberrationStrength,
       edgeSoftnessPx = with(density) { edgeSoftness.toPx() },
       foregroundOutsetPx = 0f,
@@ -188,29 +178,35 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   override fun shouldPreferClipToAreaBounds(): Boolean = edgeSoftness <= 0.dp && shape.hasZeroCornerRadii()
 
+  private var _optics: GlassOptics? = null
+
   /**
-   * Strength of refractive distortion, in the range `0f..1f`.
+   * Complete optical configuration for this effect.
    *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified.
-   *  - [GlassStyle.refractionStrength] value set in [style], if specified.
-   *  - [GlassStyle.refractionStrength] value set in the [LocalGlassStyle] composition local.
+   * A direct value takes precedence over [style], [LocalGlassStyle], and [GlassDefaults]. Call
+   * [clearOpticsOverride] to restore the next complete inherited value.
    */
-  public var refractionStrength: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleOptics.refractionStrength }
-        .takeOrElse { localOptics.refractionStrength }
-        .takeOrElse { GlassDefaults.refractionStrength }
-    }
+  public var optics: GlassOptics
+    get() = _optics ?: style.optics ?: compositionLocalStyle.optics ?: GlassDefaults.optics
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "refractionStrength changed. Current: $field. New: $value" }
-        field = value.coerceIn(0f, 1f)
-        dirtyTracker += GlassDirtyFields.RefractionStrength
+      if (value != _optics) {
+        HazeLogger.d(TAG) { "optics changed. Current: $_optics. New: $value" }
+        _optics = value
+        dirtyTracker += GlassDirtyFields.Optics
       }
     }
+
+  /**
+   * Clears the direct [optics] override and restores inherited values from [style] and
+   * [LocalGlassStyle].
+   */
+  public fun clearOpticsOverride() {
+    if (_optics != null) {
+      HazeLogger.d(TAG) { "optics override cleared. Current: $_optics" }
+      _optics = null
+      dirtyTracker += GlassDirtyFields.Optics
+    }
+  }
 
   /**
    * Intensity of specular highlights, in the range `0f..1f`.
@@ -233,33 +229,6 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
         HazeLogger.d(TAG) { "specularIntensity changed. Current: $field. New: $value" }
         field = value.coerceIn(0f, 1f)
         dirtyTracker += GlassDirtyFields.SpecularIntensity
-      }
-    }
-
-  /**
-   * Depth perception factor (0 = flat, 1 = deep layered glass).
-   *
-   * Values greater than `0f` require drawing an additional blurred sample for the glass content,
-   * which has a rendering cost. Use `0f` when depth layering is not needed.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified.
-   *  - [GlassStyle.depth] value set in [style], if specified.
-   *  - [GlassStyle.depth] value set in the [LocalGlassStyle] composition local.
-   */
-  public var depth: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleOptics.depth }
-        .takeOrElse { localOptics.depth }
-        .takeOrElse { GlassDefaults.depth }
-    }
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "depth changed. Current: $field. New: $value" }
-        field = value.coerceIn(0f, 1f)
-        dirtyTracker += GlassDirtyFields.Depth
       }
     }
 
@@ -358,92 +327,6 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
         HazeLogger.d(TAG) { "lightPosition changed. Current: $field. New: $value" }
         field = value
         dirtyTracker += GlassDirtyFields.LightPosition
-      }
-    }
-
-  /**
-   * Radius of the blur applied to create depth effect.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified.
-   *  - [GlassStyle.blurRadius] value set in [style], if specified.
-   *  - [GlassStyle.blurRadius] value set in the [LocalGlassStyle] composition local.
-   *
-   * **Note:** On Android API 33+ and Skiko targets, the runtime-shader delegate uses
-   * a platform blur render effect as the blurred content input to the runtime shader.
-   */
-  public var blurRadius: Dp = Dp.Unspecified
-    get() {
-      return field
-        .takeOrElse { styleOptics.blurRadius }
-        .takeOrElse { localOptics.blurRadius }
-        .takeOrElse { GlassDefaults.blurRadius }
-    }
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "blurRadius changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += GlassDirtyFields.BlurRadius
-      }
-    }
-
-  private var progressiveOverrideSpecified: Boolean = false
-  private var _progressive: HazeProgressive? = null
-
-  /**
-   * Parameters for enabling progressive blur, or null for a uniform blur effect.
-   *
-   * Setting this property directly, including to null, overrides values inherited from [style]
-   * and [LocalGlassStyle]. Call [clearProgressiveOverride] to restore inherited values.
-   */
-  public var progressive: HazeProgressive?
-    get() {
-      return if (progressiveOverrideSpecified) {
-        _progressive
-      } else {
-        styleOptics.progressive ?: localOptics.progressive
-      }
-    }
-    set(value) {
-      if (!progressiveOverrideSpecified || value != _progressive) {
-        HazeLogger.d(TAG) { "progressive changed. Current: $_progressive. New: $value" }
-        progressiveOverrideSpecified = true
-        _progressive = value
-        dirtyTracker += GlassDirtyFields.Progressive
-      }
-    }
-
-  public fun clearProgressiveOverride() {
-    if (progressiveOverrideSpecified) {
-      HazeLogger.d(TAG) { "progressive override cleared. Current: $_progressive" }
-      progressiveOverrideSpecified = false
-      _progressive = null
-      dirtyTracker += GlassDirtyFields.Progressive
-    }
-  }
-
-  /**
-   * Height of the refraction zone expressed as a fraction of the smallest dimension (0f..1f).
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified.
-   *  - [GlassStyle.refractionHeight] value set in [style], if specified.
-   *  - [GlassStyle.refractionHeight] value set in the [LocalGlassStyle] composition local.
-   */
-  public var refractionHeight: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleOptics.refractionHeight }
-        .takeOrElse { localOptics.refractionHeight }
-        .takeOrElse { GlassDefaults.refractionHeight }
-    }
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "refractionHeight changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += GlassDirtyFields.RefractionHeight
       }
     }
 
@@ -667,30 +550,6 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     }
 
   /**
-   * Scale factor for refraction distortion.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified.
-   *  - [GlassStyle.refractionScale] value set in [style], if specified.
-   *  - [GlassStyle.refractionScale] value set in the [LocalGlassStyle] composition local.
-   */
-  public var refractionScale: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleOptics.refractionScale }
-        .takeOrElse { localOptics.refractionScale }
-        .takeOrElse { GlassDefaults.refractionScale }
-    }
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "refractionScale changed. Current: $field. New: $value" }
-        field = value.coerceAtLeast(0f)
-        dirtyTracker += GlassDirtyFields.RefractionScale
-      }
-    }
-
-  /**
    * Blend factor for content normals, in the range `0f..1f`.
    *
    * There are precedence rules to how this styling property is applied:
@@ -782,8 +641,6 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
       }
     }
 
-  private val styleOptics: GlassOptics get() = style.optics
-  private val localOptics: GlassOptics get() = compositionLocalStyle.optics
   private val styleLighting: GlassLighting get() = style.lighting
   private val localLighting: GlassLighting get() = compositionLocalStyle.lighting
   private val styleColor: GlassColor get() = style.color
@@ -809,7 +666,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) = Unit
   }
 
-  private fun resetDirtyTracker() {
+  internal fun resetDirtyTracker() {
     dirtyTracker = Bitmask()
   }
 
@@ -821,23 +678,8 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   }
 
   private fun onStyleChanged(old: GlassStyle, new: GlassStyle) {
-    if (old.optics.refractionStrength != new.optics.refractionStrength) {
-      dirtyTracker += GlassDirtyFields.RefractionStrength
-    }
-    if (old.optics.depth != new.optics.depth) {
-      dirtyTracker += GlassDirtyFields.Depth
-    }
-    if (old.optics.blurRadius != new.optics.blurRadius) {
-      dirtyTracker += GlassDirtyFields.BlurRadius
-    }
-    if (old.optics.progressive != new.optics.progressive) {
-      dirtyTracker += GlassDirtyFields.Progressive
-    }
-    if (old.optics.refractionHeight != new.optics.refractionHeight) {
-      dirtyTracker += GlassDirtyFields.RefractionHeight
-    }
-    if (old.optics.refractionScale != new.optics.refractionScale) {
-      dirtyTracker += GlassDirtyFields.RefractionScale
+    if (old.optics != new.optics) {
+      dirtyTracker += GlassDirtyFields.Optics
     }
     if (old.lighting.specularIntensity != new.lighting.specularIntensity) {
       dirtyTracker += GlassDirtyFields.SpecularIntensity

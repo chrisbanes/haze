@@ -40,6 +40,48 @@ class GlassVisualEffectLifecycleTest {
 
     assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
   }
+
+  @Test
+  fun update_adaptiveToAbsoluteInvalidatesDrawAndLayerBounds() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    effect.optics = GlassOptics.Absolute(refractionStrength = 0.4f)
+    effect.update(context)
+
+    assertThat(context.invalidateDrawCalls).isEqualTo(1)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
+  }
+
+  @Test
+  fun update_replacingAbsoluteInvalidatesDrawAndLayerBounds() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(refractionStrength = 0.4f)
+      resetDirtyTracker()
+    }
+    val context = TrackingVisualEffectContext()
+
+    effect.optics = (effect.optics as GlassOptics.Absolute).copy(refractionStrength = 0.8f)
+    effect.update(context)
+
+    assertThat(context.invalidateDrawCalls).isEqualTo(1)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
+  }
+
+  @Test
+  fun update_clearingAbsoluteOverrideInvalidatesDrawAndLayerBounds() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(refractionStrength = 0.4f)
+      resetDirtyTracker()
+    }
+    val context = TrackingVisualEffectContext()
+
+    effect.clearOpticsOverride()
+    effect.update(context)
+
+    assertThat(context.invalidateDrawCalls).isEqualTo(1)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
+  }
 }
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
@@ -56,6 +98,7 @@ private class TrackingVisualEffectContext : VisualEffectContext {
   override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext)
 
   var invalidateLayerBoundsCalls: Int = 0
+  var invalidateDrawCalls: Int = 0
 
   override fun requirePlatformContext(): PlatformContext = error("Unused in lifecycle test")
 
@@ -66,7 +109,9 @@ private class TrackingVisualEffectContext : VisualEffectContext {
 
   override fun requireGraphicsContext(): GraphicsContext = error("Unused in lifecycle test")
 
-  override fun invalidateDraw() = Unit
+  override fun invalidateDraw() {
+    invalidateDrawCalls++
+  }
 
   override fun invalidateLayerBounds() {
     invalidateLayerBoundsCalls++

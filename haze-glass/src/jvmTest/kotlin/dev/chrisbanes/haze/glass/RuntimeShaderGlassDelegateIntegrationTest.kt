@@ -79,7 +79,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   @Test
   fun zeroRefractionScale_doesNotAllocateOrRecordDetail() = runComposeUiTest {
     val hazeState = HazeState()
-    val effect = activeDetailEffect().apply { refractionScale = 0f }
+    val effect = activeDetailEffect().apply {
+      optics = (optics as GlassOptics.Absolute).copy(refractionScale = 0f)
+    }
 
     setContent {
       Box(Modifier.size(120.dp)) {
@@ -110,7 +112,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   @Test
   fun epsilonRefractionStrength_doesNotAllocateOrRecordDetail() = runComposeUiTest {
     val hazeState = HazeState()
-    val effect = activeDetailEffect().apply { refractionStrength = 1e-6f }
+    val effect = activeDetailEffect().apply {
+      optics = (optics as GlassOptics.Absolute).copy(refractionStrength = 1e-6f)
+    }
 
     setContent {
       Box(Modifier.size(120.dp)) {
@@ -134,7 +138,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   @Test
   fun lowVisibleRefractionStrength_allocatesAndRecordsDetail() = runComposeUiTest {
     val hazeState = HazeState()
-    val effect = activeDetailEffect().apply { refractionStrength = .1f }
+    val effect = activeDetailEffect().apply {
+      optics = (optics as GlassOptics.Absolute).copy(refractionStrength = .1f)
+    }
 
     setContent {
       Box(Modifier.size(120.dp)) {
@@ -186,9 +192,11 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   private fun activeDetailEffect() = GlassVisualEffect().apply {
-    refractionStrength = 0.5f
-    refractionScale = 20f
-    blurRadius = 0.dp
+    optics = GlassOptics.Absolute(
+      refractionStrength = 0.5f,
+      refractionScale = 20f,
+      blurRadius = 0.dp,
+    )
     specularIntensity = 0f
   }
 }

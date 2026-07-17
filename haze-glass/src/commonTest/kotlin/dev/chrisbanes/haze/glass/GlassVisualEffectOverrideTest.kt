@@ -165,4 +165,18 @@ class GlassVisualEffectOverrideTest {
     assertThat(dirtyFields).contains("ChromaticAberrationMode")
     assertThat(dirtyFields).contains("Shape")
   }
+
+  @Test
+  fun opticsOverride_copyAndClearPreserveExpectedSource() {
+    val absolute = GlassOptics.Absolute(refractionStrength = 0.4f)
+    val original = GlassVisualEffect().apply { optics = absolute }
+    val copy = GlassVisualEffect(original)
+
+    assertThat(copy.optics).isEqualTo(absolute)
+
+    copy.clearOpticsOverride()
+
+    assertThat(copy.optics).isEqualTo(GlassDefaults.optics)
+    assertThat(GlassDirtyFields.stringify(copy.dirtyTracker)).contains("Optics")
+  }
 }

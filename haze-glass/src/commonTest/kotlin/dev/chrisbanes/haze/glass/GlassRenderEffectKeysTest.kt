@@ -55,16 +55,22 @@ class GlassRenderEffectKeysTest {
   fun blurKey_isUnchangedWhenOnlyOneSquareCornerBecomesRounded() {
     val base = params()
     fun calibratedParams(radii: CornerRadii): GlassRenderParams {
-      val resolved = calculateRegularGeometryProfile(
-        materialSize = base.coordinates.materialSize,
-        cornerRadii = radii,
+      val response = calculateAdaptiveGeometryResponse(
+        materialSizePx = base.coordinates.materialSize,
+        density = androidx.compose.ui.unit.Density(1f),
+        cornerRadiiPx = radii,
+      )
+      val resolved = resolveAdaptiveGeometryOptics(
+        response = response,
+        refractionStrength = .7f,
+        shortestSidePx = base.coordinates.materialSize.minDimension,
         blurRadiusPx = base.blurRadiusPx,
+        refractionScalePx = base.refractionScalePx,
         refractionHeight = .5f,
-      ).resolve(.7f)
-      val radius = base.blurRadiusPx * resolved.blurScale
+      )
       return base.copy(
-        blurRadiusPx = radius,
-        blurSigmaPx = SemanticBlurKernel.radiusToSigma(radius),
+        blurRadiusPx = resolved.blurRadiusPx,
+        blurSigmaPx = resolved.blurSigmaPx,
         geometryToneGain = resolved.toneGain,
         geometryNeutralLift = resolved.neutralLiftWeight,
       )
@@ -247,10 +253,11 @@ class GlassRenderEffectKeysTest {
 
   @Test
   fun defaultRefractionDetailVisibility_isFullySaturated() {
+    val regularBaseline = GlassOptics.Absolute()
     assertThat(
       calculateRefractionDetailVisibility(
-        refractionStrength = GlassDefaults.refractionStrength,
-        refractionScalePx = GlassDefaults.refractionScale,
+        refractionStrength = regularBaseline.refractionStrength,
+        refractionScalePx = regularBaseline.refractionScale,
         sampleStepPx = 2f,
       ),
     ).isEqualTo(1f)

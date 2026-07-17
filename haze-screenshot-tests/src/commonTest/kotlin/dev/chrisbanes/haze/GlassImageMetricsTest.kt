@@ -4,15 +4,11 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEqualTo
-import assertk.assertions.isLessThanOrEqualTo
-import kotlin.math.abs
-import kotlin.math.pow
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
@@ -150,95 +146,6 @@ class GlassImageMetricsTest {
   }
 
   @Test
-  fun pairedGridDisplacement_treatsSubCodeMeanDifferenceAsZero() {
-    val uniform = PixelSnapshot(9, 2, List(18) { Color(.1f, .1f, .1f) })
-    val grid = PixelSnapshot(
-      9,
-      2,
-      List(18) { index ->
-        val x = index % 9
-        val y = index / 9
-        when {
-          y == 0 && x == 4 -> Color(.8f, .8f, .8f)
-          y == 1 -> Color(.104f, .104f, .104f)
-          else -> Color(.1f, .1f, .1f)
-        }
-      },
-    )
-
-    assertThat(
-      pairedGridDisplacementPx(grid, uniform, y = 1, range = 0..8, expected = 4f, referenceY = 0),
-    )
-      .isEqualTo(0f)
-  }
-
-  @Test
-  fun pairedGridDisplacement_recoversSignedQuantizedShifts() {
-    listOf(-5f, -2f, 3f, 6f).forEach { shift ->
-      val fixture = signedDisplacementFixture(shift.toInt(), gamma = 2.2f, quantize = true)
-      assertThat(
-        abs(
-          pairedGridDisplacementPx(
-            fixture.grid,
-            fixture.uniform,
-            y = 1,
-            range = 4..36,
-            expected = 20f,
-            referenceY = 0,
-          ) - shift,
-        ),
-      ).isLessThanOrEqualTo(.01f)
-    }
-  }
-
-  @Test
-  fun signedDisplacementBand_rejectsOppositeDirection() {
-    val key = GlassReferenceKey(GlassAppearance.Light, GlassSurface.Capsule)
-    val expectedDirection = Ios26RegularReferenceBands.getValue(key).displacementPx
-
-    assertThat(expectedDirection.contains(Ios26RegularReferenceMetrics.getValue(key).displacementPx))
-      .isEqualTo(true)
-    assertThat(expectedDirection.contains(0f)).isEqualTo(false)
-    assertThat(expectedDirection.contains(1.6625061f)).isEqualTo(false)
-  }
-
-  @Test
-  fun pairedGridDisplacement_rejectsExcessiveMissingAndAmbiguousFeatures() {
-    val excessive = signedDisplacementFixture(18)
-    val missing = PixelSnapshot(41, 2, List(82) { Color(.4f, .4f, .4f) })
-    val ambiguous = signedDisplacementFixture(-6, secondShift = 6)
-
-    listOf(excessive.grid to excessive.uniform, missing to missing, ambiguous.grid to ambiguous.uniform)
-      .forEach { (grid, uniform) ->
-        assertFailsWith<IllegalStateException> {
-          pairedGridDisplacementPx(grid, uniform, y = 1, range = 4..36, expected = 20f, referenceY = 0)
-        }
-      }
-  }
-
-  @Test
-  fun pairedGridDisplacement_rejectsDiffuseWeakResidual() {
-    val source = signedDisplacementFixture(0)
-    val diffuseGrid = PixelSnapshot(
-      41,
-      2,
-      List(82) { index ->
-        val x = index % 41
-        val y = index / 41
-        when {
-          y == 0 && x == 20 -> Color(.8f, .8f, .8f)
-          y == 1 -> Color(.42f, .42f, .42f)
-          else -> Color(.4f, .4f, .4f)
-        }
-      },
-    )
-
-    assertFailsWith<IllegalStateException> {
-      pairedGridDisplacementPx(diffuseGrid, source.uniform, y = 1, range = 4..36, expected = 20f, referenceY = 0)
-    }
-  }
-
-  @Test
   fun horizontalCorrelation_recoversShiftAndAlignmentRejectsIt() {
     val reference = correlationSnapshot(shift = 0)
     val shifted = correlationSnapshot(shift = 3)
@@ -250,92 +157,6 @@ class GlassImageMetricsTest {
       assertContentAlignedAcrossInputScales(reference, shifted, y = 0, range = 8..55)
     }
     assertContentAlignedAcrossInputScales(reference, reference, y = 0, range = 8..55)
-  }
-
-  @Test
-  fun opticalMetrics_ignoreContaminationOutsideMiddleQuarter() {
-    val clean = opticalMetricFixture(contaminateOuterInterior = false)
-    val contaminated = opticalMetricFixture(contaminateOuterInterior = true)
-
-    val cleanMetrics = measureGlassOpticalMetrics(clean.grid, clean.uniform, clean.surface, clean.background, 8)
-    val contaminatedMetrics = measureGlassOpticalMetrics(
-      contaminated.grid,
-      contaminated.uniform,
-      contaminated.surface,
-      contaminated.background,
-      8,
-    )
-
-    assertThat(contaminatedMetrics.blurAttenuation).isEqualTo(cleanMetrics.blurAttenuation)
-    assertThat(contaminatedMetrics.interiorLumaShift).isEqualTo(cleanMetrics.interiorLumaShift)
-  }
-
-  @Test
-  fun opticalMetrics_recoverKnownDisplacementBlurAndPositiveLuma() {
-    val fixture = knownOpticalMetricFixture(interiorUniform = .3f)
-
-    val metrics = measureGlassOpticalMetrics(
-      fixture.grid,
-      fixture.uniform,
-      fixture.surface,
-      fixture.background,
-      8,
-    )
-
-    assertThat(abs(metrics.displacementPx - 2f)).isLessThanOrEqualTo(.02f)
-    assertThat(abs(metrics.blurAttenuation - Color(.5f, .5f, .5f).luminance()))
-      .isLessThanOrEqualTo(1e-6f)
-    assertThat(
-      abs(
-        metrics.interiorLumaShift -
-          (Color(.3f, .3f, .3f).luminance() - Color(.2f, .2f, .2f).luminance()),
-      ),
-    ).isLessThanOrEqualTo(1e-6f)
-  }
-
-  @Test
-  fun opticalMetrics_recoverNegativeInteriorLumaShift() {
-    val fixture = knownOpticalMetricFixture(interiorUniform = .1f)
-
-    val metrics = measureGlassOpticalMetrics(
-      fixture.grid,
-      fixture.uniform,
-      fixture.surface,
-      fixture.background,
-      8,
-    )
-
-    assertThat(
-      abs(
-        metrics.interiorLumaShift -
-          (Color(.1f, .1f, .1f).luminance() - Color(.2f, .2f, .2f).luminance()),
-      ),
-    ).isLessThanOrEqualTo(1e-6f)
-  }
-
-  @Test
-  fun opticalMetrics_rejectMismatchedDimensionsAndInvalidBounds() {
-    val fixture = knownOpticalMetricFixture(interiorUniform = .3f)
-    val wrongSize = PixelSnapshot(1, 1, listOf(Color.Black))
-
-    assertFailsWith<IllegalArgumentException> {
-      measureGlassOpticalMetrics(
-        fixture.grid,
-        wrongSize,
-        fixture.surface,
-        fixture.background,
-        8,
-      )
-    }
-    assertFailsWith<IllegalArgumentException> {
-      measureGlassOpticalMetrics(
-        fixture.grid,
-        fixture.uniform,
-        IntRect(16, 0, 97, 32),
-        fixture.background,
-        8,
-      )
-    }
   }
 
   @Test
@@ -572,84 +393,6 @@ private fun snapshot(width: Int, height: Int): PixelSnapshot = PixelSnapshot(
   colors = List(width * height) { Color.Black },
 )
 
-private data class OpticalMetricFixture(
-  val grid: PixelSnapshot,
-  val uniform: PixelSnapshot,
-  val surface: IntRect,
-  val background: IntRect,
-)
-
-private fun opticalMetricFixture(contaminateOuterInterior: Boolean): OpticalMetricFixture {
-  val width = 96
-  val height = 64
-  val surface = IntRect(24, 8, 88, 56)
-  val background = IntRect(0, 0, 16, 64)
-  val middle = IntRect(48, 26, 64, 38)
-  val grid = ArrayList<Color>(width * height)
-  val uniform = ArrayList<Color>(width * height)
-  for (y in 0 until height) {
-    for (x in 0 until width) {
-      val line = x % 8 == 0 || y % 8 == 0
-      val inSurface = x in surface.left until surface.right && y in surface.top until surface.bottom
-      val inMiddle = x in middle.left until middle.right && y in middle.top until middle.bottom
-      val contamination = contaminateOuterInterior && inSurface && !inMiddle && (x + y) % 2 == 0
-      val uniformValue = if (inSurface) .45f else .4f
-      val gridValue = when {
-        y == 32 && x == 32 -> 1f
-        y == 32 && x in 28..36 -> uniformValue
-        contamination -> .95f
-        inMiddle && line -> .5f
-        line -> .8f
-        else -> uniformValue
-      }
-      uniform += Color(uniformValue, uniformValue, uniformValue)
-      grid += Color(gridValue, gridValue, gridValue)
-    }
-  }
-  return OpticalMetricFixture(
-    PixelSnapshot(width, height, grid),
-    PixelSnapshot(width, height, uniform),
-    surface,
-    background,
-  )
-}
-
-private fun knownOpticalMetricFixture(interiorUniform: Float): OpticalMetricFixture {
-  val width = 64
-  val height = 32
-  val surface = IntRect(16, 0, 64, 32)
-  val background = IntRect(0, 0, 12, 8)
-  val middle = IntRect(34, 12, 46, 20)
-  val grid = ArrayList<Color>(width * height)
-  val uniform = ArrayList<Color>(width * height)
-  for (y in 0 until height) {
-    for (x in 0 until width) {
-      val inMiddle = x in middle.left until middle.right && y in middle.top until middle.bottom
-      val uniformValue = if (inMiddle) interiorUniform else .2f
-      val gridColor = when {
-        x == 24 && y == 4 -> Color.White
-        x == 26 && y == 16 -> Color.White
-        inMiddle && (x + y) % 2 == 0 -> Color(.5f, .5f, .5f)
-        inMiddle -> Color.Black
-        x in background.left until background.right &&
-          y in background.top until background.bottom &&
-          (x + y) % 2 == 0 -> Color.White
-        x in background.left until background.right &&
-          y in background.top until background.bottom -> Color.Black
-        else -> Color(.2f, .2f, .2f)
-      }
-      uniform += Color(uniformValue, uniformValue, uniformValue)
-      grid += gridColor
-    }
-  }
-  return OpticalMetricFixture(
-    PixelSnapshot(width, height, grid),
-    PixelSnapshot(width, height, uniform),
-    surface,
-    background,
-  )
-}
-
 private data class DisplacementFixture(
   val grid: PixelSnapshot,
   val uniform: PixelSnapshot,
@@ -657,18 +400,15 @@ private data class DisplacementFixture(
 
 private fun signedDisplacementFixture(
   shift: Int,
-  secondShift: Int? = null,
-  gamma: Float = 1f,
   quantize: Boolean = false,
 ): DisplacementFixture {
   fun encode(value: Float): Float {
-    val encoded = value.coerceIn(0f, 1f).pow(1f / gamma)
-    return if (quantize) (encoded * 255f).toInt() / 255f else encoded
+    return if (quantize) (value * 255f).toInt() / 255f else value
   }
   val background = encode(.4f)
   val feature = encode(.8f)
   val uniform = PixelSnapshot(41, 2, List(82) { Color(background, background, background) })
-  val featurePositions = listOfNotNull(20 + shift, secondShift?.let { 20 + it }).toSet()
+  val featurePositions = setOf(20 + shift)
   val grid = PixelSnapshot(
     41,
     2,

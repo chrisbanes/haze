@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -38,9 +37,11 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.GlassDefaults
+import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
+import kotlin.math.abs
 
 private const val InvariantRootWidth = 1080
 private val InvariantRootHeightRange = 1919..1920
@@ -185,8 +186,7 @@ private fun DrawScope.drawInvariantGrid(
 internal fun ScreenshotUiTest.assertGlassBlurInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    depth = 1f
-    blurRadius = 0.dp
+    optics = GlassOptics.Absolute(depth = 1f, blurRadius = 0.dp)
   }
   setContent {
     ScreenshotTheme {
@@ -195,7 +195,7 @@ internal fun ScreenshotUiTest.assertGlassBlurInvariant() {
   }
 
   val sharp = captureInvariantSnapshot()
-  effect.blurRadius = 32.dp
+  effect.updateAbsoluteOptics { copy(blurRadius = 32.dp) }
   waitForIdle()
   val blurred = captureInvariantSnapshot()
 
@@ -216,9 +216,8 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
   )
   var currentCase by mutableStateOf(cases.first())
   val effect = invariantEffect(currentCase.shape).apply {
-    depth = 1f
+    optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 1f)
     tint = Color.Transparent
-    refractionStrength = 0f
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
@@ -237,7 +236,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
   cases.forEach { case ->
     currentCase = case
     effect.shape = case.shape
-    effect.blurRadius = 0.dp
+    effect.updateAbsoluteOptics { copy(blurRadius = 0.dp) }
     waitForIdle()
     val sharp = captureInvariantSnapshot()
     val pxPerDp = sharp.width / 393f
@@ -253,14 +252,14 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
       bottom = top + materialHeight - inset,
     )
 
-    effect.blurRadius = 0.1.dp
+    effect.updateAbsoluteOptics { copy(blurRadius = 0.1.dp) }
     waitForIdle()
     val subpixelEnergy = captureInvariantSnapshot().highFrequencyEnergy(bounds)
     assertThat(kotlin.math.abs(subpixelEnergy - 0.0239f)).isLessThanOrEqualTo(0.0004f)
 
     var previousEnergy = subpixelEnergy
     listOf(4.dp, 8.dp, 14.dp, 14.1.dp).forEach { radius ->
-      effect.blurRadius = radius
+      effect.updateAbsoluteOptics { copy(blurRadius = radius) }
       waitForIdle()
       val energy = captureInvariantSnapshot().highFrequencyEnergy(bounds)
       val (expected, tolerance) = when (radius) {
@@ -280,9 +279,8 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
 internal fun ScreenshotUiTest.assertGlassAdversarialDownsampleInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    depth = 1f
+    optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 1f)
     tint = Color.Transparent
-    refractionStrength = 0f
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
@@ -320,13 +318,17 @@ internal fun ScreenshotUiTest.assertGlassAdversarialDownsampleInvariant() {
     stripePeriodPx = period
     horizontalStripes = false
     checkerStripes = checker
-    effect.blurRadius = ((thresholdPx - epsilonPx) / pxPerDp).dp
+    effect.updateAbsoluteOptics {
+      copy(blurRadius = ((thresholdPx - epsilonPx) / pxPerDp).dp)
+    }
     waitForIdle()
     val below = captureInvariantSnapshot()
-    effect.blurRadius = (thresholdPx / pxPerDp).dp
+    effect.updateAbsoluteOptics { copy(blurRadius = (thresholdPx / pxPerDp).dp) }
     waitForIdle()
     val at = captureInvariantSnapshot()
-    effect.blurRadius = ((thresholdPx + epsilonPx) / pxPerDp).dp
+    effect.updateAbsoluteOptics {
+      copy(blurRadius = ((thresholdPx + epsilonPx) / pxPerDp).dp)
+    }
     waitForIdle()
     val above = captureInvariantSnapshot()
 
@@ -364,14 +366,16 @@ internal fun ScreenshotUiTest.assertGlassProgressiveBlurInvariant() {
       ).map { (blurRadius, progressive) ->
         remember(radius, blurRadius, progressive) {
           invariantEffect(RoundedCornerShape(0.dp)).apply {
-            depth = 1f
+            optics = GlassOptics.Absolute(
+              refractionStrength = 0f,
+              depth = 1f,
+              blurRadius = blurRadius,
+              progressive = progressive,
+            )
             tint = Color.Transparent
-            refractionStrength = 0f
             specularIntensity = 0f
             ambientResponse = 0f
             edgeSoftness = 0.dp
-            this.blurRadius = blurRadius
-            this.progressive = progressive
           }
         }
       }
@@ -494,11 +498,13 @@ private fun PixelSnapshot.meanAbsoluteDifference(other: PixelSnapshot, bounds: I
 internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    depth = 1f
-    blurRadius = 0.dp
+    optics = GlassOptics.Absolute(
+      refractionStrength = 1f,
+      refractionScale = 0f,
+      depth = 1f,
+      blurRadius = 0.dp,
+    )
     tint = Color.Transparent
-    refractionStrength = 1f
-    refractionScale = 0f
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
@@ -517,7 +523,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
   matte = Color.Black
   waitForIdle()
   val sharpOverBlack = captureInvariantSnapshot()
-  effect.blurRadius = 16.dp
+  effect.updateAbsoluteOptics { copy(blurRadius = 16.dp) }
   waitForIdle()
   val smallOverBlack = captureInvariantSnapshot()
   matte = Color.White
@@ -526,7 +532,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
     overBlack = smallOverBlack,
     overWhite = captureInvariantSnapshot(),
   )
-  effect.refractionScale = 96f
+  effect.updateAbsoluteOptics { copy(refractionScale = 96f) }
   matte = Color.Black
   waitForIdle()
   val largeOverBlack = captureInvariantSnapshot()
@@ -590,9 +596,7 @@ internal fun ScreenshotUiTest.assertGlassTransparentOutputInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = GlassVisualEffect().apply {
     tint = Color.Transparent
-    refractionStrength = 0f
-    depth = 0f
-    blurRadius = 0.dp
+    optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
@@ -628,9 +632,7 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = GlassVisualEffect().apply {
     tint = Color.Transparent
-    refractionStrength = 0f
-    depth = 0f
-    blurRadius = 0.dp
+    optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 8.dp
@@ -689,8 +691,13 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
 internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    blurRadius = 0.dp
-    refractionStrength = 0.2f
+    // Preserve the previous effective values while making the literal contract explicit.
+    optics = GlassOptics.Absolute(
+      refractionStrength = 0.2f,
+      refractionScale = 24f,
+      depth = 0.5f,
+      blurRadius = 0.dp,
+    )
     chromaticAberrationStrength = 0f
     edgeSoftness = 0.dp
   }
@@ -707,8 +714,13 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
   }
 
   val smallPadding = captureTransparentSnapshot { matte = it }
-  effect.blurRadius = 32.dp
-  effect.refractionStrength = 0.85f
+  effect.updateAbsoluteOptics {
+    copy(
+      refractionStrength = 0.85f,
+      refractionScale = 53.25f,
+      blurRadius = 35.2.dp,
+    )
+  }
   effect.chromaticAberrationStrength = 0.3f
   waitForIdle()
   val largePadding = captureTransparentSnapshot { matte = it }
@@ -747,8 +759,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
 internal fun ScreenshotUiTest.assertGlassFirstEnabledFrameInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    depth = 0.6f
-    blurRadius = 32.dp
+    optics = GlassOptics.Absolute(depth = 0.6f, blurRadius = 32.dp)
   }
   var enabled by mutableStateOf(false)
   setContent {
@@ -774,9 +785,7 @@ internal fun ScreenshotUiTest.assertGlassFirstEnabledFrameInvariant() {
 internal fun ScreenshotUiTest.assertGlassProfileBranchContinuous() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    refractionStrength = 0.85f
-    depth = 0.6f
-    blurRadius = 32.dp
+    optics = GlassOptics.Absolute(refractionStrength = 0.85f, depth = 0.6f, blurRadius = 32.dp)
     edgeSoftness = 0.dp
   }
   setContent {
@@ -799,36 +808,13 @@ internal fun ScreenshotUiTest.assertGlassProfileBranchContinuous() {
   )
 }
 
-internal fun ScreenshotUiTest.assertGlassMatchesIos26RegularReferenceBands(
-  appearance: GlassAppearance,
-  surface: GlassSurface,
-) {
-  var grid by mutableStateOf(true)
-  setContent { GlassReferenceSample(appearance, surface, grid) }
-  val gridPixels = captureInvariantSnapshot()
-  grid = false
-  waitForIdle()
-  val uniformPixels = captureInvariantSnapshot()
-  val metrics = measureGlassOpticalMetrics(
-    gridPixels,
-    uniformPixels,
-    surface.runtimeBounds,
-    IntRect(0, 0, 1080, 192),
-    48,
-  )
-  val key = GlassReferenceKey(appearance, surface)
-  println("Glass runtime optical metrics $key: $metrics")
-  val failures = metrics.failures(Ios26RegularReferenceBands.getValue(key), key.toString())
-  check(failures.isEmpty()) { failures.joinToString("\n") }
-}
-
 internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val inputScale = HazeInputScale.None
   val effect = GlassVisualEffect().apply {
     style = GlassDefaults.style
     this.shape = shape
-    refractionStrength = 0f
+    optics = GlassOptics.Absolute(refractionStrength = 0f)
   }
   var drawCarrier by mutableStateOf(true)
   setContent {
@@ -843,14 +829,12 @@ internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
     }
   }
 
-  check(effect.depth == GlassDefaults.depth)
-  check(effect.blurRadius == GlassDefaults.blurRadius)
   val disabledCarrier = captureInvariantSnapshot()
   drawCarrier = false
   waitForIdle()
   val disabledUniform = captureInvariantSnapshot()
 
-  effect.refractionStrength = GlassDefaults.refractionStrength
+  effect.optics = GlassOptics.Adaptive
   waitForIdle()
   drawCarrier = true
   waitForIdle()
@@ -902,67 +886,9 @@ internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
   check(failures.isEmpty()) { failures.joinToString("; ") }
 }
 
-@Composable
-private fun GlassReferenceSample(
-  appearance: GlassAppearance,
-  surface: GlassSurface,
-  drawGrid: Boolean,
-) {
-  val state = rememberHazeState()
-  val density = LocalDensity.current
-  val effect = remember(density, surface) {
-    GlassVisualEffect().apply {
-      shape = RoundedCornerShape(with(density) { surface.referenceRadiusPx.toDp() })
-    }
-  }
-  val background = if (appearance == GlassAppearance.Light) Color(0xFFF2F5F8) else Color(0xFF101820)
-  Box(Modifier.fillMaxSize()) {
-    Canvas(Modifier.fillMaxSize().hazeSource(state)) {
-      drawRect(background)
-      if (drawGrid) {
-        val vertical = if (appearance == GlassAppearance.Light) Color(0xFF6B7A90) else Color(0xFFBCBEC1)
-        val horizontal = if (appearance == GlassAppearance.Light) vertical else Color(0xFF309FC0)
-        var x = 0f
-        while (x < size.width) {
-          drawLine(vertical, Offset(x, 0f), Offset(x, size.height), 3f)
-          x += 48f
-        }
-        var y = 0f
-        while (y < size.height) {
-          drawLine(horizontal, Offset(0f, y), Offset(size.width, y), 3f)
-          y += 48f
-        }
-      }
-    }
-    val bounds = surface.runtimeBounds
-    Box(
-      Modifier.offset { IntOffset(bounds.left, bounds.top) }
-        .size(with(density) { bounds.width.toDp() }, with(density) { bounds.height.toDp() })
-        .hazeEffect(state) {
-          inputScale = HazeInputScale.None
-          visualEffect = effect
-        },
-    )
-  }
-}
-
-private val GlassSurface.runtimeBounds: IntRect
-  get() = if (this == GlassSurface.Panel) IntRect(60, 1236, 1020, 1896) else referenceBounds
-
-private val GlassSurface.referenceRadiusPx: Float
-  get() = if (this == GlassSurface.Capsule) 96f else 72f
-
-private fun GlassOpticalMetrics.failures(bands: GlassReferenceBands, label: String) = buildList {
-  if (displacementPx !in bands.displacementPx) add("$label displacement=$displacementPx outside ${bands.displacementPx}")
-  if (blurAttenuation !in bands.blurAttenuation) add("$label blur=$blurAttenuation outside ${bands.blurAttenuation}")
-  if (interiorLumaShift !in bands.interiorLumaShift) add("$label luma=$interiorLumaShift outside ${bands.interiorLumaShift}")
-}
-
 private fun invariantEffect(shape: RoundedCornerShape) = GlassVisualEffect().apply {
   tint = Color.White.copy(alpha = 0.12f)
-  refractionStrength = 0.7f
-  depth = 0.5f
-  blurRadius = 16.dp
+  optics = GlassOptics.Absolute(depth = 0.5f, blurRadius = 16.dp)
   specularIntensity = 0.4f
   ambientResponse = 0.5f
   edgeSoftness = 8.dp

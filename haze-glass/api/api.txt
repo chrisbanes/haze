@@ -32,23 +32,20 @@ package dev.chrisbanes.haze.glass {
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassDefaults {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.ChromaticAberrationMode getChromaticAberrationMode();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getOptics();
     method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassStyle getStyle();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SurfaceProfile getSurfaceProfile();
     property public static float alpha;
     property public static float ambientResponse;
-    property public androidx.compose.ui.unit.Dp blurRadius;
     property public static float chromaMultiplier;
     property public dev.chrisbanes.haze.glass.ChromaticAberrationMode chromaticAberrationMode;
     property public static float chromaticAberrationStrength;
     property public static float contentNormalBlend;
     property public static float contrast;
-    property public static float depth;
     property public androidx.compose.ui.unit.Dp edgeSoftness;
     property public static float fresnelExponent;
-    property public static float refractionHeight;
-    property public static float refractionScale;
-    property public static float refractionStrength;
+    property public dev.chrisbanes.haze.glass.GlassOptics optics;
     property public androidx.compose.foundation.shape.RoundedCornerShape shape;
     property public static float specularExponent;
     property public static float specularIntensity;
@@ -63,11 +60,7 @@ package dev.chrisbanes.haze.glass {
     field public static final float chromaticAberrationStrength = 0.0f;
     field public static final float contentNormalBlend = 0.15f;
     field public static final float contrast = 0.0f;
-    field public static final float depth = 1.0f;
     field public static final float fresnelExponent = 3.0f;
-    field public static final float refractionHeight = 0.25f;
-    field public static final float refractionScale = 15.0f;
-    field public static final float refractionStrength = 0.7f;
     field public static final float specularExponent = 24.0f;
     field public static final float specularIntensity = 0.4f;
     field public static final float whitePoint = 0.0f;
@@ -99,16 +92,19 @@ package dev.chrisbanes.haze.glass {
     property public dev.chrisbanes.haze.glass.GlassLighting Unspecified;
   }
 
-  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassOptics {
-    ctor public GlassOptics();
-    ctor @KotlinOnly public GlassOptics(optional float refractionStrength, optional float refractionHeight, optional float refractionScale, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
+  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public sealed exhaustive interface GlassOptics {
+  }
+
+  public static final class GlassOptics.Absolute implements dev.chrisbanes.haze.glass.GlassOptics {
+    ctor public GlassOptics.Absolute();
+    ctor @KotlinOnly public GlassOptics.Absolute(optional float refractionStrength, optional float refractionHeight, optional float refractionScale, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
     method public float component1();
     method public float component2();
     method public float component3();
     method public float component4();
     method @KotlinOnly public operator androidx.compose.ui.unit.Dp component5();
     method public dev.chrisbanes.haze.HazeProgressive? component6();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics copy(optional float refractionStrength, optional float refractionHeight, optional float refractionScale, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
+    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics.Absolute copy(optional float refractionStrength, optional float refractionHeight, optional float refractionScale, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
     method @InaccessibleFromKotlin public float getDepth();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeProgressive? getProgressive();
     method @InaccessibleFromKotlin public float getRefractionHeight();
@@ -120,12 +116,10 @@ package dev.chrisbanes.haze.glass {
     property public float refractionHeight;
     property public float refractionScale;
     property public float refractionStrength;
-    field public static final dev.chrisbanes.haze.glass.GlassOptics.Companion Companion;
   }
 
-  public static final class GlassOptics.Companion {
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getUnspecified();
-    property public dev.chrisbanes.haze.glass.GlassOptics Unspecified;
+  public static final class GlassOptics.Adaptive implements dev.chrisbanes.haze.glass.GlassOptics {
+    field public static final dev.chrisbanes.haze.glass.GlassOptics.Adaptive INSTANCE;
   }
 
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassRendering {
@@ -156,22 +150,22 @@ package dev.chrisbanes.haze.glass {
 
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassStyle {
     ctor public GlassStyle();
-    ctor @KotlinOnly public GlassStyle(optional androidx.compose.ui.graphics.Color tint, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.glass.GlassOptics optics, optional dev.chrisbanes.haze.glass.GlassLighting lighting, optional dev.chrisbanes.haze.glass.GlassColor color, optional dev.chrisbanes.haze.glass.GlassRendering rendering);
+    ctor @KotlinOnly public GlassStyle(optional androidx.compose.ui.graphics.Color tint, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.glass.GlassOptics? optics, optional dev.chrisbanes.haze.glass.GlassLighting lighting, optional dev.chrisbanes.haze.glass.GlassColor color, optional dev.chrisbanes.haze.glass.GlassRendering rendering);
     method @KotlinOnly public operator androidx.compose.ui.graphics.Color component1();
     method public androidx.compose.foundation.shape.RoundedCornerShape? component2();
-    method public dev.chrisbanes.haze.glass.GlassOptics component3();
+    method public dev.chrisbanes.haze.glass.GlassOptics? component3();
     method public dev.chrisbanes.haze.glass.GlassLighting component4();
     method public dev.chrisbanes.haze.glass.GlassColor component5();
     method public dev.chrisbanes.haze.glass.GlassRendering component6();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassStyle copy(optional androidx.compose.ui.graphics.Color tint, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.glass.GlassOptics optics, optional dev.chrisbanes.haze.glass.GlassLighting lighting, optional dev.chrisbanes.haze.glass.GlassColor color, optional dev.chrisbanes.haze.glass.GlassRendering rendering);
+    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassStyle copy(optional androidx.compose.ui.graphics.Color tint, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.glass.GlassOptics? optics, optional dev.chrisbanes.haze.glass.GlassLighting lighting, optional dev.chrisbanes.haze.glass.GlassColor color, optional dev.chrisbanes.haze.glass.GlassRendering rendering);
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassColor getColor();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassLighting getLighting();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getOptics();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics? getOptics();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassRendering getRendering();
     method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape? getShape();
     property public dev.chrisbanes.haze.glass.GlassColor color;
     property public dev.chrisbanes.haze.glass.GlassLighting lighting;
-    property public dev.chrisbanes.haze.glass.GlassOptics optics;
+    property public dev.chrisbanes.haze.glass.GlassOptics? optics;
     property public dev.chrisbanes.haze.glass.GlassRendering rendering;
     property public androidx.compose.foundation.shape.RoundedCornerShape? shape;
     property public androidx.compose.ui.graphics.Color tint;
@@ -193,7 +187,7 @@ package dev.chrisbanes.haze.glass {
     ctor public GlassVisualEffect(dev.chrisbanes.haze.glass.GlassVisualEffect other);
     method public boolean canDrawRetainedOutput(dev.chrisbanes.haze.VisualEffectContext context);
     method public void clearChromaticAberrationModeOverride();
-    method public void clearProgressiveOverride();
+    method public void clearOpticsOverride();
     method public void clearRetainedOutput();
     method public void clearShapeOverride();
     method public void clearSurfaceProfileOverride();
@@ -205,12 +199,8 @@ package dev.chrisbanes.haze.glass {
     method @InaccessibleFromKotlin public float getChromaticAberrationStrength();
     method @InaccessibleFromKotlin public float getContentNormalBlend();
     method @InaccessibleFromKotlin public float getContrast();
-    method @InaccessibleFromKotlin public float getDepth();
     method @InaccessibleFromKotlin public float getFresnelExponent();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeProgressive? getProgressive();
-    method @InaccessibleFromKotlin public float getRefractionHeight();
-    method @InaccessibleFromKotlin public float getRefractionScale();
-    method @InaccessibleFromKotlin public float getRefractionStrength();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getOptics();
     method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
     method @InaccessibleFromKotlin public float getSpecularExponent();
     method @InaccessibleFromKotlin public float getSpecularIntensity();
@@ -224,12 +214,8 @@ package dev.chrisbanes.haze.glass {
     method @InaccessibleFromKotlin public void setChromaticAberrationStrength(float);
     method @InaccessibleFromKotlin public void setContentNormalBlend(float);
     method @InaccessibleFromKotlin public void setContrast(float);
-    method @InaccessibleFromKotlin public void setDepth(float);
     method @InaccessibleFromKotlin public void setFresnelExponent(float);
-    method @InaccessibleFromKotlin public void setProgressive(dev.chrisbanes.haze.HazeProgressive?);
-    method @InaccessibleFromKotlin public void setRefractionHeight(float);
-    method @InaccessibleFromKotlin public void setRefractionScale(float);
-    method @InaccessibleFromKotlin public void setRefractionStrength(float);
+    method @InaccessibleFromKotlin public void setOptics(dev.chrisbanes.haze.glass.GlassOptics);
     method @InaccessibleFromKotlin public void setShape(androidx.compose.foundation.shape.RoundedCornerShape);
     method @InaccessibleFromKotlin public void setSpecularExponent(float);
     method @InaccessibleFromKotlin public void setSpecularIntensity(float);
@@ -238,20 +224,15 @@ package dev.chrisbanes.haze.glass {
     method @InaccessibleFromKotlin public void setWhitePoint(float);
     property public float alpha;
     property public float ambientResponse;
-    property public androidx.compose.ui.unit.Dp blurRadius;
     property public float chromaMultiplier;
     property public dev.chrisbanes.haze.glass.ChromaticAberrationMode chromaticAberrationMode;
     property public float chromaticAberrationStrength;
     property public float contentNormalBlend;
     property public float contrast;
-    property public float depth;
     property public androidx.compose.ui.unit.Dp edgeSoftness;
     property public float fresnelExponent;
     property public androidx.compose.ui.geometry.Offset lightPosition;
-    property public dev.chrisbanes.haze.HazeProgressive? progressive;
-    property public float refractionHeight;
-    property public float refractionScale;
-    property public float refractionStrength;
+    property public dev.chrisbanes.haze.glass.GlassOptics optics;
     property public androidx.compose.foundation.shape.RoundedCornerShape shape;
     property public float specularExponent;
     property public float specularIntensity;

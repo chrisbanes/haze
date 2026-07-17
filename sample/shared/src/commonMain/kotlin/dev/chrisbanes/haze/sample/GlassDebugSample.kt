@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.glassEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -97,10 +98,9 @@ fun GlassDebugSample(navController: NavHostController) {
           modifier = Modifier.weight(1f),
         ) {
           tint = Color.White.copy(alpha = 0.2f)
-          refractionStrength = 0f
+          optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f)
           specularIntensity = 0f
           ambientResponse = 0f
-          depth = 0f
         }
 
         // Card 2: Tint + Refraction
@@ -110,10 +110,9 @@ fun GlassDebugSample(navController: NavHostController) {
           modifier = Modifier.weight(1f),
         ) {
           tint = Color.White.copy(alpha = 0.2f)
-          refractionStrength = 0.8f // Strong to make it obvious
+          optics = GlassOptics.Absolute(refractionStrength = 0.8f, depth = 0f) // Strong to make it obvious
           specularIntensity = 0f
           ambientResponse = 0f
-          depth = 0f
         }
 
         // Card 3: + Depth/Blur
@@ -123,10 +122,9 @@ fun GlassDebugSample(navController: NavHostController) {
           modifier = Modifier.weight(1f),
         ) {
           tint = Color.White.copy(alpha = 0.2f)
-          refractionStrength = 0.8f
+          optics = GlassOptics.Absolute(refractionStrength = 0.8f, depth = 0.6f)
           specularIntensity = 0f
           ambientResponse = 0f
-          depth = 0.6f // Enable depth mixing
         }
 
         // Card 4: Full effect
@@ -136,12 +134,14 @@ fun GlassDebugSample(navController: NavHostController) {
           modifier = Modifier.weight(1f),
         ) {
           tint = Color.White.copy(alpha = 0.15f)
-          refractionStrength = 0.8f
+          optics = GlassOptics.Absolute(
+            refractionStrength = 0.8f,
+            refractionHeight = 0.28f,
+            depth = 0.6f,
+          )
           specularIntensity = 0.8f
           ambientResponse = 0.8f
-          depth = 0.6f
           edgeSoftness = 16.dp
-          refractionHeight = 0.28f
           shape = RoundedCornerShape(16.dp)
         }
       }
@@ -156,13 +156,15 @@ fun GlassDebugSample(navController: NavHostController) {
           modifier = Modifier.weight(1f),
         ) {
           tint = Color.White.copy(alpha = 0.18f)
-          refractionStrength = 0.85f
+          optics = GlassOptics.Absolute(
+            refractionStrength = 0.85f,
+            refractionHeight = 0.35f,
+            depth = 0.55f,
+          )
           specularIntensity = 0.75f
           ambientResponse = 0.7f
-          depth = 0.55f
           edgeSoftness = 14.dp
           shape = RoundedCornerShape(24.dp)
-          refractionHeight = 0.35f
           chromaticAberrationStrength = 0.22f
         }
       }

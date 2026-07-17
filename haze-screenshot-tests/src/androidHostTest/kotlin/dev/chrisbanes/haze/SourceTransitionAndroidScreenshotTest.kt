@@ -16,6 +16,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.blur.BlurVisualEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -61,8 +62,7 @@ class SourceTransitionAndroidScreenshotTest : ScreenshotTest() {
   fun glass_sourceRemoved_reprocessesRetainedCapture() = runScreenshotTest {
     val visualEffect = GlassVisualEffect().apply {
       tint = Color.White.copy(alpha = 0.12f)
-      refractionStrength = 0.45f
-      depth = 0.35f
+      optics = GlassOptics.Absolute(refractionStrength = 0.45f, depth = 0.35f)
       specularIntensity = 0.45f
     }
     var showSource by mutableStateOf(true)

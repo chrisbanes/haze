@@ -40,11 +40,7 @@ class GlassStyleTest {
 
     assertThat(effect.tint).isEqualTo(GlassDefaults.tint)
     assertThat(effect.shape).isEqualTo(GlassDefaults.shape)
-    assertThat(effect.refractionStrength).isEqualTo(GlassDefaults.refractionStrength)
-    assertThat(effect.refractionHeight).isEqualTo(GlassDefaults.refractionHeight)
-    assertThat(effect.refractionScale).isEqualTo(GlassDefaults.refractionScale)
-    assertThat(effect.depth).isEqualTo(GlassDefaults.depth)
-    assertThat(effect.blurRadius).isEqualTo(GlassDefaults.blurRadius)
+    assertThat(effect.optics).isEqualTo(GlassDefaults.optics)
     assertThat(effect.specularIntensity).isEqualTo(GlassDefaults.specularIntensity)
     assertThat(effect.specularExponent).isEqualTo(GlassDefaults.specularExponent)
     assertThat(effect.fresnelExponent).isEqualTo(GlassDefaults.fresnelExponent)
@@ -61,11 +57,34 @@ class GlassStyleTest {
   }
 
   @Test
+  fun optics_resolvesDirectStyleLocalAndDefaultPrecedence() {
+    val localOptics = GlassOptics.Absolute(refractionStrength = 0.2f)
+    val directOptics = GlassOptics.Absolute(refractionStrength = 0.9f)
+    val effect = GlassVisualEffect().apply {
+      compositionLocalStyle = GlassStyle(optics = localOptics)
+    }
+    assertThat(effect.optics).isEqualTo(localOptics)
+
+    effect.style = GlassStyle(optics = GlassOptics.Adaptive)
+    assertThat(effect.optics).isEqualTo(GlassOptics.Adaptive)
+
+    effect.optics = directOptics
+    assertThat(effect.optics).isEqualTo(directOptics)
+
+    effect.clearOpticsOverride()
+    assertThat(effect.optics).isEqualTo(GlassOptics.Adaptive)
+
+    effect.style = GlassStyle.Unspecified
+    effect.compositionLocalStyle = GlassStyle.Unspecified
+    assertThat(effect.optics).isEqualTo(GlassDefaults.optics)
+  }
+
+  @Test
   fun groupedStyle_partiallySpecifiedValuesInheritFromCompositionLocal() {
     val localStyle = GlassStyle(
       tint = Color.Blue,
       shape = RoundedCornerShape(12.dp),
-      optics = GlassOptics(
+      optics = GlassOptics.Absolute(
         refractionStrength = 0.2f,
         refractionScale = 8f,
         depth = 0.3f,
@@ -80,8 +99,9 @@ class GlassStyleTest {
         surfaceProfile = SurfaceProfile.Concave,
       ),
     )
+    val directOptics = GlassOptics.Absolute(refractionStrength = 0.9f)
     val directStyle = GlassStyle(
-      optics = GlassOptics(refractionStrength = 0.9f),
+      optics = directOptics,
       lighting = GlassLighting(ambientResponse = 0.8f),
       color = GlassColor(whitePoint = 0.1f),
       rendering = GlassRendering(chromaticAberrationStrength = 0.5f),
@@ -91,9 +111,7 @@ class GlassStyleTest {
       style = directStyle
     }
 
-    assertThat(effect.refractionStrength).isEqualTo(0.9f)
-    assertThat(effect.refractionScale).isEqualTo(8f)
-    assertThat(effect.depth).isEqualTo(0.3f)
+    assertThat(effect.optics).isEqualTo(directOptics)
     assertThat(effect.ambientResponse).isEqualTo(0.8f)
     assertThat(effect.specularIntensity).isEqualTo(0.25f)
     assertThat(effect.lightPosition).isEqualTo(Offset(4f, 8f))
@@ -110,20 +128,20 @@ class GlassStyleTest {
     val effect = GlassVisualEffect().apply {
       style = GlassStyle(
         tint = Color.Blue,
-        optics = GlassOptics(refractionStrength = 0.2f),
+        optics = GlassOptics.Absolute(refractionStrength = 0.2f),
         lighting = GlassLighting(ambientResponse = 0.3f),
         color = GlassColor(alpha = 0.4f),
         rendering = GlassRendering(edgeSoftness = 6.dp),
       )
       tint = Color.Red
-      refractionStrength = 0.8f
+      optics = GlassOptics.Absolute(refractionStrength = 0.8f)
       ambientResponse = 0.9f
       alpha = 0.5f
       edgeSoftness = 10.dp
     }
 
     assertThat(effect.tint).isEqualTo(Color.Red)
-    assertThat(effect.refractionStrength).isEqualTo(0.8f)
+    assertThat(effect.optics).isEqualTo(GlassOptics.Absolute(refractionStrength = 0.8f))
     assertThat(effect.ambientResponse).isEqualTo(0.9f)
     assertThat(effect.alpha).isEqualTo(0.5f)
     assertThat(effect.edgeSoftness).isEqualTo(10.dp)
