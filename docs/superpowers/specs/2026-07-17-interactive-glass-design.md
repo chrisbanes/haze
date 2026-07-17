@@ -46,18 +46,20 @@ Interactivity is disabled by default. The common opt-in is configured with the e
 ```kotlin
 Modifier.hazeEffect(state) {
   glassEffect(
-    interaction = GlassInteraction.Default,
+    interaction = GlassInteraction.Enabled,
   ) {
     shape = shape
   }
 }
 ```
 
-`GlassInteraction.Default` enables all three channels with conservative values.
-`GlassInteraction.Disabled` preserves current behavior. A custom configuration follows this shape:
+`GlassInteraction.Default` and `GlassInteraction.Disabled` preserve current non-interactive
+behavior. `GlassInteraction.Enabled` is the explicit convenience opt-in that enables all three
+channels with conservative values. A custom configuration must also opt in explicitly:
 
 ```kotlin
 GlassInteraction(
+  enabled = true,
   lighting = GlassInteractionLighting(
     hoverIntensity = 0.35f,
     pressedIntensity = 1f,
@@ -95,8 +97,10 @@ The public API uses the following concrete shape:
   `GlassVisualEffect`; the copy constructor copies that property.
 - `GlassInteraction` is a stable data class with `enabled`, `lighting`, `optics`, `transform`,
   `motion`, `interactionSource`, and `reducedMotion` properties.
-- `GlassInteraction.Default` is equal to `GlassInteraction()` and has `enabled = true`.
-- `GlassInteraction.Disabled` has `enabled = false` and identity values for all three channels.
+- `GlassInteraction.Default`, `GlassInteraction.Disabled`, and `GlassInteraction()` are equal and
+  have `enabled = false`.
+- `GlassInteraction.Enabled` is equal to `GlassInteraction(enabled = true)` and retains the same
+  default channel values.
 - Changing only `enabled` preserves the remaining configuration, allowing a caller to turn a
   customized interaction off and back on without rebuilding it.
 - Each channel has an identity/disabled value so it can be switched off independently.
@@ -333,7 +337,7 @@ limitations rather than presenting a misleading approximation.
 - Frame-rate interaction updates do not cause composition.
 - Interaction does not recreate the base glass render effects or re-record captured content.
 
-Add a sample showing `GlassInteraction.Default` and a fully customized control using an
+Add a sample showing `GlassInteraction.Enabled` and a fully customized control using an
 `InteractionSource`, material-plus-content compression, custom motion, and reduced-motion policy.
 
 ## Success Criteria
