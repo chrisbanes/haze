@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,7 +58,7 @@ internal fun GalleryBackdrop(
   ) {
     Canvas(
       modifier = Modifier
-        .fillMaxSize()
+        .matchParentSize()
         .graphicsLayer { translationX = size.width * offsetProvider() },
     ) {
       when (backdrop) {
