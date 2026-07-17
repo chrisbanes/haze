@@ -169,6 +169,7 @@ private fun LabSpecimen(
         .fillMaxWidth(0.85f)
         .sizeIn(maxWidth = 360.dp, maxHeight = 240.dp)
         .heightIn(max = 240.dp)
+        .pointerInput(Unit) { detectTapGestures {} }
         .semantics { contentDescription = "Glass specimen" },
     ) {
       Text(
