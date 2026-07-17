@@ -6,6 +6,8 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -87,8 +89,11 @@ internal fun ScreenshotUiTest.captureGlassLabPresets() {
   var preset by mutableStateOf(GlassLabPresetId.Adaptive)
   var backdrop by mutableStateOf(GlassGalleryBackdropId.Gallery)
   setContent {
-    Box(Modifier.fillMaxSize().background(Color.White)) {
-      SamplesTheme(useDarkColors = true) {
+    SamplesTheme(useDarkColors = true) {
+      Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+      ) {
         GlassLabScreenshotContent(preset = preset, backdrop = backdrop)
       }
     }

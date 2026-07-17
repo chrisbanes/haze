@@ -8,7 +8,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -27,6 +29,46 @@ class GlassProductSampleTest {
   fun productGlassStyle_alwaysUsesAdaptiveOptics() {
     assertEquals(GlassOptics.Adaptive, productGlassStyle(isDark = false).optics)
     assertEquals(GlassOptics.Adaptive, productGlassStyle(isDark = true).optics)
+  }
+
+  @Test
+  fun normalMode_showsProductSceneTopBar() = runComposeUiTest {
+    setContent {
+      GlassProductSampleContent(
+        selectedArtworkIndex = 0,
+        favorite = false,
+        recordingMode = false,
+        onArtworkSelected = {},
+        onFavoriteChanged = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+      )
+    }
+
+    onNodeWithContentDescription("Back").assertIsDisplayed()
+    onNodeWithText("Glass Gallery").assertIsDisplayed()
+    onNodeWithText("1 / ${GalleryArtworks.size}").assertIsDisplayed()
+    onNodeWithContentDescription("Enter recording mode").assertIsDisplayed()
+  }
+
+  @Test
+  fun recordingMode_keepsProductSceneTopBar() = runComposeUiTest {
+    setContent {
+      GlassProductSampleContent(
+        selectedArtworkIndex = 0,
+        favorite = false,
+        recordingMode = true,
+        onArtworkSelected = {},
+        onFavoriteChanged = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+      )
+    }
+
+    onNodeWithContentDescription("Back").assertIsDisplayed()
+    onNodeWithText("Glass Gallery").assertIsDisplayed()
+    onNodeWithText("1 / ${GalleryArtworks.size}").assertIsDisplayed()
+    onAllNodesWithContentDescription("Enter recording mode").assertCountEquals(0)
   }
 
   @Test

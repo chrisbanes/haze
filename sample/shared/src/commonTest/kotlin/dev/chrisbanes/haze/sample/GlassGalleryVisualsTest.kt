@@ -12,9 +12,26 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class GlassGalleryVisualsTest {
+  @Test
+  fun horizontalOverscanCoversViewportAtBoundedTranslationExtremes() {
+    val left = galleryBackdropHorizontalTransform(
+      offsetFraction = -0.08f,
+      overscanFraction = 0.08f,
+    )
+    val right = galleryBackdropHorizontalTransform(
+      offsetFraction = 0.08f,
+      overscanFraction = 0.08f,
+    )
+
+    assertEquals(1.16f, left.scaleX)
+    assertEquals(-0.08f, left.translationFraction)
+    assertEquals(0.08f, right.translationFraction)
+  }
+
   @Test
   fun demoChrome_onlyShowsRequestedActions() = runComposeUiTest {
     setContent {

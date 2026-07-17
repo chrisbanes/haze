@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +50,7 @@ internal fun GalleryBackdrop(
   backdrop: GlassGalleryBackdropId,
   modifier: Modifier = Modifier,
   offsetProvider: () -> Float = { 0f },
+  horizontalOverscanFraction: Float = 0f,
 ) {
   val artwork = GalleryArtworks[artworkIndex.mod(GalleryArtworks.size)]
   Box(
@@ -59,7 +61,14 @@ internal fun GalleryBackdrop(
     Canvas(
       modifier = Modifier
         .matchParentSize()
-        .graphicsLayer { translationX = size.width * offsetProvider() },
+        .graphicsLayer {
+          val transform = galleryBackdropHorizontalTransform(
+            offsetFraction = offsetProvider(),
+            overscanFraction = horizontalOverscanFraction,
+          )
+          scaleX = transform.scaleX
+          translationX = size.width * transform.translationFraction
+        },
     ) {
       when (backdrop) {
         GlassGalleryBackdropId.Gallery -> {
@@ -127,6 +136,28 @@ internal fun GalleryBackdrop(
       }
     }
   }
+}
+
+@Immutable
+internal data class GalleryBackdropHorizontalTransform(
+  val translationFraction: Float,
+  val scaleX: Float,
+)
+
+internal fun galleryBackdropHorizontalTransform(
+  offsetFraction: Float,
+  overscanFraction: Float,
+): GalleryBackdropHorizontalTransform {
+  require(offsetFraction.isFinite())
+  require(overscanFraction.isFinite() && overscanFraction >= 0f)
+  return GalleryBackdropHorizontalTransform(
+    translationFraction = if (overscanFraction > 0f) {
+      offsetFraction.coerceIn(-overscanFraction, overscanFraction)
+    } else {
+      offsetFraction
+    },
+    scaleX = 1f + overscanFraction * 2f,
+  )
 }
 
 @Composable
@@ -227,7 +258,7 @@ private val ReplayIcon = materialIcon("Replay") {
   }
 }
 
-private val VisibilityOffIcon = materialIcon("VisibilityOff") {
+internal val VisibilityOffIcon = materialIcon("VisibilityOff") {
   path(fill = SolidColor(Color.Black)) {
     moveTo(2f, 4.27f)
     lineTo(3.28f, 3f)

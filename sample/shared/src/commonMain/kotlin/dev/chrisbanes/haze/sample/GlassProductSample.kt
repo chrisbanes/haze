@@ -11,7 +11,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -202,21 +201,32 @@ private fun ProductTopBar(
   onRecordingModeChanged: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  Box(modifier = modifier) {
-    DemoChrome(
-      hazeState = hazeState,
-      onBack = onBack,
-      onEnterRecordingMode = { onRecordingModeChanged(true) },
-    )
-    AnimatedVisibility(
-      visible = !recordingMode,
-      modifier = Modifier.align(Alignment.CenterEnd).padding(start = 88.dp),
+  GlassSurface(
+    hazeState = hazeState,
+    style = productGlassStyle(androidx.compose.foundation.isSystemInDarkTheme()),
+    shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+    modifier = modifier,
+  ) {
+    Row(
+      modifier = Modifier.padding(4.dp),
+      verticalAlignment = Alignment.CenterVertically,
     ) {
-      Text(
-        text = "${selectedArtworkIndex + 1} / ${GalleryArtworks.size}",
-        color = Color.White,
-        style = MaterialTheme.typography.labelLarge,
-      )
+      IconButton(onClick = onBack) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+      }
+      Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+        Text("Glass Gallery", color = Color.White, style = MaterialTheme.typography.labelLarge)
+        Text(
+          text = "${selectedArtworkIndex + 1} / ${GalleryArtworks.size}",
+          color = Color.White.copy(alpha = 0.72f),
+          style = MaterialTheme.typography.labelMedium,
+        )
+      }
+      if (!recordingMode) {
+        IconButton(onClick = { onRecordingModeChanged(true) }) {
+          Icon(VisibilityOffIcon, contentDescription = "Enter recording mode")
+        }
+      }
     }
   }
 }

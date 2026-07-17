@@ -7,6 +7,7 @@ package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -25,10 +28,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SingleChoiceSegmentedButtonRowScope
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -213,26 +219,65 @@ private fun LabControls(
 
 @Composable
 private fun LabPresetSelector(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
-  SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+  LabSegmentedButtonRow(selectedIndex = SelectableGlassLabPresets.indexOf(state.preset)) {
     SelectableGlassLabPresets.forEachIndexed { index, preset ->
       SegmentedButton(
         selected = state.preset == preset,
         onClick = { onStateChanged(state.selectPreset(preset)) },
         shape = SegmentedButtonDefaults.itemShape(index, SelectableGlassLabPresets.size),
-      ) { Text(preset.name) }
+        modifier = Modifier.widthIn(min = LabSegmentedButtonMinWidth),
+      ) { Text(preset.name, maxLines = 1) }
     }
   }
 }
 
 @Composable
 private fun LabBackdropSelector(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
-  SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+  LabSegmentedButtonRow(selectedIndex = state.backdrop.ordinal) {
     GlassGalleryBackdropId.entries.forEachIndexed { index, backdrop ->
       SegmentedButton(
         selected = state.backdrop == backdrop,
         onClick = { onStateChanged(state.copy(backdrop = backdrop)) },
         shape = SegmentedButtonDefaults.itemShape(index, GlassGalleryBackdropId.entries.size),
-      ) { Text(backdrop.name) }
+        modifier = Modifier.widthIn(min = LabSegmentedButtonMinWidth),
+      ) { Text(backdrop.name, maxLines = 1) }
+    }
+  }
+}
+
+private val LabSegmentedButtonMinWidth = 80.dp
+private val LabSegmentedButtonRowMinWidth = 400.dp
+
+@Composable
+private fun LabSegmentedButtonRow(
+  selectedIndex: Int,
+  content: @Composable SingleChoiceSegmentedButtonRowScope.() -> Unit,
+) {
+  BoxWithConstraints(Modifier.fillMaxWidth()) {
+    val rowWidth = maxWidth.coerceAtLeast(LabSegmentedButtonRowMinWidth)
+    val scrollState = rememberScrollState()
+    val buttonWidthPx = with(LocalDensity.current) { LabSegmentedButtonMinWidth.roundToPx() }
+    val viewportWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
+
+    LaunchedEffect(selectedIndex, scrollState.maxValue) {
+      if (selectedIndex >= 0) {
+        val selectedStart = selectedIndex * buttonWidthPx
+        val selectedEnd = selectedStart + buttonWidthPx
+        scrollState.scrollTo(
+          when {
+            selectedStart < scrollState.value -> selectedStart
+            selectedEnd > scrollState.value + viewportWidthPx -> selectedEnd - viewportWidthPx
+            else -> scrollState.value
+          },
+        )
+      }
+    }
+
+    Box(Modifier.fillMaxWidth().horizontalScroll(scrollState)) {
+      SingleChoiceSegmentedButtonRow(
+        modifier = Modifier.width(rowWidth),
+        content = content,
+      )
     }
   }
 }

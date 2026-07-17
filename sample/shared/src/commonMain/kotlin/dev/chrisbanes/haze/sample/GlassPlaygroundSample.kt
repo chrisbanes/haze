@@ -55,13 +55,33 @@ import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 private const val PLAYGROUND_LOOP_DURATION_MILLIS = 12_000
 
-private class ReturnJob(var value: Job? = null)
+internal class PlaygroundReturnJobs(
+  private val scope: CoroutineScope,
+  private val onReturn: suspend (GlassPlaygroundSurfaceId) -> Unit,
+) {
+  private val jobs = mutableMapOf<GlassPlaygroundSurfaceId, Job>()
+
+  fun launch(id: GlassPlaygroundSurfaceId) {
+    cancel(id)
+    jobs[id] = scope.launch { onReturn(id) }
+  }
+
+  fun cancel(id: GlassPlaygroundSurfaceId) {
+    jobs.remove(id)?.cancel()
+  }
+
+  fun cancelAll() {
+    jobs.values.forEach(Job::cancel)
+    jobs.clear()
+  }
+}
 
 internal class PlaygroundDragSession(
   private val onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
@@ -168,6 +188,9 @@ internal fun rememberGlassPlaygroundState(): GlassPlaygroundState = remember { G
 public fun GlassPlaygroundSample(navController: NavHostController) {
   val state = rememberGlassPlaygroundState()
   val scope = rememberCoroutineScope()
+  val returnJobs = remember(state, scope) {
+    PlaygroundReturnJobs(scope, state::endDrag)
+  }
 
   LaunchedEffect(state.isPlaying, state.activeSurface) {
     val animationsEnabled = (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) > 0f
@@ -184,12 +207,18 @@ public fun GlassPlaygroundSample(navController: NavHostController) {
     isPlaying = state.isPlaying,
     recordingMode = state.recordingMode,
     onPlayPause = state::togglePlayback,
-    onReset = { scope.launch { state.reset() } },
+    onReset = {
+      returnJobs.cancelAll()
+      scope.launch { state.reset() }
+    },
     onRecordingModeChanged = state::updateRecordingMode,
     onBack = navController::navigateUp,
-    onDragStart = state::beginDrag,
+    onDragStart = { id ->
+      returnJobs.cancel(id)
+      state.beginDrag(id)
+    },
     onDrag = state::dragBy,
-    onDragEnd = { id -> scope.launch { state.endDrag(id) } },
+    onDragEnd = returnJobs::launch,
   )
 }
 
@@ -215,6 +244,7 @@ public fun GlassPlaygroundSampleContent(
       artworkIndex = 0,
       backdrop = GlassGalleryBackdropId.Gallery,
       offsetProvider = { glassPlaygroundFrame(progressProvider()).backdropOffset },
+      horizontalOverscanFraction = 0.08f,
       modifier = Modifier.fillMaxSize(),
     )
 
@@ -261,10 +291,6 @@ private fun PlaygroundSurfaceScene(
   modifier: Modifier = Modifier,
 ) {
   val density = LocalDensity.current
-  val scope = rememberCoroutineScope()
-  val returnJobs = remember {
-    GlassPlaygroundSurfaceId.entries.associateWith { ReturnJob() }
-  }
   val hitTest: (Offset) -> GlassPlaygroundSurfaceId? = { pointerPosition ->
     hitTestPlaygroundSurface(
       pointerPosition = pointerPosition,
@@ -294,15 +320,10 @@ private fun PlaygroundSurfaceScene(
               overSlop = amount
             }
             if (postSlop != null) {
-              returnJobs.getValue(id).value?.cancel()
               val session = PlaygroundDragSession(
                 onDragStart = { latestOnDragStart(it) },
                 onDrag = { surface, amount -> latestOnDrag(surface, amount) },
-                onDragEnd = { surface ->
-                  returnJobs.getValue(surface).value = scope.launch {
-                    latestOnDragEnd(surface)
-                  }
-                },
+                onDragEnd = { surface -> latestOnDragEnd(surface) },
               )
               session.start(id)
               try {
@@ -335,6 +356,7 @@ private fun PlaygroundSurfaceScene(
           hazeState = hazeState,
           progressProvider = progressProvider,
           sceneSizeProvider = sceneSizeProvider,
+          dragOffsetProvider = dragOffsetProvider,
         )
       }
     },
@@ -343,11 +365,15 @@ private fun PlaygroundSurfaceScene(
     layout(constraints.maxWidth, constraints.maxHeight) {
       val frame = glassPlaygroundFrame(progressProvider())
       GlassPlaygroundSurfaceId.entries.zip(placeables).forEach { (id, placeable) ->
-        val position = frame.position(id)
-        val dragOffset = dragOffsetProvider(id)
+        val center = resolvedPlaygroundSurfaceCenter(
+          normalizedCenter = frame.position(id),
+          sceneSize = IntSize(constraints.maxWidth, constraints.maxHeight),
+          surfaceSize = IntSize(placeable.width, placeable.height),
+          dragOffset = dragOffsetProvider(id),
+        )
         placeable.place(
-          x = (position.x * constraints.maxWidth - placeable.width / 2f + dragOffset.x).roundToInt(),
-          y = (position.y * constraints.maxHeight - placeable.height / 2f + dragOffset.y).roundToInt(),
+          x = (center.x - placeable.width / 2f).roundToInt(),
+          y = (center.y - placeable.height / 2f).roundToInt(),
         )
       }
     }
@@ -364,17 +390,56 @@ internal fun hitTestPlaygroundSurface(
   val frame = glassPlaygroundFrame(progress)
   return GlassPlaygroundSurfaceId.entries.reversed().firstOrNull { id ->
     val surfaceSize = playgroundSurfaceSize(id)
-    val surfaceWidth = with(density) { surfaceSize.width.toPx() }
-    val surfaceHeight = with(density) { surfaceSize.height.toPx() }
-    val framePosition = frame.position(id)
-    val dragOffset = dragOffsetProvider(id)
-    val center = Offset(
-      x = framePosition.x * sceneSize.width + dragOffset.x,
-      y = framePosition.y * sceneSize.height + dragOffset.y,
+    val surfaceSizePx = with(density) {
+      IntSize(surfaceSize.width.roundToPx(), surfaceSize.height.roundToPx())
+    }
+    val center = resolvedPlaygroundSurfaceCenter(
+      normalizedCenter = frame.position(id),
+      sceneSize = sceneSize,
+      surfaceSize = surfaceSizePx,
+      dragOffset = dragOffsetProvider(id),
     )
-    pointerPosition.x in (center.x - surfaceWidth / 2f)..(center.x + surfaceWidth / 2f) &&
-      pointerPosition.y in (center.y - surfaceHeight / 2f)..(center.y + surfaceHeight / 2f)
+    pointerPosition.x in (center.x - surfaceSizePx.width / 2f)..(center.x + surfaceSizePx.width / 2f) &&
+      pointerPosition.y in (center.y - surfaceSizePx.height / 2f)..(center.y + surfaceSizePx.height / 2f)
   }
+}
+
+internal fun resolvedPlaygroundSurfaceCenter(
+  normalizedCenter: Offset,
+  sceneSize: IntSize,
+  surfaceSize: IntSize,
+  dragOffset: Offset,
+): Offset {
+  val halfWidth = surfaceSize.width / 2f
+  val halfHeight = surfaceSize.height / 2f
+  val minCenterX = minOf(halfWidth, sceneSize.width / 2f)
+  val maxCenterX = maxOf(sceneSize.width - halfWidth, sceneSize.width / 2f)
+  val minCenterY = minOf(halfHeight, sceneSize.height / 2f)
+  val maxCenterY = maxOf(sceneSize.height - halfHeight, sceneSize.height / 2f)
+  return Offset(
+    x = (normalizedCenter.x * sceneSize.width).coerceIn(minCenterX, maxCenterX) + dragOffset.x,
+    y = (normalizedCenter.y * sceneSize.height).coerceIn(minCenterY, maxCenterY) + dragOffset.y,
+  )
+}
+
+internal fun resolvePlaygroundSurfaceLightPosition(
+  normalizedLight: Offset,
+  normalizedCenter: Offset,
+  sceneSize: IntSize,
+  surfaceSize: IntSize,
+  dragOffset: Offset,
+): Offset {
+  val center = resolvedPlaygroundSurfaceCenter(
+    normalizedCenter = normalizedCenter,
+    sceneSize = sceneSize,
+    surfaceSize = surfaceSize,
+    dragOffset = dragOffset,
+  )
+  val surfaceOrigin = center - Offset(surfaceSize.width / 2f, surfaceSize.height / 2f)
+  return Offset(
+    x = normalizedLight.x * sceneSize.width,
+    y = normalizedLight.y * sceneSize.height,
+  ) - surfaceOrigin
 }
 
 @Composable
@@ -383,8 +448,13 @@ private fun PlaygroundSurface(
   hazeState: HazeState,
   progressProvider: () -> Float,
   sceneSizeProvider: () -> IntSize,
+  dragOffsetProvider: (GlassPlaygroundSurfaceId) -> Offset,
 ) {
   val size = playgroundSurfaceSize(id)
+  val density = LocalDensity.current
+  val surfaceSize = with(density) {
+    IntSize(size.width.roundToPx(), size.height.roundToPx())
+  }
   val effect = remember(id) {
     GlassVisualEffect().apply {
       style = glassPlaygroundStyle(id)
@@ -393,16 +463,21 @@ private fun PlaygroundSurface(
   }
   val latestProgressProvider by rememberUpdatedState(progressProvider)
   val latestSceneSizeProvider by rememberUpdatedState(sceneSizeProvider)
+  val latestDragOffsetProvider by rememberUpdatedState(dragOffsetProvider)
 
-  LaunchedEffect(effect, id) {
-    snapshotFlow { glassPlaygroundFrame(latestProgressProvider()).lightPosition }
+  LaunchedEffect(effect, id, surfaceSize) {
+    snapshotFlow {
+      val frame = glassPlaygroundFrame(latestProgressProvider())
+      resolvePlaygroundSurfaceLightPosition(
+        normalizedLight = frame.lightPosition,
+        normalizedCenter = frame.position(id),
+        sceneSize = latestSceneSizeProvider(),
+        surfaceSize = surfaceSize,
+        dragOffset = latestDragOffsetProvider(id),
+      )
+    }
       .distinctUntilChanged()
-      .collect { normalized ->
-        effect.lightPosition = Offset(
-          x = normalized.x * latestSceneSizeProvider().width,
-          y = normalized.y * latestSceneSizeProvider().height,
-        )
-      }
+      .collect { effect.lightPosition = it }
   }
 
   Box(

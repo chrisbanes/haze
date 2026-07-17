@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassOptics
 import kotlin.test.Test
@@ -26,6 +27,34 @@ class GlassPlaygroundTimelineTest {
         val position = frame.position(id)
         assertTrue(position.x in 0.1f..0.9f, "$id x out of bounds at $progress: $position")
         assertTrue(position.y in 0.1f..0.9f, "$id y out of bounds at $progress: $position")
+      }
+    }
+  }
+
+  @Test
+  fun choreographedSurfaceCentersKeepFixedSizesInsideCompactScene() {
+    val sceneSize = IntSize(320, 240)
+    val surfaceSizes = mapOf(
+      GlassPlaygroundSurfaceId.Lens to IntSize(128, 128),
+      GlassPlaygroundSurfaceId.Pill to IntSize(220, 88),
+      GlassPlaygroundSurfaceId.Card to IntSize(280, 180),
+      GlassPlaygroundSurfaceId.Prism to IntSize(180, 112),
+    )
+
+    repeat(101) { step ->
+      val frame = glassPlaygroundFrame(step / 100f)
+      GlassPlaygroundSurfaceId.entries.forEach { id ->
+        val surfaceSize = surfaceSizes.getValue(id)
+        val center = resolvedPlaygroundSurfaceCenter(
+          normalizedCenter = frame.position(id),
+          sceneSize = sceneSize,
+          surfaceSize = surfaceSize,
+          dragOffset = Offset.Zero,
+        )
+        assertTrue(center.x - surfaceSize.width / 2f >= 0f, "$id crosses left edge at $step")
+        assertTrue(center.x + surfaceSize.width / 2f <= sceneSize.width, "$id crosses right edge at $step")
+        assertTrue(center.y - surfaceSize.height / 2f >= 0f, "$id crosses top edge at $step")
+        assertTrue(center.y + surfaceSize.height / 2f <= sceneSize.height, "$id crosses bottom edge at $step")
       }
     }
   }
