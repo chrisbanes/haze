@@ -11,6 +11,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
@@ -56,6 +59,51 @@ class GlassInteractionControllerTest : ContextTest() {
     }
 
     assertThat(renderState(effect).position).isEqualTo(Offset(20f, 30f))
+  }
+
+  @Test
+  fun rawInput_retainsMovedPrimaryPositionThroughRelease() = runComposeUiTest {
+    val effect = reducedPressEffect()
+    setTaggedEffectContent(effect)
+
+    onNodeWithTag("glass").performTouchInput { down(Offset(20f, 30f)) }
+    onNodeWithTag("glass").performTouchInput {
+      updatePointerTo(0, Offset(70f, 60f))
+      move()
+    }
+    waitForIdle()
+    assertThat(renderState(effect).position).isEqualTo(Offset(70f, 60f))
+
+    onNodeWithTag("glass").performTouchInput { up() }
+    waitForIdle()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(70f, 60f))
+  }
+
+  @Test
+  fun rawInput_primaryUpAtZeroSizeClearsActivePress() = runComposeUiTest {
+    val effect = reducedPressEffect()
+    var size by mutableStateOf(100.dp)
+    setContent {
+      Box(
+        Modifier
+          .size(size)
+          .testTag("glass")
+          .hazeEffect { visualEffect = effect },
+      )
+    }
+
+    onNodeWithTag("glass").performTouchInput { down(Offset(20f, 30f)) }
+    waitForIdle()
+    assertThat(effect.currentInteractionSignals.rawPressed).isEqualTo(true)
+
+    size = 0.dp
+    waitForIdle()
+    onNodeWithTag("glass").performTouchInput { up() }
+    waitForIdle()
+
+    assertThat(effect.currentInteractionSignals.rawPressed).isEqualTo(false)
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
   }
 
   @Test

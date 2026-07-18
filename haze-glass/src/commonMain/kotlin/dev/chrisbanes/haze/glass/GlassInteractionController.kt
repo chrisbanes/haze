@@ -261,17 +261,23 @@ internal class GlassInteractionController(
   }
 
   fun onPointerEvent(event: PointerEvent, size: Size) {
-    if (disposed || !size.isDrawable()) return
+    if (disposed) return
+    val hasDrawableSize = size.isDrawable()
 
     val primaryChange = primaryPointerId?.let { id ->
       event.changes.firstOrNull { it.id == id }
     }
     if (primaryChange?.isConsumed == true && primaryChange.positionChangedIgnoreConsumed()) {
-      primaryChange.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+      if (hasDrawableSize) {
+        primaryChange.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+      }
       cancelRawPress()
     }
 
-    if (event.type == PointerEventType.Enter || event.type == PointerEventType.Move) {
+    if (
+      hasDrawableSize &&
+      (event.type == PointerEventType.Enter || event.type == PointerEventType.Move)
+    ) {
       event.changes
         .lastOrNull { it.type == PointerType.Mouse || it.type == PointerType.Stylus }
         ?.position
@@ -289,11 +295,15 @@ internal class GlassInteractionController(
       event.changes.firstOrNull { it.changedToDownIgnoreConsumed() }?.let { change ->
         primaryPointerId = change.id
         rawPressed = true
-        change.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+        if (hasDrawableSize) {
+          change.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+        }
       }
     } else {
       event.changes.firstOrNull { it.id == primaryPointerId }?.let { change ->
-        change.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+        if (hasDrawableSize) {
+          change.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+        }
         if (change.changedToUpIgnoreConsumed()) {
           primaryPointerId = null
           rawPressed = false
