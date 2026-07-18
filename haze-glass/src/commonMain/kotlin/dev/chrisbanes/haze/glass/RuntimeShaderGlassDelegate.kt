@@ -59,7 +59,6 @@ internal class RuntimeShaderGlassDelegate(
   private var preparedParams: GlassRenderParams? = null
   private var preparedRenderEffects: GlassRenderEffects? = null
   private var preparedInteractionUniforms: GlassInteractionUniforms? = null
-  private var preparedInteractionSignals: GlassInteractionSignals? = null
   private var preparedSourceAvailable: Boolean = false
   private var preparedStageAvailability: GlassStageAvailability? = null
   private var retainedOutputAvailable: Boolean = false
@@ -67,8 +66,6 @@ internal class RuntimeShaderGlassDelegate(
     private set
   internal var lastSuccessfulStageInputs: GlassStageInputs? = null
     private set
-  private var lastSuccessfulInteractionUniforms: GlassInteractionUniforms? = null
-  private var lastSuccessfulInteractionSignals: GlassInteractionSignals? = null
   internal var baseOpticalEffectCreationCount: Int = 0
     private set
   internal var sourceRecordCount: Int = 0
@@ -156,14 +153,12 @@ internal class RuntimeShaderGlassDelegate(
     preparedParams = params
     preparedRenderEffects = currentRenderEffects
     preparedInteractionUniforms = interactionUniforms
-    preparedInteractionSignals = effect.currentInteractionSignals
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     val params = preparedParams ?: return
     val effects = preparedRenderEffects ?: return
     val interactionUniforms = preparedInteractionUniforms ?: return
-    val interactionSignals = preparedInteractionSignals ?: return
     requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
     var completed = false
     try {
@@ -175,21 +170,12 @@ internal class RuntimeShaderGlassDelegate(
         rim = params.rimEffectKey().takeIf { effects.rim != null },
       )
       val sourceState = context.resolveGlassSourceState(params.coordinates.scaleFactor)
-      val interactionSignalActive = interactionSignals.hovered ||
-        interactionSignals.focused || interactionSignals.pressed
-      val dynamicInteractionOnly = retainedOutputAvailable &&
-        (
-          interactionSignalActive ||
-            interactionUniforms != lastSuccessfulInteractionUniforms ||
-            interactionSignals != lastSuccessfulInteractionSignals
-          ) &&
-        currentInputs == lastSuccessfulStageInputs
       val shouldRecordSource = sourceState.hasDrawableSource && (
         sourceState.snapshot == null ||
           sourceState.snapshot != lastSuccessfulSourceSnapshot ||
           !preparedSourceAvailable ||
           !retainedOutputAvailable
-        ) && !dynamicInteractionOnly
+        )
       val source = requireRetainedStage(
         if (shouldRecordSource) recordSource(context, params) else retainedSource(),
         ::clearRetainedOutput,
@@ -280,14 +266,10 @@ internal class RuntimeShaderGlassDelegate(
           drawCompletedLayer(completedRefractionDetail, context, params, alpha = 1f)
         }
       }
-      lastSuccessfulSourceSnapshot = if (sourceState.hasDrawableSource) {
-        sourceState.snapshot
-      } else {
-        lastSuccessfulSourceSnapshot
+      if (shouldRecordSource) {
+        lastSuccessfulSourceSnapshot = sourceState.snapshot
       }
       lastSuccessfulStageInputs = currentInputs
-      lastSuccessfulInteractionUniforms = interactionUniforms
-      lastSuccessfulInteractionSignals = interactionSignals
       retainedOutputAvailable = true
       if (interactionUniforms.hasOptics || interactionUniforms.hasLighting) {
         interactionFrameCount++
@@ -336,8 +318,6 @@ internal class RuntimeShaderGlassDelegate(
     retainedOutputAvailable = false
     lastSuccessfulSourceSnapshot = null
     lastSuccessfulStageInputs = null
-    lastSuccessfulInteractionUniforms = null
-    lastSuccessfulInteractionSignals = null
   }
 
   private fun clearInteractionLayerMetadata() {
@@ -385,7 +365,6 @@ internal class RuntimeShaderGlassDelegate(
     preparedParams = null
     preparedRenderEffects = null
     preparedInteractionUniforms = null
-    preparedInteractionSignals = null
     preparedSourceAvailable = false
     preparedStageAvailability = null
     clearRetainedMetadata()

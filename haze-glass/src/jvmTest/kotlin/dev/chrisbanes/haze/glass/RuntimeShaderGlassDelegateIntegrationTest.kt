@@ -54,13 +54,12 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
-  fun interactionFrames_doNotRebuildBaseEffectsOrRecordSource() = runComposeUiTest {
+  fun interactionFrames_updateDynamicStagesWithoutRecreatingBaseOpticalEffect() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
     val delegate = effect.delegate as RuntimeShaderGlassDelegate
     val opticalBuilds = delegate.baseOpticalEffectCreationCount
-    val sourceRecords = delegate.sourceRecordCount
 
     onNodeWithTag("glass").performTouchInput {
       down(Offset(20f, 20f))
@@ -70,11 +69,51 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     waitForIdle()
 
     assertThat(delegate.baseOpticalEffectCreationCount).isEqualTo(opticalBuilds)
-    assertThat(delegate.sourceRecordCount).isEqualTo(sourceRecords)
     assertThat(delegate.interactionFrameCount).isGreaterThan(0)
     assertThat(delegate.layers.hasInteractionOptical).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
+  }
+
+  @Test
+  fun heldInteraction_sourceContentChangeRecordsSource() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sourceColor = mutableStateOf(Color.Red)
+    val effect = runtimeInteractiveEffect()
+    setContent {
+      Box(Modifier.size(120.dp)) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .background(sourceColor.value)
+            .hazeSource(hazeState),
+        )
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testTag("glass")
+            .hazeEffect(hazeState) {
+              inputScale = HazeInputScale.None
+              visualEffect = effect
+            },
+        )
+      }
+    }
+    waitForIdle()
+
+    onNodeWithTag("glass").performTouchInput {
+      down(Offset(20f, 20f))
+    }
+    mainClock.advanceTimeBy(500)
+    waitForIdle()
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val sourceRecordsBeforeMutation = delegate.sourceRecordCount
+
+    sourceColor.value = Color.Blue
+    waitForIdle()
+
+    assertThat(effect.currentInteractionSignals.pressed).isTrue()
+    assertThat(delegate.sourceRecordCount).isGreaterThan(sourceRecordsBeforeMutation)
   }
 
   @Test
