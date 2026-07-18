@@ -185,6 +185,7 @@ internal class GlassInteractionController(
   )
   private var signals = GlassInteractionSignals()
   private var positionTarget = Offset.Zero
+  private var hasInitialPositionTarget = false
   private var positionJob: Job? = null
   private var primaryPointerId: PointerId? = null
   private var rawHovered = false
@@ -492,6 +493,16 @@ internal class GlassInteractionController(
   }
 
   private fun retargetPosition(target: Offset, force: Boolean = false) {
+    if (!hasInitialPositionTarget) {
+      hasInitialPositionTarget = true
+      positionTarget = target
+      positionJob?.cancel()
+      positionJob = scope.launch {
+        position.snapTo(target)
+        invalidateDraw()
+      }
+      return
+    }
     if (!force && target == positionTarget) return
     positionTarget = target
     positionJob?.cancel()

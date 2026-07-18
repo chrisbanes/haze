@@ -46,6 +46,22 @@ import kotlin.test.Test
 class GlassInteractionControllerTest : ContextTest() {
 
   @Test
+  fun controller_initialValidPosition_snapsToCenterBeforeAnimationFrames() = runComposeUiTest {
+    mainClock.autoAdvance = false
+    val effect = GlassVisualEffect().apply {
+      pressed()
+      interactionPositionAnimationSpec = tween(1_000)
+    }
+    setContent {
+      Box(Modifier.size(100.dp).hazeEffect { visualEffect = effect })
+    }
+
+    mainClock.advanceTimeByFrame()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(50f, 50f))
+  }
+
+  @Test
   fun materialOnlyTransform_isNotExposedToHazeNode() = runComposeUiTest {
     val effect = GlassVisualEffect().apply {
       pressed { scale(0.9f, 0.8f) }
