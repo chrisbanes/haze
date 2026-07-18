@@ -115,6 +115,7 @@ include(
   ":internal:dokka",
   ":internal:screenshot-test",
   ":sample:shared",
+  ":sample:screenshot-tests",
   ":sample:android",
   ":sample:desktop",
   ":sample:web",
