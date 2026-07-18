@@ -245,8 +245,7 @@ private fun ProductMetadataCard(
     shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
     modifier = modifier,
   ) {
-    AnimatedContent(targetState = artwork.id) { artworkId ->
-      val displayedArtwork = GalleryArtworks.first { it.id == artworkId }
+    AnimatedContent(targetState = artwork) { displayedArtwork ->
       Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
           displayedArtwork.title,

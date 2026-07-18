@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassOptics
@@ -34,17 +35,15 @@ class GlassPlaygroundTimelineTest {
   @Test
   fun choreographedSurfaceCentersKeepFixedSizesInsideCompactScene() {
     val sceneSize = IntSize(320, 240)
-    val surfaceSizes = mapOf(
-      GlassPlaygroundSurfaceId.Lens to IntSize(128, 128),
-      GlassPlaygroundSurfaceId.Pill to IntSize(220, 88),
-      GlassPlaygroundSurfaceId.Card to IntSize(280, 180),
-      GlassPlaygroundSurfaceId.Prism to IntSize(180, 112),
-    )
+    val density = Density(1f)
 
     repeat(101) { step ->
       val frame = glassPlaygroundFrame(step / 100f)
       GlassPlaygroundSurfaceId.entries.forEach { id ->
-        val surfaceSize = surfaceSizes.getValue(id)
+        val surfaceSize = with(density) {
+          val size = playgroundSurfaceSize(id)
+          IntSize(size.width.roundToPx(), size.height.roundToPx())
+        }
         val center = resolvedPlaygroundSurfaceCenter(
           normalizedCenter = frame.position(id),
           sceneSize = sceneSize,

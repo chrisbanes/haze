@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
@@ -51,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -174,7 +172,6 @@ private fun LabSpecimen(
         .align(Alignment.Center)
         .fillMaxWidth(0.85f)
         .sizeIn(maxWidth = 360.dp, maxHeight = 240.dp)
-        .heightIn(max = 240.dp)
         .pointerInput(Unit) { detectTapGestures {} }
         .semantics { contentDescription = "Glass specimen" },
     ) {
@@ -301,11 +298,10 @@ private fun LabSegmentedButtonRow(
 
 @Composable
 private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
-  val default = GlassDefaults.style
   val absolute = (state.style.optics as? GlassOptics.Absolute) ?: GlassOptics.Absolute()
-  val lighting = state.style.lighting.withDefaults(default.lighting)
-  val color = state.style.color.withDefaults(default.color)
-  val rendering = state.style.rendering.withDefaults(default.rendering)
+  val lighting = state.style.lighting
+  val color = state.style.color
+  val rendering = state.style.rendering
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text("Optics", style = MaterialTheme.typography.titleMedium)
     LabSlider("Refraction", absolute.refractionStrength, 0f..1f) { value ->
@@ -360,40 +356,3 @@ private fun LabSlider(label: String, value: Float, range: ClosedFloatingPointRan
     Slider(value = value, onValueChange = onValueChange, valueRange = range)
   }
 }
-
-private fun dev.chrisbanes.haze.glass.GlassLighting.withDefaults(
-  defaults: dev.chrisbanes.haze.glass.GlassLighting,
-) = copy(
-  specularIntensity = specularIntensity.orDefault(defaults.specularIntensity),
-  specularExponent = specularExponent.orDefault(defaults.specularExponent),
-  fresnelExponent = fresnelExponent.orDefault(defaults.fresnelExponent),
-  ambientResponse = ambientResponse.orDefault(defaults.ambientResponse),
-  lightPosition = if (lightPosition != androidx.compose.ui.geometry.Offset.Unspecified) {
-    lightPosition
-  } else {
-    defaults.lightPosition
-  },
-)
-
-private fun dev.chrisbanes.haze.glass.GlassColor.withDefaults(
-  defaults: dev.chrisbanes.haze.glass.GlassColor,
-) = copy(
-  alpha = alpha.orDefault(defaults.alpha),
-  contrast = contrast.orDefault(defaults.contrast),
-  whitePoint = whitePoint.orDefault(defaults.whitePoint),
-  chromaMultiplier = chromaMultiplier.orDefault(defaults.chromaMultiplier),
-)
-
-private fun dev.chrisbanes.haze.glass.GlassRendering.withDefaults(
-  defaults: dev.chrisbanes.haze.glass.GlassRendering,
-) = copy(
-  edgeSoftness = edgeSoftness.orDefault(defaults.edgeSoftness),
-  contentNormalBlend = contentNormalBlend.orDefault(defaults.contentNormalBlend),
-  surfaceProfile = surfaceProfile ?: defaults.surfaceProfile,
-  chromaticAberrationStrength = chromaticAberrationStrength.orDefault(defaults.chromaticAberrationStrength),
-  chromaticAberrationMode = chromaticAberrationMode ?: defaults.chromaticAberrationMode,
-)
-
-private fun Float.orDefault(default: Float): Float = if (isNaN()) default else this
-
-private fun Dp.orDefault(default: Dp): Dp = if (this != Dp.Unspecified) this else default

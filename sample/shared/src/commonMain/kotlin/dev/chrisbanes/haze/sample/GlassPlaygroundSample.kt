@@ -497,7 +497,7 @@ private fun PlaygroundSurface(
   }
 }
 
-private fun playgroundSurfaceSize(id: GlassPlaygroundSurfaceId): DpSize = when (id) {
+internal fun playgroundSurfaceSize(id: GlassPlaygroundSurfaceId): DpSize = when (id) {
   GlassPlaygroundSurfaceId.Lens -> DpSize(128.dp, 128.dp)
   GlassPlaygroundSurfaceId.Pill -> DpSize(220.dp, 88.dp)
   GlassPlaygroundSurfaceId.Card -> DpSize(280.dp, 180.dp)
