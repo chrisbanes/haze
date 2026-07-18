@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -28,6 +29,8 @@ import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.InteractiveVisualEffect
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
@@ -39,7 +42,8 @@ import dev.chrisbanes.haze.VisualEffectContext
  */
 @ExperimentalHazeApi
 @Stable
-public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
+@OptIn(InternalHazeApi::class)
+public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, InteractiveVisualEffect {
 
   /** Creates a new [GlassVisualEffect] copying all properties from [other]. */
   public constructor(other: GlassVisualEffect) : this() {
@@ -86,6 +90,12 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   internal val attachedContextForTest: VisualEffectContext?
     get() = attachedContext
 
+  internal val currentInteractionState: GlassInteractionRenderState
+    get() = interactionController?.renderState ?: GlassInteractionRenderState(Offset.Zero)
+
+  internal val currentInteractionSignals: GlassInteractionSignals
+    get() = interactionController?.currentSignals ?: GlassInteractionSignals()
+
   private var needsDelegateSelection: Boolean = true
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
@@ -109,7 +119,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
       pressed = pressedSlot,
     )
 
-  internal val observesPointerEvents: Boolean
+  override val observesPointerEvents: Boolean
     get() = hoveredSlot != null || pressedSlot != null
 
   private var _interactionSource: InteractionSource? by mutableStateOf(null)
@@ -319,6 +329,19 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     }
   }
 
+  override fun onPointerEvent(event: PointerEvent, context: VisualEffectContext) {
+    interactionController?.onPointerEvent(event, context.size)
+  }
+
+  override fun onCancelPointerInput(context: VisualEffectContext) {
+    interactionController?.cancelPointerInput(context.size)
+  }
+
+  internal fun setPressedForTest(position: Offset, pressed: Boolean = true) {
+    val context = attachedContext ?: return
+    interactionController?.setRawPressedForTest(pressed, position, context.size)
+  }
+
   override fun DrawScope.prepareDraw(context: VisualEffectContext) {
     selectDelegateForDraw(context)
     with(delegate) { prepareDraw(context) }
@@ -374,7 +397,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
       interactionController = it
     }
     controller.updateConfiguration(controllerConfiguration(systemMotionScale(context)))
-    controller.updatePosition(context.size.center)
+    controller.updateInteractionSource(interactionSource, context.size)
   }
 
   private fun systemMotionScale(context: VisualEffectContext): Float {

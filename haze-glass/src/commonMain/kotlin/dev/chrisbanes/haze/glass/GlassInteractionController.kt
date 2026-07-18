@@ -6,13 +6,27 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.VectorConverter
+import androidx.compose.foundation.interaction.FocusInteraction
+import androidx.compose.foundation.interaction.HoverInteraction
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.positionChangedIgnoreConsumed
 import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 internal data class GlassInteractionSlots(
@@ -152,6 +166,7 @@ internal class GlassInteractionController(
   context: VisualEffectContext,
 ) {
   private val scope = context.coroutineScope
+  private val sizeProvider = { context.size }
   private val invalidateDraw = context::invalidateDraw
   private val lightingIntensity = AnimatedFloatChannel(0f, scope, invalidateDraw)
   private val refractionMultiplier = AnimatedFloatChannel(1f, scope, invalidateDraw)
@@ -169,12 +184,32 @@ internal class GlassInteractionController(
   private var signals = GlassInteractionSignals()
   private var positionTarget = Offset.Zero
   private var positionJob: Job? = null
+  private var primaryPointerId: PointerId? = null
+  private var rawHovered = false
+  private var rawPressed = false
+  private var rawPosition: Offset? = null
+  private var hoverPosition: Offset? = null
+  private var interactionSource: InteractionSource? = null
+  private var sourceJob: Job? = null
+  private val sourcePresses = mutableSetOf<PressInteraction.Press>()
+  private val sourceHovers = mutableSetOf<HoverInteraction.Enter>()
+  private val sourceFocuses = mutableSetOf<FocusInteraction.Focus>()
+  private var sourcePosition: Offset? = null
   private var disposed = false
 
   internal val configurationForTest: GlassInteractionControllerConfiguration
     get() = configuration
 
   internal val isDisposedForTest: Boolean get() = disposed
+
+  internal val currentSignals: GlassInteractionSignals
+    get() = GlassInteractionSignals(
+      rawHovered = rawHovered,
+      sourceHovered = sourceHovers.isNotEmpty(),
+      sourceFocused = sourceFocuses.isNotEmpty(),
+      rawPressed = rawPressed,
+      sourcePressed = sourcePresses.isNotEmpty(),
+    )
 
   val renderState: GlassInteractionRenderState
     get() = GlassInteractionRenderState(
@@ -225,9 +260,120 @@ internal class GlassInteractionController(
     retargetPosition(position)
   }
 
+  fun onPointerEvent(event: PointerEvent, size: Size) {
+    if (disposed || !size.isDrawable()) return
+
+    val primaryChange = primaryPointerId?.let { id ->
+      event.changes.firstOrNull { it.id == id }
+    }
+    if (primaryChange?.isConsumed == true && primaryChange.positionChangedIgnoreConsumed()) {
+      primaryChange.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+      cancelRawPress()
+    }
+
+    if (event.type == PointerEventType.Enter || event.type == PointerEventType.Move) {
+      event.changes
+        .lastOrNull { it.type == PointerType.Mouse || it.type == PointerType.Stylus }
+        ?.position
+        ?.validOrNull()
+        ?.let { position ->
+          rawHovered = position.x in 0f..size.width && position.y in 0f..size.height
+          if (rawHovered) hoverPosition = position
+        }
+    }
+    if (event.type == PointerEventType.Exit) {
+      rawHovered = false
+    }
+
+    if (primaryPointerId == null) {
+      event.changes.firstOrNull { it.changedToDownIgnoreConsumed() }?.let { change ->
+        primaryPointerId = change.id
+        rawPressed = true
+        change.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+      }
+    } else {
+      event.changes.firstOrNull { it.id == primaryPointerId }?.let { change ->
+        change.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+        if (change.changedToUpIgnoreConsumed()) {
+          primaryPointerId = null
+          rawPressed = false
+        }
+      }
+    }
+
+    updateSignalsAndPosition(size)
+  }
+
+  fun cancelPointerInput(size: Size) {
+    if (disposed) return
+    rawHovered = false
+    cancelRawPress()
+    updateSignalsAndPosition(size)
+  }
+
+  fun updateInteractionSource(source: InteractionSource?, size: Size) {
+    if (disposed) return
+    if (source === interactionSource) {
+      updatePositionForCurrentInputs(size)
+      return
+    }
+    sourceJob?.cancel()
+    sourceJob = null
+    interactionSource = source
+    sourcePresses.clear()
+    sourceHovers.clear()
+    sourceFocuses.clear()
+    sourcePosition = null
+    updateSignalsAndPosition(size)
+
+    if (source != null) {
+      sourceJob = scope.launch {
+        source.interactions.collect { interaction ->
+          when (interaction) {
+            is PressInteraction.Press -> {
+              sourcePresses += interaction
+              updateSourcePosition()
+            }
+
+            is PressInteraction.Release -> {
+              sourcePresses -= interaction.press
+              updateSourcePosition()
+            }
+
+            is PressInteraction.Cancel -> {
+              sourcePresses -= interaction.press
+              updateSourcePosition()
+            }
+
+            is HoverInteraction.Enter -> sourceHovers += interaction
+            is HoverInteraction.Exit -> sourceHovers -= interaction.enter
+            is FocusInteraction.Focus -> sourceFocuses += interaction
+            is FocusInteraction.Unfocus -> sourceFocuses -= interaction.focus
+          }
+          updateSignalsAndPosition(sizeProvider())
+        }
+      }
+    }
+  }
+
+  internal fun setRawPressedForTest(pressed: Boolean, position: Offset, size: Size) {
+    if (disposed) return
+    rawPressed = pressed
+    primaryPointerId = null
+    position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+    updateSignalsAndPosition(size)
+  }
+
   fun dispose() {
     if (disposed) return
     disposed = true
+    sourceJob?.cancel()
+    sourceJob = null
+    interactionSource = null
+    sourcePresses.clear()
+    sourceHovers.clear()
+    sourceFocuses.clear()
+    sourcePosition = null
     lightingIntensity.cancel()
     refractionMultiplier.cancel()
     whitePointDelta.cancel()
@@ -235,6 +381,33 @@ internal class GlassInteractionController(
     scaleY.cancel()
     positionJob?.cancel()
     positionJob = null
+  }
+
+  private fun cancelRawPress() {
+    primaryPointerId = null
+    rawPressed = false
+  }
+
+  private fun updateSourcePosition() {
+    sourcePosition = sourcePresses
+      .lastOrNull { it.pressPosition.validOrNull() != null }
+      ?.pressPosition
+      ?.validOrNull()
+  }
+
+  private fun updateSignalsAndPosition(size: Size) {
+    updateSignals(currentSignals)
+    updatePositionForCurrentInputs(size)
+  }
+
+  private fun updatePositionForCurrentInputs(size: Size) {
+    if (!size.isDrawable()) return
+    val target = rawPosition.takeIf { rawPressed }
+      ?: hoverPosition
+      ?: sourcePosition
+      ?: rawPosition
+      ?: size.center
+    updatePosition(target.clampTo(size))
   }
 
   private fun retarget(
@@ -405,3 +578,13 @@ private class AnimatedFloatChannel(
 private object FullMotionDurationScale : MotionDurationScale {
   override val scaleFactor: Float = 1f
 }
+
+private fun Offset.validOrNull(): Offset? = takeIf { x.isFinite() && y.isFinite() }
+
+private fun Offset.clampTo(size: Size): Offset = Offset(
+  x = x.coerceIn(0f, size.width),
+  y = y.coerceIn(0f, size.height),
+)
+
+private fun Size.isDrawable(): Boolean =
+  width.isFinite() && height.isFinite() && width > 0f && height > 0f
