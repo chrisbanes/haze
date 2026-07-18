@@ -31,8 +31,7 @@ UI tests leverage `assertk`, `kotlin.test`, and Roborazzi-based screenshot asser
 descriptive method-level names such as `functionName_emitsExpectedBlur`. Run `./gradlew check`
 locally before opening a PR. Regenerate library snapshots with
 `./gradlew :haze-screenshot-tests:recordRoborazzi`; regenerate Glass Gallery snapshots with
-`./gradlew :sample:screenshot-tests:recordRoborazziJvm` and
-`./gradlew :sample:screenshot-tests:recordRoborazziAndroidHostTest` when intentional UI changes occur.
+`./gradlew :sample:screenshot-tests:recordRoborazzi` when intentional UI changes occur.
 
 ## VisualEffect Implementation Patterns
 
