@@ -268,6 +268,9 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   private fun onInteractionConfigurationChanged() {
     interactionConfigurationVersion++
+    if (hoveredSlot == null && focusedSlot == null && pressedSlot == null) {
+      attachedContext?.let(::syncInteractionController)
+    }
   }
 
   internal var delegate: Delegate = FallbackGlassDelegate(this)

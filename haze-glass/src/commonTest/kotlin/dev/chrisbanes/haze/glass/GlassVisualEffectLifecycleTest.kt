@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -28,6 +29,29 @@ import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 class GlassVisualEffectLifecycleTest {
+
+  @Test
+  fun update_readsInjectedMotionScaleAndFullOverridesIt() {
+    val effect = GlassVisualEffect().apply { pressed() }
+    val context = TrackingVisualEffectContext(
+      motionScale = 0f,
+      effectSize = Size.Zero,
+    )
+
+    effect.attach(context)
+    effect.update(context)
+    val controller = checkNotNull(effect.interactionControllerForTest)
+
+    assertThat(controller.configurationForTest.reducedMotion).isEqualTo(true)
+    assertThat(controller.configurationForTest.forceFullMotion).isEqualTo(false)
+
+    effect.interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+    effect.update(context)
+
+    assertThat(controller.configurationForTest.reducedMotion).isEqualTo(false)
+    assertThat(controller.configurationForTest.forceFullMotion).isEqualTo(true)
+    effect.detach(context)
+  }
 
   @Test
   fun attachAndUpdate_withoutInteractionsDoesNotAllocateController() {
@@ -114,9 +138,12 @@ class GlassVisualEffectLifecycleTest {
 }
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
-private class TrackingVisualEffectContext : VisualEffectContext {
+private class TrackingVisualEffectContext(
+  motionScale: Float? = null,
+  effectSize: Size = Size(100f, 100f),
+) : VisualEffectContext {
   override val position: Offset = Offset.Zero
-  override val size: Size = Size(100f, 100f)
+  override val size: Size = effectSize
   override val layerSize: Size = size
   override val layerOffset: Offset = Offset.Zero
   override val rootBounds: Rect = Rect(Offset.Zero, size)
@@ -124,7 +151,9 @@ private class TrackingVisualEffectContext : VisualEffectContext {
   override val windowId: Any? = null
   override val areas: List<HazeArea> = emptyList()
   override val state: HazeState? = null
-  override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext)
+  override val coroutineScope: CoroutineScope = CoroutineScope(
+    motionScale?.let(::TestMotionDurationScale) ?: EmptyCoroutineContext,
+  )
 
   var invalidateLayerBoundsCalls: Int = 0
   var invalidateDrawCalls: Int = 0
@@ -146,3 +175,7 @@ private class TrackingVisualEffectContext : VisualEffectContext {
     invalidateLayerBoundsCalls++
   }
 }
+
+private class TestMotionDurationScale(
+  override val scaleFactor: Float,
+) : MotionDurationScale

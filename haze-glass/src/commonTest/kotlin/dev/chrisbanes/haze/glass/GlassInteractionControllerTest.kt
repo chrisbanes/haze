@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -326,6 +327,96 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun controller_inFlightSystemAnimationRestartsWhenPolicyChangesToFull() = runComposeUiTest {
+    val effect = GlassVisualEffect().apply {
+      interactionPositionAnimationSpec = tween(200)
+      pressed {
+        animate(tween(200), tween(200)) { lightingIntensity(1f) }
+      }
+    }
+    setContent {
+      Box(Modifier.size(100.dp).hazeEffect { visualEffect = effect })
+    }
+    waitForIdle()
+    val controller = checkNotNull(effect.interactionControllerForTest)
+    controller.updateConfiguration(effect.controllerConfiguration(systemMotionScale = 1f))
+    controller.updateSignals(GlassInteractionSignals(rawPressed = true))
+    controller.updatePosition(Offset(100f, 100f))
+    mainClock.advanceTimeBy(100)
+    val valueBeforePolicyChange = controller.renderState.lightingIntensity
+    val positionBeforePolicyChange = controller.renderState.position.x
+    assertThat(valueBeforePolicyChange).isGreaterThan(0f)
+    assertThat(valueBeforePolicyChange).isLessThan(1f)
+
+    controller.updateConfiguration(
+      controller.configurationForTest.copy(forceFullMotion = true),
+    )
+    mainClock.advanceTimeBy(120)
+
+    assertThat(controller.renderState.lightingIntensity).isGreaterThan(valueBeforePolicyChange)
+    assertThat(controller.renderState.lightingIntensity).isLessThan(1f)
+    assertThat(controller.renderState.position.x).isGreaterThan(positionBeforePolicyChange)
+    assertThat(controller.renderState.position.x).isLessThan(100f)
+  }
+
+  @Test
+  fun controller_inFlightFullAnimationRestartsWhenPolicyChangesToSystem() = runComposeUiTest {
+    val effect = GlassVisualEffect().apply {
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+      interactionPositionAnimationSpec = tween(200)
+      pressed {
+        animate(tween(200), tween(200)) { lightingIntensity(1f) }
+      }
+    }
+    setContent {
+      Box(Modifier.size(100.dp).hazeEffect { visualEffect = effect })
+    }
+    waitForIdle()
+    val controller = checkNotNull(effect.interactionControllerForTest)
+    controller.updateConfiguration(effect.controllerConfiguration(systemMotionScale = 1f))
+    controller.updateSignals(GlassInteractionSignals(rawPressed = true))
+    controller.updatePosition(Offset(100f, 100f))
+    mainClock.advanceTimeBy(100)
+    val valueBeforePolicyChange = controller.renderState.lightingIntensity
+    val positionBeforePolicyChange = controller.renderState.position.x
+    assertThat(valueBeforePolicyChange).isGreaterThan(0f)
+    assertThat(valueBeforePolicyChange).isLessThan(1f)
+
+    controller.updateConfiguration(
+      controller.configurationForTest.copy(forceFullMotion = false),
+    )
+    mainClock.advanceTimeBy(120)
+
+    assertThat(controller.renderState.lightingIntensity).isGreaterThan(valueBeforePolicyChange)
+    assertThat(controller.renderState.lightingIntensity).isLessThan(1f)
+    assertThat(controller.renderState.position.x).isGreaterThan(positionBeforePolicyChange)
+    assertThat(controller.renderState.position.x).isLessThan(100f)
+  }
+
+  @Test
+  fun effect_motionPolicyUsesAttachedNodeCoroutineContextThroughLifecycleUpdate() =
+    runComposeUiTest {
+      val effect = GlassVisualEffect().apply { pressed() }
+      setContent {
+        Box(Modifier.size(100.dp).hazeEffect { visualEffect = effect })
+      }
+      waitForIdle()
+      val context = checkNotNull(effect.attachedContextForTest)
+      val nodeMotionScale = context.coroutineScope.coroutineContext[MotionDurationScale]
+      val controller = checkNotNull(effect.interactionControllerForTest)
+
+      assertThat(nodeMotionScale).isNull()
+      assertThat(controller.configurationForTest.reducedMotion).isEqualTo(false)
+      assertThat(controller.configurationForTest.forceFullMotion).isEqualTo(false)
+
+      effect.interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+      waitForIdle()
+
+      assertThat(controller.configurationForTest.reducedMotion).isEqualTo(false)
+      assertThat(controller.configurationForTest.forceFullMotion).isEqualTo(true)
+    }
+
+  @Test
   fun controller_leavingReducedMotionExposesActiveTransformTarget() = runComposeUiTest {
     val effect = GlassVisualEffect().apply {
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
@@ -366,7 +457,6 @@ class GlassInteractionControllerTest : ContextTest() {
     waitForIdle()
 
     effect.clearPressed()
-    waitForIdle()
 
     assertThat(effect.interactionControllerForTest).isNull()
     assertThat(effect.interactionRenderState(context)).isEqualTo(

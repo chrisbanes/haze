@@ -171,6 +171,9 @@ internal class GlassInteractionController(
   private var positionJob: Job? = null
   private var disposed = false
 
+  internal val configurationForTest: GlassInteractionControllerConfiguration
+    get() = configuration
+
   internal val isDisposedForTest: Boolean get() = disposed
 
   val renderState: GlassInteractionRenderState
@@ -187,12 +190,17 @@ internal class GlassInteractionController(
     if (disposed || configuration == this.configuration) return
     val previous = this.configuration
     this.configuration = configuration
+    val forceFullMotionChanged = previous.forceFullMotion != configuration.forceFullMotion
     retarget(
       previousSlots = previous.slots,
       nextSlots = configuration.slots,
       previousSignals = signals,
       nextSignals = signals,
+      restartForMotionPolicy = forceFullMotionChanged,
     )
+    if (forceFullMotionChanged && positionJob?.isActive == true) {
+      retargetPosition(positionTarget, force = true)
+    }
     if (!previous.reducedMotion && configuration.reducedMotion) {
       snapActiveTargetsForReducedMotion()
       retargetPosition(positionTarget, force = true)
@@ -208,6 +216,7 @@ internal class GlassInteractionController(
       nextSlots = configuration.slots,
       previousSignals = previous,
       nextSignals = signals,
+      restartForMotionPolicy = false,
     )
   }
 
@@ -233,6 +242,7 @@ internal class GlassInteractionController(
     nextSlots: GlassInteractionSlots,
     previousSignals: GlassInteractionSignals,
     nextSignals: GlassInteractionSignals,
+    restartForMotionPolicy: Boolean,
   ) {
     val targets = resolveGlassInteractionTargets(nextSlots, nextSignals)
     lightingIntensity.retarget(
@@ -243,6 +253,7 @@ internal class GlassInteractionController(
       nextSignals,
       configuration.reducedMotion,
       configuration.forceFullMotion,
+      restartForMotionPolicy,
     )
     refractionMultiplier.retarget(
       targets.refractionMultiplier,
@@ -252,6 +263,7 @@ internal class GlassInteractionController(
       nextSignals,
       configuration.reducedMotion,
       configuration.forceFullMotion,
+      restartForMotionPolicy,
     )
     whitePointDelta.retarget(
       targets.whitePointDelta,
@@ -261,6 +273,7 @@ internal class GlassInteractionController(
       nextSignals,
       configuration.reducedMotion,
       configuration.forceFullMotion,
+      restartForMotionPolicy,
     )
     scaleX.retarget(
       targets.scaleX,
@@ -270,6 +283,7 @@ internal class GlassInteractionController(
       nextSignals,
       configuration.reducedMotion,
       configuration.forceFullMotion,
+      restartForMotionPolicy,
     )
     scaleY.retarget(
       targets.scaleY,
@@ -279,6 +293,7 @@ internal class GlassInteractionController(
       nextSignals,
       configuration.reducedMotion,
       configuration.forceFullMotion,
+      restartForMotionPolicy,
     )
   }
 
@@ -317,6 +332,7 @@ private class AnimatedFloatChannel(
 ) {
   private val value = Animatable(identity)
   private var owner = OwnedGlassResponseValue(null, null, null, identity)
+  private var animationSpec: FiniteAnimationSpec<Float>? = null
   private var job: Job? = null
 
   val currentValue: Float get() = value.value
@@ -329,8 +345,14 @@ private class AnimatedFloatChannel(
     nextSignals: GlassInteractionSignals,
     reducedMotion: Boolean,
     forceFullMotion: Boolean,
+    restartForMotionPolicy: Boolean,
   ) {
-    if (target == owner) return
+    if (target == owner) {
+      if (restartForMotionPolicy && job?.isActive == true) {
+        launchAnimation(target.value, animationSpec, reducedMotion, forceFullMotion)
+      }
+      return
+    }
     val previous = owner
     owner = target
     val spec = selectTransitionSpec(
@@ -341,13 +363,23 @@ private class AnimatedFloatChannel(
       previousSignals = previousSignals,
       nextSignals = nextSignals,
     )
+    animationSpec = spec
+    launchAnimation(target.value, spec, reducedMotion, forceFullMotion)
+  }
+
+  private fun launchAnimation(
+    target: Float,
+    spec: FiniteAnimationSpec<Float>?,
+    reducedMotion: Boolean,
+    forceFullMotion: Boolean,
+  ) {
     job?.cancel()
     job = scope.launch(if (forceFullMotion) FullMotionDurationScale else EmptyCoroutineContext) {
       if (reducedMotion || spec == null) {
-        value.snapTo(target.value)
+        value.snapTo(target)
         invalidateDraw()
       } else {
-        value.animateTo(target.value, spec) {
+        value.animateTo(target, spec) {
           invalidateDraw()
         }
       }
@@ -356,6 +388,7 @@ private class AnimatedFloatChannel(
 
   fun snapTo(target: OwnedGlassResponseValue) {
     owner = target
+    animationSpec = null
     job?.cancel()
     job = scope.launch {
       value.snapTo(target.value)
