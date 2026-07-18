@@ -265,16 +265,19 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   private fun setHovered(response: GlassInteractionResponse) {
+    if (hoveredSlot?.response == response) return
     hoveredSlot = GlassInteractionSlot(++nextInteractionRevision, response)
     onInteractionConfigurationChanged()
   }
 
   private fun setFocused(response: GlassInteractionResponse) {
+    if (focusedSlot?.response == response) return
     focusedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
     onInteractionConfigurationChanged()
   }
 
   private fun setPressed(response: GlassInteractionResponse) {
+    if (pressedSlot?.response == response) return
     pressedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
     onInteractionConfigurationChanged()
   }

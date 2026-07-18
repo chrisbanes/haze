@@ -46,6 +46,60 @@ import kotlin.test.Test
 class GlassInteractionControllerTest : ContextTest() {
 
   @Test
+  fun equivalentPresetInteractions_retainSlotsAndRevisions() {
+    val effect = GlassVisualEffect().apply {
+      hovered()
+      focused()
+      pressed()
+    }
+    val hovered = checkNotNull(effect.hoveredSlot)
+    val focused = checkNotNull(effect.focusedSlot)
+    val pressed = checkNotNull(effect.pressedSlot)
+
+    effect.hovered()
+    effect.focused()
+    effect.pressed()
+
+    assertThat(effect.hoveredSlot).isSameInstanceAs(hovered)
+    assertThat(effect.focusedSlot).isSameInstanceAs(focused)
+    assertThat(effect.pressedSlot).isSameInstanceAs(pressed)
+  }
+
+  @Test
+  fun equivalentInteractable_retainsSlotsAndRevisions() {
+    val effect = GlassVisualEffect().apply { interactable() }
+    val hovered = checkNotNull(effect.hoveredSlot)
+    val focused = checkNotNull(effect.focusedSlot)
+    val pressed = checkNotNull(effect.pressedSlot)
+
+    effect.interactable()
+
+    assertThat(effect.hoveredSlot).isSameInstanceAs(hovered)
+    assertThat(effect.focusedSlot).isSameInstanceAs(focused)
+    assertThat(effect.pressedSlot).isSameInstanceAs(pressed)
+  }
+
+  @Test
+  fun equivalentCustomInteraction_retainsSlotAndRevision() {
+    val effect = GlassVisualEffect().apply { pressed { lightingIntensity(0.5f) } }
+    val pressed = checkNotNull(effect.pressedSlot)
+
+    effect.pressed { lightingIntensity(0.5f) }
+
+    assertThat(effect.pressedSlot).isSameInstanceAs(pressed)
+  }
+
+  @Test
+  fun changedCustomInteraction_replacesSlotAndRevision() {
+    val effect = GlassVisualEffect().apply { pressed { lightingIntensity(0.5f) } }
+    val pressed = checkNotNull(effect.pressedSlot)
+
+    effect.pressed { lightingIntensity(0.6f) }
+
+    assertThat(checkNotNull(effect.pressedSlot).revision).isGreaterThan(pressed.revision)
+  }
+
+  @Test
   fun controller_initialValidPosition_snapsToCenterBeforeAnimationFrames() = runComposeUiTest {
     mainClock.autoAdvance = false
     val effect = GlassVisualEffect().apply {
