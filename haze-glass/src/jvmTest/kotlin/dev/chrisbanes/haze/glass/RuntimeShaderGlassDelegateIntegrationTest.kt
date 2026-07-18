@@ -25,6 +25,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
@@ -108,12 +109,15 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     waitForIdle()
     val delegate = effect.delegate as RuntimeShaderGlassDelegate
     val sourceRecordsBeforeMutation = delegate.sourceRecordCount
+    val acceptedSnapshotBeforeMutation = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
 
     sourceColor.value = Color.Blue
     waitForIdle()
 
     assertThat(effect.currentInteractionSignals.pressed).isTrue()
     assertThat(delegate.sourceRecordCount).isGreaterThan(sourceRecordsBeforeMutation)
+    assertThat(checkNotNull(delegate.lastSuccessfulSourceSnapshot))
+      .isNotEqualTo(acceptedSnapshotBeforeMutation)
   }
 
   @Test
