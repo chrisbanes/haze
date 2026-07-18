@@ -10,10 +10,10 @@ import dev.chrisbanes.haze.HazeEffectScope
  * Configures a [GlassVisualEffect] for this effect scope.
  */
 @ExperimentalHazeApi
-public inline fun HazeEffectScope.glassEffect(
+public fun HazeEffectScope.glassEffect(
   block: GlassVisualEffect.() -> Unit = {},
 ) {
   val effect = visualEffect as? GlassVisualEffect ?: GlassVisualEffect()
   visualEffect = effect
-  effect.block()
+  effect.configureInteractionSlots { effect.block() }
 }

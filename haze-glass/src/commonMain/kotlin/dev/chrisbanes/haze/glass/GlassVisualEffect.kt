@@ -123,6 +123,14 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       pressed = pressedSlot,
     )
 
+  private class InteractionSlotTransaction(effect: GlassVisualEffect) {
+    var hovered: GlassInteractionResponse? = effect.hoveredSlot?.response
+    var focused: GlassInteractionResponse? = effect.focusedSlot?.response
+    var pressed: GlassInteractionResponse? = effect.pressedSlot?.response
+  }
+
+  private var interactionSlotTransaction: InteractionSlotTransaction? = null
+
   override val observesPointerEvents: Boolean
     get() = hoveredSlot != null || pressedSlot != null
 
@@ -247,24 +255,42 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   public fun clearHovered() {
+    interactionSlotTransaction?.let {
+      it.hovered = null
+      return
+    }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     hoveredSlot = null
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   public fun clearFocused() {
+    interactionSlotTransaction?.let {
+      it.focused = null
+      return
+    }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     focusedSlot = null
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   public fun clearPressed() {
+    interactionSlotTransaction?.let {
+      it.pressed = null
+      return
+    }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     pressedSlot = null
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   public fun clearInteractions() {
+    interactionSlotTransaction?.let {
+      it.hovered = null
+      it.focused = null
+      it.pressed = null
+      return
+    }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     hoveredSlot = null
     focusedSlot = null
@@ -273,6 +299,10 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   private fun setHovered(response: GlassInteractionResponse) {
+    interactionSlotTransaction?.let {
+      it.hovered = response
+      return
+    }
     if (hoveredSlot?.response == response) return
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     hoveredSlot = GlassInteractionSlot(++nextInteractionRevision, response)
@@ -280,6 +310,10 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   private fun setFocused(response: GlassInteractionResponse) {
+    interactionSlotTransaction?.let {
+      it.focused = response
+      return
+    }
     if (focusedSlot?.response == response) return
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     focusedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
@@ -287,6 +321,10 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   private fun setPressed(response: GlassInteractionResponse) {
+    interactionSlotTransaction?.let {
+      it.pressed = response
+      return
+    }
     if (pressedSlot?.response == response) return
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     pressedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
@@ -303,6 +341,44 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     interactionConfigurationVersion++
     if (hoveredSlot == null && focusedSlot == null && pressedSlot == null) {
       attachedContext?.let(::syncInteractionController)
+    }
+  }
+
+  internal fun configureInteractionSlots(block: () -> Unit) {
+    if (interactionSlotTransaction != null) {
+      block()
+      return
+    }
+
+    val transaction = InteractionSlotTransaction(this)
+    interactionSlotTransaction = transaction
+    try {
+      block()
+    } catch (throwable: Throwable) {
+      interactionSlotTransaction = null
+      throw throwable
+    }
+    interactionSlotTransaction = null
+    commitInteractionSlots(transaction)
+  }
+
+  private fun commitInteractionSlots(transaction: InteractionSlotTransaction) {
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    var changed = false
+    if (hoveredSlot?.response != transaction.hovered) {
+      hoveredSlot = transaction.hovered?.let { GlassInteractionSlot(++nextInteractionRevision, it) }
+      changed = true
+    }
+    if (focusedSlot?.response != transaction.focused) {
+      focusedSlot = transaction.focused?.let { GlassInteractionSlot(++nextInteractionRevision, it) }
+      changed = true
+    }
+    if (pressedSlot?.response != transaction.pressed) {
+      pressedSlot = transaction.pressed?.let { GlassInteractionSlot(++nextInteractionRevision, it) }
+      changed = true
+    }
+    if (changed) {
+      onInteractionConfigurationChanged(previousRefractionMultiplier)
     }
   }
 

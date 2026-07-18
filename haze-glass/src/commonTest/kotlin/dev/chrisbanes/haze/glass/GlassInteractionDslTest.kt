@@ -8,10 +8,61 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.HazeArea
+import dev.chrisbanes.haze.HazeEffectScope
+import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.VisualEffect
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
 class GlassInteractionDslTest {
+
+  @Test
+  fun glassEffect_replayingInteractableWithCustomPress_retainsFinalSlotsAndConfiguration() {
+    val scope = TestHazeEffectScope()
+    scope.glassEffect {
+      interactable()
+      pressed { lightingIntensity(0.6f) }
+    }
+    val effect = scope.visualEffect as GlassVisualEffect
+    val hovered = checkNotNull(effect.hoveredSlot)
+    val focused = checkNotNull(effect.focusedSlot)
+    val pressed = checkNotNull(effect.pressedSlot)
+    effect.resetDirtyTracker()
+
+    scope.glassEffect {
+      interactable()
+      pressed { lightingIntensity(0.6f) }
+    }
+
+    assertThat(effect.hoveredSlot).isEqualTo(hovered)
+    assertThat(effect.focusedSlot).isEqualTo(focused)
+    assertThat(effect.pressedSlot).isEqualTo(pressed)
+    assertThat(effect.dirtyTracker).isEqualTo(dev.chrisbanes.haze.Bitmask())
+  }
+
+  @Test
+  fun glassEffect_replayingInteractableThenClearPressed_retainsFinalSlotsAndConfiguration() {
+    val scope = TestHazeEffectScope()
+    scope.glassEffect {
+      interactable()
+      clearPressed()
+    }
+    val effect = scope.visualEffect as GlassVisualEffect
+    val hovered = checkNotNull(effect.hoveredSlot)
+    val focused = checkNotNull(effect.focusedSlot)
+    effect.resetDirtyTracker()
+
+    scope.glassEffect {
+      interactable()
+      clearPressed()
+    }
+
+    assertThat(effect.hoveredSlot).isEqualTo(hovered)
+    assertThat(effect.focusedSlot).isEqualTo(focused)
+    assertThat(effect.pressedSlot).isEqualTo(null)
+    assertThat(effect.dirtyTracker).isEqualTo(dev.chrisbanes.haze.Bitmask())
+  }
 
   @Test
   fun noResponses_isNotInteractive() {
@@ -99,4 +150,15 @@ class GlassInteractionDslTest {
       GlassVisualEffect().pressed { whitePointDelta(-1.1f) }
     }
   }
+}
+
+private class TestHazeEffectScope : HazeEffectScope {
+  override var visualEffect: VisualEffect = VisualEffect.Empty
+  override var inputScale: HazeInputScale = HazeInputScale.Default
+  override var canDrawArea: ((HazeArea) -> Boolean)? = null
+  override var drawContentBehind: Boolean = false
+  override var clipToAreasBounds: Boolean? = null
+  override var expandLayerBounds: Boolean? = null
+  override var retainOutputWhenSourceUnavailable: Boolean = true
+  override var forceInvalidateOnPreDraw: Boolean = false
 }

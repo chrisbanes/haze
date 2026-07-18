@@ -210,6 +210,26 @@ class GlassVisualEffectLifecycleTest {
 
     assertThat(controller.renderState.position).isEqualTo(Offset(24f, 36f))
     assertThat(controller.renderState.lightingIntensity).isEqualTo(1f)
+
+    context.invalidateDrawCalls = 0
+    controller.updatePosition(Offset(48f, 72f))
+    controller.updateConfiguration(
+      GlassInteractionControllerConfiguration(
+        slots = GlassInteractionSlots(
+          pressed = GlassInteractionSlot(
+            revision = 2,
+            response = buildGlassInteractionResponse { lightingIntensity(0.4f) },
+          ),
+        ),
+        positionAnimationSpec = androidx.compose.animation.core.tween(100),
+        reducedMotion = false,
+        forceFullMotion = false,
+      ),
+    )
+    advanceUntilIdle()
+
+    assertThat(controller.renderState.position).isEqualTo(Offset(48f, 72f))
+    assertThat(controller.renderState.lightingIntensity).isEqualTo(0.4f)
     assertThat(context.invalidateDrawCalls).isGreaterThan(0)
   }
 }
