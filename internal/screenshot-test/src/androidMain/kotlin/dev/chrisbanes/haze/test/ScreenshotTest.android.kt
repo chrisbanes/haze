@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -85,6 +86,8 @@ private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
       ).image
       return requireNotNull(bitmap).asImageBitmap().toPixelMap()
     }
+
+    override fun onNodeWithTag(testTag: String) = rule.onNodeWithTag(testTag)
 
     override fun waitForIdle() {
       rule.waitForIdle()
