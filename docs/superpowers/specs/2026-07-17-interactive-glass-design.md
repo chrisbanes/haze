@@ -46,70 +46,100 @@ Interactivity is disabled by default. The common opt-in is configured with the e
 ```kotlin
 Modifier.hazeEffect(state) {
   glassEffect(
-    interaction = GlassInteraction.Enabled,
+    interaction = GlassInteraction.Default,
   ) {
     shape = shape
   }
 }
 ```
 
-`GlassInteraction()` and `GlassInteraction.Disabled` preserve current non-interactive behavior.
-`GlassInteraction.Enabled` is the explicit convenience opt-in that enables all three channels with
-conservative values. A custom configuration must also opt in explicitly:
+The `interaction` parameter defaults to `null`; a non-null value is the explicit opt-in. The
+`GlassInteraction.Default` companion value enables all three response channels with conservative
+values. Callers customize it by layering a scope-based interaction over it:
 
 ```kotlin
-GlassInteraction(
-  enabled = true,
-  lighting = GlassInteractionLighting(
-    hoverIntensity = 0.35f,
-    pressedIntensity = 1f,
-    radiusFraction = 0.7f,
-  ),
-  optics = GlassInteractionOptics(
-    hoverRefractionMultiplier = 1.02f,
-    pressedRefractionMultiplier = 1.08f,
-    hoverWhitePointDelta = 0.01f,
-    pressedWhitePointDelta = 0.04f,
-  ),
-  transform = GlassInteractionTransform(
-    target = GlassTransformTarget.MaterialOnly,
-    pivot = GlassTransformPivot.Pointer,
-    hoverScaleX = 1f,
-    hoverScaleY = 1f,
-    pressedScaleX = 0.98f,
-    pressedScaleY = 0.98f,
-  ),
-  motion = GlassInteractionMotion(
-    hover = GlassInteractionDefaults.hoverAnimationSpec,
-    press = GlassInteractionDefaults.pressAnimationSpec,
-    release = GlassInteractionDefaults.releaseAnimationSpec,
-    position = GlassInteractionDefaults.positionAnimationSpec,
-  ),
+glassEffect(
+  interaction = GlassInteraction.Default then {
+    lightRadiusFraction(0.7f)
+    transformTarget(GlassTransformTarget.MaterialOnly)
+    transformPivot(GlassTransformPivot.Pointer)
+    pointerPositionAnimationSpec(GlassInteractionDefaults.positionAnimationSpec)
+    reducedMotion(GlassReducedMotionPolicy.System)
+
+    hovered {
+      animate(
+        toSpec = GlassInteractionDefaults.hoverAnimationSpec,
+        fromSpec = GlassInteractionDefaults.releaseAnimationSpec,
+      ) {
+        lightingIntensity(0.35f)
+        refractionMultiplier(1.02f)
+        whitePointDelta(0.01f)
+      }
+    }
+
+    pressed {
+      animate(
+        toSpec = GlassInteractionDefaults.pressAnimationSpec,
+        fromSpec = GlassInteractionDefaults.releaseAnimationSpec,
+      ) {
+        lightingIntensity(1f)
+        refractionMultiplier(1.08f)
+        whitePointDelta(0.04f)
+        scale(0.98f)
+      }
+    }
+  },
   interactionSource = interactionSource,
-  reducedMotion = GlassReducedMotionPolicy.System,
 )
 ```
 
 The public API uses the following concrete shape:
 
-- `glassEffect` gains an `interaction: GlassInteraction` parameter whose default is
-  `GlassInteraction.Disabled`. It assigns the same public `interaction` property on the retained
-  `GlassVisualEffect`; the copy constructor copies that property.
-- `GlassInteraction` is a stable data class with `enabled`, `lighting`, `optics`, `transform`,
-  `motion`, `interactionSource`, and `reducedMotion` properties.
-- `GlassInteraction.Disabled` is equal to `GlassInteraction()` and has `enabled = false`.
-- `GlassInteraction.Enabled` is equal to `GlassInteraction(enabled = true)` and retains the same
-  default channel values.
-- Changing only `enabled` preserves the remaining configuration, allowing a caller to turn a
-  customized interaction off and back on without rebuilding it.
+- `glassEffect` gains `interaction: GlassInteraction? = null` and
+  `interactionSource: InteractionSource? = null` parameters. The retained `GlassVisualEffect`
+  exposes and copies both properties.
+- `GlassInteraction` is an opaque `fun interface`, not a data class:
+
+  ```kotlin
+  public fun interface GlassInteraction {
+    public fun GlassInteractionScope.applyInteraction()
+
+    public companion object {
+      public val Default: GlassInteraction
+    }
+  }
+  ```
+
+- `GlassInteraction { ... }` is the DSL. There is no separate builder, response object hierarchy,
+  public constructor state, or `copy` API.
+- A standalone `GlassInteraction { ... }` contains only its declarations; unspecified response
+  properties resolve to their identity values. `GlassInteraction.Default then { ... }` is the
+  convenience form for overriding the complete preset.
+- `GlassInteractionScope` exposes property functions for lighting intensity, light radius,
+  refraction multiplier, white-point delta, scale, transform target, transform pivot, pointer
+  position animation, and reduced-motion policy.
+- `hovered {}`, `focused {}`, and `pressed {}` conditionally apply property declarations. State
+  blocks may be nested to target combined states.
+- `animate(toSpec, fromSpec) {}` associates transition specs with the properties in its block.
+  `toSpec` applies when the declaration becomes active and `fromSpec` applies when it stops being
+  active and reveals an underlying value.
+- `GlassInteraction.then` combines two interactions by applying the left side followed by the right
+  side. The last declaration wins independently for each property, including declarations from
+  active state blocks. A trailing lambda is converted to `GlassInteraction`, allowing
+  `GlassInteraction.Default then { ... }`.
+- `GlassInteraction.Default` is an ordinary reusable interaction value. `null`, rather than a
+  disabled interaction instance or flag, is the only off state.
+- `interactionSource` remains separate because it supplies live interaction state rather than
+  visual configuration.
 - Each channel has an identity/disabled value so it can be switched off independently.
-- `GlassInteractionLighting.Disabled` sets both intensities to zero.
-- `GlassInteractionOptics.Disabled` uses `1f` multipliers and zero deltas.
-- `GlassInteractionTransform.Disabled` uses identity scales for both states.
-- Lighting exposes hover and pressed intensity plus the localized glow radius.
-- Optics exposes hover and pressed refraction multipliers and white-point deltas. These are applied
+- Lighting is disabled with zero intensity.
+- Optics are disabled with a `1f` refraction multiplier and zero white-point delta.
+- Transform is disabled with identity scale.
+- Lighting exposes intensity plus the localized glow radius; state blocks provide state-specific
+  intensity targets.
+- Optics exposes refraction multiplier and white-point delta. State-specific targets are applied
   after normal style and adaptive-optics resolution; they do not mutate `GlassStyle`.
-- Transform exposes independent X/Y scales for hover and press, a target, and a pivot.
+- Transform exposes independent X/Y scales, a target, and a pivot.
 - `GlassTransformTarget` supports `MaterialOnly` and `MaterialAndContent`.
 - `GlassTransformPivot` supports `Pointer` and `Center`.
 - Transform scales are finite and constrained to `0f < scale <= 1f`, keeping the feature a visual
@@ -118,26 +148,35 @@ The public API uses the following concrete shape:
   `0f..2f` as a fraction of the material's shortest side.
 - Refraction multipliers are constrained to `0f..2f`, and white-point deltas are constrained to
   `-1f..1f`. The resolved results are clamped to the base properties' supported ranges.
-- Every numeric value must be finite. Invalid configurations fail at construction.
+- Every numeric value must be finite. Property functions validate when the interaction is applied;
+  an invalid declaration fails before it reaches the controller or renderer.
 
 The default transform target is `MaterialOnly`, with a pointer-relative pivot. The default
 material-plus-content behavior remains available for control-like elements. The initial defaults
 are the numeric values shown above. Each optics delta uses the same radial falloff as the interaction
 lighting so the response remains localized around the pointer.
 
-The default motion specs are:
+`GlassInteraction.Default` uses the hover response values shown above for focus as well. It declares
+its hover and focus responses before its pressed response, so the pressed values win when those
+states overlap. Its default motion specs are:
 
-- hover progress: `spring(dampingRatio = 1f, stiffness = Spring.StiffnessMediumLow)`;
-- press progress: `spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMedium)`;
-- release progress: `spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)`; and
+- hover or focus entry: `spring(dampingRatio = 1f, stiffness = Spring.StiffnessMediumLow)`;
+- press entry: `spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMedium)`;
+- state exit: `spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow)`; and
 - pointer position: `spring(dampingRatio = 1f, stiffness = Spring.StiffnessMedium)`.
 
-The motion properties use `FiniteAnimationSpec<Float>` for progress and
-`FiniteAnimationSpec<Offset>` for position. The defaults live in `GlassInteractionDefaults` so
-callers can reuse or replace them without copying constants.
+Animated response properties use `FiniteAnimationSpec<Float>`, and pointer position uses
+`FiniteAnimationSpec<Offset>`. The defaults live in `GlassInteractionDefaults` so callers can reuse
+or replace them without copying constants.
 
 Interaction stays separate from `GlassStyle`. It controls input, animation, and lifecycle behavior
 rather than an inheritable static appearance.
+
+The API deliberately borrows the concepts and vocabulary of Compose Foundation's Style API—opaque
+scope-based values, state blocks, animated declarations, and right-biased layering—but does not
+implement or expose Compose `Style`, `CustomStyle`, `StyleScope`, `StyleState`, or
+`Modifier.styleable`. Glass properties and custom rendering remain owned by Haze, and callers do
+not need to opt in to an experimental Compose API.
 
 ## Core Interaction Capability
 
@@ -190,7 +229,7 @@ that owns the actual gesture remains the sole authority for click and drag seman
 
 `GlassVisualEffect` owns an internal controller tied to the existing effect-node coroutine scope.
 The controller keeps frame-rate state out of composition and separates input reduction from
-animation and render-parameter resolution.
+interaction declaration resolution, animation, and render-parameter resolution.
 
 It merges the following signals:
 
@@ -200,10 +239,16 @@ It merges the following signals:
 - hover events from an optional `InteractionSource`; and
 - focus events from an optional `InteractionSource`.
 
-The merged precedence is pressed, then hovered or focused, then idle. A specified pointer position
-takes precedence over a centered source-only interaction. Focus and keyboard or D-pad activation
-use the center of the current node. A source press with a specified position may use that position
-when no raw pointer position is active.
+Raw input and the optional source produce independent hovered, focused, and pressed booleans. The
+controller evaluates the combined `GlassInteraction` against those states in declaration order.
+Base declarations always apply; active state blocks apply where they occur, nested blocks require
+all enclosing states, and later declarations override earlier values per property. This gives the
+default interaction press-over-hover behavior without hard-coding that precedence for custom
+interactions.
+
+A specified pointer position takes precedence over a centered source-only interaction. Focus and
+keyboard or D-pad activation use the center of the current node. A source press with a specified
+position may use that position when no raw pointer position is active.
 
 The first down pointer becomes the primary press pointer. Additional pointers are ignored until the
 primary pointer ends or is cancelled. Hover continues to update the latest in-bounds position. The
@@ -212,7 +257,7 @@ of contact rather than jumping to the center.
 
 Raw input and `InteractionSource` signals are merged independently rather than counted. This makes
 sharing the same source with a clickable component safe: duplicate observations of one physical
-press cannot double the visual strength, and either signal can end without prematurely clearing the
+press cannot apply a state block twice, and either signal can end without prematurely clearing the
 other.
 
 Disabling interaction cancels input collection and animation, clears the primary pointer, and
@@ -221,10 +266,15 @@ collector before starting the new one. Detachment and effect replacement perform
 
 ## Motion And Reduced Motion
 
-Hover, press, release, and pointer-position tracking have separate animation specs. The controller
-animates normalized hover and press progress and resolves each channel from those values. Press
-overrides hover targets but does not destroy hover state, allowing release to settle naturally back
-to hover when the pointer remains in bounds.
+Each animated declaration supplies entering and leaving specs. The resolver produces a target and
+the owning declaration for every response property. When a declaration becomes active, its
+`toSpec` animates from the currently rendered value. When it becomes inactive, its `fromSpec`
+animates toward the newly revealed declaration or base identity. State changes hidden by a later
+active declaration do not restart that property's animation.
+
+Pointer-position tracking has its own animation spec because its target changes continuously rather
+than through a state block. All property and position animations run in the effect-node coroutine
+scope and invalidate drawing without causing composition.
 
 `GlassReducedMotionPolicy` has three semantic modes:
 
@@ -257,9 +307,9 @@ The runtime-shader delegate adds interaction variants of only the stages whose u
    rim using the same position and strength.
 
 Lighting-only interaction reuses the base optical/detail output, and transform-only interaction adds
-no offscreen layer. When the effect is idle and release progress has reached zero, it bypasses all
-interaction render stages and draws the existing retained output directly. Enabling interactivity
-therefore adds no steady-state offscreen pass while idle.
+no offscreen layer. When all animated response properties reach their base identity values, the
+effect bypasses all interaction render stages and draws the existing retained output directly.
+Enabling interactivity therefore adds no steady-state offscreen pass while idle.
 
 The compiled interaction shaders and static geometry inputs are cached. Android retains each
 `RuntimeShader` and its `RenderEffect` and updates only dynamic uniforms. Skiko caches each compiled
@@ -289,14 +339,16 @@ limitations rather than presenting a misleading approximation.
   consumption by another gesture.
 - Unsupported runtime shaders select the existing fallback delegate; they do not disable input or
   transform feedback.
-- Changing configuration while active updates the current targets using the appropriate configured
-  transition. Changing to `Disabled` performs immediate lifecycle cleanup and identity reset.
+- Changing configuration while active reevaluates declarations against the current states. A new or
+  replaced target uses its new owning declaration's `toSpec`; a removed target uses its previous
+  owner's `fromSpec`. Setting `interaction` to `null` performs immediate lifecycle cleanup and
+  identity reset.
 
 ## Testing
 
 ### Core Haze
 
-- Pointer delegation is installed only for an enabled interactive effect.
+- Pointer delegation is installed only for an effect with a non-null interaction.
 - Events are observed but never consumed.
 - Pointer cancellation reaches the effect.
 - Disabling, replacing, or detaching the effect removes the pointer delegate.
@@ -306,7 +358,9 @@ limitations rather than presenting a misleading approximation.
 ### Interaction Controller
 
 - Idle, hover, focus, press, release, and cancellation transitions.
-- Press precedence over hover and focus.
+- Default press precedence over hover and focus.
+- Base, active, nested-state, declaration-order, and right-biased `then` resolution.
+- Per-property `toSpec` and `fromSpec` selection when declarations enter, leave, or are obscured.
 - Primary-pointer selection and ignored secondary pointers.
 - Last-position retention during release.
 - Raw input and `InteractionSource` merging without duplicate strength.
@@ -336,8 +390,9 @@ limitations rather than presenting a misleading approximation.
 - Frame-rate interaction updates do not cause composition.
 - Interaction does not recreate the base glass render effects or re-record captured content.
 
-Add a sample showing `GlassInteraction.Enabled` and a fully customized control using an
-`InteractionSource`, material-plus-content compression, custom motion, and reduced-motion policy.
+Add a sample showing `GlassInteraction.Default` and a customized
+`GlassInteraction.Default then { ... }` control using an `InteractionSource`,
+material-plus-content compression, custom motion, and reduced-motion policy.
 
 ## Success Criteria
 
