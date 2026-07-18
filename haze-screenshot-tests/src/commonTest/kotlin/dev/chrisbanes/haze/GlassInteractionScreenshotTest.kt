@@ -46,7 +46,7 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
     waitForIdle()
     captureRoot("hover_top_left")
 
-    onNodeWithTag("combined").performTouchInput { down(Offset(132f, 72f)) }
+    onNodeWithTag("combined").performTouchInput { down(lowerRightPosition()) }
     waitForIdle()
     captureRoot("press_bottom_right")
 
@@ -98,13 +98,18 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
 
 private fun ScreenshotUiTest.capturePressed(tag: String, label: String, effect: GlassVisualEffect) {
   setContent { ScreenshotTheme { GlassInteractionScene(tag, label, effect) } }
-  onNodeWithTag(tag).performTouchInput { down(Offset(132f, 72f)) }
+  onNodeWithTag(tag).performTouchInput { down(lowerRightPosition()) }
   waitForIdle()
   captureRoot("pressed")
 }
 
+private fun androidx.compose.ui.test.TouchInjectionScope.lowerRightPosition(): Offset = Offset(
+  x = center.x * 1.5f,
+  y = center.y * 1.5f,
+)
+
 @Composable
-private fun GlassInteractionScene(tag: String, label: String, effect: GlassVisualEffect) {
+internal fun GlassInteractionScene(tag: String, label: String, effect: GlassVisualEffect) {
   val hazeState = remember { HazeState() }
   Box(Modifier.size(320.dp, 320.dp)) {
     Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {

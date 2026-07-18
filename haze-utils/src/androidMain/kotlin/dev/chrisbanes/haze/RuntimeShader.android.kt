@@ -58,18 +58,16 @@ public actual fun createMutableRuntimeShaderRenderEffect(
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 private class AndroidMutableRuntimeShaderRenderEffect(
   effect: PlatformRuntimeEffect,
-  shaderNames: Array<String>,
-  inputs: Array<PlatformRenderEffect?>,
+  private val shaderNames: Array<String>,
+  private val inputs: Array<PlatformRenderEffect?>,
 ) : MutableRuntimeShaderRenderEffect {
   private val shader = RuntimeShader(effect.sksl)
   private val provider = AndroidRuntimeShaderUniformProvider(shader)
-  private val renderEffect = createAndroidRuntimeShaderRenderEffect(shader, shaderNames, inputs)
-
   override fun updateUniforms(
     uniforms: RuntimeShaderUniformProvider.() -> Unit,
   ): PlatformRenderEffect {
     uniforms(provider)
-    return renderEffect
+    return createAndroidRuntimeShaderRenderEffect(shader, shaderNames, inputs)
   }
 }
 

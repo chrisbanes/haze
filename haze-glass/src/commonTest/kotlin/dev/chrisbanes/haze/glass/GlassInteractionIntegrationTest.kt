@@ -175,7 +175,9 @@ class GlassInteractionIntegrationTest : ContextTest() {
     source.tryEmit(FocusInteraction.Unfocus(focus))
     waitForIdle()
 
-    assertThat(effect.currentInteractionState.lightingIntensity).isEqualTo(0f)
+    assertThat(effect.currentInteractionState).isEqualTo(
+      GlassInteractionRenderState(position = Offset(50f, 50f)),
+    )
   }
 }
 
