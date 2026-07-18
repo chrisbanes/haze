@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -219,13 +219,18 @@ private fun LabControls(
 
 @Composable
 private fun LabPresetSelector(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
-  LabSegmentedButtonRow(selectedIndex = SelectableGlassLabPresets.indexOf(state.preset)) {
+  LabSegmentedButtonRow(
+    selectedIndex = SelectableGlassLabPresets.indexOf(state.preset),
+    itemCount = SelectableGlassLabPresets.size,
+  ) { buttonWidth ->
     SelectableGlassLabPresets.forEachIndexed { index, preset ->
       SegmentedButton(
         selected = state.preset == preset,
         onClick = { onStateChanged(state.selectPreset(preset)) },
         shape = SegmentedButtonDefaults.itemShape(index, SelectableGlassLabPresets.size),
-        modifier = Modifier.widthIn(min = LabSegmentedButtonMinWidth),
+        modifier = Modifier.width(buttonWidth),
+        icon = {},
+        contentPadding = PaddingValues(horizontal = 8.dp),
       ) { Text(preset.name, maxLines = 1) }
     }
   }
@@ -233,30 +238,43 @@ private fun LabPresetSelector(state: GlassLabState, onStateChanged: (GlassLabSta
 
 @Composable
 private fun LabBackdropSelector(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
-  LabSegmentedButtonRow(selectedIndex = state.backdrop.ordinal) {
+  LabSegmentedButtonRow(
+    selectedIndex = state.backdrop.ordinal,
+    itemCount = GlassGalleryBackdropId.entries.size,
+  ) { buttonWidth ->
     GlassGalleryBackdropId.entries.forEachIndexed { index, backdrop ->
       SegmentedButton(
         selected = state.backdrop == backdrop,
         onClick = { onStateChanged(state.copy(backdrop = backdrop)) },
         shape = SegmentedButtonDefaults.itemShape(index, GlassGalleryBackdropId.entries.size),
-        modifier = Modifier.widthIn(min = LabSegmentedButtonMinWidth),
+        modifier = Modifier.width(buttonWidth),
+        icon = {},
+        contentPadding = PaddingValues(horizontal = 8.dp),
       ) { Text(backdrop.name, maxLines = 1) }
     }
   }
 }
 
-private val LabSegmentedButtonMinWidth = 80.dp
-private val LabSegmentedButtonRowMinWidth = 400.dp
+private val LabSegmentedButtonMinWidth = 160.dp
+
+internal fun labSegmentedButtonWidth(availableWidth: Dp, itemCount: Int): Dp {
+  require(itemCount > 0)
+  val visibleItemCount =
+    (availableWidth.value / LabSegmentedButtonMinWidth.value).toInt().coerceIn(1, itemCount)
+  return availableWidth / visibleItemCount.toFloat()
+}
 
 @Composable
 private fun LabSegmentedButtonRow(
   selectedIndex: Int,
-  content: @Composable SingleChoiceSegmentedButtonRowScope.() -> Unit,
+  itemCount: Int,
+  content: @Composable SingleChoiceSegmentedButtonRowScope.(buttonWidth: Dp) -> Unit,
 ) {
   BoxWithConstraints(Modifier.fillMaxWidth()) {
-    val rowWidth = maxWidth.coerceAtLeast(LabSegmentedButtonRowMinWidth)
+    val buttonWidth = labSegmentedButtonWidth(maxWidth, itemCount)
+    val rowWidth = buttonWidth * itemCount.toFloat()
     val scrollState = rememberScrollState()
-    val buttonWidthPx = with(LocalDensity.current) { LabSegmentedButtonMinWidth.roundToPx() }
+    val buttonWidthPx = with(LocalDensity.current) { buttonWidth.roundToPx() }
     val viewportWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
 
     LaunchedEffect(selectedIndex, scrollState.maxValue) {
@@ -276,8 +294,7 @@ private fun LabSegmentedButtonRow(
     Box(Modifier.fillMaxWidth().horizontalScroll(scrollState)) {
       SingleChoiceSegmentedButtonRow(
         modifier = Modifier.width(rowWidth),
-        content = content,
-      )
+      ) { content(buttonWidth) }
     }
   }
 }

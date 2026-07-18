@@ -17,6 +17,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassLabSampleTest {
@@ -66,8 +68,21 @@ class GlassLabSampleTest {
         .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { action ->
           action(textLayouts)
         }
-      assertEquals(1, textLayouts.single().lineCount, option.name)
+      val textLayout = textLayouts.single()
+      assertEquals(1, textLayout.lineCount, option.name)
+      assertTrue(
+        textLayout.multiParagraph.intrinsics.maxIntrinsicWidth <= textLayout.size.width + 1f,
+        "${option.name}: size=${textLayout.size}, intrinsicWidth=" +
+          textLayout.multiParagraph.intrinsics.maxIntrinsicWidth,
+      )
     }
+  }
+
+  @Test
+  fun narrowLabSizesSelectorsToWholeVisibleItems() {
+    assertEquals(288.dp, labSegmentedButtonWidth(288.dp, itemCount = 5))
+    assertEquals(174.dp, labSegmentedButtonWidth(348.dp, itemCount = 5))
+    assertEquals(160.dp, labSegmentedButtonWidth(800.dp, itemCount = 5))
   }
 
   @Test
@@ -83,10 +98,10 @@ class GlassLabSampleTest {
       )
     }
 
-    onNode(hasText("Prism") and hasClickAction()).performClick()
+    onNode(hasText("Prism") and hasClickAction()).performScrollTo().performClick()
     assertEquals(GlassLabPresetId.Prism, state.preset)
 
-    onNode(hasText("Grid") and hasClickAction()).performClick()
+    onNode(hasText("Grid") and hasClickAction()).performScrollTo().performClick()
     assertEquals(GlassGalleryBackdropId.Grid, state.backdrop)
 
     onNodeWithText("Advanced").performClick()
