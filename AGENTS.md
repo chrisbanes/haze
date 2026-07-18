@@ -3,9 +3,10 @@
 ## Project Structure & Module Organization
 
 The project is a Kotlin Multiplatform library. Core APIs live in `haze`, reusable presets in
-`haze-materials`, and visual verifications in `haze-screenshot-tests`. Auxiliary tooling and shared
-fixtures are under `internal/`, while runnable examples reside in `sample/` (Android, Desktop, Web,
-macOS). Documentation assets and the MkDocs site configuration are in `docs/` and `site/`.
+`haze-materials`, and library visual verifications in `haze-screenshot-tests`. Glass Gallery
+screenshots live in `sample/screenshot-tests`. Auxiliary tooling and shared fixtures are under
+`internal/`, while runnable examples reside in `sample/` (Android, Desktop, Web, macOS).
+Documentation assets and the MkDocs site configuration are in `docs/` and `site/`.
 
 ## Build, Test, and Development Commands
 
@@ -13,7 +14,8 @@ Use `./gradlew build` for a full multi-platform build and verification. Targeted
 run faster: `./gradlew assembleDebug testDebug` for library artifacts,
 `./gradlew :sample:android:installDebug` to load the Android sample on a connected device, and
 `./gradlew :sample:desktop:run` for the desktop demo. Execute
-`./gradlew :haze-screenshot-tests:test` to validate the screenshot suite.
+`./gradlew :haze-screenshot-tests:test` for library screenshots or
+`./gradlew :sample:screenshot-tests:test` for Glass Gallery screenshots.
 
 ## Coding Style & Naming Conventions
 
@@ -27,8 +29,10 @@ for parameters, and `*Defaults` naming for reusable configuration containers.
 Unit and snapshot tests sit alongside sources (for example, `haze/src/commonTest/kotlin`). Compose
 UI tests leverage `assertk`, `kotlin.test`, and Roborazzi-based screenshot assertions. Prefer
 descriptive method-level names such as `functionName_emitsExpectedBlur`. Run `./gradlew check`
-locally before opening a PR, and regenerate snapshots with
-`./gradlew :haze-screenshot-tests:recordRoborazzi` when intentional UI changes occur.
+locally before opening a PR. Regenerate library snapshots with
+`./gradlew :haze-screenshot-tests:recordRoborazzi`; regenerate Glass Gallery snapshots with
+`./gradlew :sample:screenshot-tests:recordRoborazziJvm` and
+`./gradlew :sample:screenshot-tests:recordRoborazziAndroidHostTest` when intentional UI changes occur.
 
 ## VisualEffect Implementation Patterns
 

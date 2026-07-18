@@ -35,7 +35,7 @@
 
 **Interfaces:**
 - Consumes: `GlassProductSampleContent`, `GlassPlaygroundSampleContent`, `GlassLabScreenshotContent`, and `SamplesTheme` from `:sample:shared`; `ScreenshotTest`, `ScreenshotUiTest`, `runScreenshotTest`, and `captureRoot` from `:internal:screenshot-test`.
-- Produces: `:sample:screenshot-tests:jvmTest`, `:sample:screenshot-tests:testAndroidHostTest`, `:sample:screenshot-tests:recordRoborazziJvm`, `:sample:screenshot-tests:recordRoborazziAndroidHost`, and aggregate `:sample:screenshot-tests:test` tasks using baselines owned by the sample tree.
+- Produces: `:sample:screenshot-tests:jvmTest`, `:sample:screenshot-tests:testAndroidHostTest`, `:sample:screenshot-tests:recordRoborazziJvm`, `:sample:screenshot-tests:recordRoborazziAndroidHostTest`, and aggregate `:sample:screenshot-tests:test` tasks using baselines owned by the sample tree.
 
 - [ ] **Step 1: Register the module**
 
@@ -153,7 +153,7 @@ rtk ./gradlew :sample:screenshot-tests:tasks --all
 ```
 
 Expected: PASS, with `jvmTest`, `testAndroidHostTest`, `recordRoborazziJvm`,
-`recordRoborazziAndroidHost`, and aggregate `test` tasks listed before any source or baseline moves.
+`recordRoborazziAndroidHostTest`, and aggregate `test` tasks listed before any source or baseline moves.
 
 - [ ] **Step 4: Move the test sources without changing their packages or contents**
 
