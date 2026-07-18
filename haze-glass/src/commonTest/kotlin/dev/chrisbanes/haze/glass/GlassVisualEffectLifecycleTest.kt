@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
@@ -26,6 +28,33 @@ import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 class GlassVisualEffectLifecycleTest {
+
+  @Test
+  fun attachAndUpdate_withoutInteractionsDoesNotAllocateController() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    effect.attach(context)
+    effect.update(context)
+
+    assertThat(effect.interactionControllerForTest).isNull()
+    effect.detach(context)
+  }
+
+  @Test
+  fun detach_disposesInteractionController() {
+    val effect = GlassVisualEffect().apply { pressed() }
+    val context = TrackingVisualEffectContext()
+
+    effect.attach(context)
+    val controller = effect.interactionControllerForTest
+    effect.detach(context)
+
+    assertThat(controller).isNotNull()
+    assertThat(controller?.isDisposedForTest).isEqualTo(true)
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(effect.attachedContextForTest).isNull()
+  }
 
   @Test
   fun update_directShapeChangeInvalidatesLayerBounds() {

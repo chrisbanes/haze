@@ -11,8 +11,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -74,6 +76,16 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   private var isAttached: Boolean = false
 
+  private var attachedContext: VisualEffectContext? = null
+
+  private var interactionController: GlassInteractionController? = null
+
+  internal val interactionControllerForTest: GlassInteractionController?
+    get() = interactionController
+
+  internal val attachedContextForTest: VisualEffectContext?
+    get() = attachedContext
+
   private var needsDelegateSelection: Boolean = true
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
@@ -89,6 +101,13 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   internal var pressedSlot: GlassInteractionSlot? by mutableStateOf(null)
     private set
+
+  internal val interactionSlots: GlassInteractionSlots
+    get() = GlassInteractionSlots(
+      focused = focusedSlot,
+      hovered = hoveredSlot,
+      pressed = pressedSlot,
+    )
 
   internal val observesPointerEvents: Boolean
     get() = hoveredSlot != null || pressedSlot != null
@@ -267,12 +286,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   override fun attach(context: VisualEffectContext) {
     if (!isAttached) {
       isAttached = true
+      attachedContext = context
+      syncInteractionController(context)
       delegate.attach()
     }
   }
 
   override fun detach(context: VisualEffectContext) {
     if (isAttached) {
+      interactionController?.dispose()
+      interactionController = null
+      attachedContext = null
       isAttached = false
       delegate.detach()
     }
@@ -281,6 +305,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   override fun update(context: VisualEffectContext) {
     interactionConfigurationVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
+    syncInteractionController(context)
 
     if (dirtyTracker.any(GlassDirtyFields.LayerBoundsFlags)) {
       context.invalidateLayerBounds()
@@ -311,6 +336,46 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
     return delegate is FallbackGlassDelegate
+  }
+
+  internal fun controllerConfiguration(
+    systemMotionScale: Float,
+  ): GlassInteractionControllerConfiguration {
+    val (reduced, forceFull) = reducedMotion(
+      policy = interactionReducedMotionPolicy,
+      systemScale = systemMotionScale,
+    )
+    return GlassInteractionControllerConfiguration(
+      slots = interactionSlots,
+      positionAnimationSpec = interactionPositionAnimationSpec,
+      reducedMotion = reduced,
+      forceFullMotion = forceFull,
+    )
+  }
+
+  internal fun interactionRenderState(context: VisualEffectContext): GlassInteractionRenderState {
+    return interactionController?.renderState ?: GlassInteractionRenderState(
+      position = context.size.center,
+    )
+  }
+
+  private fun syncInteractionController(context: VisualEffectContext) {
+    if (hoveredSlot == null && focusedSlot == null && pressedSlot == null) {
+      val controller = interactionController ?: return
+      controller.dispose()
+      interactionController = null
+      context.invalidateDraw()
+      return
+    }
+    val controller = interactionController ?: GlassInteractionController(context).also {
+      interactionController = it
+    }
+    controller.updateConfiguration(controllerConfiguration(systemMotionScale(context)))
+    controller.updatePosition(context.size.center)
+  }
+
+  private fun systemMotionScale(context: VisualEffectContext): Float {
+    return context.coroutineScope.coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
   }
 
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
@@ -947,4 +1012,13 @@ private fun RoundedCornerShape.hasZeroCornerRadii(): Boolean {
 
 private inline fun Float.takeOrElse(default: () -> Float): Float {
   return if (this.isNaN()) default() else this
+}
+
+private fun reducedMotion(
+  policy: GlassReducedMotionPolicy,
+  systemScale: Float,
+): Pair<Boolean, Boolean> = when (policy) {
+  GlassReducedMotionPolicy.System -> (systemScale == 0f) to false
+  GlassReducedMotionPolicy.Reduced -> true to false
+  GlassReducedMotionPolicy.Full -> false to true
 }
