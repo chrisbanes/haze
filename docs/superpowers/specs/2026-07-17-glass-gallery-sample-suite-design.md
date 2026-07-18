@@ -259,6 +259,18 @@ returns to the same complete recording state. No control hides itself on an elap
 Use fixed artwork and an injected/fixed Playground progress value. Never wait for the production
 clock in a screenshot test.
 
+Glass Gallery screenshot tests and baselines belong to a dedicated `:sample:screenshot-tests`
+module. That module targets Android host tests and JVM/Desktop only, depends on `:sample:shared` for
+the UI under test, and reuses `:internal:screenshot-test` for the shared Roborazzi harness. Baselines
+live under `sample/screenshot-tests/screenshots/android` and
+`sample/screenshot-tests/screenshots/desktop`.
+
+Do not add Roborazzi or screenshot-test dependencies directly to `:sample:shared`; it remains the
+production multiplatform sample UI module for Android, Desktop, Apple, JS, and Wasm. Keep
+`:haze-screenshot-tests` focused on library-level visual contracts rather than importing runnable
+sample screens. The sample screenshot module owns its record, verify, and aggregate test tasks so
+CI and local commands clearly identify which visual surface failed.
+
 - Product: portrait and landscape hero states.
 - Playground: opening, typography-crossing, depth-card, and prismatic beats, plus one manually
   displaced surface.
@@ -277,5 +289,8 @@ clock in a screenshot test.
   Custom behavior, and reliable reset.
 - Portrait and landscape layouts preserve the intended bounded surface proportions.
 - Recording mode produces clean, repeatable frames without timer-driven chrome changes.
+- Glass Gallery screenshot code and baselines are owned by `:sample:screenshot-tests`, while
+  `:sample:shared` remains free of Roborazzi wiring and `:haze-screenshot-tests` remains focused on
+  library-level visual contracts.
 - Pure, UI, Android screenshot, and Desktop screenshot coverage pass with fixed data and fixed
   animation progress.
