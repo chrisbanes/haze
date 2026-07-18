@@ -3,8 +3,8 @@
 
 package dev.chrisbanes.haze
 
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.unit.Density
