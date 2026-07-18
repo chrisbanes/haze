@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
@@ -36,12 +37,76 @@ import assertk.assertions.isLessThan
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.InteractiveVisualEffect
+import dev.chrisbanes.haze.VisualEffectTransform
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class GlassInteractionControllerTest : ContextTest() {
+
+  @Test
+  fun materialOnlyTransform_isNotExposedToHazeNode() = runComposeUiTest {
+    val effect = GlassVisualEffect().apply {
+      pressed { scale(0.9f, 0.8f) }
+      interactionTransformTarget = GlassTransformTarget.MaterialOnly
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+    }
+    setContent {
+      Box(Modifier.size(100.dp, 80.dp).hazeEffect { visualEffect = effect })
+    }
+    waitForIdle()
+    effect.setPressedForTest(position = Offset(20f, 30f))
+    waitForIdle()
+    val context = checkNotNull(effect.attachedContextForTest)
+
+    assertThat(effect.currentContentTransform(context))
+      .isEqualTo(VisualEffectTransform.Identity)
+    assertThat(effect.currentMaterialTransform(context))
+      .isEqualTo(VisualEffectTransform(0.9f, 0.8f, Offset(20f, 30f)))
+  }
+
+  @Test
+  fun materialAndContentTransform_usesConfiguredPivot() = runComposeUiTest {
+    val effect = GlassVisualEffect().apply {
+      pressed { scale(0.9f) }
+      interactionTransformTarget = GlassTransformTarget.MaterialAndContent
+      interactionTransformPivot = GlassTransformPivot.Center
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+    }
+    setContent {
+      Box(Modifier.size(100.dp, 80.dp).hazeEffect { visualEffect = effect })
+    }
+    waitForIdle()
+    effect.setPressedForTest(position = Offset(20f, 30f))
+    waitForIdle()
+    val context = checkNotNull(effect.attachedContextForTest)
+
+    assertThat(effect.currentContentTransform(context))
+      .isEqualTo(VisualEffectTransform(0.9f, 0.9f, context.size.center))
+    assertThat(effect.currentMaterialTransform(context))
+      .isEqualTo(VisualEffectTransform.Identity)
+  }
+
+  @Test
+  fun invalidGeometry_returnsIdentityTransform() = runComposeUiTest {
+    val effect = GlassVisualEffect().apply {
+      pressed { scale(0.9f) }
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+    }
+    setContent {
+      Box(Modifier.size(0.dp).hazeEffect { visualEffect = effect })
+    }
+    waitForIdle()
+    effect.setPressedForTest(position = Offset.Zero)
+    waitForIdle()
+    val context = checkNotNull(effect.attachedContextForTest)
+
+    assertThat(effect.currentContentTransform(context))
+      .isEqualTo(VisualEffectTransform.Identity)
+    assertThat(effect.currentMaterialTransform(context))
+      .isEqualTo(VisualEffectTransform.Identity)
+  }
 
   @Test
   fun rawInput_usesFirstPointerAndRetainsLastPositionThroughRelease() = runComposeUiTest {

@@ -14,10 +14,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.unit.Density
@@ -35,6 +37,7 @@ import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.VisualEffectTransform
 
 /**
  * A [VisualEffect] implementation that renders a translucent refractive glass material.
@@ -350,14 +353,26 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   override fun DrawScope.draw(context: VisualEffectContext) {
     try {
       selectDelegateForDraw(context)
-      with(delegate) { draw(context) }
+      withMaterialTransform(context) {
+        with(delegate) { draw(context) }
+      }
     } finally {
       resetDirtyTracker()
     }
   }
 
   override fun DrawScope.drawForeground(context: VisualEffectContext) {
-    with(delegate) { drawForeground(context) }
+    withMaterialTransform(context) {
+      with(delegate) { drawForeground(context) }
+    }
+  }
+
+  override fun currentContentTransform(context: VisualEffectContext): VisualEffectTransform {
+    return resolveTransform(context, GlassTransformTarget.MaterialAndContent)
+  }
+
+  internal fun currentMaterialTransform(context: VisualEffectContext): VisualEffectTransform {
+    return resolveTransform(context, GlassTransformTarget.MaterialOnly)
   }
 
   override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
@@ -383,6 +398,38 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     return interactionController?.renderState ?: GlassInteractionRenderState(
       position = context.size.center,
     )
+  }
+
+  private fun resolveTransform(
+    context: VisualEffectContext,
+    target: GlassTransformTarget,
+  ): VisualEffectTransform {
+    if (interactionTransformTarget != target) return VisualEffectTransform.Identity
+    val state = currentInteractionState
+    val size = context.size
+    if (!state.hasTransform || !size.isDrawable()) return VisualEffectTransform.Identity
+    val pivot = when (interactionTransformPivot) {
+      GlassTransformPivot.Pointer -> state.position.clampTo(size)
+      GlassTransformPivot.Center -> size.center
+    }
+    return VisualEffectTransform(state.scaleX, state.scaleY, pivot)
+  }
+
+  private inline fun DrawScope.withMaterialTransform(
+    context: VisualEffectContext,
+    block: DrawScope.() -> Unit,
+  ) {
+    val transform = currentMaterialTransform(context)
+    if (transform == VisualEffectTransform.Identity) {
+      block()
+    } else {
+      scale(
+        scaleX = transform.scaleX,
+        scaleY = transform.scaleY,
+        pivot = transform.pivot,
+        block = block,
+      )
+    }
   }
 
   private fun syncInteractionController(context: VisualEffectContext) {
@@ -1012,6 +1059,14 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     const val TAG = "GlassVisualEffect"
   }
 }
+
+private fun Size.isDrawable(): Boolean =
+  width.isFinite() && height.isFinite() && width > 0f && height > 0f
+
+private fun Offset.clampTo(size: Size): Offset = Offset(
+  x = x.coerceIn(0f, size.width),
+  y = y.coerceIn(0f, size.height),
+)
 
 internal interface RetainedOutputDelegate {
   fun canDrawRetainedOutput(): Boolean
