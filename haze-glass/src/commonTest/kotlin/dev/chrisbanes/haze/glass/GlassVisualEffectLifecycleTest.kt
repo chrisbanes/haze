@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -26,6 +27,8 @@ import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 class GlassVisualEffectLifecycleTest {
@@ -135,12 +138,87 @@ class GlassVisualEffectLifecycleTest {
     assertThat(context.invalidateDrawCalls).isEqualTo(1)
     assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
   }
+
+  @Test
+  fun calculateLayerBounds_usesMaximumConfiguredInteractionRefractionStrength() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(refractionStrength = 0.6f)
+      pressed { refractionMultiplier(2f) }
+    }
+    val rect = Rect(0f, 0f, 100f, 100f)
+    val baseBounds = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(refractionStrength = 0.6f)
+    }.calculateLayerBounds(rect, Density(1f))
+
+    val interactionBounds = effect.calculateLayerBounds(rect, Density(1f))
+
+    assertThat(-interactionBounds.left).isGreaterThan(-baseBounds.left)
+  }
+
+  @Test
+  fun changingInteractionRefractionMaximum_invalidatesLayerBounds_butEquivalentDeclarationDoesNot() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+    effect.update(context)
+    context.invalidateLayerBoundsCalls = 0
+
+    effect.pressed { refractionMultiplier(2f) }
+    effect.update(context)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
+    effect.resetDirtyTracker()
+
+    effect.pressed { refractionMultiplier(2f) }
+    effect.update(context)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
+
+    effect.clearPressed()
+    effect.update(context)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(2)
+  }
+
+  @Test
+  @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+  fun controller_withoutFrameClock_snapsPositionAndFloatTargets_andInvalidatesDraw() = runTest {
+    val context = TrackingVisualEffectContext(
+      coroutineScope = CoroutineScope(coroutineContext),
+    )
+    val controller = GlassInteractionController(context)
+    controller.updateConfiguration(
+      GlassInteractionControllerConfiguration(
+        slots = GlassInteractionSlots(
+          pressed = GlassInteractionSlot(
+            revision = 1,
+            response = buildGlassInteractionResponse {
+              animate(
+                toSpec = androidx.compose.animation.core.tween(100),
+                fromSpec = androidx.compose.animation.core.tween(100),
+              ) {
+                lightingIntensity(1f)
+              }
+            },
+          ),
+        ),
+        positionAnimationSpec = androidx.compose.animation.core.tween(100),
+        reducedMotion = false,
+        forceFullMotion = false,
+      ),
+    )
+
+    controller.updatePosition(Offset(24f, 36f))
+    controller.updateSignals(GlassInteractionSignals(rawPressed = true))
+    advanceUntilIdle()
+
+    assertThat(controller.renderState.position).isEqualTo(Offset(24f, 36f))
+    assertThat(controller.renderState.lightingIntensity).isEqualTo(1f)
+    assertThat(context.invalidateDrawCalls).isGreaterThan(0)
+  }
 }
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 private class TrackingVisualEffectContext(
   motionScale: Float? = null,
   effectSize: Size = Size(100f, 100f),
+  coroutineScope: CoroutineScope? = null,
 ) : VisualEffectContext {
   override val position: Offset = Offset.Zero
   override val size: Size = effectSize
@@ -151,7 +229,7 @@ private class TrackingVisualEffectContext(
   override val windowId: Any? = null
   override val areas: List<HazeArea> = emptyList()
   override val state: HazeState? = null
-  override val coroutineScope: CoroutineScope = CoroutineScope(
+  override val coroutineScope: CoroutineScope = coroutineScope ?: CoroutineScope(
     motionScale?.let(::TestMotionDurationScale) ?: EmptyCoroutineContext,
   )
 

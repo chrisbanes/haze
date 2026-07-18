@@ -192,13 +192,26 @@ class GlassShadersTest {
     val shader = GlassShaders.buildOptical()
 
     assertThat(shader).contains(
-      "heightNorm * refractionStrength * refractionScale * refractionMultiplier;",
+      "heightNorm * effectiveRefractionStrength * refractionScale;",
     )
     assertThat(shader).contains("vec2 refractCoord = clampSample(coord + displacement);")
     assertThat(shader).contains("vec3 opticalColor = refractedStraightColor;")
     assertThat(shader).doesNotContain(
       "mix(baseStraightColor, refractedStraightColor, refractionStrength)",
     )
+  }
+
+  @Test
+  fun interactiveRefractionShaders_clampLocalizedEffectiveStrengthBeforeDisplacement() {
+    val expectedClamp = "clamp(refractionStrength * refractionMultiplier, 0.0, 1.0)"
+
+    listOf(
+      GlassShaders.buildOptical(interactive = true),
+      GlassShaders.buildRefractionDetail(interactive = true),
+    ).forEach { shader ->
+      assertThat(shader).contains(expectedClamp)
+      assertThat(shader).contains("heightNorm * effectiveRefractionStrength * refractionScale;")
+    }
   }
 
   @Test
@@ -251,7 +264,7 @@ class GlassShadersTest {
     assertThat(shader).doesNotContain("uniform float sampleStep;")
     assertThat(shader).contains("clamp(coord, vec2(0.5), sampleSize - vec2(0.5))")
     assertThat(shader).contains(
-      "heightNorm * refractionStrength * refractionScale * refractionMultiplier;",
+      "heightNorm * effectiveRefractionStrength * refractionScale;",
     )
     assertThat(shader).contains("vec2 refractCoord = clampSample(coord + displacement);")
     assertThat(shader).contains("vec4 sharpSample = content.eval(refractCoord);")

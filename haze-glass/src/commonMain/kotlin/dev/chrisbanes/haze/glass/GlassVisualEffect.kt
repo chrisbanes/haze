@@ -10,6 +10,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
@@ -125,12 +126,15 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   override val observesPointerEvents: Boolean
     get() = hoveredSlot != null || pressedSlot != null
 
-  private var _interactionSource: InteractionSource? by mutableStateOf(null)
+  private var _interactionSource: InteractionSource? by mutableStateOf(
+    null,
+    referentialEqualityPolicy(),
+  )
 
   public var interactionSource: InteractionSource?
     get() = _interactionSource
     set(value) {
-      if (_interactionSource != value) {
+      if (_interactionSource !== value) {
         HazeLogger.d(TAG) { "interactionSource changed. Current: $_interactionSource. New: $value" }
         _interactionSource = value
         onInteractionConfigurationChanged()
@@ -243,46 +247,59 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   public fun clearHovered() {
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     hoveredSlot = null
-    onInteractionConfigurationChanged()
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   public fun clearFocused() {
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     focusedSlot = null
-    onInteractionConfigurationChanged()
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   public fun clearPressed() {
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     pressedSlot = null
-    onInteractionConfigurationChanged()
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   public fun clearInteractions() {
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     hoveredSlot = null
     focusedSlot = null
     pressedSlot = null
-    onInteractionConfigurationChanged()
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   private fun setHovered(response: GlassInteractionResponse) {
     if (hoveredSlot?.response == response) return
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     hoveredSlot = GlassInteractionSlot(++nextInteractionRevision, response)
-    onInteractionConfigurationChanged()
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   private fun setFocused(response: GlassInteractionResponse) {
     if (focusedSlot?.response == response) return
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     focusedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
-    onInteractionConfigurationChanged()
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   private fun setPressed(response: GlassInteractionResponse) {
     if (pressedSlot?.response == response) return
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     pressedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
-    onInteractionConfigurationChanged()
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
-  private fun onInteractionConfigurationChanged() {
+  private fun onInteractionConfigurationChanged(previousRefractionMultiplier: Float? = null) {
+    if (
+      previousRefractionMultiplier != null &&
+      previousRefractionMultiplier != maximumInteractionRefractionMultiplier()
+    ) {
+      dirtyTracker += GlassDirtyFields.InteractionLayerBounds
+    }
     interactionConfigurationVersion++
     if (hoveredSlot == null && focusedSlot == null && pressedSlot == null) {
       attachedContext?.let(::syncInteractionController)
@@ -495,7 +512,9 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     val paddingPx = calculateGlassSamplePaddingPx(
       blurRadiusPx = resolved.blurRadiusPx,
       refractionScale = resolved.refractionScalePx,
-      refractionStrength = resolved.refractionStrength,
+      refractionStrength = (
+        resolved.refractionStrength * maximumInteractionRefractionMultiplier()
+        ).coerceIn(0f, 1f),
       chromaticAberrationStrength = chromaticAberrationStrength,
       edgeSoftnessPx = with(density) { edgeSoftness.toPx() },
       foregroundOutsetPx = 0f,
@@ -504,6 +523,13 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   override fun shouldPreferClipToAreaBounds(): Boolean = edgeSoftness <= 0.dp && shape.hasZeroCornerRadii()
+
+  private fun maximumInteractionRefractionMultiplier(): Float = maxOf(
+    1f,
+    hoveredSlot?.response?.refractionMultiplier?.value ?: 1f,
+    focusedSlot?.response?.refractionMultiplier?.value ?: 1f,
+    pressedSlot?.response?.refractionMultiplier?.value ?: 1f,
+  )
 
   private var _optics: GlassOptics? = null
 

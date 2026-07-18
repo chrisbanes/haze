@@ -7,6 +7,8 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.HoverInteraction
+import androidx.compose.foundation.interaction.Interaction
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
@@ -41,6 +43,8 @@ import dev.chrisbanes.haze.VisualEffectTransform
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 @OptIn(ExperimentalTestApi::class)
 class GlassInteractionControllerTest : ContextTest() {
@@ -485,6 +489,23 @@ class GlassInteractionControllerTest : ContextTest() {
     newSource.tryEmit(PressInteraction.Press(Offset(40f, 50f)))
     waitForIdle()
     assertThat(renderState(effect).lightingIntensity).isEqualTo(1f)
+  }
+
+  @Test
+  fun replacingDistinctButEqualInteractionSource_usesNewSource() = runComposeUiTest {
+    val oldSource = EqualInteractionSource()
+    val newSource = EqualInteractionSource()
+    val effect = reducedPressEffect().apply { interactionSource = oldSource }
+    setTaggedEffectContent(effect)
+    waitForIdle()
+
+    effect.interactionSource = newSource
+    waitForIdle()
+    newSource.tryEmit(PressInteraction.Press(Offset(40f, 50f)))
+    waitForIdle()
+
+    assertThat(renderState(effect).lightingIntensity).isEqualTo(1f)
+    assertThat(renderState(effect).position).isEqualTo(Offset(40f, 50f))
   }
 
   @Test
@@ -983,4 +1004,16 @@ class GlassInteractionControllerTest : ContextTest() {
 
   private fun response(block: GlassInteractionScope.() -> Unit): GlassInteractionResponse =
     buildGlassInteractionResponse(block)
+}
+
+private class EqualInteractionSource : InteractionSource {
+  private val events = MutableSharedFlow<Interaction>(extraBufferCapacity = 1)
+
+  override val interactions: Flow<Interaction> = events
+
+  fun tryEmit(interaction: Interaction): Boolean = events.tryEmit(interaction)
+
+  override fun equals(other: Any?): Boolean = other is EqualInteractionSource
+
+  override fun hashCode(): Int = 0
 }

@@ -27,6 +27,7 @@ internal object GlassDirtyFields {
   const val SpecularExponent: Int = ContentNormalBlend shl 1
   const val FresnelExponent: Int = SpecularExponent shl 1
   const val Style: Int = FresnelExponent shl 1
+  const val InteractionLayerBounds: Int = Style shl 1
 
   const val InvalidateFlags: Int =
     Optics or
@@ -49,7 +50,7 @@ internal object GlassDirtyFields {
       Style
 
   const val LayerBoundsFlags: Int =
-    Optics or ChromaticAberration or EdgeSoftness or Shape
+    Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
@@ -71,6 +72,7 @@ internal object GlassDirtyFields {
       if (SpecularExponent in dirtyTracker) add("SpecularExponent")
       if (FresnelExponent in dirtyTracker) add("FresnelExponent")
       if (Style in dirtyTracker) add("Style")
+      if (InteractionLayerBounds in dirtyTracker) add("InteractionLayerBounds")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }

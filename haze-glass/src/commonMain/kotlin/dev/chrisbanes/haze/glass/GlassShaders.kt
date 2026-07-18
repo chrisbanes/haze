@@ -549,8 +549,10 @@ internal object GlassShaders {
       float heightNorm,
       float refractionMultiplier
     ) {
+      float effectiveRefractionStrength =
+        clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
       float displacementMagnitude =
-        heightNorm * refractionStrength * refractionScale * refractionMultiplier;
+        heightNorm * effectiveRefractionStrength * refractionScale;
       float smoothRadius = max(radius * 1.5, 30.0);
       float gradRadius = min(smoothRadius, min(halfSize.x, halfSize.y));
       vec2 centerFallbackDir = vec2(1.0, 0.0);
