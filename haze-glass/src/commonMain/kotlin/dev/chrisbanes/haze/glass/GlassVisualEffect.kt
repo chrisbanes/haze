@@ -130,6 +130,10 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   private var interactionSlotTransaction: InteractionSlotTransaction? = null
+  private var interactionSlotTransactionToken: InteractionSlotTransactionToken? = null
+
+  @PublishedApi
+  internal class InteractionSlotTransactionToken internal constructor()
 
   override val observesPointerEvents: Boolean
     get() = hoveredSlot != null || pressedSlot != null
@@ -344,22 +348,30 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     }
   }
 
-  internal fun configureInteractionSlots(block: () -> Unit) {
-    if (interactionSlotTransaction != null) {
-      block()
-      return
+  @PublishedApi
+  internal fun beginInteractionSlotTransaction(): InteractionSlotTransactionToken {
+    val token = InteractionSlotTransactionToken()
+    if (interactionSlotTransaction == null) {
+      interactionSlotTransaction = InteractionSlotTransaction(this)
+      interactionSlotTransactionToken = token
     }
+    return token
+  }
 
-    val transaction = InteractionSlotTransaction(this)
-    interactionSlotTransaction = transaction
-    try {
-      block()
-    } catch (throwable: Throwable) {
-      interactionSlotTransaction = null
-      throw throwable
-    }
+  @PublishedApi
+  internal fun commitInteractionSlotTransaction(token: InteractionSlotTransactionToken) {
+    if (token !== interactionSlotTransactionToken) return
+    val transaction = checkNotNull(interactionSlotTransaction)
     interactionSlotTransaction = null
+    interactionSlotTransactionToken = null
     commitInteractionSlots(transaction)
+  }
+
+  @PublishedApi
+  internal fun rollbackInteractionSlotTransaction(token: InteractionSlotTransactionToken) {
+    if (token !== interactionSlotTransactionToken) return
+    interactionSlotTransaction = null
+    interactionSlotTransactionToken = null
   }
 
   private fun commitInteractionSlots(transaction: InteractionSlotTransaction) {

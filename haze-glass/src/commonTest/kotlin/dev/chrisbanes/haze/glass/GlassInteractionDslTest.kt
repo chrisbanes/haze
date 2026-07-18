@@ -65,6 +65,48 @@ class GlassInteractionDslTest {
   }
 
   @Test
+  fun glassEffect_exceptionRollsBackStagedInteractions() {
+    val scope = TestHazeEffectScope()
+    scope.glassEffect { interactable() }
+    val effect = scope.visualEffect as GlassVisualEffect
+    val hovered = checkNotNull(effect.hoveredSlot)
+    val focused = checkNotNull(effect.focusedSlot)
+    val pressed = checkNotNull(effect.pressedSlot)
+    effect.resetDirtyTracker()
+
+    assertFailsWith<IllegalStateException> {
+      scope.glassEffect {
+        pressed { lightingIntensity(0.6f) }
+        throw IllegalStateException("rollback")
+      }
+    }
+
+    assertThat(effect.hoveredSlot).isEqualTo(hovered)
+    assertThat(effect.focusedSlot).isEqualTo(focused)
+    assertThat(effect.pressedSlot).isEqualTo(pressed)
+    assertThat(effect.dirtyTracker).isEqualTo(dev.chrisbanes.haze.Bitmask())
+  }
+
+  @Test
+  fun directInteractionCalls_applyImmediatelyOutsideGlassEffect() {
+    val effect = GlassVisualEffect()
+
+    effect.pressed { lightingIntensity(0.6f) }
+
+    assertThat(effect.pressedSlot?.response?.lightingIntensity?.value).isEqualTo(0.6f)
+  }
+
+  @Test
+  fun glassEffect_nonLocalReturnCommitsStagedInteractions() {
+    val scope = TestHazeEffectScope()
+
+    assertThat(configureAndReturn(scope)).isEqualTo("returned")
+    assertThat(
+      (scope.visualEffect as GlassVisualEffect).pressedSlot?.response?.lightingIntensity?.value,
+    ).isEqualTo(0.6f)
+  }
+
+  @Test
   fun noResponses_isNotInteractive() {
     val effect = GlassVisualEffect()
     assertThat(effect.hoveredSlot).isEqualTo(null)
@@ -149,6 +191,14 @@ class GlassInteractionDslTest {
     assertFailsWith<IllegalArgumentException> {
       GlassVisualEffect().pressed { whitePointDelta(-1.1f) }
     }
+  }
+
+  private fun configureAndReturn(scope: TestHazeEffectScope): String {
+    scope.glassEffect {
+      pressed { lightingIntensity(0.6f) }
+      return "returned"
+    }
+    error("Unreachable")
   }
 }
 

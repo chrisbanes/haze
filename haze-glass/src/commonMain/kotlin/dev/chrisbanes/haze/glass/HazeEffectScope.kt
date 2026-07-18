@@ -10,10 +10,22 @@ import dev.chrisbanes.haze.HazeEffectScope
  * Configures a [GlassVisualEffect] for this effect scope.
  */
 @ExperimentalHazeApi
-public fun HazeEffectScope.glassEffect(
+public inline fun HazeEffectScope.glassEffect(
   block: GlassVisualEffect.() -> Unit = {},
 ) {
   val effect = visualEffect as? GlassVisualEffect ?: GlassVisualEffect()
   visualEffect = effect
-  effect.configureInteractionSlots { effect.block() }
+  val transaction = effect.beginInteractionSlotTransaction()
+  var failure: Throwable? = null
+  try {
+    effect.block()
+  } catch (throwable: Throwable) {
+    failure = throwable
+    effect.rollbackInteractionSlotTransaction(transaction)
+    throw throwable
+  } finally {
+    if (failure == null) {
+      effect.commitInteractionSlotTransaction(transaction)
+    }
+  }
 }
