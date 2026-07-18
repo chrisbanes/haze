@@ -32,7 +32,11 @@ package dev.chrisbanes.haze.glass {
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassDefaults {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.ChromaticAberrationMode getChromaticAberrationMode();
+    method @InaccessibleFromKotlin public androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> getHoverAnimationSpec();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getOptics();
+    method @InaccessibleFromKotlin public androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> getPositionAnimationSpec();
+    method @InaccessibleFromKotlin public androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> getPressAnimationSpec();
+    method @InaccessibleFromKotlin public androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> getReleaseAnimationSpec();
     method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassStyle getStyle();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SurfaceProfile getSurfaceProfile();
@@ -45,7 +49,12 @@ package dev.chrisbanes.haze.glass {
     property public static float contrast;
     property public androidx.compose.ui.unit.Dp edgeSoftness;
     property public static float fresnelExponent;
+    property public androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> hoverAnimationSpec;
+    property public static float interactionLightRadiusFraction;
     property public dev.chrisbanes.haze.glass.GlassOptics optics;
+    property public androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> positionAnimationSpec;
+    property public androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> pressAnimationSpec;
+    property public androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> releaseAnimationSpec;
     property public androidx.compose.foundation.shape.RoundedCornerShape shape;
     property public static float specularExponent;
     property public static float specularIntensity;
@@ -61,9 +70,19 @@ package dev.chrisbanes.haze.glass {
     field public static final float contentNormalBlend = 0.15f;
     field public static final float contrast = 0.0f;
     field public static final float fresnelExponent = 3.0f;
+    field public static final float interactionLightRadiusFraction = 0.7f;
     field public static final float specularExponent = 24.0f;
     field public static final float specularIntensity = 0.4f;
     field public static final float whitePoint = 0.0f;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public interface GlassInteractionScope {
+    method public void animate(androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> toSpec, androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> fromSpec, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> block);
+    method public void lightingIntensity(float intensity);
+    method public void refractionMultiplier(float multiplier);
+    method public default void scale(float scale);
+    method public void scale(float scaleX, float scaleY);
+    method public void whitePointDelta(float delta);
   }
 
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassLighting {
@@ -120,6 +139,12 @@ package dev.chrisbanes.haze.glass {
 
   public static final class GlassOptics.Adaptive implements dev.chrisbanes.haze.glass.GlassOptics {
     field public static final dev.chrisbanes.haze.glass.GlassOptics.Adaptive INSTANCE;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public enum GlassReducedMotionPolicy {
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassReducedMotionPolicy Full;
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassReducedMotionPolicy Reduced;
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassReducedMotionPolicy System;
   }
 
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassRendering {
@@ -182,16 +207,32 @@ package dev.chrisbanes.haze.glass {
     property @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassStyle> LocalGlassStyle;
   }
 
-  @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassVisualEffect implements dev.chrisbanes.haze.RetainedOutputVisualEffect dev.chrisbanes.haze.VisualEffect {
+  @dev.chrisbanes.haze.ExperimentalHazeApi public enum GlassTransformPivot {
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassTransformPivot Center;
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassTransformPivot Pointer;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public enum GlassTransformTarget {
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassTransformTarget MaterialAndContent;
+    enum_constant public static final dev.chrisbanes.haze.glass.GlassTransformTarget MaterialOnly;
+  }
+
+  @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassVisualEffect implements dev.chrisbanes.haze.InteractiveVisualEffect dev.chrisbanes.haze.RetainedOutputVisualEffect dev.chrisbanes.haze.VisualEffect {
     ctor public GlassVisualEffect();
     ctor public GlassVisualEffect(dev.chrisbanes.haze.glass.GlassVisualEffect other);
     method public boolean canDrawRetainedOutput(dev.chrisbanes.haze.VisualEffectContext context);
     method public void clearChromaticAberrationModeOverride();
+    method public void clearFocused();
+    method public void clearHovered();
+    method public void clearInteractions();
     method public void clearOpticsOverride();
+    method public void clearPressed();
     method public void clearRetainedOutput();
     method public void clearShapeOverride();
     method public void clearSurfaceProfileOverride();
     method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
+    method public void focused();
+    method public void focused(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> block);
     method @InaccessibleFromKotlin public float getAlpha();
     method @InaccessibleFromKotlin public float getAmbientResponse();
     method @InaccessibleFromKotlin public float getChromaMultiplier();
@@ -200,6 +241,13 @@ package dev.chrisbanes.haze.glass {
     method @InaccessibleFromKotlin public float getContentNormalBlend();
     method @InaccessibleFromKotlin public float getContrast();
     method @InaccessibleFromKotlin public float getFresnelExponent();
+    method @InaccessibleFromKotlin public float getInteractionLightRadiusFraction();
+    method @InaccessibleFromKotlin public androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> getInteractionPositionAnimationSpec();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassReducedMotionPolicy getInteractionReducedMotionPolicy();
+    method @InaccessibleFromKotlin public androidx.compose.foundation.interaction.InteractionSource? getInteractionSource();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassTransformPivot getInteractionTransformPivot();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassTransformTarget getInteractionTransformTarget();
+    method @InaccessibleFromKotlin public boolean getObservesPointerEvents();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getOptics();
     method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
     method @InaccessibleFromKotlin public float getSpecularExponent();
@@ -207,6 +255,13 @@ package dev.chrisbanes.haze.glass {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassStyle getStyle();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SurfaceProfile getSurfaceProfile();
     method @InaccessibleFromKotlin public float getWhitePoint();
+    method public void hovered();
+    method public void hovered(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> block);
+    method public void interactable();
+    method public void onCancelPointerInput(dev.chrisbanes.haze.VisualEffectContext context);
+    method public void onPointerEvent(androidx.compose.ui.input.pointer.PointerEvent event, dev.chrisbanes.haze.VisualEffectContext context);
+    method public void pressed();
+    method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> block);
     method @InaccessibleFromKotlin public void setAlpha(float);
     method @InaccessibleFromKotlin public void setAmbientResponse(float);
     method @InaccessibleFromKotlin public void setChromaMultiplier(float);
@@ -215,6 +270,12 @@ package dev.chrisbanes.haze.glass {
     method @InaccessibleFromKotlin public void setContentNormalBlend(float);
     method @InaccessibleFromKotlin public void setContrast(float);
     method @InaccessibleFromKotlin public void setFresnelExponent(float);
+    method @InaccessibleFromKotlin public void setInteractionLightRadiusFraction(float);
+    method @InaccessibleFromKotlin public void setInteractionPositionAnimationSpec(androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset>);
+    method @InaccessibleFromKotlin public void setInteractionReducedMotionPolicy(dev.chrisbanes.haze.glass.GlassReducedMotionPolicy);
+    method @InaccessibleFromKotlin public void setInteractionSource(androidx.compose.foundation.interaction.InteractionSource?);
+    method @InaccessibleFromKotlin public void setInteractionTransformPivot(dev.chrisbanes.haze.glass.GlassTransformPivot);
+    method @InaccessibleFromKotlin public void setInteractionTransformTarget(dev.chrisbanes.haze.glass.GlassTransformTarget);
     method @InaccessibleFromKotlin public void setOptics(dev.chrisbanes.haze.glass.GlassOptics);
     method @InaccessibleFromKotlin public void setShape(androidx.compose.foundation.shape.RoundedCornerShape);
     method @InaccessibleFromKotlin public void setSpecularExponent(float);
@@ -231,7 +292,14 @@ package dev.chrisbanes.haze.glass {
     property public float contrast;
     property public androidx.compose.ui.unit.Dp edgeSoftness;
     property public float fresnelExponent;
+    property public float interactionLightRadiusFraction;
+    property public androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> interactionPositionAnimationSpec;
+    property public dev.chrisbanes.haze.glass.GlassReducedMotionPolicy interactionReducedMotionPolicy;
+    property public androidx.compose.foundation.interaction.InteractionSource? interactionSource;
+    property public dev.chrisbanes.haze.glass.GlassTransformPivot interactionTransformPivot;
+    property public dev.chrisbanes.haze.glass.GlassTransformTarget interactionTransformTarget;
     property public androidx.compose.ui.geometry.Offset lightPosition;
+    property public boolean observesPointerEvents;
     property public dev.chrisbanes.haze.glass.GlassOptics optics;
     property public androidx.compose.foundation.shape.RoundedCornerShape shape;
     property public float specularExponent;

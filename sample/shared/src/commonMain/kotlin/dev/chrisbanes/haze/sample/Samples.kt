@@ -76,6 +76,7 @@ val CommonSamples: List<Sample> = listOf(
   Sample.GlassProduct,
   Sample.GlassPlayground,
   Sample.GlassLab,
+  Sample.InteractiveGlass,
 )
 
 @OptIn(ExperimentalHazeApi::class)
@@ -314,6 +315,16 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       GlassLabSample(navController = navController)
+    }
+  }
+
+  @Serializable
+  data object InteractiveGlass : Sample {
+    override val title: String = "Interactive Glass"
+
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      InteractiveGlassSample(navController = navController)
     }
   }
 }
