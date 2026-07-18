@@ -1835,6 +1835,11 @@ rtk git commit -m "Replace Glass samples with showcase suite"
 
 ### Task 8: Add Android and Desktop Showcase Screenshots
 
+> **Final ownership:** The implementation was subsequently moved from `:haze-screenshot-tests` to
+> the dedicated `:sample:screenshot-tests` module. See
+> `docs/superpowers/plans/2026-07-18-glass-gallery-screenshot-ownership.md` for the final paths,
+> dependency boundary, and verification commands.
+
 **Files:**
 - Modify: `haze-screenshot-tests/build.gradle.kts`
 - Modify: `internal/screenshot-test/src/jvmMain/kotlin/dev/chrisbanes/haze/test/ScreenshotTest.jvm.kt`
