@@ -15,20 +15,26 @@ import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.modifier.ModifierLocalModifierNode
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
+import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import kotlin.math.max
@@ -45,7 +51,7 @@ import kotlinx.coroutines.DisposableHandle
 public class HazeEffectNode(
   state: HazeState? = null,
   public var block: (HazeEffectScope.() -> Unit)? = null,
-) : Modifier.Node(),
+) : DelegatingNode(),
   CompositionLocalConsumerModifierNode,
   ModifierLocalModifierNode,
   GlobalPositionAwareModifierNode,
@@ -206,13 +212,18 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
+        val oldEffect = field
+        pointerInputDelegate?.cancel(oldEffect as? InteractiveVisualEffect)
         if (isAttached) {
           attachVisualEffect(value)
-          runCatching { detachVisualEffect(field) }
+          runCatching { detachVisualEffect(oldEffect) }
         }
         field = value
+        syncPointerInputDelegate()
       }
     }
+
+  private var pointerInputDelegate: HazeEffectPointerInputNode? = null
 
   override var drawContentBehind: Boolean = false
     set(value) {
@@ -296,6 +307,11 @@ public class HazeEffectNode(
     areaZIndexes.clear()
     contentDrawArea.releaseLayer()
     clearRetainedOutput()
+    pointerInputDelegate?.let { delegate ->
+      delegate.cancel(visualEffect as? InteractiveVisualEffect)
+      undelegate(delegate)
+    }
+    pointerInputDelegate = null
     detachVisualEffect(visualEffect)
   }
 
@@ -387,17 +403,21 @@ public class HazeEffectNode(
             hasDrawableSourceLayers
           }
           if (shouldDrawEffect) {
-            // If the state is not null and we have some areas, let's perform background blurring
             with(visualEffect) {
               prepareDraw(visualEffectContext)
-              draw(visualEffectContext)
             }
           }
-          // Finally we draw the content over the background
-          drawContentSafely()
-          if (shouldDrawEffect) {
-            with(visualEffect) {
-              drawForeground(visualEffectContext)
+          withVisualEffectTransform {
+            if (shouldDrawEffect) {
+              with(visualEffect) {
+                draw(visualEffectContext)
+              }
+            }
+            drawContentSafely()
+            if (shouldDrawEffect) {
+              with(visualEffect) {
+                drawForeground(visualEffectContext)
+              }
             }
           }
         } else {
@@ -417,12 +437,14 @@ public class HazeEffectNode(
           with(visualEffect) {
             prepareDraw(visualEffectContext)
           }
-          if (drawContentBehind || visualEffect.shouldDrawContentBehind(visualEffectContext)) {
-            drawLayer(contentLayer)
-          }
-          with(visualEffect) {
-            draw(visualEffectContext)
-            drawForeground(visualEffectContext)
+          withVisualEffectTransform {
+            if (drawContentBehind || visualEffect.shouldDrawContentBehind(visualEffectContext)) {
+              drawLayer(contentLayer)
+            }
+            with(visualEffect) {
+              draw(visualEffectContext)
+              drawForeground(visualEffectContext)
+            }
           }
         }
       } else {
@@ -529,6 +551,7 @@ public class HazeEffectNode(
         // Allow the current VisualEffect to update before we return so it
         // sees the freshly-computed areas on this pass.
         visualEffect.update(visualEffectContext)
+        syncPointerInputDelegate()
         // Strategy changes require recomputing positions. Exit now to avoid
         // mixing coordinate systems in this frame.
         invalidateIfNeeded()
@@ -555,6 +578,7 @@ public class HazeEffectNode(
     // Allow the current VisualEffect to update from CompositionLocals/state before calculating
     // bounds, so it can request a bounds refresh for values observed during this update.
     visualEffect.update(visualEffectContext)
+    syncPointerInputDelegate()
 
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
@@ -672,6 +696,45 @@ public class HazeEffectNode(
     (visualEffect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
   }
 
+  private fun syncPointerInputDelegate() {
+    val interactive = visualEffect as? InteractiveVisualEffect
+    val required = interactive?.observesPointerEvents == true
+    when {
+      required && pointerInputDelegate == null -> {
+        pointerInputDelegate = delegate(
+          HazeEffectPointerInputNode(
+            interactiveEffect = { visualEffect as? InteractiveVisualEffect },
+            context = { visualEffectContext },
+          ),
+        )
+      }
+      !required && pointerInputDelegate != null -> {
+        val current = pointerInputDelegate ?: return
+        current.cancel(interactive)
+        undelegate(current)
+        pointerInputDelegate = null
+      }
+    }
+  }
+
+  private inline fun ContentDrawScope.withVisualEffectTransform(
+    block: ContentDrawScope.() -> Unit,
+  ) {
+    val transform = (visualEffect as? InteractiveVisualEffect)
+      ?.currentContentTransform(visualEffectContext)
+      ?: VisualEffectTransform.Identity
+    if (transform == VisualEffectTransform.Identity) {
+      block()
+    } else {
+      scale(
+        scaleX = transform.scaleX,
+        scaleY = transform.scaleY,
+        pivot = transform.pivot,
+        block = { block(this@withVisualEffectTransform) },
+      )
+    }
+  }
+
   private fun shouldDrawRetainedOutput(): Boolean {
     return retainOutputWhenSourceUnavailable &&
       (visualEffect as? RetainedOutputVisualEffect)?.shouldDrawRetainedOutput(visualEffectContext) == true
@@ -687,6 +750,35 @@ public class HazeEffectNode(
 
   private companion object {
     private const val TAG = "HazeEffect"
+  }
+}
+
+private class HazeEffectPointerInputNode(
+  private val interactiveEffect: () -> InteractiveVisualEffect?,
+  private val context: () -> VisualEffectContext,
+) : Modifier.Node(), PointerInputModifierNode {
+  private var cancellationDelivered = false
+
+  override fun onPointerEvent(
+    pointerEvent: PointerEvent,
+    pass: PointerEventPass,
+    bounds: IntSize,
+  ) {
+    if (pass == PointerEventPass.Final) {
+      cancellationDelivered = false
+      interactiveEffect()?.onPointerEvent(pointerEvent, context())
+    }
+  }
+
+  override fun onCancelPointerInput() {
+    cancel(interactiveEffect())
+  }
+
+  fun cancel(effect: InteractiveVisualEffect?) {
+    if (!cancellationDelivered) {
+      cancellationDelivered = true
+      effect?.onCancelPointerInput(context())
+    }
   }
 }
 
