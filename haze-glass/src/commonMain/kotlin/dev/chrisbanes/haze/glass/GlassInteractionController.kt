@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.runtime.MonotonicFrameClock
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -166,6 +167,7 @@ internal class GlassInteractionController(
   context: VisualEffectContext,
 ) {
   private val scope = context.coroutineScope
+  private val hasFrameClock = scope.coroutineContext[MonotonicFrameClock] != null
   private val sizeProvider = { context.size }
   private val invalidateDraw = context::invalidateDraw
   private val lightingIntensity = AnimatedFloatChannel(0f, scope, invalidateDraw)
@@ -496,7 +498,7 @@ internal class GlassInteractionController(
     positionJob = scope.launch(
       if (configuration.forceFullMotion) FullMotionDurationScale else EmptyCoroutineContext,
     ) {
-      if (configuration.reducedMotion) {
+      if (configuration.reducedMotion || !hasFrameClock) {
         position.snapTo(target)
         invalidateDraw()
       } else {
@@ -513,6 +515,7 @@ private class AnimatedFloatChannel(
   private val scope: CoroutineScope,
   private val invalidateDraw: () -> Unit,
 ) {
+  private val hasFrameClock = scope.coroutineContext[MonotonicFrameClock] != null
   private val value = Animatable(identity)
   private var owner = OwnedGlassResponseValue(null, null, null, identity)
   private var animationSpec: FiniteAnimationSpec<Float>? = null
@@ -558,7 +561,7 @@ private class AnimatedFloatChannel(
   ) {
     job?.cancel()
     job = scope.launch(if (forceFullMotion) FullMotionDurationScale else EmptyCoroutineContext) {
-      if (reducedMotion || spec == null) {
+      if (reducedMotion || spec == null || !hasFrameClock) {
         value.snapTo(target)
         invalidateDraw()
       } else {
