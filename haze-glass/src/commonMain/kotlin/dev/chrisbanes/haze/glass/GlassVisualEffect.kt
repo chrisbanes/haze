@@ -3,9 +3,12 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
@@ -57,6 +60,16 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     fresnelExponent = other.fresnelExponent
     compositionLocalStyle = other.compositionLocalStyle
     style = other.style
+    nextInteractionRevision = other.nextInteractionRevision
+    hoveredSlot = other.hoveredSlot
+    focusedSlot = other.focusedSlot
+    pressedSlot = other.pressedSlot
+    interactionSource = other.interactionSource
+    interactionLightRadiusFraction = other.interactionLightRadiusFraction
+    interactionTransformTarget = other.interactionTransformTarget
+    interactionTransformPivot = other.interactionTransformPivot
+    interactionPositionAnimationSpec = other.interactionPositionAnimationSpec
+    interactionReducedMotionPolicy = other.interactionReducedMotionPolicy
   }
 
   private var isAttached: Boolean = false
@@ -65,6 +78,178 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
+
+  private var nextInteractionRevision: Long = 0L
+
+  internal var hoveredSlot: GlassInteractionSlot? by mutableStateOf(null)
+    private set
+
+  internal var focusedSlot: GlassInteractionSlot? by mutableStateOf(null)
+    private set
+
+  internal var pressedSlot: GlassInteractionSlot? by mutableStateOf(null)
+    private set
+
+  internal val observesPointerEvents: Boolean
+    get() = hoveredSlot != null || pressedSlot != null
+
+  private var _interactionSource: InteractionSource? by mutableStateOf(null)
+
+  public var interactionSource: InteractionSource?
+    get() = _interactionSource
+    set(value) {
+      if (_interactionSource != value) {
+        HazeLogger.d(TAG) { "interactionSource changed. Current: $_interactionSource. New: $value" }
+        _interactionSource = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionLightRadiusFraction: Float by mutableStateOf(
+    GlassDefaults.interactionLightRadiusFraction,
+  )
+
+  public var interactionLightRadiusFraction: Float
+    get() = _interactionLightRadiusFraction
+    set(value) {
+      require(value.isFinite() && value in 0f..2f) {
+        "interactionLightRadiusFraction must be finite and in range"
+      }
+      if (_interactionLightRadiusFraction != value) {
+        HazeLogger.d(TAG) { "interactionLightRadiusFraction changed. Current: $_interactionLightRadiusFraction. New: $value" }
+        _interactionLightRadiusFraction = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionTransformTarget: GlassTransformTarget by mutableStateOf(
+    GlassTransformTarget.MaterialOnly,
+  )
+
+  public var interactionTransformTarget: GlassTransformTarget
+    get() = _interactionTransformTarget
+    set(value) {
+      if (_interactionTransformTarget != value) {
+        HazeLogger.d(TAG) { "interactionTransformTarget changed. Current: $_interactionTransformTarget. New: $value" }
+        _interactionTransformTarget = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionTransformPivot: GlassTransformPivot by mutableStateOf(
+    GlassTransformPivot.Pointer,
+  )
+
+  public var interactionTransformPivot: GlassTransformPivot
+    get() = _interactionTransformPivot
+    set(value) {
+      if (_interactionTransformPivot != value) {
+        HazeLogger.d(TAG) { "interactionTransformPivot changed. Current: $_interactionTransformPivot. New: $value" }
+        _interactionTransformPivot = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> by mutableStateOf(
+    GlassDefaults.positionAnimationSpec,
+  )
+
+  public var interactionPositionAnimationSpec: FiniteAnimationSpec<Offset>
+    get() = _interactionPositionAnimationSpec
+    set(value) {
+      if (_interactionPositionAnimationSpec != value) {
+        HazeLogger.d(TAG) { "interactionPositionAnimationSpec changed. Current: $_interactionPositionAnimationSpec. New: $value" }
+        _interactionPositionAnimationSpec = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionReducedMotionPolicy: GlassReducedMotionPolicy by mutableStateOf(
+    GlassReducedMotionPolicy.System,
+  )
+
+  public var interactionReducedMotionPolicy: GlassReducedMotionPolicy
+    get() = _interactionReducedMotionPolicy
+    set(value) {
+      if (_interactionReducedMotionPolicy != value) {
+        HazeLogger.d(TAG) { "interactionReducedMotionPolicy changed. Current: $_interactionReducedMotionPolicy. New: $value" }
+        _interactionReducedMotionPolicy = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var interactionConfigurationVersion: Int by mutableIntStateOf(0)
+
+  public fun hovered() {
+    setHovered(defaultHoverResponse())
+  }
+
+  public fun hovered(block: GlassInteractionScope.() -> Unit) {
+    setHovered(buildGlassInteractionResponse(block))
+  }
+
+  public fun focused() {
+    setFocused(defaultFocusResponse())
+  }
+
+  public fun focused(block: GlassInteractionScope.() -> Unit) {
+    setFocused(buildGlassInteractionResponse(block))
+  }
+
+  public fun pressed() {
+    setPressed(defaultPressResponse())
+  }
+
+  public fun pressed(block: GlassInteractionScope.() -> Unit) {
+    setPressed(buildGlassInteractionResponse(block))
+  }
+
+  public fun interactable() {
+    hovered()
+    focused()
+    pressed()
+  }
+
+  public fun clearHovered() {
+    hoveredSlot = null
+    onInteractionConfigurationChanged()
+  }
+
+  public fun clearFocused() {
+    focusedSlot = null
+    onInteractionConfigurationChanged()
+  }
+
+  public fun clearPressed() {
+    pressedSlot = null
+    onInteractionConfigurationChanged()
+  }
+
+  public fun clearInteractions() {
+    hoveredSlot = null
+    focusedSlot = null
+    pressedSlot = null
+    onInteractionConfigurationChanged()
+  }
+
+  private fun setHovered(response: GlassInteractionResponse) {
+    hoveredSlot = GlassInteractionSlot(++nextInteractionRevision, response)
+    onInteractionConfigurationChanged()
+  }
+
+  private fun setFocused(response: GlassInteractionResponse) {
+    focusedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
+    onInteractionConfigurationChanged()
+  }
+
+  private fun setPressed(response: GlassInteractionResponse) {
+    pressedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
+    onInteractionConfigurationChanged()
+  }
+
+  private fun onInteractionConfigurationChanged() {
+    interactionConfigurationVersion++
+  }
 
   internal var delegate: Delegate = FallbackGlassDelegate(this)
     set(value) {
@@ -94,6 +279,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   }
 
   override fun update(context: VisualEffectContext) {
+    interactionConfigurationVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
 
     if (dirtyTracker.any(GlassDirtyFields.LayerBoundsFlags)) {

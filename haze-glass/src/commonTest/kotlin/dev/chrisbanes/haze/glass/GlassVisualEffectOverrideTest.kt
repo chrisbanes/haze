@@ -3,7 +3,10 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.contains
@@ -178,5 +181,34 @@ class GlassVisualEffectOverrideTest {
 
     assertThat(copy.optics).isEqualTo(GlassDefaults.optics)
     assertThat(GlassDirtyFields.stringify(copy.dirtyTracker)).contains("Optics")
+  }
+
+  @Test
+  fun copyConstructor_copiesInteractionConfiguration() {
+    val source = MutableInteractionSource()
+    val positionSpec = tween<Offset>()
+    val effect = GlassVisualEffect().apply {
+      hovered()
+      focused { lightingIntensity(0.3f) }
+      pressed { scale(0.97f) }
+      interactionSource = source
+      interactionLightRadiusFraction = 1.2f
+      interactionTransformTarget = GlassTransformTarget.MaterialAndContent
+      interactionTransformPivot = GlassTransformPivot.Center
+      interactionPositionAnimationSpec = positionSpec
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    }
+
+    val copy = GlassVisualEffect(effect)
+
+    assertThat(copy.hoveredSlot).isEqualTo(effect.hoveredSlot)
+    assertThat(copy.focusedSlot).isEqualTo(effect.focusedSlot)
+    assertThat(copy.pressedSlot).isEqualTo(effect.pressedSlot)
+    assertThat(copy.interactionSource).isEqualTo(source)
+    assertThat(copy.interactionLightRadiusFraction).isEqualTo(1.2f)
+    assertThat(copy.interactionTransformTarget).isEqualTo(GlassTransformTarget.MaterialAndContent)
+    assertThat(copy.interactionTransformPivot).isEqualTo(GlassTransformPivot.Center)
+    assertThat(copy.interactionPositionAnimationSpec).isEqualTo(positionSpec)
+    assertThat(copy.interactionReducedMotionPolicy).isEqualTo(GlassReducedMotionPolicy.Reduced)
   }
 }

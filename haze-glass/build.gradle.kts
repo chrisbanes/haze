@@ -27,6 +27,7 @@ kotlin {
     commonMain {
       dependencies {
         api(projects.haze)
+        api(libs.compose.animation.core)
         implementation(projects.hazeUtils)
         implementation(libs.compose.ui)
         implementation(libs.compose.foundation)
