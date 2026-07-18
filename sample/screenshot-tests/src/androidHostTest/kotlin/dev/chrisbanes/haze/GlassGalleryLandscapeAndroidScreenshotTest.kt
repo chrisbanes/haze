@@ -8,7 +8,7 @@ import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
 import org.robolectric.annotation.Config
 
-@Config(sdk = [35], qualifiers = "w698dp-h393dp-320dpi")
+@Config(sdk = [35], qualifiers = "+land")
 class GlassGalleryLandscapeAndroidScreenshotTest : ScreenshotTest() {
   @Test fun productHero() = runScreenshotTest { captureGlassProductHero() }
 }

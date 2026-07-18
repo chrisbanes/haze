@@ -4,11 +4,13 @@
 package dev.chrisbanes.haze.test
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PixelMap
 
 expect abstract class ScreenshotTest()
 
 expect fun ScreenshotTest.runScreenshotTest(
+  size: Size = Size(1080f, 1920f),
   block: ScreenshotUiTest.() -> Unit,
 )
 
