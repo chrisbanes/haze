@@ -192,7 +192,7 @@ class GlassShadersTest {
     val shader = GlassShaders.buildOptical()
 
     assertThat(shader).contains(
-      "float displacementMagnitude = heightNorm * refractionStrength * refractionScale;",
+      "heightNorm * refractionStrength * refractionScale * refractionMultiplier;",
     )
     assertThat(shader).contains("vec2 refractCoord = clampSample(coord + displacement);")
     assertThat(shader).contains("vec3 opticalColor = refractedStraightColor;")
@@ -214,6 +214,33 @@ class GlassShadersTest {
   }
 
   @Test
+  fun interactionShader_usesLocalizedDynamicUniforms() {
+    val optical = GlassShaders.buildOptical(interactive = true)
+    val detail = GlassShaders.buildRefractionDetail(interactive = true)
+    val lighting = GlassShaders.buildInteractionLighting()
+
+    listOf(optical, detail, lighting).forEach { shader ->
+      assertThat(shader).contains("uniform float2 interactionPosition;")
+      assertThat(shader).contains("uniform float interactionRadius;")
+      assertThat(shader).contains("interactionFalloff")
+    }
+    assertThat(optical).contains("uniform float interactionRefractionMultiplier;")
+    assertThat(optical).contains("uniform float interactionWhitePointDelta;")
+    assertThat(optical).contains("localizedRefractionMultiplier")
+    assertThat(optical).contains("localizedWhitePoint")
+    assertThat(optical).contains("heightNorm,\n        localizedRefractionMultiplier")
+    assertThat(detail).contains("uniform float interactionRefractionMultiplier;")
+    assertThat(detail).contains("heightNorm,\n        localizedRefractionMultiplier")
+    assertThat(lighting).contains("uniform float interactionLightingIntensity;")
+  }
+
+  @Test
+  fun defaultOpticalAndDetailShaders_remainInteractionFree() {
+    assertThat(GlassShaders.buildOptical()).doesNotContain("interactionFalloff")
+    assertThat(GlassShaders.buildRefractionDetail()).doesNotContain("interactionFalloff")
+  }
+
+  @Test
   fun refractionDetailShader_isSharpPremultipliedShapeMaskedEdgeDetail() {
     val shader = GlassShaders.buildRefractionDetail()
 
@@ -224,14 +251,13 @@ class GlassShadersTest {
     assertThat(shader).doesNotContain("uniform float sampleStep;")
     assertThat(shader).contains("clamp(coord, vec2(0.5), sampleSize - vec2(0.5))")
     assertThat(shader).contains(
-      "float displacementMagnitude = heightNorm * refractionStrength * refractionScale;",
+      "heightNorm * refractionStrength * refractionScale * refractionMultiplier;",
     )
     assertThat(shader).contains("vec2 refractCoord = clampSample(coord + displacement);")
     assertThat(shader).contains("vec4 sharpSample = content.eval(refractCoord);")
     assertThat(shader).contains("float heightNorm = surfaceHeightNorm(localCoord);")
-    assertThat(shader).contains(
-      "vec2 displacement = refractionDisplacement(centeredCoord, halfSize, radius, heightNorm);",
-    )
+    assertThat(shader).contains("float refractionMultiplier")
+    assertThat(shader).contains("heightNorm,\n        1.0")
     assertThat(shader).contains("if (surfaceProfile == 1)")
     assertThat(shader).contains("else if (surfaceProfile == 2)")
     assertThat(shader).contains("else if (surfaceProfile == 3)")

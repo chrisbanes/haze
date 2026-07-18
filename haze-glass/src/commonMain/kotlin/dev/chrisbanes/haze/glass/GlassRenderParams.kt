@@ -370,6 +370,10 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   sampleStepPx = sampleStepPx,
 )
 
+internal data class GlassInteractionOpticalKey(
+  val base: GlassOpticalEffectKey,
+)
+
 internal data class GlassRefractionDetailEffectKey(
   val sampleSize: Size,
   val materialOrigin: Offset,
@@ -417,6 +421,10 @@ internal fun GlassRenderParams.activeRefractionDetailEffectKey(
     key.detailWidthPx > 0f && key.detailIntensity * key.detailVisibility > 1f / 255f
 }
 
+internal data class GlassInteractionDetailKey(
+  val base: GlassRefractionDetailEffectKey,
+)
+
 private const val GLASS_REFRACTION_DETAIL_INTENSITY = 0.76f
 
 internal data class GlassRimEffectKey(
@@ -437,4 +445,33 @@ internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   cornerRadii = cornerRadii,
   lightPosition = lightPosition,
   sampleStepPx = sampleStepPx,
+)
+
+internal data class GlassInteractionLightingKey(
+  val coordinates: GlassCoordinates,
+  val edgeSoftnessPx: Float,
+  val cornerRadii: CornerRadii,
+)
+
+internal data class GlassInteractionUniforms(
+  val position: Offset,
+  val radiusPx: Float,
+  val lightingIntensity: Float,
+  val refractionMultiplier: Float,
+  val whitePointDelta: Float,
+) {
+  val hasLighting: Boolean get() = lightingIntensity > 0f && radiusPx > 0f
+  val hasOptics: Boolean get() =
+    radiusPx > 0f && (refractionMultiplier != 1f || whitePointDelta != 0f)
+}
+
+internal fun GlassRenderParams.interactionUniforms(
+  state: GlassInteractionRenderState,
+  radiusFraction: Float,
+): GlassInteractionUniforms = GlassInteractionUniforms(
+  position = state.position * coordinates.scaleFactor + coordinates.materialOrigin,
+  radiusPx = coordinates.materialSize.minDimension * radiusFraction,
+  lightingIntensity = state.lightingIntensity.coerceIn(0f, 1f),
+  refractionMultiplier = state.refractionMultiplier.coerceIn(0f, 2f),
+  whitePointDelta = state.whitePointDelta.coerceIn(-1f, 1f),
 )

@@ -116,6 +116,33 @@ class GlassRenderEffectKeysTest {
   }
 
   @Test
+  fun interactionValues_doNotChangeBaseStageKeys() {
+    val params = params()
+    val idle = params.interactionUniforms(
+      GlassInteractionRenderState(position = Offset(20f, 20f)),
+      radiusFraction = 0.7f,
+    )
+    val pressed = params.interactionUniforms(
+      GlassInteractionRenderState(
+        position = Offset(80f, 60f),
+        lightingIntensity = 1f,
+        refractionMultiplier = 1.08f,
+        whitePointDelta = 0.04f,
+        scaleX = 0.98f,
+        scaleY = 0.98f,
+      ),
+      radiusFraction = 0.7f,
+    )
+
+    assertThat(params.blurEffectKey()).isEqualTo(params.blurEffectKey())
+    assertThat(params.opticalEffectKey()).isEqualTo(params.opticalEffectKey())
+    assertThat(params.refractionDetailEffectKey())
+      .isEqualTo(params.refractionDetailEffectKey())
+    assertThat(params.rimEffectKey()).isEqualTo(params.rimEffectKey())
+    assertThat(idle).isNotEqualTo(pressed)
+  }
+
+  @Test
   fun refractionDetailKey_onlyTracksConsumedUniforms() {
     val base = params()
     val key = base.refractionDetailEffectKey()
