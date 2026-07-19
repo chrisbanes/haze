@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -22,12 +23,13 @@ import dev.chrisbanes.haze.sample.GlassPlaygroundSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSurfaceId
 import dev.chrisbanes.haze.sample.GlassProductSampleContent
 import dev.chrisbanes.haze.sample.SamplesTheme
+import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 
 internal fun ScreenshotUiTest.captureGlassProductHero() {
   setContent {
     Box(Modifier.fillMaxSize().background(Color.White)) {
-      SamplesTheme(useDarkColors = true) {
+      GlassGalleryScreenshotTheme {
         GlassProductSampleContent(
           selectedArtworkIndex = 0,
           favorite = false,
@@ -49,7 +51,7 @@ internal fun ScreenshotUiTest.captureGlassPlaygroundBeats() {
   var displacedLens by mutableStateOf(Offset.Zero)
   setContent {
     Box(Modifier.fillMaxSize().background(Color.White)) {
-      SamplesTheme(useDarkColors = true) {
+      GlassGalleryScreenshotTheme {
         GlassPlaygroundSampleContent(
           progressProvider = { progress },
           dragOffsetProvider = { id ->
@@ -89,7 +91,7 @@ internal fun ScreenshotUiTest.captureGlassLabPresets() {
   var preset by mutableStateOf(GlassLabPresetId.Adaptive)
   var backdrop by mutableStateOf(GlassGalleryBackdropId.Gallery)
   setContent {
-    SamplesTheme(useDarkColors = true) {
+    GlassGalleryScreenshotTheme {
       Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -109,4 +111,11 @@ internal fun ScreenshotUiTest.captureGlassLabPresets() {
   backdrop = GlassGalleryBackdropId.Bands
   waitForIdle()
   captureRoot("prism")
+}
+
+@Composable
+private fun GlassGalleryScreenshotTheme(content: @Composable () -> Unit) {
+  SamplesTheme(useDarkColors = true) {
+    ScreenshotTheme(content)
+  }
 }

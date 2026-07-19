@@ -134,7 +134,7 @@ internal class GlassPlaygroundState {
 
   fun beginDrag(id: GlassPlaygroundSurfaceId) {
     activeSurface = id
-    dragOffsets.putIfAbsent(id, Offset.Zero)
+    dragOffsets.getOrPut(id) { Offset.Zero }
   }
 
   fun dragBy(id: GlassPlaygroundSurfaceId, delta: Offset) {
