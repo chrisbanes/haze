@@ -24,12 +24,13 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
-class GlassLabSampleTest {
+class GlassLabSampleTest : ContextTest() {
   @Test
   fun narrowLabRevealsSelectedTrailingPreset() = runComposeUiTest {
     var state by mutableStateOf(GlassLabState())
@@ -104,8 +105,9 @@ class GlassLabSampleTest {
     onNode(hasText("Grid") and hasClickAction()).performScrollTo().performClick()
     assertEquals(GlassGalleryBackdropId.Grid, state.backdrop)
 
-    onNodeWithText("Advanced").performClick()
-    onNodeWithText("Optics").assertIsDisplayed()
+    onNodeWithText("Advanced").performScrollTo().performClick()
+    assertTrue(state.advancedExpanded)
+    onNodeWithText("Optics").performScrollTo().assertIsDisplayed()
 
     onNodeWithContentDescription("Reset demo").performClick()
     assertEquals(GlassLabState(), state)

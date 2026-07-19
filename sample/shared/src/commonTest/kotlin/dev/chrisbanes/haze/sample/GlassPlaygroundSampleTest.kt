@@ -9,12 +9,13 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntSize
+import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
-class GlassPlaygroundSampleTest {
+class GlassPlaygroundSampleTest : ContextTest() {
   @Test
   fun controlsForwardPlayResetAndRecordingEvents() = runComposeUiTest {
     var playPauseCount = 0

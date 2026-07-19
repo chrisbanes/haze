@@ -11,10 +11,11 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
-class GlassGalleryVisualsTest {
+class GlassGalleryVisualsTest : ContextTest() {
   @Test
   fun demoChrome_showsConfiguredActions() = runComposeUiTest {
     setContent {
