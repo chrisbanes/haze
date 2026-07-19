@@ -20,7 +20,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,12 +61,15 @@ internal fun GalleryBackdrop(
       modifier = Modifier
         .matchParentSize()
         .graphicsLayer {
-          val transform = galleryBackdropHorizontalTransform(
-            offsetFraction = offsetProvider(),
-            overscanFraction = horizontalOverscanFraction,
-          )
-          scaleX = transform.scaleX
-          translationX = size.width * transform.translationFraction
+          val offset = offsetProvider()
+          require(offset.isFinite())
+          require(horizontalOverscanFraction.isFinite() && horizontalOverscanFraction >= 0f)
+          scaleX = 1f + horizontalOverscanFraction * 2f
+          translationX = size.width * if (horizontalOverscanFraction > 0f) {
+            offset.coerceIn(-horizontalOverscanFraction, horizontalOverscanFraction)
+          } else {
+            offset
+          }
         },
     ) {
       when (backdrop) {
@@ -138,28 +140,6 @@ internal fun GalleryBackdrop(
   }
 }
 
-@Immutable
-internal data class GalleryBackdropHorizontalTransform(
-  val translationFraction: Float,
-  val scaleX: Float,
-)
-
-internal fun galleryBackdropHorizontalTransform(
-  offsetFraction: Float,
-  overscanFraction: Float,
-): GalleryBackdropHorizontalTransform {
-  require(offsetFraction.isFinite())
-  require(overscanFraction.isFinite() && overscanFraction >= 0f)
-  return GalleryBackdropHorizontalTransform(
-    translationFraction = if (overscanFraction > 0f) {
-      offsetFraction.coerceIn(-overscanFraction, overscanFraction)
-    } else {
-      offsetFraction
-    },
-    scaleX = 1f + overscanFraction * 2f,
-  )
-}
-
 @Composable
 internal fun GlassSurface(
   hazeState: HazeState,
@@ -186,10 +166,10 @@ internal fun DemoChrome(
   hazeState: HazeState,
   onBack: () -> Unit,
   onEnterRecordingMode: () -> Unit,
+  onReset: () -> Unit,
   modifier: Modifier = Modifier,
   isPlaying: Boolean? = null,
   onPlayPause: (() -> Unit)? = null,
-  onReset: (() -> Unit)? = null,
 ) {
   val shape = RoundedCornerShape(24.dp)
   GlassSurface(
@@ -213,10 +193,8 @@ internal fun DemoChrome(
           )
         }
       }
-      if (onReset != null) {
-        IconButton(onClick = onReset) {
-          Icon(ReplayIcon, contentDescription = "Reset demo")
-        }
+      IconButton(onClick = onReset) {
+        Icon(ReplayIcon, contentDescription = "Reset demo")
       }
       IconButton(onClick = onEnterRecordingMode) {
         Icon(VisibilityOffIcon, contentDescription = "Enter recording mode")

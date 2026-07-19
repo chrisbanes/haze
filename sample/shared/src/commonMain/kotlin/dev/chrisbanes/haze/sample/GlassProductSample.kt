@@ -62,16 +62,15 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 @Composable
 public fun GlassProductSample(navController: NavHostController) {
   var selectedArtworkIndex by rememberSaveable { mutableIntStateOf(0) }
-  val favorites = remember { mutableStateMapOf<String, Boolean>() }
+  val favorites = remember { mutableStateMapOf<Int, Boolean>() }
   var recordingMode by rememberSaveable { mutableStateOf(false) }
-  val selectedId = GalleryArtworks[selectedArtworkIndex].id
 
   GlassProductSampleContent(
     selectedArtworkIndex = selectedArtworkIndex,
-    favorite = favorites[selectedId] == true,
+    favorite = favorites[selectedArtworkIndex] == true,
     recordingMode = recordingMode,
     onArtworkSelected = { selectedArtworkIndex = it.mod(GalleryArtworks.size) },
-    onFavoriteChanged = { favorites[selectedId] = it },
+    onFavoriteChanged = { favorites[selectedArtworkIndex] = it },
     onRecordingModeChanged = { recordingMode = it },
     onBack = navController::navigateUp,
   )

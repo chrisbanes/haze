@@ -12,10 +12,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
-import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,13 +36,11 @@ import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -55,58 +51,11 @@ import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 private const val PLAYGROUND_LOOP_DURATION_MILLIS = 12_000
-
-internal class PlaygroundReturnJobs(
-  private val scope: CoroutineScope,
-  private val onReturn: suspend (GlassPlaygroundSurfaceId) -> Unit,
-) {
-  private val jobs = mutableMapOf<GlassPlaygroundSurfaceId, Job>()
-
-  fun launch(id: GlassPlaygroundSurfaceId) {
-    cancel(id)
-    jobs[id] = scope.launch { onReturn(id) }
-  }
-
-  fun cancel(id: GlassPlaygroundSurfaceId) {
-    jobs.remove(id)?.cancel()
-  }
-
-  fun cancelAll() {
-    jobs.values.forEach(Job::cancel)
-    jobs.clear()
-  }
-}
-
-internal class PlaygroundDragSession(
-  private val onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
-  private val onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
-  private val onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
-) {
-  var activeSurface: GlassPlaygroundSurfaceId? = null
-    private set
-
-  fun start(id: GlassPlaygroundSurfaceId) {
-    activeSurface = id
-    onDragStart(id)
-  }
-
-  fun dragBy(delta: Offset) {
-    activeSurface?.let { onDrag(it, delta) }
-  }
-
-  fun end() {
-    activeSurface?.let { id ->
-      activeSurface = null
-      onDragEnd(id)
-    }
-  }
-}
 
 @Stable
 internal class GlassPlaygroundState {
@@ -188,9 +137,7 @@ internal fun rememberGlassPlaygroundState(): GlassPlaygroundState = remember { G
 public fun GlassPlaygroundSample(navController: NavHostController) {
   val state = rememberGlassPlaygroundState()
   val scope = rememberCoroutineScope()
-  val returnJobs = remember(state, scope) {
-    PlaygroundReturnJobs(scope, state::endDrag)
-  }
+  val returnJobs = remember { mutableMapOf<GlassPlaygroundSurfaceId, Job>() }
 
   LaunchedEffect(state.isPlaying, state.activeSurface) {
     val animationsEnabled = (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) > 0f
@@ -208,17 +155,21 @@ public fun GlassPlaygroundSample(navController: NavHostController) {
     recordingMode = state.recordingMode,
     onPlayPause = state::togglePlayback,
     onReset = {
-      returnJobs.cancelAll()
+      returnJobs.values.forEach(Job::cancel)
+      returnJobs.clear()
       scope.launch { state.reset() }
     },
     onRecordingModeChanged = state::updateRecordingMode,
     onBack = navController::navigateUp,
     onDragStart = { id ->
-      returnJobs.cancel(id)
+      returnJobs.remove(id)?.cancel()
       state.beginDrag(id)
     },
     onDrag = state::dragBy,
-    onDragEnd = returnJobs::launch,
+    onDragEnd = { id ->
+      returnJobs.remove(id)?.cancel()
+      returnJobs[id] = scope.launch { state.endDrag(id) }
+    },
   )
 }
 
@@ -245,7 +196,13 @@ public fun GlassPlaygroundSampleContent(
       backdrop = GlassGalleryBackdropId.Gallery,
       offsetProvider = { glassPlaygroundFrame(progressProvider()).backdropOffset },
       horizontalOverscanFraction = 0.08f,
-      modifier = Modifier.fillMaxSize(),
+      modifier = Modifier
+        .fillMaxSize()
+        .pointerInput(recordingMode) {
+          detectTapGestures {
+            if (recordingMode) onRecordingModeChanged(false)
+          }
+        },
     )
 
     PlaygroundSurfaceScene(
@@ -253,8 +210,6 @@ public fun GlassPlaygroundSampleContent(
       progressProvider = progressProvider,
       dragOffsetProvider = dragOffsetProvider,
       sceneSizeProvider = { IntSize(constraints.maxWidth, constraints.maxHeight) },
-      recordingMode = recordingMode,
-      onRecordingModeChanged = onRecordingModeChanged,
       onDragStart = onDragStart,
       onDrag = onDrag,
       onDragEnd = onDragEnd,
@@ -283,72 +238,13 @@ private fun PlaygroundSurfaceScene(
   progressProvider: () -> Float,
   dragOffsetProvider: (GlassPlaygroundSurfaceId) -> Offset,
   sceneSizeProvider: () -> IntSize,
-  recordingMode: Boolean,
-  onRecordingModeChanged: (Boolean) -> Unit,
   onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  val density = LocalDensity.current
-  val hitTest: (Offset) -> GlassPlaygroundSurfaceId? = { pointerPosition ->
-    hitTestPlaygroundSurface(
-      pointerPosition = pointerPosition,
-      progress = progressProvider(),
-      sceneSize = sceneSizeProvider(),
-      density = density,
-      dragOffsetProvider = dragOffsetProvider,
-    )
-  }
-  val latestHitTest by rememberUpdatedState(hitTest)
-  val latestRecordingMode by rememberUpdatedState(recordingMode)
-  val latestOnRecordingModeChanged by rememberUpdatedState(onRecordingModeChanged)
-  val latestOnDragStart by rememberUpdatedState(onDragStart)
-  val latestOnDrag by rememberUpdatedState(onDrag)
-  val latestOnDragEnd by rememberUpdatedState(onDragEnd)
-
   Layout(
-    modifier = modifier
-      .pointerInput(Unit) {
-        awaitEachGesture {
-          val down = awaitFirstDown(requireUnconsumed = false)
-          val id = latestHitTest(down.position)
-          if (id != null) {
-            var overSlop = Offset.Zero
-            val postSlop = awaitTouchSlopOrCancellation(down.id) { change, amount ->
-              change.consume()
-              overSlop = amount
-            }
-            if (postSlop != null) {
-              val session = PlaygroundDragSession(
-                onDragStart = { latestOnDragStart(it) },
-                onDrag = { surface, amount -> latestOnDrag(surface, amount) },
-                onDragEnd = { surface -> latestOnDragEnd(surface) },
-              )
-              session.start(id)
-              try {
-                session.dragBy(overSlop)
-                drag(postSlop.id) { change ->
-                  val amount = change.positionChange()
-                  if (amount != Offset.Zero) {
-                    change.consume()
-                    session.dragBy(amount)
-                  }
-                }
-              } finally {
-                session.end()
-              }
-            }
-          } else {
-            val movement = awaitTouchSlopOrCancellation(down.id) { change, _ ->
-              change.consume()
-            }
-            if (movement == null && latestRecordingMode) {
-              latestOnRecordingModeChanged(false)
-            }
-          }
-        }
-      },
+    modifier = modifier,
     content = {
       GlassPlaygroundSurfaceId.entries.forEach { id ->
         PlaygroundSurface(
@@ -357,6 +253,9 @@ private fun PlaygroundSurfaceScene(
           progressProvider = progressProvider,
           sceneSizeProvider = sceneSizeProvider,
           dragOffsetProvider = dragOffsetProvider,
+          onDragStart = onDragStart,
+          onDrag = onDrag,
+          onDragEnd = onDragEnd,
         )
       }
     },
@@ -377,30 +276,6 @@ private fun PlaygroundSurfaceScene(
         )
       }
     }
-  }
-}
-
-internal fun hitTestPlaygroundSurface(
-  pointerPosition: Offset,
-  progress: Float,
-  sceneSize: IntSize,
-  density: Density,
-  dragOffsetProvider: (GlassPlaygroundSurfaceId) -> Offset,
-): GlassPlaygroundSurfaceId? {
-  val frame = glassPlaygroundFrame(progress)
-  return GlassPlaygroundSurfaceId.entries.reversed().firstOrNull { id ->
-    val surfaceSize = playgroundSurfaceSize(id)
-    val surfaceSizePx = with(density) {
-      IntSize(surfaceSize.width.roundToPx(), surfaceSize.height.roundToPx())
-    }
-    val center = resolvedPlaygroundSurfaceCenter(
-      normalizedCenter = frame.position(id),
-      sceneSize = sceneSize,
-      surfaceSize = surfaceSizePx,
-      dragOffset = dragOffsetProvider(id),
-    )
-    pointerPosition.x in (center.x - surfaceSizePx.width / 2f)..(center.x + surfaceSizePx.width / 2f) &&
-      pointerPosition.y in (center.y - surfaceSizePx.height / 2f)..(center.y + surfaceSizePx.height / 2f)
   }
 }
 
@@ -449,6 +324,9 @@ private fun PlaygroundSurface(
   progressProvider: () -> Float,
   sceneSizeProvider: () -> IntSize,
   dragOffsetProvider: (GlassPlaygroundSurfaceId) -> Offset,
+  onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
+  onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
+  onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
 ) {
   val size = playgroundSurfaceSize(id)
   val density = LocalDensity.current
@@ -464,6 +342,9 @@ private fun PlaygroundSurface(
   val latestProgressProvider by rememberUpdatedState(progressProvider)
   val latestSceneSizeProvider by rememberUpdatedState(sceneSizeProvider)
   val latestDragOffsetProvider by rememberUpdatedState(dragOffsetProvider)
+  val latestOnDragStart by rememberUpdatedState(onDragStart)
+  val latestOnDrag by rememberUpdatedState(onDrag)
+  val latestOnDragEnd by rememberUpdatedState(onDragEnd)
 
   LaunchedEffect(effect, id, surfaceSize) {
     snapshotFlow {
@@ -484,6 +365,16 @@ private fun PlaygroundSurface(
     modifier = Modifier
       .size(size)
       .hazeEffect(state = hazeState) { visualEffect = effect }
+      .pointerInput(id) {
+        detectDragGestures(
+          onDragStart = { latestOnDragStart(id) },
+          onDragEnd = { latestOnDragEnd(id) },
+          onDragCancel = { latestOnDragEnd(id) },
+        ) { change, amount ->
+          change.consume()
+          latestOnDrag(id, amount)
+        }
+      }
       .testTag("glass_playground_${id.name.lowercase()}")
       .semantics { contentDescription = "${id.name} draggable glass surface" },
   ) {

@@ -16,13 +16,6 @@ import kotlin.test.assertTrue
 
 class GlassGalleryModelsTest {
   @Test
-  fun galleryArtworks_haveStableUniqueIds() {
-    assertEquals(4, GalleryArtworks.size)
-    assertEquals(4, GalleryArtworks.map { it.id }.toSet().size)
-    assertTrue(GalleryArtworks.all { it.title.isNotBlank() && it.description.isNotBlank() })
-  }
-
-  @Test
   fun adaptivePreset_usesBuiltInAdaptiveOptics() {
     assertEquals(GlassOptics.Adaptive, glassLabPresetStyle(GlassLabPresetId.Adaptive).optics)
   }

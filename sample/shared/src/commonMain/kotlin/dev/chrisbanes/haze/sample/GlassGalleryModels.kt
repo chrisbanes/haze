@@ -17,7 +17,6 @@ import dev.chrisbanes.haze.glass.SurfaceProfile
 
 @Immutable
 internal data class GalleryArtwork(
-  val id: String,
   val title: String,
   val subtitle: String,
   val description: String,
@@ -28,7 +27,6 @@ internal data class GalleryArtwork(
 
 internal val GalleryArtworks = listOf(
   GalleryArtwork(
-    id = "chromatic-bloom",
     title = "Chromatic Bloom",
     subtitle = "Studies in refracted colour",
     description = "A magenta and cyan poster with concentric circles and fine grid lines",
@@ -37,7 +35,6 @@ internal val GalleryArtworks = listOf(
     foreground = Color.White,
   ),
   GalleryArtwork(
-    id = "signal-garden",
     title = "Signal Garden",
     subtitle = "Organic systems, synthetic light",
     description = "An emerald and ultraviolet poster with vertical signal bars",
@@ -46,7 +43,6 @@ internal val GalleryArtworks = listOf(
     foreground = Color.White,
   ),
   GalleryArtwork(
-    id = "blue-hour",
     title = "Blue Hour",
     subtitle = "Quiet geometry after sunset",
     description = "A deep blue poster with coral geometry and narrow horizontal rules",
@@ -55,7 +51,6 @@ internal val GalleryArtworks = listOf(
     foreground = Color.White,
   ),
   GalleryArtwork(
-    id = "solar-type",
     title = "Solar Type",
     subtitle = "Letterforms in orbital motion",
     description = "A warm orange poster with black typography and electric blue details",
@@ -84,9 +79,9 @@ public enum class GlassLabPresetId {
 
 internal val SelectableGlassLabPresets = GlassLabPresetId.entries - GlassLabPresetId.Custom
 
-private val GlassLabPresetStyles = mapOf(
-  GlassLabPresetId.Adaptive to GlassDefaults.style,
-  GlassLabPresetId.Clear to GlassDefaults.style.copy(
+public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
+  GlassLabPresetId.Adaptive -> GlassDefaults.style
+  GlassLabPresetId.Clear -> GlassDefaults.style.copy(
     tint = Color.White.copy(alpha = 0.06f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.85f,
@@ -112,8 +107,8 @@ private val GlassLabPresetStyles = mapOf(
       chromaticAberrationStrength = 0f,
       chromaticAberrationMode = ChromaticAberrationMode.Simple,
     ),
-  ),
-  GlassLabPresetId.Frosted to GlassDefaults.style.copy(
+  )
+  GlassLabPresetId.Frosted -> GlassDefaults.style.copy(
     tint = Color.White.copy(alpha = 0.18f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.45f,
@@ -139,8 +134,8 @@ private val GlassLabPresetStyles = mapOf(
       chromaticAberrationStrength = 0f,
       chromaticAberrationMode = ChromaticAberrationMode.Simple,
     ),
-  ),
-  GlassLabPresetId.Deep to GlassDefaults.style.copy(
+  )
+  GlassLabPresetId.Deep -> GlassDefaults.style.copy(
     tint = Color.White.copy(alpha = 0.1f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.9f,
@@ -166,8 +161,8 @@ private val GlassLabPresetStyles = mapOf(
       chromaticAberrationStrength = 0.05f,
       chromaticAberrationMode = ChromaticAberrationMode.Simple,
     ),
-  ),
-  GlassLabPresetId.Prism to GlassDefaults.style.copy(
+  )
+  GlassLabPresetId.Prism -> GlassDefaults.style.copy(
     tint = Color.White.copy(alpha = 0.08f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.82f,
@@ -193,12 +188,8 @@ private val GlassLabPresetStyles = mapOf(
       chromaticAberrationStrength = 0.22f,
       chromaticAberrationMode = ChromaticAberrationMode.Full,
     ),
-  ),
-)
-
-public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
+  )
   GlassLabPresetId.Custom -> error("Custom style must come from GlassLabState")
-  else -> requireNotNull(GlassLabPresetStyles[id])
 }
 
 @Immutable

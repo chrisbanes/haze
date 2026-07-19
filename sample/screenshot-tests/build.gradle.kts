@@ -35,15 +35,12 @@ kotlin {
       dependencies {
         implementation(kotlin("test"))
         implementation(libs.compose.ui.test)
-        implementation(projects.internal.contextTest)
         implementation(projects.internal.screenshotTest)
         implementation(projects.sample.shared)
       }
     }
 
     jvmTest {
-      kotlin.srcDir("src/jvmTest/kotlin")
-
       dependencies {
         implementation(compose.desktop.currentOs)
       }
