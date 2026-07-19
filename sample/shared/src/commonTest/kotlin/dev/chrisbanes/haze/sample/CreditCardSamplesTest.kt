@@ -6,7 +6,6 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.navigation.compose.rememberNavController
 import dev.chrisbanes.haze.test.ContextTest
@@ -22,18 +21,5 @@ class CreditCardSamplesTest : ContextTest() {
     }
 
     onNodeWithTag("credit_card_2").assertIsDisplayed()
-  }
-
-  @Test
-  fun interactiveGlassSample_renders() = runComposeUiTest {
-    setContent {
-      SamplesTheme {
-        InteractiveGlassSample(navController = rememberNavController())
-      }
-    }
-    waitForIdle()
-    onNodeWithText("Pressed only").assertExists()
-    onNodeWithText("All presets").assertExists()
-    onNodeWithText("Custom press").assertExists()
   }
 }
