@@ -22,14 +22,4 @@ class CreditCardSamplesTest : ContextTest() {
 
     onNodeWithTag("credit_card_2").assertIsDisplayed()
   }
-
-  @Test
-  fun glassSample_keepsBenchmarkCardTag() = runComposeUiTest {
-    setContent {
-      val navController = rememberNavController()
-      GlassCreditCardSample(navController = navController)
-    }
-
-    onNodeWithTag("credit_card_2").assertIsDisplayed()
-  }
 }

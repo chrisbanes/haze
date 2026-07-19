@@ -73,8 +73,9 @@ val CommonSamples: List<Sample> = listOf(
   Sample.ContentBlurring,
   Sample.CustomVisualEffect,
   Sample.LayerTransformations,
-  Sample.Glass,
-  Sample.GlassDebug,
+  Sample.GlassProduct,
+  Sample.GlassPlayground,
+  Sample.GlassLab,
 )
 
 @OptIn(ExperimentalHazeApi::class)
@@ -287,22 +288,32 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   }
 
   @Serializable
-  data object Glass : Sample {
-    override val title: String = "Glass"
+  data object GlassProduct : Sample {
+    override val title: String = "Glass — Product"
 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
-      GlassCreditCardSample(navController = navController)
+      GlassProductSample(navController = navController)
     }
   }
 
   @Serializable
-  data object GlassDebug : Sample {
-    override val title: String = "Glass (Debug)"
+  data object GlassPlayground : Sample {
+    override val title: String = "Glass — Playground"
 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
-      GlassDebugSample(navController = navController)
+      GlassPlaygroundSample(navController = navController)
+    }
+  }
+
+  @Serializable
+  data object GlassLab : Sample {
+    override val title: String = "Glass — Lab"
+
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      GlassLabSample(navController = navController)
     }
   }
 }

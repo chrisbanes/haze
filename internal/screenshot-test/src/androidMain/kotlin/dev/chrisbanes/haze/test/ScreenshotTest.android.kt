@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.test
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
@@ -46,6 +47,7 @@ actual abstract class ScreenshotTest : ContextTest() {
 
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class, InternalRoborazziApi::class)
 actual fun ScreenshotTest.runScreenshotTest(
+  size: Size,
   block: ScreenshotUiTest.() -> Unit,
 ) {
   provideRoborazziContext().setRuleOverrideRoborazziOptions(HazeRoborazziDefaults.roborazziOptions)

@@ -15,7 +15,11 @@ import org.jetbrains.compose.resources.Font
 fun ScreenshotTheme(
   content: @Composable () -> Unit,
 ) {
-  MaterialTheme(typography = Typography) {
+  MaterialTheme(
+    colorScheme = MaterialTheme.colorScheme,
+    shapes = MaterialTheme.shapes,
+    typography = Typography,
+  ) {
     content()
   }
 }
