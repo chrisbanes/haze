@@ -8,8 +8,10 @@ package dev.chrisbanes.haze.sample
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassVisualEffect
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
@@ -51,10 +53,32 @@ class GlassGalleryModelsTest {
   }
 
   @Test
+  fun interactionModes_configureExpectedPointerSlots() {
+    val off = GlassVisualEffect()
+    GlassLabInteractionMode.Off.applyTo(off)
+    assertFalse(off.observesPointerEvents)
+
+    val pressed = GlassVisualEffect()
+    GlassLabInteractionMode.Pressed.applyTo(pressed)
+    assertTrue(pressed.observesPointerEvents)
+    pressed.clearPressed()
+    assertFalse(pressed.observesPointerEvents)
+
+    val all = GlassVisualEffect()
+    GlassLabInteractionMode.All.applyTo(all)
+    assertTrue(all.observesPointerEvents)
+    all.clearPressed()
+    assertTrue(all.observesPointerEvents)
+    all.clearHovered()
+    assertFalse(all.observesPointerEvents)
+  }
+
+  @Test
   fun reset_restoresCompleteInitialLabState() {
     val changed = GlassLabState(
       preset = GlassLabPresetId.Prism,
       backdrop = GlassGalleryBackdropId.Grid,
+      interaction = GlassLabInteractionMode.Off,
       advancedExpanded = true,
       style = glassLabPresetStyle(GlassLabPresetId.Prism),
     )
