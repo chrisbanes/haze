@@ -48,7 +48,6 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     waitForIdle()
 
     val delegate = effect.delegate as RuntimeShaderGlassDelegate
-    assertThat(delegate.interactionFrameCount).isEqualTo(0)
     assertThat(delegate.layers.hasInteractionOptical).isFalse()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isFalse()
     assertThat(delegate.layers.hasInteractionLighting).isFalse()
@@ -60,7 +59,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
     val delegate = effect.delegate as RuntimeShaderGlassDelegate
-    val opticalBuilds = delegate.baseOpticalEffectCreationCount
+    val opticalEffect = checkNotNull(delegate.opticalEffect)
 
     onNodeWithTag("glass").performTouchInput {
       down(Offset(20f, 20f))
@@ -69,8 +68,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     mainClock.advanceTimeBy(500)
     waitForIdle()
 
-    assertThat(delegate.baseOpticalEffectCreationCount).isEqualTo(opticalBuilds)
-    assertThat(delegate.interactionFrameCount).isGreaterThan(0)
+    assertSame(opticalEffect, delegate.opticalEffect)
     assertThat(delegate.layers.hasInteractionOptical).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()

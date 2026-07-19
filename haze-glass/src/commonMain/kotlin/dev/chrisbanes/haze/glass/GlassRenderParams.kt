@@ -18,6 +18,14 @@ internal data class GlassCoordinates(
   val scaleFactor: Float,
 )
 
+internal fun Size.isDrawable(): Boolean =
+  width.isFinite() && height.isFinite() && width > 0f && height > 0f
+
+internal fun Offset.clampTo(size: Size): Offset = Offset(
+  x = x.coerceIn(0f, size.width),
+  y = y.coerceIn(0f, size.height),
+)
+
 internal fun GlassCoordinates.withRoundedSampleSize(): GlassCoordinates {
   val rounded = sampleSize.roundToIntSize()
   return copy(sampleSize = Size(rounded.width.toFloat(), rounded.height.toFloat()))
@@ -370,10 +378,6 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   sampleStepPx = sampleStepPx,
 )
 
-internal data class GlassInteractionOpticalKey(
-  val base: GlassOpticalEffectKey,
-)
-
 internal data class GlassRefractionDetailEffectKey(
   val sampleSize: Size,
   val materialOrigin: Offset,
@@ -420,10 +424,6 @@ internal fun GlassRenderParams.activeRefractionDetailEffectKey(
   key.refractionStrength > 0f && key.refractionScalePx > 0f &&
     key.detailWidthPx > 0f && key.detailIntensity * key.detailVisibility > 1f / 255f
 }
-
-internal data class GlassInteractionDetailKey(
-  val base: GlassRefractionDetailEffectKey,
-)
 
 private const val GLASS_REFRACTION_DETAIL_INTENSITY = 0.76f
 

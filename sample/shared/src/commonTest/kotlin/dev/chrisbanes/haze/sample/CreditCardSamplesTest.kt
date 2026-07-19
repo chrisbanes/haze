@@ -23,6 +23,7 @@ class CreditCardSamplesTest : ContextTest() {
 
     onNodeWithTag("credit_card_2").assertIsDisplayed()
   }
+
   @Test
   fun interactiveGlassSample_renders() = runComposeUiTest {
     setContent {

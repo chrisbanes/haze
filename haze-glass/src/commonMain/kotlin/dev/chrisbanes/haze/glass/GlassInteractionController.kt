@@ -604,11 +604,3 @@ private object FullMotionDurationScale : MotionDurationScale {
 }
 
 private fun Offset.validOrNull(): Offset? = takeIf { x.isFinite() && y.isFinite() }
-
-private fun Offset.clampTo(size: Size): Offset = Offset(
-  x = x.coerceIn(0f, size.width),
-  y = y.coerceIn(0f, size.height),
-)
-
-private fun Size.isDrawable(): Boolean =
-  width.isFinite() && height.isFinite() && width > 0f && height > 0f

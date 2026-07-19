@@ -130,10 +130,6 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   private var interactionSlotTransaction: InteractionSlotTransaction? = null
-  private var interactionSlotTransactionToken: InteractionSlotTransactionToken? = null
-
-  @PublishedApi
-  internal class InteractionSlotTransactionToken internal constructor()
 
   override val observesPointerEvents: Boolean
     get() = hoveredSlot != null || pressedSlot != null
@@ -349,29 +345,24 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   @PublishedApi
-  internal fun beginInteractionSlotTransaction(): InteractionSlotTransactionToken {
-    val token = InteractionSlotTransactionToken()
-    if (interactionSlotTransaction == null) {
-      interactionSlotTransaction = InteractionSlotTransaction(this)
-      interactionSlotTransactionToken = token
-    }
-    return token
+  internal fun beginInteractionSlotTransaction(): Boolean {
+    if (interactionSlotTransaction != null) return false
+    interactionSlotTransaction = InteractionSlotTransaction(this)
+    return true
   }
 
   @PublishedApi
-  internal fun commitInteractionSlotTransaction(token: InteractionSlotTransactionToken) {
-    if (token !== interactionSlotTransactionToken) return
+  internal fun commitInteractionSlotTransaction(ownsTransaction: Boolean) {
+    if (!ownsTransaction) return
     val transaction = checkNotNull(interactionSlotTransaction)
     interactionSlotTransaction = null
-    interactionSlotTransactionToken = null
     commitInteractionSlots(transaction)
   }
 
   @PublishedApi
-  internal fun rollbackInteractionSlotTransaction(token: InteractionSlotTransactionToken) {
-    if (token !== interactionSlotTransactionToken) return
+  internal fun rollbackInteractionSlotTransaction(ownsTransaction: Boolean) {
+    if (!ownsTransaction) return
     interactionSlotTransaction = null
-    interactionSlotTransactionToken = null
   }
 
   private fun commitInteractionSlots(transaction: InteractionSlotTransaction) {
@@ -1176,14 +1167,6 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     const val TAG = "GlassVisualEffect"
   }
 }
-
-private fun Size.isDrawable(): Boolean =
-  width.isFinite() && height.isFinite() && width > 0f && height > 0f
-
-private fun Offset.clampTo(size: Size): Offset = Offset(
-  x = x.coerceIn(0f, size.width),
-  y = y.coerceIn(0f, size.height),
-)
 
 internal interface RetainedOutputDelegate {
   fun canDrawRetainedOutput(): Boolean

@@ -15,17 +15,17 @@ public inline fun HazeEffectScope.glassEffect(
 ) {
   val effect = visualEffect as? GlassVisualEffect ?: GlassVisualEffect()
   visualEffect = effect
-  val transaction = effect.beginInteractionSlotTransaction()
+  val ownsTransaction = effect.beginInteractionSlotTransaction()
   var failure: Throwable? = null
   try {
     effect.block()
   } catch (throwable: Throwable) {
     failure = throwable
-    effect.rollbackInteractionSlotTransaction(transaction)
+    effect.rollbackInteractionSlotTransaction(ownsTransaction)
     throw throwable
   } finally {
     if (failure == null) {
-      effect.commitInteractionSlotTransaction(transaction)
+      effect.commitInteractionSlotTransaction(ownsTransaction)
     }
   }
 }

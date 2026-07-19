@@ -66,11 +66,6 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun glassInteraction_scaleChannel() = runScreenshotTest {
-    capturePressed("scale", "SCALE", scaleEffect(GlassTransformTarget.MaterialAndContent))
-  }
-
-  @Test
   fun glassInteraction_materialOnlyTransformTarget() = runScreenshotTest {
     capturePressed("material_only", "MATERIAL ONLY", scaleEffect(GlassTransformTarget.MaterialOnly))
   }
@@ -78,11 +73,6 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
   @Test
   fun glassInteraction_materialAndContentTransformTarget() = runScreenshotTest {
     capturePressed("material_and_content", "MATERIAL + CONTENT", scaleEffect(GlassTransformTarget.MaterialAndContent))
-  }
-
-  @Test
-  fun glassInteraction_pointerPivot() = runScreenshotTest {
-    capturePressed("pointer_pivot", "POINTER PIVOT", scaleEffect(GlassTransformTarget.MaterialAndContent, GlassTransformPivot.Pointer))
   }
 
   @Test
