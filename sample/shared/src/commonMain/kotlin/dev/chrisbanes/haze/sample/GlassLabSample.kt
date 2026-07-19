@@ -6,8 +6,10 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -151,6 +153,7 @@ private fun LabSpecimen(
   onRevealChrome: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val interactionSource = remember { MutableInteractionSource() }
   Box(modifier = modifier) {
     GalleryBackdrop(
       hazeState = hazeState,
@@ -168,11 +171,14 @@ private fun LabSpecimen(
       hazeState = hazeState,
       style = state.style,
       shape = RoundedCornerShape(32.dp),
+      interactionSource = interactionSource,
+      interaction = { state.interaction.applyTo(this) },
       modifier = Modifier
         .align(Alignment.Center)
         .fillMaxWidth(0.85f)
         .sizeIn(maxWidth = 360.dp, maxHeight = 240.dp)
         .pointerInput(Unit) { detectTapGestures {} }
+        .focusable(interactionSource = interactionSource)
         .semantics { contentDescription = "Glass specimen" },
     ) {
       Text(
@@ -202,6 +208,24 @@ private fun LabControls(
     LabPresetSelector(state = state, onStateChanged = onStateChanged)
     Text("Backdrop", style = MaterialTheme.typography.titleMedium)
     LabBackdropSelector(state = state, onStateChanged = onStateChanged)
+    Text("Interaction", style = MaterialTheme.typography.titleMedium)
+    LabSegmentedButtonRow(
+      selectedIndex = state.interaction.ordinal,
+      itemCount = GlassLabInteractionMode.entries.size,
+    ) { buttonWidth ->
+      GlassLabInteractionMode.entries.forEachIndexed { index, interaction ->
+        SegmentedButton(
+          selected = state.interaction == interaction,
+          onClick = { onStateChanged(state.copy(interaction = interaction)) },
+          shape = SegmentedButtonDefaults.itemShape(index, GlassLabInteractionMode.entries.size),
+          modifier = Modifier.width(buttonWidth),
+          icon = {},
+          contentPadding = PaddingValues(horizontal = 8.dp),
+        ) {
+          Text(interaction.name, maxLines = 1)
+        }
+      }
+    }
     TextButton(onClick = { onStateChanged(state.copy(advancedExpanded = !state.advancedExpanded)) }) {
       Text("Advanced")
     }
