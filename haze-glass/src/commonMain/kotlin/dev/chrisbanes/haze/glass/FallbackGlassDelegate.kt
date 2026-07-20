@@ -5,6 +5,8 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.center
+import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -34,8 +36,9 @@ internal class FallbackGlassDelegate(
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     val edgeSoftnessPx = with(context.requireDensity()) { effect.edgeSoftness.toPx() }
     val edgeAlpha = fallbackEdgeAlpha(effect.ambientResponse)
-    val highlightCenter = effect.lightPosition.takeUnless { it == Offset.Unspecified }
-      ?: Offset(size.width / 2f, size.height / 3f)
+    val highlightCenter = effect.lightPosition.takeOrElse { size.center }
+    val highlightAlpha = 0.25f * effect.specularIntensity.coerceIn(0f, 1f)
+    val highlightRadius = max(size.minDimension / 2f, edgeSoftnessPx * 4f)
 
     val radii = effect.shape.toCornerRadiiPx(layerSize = size, density = density, layoutDirection = layoutDirection)
 
@@ -60,21 +63,23 @@ internal class FallbackGlassDelegate(
       }
 
       // Specular-ish radial highlight
-      val highlightBrush = Brush.radialGradient(
-        colors = listOf(Color.White.copy(alpha = 0.25f), Color.Transparent),
-        center = highlightCenter,
-        radius = max(size.minDimension / 2f, edgeSoftnessPx * 4f),
-      )
-      if (shapePath != null) {
-        clipPath(shapePath) {
-          drawCircle(brush = highlightBrush, radius = max(size.minDimension / 2f, edgeSoftnessPx * 4f), center = highlightCenter)
-        }
-      } else {
-        drawCircle(
-          brush = highlightBrush,
+      if (highlightAlpha > 0f) {
+        val highlightBrush = Brush.radialGradient(
+          colors = listOf(Color.White.copy(alpha = highlightAlpha), Color.Transparent),
           center = highlightCenter,
-          radius = max(size.minDimension / 2f, edgeSoftnessPx * 4f),
+          radius = highlightRadius,
         )
+        if (shapePath != null) {
+          clipPath(shapePath) {
+            drawCircle(brush = highlightBrush, radius = highlightRadius, center = highlightCenter)
+          }
+        } else {
+          drawCircle(
+            brush = highlightBrush,
+            center = highlightCenter,
+            radius = highlightRadius,
+          )
+        }
       }
 
       // Edge falloff
