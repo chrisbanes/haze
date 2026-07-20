@@ -7660,6 +7660,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
+<li>Added opt-in hover, focus, and press responses to <code>GlassVisualEffect</code>, including localized lighting and optics, configurable transforms and motion, and an <code>interactable()</code> preset shortcut.</li>
 <li>Added progressive blur support to Glass.</li>
 <li><strong><code>HazeCoordinates</code></strong> — new value class on <code>HazeArea</code> exposing both <code>localPosition</code> and <code>screenPosition</code>, so custom <code>VisualEffect</code> implementations can read the geometry of an area in either coordinate space. A new <code>HazeCoordinates.isUnspecified</code> extension reports when either position has not yet been laid out.</li>
 <li><strong><code>VisualEffectContext</code> helpers</strong> (Experimental) — <code>positionOf(area)</code>, <code>boundsOf(area)</code>, and a <code>positionStrategy</code> property that read geometry in the effect's resolved coordinate space. Custom effects should prefer these over reading <code>HazeArea.position</code> / <code>HazeArea.coordinates</code> directly.</li>

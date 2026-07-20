@@ -866,6 +866,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#interaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1027,8 +1038,52 @@ For privacy-sensitive surfaces, disable retained output on the shared effect sco
 <h2 id="fallbacks">Fallbacks<a class="headerlink" href="#fallbacks" title="Permanent link">¶</a></h2>
 <ul>
 <li>Runtime shader path: deterministic semantic Gaussian blur, rounded SDF refraction, tint/specular/Fresnel, chromatic aberration, and edge softness.</li>
-<li>Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable.</li>
+<li>Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable. Interaction lighting and transforms work on this path, but interactive optics, white-point adjustment, and refraction are no-ops.</li>
 </ul>
+<h2 id="interaction">Interaction<a class="headerlink" href="#interaction" title="Permanent link">¶</a></h2>
+<p>Glass interaction is default-disabled and entirely opt-in. It adds a visual response only: it does
+not add click handling, focusability, semantics, or keyboard/D-pad activation.</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">pressed</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>hovered()</code>, <code>focused()</code>, and <code>pressed()</code> enable their respective default visual responses.
+<code>interactable()</code> enables all three. To make focus and keyboard/D-pad activation useful, retain one
+<code>MutableInteractionSource</code> and share it with both the glass effect and your behavior modifiers:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">MutableInteractionSource</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+
+<span class="n">Modifier</span>
+<span class="w">  </span><span class="p">.</span><span class="na">clickable</span><span class="p">(</span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span><span class="w"> </span><span class="n">indication</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">onClick</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">.</span><span class="na">focusable</span><span class="p">(</span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">)</span>
+<span class="w">  </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">this</span><span class="p">.</span><span class="na">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span>
+<span class="w">      </span><span class="n">interactable</span><span class="p">()</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+</code></pre></div>
+<p>Custom blocks replace that state's preset from identity. Resolve each property with fixed
+precedence: focused, then hovered, then pressed. Use <code>animate(toSpec, fromSpec)</code> inside a custom
+block to own the arrival and departure animation specs respectively; entering or replacement uses
+<code>toSpec</code>, while departing uses <code>fromSpec</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">animate</span><span class="p">(</span>
+<span class="w">      </span><span class="n">toSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassDefaults</span><span class="p">.</span><span class="na">pressAnimationSpec</span><span class="p">,</span>
+<span class="w">      </span><span class="n">fromSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassDefaults</span><span class="p">.</span><span class="na">releaseAnimationSpec</span><span class="p">,</span>
+<span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">scale</span><span class="p">(</span><span class="m">0.98f</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>interactionTransformTarget</code> selects whether a response transforms only the material or the
+material and content. <code>interactionTransformPivot</code> selects <code>Pointer</code> or <code>Center</code>. Use
+<code>clearHovered()</code>, <code>clearFocused()</code>, <code>clearPressed()</code>, or <code>clearInteractions()</code> to remove configured
+responses. <code>GlassReducedMotionPolicy.System</code> follows the available system duration scale,
+<code>Reduced</code> snaps lighting and optics while suppressing transforms, and <code>Full</code> forces motion.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
