@@ -27,12 +27,16 @@ sample.
 - Canonicalize invalid resolved values before they can affect bounds or allocation decisions.
 - Release retained Glass resources when iOS posts a memory warning and recreate them safely on the
   next required frame.
+- Release retained Glass resources when Android reports that the process UI is hidden, while
+  preserving the existing moderate-or-worse pressure policy.
 - Keep the policy internal and avoid new public API.
 
 ## Non-goals
 
 - Enforcing an aggregate process-wide budget across multiple Glass effects.
 - Querying vendor-specific GPU capabilities at runtime.
+- Selecting different allocation limits from Android's low-RAM device classification.
+- Polling transient system-memory snapshots during rendering.
 - Changing the documented range of `GlassOptics.Absolute.refractionScale`.
 - Changing visual output for requests that already fit the budget.
 - Addressing unrelated shader, fallback-parity, or retained-invalidation findings.
@@ -157,6 +161,30 @@ The existing path then performs recovery:
 Detaching the node disposes the notification registration, so the notification center does not
 retain dead effect nodes or callbacks.
 
+## Android lifecycle trimming
+
+Haze already registers `ComponentCallbacks2` and translates Android trim events into the common
+`TrimMemoryLevel`. Keep that platform boundary and change retained Glass release policy to trigger
+when either condition is true:
+
+```text
+level == TrimMemoryLevel.UI_HIDDEN
+level.severity >= TrimMemoryLevel.MODERATE.severity
+```
+
+This preserves the moderate-or-worse behavior defined by issue #1018 for older Android versions.
+It also handles current Android versions, which retain the UI-hidden lifecycle signal but no longer
+deliver the legacy running-low and running-critical pressure levels. Glass layers are large,
+reconstructible UI resources and provide no value while the process UI is hidden.
+
+Do not vary the hard budget with `ActivityManager.isLowRamDevice()`. That value is a static,
+device-manufacturer classification rather than a graphics-memory signal, while the pixel estimator
+already accounts for the lower display dimensions common to those devices. Do not poll
+`ActivityManager.MemoryInfo.lowMemory`; it is a transient system-RAM snapshot, not a GPU allocation
+budget, and render-time polling would make behavior unstable. Do not add Android Canvas-specific
+dimension probing in this change; the fixed `4096 px` library limit remains the deterministic upper
+bound on every platform.
+
 ## Testing
 
 ### Common budget tests
@@ -179,6 +207,9 @@ retain dead effect nodes or callbacks.
 - scale changes release the previous retained graph and rebuild at the selected safe size;
 - `COMPLETE` releases all baseline and interaction layers, clears cached output, and invalidates
   drawing;
+- `UI_HIDDEN` releases retained output and invalidates drawing;
+- `BACKGROUND` alone preserves the existing retained-output behavior;
+- moderate and complete levels continue to release retained output;
 - the next required draw after release recreates valid retained output.
 
 ### iOS tests
