@@ -102,6 +102,27 @@ class GlassRenderEffectKeysTest {
   }
 
   @Test
+  fun progressiveKey_convertsWorkingCoordinatesBackToLogicalMaskCoordinates() {
+    val base = params()
+    val key = base.copy(
+      coordinates = GlassCoordinates(
+        sampleSize = Size(480f, 360f),
+        materialOrigin = Offset(6f, 3f),
+        materialSize = Size(240f, 180f),
+        scaleFactor = 0.75f,
+      ),
+      progressive = HazeProgressive.verticalGradient(
+        startY = 40f,
+        endY = 80f,
+      ),
+    ).blurEffectKey()
+
+    assertThat(key.maskOrigin).isEqualTo(Offset(6f, 3f))
+    assertThat(key.maskSize).isEqualTo(Size(320f, 240f))
+    assertThat(key.maskCoordinateScale).isEqualTo(1f / 0.75f)
+  }
+
+  @Test
   fun opticalAndRimKeys_onlyTrackConsumedUniforms() {
     val base = params()
 

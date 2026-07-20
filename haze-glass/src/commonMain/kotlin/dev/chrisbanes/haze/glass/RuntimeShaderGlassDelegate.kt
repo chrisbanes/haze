@@ -821,14 +821,7 @@ internal fun createSharedGlassBlurRenderEffects(
   key: GlassBlurEffectKey,
 ): GlassBlurRenderEffects? {
   if (key.plan.isIdentity) return null
-  val progressiveMask = key.progressive?.toShader(
-    GlassCoordinates(
-      sampleSize = Size(key.plan.workingSize.width.toFloat(), key.plan.workingSize.height.toFloat()),
-      materialOrigin = key.materialOrigin,
-      materialSize = key.materialSize,
-      scaleFactor = 1f,
-    ),
-  )
+  val progressiveMask = key.progressive?.toShader(key.maskSize)
   val horizontalBlur = createBlurRenderEffect(
     key = key,
     kernel = key.plan.horizontalKernel,
@@ -927,9 +920,12 @@ private fun RuntimeShaderUniformProvider.setBlurUniforms(
   setFloatUniform("sampleSize", sampleWidth.toFloat(), sampleHeight.toFloat())
   setFloatUniform(
     "materialOrigin",
-    key.materialOrigin.x,
-    key.materialOrigin.y,
+    key.maskOrigin.x,
+    key.maskOrigin.y,
   )
+  if (key.progressive != null) {
+    setFloatUniform("maskCoordinateScale", key.maskCoordinateScale)
+  }
   setFloatUniform("centerWeight", kernel.centerWeight)
   repeat(SemanticBlurKernel.MAX_TAP_PAIRS) { index ->
     val tap = kernel.taps.getOrNull(index)

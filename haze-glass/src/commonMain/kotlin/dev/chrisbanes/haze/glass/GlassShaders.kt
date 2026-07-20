@@ -52,6 +52,7 @@ internal object GlassShaders {
       ${if (progressive) "uniform shader mask;" else ""}
       uniform float2 sampleSize;
       uniform float2 materialOrigin;
+      ${if (progressive) "uniform float maskCoordinateScale;" else ""}
       uniform float centerWeight;
       $tapUniforms
 
@@ -60,7 +61,7 @@ internal object GlassShaders {
       }
 
       vec4 main(vec2 coord) {
-        float blurScale = ${if (progressive) "clamp(mask.eval(max(coord - materialOrigin, vec2(0.0))).a, 0.0, 1.0)" else "1.0"};
+        float blurScale = ${if (progressive) "clamp(mask.eval(max(coord - materialOrigin, vec2(0.0)) * maskCoordinateScale).a, 0.0, 1.0)" else "1.0"};
         ${if (progressive) "if (blurScale <= 0.0001) { return content.eval(clampSample(coord)); }" else ""}
         vec4 result = content.eval(clampSample(coord)) * centerWeight;
         $samples
@@ -183,7 +184,12 @@ internal object GlassShaders {
     }
 
     vec3 linearToSrgb(vec3 color) {
-      return mix(color * 12.92, 1.055 * pow(color, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, color));
+      vec3 nonNegative = max(color, vec3(0.0));
+      return mix(
+        nonNegative * 12.92,
+        1.055 * pow(nonNegative, vec3(1.0 / 2.4)) - 0.055,
+        step(0.0031308, nonNegative)
+      );
     }
 
     vec3 applyColorGrading(vec3 color, float appliedWhitePoint) {
@@ -206,8 +212,7 @@ internal object GlassShaders {
       vec2 localCoord = materialCoord(coord);
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
-      float radius = radiusAt(centeredCoord, cornerRadii);
-      float sd = sdRoundedRect(centeredCoord, halfSize, radius);
+      float sd = sdRoundedRect(localCoord, materialSize, cornerRadii);
       if (sd > 0.0) return vec4(0.0);
 
       float distToEdge = max(-sd, 0.0);
@@ -232,9 +237,7 @@ internal object GlassShaders {
 
       float heightNorm = surfaceHeightNorm(localCoord);
       vec2 displacement = refractionDisplacement(
-        centeredCoord,
-        halfSize,
-        radius,
+        localCoord,
         heightNorm,
         ${if (interactive) "localizedRefractionMultiplier" else "1.0"}
       );
@@ -269,8 +272,7 @@ internal object GlassShaders {
       vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);
       vec3 finalStraightColor = tintedColor * ambient;
       vec4 processedColor = premultiply(finalStraightColor, refractedCenterSample.a);
-      vec4 coveredColor = processedColor * shapeMask;
-      vec4 composedColor = coveredColor + baseSample * (1.0 - coveredColor.a);
+      vec4 composedColor = mix(baseSample, processedColor, shapeMask);
       return composedColor.a > 0.0 ? composedColor : vec4(0.0);
     }
   """
@@ -306,10 +308,7 @@ internal object GlassShaders {
 
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
-      vec2 halfSize = materialSize * 0.5;
-      vec2 centeredCoord = localCoord - halfSize;
-      float radius = radiusAt(centeredCoord, cornerRadii);
-      float outputSd = sdRoundedRect(centeredCoord, halfSize, radius);
+      float outputSd = sdRoundedRect(localCoord, materialSize, cornerRadii);
       if (outputSd > 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
@@ -331,17 +330,13 @@ internal object GlassShaders {
     ""
   }}
       vec2 displacement = refractionDisplacement(
-        centeredCoord,
-        halfSize,
-        radius,
+        localCoord,
         heightNorm,
         ${if (interactive) "localizedRefractionMultiplier" else "1.0"}
       );
       vec2 refractCoord = clampSample(coord + displacement);
       vec2 refractedLocalCoord = localCoord + displacement;
-      vec2 refractedCenteredCoord = refractedLocalCoord - halfSize;
-      float refractedRadius = radiusAt(refractedCenteredCoord, cornerRadii);
-      float refractedSd = sdRoundedRect(refractedCenteredCoord, halfSize, refractedRadius);
+      float refractedSd = sdRoundedRect(refractedLocalCoord, materialSize, cornerRadii);
       float sourceDistToEdge = max(-refractedSd, 0.0);
       float sourceShapeMask = edgeSoftness <= 0.0
         ? 1.0
@@ -376,10 +371,7 @@ internal object GlassShaders {
 
     vec4 main(vec2 coord) {
       vec2 localCoord = coord - materialOrigin;
-      vec2 halfSize = materialSize * 0.5;
-      vec2 centeredCoord = localCoord - halfSize;
-      float radius = radiusAt(centeredCoord, cornerRadii);
-      float sd = sdRoundedRect(centeredCoord, halfSize, radius);
+      float sd = sdRoundedRect(localCoord, materialSize, cornerRadii);
       if (sd > 0.0) return vec4(0.0);
       float shapeMask = edgeSoftness <= 0.0
         ? 1.0
@@ -412,10 +404,7 @@ internal object GlassShaders {
     ${sdfHelpers()}
 
     float materialSdf(vec2 localCoord) {
-      vec2 halfSize = materialSize * 0.5;
-      vec2 centeredCoord = localCoord - halfSize;
-      float radius = radiusAt(centeredCoord, cornerRadii);
-      return sdRoundedRect(centeredCoord, halfSize, radius);
+      return sdRoundedRect(localCoord, materialSize, cornerRadii);
     }
 
     vec2 sdfGradient(vec2 localCoord) {
@@ -449,21 +438,32 @@ internal object GlassShaders {
       return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
     }
 
-    float radiusAt(vec2 coord, vec4 radii) {
-      if (coord.x >= 0.0) {
-        if (coord.y <= 0.0) return radii.y;
-        else return radii.z;
-      } else {
-        if (coord.y <= 0.0) return radii.x;
-        else return radii.w;
-      }
+    float sdRectangle(vec2 localCoord, vec2 size) {
+      vec2 halfSize = size * 0.5;
+      vec2 edgeDistance = abs(localCoord - halfSize) - halfSize;
+      float outside = length(max(edgeDistance, 0.0));
+      float inside = min(max(edgeDistance.x, edgeDistance.y), 0.0);
+      return outside + inside;
     }
 
-    float sdRoundedRect(vec2 coord, vec2 halfSize, float radius) {
-      vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
-      float outside = length(max(cornerCoord, 0.0)) - radius;
-      float inside = min(max(cornerCoord.x, cornerCoord.y), 0.0);
-      return outside + inside;
+    float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii) {
+      float sd = sdRectangle(localCoord, size);
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        sd = max(sd, length(localCoord - vec2(radii.x)) - radii.x);
+      }
+      if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        sd = max(sd, length(localCoord - vec2(size.x - radii.y, radii.y)) - radii.y);
+      }
+      if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
+        sd = max(
+          sd,
+          length(localCoord - vec2(size.x - radii.z, size.y - radii.z)) - radii.z
+        );
+      }
+      if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        sd = max(sd, length(localCoord - vec2(radii.w, size.y - radii.w)) - radii.w);
+      }
+      return sd;
     }
 
     vec2 safeNormalize(vec2 value, vec2 fallback) {
@@ -475,24 +475,54 @@ internal object GlassShaders {
       return vec2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0);
     }
 
-    vec2 gradSdRoundedRect(vec2 coord, vec2 halfSize, float radius) {
-      vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
-      vec2 coordSign = axisSafeSign(coord);
-      if (cornerCoord.x >= 0.0 || cornerCoord.y >= 0.0) {
-        return coordSign * safeNormalize(max(cornerCoord, 0.0), vec2(0.0));
-      } else {
-        float edgeBlend = smoothstep(-2.0, 2.0, cornerCoord.x - cornerCoord.y);
-        vec2 edgeDir = safeNormalize(
-          mix(vec2(0.0, 1.0), vec2(1.0, 0.0), edgeBlend),
-          vec2(1.0, 0.0)
-        );
-        float cornerProximity =
-          smoothstep(-radius, 0.0, cornerCoord.x) *
-          smoothstep(-radius, 0.0, cornerCoord.y);
-        vec2 arcDir = safeNormalize(-cornerCoord, vec2(0.70710678, 0.70710678));
-        vec2 insideDir = mix(edgeDir, arcDir, cornerProximity);
-        return coordSign * safeNormalize(insideDir, edgeDir);
+    vec2 gradSdRectangle(vec2 localCoord, vec2 size) {
+      vec2 halfSize = size * 0.5;
+      vec2 centeredCoord = localCoord - halfSize;
+      vec2 edgeDistance = abs(centeredCoord) - halfSize;
+      vec2 coordSign = axisSafeSign(centeredCoord);
+      if (edgeDistance.x >= 0.0 || edgeDistance.y >= 0.0) {
+        return coordSign * safeNormalize(max(edgeDistance, 0.0), vec2(0.0));
       }
+      return edgeDistance.x > edgeDistance.y
+        ? vec2(coordSign.x, 0.0)
+        : vec2(0.0, coordSign.y);
+    }
+
+    vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii) {
+      float sd = sdRectangle(localCoord, size);
+      vec2 gradient = gradSdRectangle(localCoord, size);
+      if (localCoord.x < radii.x && localCoord.y < radii.x) {
+        vec2 center = vec2(radii.x);
+        float cornerSd = length(localCoord - center) - radii.x;
+        if (cornerSd > sd) {
+          sd = cornerSd;
+          gradient = safeNormalize(localCoord - center, vec2(-0.70710678));
+        }
+      }
+      if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
+        vec2 center = vec2(size.x - radii.y, radii.y);
+        float cornerSd = length(localCoord - center) - radii.y;
+        if (cornerSd > sd) {
+          sd = cornerSd;
+          gradient = safeNormalize(localCoord - center, vec2(0.70710678, -0.70710678));
+        }
+      }
+      if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
+        vec2 center = vec2(size.x - radii.z, size.y - radii.z);
+        float cornerSd = length(localCoord - center) - radii.z;
+        if (cornerSd > sd) {
+          sd = cornerSd;
+          gradient = safeNormalize(localCoord - center, vec2(0.70710678));
+        }
+      }
+      if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
+        vec2 center = vec2(radii.w, size.y - radii.w);
+        float cornerSd = length(localCoord - center) - radii.w;
+        if (cornerSd > sd) {
+          gradient = safeNormalize(localCoord - center, vec2(-0.70710678, 0.70710678));
+        }
+      }
+      return gradient;
     }
   """
 
@@ -520,10 +550,8 @@ internal object GlassShaders {
       return circleMap(x);
     }
 
-    float surfaceHeightAt(vec2 localCoord, float customRadius) {
-      vec2 halfSize = materialSize * 0.5;
-      vec2 centeredCoord = localCoord - halfSize;
-      float sd = sdRoundedRect(centeredCoord, halfSize, customRadius);
+    float surfaceHeightAt(vec2 localCoord, vec4 customRadii) {
+      float sd = sdRoundedRect(localCoord, materialSize, customRadii);
       float distToEdge = max(-sd, 0.0);
       float refractionZone = max(refractionHeight, 0.0001);
       float t = clamp(distToEdge / refractionZone, 0.0, 1.0);
@@ -531,10 +559,7 @@ internal object GlassShaders {
     }
 
     float surfaceHeight(vec2 localCoord) {
-      vec2 halfSize = materialSize * 0.5;
-      vec2 centeredCoord = localCoord - halfSize;
-      float radius = radiusAt(centeredCoord, cornerRadii);
-      return surfaceHeightAt(localCoord, radius);
+      return surfaceHeightAt(localCoord, cornerRadii);
     }
 
     float surfaceHeightNorm(vec2 localCoord) {
@@ -543,9 +568,7 @@ internal object GlassShaders {
     }
 
     vec2 refractionDisplacement(
-      vec2 centeredCoord,
-      vec2 halfSize,
-      float radius,
+      vec2 localCoord,
       float heightNorm,
       float refractionMultiplier
     ) {
@@ -553,11 +576,9 @@ internal object GlassShaders {
         clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
       float displacementMagnitude =
         heightNorm * effectiveRefractionStrength * refractionScale;
-      float smoothRadius = max(radius * 1.5, 30.0);
-      float gradRadius = min(smoothRadius, min(halfSize.x, halfSize.y));
       vec2 centerFallbackDir = vec2(1.0, 0.0);
       vec2 refractionDir = safeNormalize(
-        gradSdRoundedRect(centeredCoord, halfSize, gradRadius),
+        gradSdRoundedRect(localCoord, materialSize, cornerRadii),
         centerFallbackDir
       );
       return -refractionDir * displacementMagnitude;
