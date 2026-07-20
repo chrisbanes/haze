@@ -6,7 +6,6 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -121,8 +120,7 @@ internal fun GlassInteractionScene(tag: String, label: String, effect: GlassVisu
         Modifier
           .size(264.dp, 144.dp)
           .testTag(tag)
-          .hazeEffect(hazeState) { visualEffect = effect }
-          .background(Color.White.copy(alpha = 0.05f)),
+          .hazeEffect(hazeState) { visualEffect = effect },
         contentAlignment = Alignment.Center,
       ) {
         Text(label, color = Color.White)
