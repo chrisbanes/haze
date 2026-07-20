@@ -3,17 +3,26 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -23,10 +32,13 @@ import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.InteractiveVisualEffect
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.VisualEffectTransform
 
 /**
  * A [VisualEffect] implementation that renders a translucent refractive glass material.
@@ -34,7 +46,8 @@ import dev.chrisbanes.haze.VisualEffectContext
  */
 @ExperimentalHazeApi
 @Stable
-public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
+@OptIn(InternalHazeApi::class)
+public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, InteractiveVisualEffect {
 
   /** Creates a new [GlassVisualEffect] copying all properties from [other]. */
   public constructor(other: GlassVisualEffect) : this() {
@@ -57,14 +70,321 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     fresnelExponent = other.fresnelExponent
     compositionLocalStyle = other.compositionLocalStyle
     style = other.style
+    nextInteractionRevision = other.nextInteractionRevision
+    hoveredSlot = other.hoveredSlot
+    focusedSlot = other.focusedSlot
+    pressedSlot = other.pressedSlot
+    interactionSource = other.interactionSource
+    interactionLightRadiusFraction = other.interactionLightRadiusFraction
+    interactionTransformTarget = other.interactionTransformTarget
+    interactionTransformPivot = other.interactionTransformPivot
+    interactionPositionAnimationSpec = other.interactionPositionAnimationSpec
+    interactionReducedMotionPolicy = other.interactionReducedMotionPolicy
   }
 
   private var isAttached: Boolean = false
+
+  private var attachedContext: VisualEffectContext? = null
+
+  private var interactionController: GlassInteractionController? = null
+
+  internal val interactionControllerForTest: GlassInteractionController?
+    get() = interactionController
+
+  internal val attachedContextForTest: VisualEffectContext?
+    get() = attachedContext
+
+  internal val currentInteractionState: GlassInteractionRenderState
+    get() = interactionController?.renderState ?: GlassInteractionRenderState(Offset.Zero)
+
+  internal val currentInteractionSignals: GlassInteractionSignals
+    get() = interactionController?.currentSignals ?: GlassInteractionSignals()
 
   private var needsDelegateSelection: Boolean = true
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
+
+  private var nextInteractionRevision: Long = 0L
+
+  internal var hoveredSlot: GlassInteractionSlot? by mutableStateOf(null)
+    private set
+
+  internal var focusedSlot: GlassInteractionSlot? by mutableStateOf(null)
+    private set
+
+  internal var pressedSlot: GlassInteractionSlot? by mutableStateOf(null)
+    private set
+
+  internal val interactionSlots: GlassInteractionSlots
+    get() = GlassInteractionSlots(
+      focused = focusedSlot,
+      hovered = hoveredSlot,
+      pressed = pressedSlot,
+    )
+
+  private class InteractionSlotTransaction(effect: GlassVisualEffect) {
+    var hovered: GlassInteractionResponse? = effect.hoveredSlot?.response
+    var focused: GlassInteractionResponse? = effect.focusedSlot?.response
+    var pressed: GlassInteractionResponse? = effect.pressedSlot?.response
+  }
+
+  private var interactionSlotTransaction: InteractionSlotTransaction? = null
+
+  override val observesPointerEvents: Boolean
+    get() = hoveredSlot != null || pressedSlot != null
+
+  private var _interactionSource: InteractionSource? by mutableStateOf(
+    null,
+    referentialEqualityPolicy(),
+  )
+
+  public var interactionSource: InteractionSource?
+    get() = _interactionSource
+    set(value) {
+      if (_interactionSource !== value) {
+        HazeLogger.d(TAG) { "interactionSource changed. Current: $_interactionSource. New: $value" }
+        _interactionSource = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionLightRadiusFraction: Float by mutableStateOf(
+    GlassDefaults.interactionLightRadiusFraction,
+  )
+
+  public var interactionLightRadiusFraction: Float
+    get() = _interactionLightRadiusFraction
+    set(value) {
+      require(value.isFinite() && value in 0f..2f) {
+        "interactionLightRadiusFraction must be finite and in range"
+      }
+      if (_interactionLightRadiusFraction != value) {
+        HazeLogger.d(TAG) { "interactionLightRadiusFraction changed. Current: $_interactionLightRadiusFraction. New: $value" }
+        _interactionLightRadiusFraction = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionTransformTarget: GlassTransformTarget by mutableStateOf(
+    GlassTransformTarget.MaterialOnly,
+  )
+
+  public var interactionTransformTarget: GlassTransformTarget
+    get() = _interactionTransformTarget
+    set(value) {
+      if (_interactionTransformTarget != value) {
+        HazeLogger.d(TAG) { "interactionTransformTarget changed. Current: $_interactionTransformTarget. New: $value" }
+        _interactionTransformTarget = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionTransformPivot: GlassTransformPivot by mutableStateOf(
+    GlassTransformPivot.Pointer,
+  )
+
+  public var interactionTransformPivot: GlassTransformPivot
+    get() = _interactionTransformPivot
+    set(value) {
+      if (_interactionTransformPivot != value) {
+        HazeLogger.d(TAG) { "interactionTransformPivot changed. Current: $_interactionTransformPivot. New: $value" }
+        _interactionTransformPivot = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> by mutableStateOf(
+    GlassDefaults.positionAnimationSpec,
+  )
+
+  public var interactionPositionAnimationSpec: FiniteAnimationSpec<Offset>
+    get() = _interactionPositionAnimationSpec
+    set(value) {
+      if (_interactionPositionAnimationSpec != value) {
+        HazeLogger.d(TAG) { "interactionPositionAnimationSpec changed. Current: $_interactionPositionAnimationSpec. New: $value" }
+        _interactionPositionAnimationSpec = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var _interactionReducedMotionPolicy: GlassReducedMotionPolicy by mutableStateOf(
+    GlassReducedMotionPolicy.System,
+  )
+
+  public var interactionReducedMotionPolicy: GlassReducedMotionPolicy
+    get() = _interactionReducedMotionPolicy
+    set(value) {
+      if (_interactionReducedMotionPolicy != value) {
+        HazeLogger.d(TAG) { "interactionReducedMotionPolicy changed. Current: $_interactionReducedMotionPolicy. New: $value" }
+        _interactionReducedMotionPolicy = value
+        onInteractionConfigurationChanged()
+      }
+    }
+
+  private var interactionConfigurationVersion: Int by mutableIntStateOf(0)
+
+  public fun hovered() {
+    setHovered(defaultHoverResponse())
+  }
+
+  public fun hovered(block: GlassInteractionScope.() -> Unit) {
+    setHovered(buildGlassInteractionResponse(block))
+  }
+
+  public fun focused() {
+    setFocused(defaultFocusResponse())
+  }
+
+  public fun focused(block: GlassInteractionScope.() -> Unit) {
+    setFocused(buildGlassInteractionResponse(block))
+  }
+
+  public fun pressed() {
+    setPressed(defaultPressResponse())
+  }
+
+  public fun pressed(block: GlassInteractionScope.() -> Unit) {
+    setPressed(buildGlassInteractionResponse(block))
+  }
+
+  public fun interactable() {
+    hovered()
+    focused()
+    pressed()
+  }
+
+  public fun clearHovered() {
+    interactionSlotTransaction?.let {
+      it.hovered = null
+      return
+    }
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    hoveredSlot = null
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
+  }
+
+  public fun clearFocused() {
+    interactionSlotTransaction?.let {
+      it.focused = null
+      return
+    }
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    focusedSlot = null
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
+  }
+
+  public fun clearPressed() {
+    interactionSlotTransaction?.let {
+      it.pressed = null
+      return
+    }
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    pressedSlot = null
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
+  }
+
+  public fun clearInteractions() {
+    interactionSlotTransaction?.let {
+      it.hovered = null
+      it.focused = null
+      it.pressed = null
+      return
+    }
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    hoveredSlot = null
+    focusedSlot = null
+    pressedSlot = null
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
+  }
+
+  private fun setHovered(response: GlassInteractionResponse) {
+    interactionSlotTransaction?.let {
+      it.hovered = response
+      return
+    }
+    if (hoveredSlot?.response == response) return
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    hoveredSlot = GlassInteractionSlot(++nextInteractionRevision, response)
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
+  }
+
+  private fun setFocused(response: GlassInteractionResponse) {
+    interactionSlotTransaction?.let {
+      it.focused = response
+      return
+    }
+    if (focusedSlot?.response == response) return
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    focusedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
+  }
+
+  private fun setPressed(response: GlassInteractionResponse) {
+    interactionSlotTransaction?.let {
+      it.pressed = response
+      return
+    }
+    if (pressedSlot?.response == response) return
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    pressedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
+  }
+
+  private fun onInteractionConfigurationChanged(previousRefractionMultiplier: Float? = null) {
+    dirtyTracker += GlassDirtyFields.Interaction
+    if (
+      previousRefractionMultiplier != null &&
+      previousRefractionMultiplier != maximumInteractionRefractionMultiplier()
+    ) {
+      dirtyTracker += GlassDirtyFields.InteractionLayerBounds
+    }
+    interactionConfigurationVersion++
+    if (hoveredSlot == null && focusedSlot == null && pressedSlot == null) {
+      attachedContext?.let(::syncInteractionController)
+    }
+  }
+
+  @PublishedApi
+  internal fun beginInteractionSlotTransaction(): Boolean {
+    if (interactionSlotTransaction != null) return false
+    interactionSlotTransaction = InteractionSlotTransaction(this)
+    return true
+  }
+
+  @PublishedApi
+  internal fun commitInteractionSlotTransaction(ownsTransaction: Boolean) {
+    if (!ownsTransaction) return
+    val transaction = checkNotNull(interactionSlotTransaction)
+    interactionSlotTransaction = null
+    commitInteractionSlots(transaction)
+  }
+
+  @PublishedApi
+  internal fun rollbackInteractionSlotTransaction(ownsTransaction: Boolean) {
+    if (!ownsTransaction) return
+    interactionSlotTransaction = null
+  }
+
+  private fun commitInteractionSlots(transaction: InteractionSlotTransaction) {
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    var changed = false
+    if (hoveredSlot?.response != transaction.hovered) {
+      hoveredSlot = transaction.hovered?.let { GlassInteractionSlot(++nextInteractionRevision, it) }
+      changed = true
+    }
+    if (focusedSlot?.response != transaction.focused) {
+      focusedSlot = transaction.focused?.let { GlassInteractionSlot(++nextInteractionRevision, it) }
+      changed = true
+    }
+    if (pressedSlot?.response != transaction.pressed) {
+      pressedSlot = transaction.pressed?.let { GlassInteractionSlot(++nextInteractionRevision, it) }
+      changed = true
+    }
+    if (changed) {
+      onInteractionConfigurationChanged(previousRefractionMultiplier)
+    }
+  }
 
   internal var delegate: Delegate = FallbackGlassDelegate(this)
     set(value) {
@@ -82,19 +402,26 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   override fun attach(context: VisualEffectContext) {
     if (!isAttached) {
       isAttached = true
+      attachedContext = context
+      syncInteractionController(context)
       delegate.attach()
     }
   }
 
   override fun detach(context: VisualEffectContext) {
     if (isAttached) {
+      interactionController?.dispose()
+      interactionController = null
+      attachedContext = null
       isAttached = false
       delegate.detach()
     }
   }
 
   override fun update(context: VisualEffectContext) {
+    interactionConfigurationVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
+    syncInteractionController(context)
 
     if (dirtyTracker.any(GlassDirtyFields.LayerBoundsFlags)) {
       context.invalidateLayerBounds()
@@ -105,6 +432,19 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     }
   }
 
+  override fun onPointerEvent(event: PointerEvent, context: VisualEffectContext) {
+    interactionController?.onPointerEvent(event, context.size)
+  }
+
+  override fun onCancelPointerInput(context: VisualEffectContext) {
+    interactionController?.cancelPointerInput(context.size)
+  }
+
+  internal fun setPressedForTest(position: Offset, pressed: Boolean = true) {
+    val context = attachedContext ?: return
+    interactionController?.setRawPressedForTest(pressed, position, context.size)
+  }
+
   override fun DrawScope.prepareDraw(context: VisualEffectContext) {
     selectDelegateForDraw(context)
     with(delegate) { prepareDraw(context) }
@@ -113,18 +453,102 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   override fun DrawScope.draw(context: VisualEffectContext) {
     try {
       selectDelegateForDraw(context)
-      with(delegate) { draw(context) }
+      withMaterialTransform(context) {
+        with(delegate) { draw(context) }
+      }
     } finally {
       resetDirtyTracker()
     }
   }
 
   override fun DrawScope.drawForeground(context: VisualEffectContext) {
-    with(delegate) { drawForeground(context) }
+    withMaterialTransform(context) {
+      with(delegate) { drawForeground(context) }
+    }
+  }
+
+  override fun currentContentTransform(context: VisualEffectContext): VisualEffectTransform {
+    return resolveTransform(context, GlassTransformTarget.MaterialAndContent)
+  }
+
+  internal fun currentMaterialTransform(context: VisualEffectContext): VisualEffectTransform {
+    return resolveTransform(context, GlassTransformTarget.MaterialOnly)
   }
 
   override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
     return delegate is FallbackGlassDelegate
+  }
+
+  internal fun controllerConfiguration(
+    systemMotionScale: Float,
+  ): GlassInteractionControllerConfiguration {
+    val (reduced, forceFull) = reducedMotion(
+      policy = interactionReducedMotionPolicy,
+      systemScale = systemMotionScale,
+    )
+    return GlassInteractionControllerConfiguration(
+      slots = interactionSlots,
+      positionAnimationSpec = interactionPositionAnimationSpec,
+      reducedMotion = reduced,
+      forceFullMotion = forceFull,
+    )
+  }
+
+  internal fun interactionRenderState(context: VisualEffectContext): GlassInteractionRenderState {
+    return interactionController?.renderState ?: GlassInteractionRenderState(
+      position = context.size.center,
+    )
+  }
+
+  private fun resolveTransform(
+    context: VisualEffectContext,
+    target: GlassTransformTarget,
+  ): VisualEffectTransform {
+    if (interactionTransformTarget != target) return VisualEffectTransform.Identity
+    val state = currentInteractionState
+    val size = context.size
+    if (!state.hasTransform || !size.isDrawable()) return VisualEffectTransform.Identity
+    val pivot = when (interactionTransformPivot) {
+      GlassTransformPivot.Pointer -> state.position.clampTo(size)
+      GlassTransformPivot.Center -> size.center
+    }
+    return VisualEffectTransform(state.scaleX, state.scaleY, pivot)
+  }
+
+  private inline fun DrawScope.withMaterialTransform(
+    context: VisualEffectContext,
+    block: DrawScope.() -> Unit,
+  ) {
+    val transform = currentMaterialTransform(context)
+    if (transform == VisualEffectTransform.Identity) {
+      block()
+    } else {
+      scale(
+        scaleX = transform.scaleX,
+        scaleY = transform.scaleY,
+        pivot = transform.pivot,
+        block = block,
+      )
+    }
+  }
+
+  private fun syncInteractionController(context: VisualEffectContext) {
+    if (hoveredSlot == null && focusedSlot == null && pressedSlot == null) {
+      val controller = interactionController ?: return
+      controller.dispose()
+      interactionController = null
+      context.invalidateDraw()
+      return
+    }
+    val controller = interactionController ?: GlassInteractionController(context).also {
+      interactionController = it
+    }
+    controller.updateConfiguration(controllerConfiguration(systemMotionScale(context)))
+    controller.updateInteractionSource(interactionSource, context.size)
+  }
+
+  private fun systemMotionScale(context: VisualEffectContext): Float {
+    return context.coroutineScope.coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
   }
 
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
@@ -168,7 +592,9 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     val paddingPx = calculateGlassSamplePaddingPx(
       blurRadiusPx = resolved.blurRadiusPx,
       refractionScale = resolved.refractionScalePx,
-      refractionStrength = resolved.refractionStrength,
+      refractionStrength = (
+        resolved.refractionStrength * maximumInteractionRefractionMultiplier()
+        ).coerceIn(0f, 1f),
       chromaticAberrationStrength = chromaticAberrationStrength,
       edgeSoftnessPx = with(density) { edgeSoftness.toPx() },
       foregroundOutsetPx = 0f,
@@ -177,6 +603,13 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   }
 
   override fun shouldPreferClipToAreaBounds(): Boolean = edgeSoftness <= 0.dp && shape.hasZeroCornerRadii()
+
+  private fun maximumInteractionRefractionMultiplier(): Float = maxOf(
+    1f,
+    hoveredSlot?.response?.refractionMultiplier?.value ?: 1f,
+    focusedSlot?.response?.refractionMultiplier?.value ?: 1f,
+    pressedSlot?.response?.refractionMultiplier?.value ?: 1f,
+  )
 
   private var _optics: GlassOptics? = null
 
@@ -761,4 +1194,13 @@ private fun RoundedCornerShape.hasZeroCornerRadii(): Boolean {
 
 private inline fun Float.takeOrElse(default: () -> Float): Float {
   return if (this.isNaN()) default() else this
+}
+
+private fun reducedMotion(
+  policy: GlassReducedMotionPolicy,
+  systemScale: Float,
+): Pair<Boolean, Boolean> = when (policy) {
+  GlassReducedMotionPolicy.System -> (systemScale == 0f) to false
+  GlassReducedMotionPolicy.Reduced -> true to false
+  GlassReducedMotionPolicy.Full -> false to true
 }

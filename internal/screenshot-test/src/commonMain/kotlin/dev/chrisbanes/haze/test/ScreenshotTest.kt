@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.test
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.test.SemanticsNodeInteraction
 
 expect abstract class ScreenshotTest()
 
@@ -22,6 +23,7 @@ interface ScreenshotUiTest {
     unmatchedPixelThreshold: Float? = null,
   )
   fun captureRootPixels(): PixelMap
+  fun onNodeWithTag(testTag: String): SemanticsNodeInteraction
   fun waitForIdle()
   fun swipeUpOnRoot()
 }

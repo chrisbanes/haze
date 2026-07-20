@@ -38,6 +38,27 @@ public expect fun createRuntimeShaderRenderEffect(
   uniforms: RuntimeShaderUniformProvider.() -> Unit = {},
 ): PlatformRenderEffect
 
+/** A runtime shader render effect whose uniforms can be updated without recompiling its source. */
+@InternalHazeApi
+public interface MutableRuntimeShaderRenderEffect {
+  public fun updateUniforms(
+    uniforms: RuntimeShaderUniformProvider.() -> Unit,
+  ): PlatformRenderEffect
+}
+
+/**
+ * Creates a mutable-uniform runtime shader render effect with the given child shaders.
+ *
+ * Platform implementations may retain different resources while preserving the same update
+ * semantics.
+ */
+@InternalHazeApi
+public expect fun createMutableRuntimeShaderRenderEffect(
+  effect: PlatformRuntimeEffect,
+  shaderNames: Array<String>,
+  inputs: Array<PlatformRenderEffect?>,
+): MutableRuntimeShaderRenderEffect
+
 /**
  * Interface for setting uniforms on runtime shaders.
  */

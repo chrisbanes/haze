@@ -63,17 +63,22 @@ class GlassLabSampleTest : ContextTest() {
       )
     }
 
-    (SelectableGlassLabPresets + GlassGalleryBackdropId.entries).forEach { option ->
+    val optionNames = buildList {
+      addAll(SelectableGlassLabPresets.map { it.name })
+      addAll(GlassGalleryBackdropId.entries.map { it.name })
+      addAll(GlassLabInteractionMode.entries.map { it.name })
+    }
+    optionNames.forEach { optionName ->
       val textLayouts = mutableListOf<TextLayoutResult>()
-      onNode(hasText(option.name) and hasClickAction())
+      onNode(hasText(optionName) and hasClickAction())
         .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { action ->
           action(textLayouts)
         }
       val textLayout = textLayouts.single()
-      assertEquals(1, textLayout.lineCount, option.name)
+      assertEquals(1, textLayout.lineCount, optionName)
       assertTrue(
         textLayout.multiParagraph.intrinsics.maxIntrinsicWidth <= textLayout.size.width + 1f,
-        "${option.name}: size=${textLayout.size}, intrinsicWidth=" +
+        "$optionName: size=${textLayout.size}, intrinsicWidth=" +
           textLayout.multiParagraph.intrinsics.maxIntrinsicWidth,
       )
     }
@@ -87,7 +92,7 @@ class GlassLabSampleTest : ContextTest() {
   }
 
   @Test
-  fun presetBackdropAdvancedAndResetEventsUpdatePlainState() = runComposeUiTest {
+  fun presetBackdropInteractionAdvancedAndResetEventsUpdatePlainState() = runComposeUiTest {
     var state by mutableStateOf(GlassLabState())
     setContent {
       GlassLabSampleContent(
@@ -105,12 +110,18 @@ class GlassLabSampleTest : ContextTest() {
     onNode(hasText("Grid") and hasClickAction()).performScrollTo().performClick()
     assertEquals(GlassGalleryBackdropId.Grid, state.backdrop)
 
+    onNode(hasText("Off") and hasClickAction())
+      .performScrollTo()
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
+    assertEquals(GlassLabInteractionMode.Off, state.interaction)
+
     onNodeWithText("Advanced").performScrollTo().performClick()
     assertTrue(state.advancedExpanded)
     onNodeWithText("Optics").performScrollTo().assertIsDisplayed()
 
     onNodeWithContentDescription("Reset demo").performClick()
     assertEquals(GlassLabState(), state)
+    assertEquals(GlassLabInteractionMode.All, state.interaction)
   }
 
   @Test

@@ -97,7 +97,40 @@ internal class FallbackGlassDelegate(
           drawRect(brush = edgeBrush, style = stroke)
         }
       }
+
+      drawInteractionLighting(
+        effect = effect,
+        state = effect.currentInteractionState,
+        shapePath = shapePath,
+      )
     }
+  }
+}
+
+private fun DrawScope.drawInteractionLighting(
+  effect: GlassVisualEffect,
+  state: GlassInteractionRenderState,
+  shapePath: Path?,
+) {
+  if (!state.hasLighting) return
+  val center = state.position
+  val radius = size.minDimension * effect.interactionLightRadiusFraction
+  if (radius <= 0f) return
+  val brush = Brush.radialGradient(
+    colors = listOf(
+      Color.White.copy(alpha = 0.32f * state.lightingIntensity),
+      Color.Transparent,
+    ),
+    center = center,
+    radius = radius,
+  )
+  val drawHighlight: DrawScope.() -> Unit = {
+    drawCircle(brush = brush, center = center, radius = radius)
+  }
+  if (shapePath != null) {
+    clipPath(shapePath, block = drawHighlight)
+  } else {
+    drawHighlight()
   }
 }
 

@@ -250,6 +250,40 @@ class GlassStageInvalidationTest {
   }
 
   @Test
+  fun calculateRequiredStageInvalidation_interactionUniformOnlyChangeReusesBaseStages() {
+    val previousUniforms = GlassInteractionUniforms(
+      position = Offset(20f, 20f),
+      radiusPx = 70f,
+      lightingIntensity = 0f,
+      refractionMultiplier = 1f,
+      whitePointDelta = 0f,
+    )
+    val currentUniforms = previousUniforms.copy(
+      position = Offset(80f, 60f),
+      lightingIntensity = 1f,
+      refractionMultiplier = 1.08f,
+      whitePointDelta = 0.04f,
+    )
+    val inputs = inputs()
+
+    assertThat(currentUniforms).isNotEqualTo(previousUniforms)
+    assertThat(
+      calculateRequiredStageInvalidation(
+        previous = inputs,
+        current = inputs,
+        sourceChanged = false,
+        availability = GlassStageAvailability(
+          blur = true,
+          depth = true,
+          optical = true,
+          detail = true,
+          rim = true,
+        ),
+      ),
+    ).isEqualTo(GlassStageInvalidation.None)
+  }
+
+  @Test
   fun resolveGlassSourceState_unknownVersionIsDrawableButHasNoSnapshot() {
     val state = resolveGlassSourceState(
       captureScale = .5f,

@@ -69,7 +69,7 @@ internal object GlassShaders {
     """
   }
 
-  fun buildOptical(): String = """
+  fun buildOptical(interactive: Boolean = false): String = """
     uniform shader content;
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
@@ -94,6 +94,7 @@ internal object GlassShaders {
     uniform float fresnelExponent;
     uniform float geometryToneGain;
     uniform float geometryNeutralLift;
+    ${if (interactive) interactionUniforms(includeRefraction = true, includeWhitePoint = true, includeLighting = false) else ""}
 
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
@@ -108,6 +109,8 @@ internal object GlassShaders {
     ${sdfHelpers()}
 
     ${surfaceAndDisplacementHelpers()}
+
+    ${if (interactive) interactionFalloffHelper() else ""}
 
     vec2 surfaceGradient(vec2 localCoord) {
       float left = surfaceHeight(clampMaterial(localCoord - vec2(sampleStep, 0.0)));
@@ -183,15 +186,15 @@ internal object GlassShaders {
       return mix(color * 12.92, 1.055 * pow(color, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, color));
     }
 
-    vec3 applyColorGrading(vec3 color) {
+    vec3 applyColorGrading(vec3 color, float appliedWhitePoint) {
       if (chromaMultiplier != 1.0) {
         vec3 linearColor = srgbToLinear(color);
         float luminance = dot(linearColor, vec3(0.2126, 0.7152, 0.0722));
         color = linearToSrgb(mix(vec3(luminance), linearColor, chromaMultiplier));
       }
-      if (whitePoint != 0.0) {
-        vec3 target = whitePoint > 0.0 ? vec3(1.0) : vec3(0.0);
-        color = mix(color, target, abs(whitePoint));
+      if (appliedWhitePoint != 0.0) {
+        vec3 target = appliedWhitePoint > 0.0 ? vec3(1.0) : vec3(0.0);
+        color = mix(color, target, abs(appliedWhitePoint));
       }
       if (contrast != 0.0) {
         color = clamp((color - 0.5) * (1.0 + contrast) + 0.5, 0.0, 1.0);
@@ -212,9 +215,29 @@ internal object GlassShaders {
         ? 1.0
         : smootherstep(clamp(distToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0));
       vec4 baseSample = content.eval(clampSample(coord));
+      ${if (interactive) {
+    """
+      float interactionWeight = interactionFalloff(coord);
+      float localizedRefractionMultiplier =
+        mix(1.0, interactionRefractionMultiplier, interactionWeight);
+      float localizedWhitePoint = clamp(
+        whitePoint + interactionWhitePointDelta * interactionWeight,
+        -1.0,
+        1.0
+      );
+      """
+  } else {
+    ""
+  }}
 
       float heightNorm = surfaceHeightNorm(localCoord);
-      vec2 displacement = refractionDisplacement(centeredCoord, halfSize, radius, heightNorm);
+      vec2 displacement = refractionDisplacement(
+        centeredCoord,
+        halfSize,
+        radius,
+        heightNorm,
+        ${if (interactive) "localizedRefractionMultiplier" else "1.0"}
+      );
       vec2 refractCoord = clampSample(coord + displacement);
 
       float cornerWeight = abs(
@@ -234,7 +257,10 @@ internal object GlassShaders {
       );
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
       vec3 opticalColor = refractedStraightColor;
-      vec3 gradedColor = applyColorGrading(opticalColor);
+      vec3 gradedColor = applyColorGrading(
+        opticalColor,
+        ${if (interactive) "localizedWhitePoint" else "whitePoint"}
+      );
       gradedColor = mix(
         clamp(gradedColor * geometryToneGain, 0.0, 1.0),
         vec3(1.0),
@@ -249,7 +275,7 @@ internal object GlassShaders {
     }
   """
 
-  fun buildRefractionDetail(): String = """
+  fun buildRefractionDetail(interactive: Boolean = false): String = """
     uniform shader content;
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
@@ -264,6 +290,7 @@ internal object GlassShaders {
     uniform float detailWidth;
     uniform float detailIntensity;
     uniform float detailVisibility;
+    ${if (interactive) interactionUniforms(includeRefraction = true, includeWhitePoint = false, includeLighting = false) else ""}
 
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
@@ -274,6 +301,8 @@ internal object GlassShaders {
     ${sdfHelpers()}
 
     ${surfaceAndDisplacementHelpers()}
+
+    ${if (interactive) interactionFalloffHelper() else ""}
 
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
@@ -286,13 +315,28 @@ internal object GlassShaders {
       float outputDistToEdge = max(-outputSd, 0.0);
       float sampleDiagonal = length(sampleSize);
       float maxPossibleDisplacement = min(
-        abs(refractionScale * refractionStrength),
+        abs(refractionScale * refractionStrength)${if (interactive) " * max(1.0, interactionRefractionMultiplier)" else ""},
         sampleDiagonal
       );
       if (outputDistToEdge > detailWidth + maxPossibleDisplacement) return vec4(0.0);
 
       float heightNorm = surfaceHeightNorm(localCoord);
-      vec2 displacement = refractionDisplacement(centeredCoord, halfSize, radius, heightNorm);
+      ${if (interactive) {
+    """
+      float interactionWeight = interactionFalloff(coord);
+      float localizedRefractionMultiplier =
+        mix(1.0, interactionRefractionMultiplier, interactionWeight);
+      """
+  } else {
+    ""
+  }}
+      vec2 displacement = refractionDisplacement(
+        centeredCoord,
+        halfSize,
+        radius,
+        heightNorm,
+        ${if (interactive) "localizedRefractionMultiplier" else "1.0"}
+      );
       vec2 refractCoord = clampSample(coord + displacement);
       vec2 refractedLocalCoord = localCoord + displacement;
       vec2 refractedCenteredCoord = refractedLocalCoord - halfSize;
@@ -315,6 +359,35 @@ internal object GlassShaders {
       vec4 sharpSample = content.eval(refractCoord);
       vec4 detailColor = sharpSample * detailAlpha;
       return detailColor.a > 0.0 ? detailColor : vec4(0.0);
+    }
+  """
+
+  fun buildInteractionLighting(): String = """
+    uniform shader content;
+    uniform float2 materialOrigin;
+    uniform float2 materialSize;
+    uniform vec4 cornerRadii;
+    uniform float edgeSoftness;
+    ${interactionUniforms(includeRefraction = false, includeWhitePoint = false, includeLighting = true)}
+
+    ${sdfHelpers()}
+
+    ${interactionFalloffHelper()}
+
+    vec4 main(vec2 coord) {
+      vec2 localCoord = coord - materialOrigin;
+      vec2 halfSize = materialSize * 0.5;
+      vec2 centeredCoord = localCoord - halfSize;
+      float radius = radiusAt(centeredCoord, cornerRadii);
+      float sd = sdRoundedRect(centeredCoord, halfSize, radius);
+      if (sd > 0.0) return vec4(0.0);
+      float shapeMask = edgeSoftness <= 0.0
+        ? 1.0
+        : smootherstep(clamp(max(-sd, 0.0) / max(edgeSoftness, 0.0001), 0.0, 1.0));
+      float light = interactionFalloff(coord) * interactionLightingIntensity * shapeMask;
+      float contentAlpha = content.eval(coord).a;
+      float alpha = light * 0.32 * contentAlpha;
+      return vec4(vec3(alpha), alpha);
     }
   """
 
@@ -473,9 +546,13 @@ internal object GlassShaders {
       vec2 centeredCoord,
       vec2 halfSize,
       float radius,
-      float heightNorm
+      float heightNorm,
+      float refractionMultiplier
     ) {
-      float displacementMagnitude = heightNorm * refractionStrength * refractionScale;
+      float effectiveRefractionStrength =
+        clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
+      float displacementMagnitude =
+        heightNorm * effectiveRefractionStrength * refractionScale;
       float smoothRadius = max(radius * 1.5, 30.0);
       float gradRadius = min(smoothRadius, min(halfSize.x, halfSize.y));
       vec2 centerFallbackDir = vec2(1.0, 0.0);
@@ -484,6 +561,25 @@ internal object GlassShaders {
         centerFallbackDir
       );
       return -refractionDir * displacementMagnitude;
+    }
+  """
+
+  private fun interactionUniforms(
+    includeRefraction: Boolean,
+    includeWhitePoint: Boolean,
+    includeLighting: Boolean,
+  ): String = """
+    uniform float2 interactionPosition;
+    uniform float interactionRadius;
+    ${if (includeRefraction) "uniform float interactionRefractionMultiplier;" else ""}
+    ${if (includeWhitePoint) "uniform float interactionWhitePointDelta;" else ""}
+    ${if (includeLighting) "uniform float interactionLightingIntensity;" else ""}
+  """
+
+  private fun interactionFalloffHelper(): String = """
+    float interactionFalloff(vec2 coord) {
+      float normalized = distance(coord, interactionPosition) / max(interactionRadius, 0.0001);
+      return 1.0 - smootherstep(clamp(normalized, 0.0, 1.0));
     }
   """
 }

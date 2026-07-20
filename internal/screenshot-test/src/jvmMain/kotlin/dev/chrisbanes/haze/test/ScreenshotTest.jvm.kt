@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SkikoComposeUiTest
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -64,6 +65,9 @@ private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiT
 
   override fun captureRootPixels(): PixelMap =
     this@createScreenshotUiTest.onRoot().captureToImage().toPixelMap()
+
+  override fun onNodeWithTag(testTag: String) =
+    this@createScreenshotUiTest.onNodeWithTag(testTag)
 
   override fun waitForIdle() {
     this@createScreenshotUiTest.waitForIdle()

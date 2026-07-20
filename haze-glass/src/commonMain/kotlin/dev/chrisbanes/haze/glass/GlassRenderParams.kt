@@ -18,6 +18,14 @@ internal data class GlassCoordinates(
   val scaleFactor: Float,
 )
 
+internal fun Size.isDrawable(): Boolean =
+  width.isFinite() && height.isFinite() && width > 0f && height > 0f
+
+internal fun Offset.clampTo(size: Size): Offset = Offset(
+  x = x.coerceIn(0f, size.width),
+  y = y.coerceIn(0f, size.height),
+)
+
 internal fun GlassCoordinates.withRoundedSampleSize(): GlassCoordinates {
   val rounded = sampleSize.roundToIntSize()
   return copy(sampleSize = Size(rounded.width.toFloat(), rounded.height.toFloat()))
@@ -437,4 +445,33 @@ internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   cornerRadii = cornerRadii,
   lightPosition = lightPosition,
   sampleStepPx = sampleStepPx,
+)
+
+internal data class GlassInteractionLightingKey(
+  val coordinates: GlassCoordinates,
+  val edgeSoftnessPx: Float,
+  val cornerRadii: CornerRadii,
+)
+
+internal data class GlassInteractionUniforms(
+  val position: Offset,
+  val radiusPx: Float,
+  val lightingIntensity: Float,
+  val refractionMultiplier: Float,
+  val whitePointDelta: Float,
+) {
+  val hasLighting: Boolean get() = lightingIntensity > 0f && radiusPx > 0f
+  val hasOptics: Boolean get() =
+    radiusPx > 0f && (refractionMultiplier != 1f || whitePointDelta != 0f)
+}
+
+internal fun GlassRenderParams.interactionUniforms(
+  state: GlassInteractionRenderState,
+  radiusFraction: Float,
+): GlassInteractionUniforms = GlassInteractionUniforms(
+  position = state.position * coordinates.scaleFactor + coordinates.materialOrigin,
+  radiusPx = coordinates.materialSize.minDimension * radiusFraction,
+  lightingIntensity = state.lightingIntensity.coerceIn(0f, 1f),
+  refractionMultiplier = state.refractionMultiplier.coerceIn(0f, 2f),
+  whitePointDelta = state.whitePointDelta.coerceIn(-1f, 1f),
 )

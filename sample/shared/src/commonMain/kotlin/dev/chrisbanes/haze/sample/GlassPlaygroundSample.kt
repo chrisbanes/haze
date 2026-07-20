@@ -14,6 +14,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,6 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.glass.GlassDefaults
+import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
+import dev.chrisbanes.haze.glass.GlassTransformPivot
+import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.rememberHazeState
@@ -186,6 +191,7 @@ public fun GlassPlaygroundSampleContent(
   onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
+  interactionSourceProvider: (GlassPlaygroundSurfaceId) -> InteractionSource? = { null },
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
@@ -213,6 +219,7 @@ public fun GlassPlaygroundSampleContent(
       onDragStart = onDragStart,
       onDrag = onDrag,
       onDragEnd = onDragEnd,
+      interactionSourceProvider = interactionSourceProvider,
       modifier = Modifier.fillMaxSize(),
     )
 
@@ -241,6 +248,7 @@ private fun PlaygroundSurfaceScene(
   onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
+  interactionSourceProvider: (GlassPlaygroundSurfaceId) -> InteractionSource?,
   modifier: Modifier = Modifier,
 ) {
   Layout(
@@ -256,6 +264,7 @@ private fun PlaygroundSurfaceScene(
           onDragStart = onDragStart,
           onDrag = onDrag,
           onDragEnd = onDragEnd,
+          interactionSourceProvider = interactionSourceProvider,
         )
       }
     },
@@ -327,16 +336,19 @@ private fun PlaygroundSurface(
   onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
+  interactionSourceProvider: (GlassPlaygroundSurfaceId) -> InteractionSource?,
 ) {
   val size = playgroundSurfaceSize(id)
   val density = LocalDensity.current
   val surfaceSize = with(density) {
     IntSize(size.width.roundToPx(), size.height.roundToPx())
   }
-  val effect = remember(id) {
+  val interactionSource = interactionSourceProvider(id)
+  val effect = remember(id, interactionSource) {
     GlassVisualEffect().apply {
       style = glassPlaygroundStyle(id)
       shape = glassPlaygroundShape(id)
+      configurePlaygroundInteraction(interactionSource)
     }
   }
   val latestProgressProvider by rememberUpdatedState(progressProvider)
@@ -384,6 +396,25 @@ private fun PlaygroundSurface(
       GlassPlaygroundSurfaceId.Lens,
       GlassPlaygroundSurfaceId.Pill,
       -> Unit
+    }
+  }
+}
+
+internal fun GlassVisualEffect.configurePlaygroundInteraction(source: InteractionSource?) {
+  interactionSource = source
+  interactionTransformTarget = GlassTransformTarget.MaterialAndContent
+  interactionTransformPivot = GlassTransformPivot.Pointer
+  interactionPositionAnimationSpec = GlassDefaults.positionAnimationSpec
+  interactionReducedMotionPolicy = GlassReducedMotionPolicy.System
+  hovered()
+  pressed {
+    animate(
+      toSpec = GlassDefaults.pressAnimationSpec,
+      fromSpec = GlassDefaults.releaseAnimationSpec,
+    ) {
+      lightingIntensity(1f)
+      refractionMultiplier(1.08f)
+      scale(0.98f)
     }
   }
 }

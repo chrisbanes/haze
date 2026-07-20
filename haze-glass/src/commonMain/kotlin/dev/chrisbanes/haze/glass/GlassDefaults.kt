@@ -3,7 +3,11 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -12,6 +16,28 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 @ExperimentalHazeApi
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object GlassDefaults {
+  public const val interactionLightRadiusFraction: Float = 0.7f
+
+  public val hoverAnimationSpec: FiniteAnimationSpec<Float> = spring(
+    dampingRatio = 1f,
+    stiffness = Spring.StiffnessMediumLow,
+  )
+
+  public val pressAnimationSpec: FiniteAnimationSpec<Float> = spring(
+    dampingRatio = 0.82f,
+    stiffness = Spring.StiffnessMedium,
+  )
+
+  public val releaseAnimationSpec: FiniteAnimationSpec<Float> = spring(
+    dampingRatio = 0.72f,
+    stiffness = Spring.StiffnessMediumLow,
+  )
+
+  public val positionAnimationSpec: FiniteAnimationSpec<Offset> = spring(
+    dampingRatio = 1f,
+    stiffness = Spring.StiffnessMedium,
+  )
+
   /** Default geometry-aware Haze optical material. */
   public val optics: GlassOptics = GlassOptics.Adaptive
 

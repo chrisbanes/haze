@@ -3,19 +3,42 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntSize
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.glass.GlassTransformPivot
+import dev.chrisbanes.haze.glass.GlassTransformTarget
+import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassPlaygroundSampleTest : ContextTest() {
+  @Test
+  fun playgroundInteraction_keepsHoverAfterPressAndUsesPointerContentTransform() {
+    val source = MutableInteractionSource()
+    val effect = GlassVisualEffect()
+
+    effect.configurePlaygroundInteraction(source)
+
+    assertEquals(source, effect.interactionSource)
+    assertEquals(GlassTransformTarget.MaterialAndContent, effect.interactionTransformTarget)
+    assertEquals(GlassTransformPivot.Pointer, effect.interactionTransformPivot)
+    assertTrue(effect.observesPointerEvents)
+
+    effect.clearPressed()
+    assertTrue(effect.observesPointerEvents)
+    effect.clearHovered()
+    assertEquals(false, effect.observesPointerEvents)
+  }
+
   @Test
   fun controlsForwardPlayResetAndRecordingEvents() = runComposeUiTest {
     var playPauseCount = 0

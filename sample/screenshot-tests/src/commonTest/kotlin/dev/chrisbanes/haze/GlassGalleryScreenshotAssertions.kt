@@ -4,6 +4,8 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +51,7 @@ internal fun ScreenshotUiTest.captureGlassProductHero() {
 internal fun ScreenshotUiTest.captureGlassPlaygroundBeats() {
   var progress by mutableFloatStateOf(0f)
   var displacedLens by mutableStateOf(Offset.Zero)
+  val prismInteractionSource = MutableInteractionSource()
   setContent {
     Box(Modifier.fillMaxSize().background(Color.White)) {
       GlassGalleryScreenshotTheme {
@@ -66,6 +69,9 @@ internal fun ScreenshotUiTest.captureGlassPlaygroundBeats() {
           onDragStart = {},
           onDrag = { _, _ -> },
           onDragEnd = {},
+          interactionSourceProvider = { id ->
+            prismInteractionSource.takeIf { id == GlassPlaygroundSurfaceId.Prism }
+          },
         )
       }
     }
@@ -82,6 +88,12 @@ internal fun ScreenshotUiTest.captureGlassPlaygroundBeats() {
   progress = 0.8f
   waitForIdle()
   captureRoot("prism")
+  val press = PressInteraction.Press(Offset(90f, 56f))
+  check(prismInteractionSource.tryEmit(press))
+  waitForIdle()
+  captureRoot("pressed")
+  check(prismInteractionSource.tryEmit(PressInteraction.Release(press)))
+  waitForIdle()
   displacedLens = Offset(120f, 72f)
   waitForIdle()
   captureRoot("dragged")

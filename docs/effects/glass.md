@@ -141,7 +141,62 @@ glassEffect {
 ## Fallbacks
 
 - Runtime shader path: deterministic semantic Gaussian blur, rounded SDF refraction, tint/specular/Fresnel, chromatic aberration, and edge softness.
-- Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable.
+- Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable. Interaction lighting and transforms work on this path, but interactive optics, white-point adjustment, and refraction are no-ops.
+
+## Interaction
+
+Glass interaction is default-disabled and entirely opt-in. It adds a visual response only: it does
+not add click handling, focusability, semantics, or keyboard/D-pad activation.
+
+```kotlin
+Modifier.hazeEffect(hazeState) {
+  glassEffect {
+    pressed()
+  }
+}
+```
+
+`hovered()`, `focused()`, and `pressed()` enable their respective default visual responses.
+`interactable()` enables all three. To make focus and keyboard/D-pad activation useful, retain one
+`MutableInteractionSource` and share it with both the glass effect and your behavior modifiers:
+
+```kotlin
+val interactionSource = remember { MutableInteractionSource() }
+
+Modifier
+  .clickable(interactionSource = interactionSource, indication = null) { onClick() }
+  .focusable(interactionSource = interactionSource)
+  .hazeEffect(hazeState) {
+    glassEffect {
+      this.interactionSource = interactionSource
+      interactable()
+    }
+  }
+```
+
+Custom blocks replace that state's preset from identity. Resolve each property with fixed
+precedence: focused, then hovered, then pressed. Use `animate(toSpec, fromSpec)` inside a custom
+block to own the arrival and departure animation specs respectively; entering or replacement uses
+`toSpec`, while departing uses `fromSpec`.
+
+```kotlin
+glassEffect {
+  pressed {
+    animate(
+      toSpec = GlassDefaults.pressAnimationSpec,
+      fromSpec = GlassDefaults.releaseAnimationSpec,
+    ) {
+      scale(0.98f)
+    }
+  }
+}
+```
+
+`interactionTransformTarget` selects whether a response transforms only the material or the
+material and content. `interactionTransformPivot` selects `Pointer` or `Center`. Use
+`clearHovered()`, `clearFocused()`, `clearPressed()`, or `clearInteractions()` to remove configured
+responses. `GlassReducedMotionPolicy.System` follows the available system duration scale,
+`Reduced` snaps lighting and optics while suppressing transforms, and `Full` forces motion.
 
 ## Usage
 

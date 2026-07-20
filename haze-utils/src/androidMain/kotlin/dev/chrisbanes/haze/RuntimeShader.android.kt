@@ -40,6 +40,43 @@ public actual fun createRuntimeShaderRenderEffect(
   val provider = AndroidRuntimeShaderUniformProvider(shader)
   uniforms(provider)
 
+  return createAndroidRuntimeShaderRenderEffect(shader, shaderNames, inputs)
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@InternalHazeApi
+public actual fun createMutableRuntimeShaderRenderEffect(
+  effect: PlatformRuntimeEffect,
+  shaderNames: Array<String>,
+  inputs: Array<PlatformRenderEffect?>,
+): MutableRuntimeShaderRenderEffect = AndroidMutableRuntimeShaderRenderEffect(
+  effect = effect,
+  shaderNames = shaderNames,
+  inputs = inputs,
+)
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private class AndroidMutableRuntimeShaderRenderEffect(
+  effect: PlatformRuntimeEffect,
+  private val shaderNames: Array<String>,
+  private val inputs: Array<PlatformRenderEffect?>,
+) : MutableRuntimeShaderRenderEffect {
+  private val shader = RuntimeShader(effect.sksl)
+  private val provider = AndroidRuntimeShaderUniformProvider(shader)
+  override fun updateUniforms(
+    uniforms: RuntimeShaderUniformProvider.() -> Unit,
+  ): PlatformRenderEffect {
+    uniforms(provider)
+    return createAndroidRuntimeShaderRenderEffect(shader, shaderNames, inputs)
+  }
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private fun createAndroidRuntimeShaderRenderEffect(
+  shader: RuntimeShader,
+  shaderNames: Array<String>,
+  inputs: Array<PlatformRenderEffect?>,
+): PlatformRenderEffect {
   require(shaderNames.isNotEmpty()) {
     "shaderNames must contain at least one shader uniform name"
   }

@@ -15,6 +15,9 @@ internal class GlassLayers {
   var depthMixed: GraphicsLayer? = null
   var optical: GraphicsLayer? = null
   var refractionDetail: GraphicsLayer? = null
+  var interactionOptical: GraphicsLayer? = null
+  var interactionRefractionDetail: GraphicsLayer? = null
+  var interactionLighting: GraphicsLayer? = null
   var rim: GraphicsLayer? = null
   var scaledSize: IntSize? = null
   var blurWorkingSize: IntSize? = null
@@ -26,11 +29,17 @@ internal class GlassLayers {
   val hasDepthMixed: Boolean get() = depthMixed?.isReleased == false
   val hasOptical: Boolean get() = optical?.isReleased == false
   val hasRefractionDetail: Boolean get() = refractionDetail?.isReleased == false
+  val hasInteractionOptical: Boolean get() = interactionOptical?.isReleased == false
+  val hasInteractionRefractionDetail: Boolean
+    get() = interactionRefractionDetail?.isReleased == false
+  val hasInteractionLighting: Boolean get() = interactionLighting?.isReleased == false
   val hasRim: Boolean get() = rim?.isReleased == false
 
   val isEmpty: Boolean
     get() = source == null && blurPrefiltered == null && blurHorizontal == null && blurred == null &&
-      depthMixed == null && optical == null && refractionDetail == null && rim == null
+      depthMixed == null && optical == null && refractionDetail == null &&
+      interactionOptical == null && interactionRefractionDetail == null &&
+      interactionLighting == null && rim == null
 
   fun ensureSource(graphicsContext: GraphicsContext): GraphicsLayer =
     ensureLayer(source, graphicsContext).also { source = it }
@@ -75,6 +84,32 @@ internal class GlassLayers {
   fun ensureRim(graphicsContext: GraphicsContext): GraphicsLayer =
     ensureLayer(rim, graphicsContext).also { rim = it }
 
+  fun prepareInteraction(
+    optics: Boolean,
+    detail: Boolean,
+    lighting: Boolean,
+    graphicsContext: GraphicsContext,
+  ) {
+    if (optics) {
+      interactionOptical = ensureLayer(interactionOptical, graphicsContext)
+    } else {
+      releaseLayer(interactionOptical, graphicsContext)
+      interactionOptical = null
+    }
+    if (detail) {
+      interactionRefractionDetail = ensureLayer(interactionRefractionDetail, graphicsContext)
+    } else {
+      releaseLayer(interactionRefractionDetail, graphicsContext)
+      interactionRefractionDetail = null
+    }
+    if (lighting) {
+      interactionLighting = ensureLayer(interactionLighting, graphicsContext)
+    } else {
+      releaseLayer(interactionLighting, graphicsContext)
+      interactionLighting = null
+    }
+  }
+
   fun releaseBlurred(graphicsContext: GraphicsContext?) {
     releaseBlurPrefiltered(graphicsContext)
     releaseLayer(blurHorizontal, graphicsContext)
@@ -108,6 +143,9 @@ internal class GlassLayers {
       depthMixed,
       optical,
       refractionDetail,
+      interactionOptical,
+      interactionRefractionDetail,
+      interactionLighting,
       rim,
     ).forEach { layer ->
       releaseLayer(layer, graphicsContext)
@@ -119,6 +157,9 @@ internal class GlassLayers {
     depthMixed = null
     optical = null
     refractionDetail = null
+    interactionOptical = null
+    interactionRefractionDetail = null
+    interactionLighting = null
     rim = null
     scaledSize = null
     blurWorkingSize = null
@@ -130,7 +171,7 @@ internal fun ensureLayer(
   graphicsContext: GraphicsContext,
 ): GraphicsLayer = current?.takeUnless { it.isReleased } ?: graphicsContext.createGraphicsLayer()
 
-private fun releaseLayer(layer: GraphicsLayer?, graphicsContext: GraphicsContext?) {
+internal fun releaseLayer(layer: GraphicsLayer?, graphicsContext: GraphicsContext?) {
   if (layer?.isReleased == false) {
     graphicsContext?.releaseGraphicsLayer(layer)
   }

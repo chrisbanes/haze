@@ -17,7 +17,9 @@ kotlin {
   android {
     namespace = "dev.chrisbanes.haze.glass"
 
-    withHostTest {}
+    withHostTest {
+      isIncludeAndroidResources = true
+    }
   }
 
   addDefaultHazeTargets(project)
@@ -27,6 +29,7 @@ kotlin {
     commonMain {
       dependencies {
         api(projects.haze)
+        api(libs.compose.animation.core)
         implementation(projects.hazeUtils)
         implementation(libs.compose.ui)
         implementation(libs.compose.foundation)
@@ -75,4 +78,8 @@ kotlin {
     optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
     optIn.add("dev.chrisbanes.haze.InternalHazeApi")
   }
+}
+
+dependencies {
+  add("androidHostTestImplementation", libs.androidx.activity)
 }

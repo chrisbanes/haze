@@ -146,6 +146,31 @@ public actual fun createRuntimeShaderRenderEffect(
   )
 }
 
+@InternalHazeApi
+public actual fun createMutableRuntimeShaderRenderEffect(
+  effect: PlatformRuntimeEffect,
+  shaderNames: Array<String>,
+  inputs: Array<PlatformRenderEffect?>,
+): MutableRuntimeShaderRenderEffect = SkikoMutableRuntimeShaderRenderEffect(
+  effect = effect,
+  shaderNames = shaderNames,
+  inputs = inputs,
+)
+
+private class SkikoMutableRuntimeShaderRenderEffect(
+  private val effect: RuntimeEffect,
+  private val shaderNames: Array<String>,
+  private val inputs: Array<ImageFilter?>,
+) : MutableRuntimeShaderRenderEffect {
+  override fun updateUniforms(
+    uniforms: RuntimeShaderUniformProvider.() -> Unit,
+  ): PlatformRenderEffect {
+    val builder = RuntimeShaderBuilder(effect)
+    uniforms(SkikoRuntimeShaderUniformProvider(builder))
+    return ImageFilter.makeRuntimeShader(builder, shaderNames, inputs)
+  }
+}
+
 @JvmInline
 private value class SkikoRuntimeShaderUniformProvider(
   private val builder: RuntimeShaderBuilder,

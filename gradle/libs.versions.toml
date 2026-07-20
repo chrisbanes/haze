@@ -68,6 +68,7 @@ androidx-tracing = "androidx.tracing:tracing-ktx:1.3.0"
 
 compose-material-icons = "org.jetbrains.compose.material:material-icons-core:1.7.3"
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
+compose-animation-core = { module = "org.jetbrains.compose.animation:animation-core", version.ref = "compose-multiplatform" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "compose-material3" }
 compose-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "compose-navigation3" }

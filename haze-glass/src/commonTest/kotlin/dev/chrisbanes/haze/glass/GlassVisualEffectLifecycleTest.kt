@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -13,6 +14,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
@@ -23,9 +27,61 @@ import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 class GlassVisualEffectLifecycleTest {
+
+  @Test
+  fun update_readsInjectedMotionScaleAndFullOverridesIt() {
+    val effect = GlassVisualEffect().apply { pressed() }
+    val context = TrackingVisualEffectContext(
+      motionScale = 0f,
+      effectSize = Size.Zero,
+    )
+
+    effect.attach(context)
+    effect.update(context)
+    val controller = checkNotNull(effect.interactionControllerForTest)
+
+    assertThat(controller.configurationForTest.reducedMotion).isEqualTo(true)
+    assertThat(controller.configurationForTest.forceFullMotion).isEqualTo(false)
+
+    effect.interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+    effect.update(context)
+
+    assertThat(controller.configurationForTest.reducedMotion).isEqualTo(false)
+    assertThat(controller.configurationForTest.forceFullMotion).isEqualTo(true)
+    effect.detach(context)
+  }
+
+  @Test
+  fun attachAndUpdate_withoutInteractionsDoesNotAllocateController() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    effect.attach(context)
+    effect.update(context)
+
+    assertThat(effect.interactionControllerForTest).isNull()
+    effect.detach(context)
+  }
+
+  @Test
+  fun detach_disposesInteractionController() {
+    val effect = GlassVisualEffect().apply { pressed() }
+    val context = TrackingVisualEffectContext()
+
+    effect.attach(context)
+    val controller = effect.interactionControllerForTest
+    effect.detach(context)
+
+    assertThat(controller).isNotNull()
+    assertThat(controller?.isDisposedForTest).isEqualTo(true)
+    assertThat(effect.interactionControllerForTest).isNull()
+    assertThat(effect.attachedContextForTest).isNull()
+  }
 
   @Test
   fun update_directShapeChangeInvalidatesLayerBounds() {
@@ -69,6 +125,25 @@ class GlassVisualEffectLifecycleTest {
   }
 
   @Test
+  fun update_interactionRenderingConfigurationChangesInvalidateDraw() {
+    val changes = listOf<(GlassVisualEffect) -> Unit>(
+      { it.interactionLightRadiusFraction = 1.2f },
+      { it.interactionTransformTarget = GlassTransformTarget.MaterialAndContent },
+      { it.interactionTransformPivot = GlassTransformPivot.Center },
+    )
+
+    changes.forEach { change ->
+      val effect = GlassVisualEffect()
+      val context = TrackingVisualEffectContext()
+
+      change(effect)
+      effect.update(context)
+
+      assertThat(context.invalidateDrawCalls).isEqualTo(1)
+    }
+  }
+
+  @Test
   fun update_clearingAbsoluteOverrideInvalidatesDrawAndLayerBounds() {
     val effect = GlassVisualEffect().apply {
       optics = GlassOptics.Absolute(refractionStrength = 0.4f)
@@ -82,12 +157,110 @@ class GlassVisualEffectLifecycleTest {
     assertThat(context.invalidateDrawCalls).isEqualTo(1)
     assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
   }
+
+  @Test
+  fun calculateLayerBounds_usesMaximumConfiguredInteractionRefractionStrength() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(refractionStrength = 0.6f)
+      pressed { refractionMultiplier(2f) }
+    }
+    val rect = Rect(0f, 0f, 100f, 100f)
+    val baseBounds = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(refractionStrength = 0.6f)
+    }.calculateLayerBounds(rect, Density(1f))
+
+    val interactionBounds = effect.calculateLayerBounds(rect, Density(1f))
+
+    assertThat(-interactionBounds.left).isGreaterThan(-baseBounds.left)
+  }
+
+  @Test
+  fun changingInteractionRefractionMaximum_invalidatesLayerBounds_butEquivalentDeclarationDoesNot() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+    effect.update(context)
+    context.invalidateLayerBoundsCalls = 0
+
+    effect.pressed { refractionMultiplier(2f) }
+    effect.update(context)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
+    effect.resetDirtyTracker()
+
+    effect.pressed { refractionMultiplier(2f) }
+    effect.update(context)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
+
+    effect.clearPressed()
+    effect.update(context)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(2)
+  }
+
+  @Test
+  @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+  fun controller_withoutFrameClock_snapsPositionAndFloatTargets_andInvalidatesDraw() = runTest {
+    val context = TrackingVisualEffectContext(
+      coroutineScope = CoroutineScope(coroutineContext),
+    )
+    val controller = GlassInteractionController(context)
+    controller.updateConfiguration(
+      GlassInteractionControllerConfiguration(
+        slots = GlassInteractionSlots(
+          pressed = GlassInteractionSlot(
+            revision = 1,
+            response = buildGlassInteractionResponse {
+              animate(
+                toSpec = androidx.compose.animation.core.tween(100),
+                fromSpec = androidx.compose.animation.core.tween(100),
+              ) {
+                lightingIntensity(1f)
+              }
+            },
+          ),
+        ),
+        positionAnimationSpec = androidx.compose.animation.core.tween(100),
+        reducedMotion = false,
+        forceFullMotion = false,
+      ),
+    )
+
+    controller.updatePosition(Offset(24f, 36f))
+    controller.updateSignals(GlassInteractionSignals(rawPressed = true))
+    advanceUntilIdle()
+
+    assertThat(controller.renderState.position).isEqualTo(Offset(24f, 36f))
+    assertThat(controller.renderState.lightingIntensity).isEqualTo(1f)
+
+    context.invalidateDrawCalls = 0
+    controller.updatePosition(Offset(48f, 72f))
+    controller.updateConfiguration(
+      GlassInteractionControllerConfiguration(
+        slots = GlassInteractionSlots(
+          pressed = GlassInteractionSlot(
+            revision = 2,
+            response = buildGlassInteractionResponse { lightingIntensity(0.4f) },
+          ),
+        ),
+        positionAnimationSpec = androidx.compose.animation.core.tween(100),
+        reducedMotion = false,
+        forceFullMotion = false,
+      ),
+    )
+    advanceUntilIdle()
+
+    assertThat(controller.renderState.position).isEqualTo(Offset(48f, 72f))
+    assertThat(controller.renderState.lightingIntensity).isEqualTo(0.4f)
+    assertThat(context.invalidateDrawCalls).isGreaterThan(0)
+  }
 }
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
-private class TrackingVisualEffectContext : VisualEffectContext {
+private class TrackingVisualEffectContext(
+  motionScale: Float? = null,
+  effectSize: Size = Size(100f, 100f),
+  coroutineScope: CoroutineScope? = null,
+) : VisualEffectContext {
   override val position: Offset = Offset.Zero
-  override val size: Size = Size(100f, 100f)
+  override val size: Size = effectSize
   override val layerSize: Size = size
   override val layerOffset: Offset = Offset.Zero
   override val rootBounds: Rect = Rect(Offset.Zero, size)
@@ -95,7 +268,9 @@ private class TrackingVisualEffectContext : VisualEffectContext {
   override val windowId: Any? = null
   override val areas: List<HazeArea> = emptyList()
   override val state: HazeState? = null
-  override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext)
+  override val coroutineScope: CoroutineScope = coroutineScope ?: CoroutineScope(
+    motionScale?.let(::TestMotionDurationScale) ?: EmptyCoroutineContext,
+  )
 
   var invalidateLayerBoundsCalls: Int = 0
   var invalidateDrawCalls: Int = 0
@@ -117,3 +292,7 @@ private class TrackingVisualEffectContext : VisualEffectContext {
     invalidateLayerBoundsCalls++
   }
 }
+
+private class TestMotionDurationScale(
+  override val scaleFactor: Float,
+) : MotionDurationScale

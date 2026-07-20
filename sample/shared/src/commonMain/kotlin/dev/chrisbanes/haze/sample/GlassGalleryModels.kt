@@ -13,6 +13,7 @@ import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.SurfaceProfile
 
 @Immutable
@@ -192,10 +193,27 @@ public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
   GlassLabPresetId.Custom -> error("Custom style must come from GlassLabState")
 }
 
+internal enum class GlassLabInteractionMode {
+  Off,
+  Pressed,
+  All,
+  ;
+
+  fun applyTo(effect: GlassVisualEffect) {
+    effect.clearInteractions()
+    when (this) {
+      Off -> Unit
+      Pressed -> effect.pressed()
+      All -> effect.interactable()
+    }
+  }
+}
+
 @Immutable
 internal data class GlassLabState(
   val preset: GlassLabPresetId = GlassLabPresetId.Adaptive,
   val backdrop: GlassGalleryBackdropId = GlassGalleryBackdropId.Gallery,
+  val interaction: GlassLabInteractionMode = GlassLabInteractionMode.All,
   val advancedExpanded: Boolean = false,
   val style: GlassStyle = glassLabPresetStyle(GlassLabPresetId.Adaptive),
 ) {

@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.glassEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -146,6 +148,8 @@ internal fun GlassSurface(
   style: GlassStyle,
   shape: RoundedCornerShape,
   modifier: Modifier = Modifier,
+  interactionSource: InteractionSource? = null,
+  interaction: (GlassVisualEffect.() -> Unit)? = null,
   content: @Composable BoxScope.() -> Unit,
 ) {
   Box(
@@ -155,6 +159,8 @@ internal fun GlassSurface(
         glassEffect {
           this.style = style
           this.shape = shape
+          this.interactionSource = interactionSource
+          interaction?.invoke(this)
         }
       },
     content = content,

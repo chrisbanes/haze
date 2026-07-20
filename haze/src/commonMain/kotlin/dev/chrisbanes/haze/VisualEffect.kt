@@ -3,8 +3,10 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.unit.Density
 
 /**
@@ -135,6 +137,43 @@ public interface VisualEffect {
 
 internal object EmptyVisualEffect : VisualEffect {
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
+}
+
+@InternalHazeApi
+public interface InteractiveVisualEffect : VisualEffect {
+  public val observesPointerEvents: Boolean
+
+  public fun onPointerEvent(
+    event: PointerEvent,
+    context: VisualEffectContext,
+  )
+
+  public fun onCancelPointerInput(context: VisualEffectContext)
+
+  public fun currentContentTransform(
+    context: VisualEffectContext,
+  ): VisualEffectTransform = VisualEffectTransform.Identity
+}
+
+@InternalHazeApi
+public data class VisualEffectTransform(
+  public val scaleX: Float,
+  public val scaleY: Float,
+  public val pivot: Offset,
+) {
+  init {
+    require(scaleX.isFinite() && scaleX > 0f) { "scaleX must be finite and greater than zero" }
+    require(scaleY.isFinite() && scaleY > 0f) { "scaleY must be finite and greater than zero" }
+    require(pivot.x.isFinite() && pivot.y.isFinite()) { "pivot must be finite" }
+  }
+
+  public companion object {
+    public val Identity: VisualEffectTransform = VisualEffectTransform(
+      scaleX = 1f,
+      scaleY = 1f,
+      pivot = Offset.Zero,
+    )
+  }
 }
 
 @InternalHazeApi
