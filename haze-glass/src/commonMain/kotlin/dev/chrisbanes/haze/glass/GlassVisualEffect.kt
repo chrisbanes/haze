@@ -332,6 +332,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   private fun onInteractionConfigurationChanged(previousRefractionMultiplier: Float? = null) {
+    dirtyTracker += GlassDirtyFields.Interaction
     if (
       previousRefractionMultiplier != null &&
       previousRefractionMultiplier != maximumInteractionRefractionMultiplier()

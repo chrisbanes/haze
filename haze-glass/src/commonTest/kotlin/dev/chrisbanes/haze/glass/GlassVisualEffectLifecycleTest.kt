@@ -125,6 +125,25 @@ class GlassVisualEffectLifecycleTest {
   }
 
   @Test
+  fun update_interactionRenderingConfigurationChangesInvalidateDraw() {
+    val changes = listOf<(GlassVisualEffect) -> Unit>(
+      { it.interactionLightRadiusFraction = 1.2f },
+      { it.interactionTransformTarget = GlassTransformTarget.MaterialAndContent },
+      { it.interactionTransformPivot = GlassTransformPivot.Center },
+    )
+
+    changes.forEach { change ->
+      val effect = GlassVisualEffect()
+      val context = TrackingVisualEffectContext()
+
+      change(effect)
+      effect.update(context)
+
+      assertThat(context.invalidateDrawCalls).isEqualTo(1)
+    }
+  }
+
+  @Test
   fun update_clearingAbsoluteOverrideInvalidatesDrawAndLayerBounds() {
     val effect = GlassVisualEffect().apply {
       optics = GlassOptics.Absolute(refractionStrength = 0.4f)
