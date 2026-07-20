@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import dev.chrisbanes.haze.HazeProgressive
@@ -10,9 +11,9 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.asBrush
 
 @OptIn(InternalHazeApi::class)
-internal fun HazeProgressive.toShader(coordinates: GlassCoordinates): Shader? {
+internal fun HazeProgressive.toShader(size: Size): Shader? {
   return when (val brush = asBrush()) {
-    is ShaderBrush -> brush.createShader(coordinates.materialSize)
+    is ShaderBrush -> brush.createShader(size)
     else -> null
   }
 }

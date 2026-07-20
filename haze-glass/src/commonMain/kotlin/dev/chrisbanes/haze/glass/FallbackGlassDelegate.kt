@@ -40,7 +40,11 @@ internal class FallbackGlassDelegate(
     val highlightAlpha = 0.25f * effect.specularIntensity.coerceIn(0f, 1f)
     val highlightRadius = max(size.minDimension / 2f, edgeSoftnessPx * 4f)
 
-    val radii = effect.shape.toCornerRadiiPx(layerSize = size, density = density, layoutDirection = layoutDirection)
+    val radii = effect.shape.toCornerRadiiPx(
+      layerSize = size,
+      density = density,
+      layoutDirection = layoutDirection,
+    )
 
     if (size != cachedSize || radii != cachedRadii) {
       cachedSize = size

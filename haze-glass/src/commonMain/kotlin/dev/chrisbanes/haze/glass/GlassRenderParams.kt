@@ -313,8 +313,9 @@ internal data class GlassRenderParams(
 internal data class GlassBlurEffectKey(
   val plan: SemanticBlurPlan,
   val progressive: HazeProgressive?,
-  val materialOrigin: Offset,
-  val materialSize: Size,
+  val maskOrigin: Offset,
+  val maskSize: Size,
+  val maskCoordinateScale: Float,
 )
 
 internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
@@ -329,8 +330,13 @@ internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
   return GlassBlurEffectKey(
     plan = plan,
     progressive = progressive,
-    materialOrigin = if (progressive != null) coordinates.materialOrigin * plan.scaleFactor else Offset.Zero,
-    materialSize = if (progressive != null) coordinates.materialSize * plan.scaleFactor else Size.Zero,
+    maskOrigin = if (progressive != null) coordinates.materialOrigin * plan.scaleFactor else Offset.Zero,
+    maskSize = if (progressive != null) coordinates.materialSize / coordinates.scaleFactor else Size.Zero,
+    maskCoordinateScale = if (progressive != null) {
+      1f / (coordinates.scaleFactor * plan.scaleFactor)
+    } else {
+      1f
+    },
   )
 }
 

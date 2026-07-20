@@ -36,12 +36,14 @@ import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private const val InvariantRootWidth = 1080
 private val InvariantRootHeightRange = 1919..1920
@@ -116,6 +118,41 @@ internal fun GlassInvariantSample(
             Modifier
           },
         ),
+    )
+  }
+}
+
+@Composable
+internal fun GlassChromaInvariantSample() {
+  val hazeState = rememberHazeState()
+  val effect = remember {
+    GlassVisualEffect().apply {
+      tint = Color.Transparent
+      optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
+      specularIntensity = 0f
+      ambientResponse = 0f
+      edgeSoftness = 0.dp
+      chromaMultiplier = 2f
+      shape = RoundedCornerShape(0.dp)
+    }
+  }
+  Box(Modifier.fillMaxSize()) {
+    Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
+      listOf(Color.Red, Color.Green, Color.Blue).forEachIndexed { index, color ->
+        drawRect(
+          color = color,
+          topLeft = Offset(size.width * index / 3f, 0f),
+          size = Size(size.width / 3f, size.height),
+        )
+      }
+    }
+    Box(
+      Modifier
+        .fillMaxSize()
+        .hazeEffect(hazeState) {
+          inputScale = HazeInputScale.None
+          visualEffect = effect
+        },
     )
   }
 }
@@ -423,6 +460,208 @@ internal fun ScreenshotUiTest.assertGlassProgressiveBlurInvariant() {
   }
 }
 
+internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
+  val shape = RoundedCornerShape(0.dp)
+  val effect = invariantEffect(shape).apply {
+    optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 1f, blurRadius = 18.dp)
+    tint = Color.Transparent
+    specularIntensity = 0f
+    ambientResponse = 0f
+    edgeSoftness = 0.dp
+  }
+  var inputScale by mutableStateOf<HazeInputScale>(HazeInputScale.None)
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        inputScale = inputScale,
+        shape = shape,
+        surfaceSize = DpSize(280.dp, 180.dp),
+      )
+    }
+  }
+
+  fun capture(progressive: HazeProgressive, scale: HazeInputScale): PixelSnapshot {
+    effect.updateAbsoluteOptics { copy(progressive = progressive) }
+    inputScale = scale
+    waitForIdle()
+    return captureInvariantSnapshot()
+  }
+
+  fun assertWithinOnePixel(unscaled: Float, scaled: Float) {
+    assertThat(abs(unscaled - scaled)).isLessThanOrEqualTo(1f)
+  }
+
+  val vertical = HazeProgressive.verticalGradient(startY = 35f, endY = 75f)
+  val verticalUnscaled = capture(vertical, HazeInputScale.None)
+  val verticalBounds = verticalUnscaled.invariantGeometry().surfaceBounds
+  val verticalUnscaledGeometry = verticalUnscaled.detectVerticalBlurGeometry(
+    bounds = verticalBounds,
+    startY = 35,
+    endY = 75,
+  )
+  val verticalScaledGeometry = capture(vertical, HazeInputScale.Fixed(0.75f))
+    .detectVerticalBlurGeometry(bounds = verticalBounds, startY = 35, endY = 75)
+  assertWithinOnePixel(verticalUnscaledGeometry.firstBoundary, verticalScaledGeometry.firstBoundary)
+  assertWithinOnePixel(verticalUnscaledGeometry.secondBoundary, verticalScaledGeometry.secondBoundary)
+
+  val radial = HazeProgressive.RadialGradient(center = Offset(84f, 62f), radius = 48f)
+  val radialUnscaled = capture(radial, HazeInputScale.None)
+  val radialBounds = radialUnscaled.invariantGeometry().surfaceBounds
+  val radialUnscaledGeometry = radialUnscaled.detectRadialBlurGeometry(
+    bounds = radialBounds,
+    centerX = 84f,
+    centerY = 62f,
+    radius = 48f,
+  )
+  val radialScaledGeometry = capture(radial, HazeInputScale.Fixed(0.75f))
+    .detectRadialBlurGeometry(
+      bounds = radialBounds,
+      centerX = 84f,
+      centerY = 62f,
+      radius = 48f,
+    )
+  assertWithinOnePixel(radialUnscaledGeometry.centerX, radialScaledGeometry.centerX)
+  assertWithinOnePixel(radialUnscaledGeometry.centerY, radialScaledGeometry.centerY)
+  assertWithinOnePixel(radialUnscaledGeometry.radius, radialScaledGeometry.radius)
+}
+
+private data class VerticalBlurGeometry(
+  val firstBoundary: Float,
+  val secondBoundary: Float,
+)
+
+private data class RadialBlurGeometry(
+  val centerX: Float,
+  val centerY: Float,
+  val radius: Float,
+)
+
+private fun PixelSnapshot.detectVerticalBlurGeometry(
+  bounds: IntRect,
+  startY: Int,
+  endY: Int,
+): VerticalBlurGeometry {
+  val start = bounds.top + startY
+  val end = bounds.top + endY
+  val probeXs = listOf(
+    bounds.left + bounds.width / 4,
+    bounds.left + bounds.width / 2,
+    bounds.left + bounds.width * 3 / 4,
+  )
+  val energy = (start..end).associateWith { y ->
+    probeXs.sumOf { probeX ->
+      localHighFrequencyEnergy(probeX, y, bounds, halfWidth = 24, halfHeight = 4).toDouble()
+    }
+      .toFloat() / probeXs.size
+  }
+  val sharp = energy.getValue(start)
+  val blurred = energy.getValue(end)
+  val profileRange = energy.values.max() - energy.values.min()
+  require(kotlin.math.abs(blurred - sharp) > profileRange * 0.01f) {
+    "Vertical progressive mask has insufficient endpoint energy contrast"
+  }
+  fun boundary(quantile: Float): Float {
+    val target = sharp + (blurred - sharp) * quantile
+    return energy.minBy { (_, value) -> kotlin.math.abs(value - target) }.key.toFloat()
+  }
+  val firstBoundary = boundary(0.25f)
+  val secondBoundary = boundary(0.75f)
+  require(firstBoundary > start && secondBoundary < end && firstBoundary < secondBoundary) {
+    "Vertical progressive mask boundaries must be ordered and strictly interior"
+  }
+  require(secondBoundary - firstBoundary >= 2f) {
+    "Vertical progressive mask boundaries must span a meaningful finite interval"
+  }
+  return VerticalBlurGeometry(firstBoundary = firstBoundary, secondBoundary = secondBoundary)
+}
+
+private fun PixelSnapshot.detectRadialBlurGeometry(
+  bounds: IntRect,
+  centerX: Float,
+  centerY: Float,
+  radius: Float,
+): RadialBlurGeometry {
+  val expectedCenterX = bounds.left + centerX
+  val expectedCenterY = bounds.top + centerY
+  val startDistance = (radius * 0.4f).toInt()
+  val endDistance = (radius * 1.6f).toInt()
+  fun boundary(dx: Int, dy: Int): Float {
+    val rayEndDistance = minOf(
+      endDistance,
+      when {
+        dx < 0 -> expectedCenterX.toInt() - bounds.left - 2
+        dx > 0 -> bounds.right - expectedCenterX.toInt() - 2
+        dy < 0 -> expectedCenterY.toInt() - bounds.top - 2
+        else -> bounds.bottom - expectedCenterY.toInt() - 2
+      },
+    )
+    require(rayEndDistance > startDistance + 1) {
+      "Radial progressive mask ray does not fit inside the material"
+    }
+    val energy = (startDistance..rayEndDistance).associateWith { distance ->
+      localHighFrequencyEnergy(
+        x = (expectedCenterX + dx * distance).toInt(),
+        y = (expectedCenterY + dy * distance).toInt(),
+        bounds = bounds,
+        halfWidth = if (dx == 0) 24 else 4,
+        halfHeight = if (dy == 0) 24 else 4,
+      )
+    }
+    val startEnergy = energy.getValue(startDistance)
+    val endEnergy = energy.getValue(rayEndDistance)
+    val profileRange = energy.values.max() - energy.values.min()
+    require(kotlin.math.abs(endEnergy - startEnergy) > profileRange * 0.01f) {
+      "Radial progressive mask ray has insufficient endpoint energy contrast: start=$startEnergy end=$endEnergy range=$profileRange"
+    }
+    val target = (startEnergy + endEnergy) * 0.5f
+    val transition = energy.minBy { (_, value) -> kotlin.math.abs(value - target) }.key
+    require(transition > startDistance && transition < rayEndDistance) {
+      "Radial progressive mask transition must be strictly inside its scan ray"
+    }
+    return transition.toFloat()
+  }
+  val left = expectedCenterX - boundary(-1, 0)
+  val right = expectedCenterX + boundary(1, 0)
+  val top = expectedCenterY - boundary(0, -1)
+  val bottom = expectedCenterY + boundary(0, 1)
+  val recoveredCenterX = (left + right) * 0.5f
+  val recoveredCenterY = (top + bottom) * 0.5f
+  val recoveredRadius = ((right - left) + (bottom - top)) * 0.25f
+  require(
+    recoveredCenterX.isFinite() && recoveredCenterY.isFinite() && recoveredRadius.isFinite() &&
+      recoveredCenterX in bounds.left.toFloat()..bounds.right.toFloat() &&
+      recoveredCenterY in bounds.top.toFloat()..bounds.bottom.toFloat() &&
+      recoveredRadius > startDistance && recoveredRadius < endDistance,
+  ) {
+    "Recovered radial progressive mask geometry is not plausible for the material scan"
+  }
+  return RadialBlurGeometry(
+    centerX = recoveredCenterX,
+    centerY = recoveredCenterY,
+    radius = recoveredRadius,
+  )
+}
+
+private fun PixelSnapshot.localHighFrequencyEnergy(
+  x: Int,
+  y: Int,
+  bounds: IntRect,
+  halfWidth: Int,
+  halfHeight: Int,
+): Float {
+  var total = 0f
+  var samples = 0
+  for (probeY in (y - halfHeight).coerceAtLeast(bounds.top + 1)..(y + halfHeight).coerceAtMost(bounds.bottom - 2)) {
+    for (probeX in (x - halfWidth).coerceAtLeast(bounds.left + 1)..(x + halfWidth).coerceAtMost(bounds.right - 2)) {
+      total += kotlin.math.abs(this[probeX + 1, probeY].luminance() - this[probeX - 1, probeY].luminance())
+      total += kotlin.math.abs(this[probeX, probeY + 1].luminance() - this[probeX, probeY - 1].luminance())
+      samples += 2
+    }
+  }
+  return total / samples
+}
+
 @Composable
 private fun ProgressiveInvariantPanel(effect: GlassVisualEffect, height: androidx.compose.ui.unit.Dp) {
   val hazeState = remember { HazeState() }
@@ -659,13 +898,13 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
     x = (geometry.surfaceBounds.left + geometry.surfaceBounds.right) / 2,
     y = (geometry.surfaceBounds.top + geometry.surfaceBounds.bottom) / 2,
   )
-  assertThat(kotlin.math.abs(live[center.x, center.y].alpha - 0.75f))
+  assertThat(kotlin.math.abs(live[center.x, center.y].alpha - 0.5f))
     .isLessThanOrEqualTo(1f / 255f)
-  assertThat(kotlin.math.abs(live[center.x, center.y].red - InvariantSourceColor.red * 0.75f))
+  assertThat(kotlin.math.abs(live[center.x, center.y].red - InvariantSourceColor.red * 0.5f))
     .isLessThanOrEqualTo(1f / 255f)
-  assertThat(kotlin.math.abs(live[center.x, center.y].green - InvariantSourceColor.green * 0.75f))
+  assertThat(kotlin.math.abs(live[center.x, center.y].green - InvariantSourceColor.green * 0.5f))
     .isLessThanOrEqualTo(1f / 255f)
-  assertThat(kotlin.math.abs(live[center.x, center.y].blue - InvariantSourceColor.blue * 0.75f))
+  assertThat(kotlin.math.abs(live[center.x, center.y].blue - InvariantSourceColor.blue * 0.5f))
     .isLessThanOrEqualTo(1f / 255f)
   live.assertTransparentAt(geometry.outsidePoints)
 
@@ -676,16 +915,36 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
     live.crop(geometry.surfaceBounds)
       .meanAbsoluteDifference(retained.crop(geometry.surfaceBounds)),
   ).isLessThan(1f / 255f)
-  assertThat(kotlin.math.abs(retained[center.x, center.y].alpha - 0.75f))
+  assertThat(kotlin.math.abs(retained[center.x, center.y].alpha - 0.5f))
     .isLessThanOrEqualTo(1f / 255f)
-  assertThat(kotlin.math.abs(retained[center.x, center.y].red - InvariantSourceColor.red * 0.75f))
+  assertThat(kotlin.math.abs(retained[center.x, center.y].red - InvariantSourceColor.red * 0.5f))
     .isLessThanOrEqualTo(1f / 255f)
-  assertThat(kotlin.math.abs(retained[center.x, center.y].green - InvariantSourceColor.green * 0.75f))
+  assertThat(kotlin.math.abs(retained[center.x, center.y].green - InvariantSourceColor.green * 0.5f))
     .isLessThanOrEqualTo(1f / 255f)
-  assertThat(kotlin.math.abs(retained[center.x, center.y].blue - InvariantSourceColor.blue * 0.75f))
+  assertThat(kotlin.math.abs(retained[center.x, center.y].blue - InvariantSourceColor.blue * 0.5f))
     .isLessThanOrEqualTo(1f / 255f)
   retained.assertZeroAlphaHasZeroRgb()
   retained.assertTransparentAt(geometry.outsidePoints)
+}
+
+internal fun ScreenshotUiTest.assertGlassChromaMultiplierFiniteInvariant() {
+  setContent {
+    ScreenshotTheme {
+      GlassChromaInvariantSample()
+    }
+  }
+
+  val snapshot = captureInvariantSnapshot()
+  listOf(Color.Red, Color.Green, Color.Blue).forEachIndexed { index, expected ->
+    val pixel = snapshot[snapshot.width * (index * 2 + 1) / 6, snapshot.height / 2]
+    listOf(pixel.red, pixel.green, pixel.blue, pixel.alpha).forEach { component ->
+      assertThat(component.isFinite()).isTrue()
+    }
+    assertThat(kotlin.math.abs(pixel.red - expected.red)).isLessThanOrEqualTo(1f / 255f)
+    assertThat(kotlin.math.abs(pixel.green - expected.green)).isLessThanOrEqualTo(1f / 255f)
+    assertThat(kotlin.math.abs(pixel.blue - expected.blue)).isLessThanOrEqualTo(1f / 255f)
+    assertThat(kotlin.math.abs(pixel.alpha - expected.alpha)).isLessThanOrEqualTo(1f / 255f)
+  }
 }
 
 internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
@@ -884,6 +1143,137 @@ internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
     }
   }
   check(failures.isEmpty()) { failures.joinToString("; ") }
+}
+
+internal fun ScreenshotUiTest.assertGlassOversizedAsymmetricCornersInvariant() {
+  assertGlassCornersMatchComposeClipInvariant(
+    surfaceSize = DpSize(280.dp, 180.dp),
+    shape = RoundedCornerShape(
+      topStart = 200.dp,
+      topEnd = 130.dp,
+      bottomEnd = 80.dp,
+      bottomStart = 180.dp,
+    ),
+  )
+}
+
+internal fun ScreenshotUiTest.assertGlassCrossEdgeCornersInvariant() {
+  assertGlassCornersMatchComposeClipInvariant(
+    surfaceSize = DpSize(120.dp, 100.dp),
+    shape = RoundedCornerShape(
+      topStart = 100.dp,
+      topEnd = 100.dp,
+      bottomEnd = 0.dp,
+      bottomStart = 0.dp,
+    ),
+  )
+}
+
+private fun ScreenshotUiTest.assertGlassCornersMatchComposeClipInvariant(
+  surfaceSize: DpSize,
+  shape: RoundedCornerShape,
+) {
+  val effect = GlassVisualEffect().apply {
+    tint = Color.White
+    optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
+    specularIntensity = 0f
+    ambientResponse = 0f
+    edgeSoftness = 0.dp
+    this.shape = shape
+  }
+  var showGlass by mutableStateOf(true)
+  var matte by mutableStateOf(Color.Black)
+  setContent {
+    if (showGlass) {
+      GlassInvariantSample(
+        effect = effect,
+        inputScale = HazeInputScale.None,
+        shape = shape,
+        surfaceSize = surfaceSize,
+        transparentRoot = true,
+        transparentRootBackground = matte,
+        showSource = true,
+      )
+    } else {
+      Box(Modifier.fillMaxSize().background(matte)) {
+        Box(
+          Modifier
+            .align(Alignment.Center)
+            .size(surfaceSize)
+            .background(Color.White, shape),
+        )
+      }
+    }
+  }
+
+  val glass = captureTransparentSnapshot { matte = it }
+  val bounds = glass.centeredSurfaceBounds(surfaceSize)
+  val outsidePoint = IntOffset(bounds.left + 5, bounds.top + 5)
+  assertThat(glass[outsidePoint.x, outsidePoint.y].alpha).isLessThanOrEqualTo(1f / 255f)
+  showGlass = false
+  waitForIdle()
+  val compose = captureTransparentSnapshot { matte = it }
+  val visibleAlphaThreshold = 1f / 255f
+  var firstSupportMismatch: IntOffset? = null
+  var mismatchReason = ""
+  for (y in bounds.top until bounds.bottom) {
+    for (x in bounds.left until bounds.right) {
+      val glassVisible = glass[x, y].alpha > visibleAlphaThreshold
+      val composeAlpha = compose[x, y].alpha
+      // Compose anti-aliases its outline while Glass is binary when edgeSoftness is zero.
+      // Compare resolved silhouette support and allow only a one-output-pixel fractional
+      // Compose fringe to differ; this still rejects Glass output in a transparent corner.
+      val supportMismatch = when {
+        composeAlpha <= visibleAlphaThreshold -> glassVisible.also {
+          if (it) mismatchReason = "Glass is visible where Compose is fully transparent"
+        }
+        composeAlpha >= 1f - visibleAlphaThreshold -> (!glassVisible).also {
+          if (it) mismatchReason = "Glass is transparent where Compose is fully opaque"
+        }
+        else -> {
+          var touchesGlass = glassVisible
+          for (neighborY in maxOf(bounds.top, y - 1)..minOf(bounds.bottom - 1, y + 1)) {
+            for (neighborX in maxOf(bounds.left, x - 1)..minOf(bounds.right - 1, x + 1)) {
+              touchesGlass = touchesGlass || glass[neighborX, neighborY].alpha > visibleAlphaThreshold
+            }
+          }
+          (!touchesGlass).also {
+            if (it) mismatchReason = "Compose support is more than one output pixel from Glass"
+          }
+        }
+      }
+      if (supportMismatch) {
+        firstSupportMismatch = IntOffset(x, y)
+        break
+      }
+    }
+    if (firstSupportMismatch != null) break
+  }
+  check(firstSupportMismatch == null) {
+    val mismatch = checkNotNull(firstSupportMismatch)
+    val localPoint = IntOffset(
+      mismatch.x - bounds.left,
+      mismatch.y - bounds.top,
+    )
+    "Glass and Compose silhouette support differ at $mismatch: " +
+      "$mismatchReason; " +
+      "glass=${glass[mismatch.x, mismatch.y].alpha}, " +
+      "compose=${compose[mismatch.x, mismatch.y].alpha}, " +
+      "visibleAlphaThreshold=$visibleAlphaThreshold; " +
+      "surfaceSize=$surfaceSize, shape=$shape, materialBounds=$bounds, " +
+      "firstDifferingLocalPoint=$localPoint; " +
+      "center glass=${glass[bounds.center.x, bounds.center.y].alpha}, " +
+      "compose=${compose[bounds.center.x, bounds.center.y].alpha}"
+  }
+}
+
+private fun PixelSnapshot.centeredSurfaceBounds(surfaceSize: DpSize): IntRect {
+  val density = InvariantSurfaceWidthPx / 280f
+  val surfaceWidthPx = (surfaceSize.width.value * density).roundToInt()
+  val surfaceHeightPx = (surfaceSize.height.value * density).roundToInt()
+  val left = (width - surfaceWidthPx) / 2
+  val top = (height - surfaceHeightPx) / 2
+  return IntRect(left, top, left + surfaceWidthPx, top + surfaceHeightPx)
 }
 
 private fun invariantEffect(shape: RoundedCornerShape) = GlassVisualEffect().apply {

@@ -63,7 +63,10 @@ class GlassShadersTest {
     val shader = GlassShaders.buildBlur(horizontal = true, progressive = true)
 
     assertThat(shader).contains("uniform shader mask;")
-    assertThat(shader).contains("mask.eval(max(coord - materialOrigin, vec2(0.0))).a")
+    assertThat(shader).contains("uniform float maskCoordinateScale;")
+    assertThat(shader).contains(
+      "mask.eval(max(coord - materialOrigin, vec2(0.0)) * maskCoordinateScale).a",
+    )
     assertThat(shader).contains("if (blurScale <= 0.0001)")
     assertThat(shader).contains("offset0 * blurScale")
   }
@@ -103,14 +106,30 @@ class GlassShadersTest {
   }
 
   @Test
-  fun opticalShader_softEdgeUsesPremultipliedSourceOver() {
-    val shader = GlassShaders.buildOptical()
+  fun opticalShaders_softEdgeInterpolatePremultipliedReplacement() {
+    listOf(
+      GlassShaders.buildOptical(),
+      GlassShaders.buildOptical(interactive = true),
+    ).forEach { shader ->
+      assertThat(shader).contains(
+        "vec4 composedColor = mix(baseSample, processedColor, shapeMask);",
+      )
+      assertThat(shader).doesNotContain(
+        "coveredColor + baseSample * (1.0 - coveredColor.a)",
+      )
+    }
+  }
 
-    assertThat(shader).contains("vec4 coveredColor = processedColor * shapeMask;")
-    assertThat(shader).contains(
-      "vec4 composedColor = coveredColor + baseSample * (1.0 - coveredColor.a);",
-    )
-    assertThat(shader).doesNotContain("mix(baseSample, processedColor, shapeMask)")
+  @Test
+  fun opticalShaders_gammaConversionNeverRaisesNegativeLinearChannelsToFractionalPower() {
+    listOf(
+      GlassShaders.buildOptical(),
+      GlassShaders.buildOptical(interactive = true),
+    ).forEach { shader ->
+      assertThat(shader).contains("vec3 nonNegative = max(color, vec3(0.0));")
+      assertThat(shader).contains("pow(nonNegative, vec3(1.0 / 2.4))")
+      assertThat(shader).doesNotContain("pow(color, vec3(1.0 / 2.4))")
+    }
   }
 
   @Test
@@ -322,12 +341,8 @@ class GlassShadersTest {
     val preciseRejection = "if (detailAlpha <= 0.0) return vec4(0.0);"
 
     assertThat(shader).contains("vec2 refractedLocalCoord = localCoord + displacement;")
-    assertThat(shader).contains("vec2 refractedCenteredCoord = refractedLocalCoord - halfSize;")
     assertThat(shader).contains(
-      "float refractedRadius = radiusAt(refractedCenteredCoord, cornerRadii);",
-    )
-    assertThat(shader).contains(
-      "float refractedSd = sdRoundedRect(refractedCenteredCoord, halfSize, refractedRadius);",
+      "float refractedSd = sdRoundedRect(refractedLocalCoord, materialSize, cornerRadii);",
     )
     assertThat(shader).contains("float sourceDistToEdge = max(-refractedSd, 0.0);")
     assertThat(shader.indexOf("float sourceDistToEdge = max(-refractedSd, 0.0);"))
@@ -397,12 +412,46 @@ class GlassShadersTest {
   }
 
   @Test
-  fun shaders_shareRoundedRectSdfContract() {
-    val sdfSignature = "float sdRoundedRect(vec2 coord, vec2 halfSize, float radius)"
+  fun shaders_shareComposeNormalizedRoundedRectSdfContract() {
+    val shaders = listOf(
+      GlassShaders.buildOptical(),
+      GlassShaders.buildOptical(interactive = true),
+      GlassShaders.buildRefractionDetail(),
+      GlassShaders.buildRefractionDetail(interactive = true),
+      GlassShaders.buildRim(),
+      GlassShaders.buildInteractionLighting(),
+    )
+    val sdfSignature = "float sdRoundedRect(vec2 localCoord, vec2 size, vec4 radii)"
 
-    assertThat(GlassShaders.buildOptical()).contains(sdfSignature)
-    assertThat(GlassShaders.buildRefractionDetail()).contains(sdfSignature)
-    assertThat(GlassShaders.buildRim()).contains(sdfSignature)
+    shaders.forEach { shader ->
+      assertThat(shader).contains(sdfSignature)
+      assertThat(shader).contains("localCoord.x < radii.x && localCoord.y < radii.x")
+      assertThat(shader).contains("localCoord.x > size.x - radii.y && localCoord.y < radii.y")
+      assertThat(shader).contains("localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z")
+      assertThat(shader).contains("localCoord.x < radii.w && localCoord.y > size.y - radii.w")
+      assertThat(shader).doesNotContain("float radiusAt(")
+      assertThat(shader).doesNotContain(
+        "float sdRoundedRect(vec2 coord, vec2 halfSize, float radius)",
+      )
+    }
+  }
+
+  @Test
+  fun opticalAndDetailShaders_useFullRoundedRectForSurfaceAndDisplacement() {
+    listOf(
+      GlassShaders.buildOptical(),
+      GlassShaders.buildOptical(interactive = true),
+      GlassShaders.buildRefractionDetail(),
+      GlassShaders.buildRefractionDetail(interactive = true),
+    ).forEach { shader ->
+      assertThat(shader).contains(
+        "float surfaceHeightAt(vec2 localCoord, vec4 customRadii)",
+      )
+      assertThat(shader).contains(
+        "gradSdRoundedRect(localCoord, materialSize, cornerRadii)",
+      )
+      assertThat(shader).doesNotContain("min(smoothRadius, min(halfSize.x, halfSize.y))")
+    }
   }
 
   private class RecordingUniformProvider : RuntimeShaderUniformProvider {

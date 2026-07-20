@@ -45,6 +45,11 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_progressiveMaskGeometryIsInputScaleInvariant() = runScreenshotTest {
+    assertGlassProgressiveMaskScaleInvariant()
+  }
+
+  @Test
   fun glass_paddingPreservesSourceAppearance() = runScreenshotTest {
     assertGlassPaddingPreservesSourceInvariant()
   }
@@ -60,8 +65,13 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun glass_translucentSourceUsesPremultipliedSourceOver() = runScreenshotTest {
+  fun glass_neutralOpticsPreserveTranslucentPremultipliedRgba() = runScreenshotTest {
     assertGlassTranslucentSourceInvariant()
+  }
+
+  @Test
+  fun glass_maximumChromaKeepsSaturatedPrimariesFinite() = runScreenshotTest {
+    assertGlassChromaMultiplierFiniteInvariant()
   }
 
   @Test
@@ -82,6 +92,16 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   @Test
   fun glass_defaultRefractionIsVisiblyDisplaced() = runScreenshotTest {
     assertGlassDefaultRefractionVisibleInvariant()
+  }
+
+  @Test
+  fun glass_oversizedAsymmetricCornersMatchComposeClip() = runScreenshotTest {
+    assertGlassOversizedAsymmetricCornersInvariant()
+  }
+
+  @Test
+  fun glass_crossEdgeCornersMatchComposeClip() = runScreenshotTest {
+    assertGlassCrossEdgeCornersInvariant()
   }
 
   @Test
