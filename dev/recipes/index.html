@@ -932,9 +932,11 @@
 <span class="w">      </span><span class="cm">/* todo */</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
-<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">contentPadding</span><span class="w"> </span><span class="o">-&gt;</span>
 <span class="w">  </span><span class="n">LazyVerticalGrid</span><span class="p">(</span>
+<span class="w">    </span><span class="n">contentPadding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">contentPadding</span><span class="p">,</span>
 <span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
+<span class="w">      </span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">()</span>
 <span class="w">      </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span>
 <span class="w">        </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
 <span class="w">      </span><span class="p">),</span>
@@ -943,6 +945,15 @@
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>Common scaffold composables include:</p>
+<ul>
+<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/Scaffold.composable"><code>Scaffold</code></a>, which provides content padding for app bars and other chrome.</li>
+<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/BottomSheetScaffold.composable"><code>BottomSheetScaffold</code></a>, which provides content padding for its top bar and bottom sheet.</li>
+<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/navigationsuite/NavigationSuiteScaffold.composable"><code>NavigationSuiteScaffold</code></a>, which places adaptive navigation beside or below its content.</li>
+<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/layout/ListDetailPaneScaffold.composable"><code>ListDetailPaneScaffold</code></a>, which arranges list, detail, and optional extra panes.</li>
+<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/layout/SupportingPaneScaffold.composable"><code>SupportingPaneScaffold</code></a>, which arranges main, supporting, and optional extra panes.</li>
+</ul>
+<p>For scaffold composables that provide content padding, pass that padding to the scrollable content rather than applying it as an outer modifier. This keeps interactive items clear of the chrome while preserving a full-size Haze source with pixels behind translucent bars. Scaffold-like layouts that measure content beside or above their chrome require an application-level overlay or custom layout to achieve an edge-to-edge translucent effect.</p>
 <h2 id="sticky-headers">Sticky Headers<a class="headerlink" href="#sticky-headers" title="Permanent link">¶</a></h2>
 <p>The <code>stickyHeader</code> functionality on <code>LazyColumn</code> and friends is very useful, but unfortunately the limitations of Haze means that blurring the list contents for the header background is tricky.</p>
 <p>Since we can not use <code>Modifier.hazeSource</code> on the <code>LazyColumn</code> and <code>Modifier.hazeEffect</code> on items, as we would get into recursive drawing, we need to get a bit more creative.</p>
