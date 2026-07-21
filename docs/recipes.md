@@ -54,7 +54,7 @@ Scaffold(
 }
 ```
 
-Keep `contentPadding` inside the scrollable content so interactive items remain clear of the app bars. Applying the padding as an outer modifier would shrink the viewport and its Haze source, leaving no source pixels behind the translucent bars. Scaffold-like layouts that measure content beside or above their chrome require an application-level overlay or custom layout to achieve an edge-to-edge translucent effect.
+The same guidance applies to other scaffold composables that provide content padding: pass that padding to the scrollable content rather than applying it as an outer modifier. This keeps interactive items clear of the chrome while preserving a full-size Haze source with pixels behind translucent bars. Scaffold-like layouts that measure content beside or above their chrome require an application-level overlay or custom layout to achieve an edge-to-edge translucent effect.
 
 ## Sticky Headers
 
