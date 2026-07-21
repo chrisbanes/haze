@@ -5,7 +5,11 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.platform.InspectorInfo
 import kotlin.jvm.JvmInline
 
@@ -169,7 +173,7 @@ public sealed interface HazeInputScale {
 public fun Modifier.hazeEffect(
   state: HazeState?,
   block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = this then HazeEffectNodeElement(state = state, block = block)
+): Modifier = thenHazeEffect(state = state, block = block)
 
 /**
  * Draw the 'haze' effect, using this node's content as the source, with a pre-configured [VisualEffect].
@@ -179,7 +183,19 @@ public fun Modifier.hazeEffect(
 @Stable
 public fun Modifier.hazeEffect(
   block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = this then HazeEffectNodeElement(state = null, block = block)
+): Modifier = thenHazeEffect(state = null, block = block)
+
+private fun Modifier.thenHazeEffect(
+  state: HazeState?,
+  block: (HazeEffectScope.() -> Unit)?,
+): Modifier {
+  val effect = this then HazeEffectNodeElement(state = state, block = block)
+  return if (state == null) {
+    effect.graphicsLayer() then ForegroundContentInvalidationElement
+  } else {
+    effect
+  }
+}
 
 private data class HazeEffectNodeElement(
   val state: HazeState?,
@@ -199,5 +215,33 @@ private data class HazeEffectNodeElement(
 
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeEffect"
+  }
+}
+
+private data object ForegroundContentInvalidationElement :
+  ModifierNodeElement<ForegroundContentInvalidationNode>() {
+  override fun create() = ForegroundContentInvalidationNode()
+
+  override fun update(node: ForegroundContentInvalidationNode) = Unit
+
+  override fun InspectorInfo.inspectableProperties() {
+    name = "hazeForegroundContent"
+  }
+}
+
+private class ForegroundContentInvalidationNode : Modifier.Node(), DrawModifierNode {
+  private var effectNode: HazeEffectNode? = null
+
+  override fun onAttach() {
+    effectNode = findNearestAncestor(HazeTraversableNodeKeys.Effect) as? HazeEffectNode
+  }
+
+  override fun onDetach() {
+    effectNode = null
+  }
+
+  override fun ContentDrawScope.draw() {
+    effectNode?.onForegroundContentDraw()
+    drawContent()
   }
 }

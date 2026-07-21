@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
@@ -100,6 +101,30 @@ class VisualEffectContentVersionTest : ContextTest() {
             .size(100.dp)
             .hazeEffect { visualEffect = effect }
             .drawBehind { drawRect(childColor.value) },
+        )
+      }
+      waitForIdle()
+      val initialVersion = effect.versions.last()
+
+      effect.invalidateEffect()
+      childColor.value = Color.Blue
+      waitForIdle()
+
+      assertThat(effect.versions.last()).isGreaterThan(initialVersion)
+    }
+
+  @Test
+  fun foregroundContentVersion_coalescedEffectAndDirectChildInvalidationAdvancesVersion() =
+    runComposeUiTest {
+      val childColor = mutableStateOf(Color.Red)
+      val effect = ForegroundContentVersionEffect()
+
+      setContent {
+        Box(
+          Modifier
+            .size(100.dp)
+            .hazeEffect { visualEffect = effect }
+            .background(childColor.value),
         )
       }
       waitForIdle()

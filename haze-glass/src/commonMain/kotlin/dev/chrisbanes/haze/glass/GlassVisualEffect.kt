@@ -48,6 +48,24 @@ private data class GlassPreparedRenderCacheKey(
   val interaction: ResolvedGlassInteraction,
 )
 
+private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): Boolean =
+  resolvedOptics == other.resolvedOptics &&
+    specularIntensity == other.specularIntensity &&
+    ambientResponse == other.ambientResponse &&
+    tint == other.tint &&
+    edgeSoftnessPx == other.edgeSoftnessPx &&
+    lightPosition == other.lightPosition &&
+    chromaticAberrationStrength == other.chromaticAberrationStrength &&
+    surfaceProfile == other.surfaceProfile &&
+    chromaticAberrationMode == other.chromaticAberrationMode &&
+    contrast == other.contrast &&
+    whitePoint == other.whitePoint &&
+    chromaMultiplier == other.chromaMultiplier &&
+    contentNormalBlend == other.contentNormalBlend &&
+    specularExponent == other.specularExponent &&
+    fresnelExponent == other.fresnelExponent &&
+    cornerRadii == other.cornerRadii
+
 /**
  * A [VisualEffect] implementation that renders a translucent refractive glass material.
  * refraction, depth layering, specular highlights, and soft tinted glass.
@@ -704,10 +722,31 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     if (preparedRenderCacheKey == this.preparedRenderCacheKey) {
       return GlassRenderPreparation(decision, checkNotNull(preparedRenderCache))
     }
+    val previousCacheKey = this.preparedRenderCacheKey
+    val previousPrepared = preparedRenderCache
+    val params = if (
+      previousCacheKey != null && previousPrepared != null &&
+      coordinates == previousCacheKey.coordinates &&
+      style.hasSameRenderParams(previousCacheKey.style)
+    ) {
+      previousPrepared.params
+    } else {
+      buildGlassRenderParams(style, coordinates)
+    }
+    val interactionUniforms = if (
+      previousCacheKey != null && previousPrepared != null &&
+      coordinates == previousCacheKey.coordinates &&
+      interaction == previousCacheKey.interaction
+    ) {
+      previousPrepared.interactionUniforms
+    } else {
+      interaction.uniforms(coordinates)
+    }
     val exactPrepared = buildGlassPreparedRender(
-      style = style,
-      coordinates = coordinates,
-      interaction = interaction,
+      params = params,
+      interactionUniforms = interactionUniforms,
+      alpha = style.alpha,
+      previous = previousPrepared,
     )
     if (!exactPrepared.plan.fitsGlassRenderBudget()) {
       val fallback = GlassRenderBudgetDecision.Fallback(
