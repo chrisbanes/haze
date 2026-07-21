@@ -40,9 +40,11 @@ Scaffold(
       /* todo */
     }
   },
-) {
+) { contentPadding ->
   LazyVerticalGrid(
+    contentPadding = contentPadding,
     modifier = Modifier
+      .fillMaxSize()
       .hazeSource(
         state = hazeState,
       ),
@@ -51,6 +53,8 @@ Scaffold(
   }
 }
 ```
+
+Keep `contentPadding` inside the scrollable content so interactive items remain clear of the app bars. Applying the padding as an outer modifier would shrink the viewport and its Haze source, leaving no source pixels behind the translucent bars. Scaffold-like layouts that measure content beside or above their chrome require an application-level overlay or custom layout to achieve an edge-to-edge translucent effect.
 
 ## Sticky Headers
 
