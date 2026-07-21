@@ -40,9 +40,11 @@ Scaffold(
       /* todo */
     }
   },
-) {
+) { contentPadding ->
   LazyVerticalGrid(
+    contentPadding = contentPadding,
     modifier = Modifier
+      .fillMaxSize()
       .hazeSource(
         state = hazeState,
       ),
@@ -51,6 +53,16 @@ Scaffold(
   }
 }
 ```
+
+Common scaffold composables include:
+
+- [`Scaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/Scaffold.composable), which provides content padding for app bars and other chrome.
+- [`BottomSheetScaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/BottomSheetScaffold.composable), which provides content padding for its top bar and bottom sheet.
+- [`NavigationSuiteScaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/navigationsuite/NavigationSuiteScaffold.composable), which places adaptive navigation beside or below its content.
+- [`ListDetailPaneScaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/layout/ListDetailPaneScaffold.composable), which arranges list, detail, and optional extra panes.
+- [`SupportingPaneScaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/layout/SupportingPaneScaffold.composable), which arranges main, supporting, and optional extra panes.
+
+For scaffold composables that provide content padding, pass that padding to the scrollable content rather than applying it as an outer modifier. This keeps interactive items clear of the chrome while preserving a full-size Haze source with pixels behind translucent bars. Scaffold-like layouts that measure content beside or above their chrome require an application-level overlay or custom layout to achieve an edge-to-edge translucent effect.
 
 ## Sticky Headers
 
