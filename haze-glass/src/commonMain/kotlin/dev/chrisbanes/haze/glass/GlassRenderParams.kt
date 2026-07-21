@@ -792,16 +792,6 @@ internal data class GlassPreparedRender(
 )
 
 internal fun buildGlassPreparedRender(
-  style: ResolvedGlassStyle,
-  coordinates: GlassCoordinates,
-  interaction: ResolvedGlassInteraction,
-): GlassPreparedRender = buildGlassPreparedRender(
-  params = buildGlassRenderParams(style, coordinates),
-  interactionUniforms = interaction.uniforms(coordinates),
-  alpha = style.alpha,
-)
-
-internal fun buildGlassPreparedRender(
   params: GlassRenderParams,
   interactionUniforms: GlassInteractionUniforms,
   alpha: Float,

@@ -144,19 +144,20 @@ class GlassRenderParamsTest {
       density = Density(1f),
       layoutDirection = LayoutDirection.Ltr,
     )
+    val coordinates = GlassCoordinates(
+      sampleSize = Size(100f, 80f),
+      materialOrigin = Offset.Zero,
+      materialSize = Size(100f, 80f),
+      scaleFactor = 1f,
+    )
 
     val prepared = buildGlassPreparedRender(
-      style = style,
-      coordinates = GlassCoordinates(
-        sampleSize = Size(100f, 80f),
-        materialOrigin = Offset.Zero,
-        materialSize = Size(100f, 80f),
-        scaleFactor = 1f,
-      ),
-      interaction = resolveGlassInteraction(
+      params = buildGlassRenderParams(style, coordinates),
+      interactionUniforms = resolveGlassInteraction(
         state = GlassInteractionRenderState(Offset.Zero),
         radiusFraction = 0f,
-      ),
+      ).uniforms(coordinates),
+      alpha = style.alpha,
     )
 
     assertThat(prepared.alpha).isEqualTo(GlassDefaults.alpha)
