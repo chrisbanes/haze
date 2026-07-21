@@ -28,7 +28,11 @@ public sealed interface GlassOptics {
    * A complete optical configuration with no geometry-dependent adjustment.
    *
    * Accepted values are resolved without geometry-dependent adjustment. [blurRadius] uses
-   * density-independent [Dp]. [refractionHeight] is a fraction of the material's shortest side.
+   * density-independent [Dp]. The current semantic blur renderer limits its effective radius to
+   * 38.5 full-resolution physical pixels, so the effective radius is the lesser of the requested
+   * `Dp` converted through the current density and 38.5 pixels. This is a renderer quality bound,
+   * not an input-validation limit; larger finite, non-negative values remain accepted.
+   * [refractionHeight] is a fraction of the material's shortest side.
    * [refractionScale] is a raw displacement in full-resolution effect pixels; it is not converted
    * through density and is scaled only when [dev.chrisbanes.haze.HazeInputScale] renders the
    * effect at reduced resolution.
