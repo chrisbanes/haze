@@ -7,19 +7,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.down
 import androidx.compose.ui.test.moveTo
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -41,6 +46,58 @@ import kotlin.test.assertSame
 class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
   @Test
+  fun nonFiniteCornerShape_runtimeUsesCanonicalSafeRadii() = runComposeUiTest {
+    val effect = activeDetailEffect().apply {
+      shape = invalidCornerShape(Float.NaN)
+    }
+
+    setContent {
+      Box(
+        Modifier
+          .size(120.dp)
+          .testTag("glass")
+          .hazeEffect {
+            inputScale = HazeInputScale.None
+            visualEffect = effect
+          },
+      ) {
+        Box(Modifier.fillMaxSize().background(Color.Red))
+      }
+    }
+    waitForIdle()
+
+    assertThat(effect.delegate is RuntimeShaderGlassDelegate).isTrue()
+    val radii = checkNotNull(effect.preparedRender).params.cornerRadii
+    assertThat(radii.values().all { it.isFinite() && it >= 0f }).isTrue()
+  }
+
+  @Test
+  fun nonFiniteCornerShape_fallbackDrawUsesCanonicalSafeRadii() = runComposeUiTest {
+    val effect = GlassVisualEffect().apply {
+      shape = invalidCornerShape(Float.POSITIVE_INFINITY)
+    }
+
+    setContent {
+      Box(
+        Modifier
+          .size(120.dp)
+          .testTag("glass")
+          .hazeEffect {
+            inputScale = HazeInputScale.None
+            visualEffect = effect
+          },
+      ) {
+        Box(Modifier.fillMaxSize().background(Color.Red))
+      }
+    }
+    waitForIdle()
+    effect.delegate = FallbackGlassDelegate(effect)
+
+    assertThat(effect.delegate is FallbackGlassDelegate).isTrue()
+    onNodeWithTag("glass").captureToImage()
+  }
+
+  @Test
   fun idleInteractiveEffect_doesNotAllocateInteractionStages() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
 
@@ -51,6 +108,37 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(delegate.layers.hasInteractionOptical).isFalse()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isFalse()
     assertThat(delegate.layers.hasInteractionLighting).isFalse()
+  }
+
+  @Test
+  fun maximumRefraction_foregroundContentSelectsFallbackDelegate() = runComposeUiTest {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(
+        refractionStrength = 1f,
+        refractionScale = 16_384f,
+        blurRadius = 0.dp,
+      )
+      edgeSoftness = 0.dp
+      shape = RoundedCornerShape(0.dp)
+    }
+
+    setContent {
+      Box(
+        Modifier
+          .size(120.dp)
+          .testTag("glass")
+          .hazeEffect {
+            inputScale = HazeInputScale.None
+            visualEffect = effect
+          },
+      ) {
+        Box(Modifier.fillMaxSize().background(Color.Red))
+      }
+    }
+    waitForIdle()
+
+    assertThat(effect.delegate is FallbackGlassDelegate).isTrue()
+    assertThat(effect.preparedRender).isNull()
   }
 
   @Test
@@ -297,6 +385,19 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     interactionLightRadiusFraction = 0.7f
     interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
   }
+
+  private fun invalidCornerShape(radius: Float) = RoundedCornerShape(
+    object : CornerSize {
+      override fun toPx(shapeSize: Size, density: Density): Float = radius
+    },
+  )
+
+  private fun CornerRadii.values(): List<Float> = listOf(
+    topLeft,
+    topRight,
+    bottomRight,
+    bottomLeft,
+  )
 
   @Composable
   private fun RuntimeGlassTestContent(effect: GlassVisualEffect, tag: String) {

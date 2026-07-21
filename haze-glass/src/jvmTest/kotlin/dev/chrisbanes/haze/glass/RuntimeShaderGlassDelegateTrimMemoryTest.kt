@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
@@ -15,10 +16,14 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -31,11 +36,180 @@ import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
+import kotlin.test.assertSame
 import kotlinx.coroutines.CoroutineScope
 import sun.misc.Unsafe
 
 @OptIn(ExperimentalHazeApi::class, InternalComposeUiApi::class)
 class RuntimeShaderGlassDelegateTrimMemoryTest {
+
+  @Test
+  fun prepareDraw_consumesTheSelectedPreparedRenderParamsInstance() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(depth = 0f)
+    }
+    val delegate = RuntimeShaderGlassDelegate(effect)
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+    )
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val prepared = checkNotNull(effect.preparedRender)
+
+    with(CanvasDrawScope()) {
+      with(delegate) { prepareDraw(context) }
+    }
+
+    assertSame(prepared.params, delegate.preparedParamsForTest())
+  }
+
+  @Test
+  fun prepareDraw_budgetScaleReductionReleasesAndRebuildsRuntimeLayers() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(
+        refractionStrength = 0f,
+        refractionScale = 0f,
+        blurRadius = 0.dp,
+      )
+    }
+    val delegate = RuntimeShaderGlassDelegate(effect)
+    val graphicsContext = TestGraphicsContext()
+    val initialContext = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+      graphicsContext = graphicsContext,
+    )
+    delegate.prepareDrawForTest(initialContext, effect)
+    val initialLayers = delegate.layers.allLayers()
+
+    val oversizedContext = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(5_000f, 5_000f),
+      graphicsContext = graphicsContext,
+    )
+    delegate.prepareDrawForTest(oversizedContext, effect)
+    val prepared = checkNotNull(effect.preparedRender)
+    val decision = effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime
+
+    assertThat(decision.scaleFactor < 1f).isTrue()
+    assertThat(graphicsContext.releasedLayers).containsExactly(*initialLayers.toTypedArray())
+    assertThat(delegate.layers.scaledSize).isEqualTo(
+      prepared.params.coordinates.sampleSize.roundToIntSize(),
+    )
+    assertThat(delegate.layers.allLayers().all { !it.isReleased }).isTrue()
+  }
+
+  @Test
+  fun prepareDraw_releasesObsoleteTopologyBeforeCreatingReplacementLayers() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(
+        refractionStrength = 0.5f,
+        refractionScale = 20f,
+        depth = 0f,
+        blurRadius = 0.dp,
+      )
+      specularIntensity = 1f
+    }
+    val delegate = RuntimeShaderGlassDelegate(effect)
+    val graphicsContext = TestGraphicsContext()
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+      graphicsContext = graphicsContext,
+    )
+    delegate.prepareDrawForTest(context, effect)
+    val retainedSource = checkNotNull(delegate.layers.source)
+    val retainedOptical = checkNotNull(delegate.layers.optical)
+    delegate.layers.interactionOptical = graphicsContext.createGraphicsLayer()
+    delegate.layers.interactionRefractionDetail = graphicsContext.createGraphicsLayer()
+    delegate.layers.interactionLighting = graphicsContext.createGraphicsLayer()
+    val obsoleteLayers = listOf(
+      checkNotNull(delegate.layers.refractionDetail),
+      checkNotNull(delegate.layers.rim),
+      checkNotNull(delegate.layers.interactionOptical),
+      checkNotNull(delegate.layers.interactionRefractionDetail),
+      checkNotNull(delegate.layers.interactionLighting),
+    )
+    graphicsContext.events.clear()
+
+    effect.optics = GlassOptics.Absolute(
+      refractionStrength = 0f,
+      refractionScale = 0f,
+      depth = 0.5f,
+      blurRadius = 24.dp,
+    )
+    effect.specularIntensity = 0f
+    delegate.prepareDrawForTest(context, effect)
+
+    val firstCreate = graphicsContext.events.indexOfFirst { it is LayerEvent.Create }
+    val lastObsoleteRelease = graphicsContext.events.indexOfLast {
+      it is LayerEvent.Release && it.layer in obsoleteLayers
+    }
+    assertThat(lastObsoleteRelease).isGreaterThanOrEqualTo(0)
+    assertThat(firstCreate).isGreaterThan(lastObsoleteRelease)
+    assertSame(retainedSource, delegate.layers.source)
+    assertSame(retainedOptical, delegate.layers.optical)
+  }
+
+  @Test
+  fun prepareDraw_budgetDecisionTransitionsRuntimeToFallbackToFreshRuntime() {
+    val effect = GlassVisualEffect()
+    val graphicsContext = TestGraphicsContext()
+    val safeContext = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+      graphicsContext = graphicsContext,
+    )
+
+    effect.attach(safeContext)
+    effect.prepareDrawForTest(safeContext)
+    val firstRuntime = effect.delegate as RuntimeShaderGlassDelegate
+    val firstLayers = firstRuntime.layers.allLayers()
+
+    effect.prepareDrawForTest(
+      RecordingVisualEffectContext(
+        size = Size(100f, 100f),
+        layerSize = Size(50_000f, 50_000f),
+        graphicsContext = graphicsContext,
+      ),
+    )
+    assertThat(effect.delegate is FallbackGlassDelegate).isTrue()
+    assertThat(firstLayers.all { it in graphicsContext.releasedLayers }).isTrue()
+
+    effect.prepareDrawForTest(safeContext)
+    val secondRuntime = effect.delegate as RuntimeShaderGlassDelegate
+    assertThat(secondRuntime !== firstRuntime).isTrue()
+    assertThat(secondRuntime.layers.hasSource).isTrue()
+    assertThat(secondRuntime.layers.hasOptical).isTrue()
+    effect.detach(safeContext)
+  }
+
+  @Test
+  fun prepareDraw_impossibleMaximumRefractionGeometryCreatesNoRuntimeLayers() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(
+        refractionStrength = 1f,
+        refractionScale = 16_384f,
+        blurRadius = 0.dp,
+      )
+      edgeSoftness = 0.dp
+      shape = RoundedCornerShape(0.dp)
+    }
+    val graphicsContext = TestGraphicsContext()
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(49_252f, 49_252f),
+      graphicsContext = graphicsContext,
+    )
+
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+
+    assertThat(effect.delegate is FallbackGlassDelegate).isTrue()
+    assertThat(effect.preparedRender).isNull()
+    assertThat(graphicsContext.events.filterIsInstance<LayerEvent.Create>()).isEqualTo(emptyList())
+    effect.detach(context)
+  }
 
   @Test
   fun releaseBlurred_releasesAtMostThreeBlurLayersAndSize() {
@@ -118,6 +292,12 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val delegate = RuntimeShaderGlassDelegate(GlassVisualEffect())
     val context = RecordingVisualEffectContext()
     delegate.layers.populate(context.graphicsContext)
+    delegate.seedSuccessfulCacheMetadata()
+    delegate.seedRetainedOutputAvailable()
+    val retainedLayers = delegate.layers.allLayers()
+
+    assertThat(retainedLayers.size).isEqualTo(11)
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.BACKGROUND)
 
@@ -128,8 +308,29 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.hasDepthMixed).isTrue()
     assertThat(delegate.layers.hasOptical).isTrue()
     assertThat(delegate.layers.hasRefractionDetail).isTrue()
+    assertThat(delegate.layers.hasInteractionOptical).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
+    assertThat(delegate.layers.hasInteractionLighting).isTrue()
     assertThat(delegate.layers.hasRim).isTrue()
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
     assertThat(context.invalidateDrawCalls).isEqualTo(0)
+  }
+
+  @Test
+  fun onTrimMemory_uiHiddenReleasesAllLayersAndInvalidatesDraw() {
+    val delegate = RuntimeShaderGlassDelegate(GlassVisualEffect())
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+    delegate.layers.populate(context.graphicsContext)
+    val retainedLayers = delegate.layers.allLayers()
+    delegate.setGraphicsContextForTest(context.graphicsContext)
+
+    assertThat(retainedLayers.size).isEqualTo(11)
+
+    delegate.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
+
+    assertThat(context.graphicsContext.releasedLayers).containsExactly(*retainedLayers.toTypedArray())
+    assertThat(delegate.layers.isEmpty).isTrue()
+    assertThat(context.invalidateDrawCalls).isEqualTo(1)
   }
 
   @Test
@@ -138,16 +339,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val context = RecordingVisualEffectContext()
     delegate.layers.populate(context.graphicsContext)
     delegate.seedSuccessfulCacheMetadata()
-    val retainedLayers = listOfNotNull(
-      delegate.layers.source,
-      delegate.layers.blurPrefiltered,
-      delegate.layers.blurHorizontal,
-      delegate.layers.blurred,
-      delegate.layers.depthMixed,
-      delegate.layers.optical,
-      delegate.layers.refractionDetail,
-      delegate.layers.rim,
-    )
+    val retainedLayers = delegate.layers.allLayers()
 
     assertThat(delegate.layers.hasSource).isTrue()
     assertThat(delegate.layers.hasBlurPrefiltered).isTrue()
@@ -156,7 +348,11 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.hasDepthMixed).isTrue()
     assertThat(delegate.layers.hasOptical).isTrue()
     assertThat(delegate.layers.hasRefractionDetail).isTrue()
+    assertThat(delegate.layers.hasInteractionOptical).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
+    assertThat(delegate.layers.hasInteractionLighting).isTrue()
     assertThat(delegate.layers.hasRim).isTrue()
+    assertThat(retainedLayers.size).isEqualTo(11)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
 
@@ -164,6 +360,28 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.isEmpty).isTrue()
     assertThat(delegate.lastSuccessfulSourceSnapshot).isNull()
     assertThat(delegate.lastSuccessfulStageInputs).isNull()
+    assertThat(context.invalidateDrawCalls).isEqualTo(1)
+  }
+
+  @Test
+  fun onTrimMemory_completeClearsRetainedOutputAvailabilityAndInvalidatesDraw() {
+    val delegate = RuntimeShaderGlassDelegate(GlassVisualEffect())
+    val context = RecordingVisualEffectContext()
+    delegate.layers.populate(context.graphicsContext)
+    delegate.seedSuccessfulCacheMetadata()
+    delegate.seedRetainedOutputAvailable()
+    val retainedLayers = delegate.layers.allLayers()
+
+    assertThat(retainedLayers.size).isEqualTo(11)
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+
+    delegate.onTrimMemory(context, TrimMemoryLevel.COMPLETE)
+
+    assertThat(context.graphicsContext.releasedLayers).containsExactly(*retainedLayers.toTypedArray())
+    assertThat(delegate.layers.isEmpty).isTrue()
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isNull()
+    assertThat(delegate.lastSuccessfulStageInputs).isNull()
+    assertThat(delegate.canDrawRetainedOutput()).isFalse()
     assertThat(context.invalidateDrawCalls).isEqualTo(1)
   }
 
@@ -266,13 +484,39 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
         failIfBuildRenderParamsReached = true,
       ),
     ).forEach { context ->
-      val delegate = RuntimeShaderGlassDelegate(GlassVisualEffect())
-      val retainedLayers = delegate.prepareDrawWithRetainedLayers(context)
+      val effect = GlassVisualEffect()
+      val delegate = RuntimeShaderGlassDelegate(effect)
+      val retainedLayers = delegate.prepareDrawWithRetainedLayers(context, effect)
 
+      assertThat(retainedLayers.size).isEqualTo(11)
       assertThat(context.graphicsContext.releasedLayers)
         .containsExactly(*retainedLayers.toTypedArray())
       assertThat(delegate.layers.isEmpty).isTrue()
     }
+  }
+
+  @Test
+  fun onTrimMemory_uiHiddenRecreatesSafeGraphWithFreshSourceAndOpticalLayers() {
+    val effect = GlassVisualEffect()
+    val delegate = RuntimeShaderGlassDelegate(effect)
+    val context = RecordingVisualEffectContext(size = Size(100f, 100f), layerSize = Size(100f, 100f))
+
+    delegate.prepareDrawForTest(context, effect)
+    val firstLayers = delegate.layers.allLayers()
+    val firstSource = checkNotNull(delegate.layers.source)
+    val firstOptical = checkNotNull(delegate.layers.optical)
+
+    delegate.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
+
+    delegate.prepareDrawForTest(context, effect)
+    val secondSource = checkNotNull(delegate.layers.source)
+    val secondOptical = checkNotNull(delegate.layers.optical)
+
+    assertThat(firstLayers).containsExactly(*context.graphicsContext.releasedLayers.toTypedArray())
+    assertThat(secondSource.isReleased).isFalse()
+    assertThat(secondOptical.isReleased).isFalse()
+    assertThat(secondSource === firstSource).isFalse()
+    assertThat(secondOptical === firstOptical).isFalse()
   }
 }
 
@@ -285,6 +529,9 @@ private fun GlassLayers.populate(graphicsContext: GraphicsContext) {
   depthMixed = graphicsContext.createGraphicsLayer()
   optical = graphicsContext.createGraphicsLayer()
   refractionDetail = graphicsContext.createGraphicsLayer()
+  interactionOptical = graphicsContext.createGraphicsLayer()
+  interactionRefractionDetail = graphicsContext.createGraphicsLayer()
+  interactionLighting = graphicsContext.createGraphicsLayer()
   rim = graphicsContext.createGraphicsLayer()
 }
 
@@ -296,29 +543,41 @@ private fun GlassLayers.allLayers(): List<GraphicsLayer> = listOfNotNull(
   depthMixed,
   optical,
   refractionDetail,
+  interactionOptical,
+  interactionRefractionDetail,
+  interactionLighting,
   rim,
 )
 
 private fun RuntimeShaderGlassDelegate.prepareDrawWithRetainedLayers(
   context: RecordingVisualEffectContext,
+  effect: GlassVisualEffect,
 ): List<GraphicsLayer> {
   layers.populate(context.graphicsContext)
-  val retainedLayers = listOfNotNull(
-    layers.source,
-    layers.blurPrefiltered,
-    layers.blurHorizontal,
-    layers.blurred,
-    layers.depthMixed,
-    layers.optical,
-    layers.refractionDetail,
-    layers.rim,
-  )
+  val retainedLayers = layers.allLayers()
   setGraphicsContextForTest(context.graphicsContext)
 
+  effect.prepareRenderBudget(context, runtimeShaderSupported = true)
   with(CanvasDrawScope()) {
     with(this@prepareDrawWithRetainedLayers) { prepareDraw(context) }
   }
   return retainedLayers
+}
+
+private fun RuntimeShaderGlassDelegate.prepareDrawForTest(
+  context: RecordingVisualEffectContext,
+  effect: GlassVisualEffect,
+) {
+  effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+  with(CanvasDrawScope()) {
+    with(this@prepareDrawForTest) { prepareDraw(context) }
+  }
+}
+
+private fun GlassVisualEffect.prepareDrawForTest(context: RecordingVisualEffectContext) {
+  with(CanvasDrawScope()) {
+    with(this@prepareDrawForTest) { prepareDraw(context) }
+  }
 }
 
 private fun RuntimeShaderGlassDelegate.setGraphicsContextForTest(
@@ -329,6 +588,12 @@ private fun RuntimeShaderGlassDelegate.setGraphicsContextForTest(
     set(this@setGraphicsContextForTest, graphicsContext)
   }
 }
+
+private fun RuntimeShaderGlassDelegate.preparedParamsForTest(): GlassRenderParams? =
+  javaClass.getDeclaredField("preparedParams").run {
+    isAccessible = true
+    get(this@preparedParamsForTest) as GlassRenderParams?
+  }
 
 private fun RuntimeShaderGlassDelegate.seedSuccessfulCacheMetadata(
   detail: Any? = Any(),
@@ -367,9 +632,8 @@ private class RecordingVisualEffectContext(
   override val size: Size = Size.Zero,
   override val layerSize: Size = Size.Zero,
   private val failIfBuildRenderParamsReached: Boolean = false,
+  val graphicsContext: TestGraphicsContext = TestGraphicsContext(),
 ) : VisualEffectContext {
-  val graphicsContext = TestGraphicsContext()
-
   var invalidateDrawCalls = 0
     private set
 
@@ -410,13 +674,25 @@ private class RecordingVisualEffectContext(
 @OptIn(InternalComposeUiApi::class)
 private class TestGraphicsContext : GraphicsContext {
   val releasedLayers = mutableListOf<GraphicsLayer>()
+  val events = mutableListOf<LayerEvent>()
 
   override fun createGraphicsLayer(): GraphicsLayer =
-    unsafe.allocateInstance(GraphicsLayer::class.java) as GraphicsLayer
+    (unsafe.allocateInstance(GraphicsLayer::class.java) as GraphicsLayer).also {
+      events += LayerEvent.Create(it)
+    }
 
   override fun releaseGraphicsLayer(layer: GraphicsLayer) {
     releasedLayers += layer
+    events += LayerEvent.Release(layer)
   }
+}
+
+private sealed interface LayerEvent {
+  val layer: GraphicsLayer
+
+  data class Create(override val layer: GraphicsLayer) : LayerEvent
+
+  data class Release(override val layer: GraphicsLayer) : LayerEvent
 }
 
 private val unsafe: Unsafe = Unsafe::class.java.getDeclaredField("theUnsafe").run {

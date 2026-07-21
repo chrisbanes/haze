@@ -5,8 +5,6 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.center
-import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -29,22 +27,19 @@ internal class FallbackGlassDelegate(
   private var cachedRadii: CornerRadii = CornerRadii.zero
 
   override fun DrawScope.draw(context: VisualEffectContext) {
-    val tint = effect.tint
-    if (!tint.isSpecified) return
-
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
-    val edgeSoftnessPx = with(context.requireDensity()) { effect.edgeSoftness.toPx() }
-    val edgeAlpha = fallbackEdgeAlpha(effect.ambientResponse)
-    val highlightCenter = effect.lightPosition.takeOrElse { size.center }
-    val highlightAlpha = 0.25f * effect.specularIntensity.coerceIn(0f, 1f)
+    val style = resolveGlassStyle(effect, size, density, layoutDirection)
+    val tint = style.tint
+    if (!tint.isSpecified) return
+
+    val edgeSoftnessPx = style.edgeSoftnessPx
+    val edgeAlpha = fallbackEdgeAlpha(style.ambientResponse)
+    val highlightCenter = style.lightPosition
+    val highlightAlpha = 0.25f * style.specularIntensity
     val highlightRadius = max(size.minDimension / 2f, edgeSoftnessPx * 4f)
 
-    val radii = effect.shape.toCornerRadiiPx(
-      layerSize = size,
-      density = density,
-      layoutDirection = layoutDirection,
-    )
+    val radii = style.cornerRadii
 
     if (size != cachedSize || radii != cachedRadii) {
       cachedSize = size
@@ -57,7 +52,7 @@ internal class FallbackGlassDelegate(
     }
     val shapePath = cachedShapePath
 
-    withAlpha(alpha = effect.alpha, context = context) {
+    withAlpha(alpha = style.alpha, context = context) {
       if (shapePath != null) {
         clipPath(shapePath) {
           drawRect(color = tint)
@@ -108,33 +103,45 @@ internal class FallbackGlassDelegate(
       }
 
       drawInteractionLighting(
-        effect = effect,
-        state = effect.currentInteractionState,
+        interaction = resolveFallbackGlassInteraction(
+          state = effect.currentInteractionState,
+          radiusFraction = effect.interactionLightRadiusFraction,
+          size = size,
+        ),
         shapePath = shapePath,
       )
     }
   }
 }
 
-private fun DrawScope.drawInteractionLighting(
-  effect: GlassVisualEffect,
+internal fun resolveFallbackGlassInteraction(
   state: GlassInteractionRenderState,
+  radiusFraction: Float,
+  size: Size,
+): GlassInteractionUniforms = resolveGlassInteraction(state, radiusFraction).uniforms(
+  GlassCoordinates(
+    sampleSize = size,
+    materialOrigin = Offset.Zero,
+    materialSize = size,
+    scaleFactor = 1f,
+  ),
+)
+
+private fun DrawScope.drawInteractionLighting(
+  interaction: GlassInteractionUniforms,
   shapePath: Path?,
 ) {
-  if (!state.hasLighting) return
-  val center = state.position
-  val radius = size.minDimension * effect.interactionLightRadiusFraction
-  if (radius <= 0f) return
+  if (!interaction.hasLighting) return
   val brush = Brush.radialGradient(
     colors = listOf(
-      Color.White.copy(alpha = 0.32f * state.lightingIntensity),
+      Color.White.copy(alpha = 0.32f * interaction.lightingIntensity),
       Color.Transparent,
     ),
-    center = center,
-    radius = radius,
+    center = interaction.position,
+    radius = interaction.radiusPx,
   )
   val drawHighlight: DrawScope.() -> Unit = {
-    drawCircle(brush = brush, center = center, radius = radius)
+    drawCircle(brush = brush, center = interaction.position, radius = interaction.radiusPx)
   }
   if (shapePath != null) {
     clipPath(shapePath, block = drawHighlight)

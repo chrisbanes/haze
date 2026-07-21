@@ -10,11 +10,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -26,12 +29,141 @@ import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
+import kotlin.test.assertSame
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 class GlassVisualEffectLifecycleTest {
+
+  @Test
+  fun prepareBudget_safeGraphPreservesRequestedScale() {
+    val decision = GlassVisualEffect().resolveGlassRenderBudget(
+      TrackingVisualEffectContext(effectSize = Size(100f, 100f), layerSize = Size(120f, 120f)),
+    )
+
+    assertThat((decision as GlassRenderBudgetDecision.Runtime).scaleFactor).isEqualTo(1f)
+  }
+
+  @Test
+  fun prepareBudget_maxRefractionUsesFallbackBeforeRuntimePreparation() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(
+        refractionStrength = 1f,
+        refractionScale = 16_384f,
+        blurRadius = 0.dp,
+      )
+    }
+    val decision = effect.resolveGlassRenderBudget(
+      TrackingVisualEffectContext(
+        effectSize = Size(100f, 100f),
+        layerSize = Size(49_252f, 49_252f),
+      ),
+    )
+
+    assertThat(decision).isInstanceOf(GlassRenderBudgetDecision.Fallback::class)
+  }
+
+  @Test
+  fun prepareBudget_retainsSelectedRenderBundleWithoutInactiveBlurKey() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(depth = 0f, blurRadius = 38.5.dp)
+    }
+
+    val decision = effect.prepareRenderBudget(
+      TrackingVisualEffectContext(),
+      runtimeShaderSupported = true,
+    )
+    val prepared = checkNotNull(effect.preparedRender)
+
+    assertThat(prepared.plan).isEqualTo((decision as GlassRenderBudgetDecision.Runtime).plan)
+    assertThat(prepared.blurKey).isNull()
+  }
+
+  @Test
+  fun prepareBudget_runtimeUnavailableSkipsExactRenderBundle() {
+    val effect = GlassVisualEffect()
+
+    val decision = effect.prepareRenderBudget(
+      TrackingVisualEffectContext(),
+      runtimeShaderSupported = false,
+    )
+
+    assertThat(decision).isInstanceOf(GlassRenderBudgetDecision.Runtime::class)
+    assertThat(effect.preparedRender).isNull()
+  }
+
+  @Test
+  fun prepareBudget_scaleDependentDetailUsesExactSelectedPlan() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(
+        refractionStrength = 1f,
+        refractionScale = 0.18f,
+        depth = 0f,
+        blurRadius = 0.dp,
+      )
+    }
+
+    val decision = effect.prepareRenderBudget(
+      TrackingVisualEffectContext(
+        effectSize = Size(100f, 100f),
+        layerSize = Size(8_800f, 8_800f),
+      ),
+      runtimeShaderSupported = true,
+    ) as GlassRenderBudgetDecision.Runtime
+    val prepared = checkNotNull(effect.preparedRender)
+
+    assertThat(decision.scaleFactor > 0.25f).isEqualTo(true)
+    assertThat(decision.plan).isEqualTo(prepared.plan)
+    assertThat(prepared.plan.fitsGlassRenderBudget()).isEqualTo(true)
+    assertThat(prepared.plan.layers.map { it.kind }).isEqualTo(
+      listOf(
+        GlassRetainedLayerKind.Source,
+        GlassRetainedLayerKind.Optical,
+        GlassRetainedLayerKind.Rim,
+      ),
+    )
+  }
+
+  @Test
+  fun prepareBudget_runtimeToFallbackClearsPreparedRenderBundle() {
+    val effect = GlassVisualEffect()
+
+    assertThat(
+      effect.prepareRenderBudget(
+        TrackingVisualEffectContext(),
+        runtimeShaderSupported = true,
+      ),
+    ).isInstanceOf(GlassRenderBudgetDecision.Runtime::class)
+    assertThat(effect.preparedRender).isNotNull()
+
+    assertThat(
+      effect.prepareRenderBudget(
+        TrackingVisualEffectContext(layerSize = Size(50_000f, 50_000f)),
+        runtimeShaderSupported = true,
+      ),
+    ).isInstanceOf(GlassRenderBudgetDecision.Fallback::class)
+    assertThat(effect.preparedRender).isNull()
+  }
+
+  @Test
+  fun prepareBudget_unchangedBudgetInputsReuseDecisionAndSelectedPlan() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    val first = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = true,
+    ) as GlassRenderBudgetDecision.Runtime
+    val second = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = true,
+    ) as GlassRenderBudgetDecision.Runtime
+
+    assertSame(first, second)
+    assertSame(second.plan, checkNotNull(effect.preparedRender).plan)
+  }
 
   @Test
   fun update_readsInjectedMotionScaleAndFullOverridesIt() {
@@ -257,11 +389,12 @@ class GlassVisualEffectLifecycleTest {
 private class TrackingVisualEffectContext(
   motionScale: Float? = null,
   effectSize: Size = Size(100f, 100f),
+  layerSize: Size = effectSize,
   coroutineScope: CoroutineScope? = null,
 ) : VisualEffectContext {
   override val position: Offset = Offset.Zero
   override val size: Size = effectSize
-  override val layerSize: Size = size
+  override val layerSize: Size = layerSize
   override val layerOffset: Offset = Offset.Zero
   override val rootBounds: Rect = Rect(Offset.Zero, size)
   override val inputScale: HazeInputScale = HazeInputScale.None
@@ -280,7 +413,11 @@ private class TrackingVisualEffectContext(
   override fun requireDensity(): Density = Density(1f)
 
   @Suppress("UNCHECKED_CAST")
-  override fun <T> currentValueOf(local: CompositionLocal<T>): T = GlassDefaults.style as T
+  override fun <T> currentValueOf(local: CompositionLocal<T>): T = when (local) {
+    LocalGlassStyle -> GlassDefaults.style
+    LocalLayoutDirection -> LayoutDirection.Ltr
+    else -> error("Unused composition local")
+  } as T
 
   override fun requireGraphicsContext(): GraphicsContext = error("Unused in lifecycle test")
 
