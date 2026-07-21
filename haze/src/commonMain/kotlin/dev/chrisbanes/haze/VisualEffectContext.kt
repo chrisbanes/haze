@@ -200,7 +200,7 @@ internal class HazeEffectNodeVisualEffectContext(
   override fun requireDensity(): Density = node.requireDensity()
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = node.currentValueOf(local)
   override fun requireGraphicsContext(): GraphicsContext = node.requireGraphicsContext()
-  override fun invalidateDraw() = node.invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
+  override fun invalidateDraw() = node.invalidateVisualEffectDraw()
   override fun invalidateLayerBounds() = node.invalidateVisualEffectLayerBounds()
 }
 

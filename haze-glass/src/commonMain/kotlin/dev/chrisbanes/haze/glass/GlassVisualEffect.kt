@@ -42,6 +42,12 @@ import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.VisualEffectTransform
 
+private data class GlassPreparedRenderCacheKey(
+  val style: ResolvedGlassStyle,
+  val coordinates: GlassCoordinates,
+  val interaction: ResolvedGlassInteraction,
+)
+
 /**
  * A [VisualEffect] implementation that renders a translucent refractive glass material.
  * refraction, depth layering, specular highlights, and soft tinted glass.
@@ -110,6 +116,9 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
 
   internal var preparedRender: GlassPreparedRender? = null
     private set
+
+  private var preparedRenderCacheKey: GlassPreparedRenderCacheKey? = null
+  private var preparedRenderCache: GlassPreparedRender? = null
 
   private var budgetCacheStamp: GlassRenderBudgetStamp? = null
   private var budgetCacheDecision: GlassRenderBudgetDecision? = null
@@ -428,6 +437,8 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       isAttached = false
       delegate.detach()
     }
+    preparedRender = null
+    clearPreparedRenderCache()
   }
 
   override fun update(context: VisualEffectContext) {
@@ -605,6 +616,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       !requestedScale.isFinite() || requestedScale <= 0f ||
       !context.size.isDrawable() || !context.layerSize.isDrawable()
     ) {
+      clearPreparedRenderCache()
       return GlassRenderPreparation(
         GlassRenderBudgetDecision.Fallback(GlassRenderBudgetFallbackReason.InvalidGeometry),
         null,
@@ -672,6 +684,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       }
     }
     if (decision !is GlassRenderBudgetDecision.Runtime) {
+      clearPreparedRenderCache()
       return GlassRenderPreparation(decision, null)
     }
     if (!runtimeShaderSupported) {
@@ -683,6 +696,14 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       materialSize = context.size,
       scaleFactor = decision.scaleFactor,
     ).withRoundedSampleSize()
+    val preparedRenderCacheKey = GlassPreparedRenderCacheKey(
+      style = style,
+      coordinates = coordinates,
+      interaction = interaction,
+    )
+    if (preparedRenderCacheKey == this.preparedRenderCacheKey) {
+      return GlassRenderPreparation(decision, checkNotNull(preparedRenderCache))
+    }
     val exactPrepared = buildGlassPreparedRender(
       style = style,
       coordinates = coordinates,
@@ -693,6 +714,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
         GlassRenderBudgetFallbackReason.ExceedsLimits,
       )
       budgetCacheDecision = fallback
+      clearPreparedRenderCache()
       return GlassRenderPreparation(fallback, null)
     }
     val validatedDecision = if (decision.plan == exactPrepared.plan) {
@@ -706,7 +728,14 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     } else {
       exactPrepared.copy(plan = validatedDecision.plan)
     }
+    this.preparedRenderCacheKey = preparedRenderCacheKey
+    preparedRenderCache = prepared
     return GlassRenderPreparation(validatedDecision, prepared)
+  }
+
+  private fun clearPreparedRenderCache() {
+    preparedRenderCacheKey = null
+    preparedRenderCache = null
   }
 
   internal fun prepareRenderBudget(
@@ -747,7 +776,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     )
     val resolved = resolvedStyle.resolvedOptics
     val paddingPx = calculateGlassSamplePaddingPx(
-      blurRadiusPx = resolved.blurRadiusPx,
+      blurRadiusPx = if (resolved.depth <= 0f) 0f else resolved.blurRadiusPx,
       refractionScale = resolved.refractionScalePx,
       refractionStrength = (
         resolved.refractionStrength * maximumInteractionRefractionMultiplier()

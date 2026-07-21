@@ -86,6 +86,18 @@ public class HazeEffectNode(
 
   private var needsPreDrawInvalidation = false
   private var needsDirtyFieldsInvalidation = false
+  private var needsVisualEffectInvalidation = false
+  private var needsContentInvalidation = false
+  private val contentInvalidationObserver by lazy(LazyThreadSafetyMode.NONE) {
+    delegate(
+      ContentInvalidationObserverNode {
+        if (!needsContentInvalidation) {
+          needsContentInvalidation = true
+          invalidateHazeDraw(HazeInvalidationReason.Content)
+        }
+      },
+    )
+  }
 
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
@@ -430,10 +442,18 @@ public class HazeEffectNode(
               HazeLogger.d(TAG) { "Updated contentLayer in content HazeArea" }
             }
           // Record the this node's content into the layer
+          val effectOnlyDraw = needsVisualEffectInvalidation &&
+            !needsPreDrawInvalidation &&
+            !needsDirtyFieldsInvalidation &&
+            !needsContentInvalidation
           contentLayer.record(size.toIntSize()) {
-            this@draw.drawContentSafely()
+            contentInvalidationObserver.observeContentReads {
+              this@draw.drawContentSafely()
+            }
           }
-          contentDrawArea.contentVersion++
+          if (!effectOnlyDraw) {
+            contentDrawArea.contentVersion++
+          }
           with(visualEffect) {
             prepareDraw(visualEffectContext)
           }
@@ -627,6 +647,11 @@ public class HazeEffectNode(
     invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
   }
 
+  internal fun invalidateVisualEffectDraw() {
+    needsVisualEffectInvalidation = true
+    invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
+  }
+
   private fun onPostDraw() {
     dirtyTracker = Bitmask()
     resetPendingInvalidations()
@@ -635,6 +660,8 @@ public class HazeEffectNode(
   private fun resetPendingInvalidations() {
     needsPreDrawInvalidation = false
     needsDirtyFieldsInvalidation = false
+    needsVisualEffectInvalidation = false
+    needsContentInvalidation = false
   }
 
   private fun invalidateIfNeeded() {
@@ -751,6 +778,14 @@ public class HazeEffectNode(
   private companion object {
     private const val TAG = "HazeEffect"
   }
+}
+
+private class ContentInvalidationObserverNode(
+  private val onContentInvalidated: () -> Unit,
+) : Modifier.Node(), ObserverModifierNode {
+  override fun onObservedReadsChanged() = onContentInvalidated()
+
+  fun observeContentReads(block: () -> Unit) = observeReads(block)
 }
 
 private class HazeEffectPointerInputNode(

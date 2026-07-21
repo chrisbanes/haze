@@ -23,7 +23,6 @@ import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
-import dev.chrisbanes.haze.createRuntimeShaderRenderEffect
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderGlassDelegate(
@@ -31,18 +30,32 @@ internal class RuntimeShaderGlassDelegate(
 ) : GlassVisualEffect.Delegate, RetainedOutputDelegate {
   private var blurKey: GlassBlurEffectKey? = null
   private var blurEffects: GlassBlurRenderEffects? = null
+  internal var blurHorizontalShader: MutableRuntimeShaderRenderEffect? = null
+    private set
+  internal var blurVerticalShader: MutableRuntimeShaderRenderEffect? = null
+    private set
+  internal var progressiveBlurHorizontalShader: MutableRuntimeShaderRenderEffect? = null
+    private set
+  internal var progressiveBlurVerticalShader: MutableRuntimeShaderRenderEffect? = null
+    private set
+  internal var blurPrefilterShader: MutableRuntimeShaderRenderEffect? = null
+    private set
   private var opticalKey: GlassOpticalEffectKey? = null
+  internal var opticalShader: MutableRuntimeShaderRenderEffect? = null
+    private set
   internal var opticalEffect: PlatformRenderEffect? = null
     private set
   private var refractionDetailKey: GlassRefractionDetailEffectKey? = null
+  internal var refractionDetailShader: MutableRuntimeShaderRenderEffect? = null
+    private set
   private var refractionDetailEffect: PlatformRenderEffect? = null
   private var rimKey: GlassRimEffectKey? = null
-  private var rimEffect: PlatformRenderEffect? = null
-  private var interactionOpticalKey: GlassOpticalEffectKey? = null
+  internal var rimShader: MutableRuntimeShaderRenderEffect? = null
+    private set
+  internal var rimEffect: PlatformRenderEffect? = null
+    private set
   private var interactionOpticalEffect: MutableRuntimeShaderRenderEffect? = null
-  private var interactionDetailKey: GlassRefractionDetailEffectKey? = null
   private var interactionDetailEffect: MutableRuntimeShaderRenderEffect? = null
-  private var interactionLightingKey: GlassInteractionLightingKey? = null
   private var interactionLightingEffect: MutableRuntimeShaderRenderEffect? = null
   private var recordedInteractionOpticalLayer: GraphicsLayer? = null
   private var recordedInteractionOpticalInput: GraphicsLayer? = null
@@ -67,6 +80,25 @@ internal class RuntimeShaderGlassDelegate(
     private set
   internal var sourceRecordCount: Int = 0
     private set
+  internal var blurRecordCount: Int = 0
+    private set
+  internal var depthRecordCount: Int = 0
+    private set
+  internal var opticalRecordCount: Int = 0
+    private set
+  internal var detailRecordCount: Int = 0
+    private set
+  internal var rimRecordCount: Int = 0
+    private set
+  internal val stageRecordCounts: GlassStageRecordCounts
+    get() = GlassStageRecordCounts(
+      source = sourceRecordCount,
+      blur = blurRecordCount,
+      depth = depthRecordCount,
+      optical = opticalRecordCount,
+      detail = detailRecordCount,
+      rim = rimRecordCount,
+    )
 
   override fun DrawScope.prepareDraw(context: VisualEffectContext) {
     val currentPreparedRender = effect.preparedRender
@@ -107,9 +139,7 @@ internal class RuntimeShaderGlassDelegate(
     if (blurRequired) {
       val blurEffects = checkNotNull(currentRenderEffects.blur)
       val blurWorkingSize = blurEffects.key.plan.workingSize
-      if (layers.updateBlurWorkingSize(blurWorkingSize, currentGraphicsContext)) {
-        context.invalidateDraw()
-      }
+      layers.updateBlurWorkingSize(blurWorkingSize, currentGraphicsContext)
       if (!blurEffects.key.plan.requiresPrefilter) {
         layers.releaseBlurPrefiltered(currentGraphicsContext)
       }
@@ -199,7 +229,10 @@ internal class RuntimeShaderGlassDelegate(
         detail = render.refractionDetailKey,
         rim = render.rimKey,
       )
-      val sourceState = context.resolveGlassSourceState(params.coordinates.scaleFactor)
+      val sourceState = context.resolveGlassSourceState(
+        captureScale = params.coordinates.scaleFactor,
+        previousSnapshot = lastSuccessfulSourceSnapshot,
+      )
       val shouldRecordSource = sourceState.hasDrawableSource && (
         sourceState.snapshot == null ||
           sourceState.snapshot != lastSuccessfulSourceSnapshot ||
@@ -381,17 +414,22 @@ internal class RuntimeShaderGlassDelegate(
     graphicsContext = null
     blurKey = null
     blurEffects = null
+    blurHorizontalShader = null
+    blurVerticalShader = null
+    progressiveBlurHorizontalShader = null
+    progressiveBlurVerticalShader = null
+    blurPrefilterShader = null
     opticalKey = null
+    opticalShader = null
     opticalEffect = null
     refractionDetailKey = null
+    refractionDetailShader = null
     refractionDetailEffect = null
     rimKey = null
+    rimShader = null
     rimEffect = null
-    interactionOpticalKey = null
     interactionOpticalEffect = null
-    interactionDetailKey = null
     interactionDetailEffect = null
-    interactionLightingKey = null
     interactionLightingEffect = null
     clearInteractionLayerMetadata()
     preparedParams = null
@@ -515,6 +553,7 @@ internal class RuntimeShaderGlassDelegate(
       blurred.pivotOffset = Offset.Zero
       blurred.renderEffect = blur.vertical.asComposeRenderEffect()
       blurred.record(workingSize) { drawLayer(horizontal) }
+      blurRecordCount++
     }
   }
 
@@ -539,6 +578,7 @@ internal class RuntimeShaderGlassDelegate(
             blurred = blurred,
             depth = depth,
           )
+          depthRecordCount++
         }
       }
     }
@@ -556,6 +596,7 @@ internal class RuntimeShaderGlassDelegate(
     layer.record(params.coordinates.sampleSize.roundToIntSize()) {
       drawLayer(input)
     }
+    opticalRecordCount++
   }
 
   private fun DrawScope.recordRefractionDetail(
@@ -571,6 +612,7 @@ internal class RuntimeShaderGlassDelegate(
     layer.record(params.coordinates.sampleSize.roundToIntSize()) {
       drawLayer(source)
     }
+    detailRecordCount++
   }
 
   private fun DrawScope.recordRimIfNeeded(
@@ -584,6 +626,7 @@ internal class RuntimeShaderGlassDelegate(
     layer.record(params.coordinates.sampleSize.roundToIntSize()) {
       drawRect(Color.Black)
     }
+    rimRecordCount++
     return Unit
   }
 
@@ -656,8 +699,7 @@ internal class RuntimeShaderGlassDelegate(
     key: GlassOpticalEffectKey,
     uniforms: GlassInteractionUniforms,
   ): PlatformRenderEffect {
-    if (key != interactionOpticalKey || interactionOpticalEffect == null) {
-      interactionOpticalKey = key
+    if (interactionOpticalEffect == null) {
       interactionOpticalEffect = createMutableRuntimeShaderRenderEffect(
         effect = GLASS_INTERACTION_OPTICAL_EFFECT,
         shaderNames = arrayOf("content"),
@@ -674,8 +716,7 @@ internal class RuntimeShaderGlassDelegate(
     key: GlassRefractionDetailEffectKey,
     uniforms: GlassInteractionUniforms,
   ): PlatformRenderEffect {
-    if (key != interactionDetailKey || interactionDetailEffect == null) {
-      interactionDetailKey = key
+    if (interactionDetailEffect == null) {
       interactionDetailEffect = createMutableRuntimeShaderRenderEffect(
         effect = GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT,
         shaderNames = arrayOf("content"),
@@ -692,8 +733,7 @@ internal class RuntimeShaderGlassDelegate(
     key: GlassInteractionLightingKey,
     uniforms: GlassInteractionUniforms,
   ): PlatformRenderEffect {
-    if (key != interactionLightingKey || interactionLightingEffect == null) {
-      interactionLightingKey = key
+    if (interactionLightingEffect == null) {
       interactionLightingEffect = createMutableRuntimeShaderRenderEffect(
         effect = GLASS_INTERACTION_LIGHTING_EFFECT,
         shaderNames = arrayOf("content"),
@@ -735,12 +775,15 @@ internal class RuntimeShaderGlassDelegate(
   private fun getRenderEffects(render: GlassPreparedRender): GlassRenderEffects {
     val nextBlurKey = render.blurKey
     if (nextBlurKey != blurKey) {
-      blurEffects = nextBlurKey?.let(::createGlassBlurRenderEffects)
+      blurEffects = nextBlurKey?.let(::updateBlurRenderEffects)
       blurKey = nextBlurKey
     }
     val nextOpticalKey = render.opticalKey
     if (nextOpticalKey != opticalKey || opticalEffect == null) {
-      opticalEffect = createGlassOpticalRenderEffect(nextOpticalKey)
+      val shader = opticalShader ?: createGlassOpticalRenderEffect().also {
+        opticalShader = it
+      }
+      opticalEffect = shader.updateUniforms { setOpticalUniforms(nextOpticalKey) }
       opticalKey = nextOpticalKey
     }
     val nextRefractionDetailKey = render.refractionDetailKey
@@ -748,12 +791,20 @@ internal class RuntimeShaderGlassDelegate(
       nextRefractionDetailKey != refractionDetailKey ||
       nextRefractionDetailKey != null && refractionDetailEffect == null
     ) {
-      refractionDetailEffect = nextRefractionDetailKey?.let(::createRefractionDetailRenderEffect)
+      refractionDetailEffect = nextRefractionDetailKey?.let { key ->
+        val shader = refractionDetailShader ?: createRefractionDetailRenderEffect().also {
+          refractionDetailShader = it
+        }
+        shader.updateUniforms { setRefractionDetailUniforms(key) }
+      }
       refractionDetailKey = nextRefractionDetailKey
     }
     val nextRimKey = render.rimKey
     if (nextRimKey != rimKey) {
-      rimEffect = nextRimKey?.let(::createGlassRimRenderEffect)
+      rimEffect = nextRimKey?.takeIf { it.specularIntensity > 0f }?.let { key ->
+        val shader = rimShader ?: createGlassRimRenderEffect().also { rimShader = it }
+        shader.updateUniforms { setRimUniforms(key) }
+      }
       rimKey = nextRimKey
     }
     return GlassRenderEffects(
@@ -765,7 +816,80 @@ internal class RuntimeShaderGlassDelegate(
       rim = rimEffect,
     )
   }
+
+  private fun updateBlurRenderEffects(key: GlassBlurEffectKey): GlassBlurRenderEffects? {
+    if (key.plan.isIdentity) return null
+    val progressive = key.progressive != null
+    val horizontalShader = if (progressive) {
+      progressiveBlurHorizontalShader ?: createGlassBlurRenderEffect(
+        horizontal = true,
+        progressive = true,
+      ).also { progressiveBlurHorizontalShader = it }
+    } else {
+      blurHorizontalShader ?: createGlassBlurRenderEffect(
+        horizontal = true,
+        progressive = false,
+      ).also { blurHorizontalShader = it }
+    }
+    val verticalShader = if (progressive) {
+      progressiveBlurVerticalShader ?: createGlassBlurRenderEffect(
+        horizontal = false,
+        progressive = true,
+      ).also { progressiveBlurVerticalShader = it }
+    } else {
+      blurVerticalShader ?: createGlassBlurRenderEffect(
+        horizontal = false,
+        progressive = false,
+      ).also { blurVerticalShader = it }
+    }
+    val progressiveMask = key.progressive?.toShader(key.maskSize)
+    val horizontal = horizontalShader.updateUniforms {
+      setBlurUniforms(
+        key = key,
+        kernel = key.plan.horizontalKernel,
+        sampleWidth = key.plan.workingSize.width,
+        sampleHeight = key.plan.workingSize.height,
+      )
+      progressiveMask?.let { setChildShader("mask", it) }
+    }
+    val vertical = verticalShader.updateUniforms {
+      setBlurUniforms(
+        key = key,
+        kernel = key.plan.verticalKernel,
+        sampleWidth = key.plan.workingSize.width,
+        sampleHeight = key.plan.workingSize.height,
+      )
+      progressiveMask?.let { setChildShader("mask", it) }
+    }
+    val prefilter = key.plan.takeIf { it.requiresPrefilter }?.let { plan ->
+      val shader = blurPrefilterShader ?: createGlassBlurPrefilterRenderEffect().also {
+        blurPrefilterShader = it
+      }
+      shader.updateUniforms {
+        setFloatUniform(
+          "sampleSize",
+          plan.sampleSize.width.toFloat(),
+          plan.sampleSize.height.toFloat(),
+        )
+      }
+    }
+    return GlassBlurRenderEffects(
+      key = key,
+      prefilter = prefilter,
+      horizontal = horizontal,
+      vertical = vertical,
+    )
+  }
 }
+
+internal data class GlassStageRecordCounts(
+  val source: Int,
+  val blur: Int,
+  val depth: Int,
+  val optical: Int,
+  val detail: Int,
+  val rim: Int,
+)
 
 @OptIn(InternalHazeApi::class)
 internal data class GlassRenderEffects(
@@ -789,69 +913,24 @@ internal data class GlassBlurRenderEffects(
   val vertical: PlatformRenderEffect,
 )
 
-internal expect fun createGlassBlurRenderEffects(
-  key: GlassBlurEffectKey,
-): GlassBlurRenderEffects?
-
-internal expect fun createGlassOpticalRenderEffect(
-  key: GlassOpticalEffectKey,
-): PlatformRenderEffect
-
-internal expect fun createRefractionDetailRenderEffect(
-  key: GlassRefractionDetailEffectKey,
-): PlatformRenderEffect
-
-internal expect fun createGlassRimRenderEffect(
-  key: GlassRimEffectKey,
-): PlatformRenderEffect?
-
-internal fun createSharedGlassBlurRenderEffects(
-  key: GlassBlurEffectKey,
-): GlassBlurRenderEffects? {
-  if (key.plan.isIdentity) return null
-  val progressiveMask = key.progressive?.toShader(key.maskSize)
-  val horizontalBlur = createBlurRenderEffect(
-    key = key,
-    kernel = key.plan.horizontalKernel,
-    horizontal = true,
-    progressiveMask = progressiveMask,
-  )
-  val verticalBlur = createBlurRenderEffect(
-    key = key,
-    kernel = key.plan.verticalKernel,
-    horizontal = false,
-    progressiveMask = progressiveMask,
-  )
-  val prefilter = key.plan.takeIf { it.requiresPrefilter }?.let { plan ->
-    createRuntimeShaderRenderEffect(
-      effect = GLASS_DOWNSAMPLE_PREFILTER_EFFECT,
-      shaderNames = arrayOf("content"),
-      inputs = arrayOf(null),
-    ) {
-      setFloatUniform(
-        "sampleSize",
-        plan.sampleSize.width.toFloat(),
-        plan.sampleSize.height.toFloat(),
-      )
-    }
-  }
-  return GlassBlurRenderEffects(
-    key = key,
-    prefilter = prefilter,
-    horizontal = horizontalBlur,
-    vertical = verticalBlur,
-  )
-}
-
-private fun createBlurRenderEffect(
-  key: GlassBlurEffectKey,
-  kernel: SemanticBlurKernel,
+internal expect fun createGlassBlurRenderEffect(
   horizontal: Boolean,
-  progressiveMask: androidx.compose.ui.graphics.Shader?,
-  sampleWidth: Int = key.plan.workingSize.width,
-  sampleHeight: Int = key.plan.workingSize.height,
-): PlatformRenderEffect = createRuntimeShaderRenderEffect(
-  effect = if (progressiveMask == null) {
+  progressive: Boolean,
+): MutableRuntimeShaderRenderEffect
+
+internal expect fun createGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect
+
+internal expect fun createGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect
+
+internal expect fun createRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect
+
+internal expect fun createGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect
+
+internal fun createSharedGlassBlurRenderEffect(
+  horizontal: Boolean,
+  progressive: Boolean,
+): MutableRuntimeShaderRenderEffect = createMutableRuntimeShaderRenderEffect(
+  effect = if (!progressive) {
     if (horizontal) GLASS_HORIZONTAL_BLUR_EFFECT else GLASS_VERTICAL_BLUR_EFFECT
   } else {
     if (horizontal) {
@@ -862,42 +941,35 @@ private fun createBlurRenderEffect(
   },
   shaderNames = arrayOf("content"),
   inputs = arrayOf(null),
-) {
-  setBlurUniforms(key, kernel, sampleWidth, sampleHeight)
-  progressiveMask?.let { setChildShader("mask", it) }
-}
+)
 
-internal fun createSharedGlassOpticalRenderEffect(
-  key: GlassOpticalEffectKey,
-): PlatformRenderEffect = createRuntimeShaderRenderEffect(
-  effect = GLASS_OPTICAL_EFFECT,
-  shaderNames = arrayOf("content"),
-  inputs = arrayOf(null),
-) {
-  setOpticalUniforms(key)
-}
+internal fun createSharedGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createMutableRuntimeShaderRenderEffect(
+    effect = GLASS_DOWNSAMPLE_PREFILTER_EFFECT,
+    shaderNames = arrayOf("content"),
+    inputs = arrayOf(null),
+  )
 
-internal fun createSharedRefractionDetailRenderEffect(
-  key: GlassRefractionDetailEffectKey,
-): PlatformRenderEffect = createRuntimeShaderRenderEffect(
-  effect = GLASS_REFRACTION_DETAIL_EFFECT,
-  shaderNames = arrayOf("content"),
-  inputs = arrayOf(null),
-) {
-  setRefractionDetailUniforms(key)
-}
+internal fun createSharedGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createMutableRuntimeShaderRenderEffect(
+    effect = GLASS_OPTICAL_EFFECT,
+    shaderNames = arrayOf("content"),
+    inputs = arrayOf(null),
+  )
 
-internal fun createSharedGlassRimRenderEffect(
-  key: GlassRimEffectKey,
-): PlatformRenderEffect? = key.takeIf { it.specularIntensity > 0f }?.let {
-  createRuntimeShaderRenderEffect(
+internal fun createSharedRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createMutableRuntimeShaderRenderEffect(
+    effect = GLASS_REFRACTION_DETAIL_EFFECT,
+    shaderNames = arrayOf("content"),
+    inputs = arrayOf(null),
+  )
+
+internal fun createSharedGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createMutableRuntimeShaderRenderEffect(
     effect = GLASS_RIM_EFFECT,
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
-  ) {
-    setRimUniforms(key)
-  }
-}
+  )
 
 private fun RuntimeShaderUniformProvider.setBlurUniforms(
   key: GlassBlurEffectKey,

@@ -148,6 +148,19 @@ class GlassVisualEffectLifecycleTest {
   }
 
   @Test
+  fun detach_clearsPreparedRenderBundle() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    assertThat(effect.preparedRender).isNotNull()
+
+    effect.detach(context)
+
+    assertThat(effect.preparedRender).isNull()
+  }
+
+  @Test
   fun prepareBudget_unchangedBudgetInputsReuseDecisionAndSelectedPlan() {
     val effect = GlassVisualEffect()
     val context = TrackingVisualEffectContext()
@@ -156,13 +169,17 @@ class GlassVisualEffectLifecycleTest {
       context,
       runtimeShaderSupported = true,
     ) as GlassRenderBudgetDecision.Runtime
+    val firstPrepared = checkNotNull(effect.preparedRender)
     val second = effect.prepareRenderBudget(
       context,
       runtimeShaderSupported = true,
     ) as GlassRenderBudgetDecision.Runtime
+    val secondPrepared = checkNotNull(effect.preparedRender)
 
     assertSame(first, second)
-    assertSame(second.plan, checkNotNull(effect.preparedRender).plan)
+    assertSame(firstPrepared, secondPrepared)
+    assertSame(firstPrepared.blurKey?.plan, secondPrepared.blurKey?.plan)
+    assertSame(second.plan, secondPrepared.plan)
   }
 
   @Test
@@ -304,6 +321,18 @@ class GlassVisualEffectLifecycleTest {
     val interactionBounds = effect.calculateLayerBounds(rect, Density(1f))
 
     assertThat(-interactionBounds.left).isGreaterThan(-baseBounds.left)
+  }
+
+  @Test
+  fun calculateLayerBounds_depthZeroDoesNotReserveBlurPadding() {
+    val rect = Rect(0f, 0f, 100f, 100f)
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(depth = 0f, blurRadius = 40.dp, refractionStrength = 0f)
+      edgeSoftness = 0.dp
+      specularIntensity = 0f
+    }
+
+    assertThat(effect.calculateLayerBounds(rect, Density(1f))).isEqualTo(rect)
   }
 
   @Test

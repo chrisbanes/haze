@@ -162,11 +162,13 @@ private class SkikoMutableRuntimeShaderRenderEffect(
   private val shaderNames: Array<String>,
   private val inputs: Array<ImageFilter?>,
 ) : MutableRuntimeShaderRenderEffect {
+  private val builder = RuntimeShaderBuilder(effect)
+  private val provider = SkikoRuntimeShaderUniformProvider(builder)
+
   override fun updateUniforms(
     uniforms: RuntimeShaderUniformProvider.() -> Unit,
   ): PlatformRenderEffect {
-    val builder = RuntimeShaderBuilder(effect)
-    uniforms(SkikoRuntimeShaderUniformProvider(builder))
+    uniforms(provider)
     return ImageFilter.makeRuntimeShader(builder, shaderNames, inputs)
   }
 }

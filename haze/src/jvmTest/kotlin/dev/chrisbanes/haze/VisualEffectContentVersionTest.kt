@@ -8,11 +8,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
@@ -49,6 +52,65 @@ class VisualEffectContentVersionTest : ContextTest() {
 
     assertThat(requireNotNull(effect.versions.lastOrNull())).isGreaterThan(initialVersion)
   }
+
+  @Test
+  fun foregroundContentVersion_effectOnlyInvalidationKeepsVersion() = runComposeUiTest {
+    val effect = ForegroundContentVersionEffect()
+
+    setContent {
+      Spacer(Modifier.size(100.dp).hazeEffect { visualEffect = effect })
+    }
+    waitForIdle()
+    val initialVersion = effect.versions.last()
+
+    effect.invalidateEffect()
+    waitForIdle()
+
+    assertThat(effect.versions.last()).isEqualTo(initialVersion)
+  }
+
+  @Test
+  fun foregroundContentVersion_childContentChangeAdvancesVersion() = runComposeUiTest {
+    val childSize = mutableStateOf(20.dp)
+    val effect = ForegroundContentVersionEffect()
+
+    setContent {
+      Box(Modifier.size(100.dp).hazeEffect { visualEffect = effect }) {
+        Spacer(Modifier.size(childSize.value))
+      }
+    }
+    waitForIdle()
+    val initialVersion = effect.versions.last()
+
+    childSize.value = 30.dp
+    waitForIdle()
+
+    assertThat(effect.versions.last()).isGreaterThan(initialVersion)
+  }
+
+  @Test
+  fun foregroundContentVersion_coalescedEffectAndChildDrawChangeAdvancesVersion() =
+    runComposeUiTest {
+      val childColor = mutableStateOf(Color.Red)
+      val effect = ForegroundContentVersionEffect()
+
+      setContent {
+        Box(
+          Modifier
+            .size(100.dp)
+            .hazeEffect { visualEffect = effect }
+            .drawBehind { drawRect(childColor.value) },
+        )
+      }
+      waitForIdle()
+      val initialVersion = effect.versions.last()
+
+      effect.invalidateEffect()
+      childColor.value = Color.Blue
+      waitForIdle()
+
+      assertThat(effect.versions.last()).isGreaterThan(initialVersion)
+    }
 }
 
 private class ContentVersionRecordingVisualEffect : VisualEffect {
@@ -56,5 +118,22 @@ private class ContentVersionRecordingVisualEffect : VisualEffect {
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     versions += context.areas.singleOrNull()?.let(context::contentVersionOf)
+  }
+}
+
+private class ForegroundContentVersionEffect : VisualEffect {
+  private lateinit var context: VisualEffectContext
+  val versions = mutableListOf<Long>()
+
+  override fun attach(context: VisualEffectContext) {
+    this.context = context
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) {
+    versions += requireNotNull(context.contentVersionOf(context.areas.single()))
+  }
+
+  fun invalidateEffect() {
+    context.invalidateDraw()
   }
 }
