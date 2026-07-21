@@ -33,6 +33,17 @@ import kotlinx.coroutines.CoroutineScope
 class GlassStyleTest {
 
   @Test
+  fun styleChange_dirtiesOnlyTheSpecifiedScalarAndStyleFields() {
+    val effect = GlassVisualEffect()
+    effect.resetDirtyTracker()
+
+    effect.style = GlassStyle(color = GlassColor(alpha = 0.5f))
+
+    assertThat(GlassDirtyFields.stringify(effect.dirtyTracker))
+      .isEqualTo("[Alpha, Style]")
+  }
+
+  @Test
   fun defaultsStyle_resolvesToGlassDefaults() {
     val effect = GlassVisualEffect().apply {
       compositionLocalStyle = GlassDefaults.style

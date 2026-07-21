@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.contains
@@ -211,4 +212,261 @@ class GlassVisualEffectOverrideTest {
     assertThat(copy.interactionPositionAnimationSpec).isEqualTo(positionSpec)
     assertThat(copy.interactionReducedMotionPolicy).isEqualTo(GlassReducedMotionPolicy.Reduced)
   }
+
+  @Test
+  fun primitiveOverrides_replayingUnspecifiedValuesDoesNotMarkDirty() {
+    scalarOverrideCases.forEach { case ->
+      val effect = GlassVisualEffect()
+      effect.resetDirtyTracker()
+
+      case.set(effect, Float.NaN)
+
+      assertThat(
+        GlassDirtyFields.stringify(effect.dirtyTracker),
+        case.name,
+      ).isEqualTo("[]")
+    }
+  }
+
+  @Test
+  fun primitiveOverrides_equivalentNormalizedValuesDoNotMarkDirty() {
+    scalarOverrideCases.forEach { case ->
+      val effect = GlassVisualEffect()
+      case.set(effect, case.firstEquivalentInput)
+      effect.resetDirtyTracker()
+
+      case.set(effect, case.secondEquivalentInput)
+
+      assertThat(
+        GlassDirtyFields.stringify(effect.dirtyTracker),
+        case.name,
+      ).isEqualTo("[]")
+    }
+  }
+
+  @Test
+  fun primitiveOverrides_equivalentNormalizedStyleValuesDirtyOnlyStyle() {
+    scalarOverrideCases.forEach { case ->
+      val effect = GlassVisualEffect().apply {
+        style = case.style(case.firstEquivalentInput)
+      }
+      effect.resetDirtyTracker()
+
+      effect.style = case.style(case.secondEquivalentInput)
+
+      assertThat(
+        GlassDirtyFields.stringify(effect.dirtyTracker),
+        case.name,
+      ).isEqualTo("[Style]")
+    }
+  }
+
+  @Test
+  fun primitiveOverrides_equivalentNormalizedCompositionLocalValuesDoNotMarkDirty() {
+    scalarOverrideCases.forEach { case ->
+      val effect = GlassVisualEffect().apply {
+        compositionLocalStyle = case.style(case.firstEquivalentInput)
+      }
+      effect.resetDirtyTracker()
+
+      effect.compositionLocalStyle = case.style(case.secondEquivalentInput)
+
+      assertThat(
+        GlassDirtyFields.stringify(effect.dirtyTracker),
+        case.name,
+      ).isEqualTo("[]")
+    }
+  }
+
+  @Test
+  fun primitiveOverrides_copyConstructorPreservesInheritedSources() {
+    scalarOverrideCases.forEach { case ->
+      val original = GlassVisualEffect().apply {
+        style = case.style(0.2f)
+      }
+      val copy = GlassVisualEffect(original)
+
+      copy.style = case.style(0.8f)
+
+      assertThat(case.get(copy), case.name).isEqualTo(0.8f)
+    }
+  }
+
+  @Test
+  fun primitiveOverrides_copyConstructorPreservesCompositionLocalSources() {
+    scalarOverrideCases.forEach { case ->
+      val original = GlassVisualEffect().apply {
+        compositionLocalStyle = case.style(0.2f)
+      }
+      val copy = GlassVisualEffect(original)
+
+      copy.compositionLocalStyle = case.style(0.8f)
+
+      assertThat(case.get(copy), case.name).isEqualTo(0.8f)
+    }
+  }
+
+  @Test
+  fun primitiveOverrides_copyConstructorPreservesDirectOverrides() {
+    scalarOverrideCases.forEach { case ->
+      val original = GlassVisualEffect().apply {
+        style = case.style(0.2f)
+      }
+      case.set(original, 0.4f)
+      val copy = GlassVisualEffect(original)
+
+      copy.style = case.style(0.8f)
+
+      assertThat(case.get(copy), case.name).isEqualTo(0.4f)
+    }
+  }
+
+  @Test
+  fun valueOverrides_copyConstructorPreservesInheritedSources() {
+    val original = GlassVisualEffect().apply {
+      compositionLocalStyle = GlassStyle(
+        tint = Color.Red,
+        lighting = GlassLighting(lightPosition = Offset(1f, 2f)),
+        rendering = GlassRendering(edgeSoftness = 4.dp),
+      )
+    }
+    val copy = GlassVisualEffect(original)
+
+    copy.compositionLocalStyle = GlassStyle(
+      tint = Color.Blue,
+      lighting = GlassLighting(lightPosition = Offset(3f, 4f)),
+      rendering = GlassRendering(edgeSoftness = 8.dp),
+    )
+
+    assertThat(copy.tint).isEqualTo(Color.Blue)
+    assertThat(copy.lightPosition).isEqualTo(Offset(3f, 4f))
+    assertThat(copy.edgeSoftness).isEqualTo(8.dp)
+  }
+
+  @Test
+  fun valueOverrides_copyConstructorPreservesStyleSources() {
+    val original = GlassVisualEffect().apply {
+      style = GlassStyle(
+        tint = Color.Red,
+        lighting = GlassLighting(lightPosition = Offset(1f, 2f)),
+        rendering = GlassRendering(edgeSoftness = 4.dp),
+      )
+    }
+    val copy = GlassVisualEffect(original)
+
+    copy.style = GlassStyle(
+      tint = Color.Blue,
+      lighting = GlassLighting(lightPosition = Offset(3f, 4f)),
+      rendering = GlassRendering(edgeSoftness = 8.dp),
+    )
+
+    assertThat(copy.tint).isEqualTo(Color.Blue)
+    assertThat(copy.lightPosition).isEqualTo(Offset(3f, 4f))
+    assertThat(copy.edgeSoftness).isEqualTo(8.dp)
+  }
+
+  @Test
+  fun valueOverrides_copyConstructorPreservesDirectOverrides() {
+    val original = GlassVisualEffect().apply {
+      compositionLocalStyle = GlassStyle(
+        tint = Color.Red,
+        lighting = GlassLighting(lightPosition = Offset(1f, 2f)),
+        rendering = GlassRendering(edgeSoftness = 4.dp),
+      )
+      tint = Color.Green
+      lightPosition = Offset(5f, 6f)
+      edgeSoftness = 12.dp
+    }
+    val copy = GlassVisualEffect(original)
+
+    copy.compositionLocalStyle = GlassStyle(
+      tint = Color.Blue,
+      lighting = GlassLighting(lightPosition = Offset(3f, 4f)),
+      rendering = GlassRendering(edgeSoftness = 8.dp),
+    )
+
+    assertThat(copy.tint).isEqualTo(Color.Green)
+    assertThat(copy.lightPosition).isEqualTo(Offset(5f, 6f))
+    assertThat(copy.edgeSoftness).isEqualTo(12.dp)
+  }
 }
+
+private data class ScalarOverrideCase(
+  val name: String,
+  val set: (GlassVisualEffect, Float) -> Unit,
+  val get: (GlassVisualEffect) -> Float,
+  val style: (Float) -> GlassStyle,
+  val firstEquivalentInput: Float = 2f,
+  val secondEquivalentInput: Float = 3f,
+)
+
+private val scalarOverrideCases = listOf(
+  ScalarOverrideCase(
+    name = "specularIntensity",
+    set = { effect, value -> effect.specularIntensity = value },
+    get = { it.specularIntensity },
+    style = { GlassStyle(lighting = GlassLighting(specularIntensity = it)) },
+  ),
+  ScalarOverrideCase(
+    name = "ambientResponse",
+    set = { effect, value -> effect.ambientResponse = value },
+    get = { it.ambientResponse },
+    style = { GlassStyle(lighting = GlassLighting(ambientResponse = it)) },
+  ),
+  ScalarOverrideCase(
+    name = "chromaticAberrationStrength",
+    set = { effect, value -> effect.chromaticAberrationStrength = value },
+    get = { it.chromaticAberrationStrength },
+    style = {
+      GlassStyle(rendering = GlassRendering(chromaticAberrationStrength = it))
+    },
+  ),
+  ScalarOverrideCase(
+    name = "alpha",
+    set = { effect, value -> effect.alpha = value },
+    get = { it.alpha },
+    style = { GlassStyle(color = GlassColor(alpha = it)) },
+  ),
+  ScalarOverrideCase(
+    name = "contrast",
+    set = { effect, value -> effect.contrast = value },
+    get = { it.contrast },
+    style = { GlassStyle(color = GlassColor(contrast = it)) },
+  ),
+  ScalarOverrideCase(
+    name = "whitePoint",
+    set = { effect, value -> effect.whitePoint = value },
+    get = { it.whitePoint },
+    style = { GlassStyle(color = GlassColor(whitePoint = it)) },
+  ),
+  ScalarOverrideCase(
+    name = "chromaMultiplier",
+    set = { effect, value -> effect.chromaMultiplier = value },
+    get = { it.chromaMultiplier },
+    style = { GlassStyle(color = GlassColor(chromaMultiplier = it)) },
+    firstEquivalentInput = 3f,
+    secondEquivalentInput = 4f,
+  ),
+  ScalarOverrideCase(
+    name = "contentNormalBlend",
+    set = { effect, value -> effect.contentNormalBlend = value },
+    get = { it.contentNormalBlend },
+    style = { GlassStyle(rendering = GlassRendering(contentNormalBlend = it)) },
+  ),
+  ScalarOverrideCase(
+    name = "specularExponent",
+    set = { effect, value -> effect.specularExponent = value },
+    get = { it.specularExponent },
+    style = { GlassStyle(lighting = GlassLighting(specularExponent = it)) },
+    firstEquivalentInput = -1f,
+    secondEquivalentInput = -2f,
+  ),
+  ScalarOverrideCase(
+    name = "fresnelExponent",
+    set = { effect, value -> effect.fresnelExponent = value },
+    get = { it.fresnelExponent },
+    style = { GlassStyle(lighting = GlassLighting(fresnelExponent = it)) },
+    firstEquivalentInput = -1f,
+    secondEquivalentInput = -2f,
+  ),
+)

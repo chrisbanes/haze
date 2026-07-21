@@ -53,6 +53,7 @@ kotlin {
         implementation(libs.compose.ui.test)
         implementation(libs.compose.navigation3.ui)
 
+        implementation(projects.hazeUtils)
         implementation(projects.internal.contextTest)
         implementation(projects.internal.screenshotTest)
       }

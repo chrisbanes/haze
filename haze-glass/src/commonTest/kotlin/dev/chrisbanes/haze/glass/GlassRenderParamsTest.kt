@@ -24,41 +24,61 @@ import kotlin.test.assertFailsWith
 class GlassRenderParamsTest {
 
   @Test
-  fun resolvedStyle_canonicalizesSizingValuesEquallyAcrossAllPrecedenceLevels() {
-    val invalidRendering = GlassRendering(
+  fun resolvedStyle_canonicalizesAllScalarsEquallyAcrossPrecedenceLevels() {
+    val lighting = GlassLighting(
+      specularIntensity = 2f,
+      ambientResponse = -1f,
+      specularExponent = -1f,
+      fresnelExponent = -1f,
+    )
+    val color = GlassColor(
+      alpha = 2f,
+      contrast = 2f,
+      whitePoint = -2f,
+      chromaMultiplier = 3f,
+    )
+    val rendering = GlassRendering(
       edgeSoftness = Float.POSITIVE_INFINITY.dp,
+      contentNormalBlend = 2f,
       chromaticAberrationStrength = -1f,
+    )
+    val inheritedStyle = GlassStyle(
+      lighting = lighting,
+      color = color,
+      rendering = rendering,
     )
     val effects = listOf(
       GlassVisualEffect().apply {
-        edgeSoftness = Float.POSITIVE_INFINITY.dp
-        chromaticAberrationStrength = -1f
+        specularIntensity = lighting.specularIntensity
+        ambientResponse = lighting.ambientResponse
+        specularExponent = lighting.specularExponent
+        fresnelExponent = lighting.fresnelExponent
+        alpha = color.alpha
+        contrast = color.contrast
+        whitePoint = color.whitePoint
+        chromaMultiplier = color.chromaMultiplier
+        edgeSoftness = rendering.edgeSoftness
+        contentNormalBlend = rendering.contentNormalBlend
+        chromaticAberrationStrength = rendering.chromaticAberrationStrength
       },
-      GlassVisualEffect().apply {
-        style = GlassStyle(rendering = invalidRendering)
-      },
-      GlassVisualEffect().apply {
-        compositionLocalStyle = GlassStyle(rendering = invalidRendering)
-      },
+      GlassVisualEffect().apply { style = inheritedStyle },
+      GlassVisualEffect().apply { compositionLocalStyle = inheritedStyle },
     )
-
-    effects.forEach { effect ->
-      val resolved = resolveGlassStyle(
-        effect = effect,
-        materialSizePx = Size(100f, 80f),
-        density = Density(1f),
-        layoutDirection = LayoutDirection.Ltr,
-      )
-
-      assertThat(resolved.chromaticAberrationStrength).isEqualTo(0f)
-      assertThat(resolved.edgeSoftnessPx).isEqualTo(GlassDefaults.edgeSoftness.value)
+    val size = Size(100f, 80f)
+    val density = Density(1f)
+    val resolved = effects.map {
+      resolveGlassStyle(it, size, density, LayoutDirection.Ltr)
     }
 
-    val rect = Rect(0f, 0f, 100f, 80f)
-    val expectedBounds = effects.first().calculateLayerBounds(rect, Density(1f))
-    effects.drop(1).forEach { effect ->
-      assertThat(effect.calculateLayerBounds(rect, Density(1f))).isEqualTo(expectedBounds)
-    }
+    assertThat(resolved[1]).isEqualTo(resolved[0])
+    assertThat(resolved[2]).isEqualTo(resolved[0])
+    assertThat(resolved[0].chromaticAberrationStrength).isEqualTo(0f)
+    assertThat(resolved[0].edgeSoftnessPx).isEqualTo(GlassDefaults.edgeSoftness.value)
+
+    val rect = Rect(0f, 0f, size.width, size.height)
+    val bounds = effects.map { it.calculateLayerBounds(rect, density) }
+    assertThat(bounds[1]).isEqualTo(bounds[0])
+    assertThat(bounds[2]).isEqualTo(bounds[0])
   }
 
   @Test
@@ -306,6 +326,27 @@ class GlassRenderParamsTest {
       assertThat(resolved.progressive).isEqualTo(progressive)
       assertThat(resolved.toneGain).isEqualTo(1f)
       assertThat(resolved.neutralLiftWeight).isEqualTo(0f)
+    }
+  }
+
+  @Test
+  fun absoluteOptics_blurRadiusUsesCurrentPhysicalPixelCapAcrossDensities() {
+    val cases = listOf(
+      Triple(20.dp, Density(1f), 20f),
+      Triple(14.dp, Density(2.75f), 38.5f),
+      Triple(20.dp, Density(2f), 38.5f),
+      Triple(100.dp, Density(4f), 38.5f),
+    )
+
+    cases.forEach { (radius, density, expectedRadiusPx) ->
+      val resolved = resolveGlassOptics(
+        optics = GlassOptics.Absolute(blurRadius = radius),
+        materialSizePx = Size(200f, 100f),
+        density = density,
+        cornerRadiiPx = CornerRadii.zero,
+      )
+
+      assertThat(resolved.blurRadiusPx).isEqualTo(expectedRadiusPx)
     }
   }
 

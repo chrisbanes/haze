@@ -1,7 +1,7 @@
 // Copyright 2025, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(ExperimentalHazeApi::class)
+@file:OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 
 package dev.chrisbanes.haze
 
@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +22,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
@@ -202,6 +205,65 @@ class GlassScreenshotTest : ScreenshotTest() {
     }
 
     captureRoot()
+  }
+
+  @Test
+  fun creditCard_blurRadiusCapIsStableAcrossDensities() = runScreenshotTest {
+    // Android <33 uses the fallback delegate, which intentionally has no semantic blur.
+    if (!isRuntimeShaderRenderEffectSupported()) return@runScreenshotTest
+
+    val shape = RoundedCornerShape(0.dp)
+    val visualEffect = GlassVisualEffect().apply {
+      tint = Color.White.copy(alpha = 0.08f)
+      optics = GlassOptics.Absolute(
+        refractionStrength = 0f,
+        depth = 1f,
+        blurRadius = 0.dp,
+      )
+      specularIntensity = 0f
+      ambientResponse = 0f
+      edgeSoftness = 0.dp
+      this.shape = shape
+    }
+    var density by mutableStateOf(Density(1f))
+
+    setContent {
+      CompositionLocalProvider(LocalDensity provides density) {
+        ScreenshotTheme {
+          GlassBlurRadiusSample(
+            visualEffect = visualEffect,
+            shape = shape,
+            cardWidth = (520f / density.density).dp,
+            cardHeight = (320f / density.density).dp,
+            patternScale = 1f / density.density,
+          )
+        }
+      }
+    }
+
+    val zeroBlurPixels = captureRootPixels().snapshot()
+
+    visualEffect.optics = GlassOptics.Absolute(
+      refractionStrength = 0f,
+      depth = 1f,
+      blurRadius = 100.dp,
+    )
+    waitForIdle()
+    val densityOnePixels = captureRootPixels().snapshot()
+
+    assertTrue(
+      zeroBlurPixels.changedPixelRatio(densityOnePixels) > 0.01f,
+      "Expected capped blur to materially change the rendered pixels",
+    )
+
+    density = Density(3f)
+    waitForIdle()
+    val densityThreePixels = captureRootPixels().snapshot()
+
+    assertTrue(
+      densityOnePixels.changedPixelRatio(densityThreePixels) <= 0.001f,
+      "Expected above-cap blur to stay visually stable across densities",
+    )
   }
 
   @Test
@@ -429,6 +491,7 @@ internal fun GlassBlurRadiusSample(
   clipShape: Boolean = true,
   cardWidth: Dp = 520.dp,
   cardHeight: Dp = 320.dp,
+  patternScale: Float = 1f,
 ) {
   val hazeState = remember { HazeState() }
 
@@ -440,7 +503,7 @@ internal fun GlassBlurRadiusSample(
     ) {
       drawRect(Color(0xFF101820))
 
-      val stripeWidth = 18.dp.toPx()
+      val stripeWidth = 18.dp.toPx() * patternScale
       var x = 0f
       var stripeIndex = 0
       while (x < size.width) {
@@ -453,8 +516,8 @@ internal fun GlassBlurRadiusSample(
         stripeIndex++
       }
 
-      val lineSpacing = 34.dp.toPx()
-      val strokeWidth = 5.dp.toPx()
+      val lineSpacing = 34.dp.toPx() * patternScale
+      val strokeWidth = 5.dp.toPx() * patternScale
       var y = 0f
       while (y < size.height) {
         drawLine(

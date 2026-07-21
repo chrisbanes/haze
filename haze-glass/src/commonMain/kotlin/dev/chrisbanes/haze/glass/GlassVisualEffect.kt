@@ -54,22 +54,22 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   /** Creates a new [GlassVisualEffect] copying all properties from [other]. */
   public constructor(other: GlassVisualEffect) : this() {
     _optics = other._optics
-    specularIntensity = other.specularIntensity
-    ambientResponse = other.ambientResponse
-    tint = other.tint
-    edgeSoftness = other.edgeSoftness
-    lightPosition = other.lightPosition
-    chromaticAberrationStrength = other.chromaticAberrationStrength
+    _specularIntensity = other._specularIntensity
+    _ambientResponse = other._ambientResponse
+    _tint = other._tint
+    _edgeSoftness = other._edgeSoftness
+    _lightPosition = other._lightPosition
+    _chromaticAberrationStrength = other._chromaticAberrationStrength
     _surfaceProfile = other._surfaceProfile
     _chromaticAberrationMode = other._chromaticAberrationMode
     _shape = other._shape
-    alpha = other.alpha
-    contrast = other.contrast
-    whitePoint = other.whitePoint
-    chromaMultiplier = other.chromaMultiplier
-    contentNormalBlend = other.contentNormalBlend
-    specularExponent = other.specularExponent
-    fresnelExponent = other.fresnelExponent
+    _alpha = other._alpha
+    _contrast = other._contrast
+    _whitePoint = other._whitePoint
+    _chromaMultiplier = other._chromaMultiplier
+    _contentNormalBlend = other._contentNormalBlend
+    _specularExponent = other._specularExponent
+    _fresnelExponent = other._fresnelExponent
     compositionLocalStyle = other.compositionLocalStyle
     style = other.style
     nextInteractionRevision = other.nextInteractionRevision
@@ -807,17 +807,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.specularIntensity] value set in [style], if specified.
    *  - [GlassStyle.specularIntensity] value set in the [LocalGlassStyle] composition local.
    */
-  public var specularIntensity: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleLighting.specularIntensity }
-        .takeOrElse { localLighting.specularIntensity }
-        .takeOrElse { GlassDefaults.specularIntensity }
-    }
+  private var _specularIntensity: Float = Float.NaN
+  public var specularIntensity: Float
+    get() = _specularIntensity
+      .takeOrElse { styleLighting.specularIntensity }
+      .takeOrElse { localLighting.specularIntensity }
+      .takeOrElse { GlassDefaults.specularIntensity }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "specularIntensity changed. Current: $field. New: $value" }
-        field = value.coerceIn(0f, 1f)
+      val normalized = value.coerceIn(0f, 1f)
+      if (!_specularIntensity.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) { "specularIntensity changed. Current: $_specularIntensity. New: $value" }
+        _specularIntensity = normalized
         dirtyTracker += GlassDirtyFields.SpecularIntensity
       }
     }
@@ -831,17 +831,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.ambientResponse] value set in [style], if specified.
    *  - [GlassStyle.ambientResponse] value set in the [LocalGlassStyle] composition local.
    */
-  public var ambientResponse: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleLighting.ambientResponse }
-        .takeOrElse { localLighting.ambientResponse }
-        .takeOrElse { GlassDefaults.ambientResponse }
-    }
+  private var _ambientResponse: Float = Float.NaN
+  public var ambientResponse: Float
+    get() = _ambientResponse
+      .takeOrElse { styleLighting.ambientResponse }
+      .takeOrElse { localLighting.ambientResponse }
+      .takeOrElse { GlassDefaults.ambientResponse }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "ambientResponse changed. Current: $field. New: $value" }
-        field = value.coerceIn(0f, 1f)
+      val normalized = value.coerceIn(0f, 1f)
+      if (!_ambientResponse.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) { "ambientResponse changed. Current: $_ambientResponse. New: $value" }
+        _ambientResponse = normalized
         dirtyTracker += GlassDirtyFields.AmbientResponse
       }
     }
@@ -855,17 +855,16 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.tint] value set in [style], if specified.
    *  - [GlassStyle.tint] value set in the [LocalGlassStyle] composition local.
    */
-  public var tint: Color = Color.Unspecified
-    get() {
-      return field
-        .takeOrElse { style.tint }
-        .takeOrElse { compositionLocalStyle.tint }
-        .takeOrElse { GlassDefaults.tint }
-    }
+  private var _tint: Color = Color.Unspecified
+  public var tint: Color
+    get() = _tint
+      .takeOrElse { style.tint }
+      .takeOrElse { compositionLocalStyle.tint }
+      .takeOrElse { GlassDefaults.tint }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "tint changed. Current: $field. New: $value" }
-        field = value
+      if (_tint != value) {
+        HazeLogger.d(TAG) { "tint changed. Current: $_tint. New: $value" }
+        _tint = value
         dirtyTracker += GlassDirtyFields.Tint
       }
     }
@@ -879,17 +878,16 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.edgeSoftness] value set in [style], if specified.
    *  - [GlassStyle.edgeSoftness] value set in the [LocalGlassStyle] composition local.
    */
-  public var edgeSoftness: Dp = Dp.Unspecified
-    get() {
-      return field
-        .takeOrElse { styleRendering.edgeSoftness }
-        .takeOrElse { localRendering.edgeSoftness }
-        .takeOrElse { GlassDefaults.edgeSoftness }
-    }
+  private var _edgeSoftness: Dp = Dp.Unspecified
+  public var edgeSoftness: Dp
+    get() = _edgeSoftness
+      .takeOrElse { styleRendering.edgeSoftness }
+      .takeOrElse { localRendering.edgeSoftness }
+      .takeOrElse { GlassDefaults.edgeSoftness }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "edgeSoftness changed. Current: $field. New: $value" }
-        field = value
+      if (_edgeSoftness != value) {
+        HazeLogger.d(TAG) { "edgeSoftness changed. Current: $_edgeSoftness. New: $value" }
+        _edgeSoftness = value
         dirtyTracker += GlassDirtyFields.EdgeSoftness
       }
     }
@@ -906,16 +904,15 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    * If no value is specified through any of the above, the delegate falls back to the
    * center of the layer at draw time.
    */
-  public var lightPosition: Offset = Offset.Unspecified
-    get() {
-      return field
-        .takeOrElse { styleLighting.lightPosition }
-        .takeOrElse { localLighting.lightPosition }
-    }
+  private var _lightPosition: Offset = Offset.Unspecified
+  public var lightPosition: Offset
+    get() = _lightPosition
+      .takeOrElse { styleLighting.lightPosition }
+      .takeOrElse { localLighting.lightPosition }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "lightPosition changed. Current: $field. New: $value" }
-        field = value
+      if (_lightPosition != value) {
+        HazeLogger.d(TAG) { "lightPosition changed. Current: $_lightPosition. New: $value" }
+        _lightPosition = value
         dirtyTracker += GlassDirtyFields.LightPosition
       }
     }
@@ -929,17 +926,19 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.chromaticAberrationStrength] value set in [style], if specified.
    *  - [GlassStyle.chromaticAberrationStrength] value set in the [LocalGlassStyle] composition local.
    */
-  public var chromaticAberrationStrength: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleRendering.chromaticAberrationStrength }
-        .takeOrElse { localRendering.chromaticAberrationStrength }
-        .takeOrElse { GlassDefaults.chromaticAberrationStrength }
-    }
+  private var _chromaticAberrationStrength: Float = Float.NaN
+  public var chromaticAberrationStrength: Float
+    get() = _chromaticAberrationStrength
+      .takeOrElse { styleRendering.chromaticAberrationStrength }
+      .takeOrElse { localRendering.chromaticAberrationStrength }
+      .takeOrElse { GlassDefaults.chromaticAberrationStrength }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "chromaticAberrationStrength changed. Current: $field. New: $value" }
-        field = value.coerceIn(0f, 1f)
+      val normalized = value.coerceIn(0f, 1f)
+      if (!_chromaticAberrationStrength.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) {
+          "chromaticAberrationStrength changed. Current: $_chromaticAberrationStrength. New: $value"
+        }
+        _chromaticAberrationStrength = normalized
         dirtyTracker += GlassDirtyFields.ChromaticAberration
       }
     }
@@ -1052,17 +1051,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.alpha] value set in [style], if specified.
    *  - [GlassStyle.alpha] value set in the [LocalGlassStyle] composition local.
    */
-  public var alpha: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleColor.alpha }
-        .takeOrElse { localColor.alpha }
-        .takeOrElse { GlassDefaults.alpha }
-    }
+  private var _alpha: Float = Float.NaN
+  public var alpha: Float
+    get() = _alpha
+      .takeOrElse { styleColor.alpha }
+      .takeOrElse { localColor.alpha }
+      .takeOrElse { GlassDefaults.alpha }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "alpha changed. Current: $field. New: $value" }
-        field = value.coerceIn(0f, 1f)
+      val normalized = value.coerceIn(0f, 1f)
+      if (!_alpha.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) { "alpha changed. Current: $_alpha. New: $value" }
+        _alpha = normalized
         dirtyTracker += GlassDirtyFields.Alpha
       }
     }
@@ -1076,17 +1075,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.contrast] value set in [style], if specified.
    *  - [GlassStyle.contrast] value set in the [LocalGlassStyle] composition local.
    */
-  public var contrast: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleColor.contrast }
-        .takeOrElse { localColor.contrast }
-        .takeOrElse { GlassDefaults.contrast }
-    }
+  private var _contrast: Float = Float.NaN
+  public var contrast: Float
+    get() = _contrast
+      .takeOrElse { styleColor.contrast }
+      .takeOrElse { localColor.contrast }
+      .takeOrElse { GlassDefaults.contrast }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "contrast changed. Current: $field. New: $value" }
-        field = value.coerceIn(-1f, 1f)
+      val normalized = value.coerceIn(-1f, 1f)
+      if (!_contrast.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) { "contrast changed. Current: $_contrast. New: $value" }
+        _contrast = normalized
         dirtyTracker += GlassDirtyFields.Contrast
       }
     }
@@ -1100,17 +1099,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.whitePoint] value set in [style], if specified.
    *  - [GlassStyle.whitePoint] value set in the [LocalGlassStyle] composition local.
    */
-  public var whitePoint: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleColor.whitePoint }
-        .takeOrElse { localColor.whitePoint }
-        .takeOrElse { GlassDefaults.whitePoint }
-    }
+  private var _whitePoint: Float = Float.NaN
+  public var whitePoint: Float
+    get() = _whitePoint
+      .takeOrElse { styleColor.whitePoint }
+      .takeOrElse { localColor.whitePoint }
+      .takeOrElse { GlassDefaults.whitePoint }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "whitePoint changed. Current: $field. New: $value" }
-        field = value.coerceIn(-1f, 1f)
+      val normalized = value.coerceIn(-1f, 1f)
+      if (!_whitePoint.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) { "whitePoint changed. Current: $_whitePoint. New: $value" }
+        _whitePoint = normalized
         dirtyTracker += GlassDirtyFields.WhitePoint
       }
     }
@@ -1124,17 +1123,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.chromaMultiplier] value set in [style], if specified.
    *  - [GlassStyle.chromaMultiplier] value set in the [LocalGlassStyle] composition local.
    */
-  public var chromaMultiplier: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleColor.chromaMultiplier }
-        .takeOrElse { localColor.chromaMultiplier }
-        .takeOrElse { GlassDefaults.chromaMultiplier }
-    }
+  private var _chromaMultiplier: Float = Float.NaN
+  public var chromaMultiplier: Float
+    get() = _chromaMultiplier
+      .takeOrElse { styleColor.chromaMultiplier }
+      .takeOrElse { localColor.chromaMultiplier }
+      .takeOrElse { GlassDefaults.chromaMultiplier }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "chromaMultiplier changed. Current: $field. New: $value" }
-        field = value.coerceIn(0f, 2f)
+      val normalized = value.coerceIn(0f, 2f)
+      if (!_chromaMultiplier.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) { "chromaMultiplier changed. Current: $_chromaMultiplier. New: $value" }
+        _chromaMultiplier = normalized
         dirtyTracker += GlassDirtyFields.ChromaMultiplier
       }
     }
@@ -1148,17 +1147,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.contentNormalBlend] value set in [style], if specified.
    *  - [GlassStyle.contentNormalBlend] value set in the [LocalGlassStyle] composition local.
    */
-  public var contentNormalBlend: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleRendering.contentNormalBlend }
-        .takeOrElse { localRendering.contentNormalBlend }
-        .takeOrElse { GlassDefaults.contentNormalBlend }
-    }
+  private var _contentNormalBlend: Float = Float.NaN
+  public var contentNormalBlend: Float
+    get() = _contentNormalBlend
+      .takeOrElse { styleRendering.contentNormalBlend }
+      .takeOrElse { localRendering.contentNormalBlend }
+      .takeOrElse { GlassDefaults.contentNormalBlend }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "contentNormalBlend changed. Current: $field. New: $value" }
-        field = value.coerceIn(0f, 1f)
+      val normalized = value.coerceIn(0f, 1f)
+      if (!_contentNormalBlend.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) { "contentNormalBlend changed. Current: $_contentNormalBlend. New: $value" }
+        _contentNormalBlend = normalized
         dirtyTracker += GlassDirtyFields.ContentNormalBlend
       }
     }
@@ -1172,17 +1171,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.specularExponent] value set in [style], if specified.
    *  - [GlassStyle.specularExponent] value set in the [LocalGlassStyle] composition local.
    */
-  public var specularExponent: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleLighting.specularExponent }
-        .takeOrElse { localLighting.specularExponent }
-        .takeOrElse { GlassDefaults.specularExponent }
-    }
+  private var _specularExponent: Float = Float.NaN
+  public var specularExponent: Float
+    get() = _specularExponent
+      .takeOrElse { styleLighting.specularExponent }
+      .takeOrElse { localLighting.specularExponent }
+      .takeOrElse { GlassDefaults.specularExponent }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "specularExponent changed. Current: $field. New: $value" }
-        field = value.coerceAtLeast(0f)
+      val normalized = value.coerceAtLeast(0f)
+      if (!_specularExponent.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) { "specularExponent changed. Current: $_specularExponent. New: $value" }
+        _specularExponent = normalized
         dirtyTracker += GlassDirtyFields.SpecularExponent
       }
     }
@@ -1196,17 +1195,17 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
    *  - [GlassStyle.fresnelExponent] value set in [style], if specified.
    *  - [GlassStyle.fresnelExponent] value set in the [LocalGlassStyle] composition local.
    */
-  public var fresnelExponent: Float = Float.NaN
-    get() {
-      return field
-        .takeOrElse { styleLighting.fresnelExponent }
-        .takeOrElse { localLighting.fresnelExponent }
-        .takeOrElse { GlassDefaults.fresnelExponent }
-    }
+  private var _fresnelExponent: Float = Float.NaN
+  public var fresnelExponent: Float
+    get() = _fresnelExponent
+      .takeOrElse { styleLighting.fresnelExponent }
+      .takeOrElse { localLighting.fresnelExponent }
+      .takeOrElse { GlassDefaults.fresnelExponent }
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "fresnelExponent changed. Current: $field. New: $value" }
-        field = value.coerceAtLeast(0f)
+      val normalized = value.coerceAtLeast(0f)
+      if (!_fresnelExponent.hasSameOverrideValueAs(normalized)) {
+        HazeLogger.d(TAG) { "fresnelExponent changed. Current: $_fresnelExponent. New: $value" }
+        _fresnelExponent = normalized
         dirtyTracker += GlassDirtyFields.FresnelExponent
       }
     }
@@ -1271,19 +1270,35 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     if (old.optics != new.optics) {
       dirtyTracker += GlassDirtyFields.Optics
     }
-    if (old.lighting.specularIntensity != new.lighting.specularIntensity) {
+    if (
+      !old.lighting.specularIntensity.hasSameNormalizedOverrideValueAs(
+        new.lighting.specularIntensity,
+      ) { it.coerceIn(0f, 1f) }
+    ) {
       dirtyTracker += GlassDirtyFields.SpecularIntensity
     }
-    if (old.lighting.ambientResponse != new.lighting.ambientResponse) {
+    if (
+      !old.lighting.ambientResponse.hasSameNormalizedOverrideValueAs(
+        new.lighting.ambientResponse,
+      ) { it.coerceIn(0f, 1f) }
+    ) {
       dirtyTracker += GlassDirtyFields.AmbientResponse
     }
     if (old.lighting.lightPosition != new.lighting.lightPosition) {
       dirtyTracker += GlassDirtyFields.LightPosition
     }
-    if (old.lighting.specularExponent != new.lighting.specularExponent) {
+    if (
+      !old.lighting.specularExponent.hasSameNormalizedOverrideValueAs(
+        new.lighting.specularExponent,
+      ) { it.coerceAtLeast(0f) }
+    ) {
       dirtyTracker += GlassDirtyFields.SpecularExponent
     }
-    if (old.lighting.fresnelExponent != new.lighting.fresnelExponent) {
+    if (
+      !old.lighting.fresnelExponent.hasSameNormalizedOverrideValueAs(
+        new.lighting.fresnelExponent,
+      ) { it.coerceAtLeast(0f) }
+    ) {
       dirtyTracker += GlassDirtyFields.FresnelExponent
     }
     if (old.tint != new.tint) {
@@ -1292,28 +1307,50 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     if (old.shape != new.shape) {
       dirtyTracker += GlassDirtyFields.Shape
     }
-    if (old.color.alpha != new.color.alpha) {
+    if (
+      !old.color.alpha.hasSameNormalizedOverrideValueAs(new.color.alpha) { it.coerceIn(0f, 1f) }
+    ) {
       dirtyTracker += GlassDirtyFields.Alpha
     }
-    if (old.color.contrast != new.color.contrast) {
+    if (
+      !old.color.contrast.hasSameNormalizedOverrideValueAs(new.color.contrast) {
+        it.coerceIn(-1f, 1f)
+      }
+    ) {
       dirtyTracker += GlassDirtyFields.Contrast
     }
-    if (old.color.whitePoint != new.color.whitePoint) {
+    if (
+      !old.color.whitePoint.hasSameNormalizedOverrideValueAs(new.color.whitePoint) {
+        it.coerceIn(-1f, 1f)
+      }
+    ) {
       dirtyTracker += GlassDirtyFields.WhitePoint
     }
-    if (old.color.chromaMultiplier != new.color.chromaMultiplier) {
+    if (
+      !old.color.chromaMultiplier.hasSameNormalizedOverrideValueAs(new.color.chromaMultiplier) {
+        it.coerceIn(0f, 2f)
+      }
+    ) {
       dirtyTracker += GlassDirtyFields.ChromaMultiplier
     }
     if (old.rendering.edgeSoftness != new.rendering.edgeSoftness) {
       dirtyTracker += GlassDirtyFields.EdgeSoftness
     }
-    if (old.rendering.contentNormalBlend != new.rendering.contentNormalBlend) {
+    if (
+      !old.rendering.contentNormalBlend.hasSameNormalizedOverrideValueAs(
+        new.rendering.contentNormalBlend,
+      ) { it.coerceIn(0f, 1f) }
+    ) {
       dirtyTracker += GlassDirtyFields.ContentNormalBlend
     }
     if (old.rendering.surfaceProfile != new.rendering.surfaceProfile) {
       dirtyTracker += GlassDirtyFields.SurfaceProfile
     }
-    if (old.rendering.chromaticAberrationStrength != new.rendering.chromaticAberrationStrength) {
+    if (
+      !old.rendering.chromaticAberrationStrength.hasSameNormalizedOverrideValueAs(
+        new.rendering.chromaticAberrationStrength,
+      ) { it.coerceIn(0f, 1f) }
+    ) {
       dirtyTracker += GlassDirtyFields.ChromaticAberration
     }
     if (old.rendering.chromaticAberrationMode != new.rendering.chromaticAberrationMode) {
@@ -1375,6 +1412,15 @@ private fun RoundedCornerShape.hasZeroCornerRadii(): Boolean {
 private inline fun Float.takeOrElse(default: () -> Float): Float {
   return if (this.isNaN()) default() else this
 }
+
+private fun Float.hasSameOverrideValueAs(other: Float): Boolean =
+  this == other || isNaN() && other.isNaN()
+
+private inline fun Float.hasSameNormalizedOverrideValueAs(
+  other: Float,
+  normalize: (Float) -> Float,
+): Boolean = hasSameOverrideValueAs(other) ||
+  isFinite() && other.isFinite() && normalize(this) == normalize(other)
 
 private fun reducedMotion(
   policy: GlassReducedMotionPolicy,
