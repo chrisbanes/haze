@@ -51,6 +51,7 @@ kotlin {
         implementation(libs.assertk)
 
         implementation(libs.compose.ui.test)
+        implementation(libs.compose.material3.adaptive.navigation.suite)
         implementation(libs.compose.navigation3.ui)
 
         implementation(projects.internal.contextTest)

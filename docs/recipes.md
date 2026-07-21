@@ -52,6 +52,65 @@ Scaffold(
 }
 ```
 
+## Navigation3 with adaptive navigation
+
+`NavDisplay` applies its outer `AnimatedContent` transition after each scene is composed. A
+`hazeSource` on every scene therefore misses that transform and alpha while a transition is in
+progress. Conversely, an effect in a `NavDisplay` descendant cannot sample an active ancestor
+source: it would recursively sample the layer while that source is being recorded.
+
+Keep the complete `NavDisplay` composite in one source, then use Material 3 Adaptive's
+`NavigationSuiteScaffoldLayout` as a sibling navigation-only overlay. The layout still positions the
+appropriate bar or rail, but its `content` must remain empty so that `NavDisplay` stays full-size and
+edge-to-edge behind the translucent navigation.
+
+```kotlin
+val hazeState = rememberHazeState()
+val navigationSuiteType =
+  NavigationSuiteScaffoldDefaults.navigationSuiteType(currentWindowAdaptiveInfo())
+
+Box(Modifier.fillMaxSize()) {
+  NavDisplay(
+    modifier = Modifier
+      .fillMaxSize()
+      .hazeSource(hazeState),
+    // back stack, entries, transitions, and scene decorators
+  )
+
+  NavigationSuiteScaffoldLayout(
+    navigationSuiteType = navigationSuiteType,
+    navigationSuite = {
+      NavigationSuite(
+        navigationSuiteType = navigationSuiteType,
+        colors = NavigationSuiteDefaults.colors(
+          shortNavigationBarContainerColor = Color.Transparent,
+          wideNavigationRailColors = WideNavigationRailDefaults.colors(
+            containerColor = Color.Transparent,
+            modalContainerColor = Color.Transparent,
+          ),
+          navigationBarContainerColor = Color.Transparent,
+          navigationRailContainerColor = Color.Transparent,
+          navigationDrawerContainerColor = Color.Transparent,
+        ),
+        modifier = Modifier.hazeEffect(hazeState) {
+          blurEffect {
+            blurRadius = 20.dp
+          }
+        },
+      ) {
+        // navigation items
+      }
+    },
+    content = {},
+  )
+}
+```
+
+Use the same `NavigationSuiteType` for the layout and `NavigationSuite`, and make every relevant
+Material navigation container transparent so the Haze result remains visible. Keep decorative scene
+content edge-to-edge; apply any padding needed to keep interactive content clear of the overlaid bar
+or rail.
+
 ## Sticky Headers
 
 The `stickyHeader` functionality on `LazyColumn` and friends is very useful, but unfortunately the limitations of Haze means that blurring the list contents for the header background is tricky.
