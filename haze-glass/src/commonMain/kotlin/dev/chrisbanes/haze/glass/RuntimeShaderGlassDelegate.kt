@@ -5,8 +5,6 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.center
-import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
@@ -14,7 +12,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
@@ -57,6 +54,7 @@ internal class RuntimeShaderGlassDelegate(
   private var recordedInteractionLightingKey: GlassInteractionLightingKey? = null
   internal val layers = GlassLayers()
   private var graphicsContext: GraphicsContext? = null
+  private var preparedRender: GlassPreparedRender? = null
   private var preparedParams: GlassRenderParams? = null
   private var preparedRenderEffects: GlassRenderEffects? = null
   private var preparedInteractionUniforms: GlassInteractionUniforms? = null
@@ -71,30 +69,18 @@ internal class RuntimeShaderGlassDelegate(
     private set
 
   override fun DrawScope.prepareDraw(context: VisualEffectContext) {
-    val scaleFactor = effect.resolveInputScaleFactor(context.inputScale)
-    val rawCoordinates = resolveGlassCoordinates(
-      layerSize = context.layerSize,
-      layerOffset = context.layerOffset,
-      materialSize = context.size,
-      scaleFactor = scaleFactor,
-    )
+    val currentPreparedRender = effect.preparedRender
     if (
-      requireDrawableMaterialSize(rawCoordinates.materialSize, ::releaseRetainedResources) == null ||
-      requireDrawableMaterialSize(rawCoordinates.sampleSize, ::releaseRetainedResources) == null
+      effect.preparedRenderBudget !is GlassRenderBudgetDecision.Runtime ||
+      currentPreparedRender == null
     ) {
+      releaseRetainedResources()
       return
     }
-    val coordinates = rawCoordinates.withRoundedSampleSize()
-    if (requireDrawableMaterialSize(coordinates.sampleSize, ::releaseRetainedResources) == null) {
-      return
-    }
-    val params = buildRenderParams(context, coordinates)
-    val interactionUniforms = params.interactionUniforms(
-      state = effect.interactionRenderState(context),
-      radiusFraction = effect.interactionLightRadiusFraction,
-    )
-    val currentRenderEffects = getRenderEffects(params)
-    val scaledSize = coordinates.sampleSize.roundToIntSize()
+    val params = currentPreparedRender.params
+    val interactionUniforms = currentPreparedRender.interactionUniforms
+    val currentRenderEffects = getRenderEffects(currentPreparedRender)
+    val scaledSize = params.coordinates.sampleSize.roundToIntSize()
 
     val currentGraphicsContext = context.requireGraphicsContext()
     graphicsContext = currentGraphicsContext
@@ -108,51 +94,98 @@ internal class RuntimeShaderGlassDelegate(
     preparedSourceAvailable = layers.hasSource
     preparedStageAvailability = stageAvailability(params, currentRenderEffects)
 
-    layers.ensureSource(currentGraphicsContext)
-    if (shouldBlur(params, currentRenderEffects)) {
+    val blurRequired = shouldBlur(params, currentRenderEffects)
+    val depthMixRequired = shouldDepthMix(params, currentRenderEffects)
+    val refractionDetailRequired = currentRenderEffects.refractionDetail != null
+    val rimRequired = currentRenderEffects.rim != null
+    val interactionOpticsRequired = interactionUniforms.hasOptics
+    val interactionDetailRequired = interactionOpticsRequired && refractionDetailRequired
+    val interactionLightingRequired = interactionUniforms.hasLighting
+
+    // Drop stages which are no longer part of the graph before allocating their replacements.
+    // This keeps topology transitions from temporarily retaining both complete graphs.
+    if (blurRequired) {
       val blurEffects = checkNotNull(currentRenderEffects.blur)
       val blurWorkingSize = blurEffects.key.plan.workingSize
       if (layers.updateBlurWorkingSize(blurWorkingSize, currentGraphicsContext)) {
         context.invalidateDraw()
       }
-      if (blurEffects.key.plan.requiresPrefilter) {
-        layers.ensureBlurPrefiltered(currentGraphicsContext)
-      } else {
+      if (!blurEffects.key.plan.requiresPrefilter) {
         layers.releaseBlurPrefiltered(currentGraphicsContext)
       }
-      layers.ensureBlurHorizontal(currentGraphicsContext)
-      layers.ensureBlurred(currentGraphicsContext)
     } else {
       layers.releaseBlurred(currentGraphicsContext)
     }
-    if (shouldDepthMix(params, currentRenderEffects)) {
-      layers.ensureDepthMixed(currentGraphicsContext)
-    } else {
+    if (!depthMixRequired) {
       layers.releaseDepthMixed(currentGraphicsContext)
     }
-    layers.ensureOptical(currentGraphicsContext)
-    layers.prepareRefractionDetail(
-      required = currentRenderEffects.refractionDetail != null,
-      graphicsContext = currentGraphicsContext,
-    )
-    if (currentRenderEffects.rim != null) {
-      layers.ensureRim(currentGraphicsContext)
-    } else {
+    if (!refractionDetailRequired) {
+      layers.releaseRefractionDetail(currentGraphicsContext)
+    }
+    if (!rimRequired) {
       layers.releaseRim(currentGraphicsContext)
     }
-    layers.prepareInteraction(
-      optics = interactionUniforms.hasOptics,
-      detail = interactionUniforms.hasOptics && currentRenderEffects.refractionDetail != null,
-      lighting = interactionUniforms.hasLighting,
+    releaseObsoleteInteractionLayers(
+      opticsRequired = interactionOpticsRequired,
+      detailRequired = interactionDetailRequired,
+      lightingRequired = interactionLightingRequired,
       graphicsContext = currentGraphicsContext,
     )
 
+    layers.ensureSource(currentGraphicsContext)
+    if (blurRequired) {
+      val blurPlan = checkNotNull(currentRenderEffects.blur).key.plan
+      if (blurPlan.requiresPrefilter) {
+        layers.ensureBlurPrefiltered(currentGraphicsContext)
+      }
+      layers.ensureBlurHorizontal(currentGraphicsContext)
+      layers.ensureBlurred(currentGraphicsContext)
+    }
+    if (depthMixRequired) {
+      layers.ensureDepthMixed(currentGraphicsContext)
+    }
+    layers.ensureOptical(currentGraphicsContext)
+    if (refractionDetailRequired) {
+      layers.ensureRefractionDetail(currentGraphicsContext)
+    }
+    if (rimRequired) {
+      layers.ensureRim(currentGraphicsContext)
+    }
+    layers.prepareInteraction(
+      optics = interactionOpticsRequired,
+      detail = interactionDetailRequired,
+      lighting = interactionLightingRequired,
+      graphicsContext = currentGraphicsContext,
+    )
+
+    preparedRender = currentPreparedRender
     preparedParams = params
     preparedRenderEffects = currentRenderEffects
     preparedInteractionUniforms = interactionUniforms
   }
 
+  private fun releaseObsoleteInteractionLayers(
+    opticsRequired: Boolean,
+    detailRequired: Boolean,
+    lightingRequired: Boolean,
+    graphicsContext: GraphicsContext,
+  ) {
+    if (!opticsRequired) {
+      releaseLayer(layers.interactionOptical, graphicsContext)
+      layers.interactionOptical = null
+    }
+    if (!detailRequired) {
+      releaseLayer(layers.interactionRefractionDetail, graphicsContext)
+      layers.interactionRefractionDetail = null
+    }
+    if (!lightingRequired) {
+      releaseLayer(layers.interactionLighting, graphicsContext)
+      layers.interactionLighting = null
+    }
+  }
+
   override fun DrawScope.draw(context: VisualEffectContext) {
+    val render = preparedRender ?: return
     val params = preparedParams ?: return
     val effects = preparedRenderEffects ?: return
     val interactionUniforms = preparedInteractionUniforms ?: return
@@ -160,11 +193,11 @@ internal class RuntimeShaderGlassDelegate(
     var completed = false
     try {
       val currentInputs = GlassStageInputs(
-        blur = effects.blur?.key?.takeIf { shouldBlur(params, effects) },
+        blur = render.blurKey?.takeIf { shouldBlur(params, effects) },
         depth = params.depth,
-        optical = params.opticalEffectKey(),
-        detail = effects.refractionDetail?.key,
-        rim = params.rimEffectKey().takeIf { effects.rim != null },
+        optical = render.opticalKey,
+        detail = render.refractionDetailKey,
+        rim = render.rimKey,
       )
       val sourceState = context.resolveGlassSourceState(params.coordinates.scaleFactor)
       val shouldRecordSource = sourceState.hasDrawableSource && (
@@ -222,7 +255,7 @@ internal class RuntimeShaderGlassDelegate(
         requireRetainedStage(
           recordInteractionOptical(
             input = depthInput,
-            key = params.opticalEffectKey(),
+            key = render.opticalKey,
             uniforms = interactionUniforms,
           ),
           ::clearRetainedOutput,
@@ -257,7 +290,7 @@ internal class RuntimeShaderGlassDelegate(
           ::clearRetainedOutput,
         ) ?: return
       }
-      withAlpha(alpha = effect.alpha, context = context) {
+      withAlpha(alpha = render.alpha, context = context) {
         drawCompletedLayer(completedOptical, context, params, alpha = 1f)
         if (completedRefractionDetail != null) {
           drawCompletedLayer(completedRefractionDetail, context, params, alpha = 1f)
@@ -277,16 +310,17 @@ internal class RuntimeShaderGlassDelegate(
   }
 
   override fun DrawScope.drawForeground(context: VisualEffectContext) {
+    val render = preparedRender ?: return
     val params = preparedParams ?: return
     requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
     if (!retainedOutputAvailable) return
     preparedInteractionUniforms?.takeIf { it.hasLighting }?.let {
       layers.interactionLighting?.takeUnless { layer -> layer.isReleased }?.let { layer ->
-        drawCompletedLayer(layer, context, params, alpha = effect.alpha)
+        drawCompletedLayer(layer, context, params, alpha = render.alpha)
       }
     }
     layers.rim?.takeUnless { it.isReleased }?.let { rim ->
-      drawCompletedLayer(rim, context, params, alpha = effect.alpha)
+      drawCompletedLayer(rim, context, params, alpha = render.alpha)
     }
   }
 
@@ -330,11 +364,15 @@ internal class RuntimeShaderGlassDelegate(
   }
 
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
-    if (level.severity >= TrimMemoryLevel.MODERATE.severity) {
+    if (shouldReleaseRetainedGlass(level)) {
       releaseRetainedResources(graphicsContext ?: context.requireGraphicsContext())
       context.invalidateDraw()
     }
   }
+
+  private fun shouldReleaseRetainedGlass(level: TrimMemoryLevel): Boolean =
+    level == TrimMemoryLevel.UI_HIDDEN ||
+      level.severity >= TrimMemoryLevel.MODERATE.severity
 
   private fun releaseRetainedResources(
     releaseContext: GraphicsContext? = graphicsContext,
@@ -357,6 +395,7 @@ internal class RuntimeShaderGlassDelegate(
     interactionLightingEffect = null
     clearInteractionLayerMetadata()
     preparedParams = null
+    preparedRender = null
     preparedRenderEffects = null
     preparedInteractionUniforms = null
     preparedSourceAvailable = false
@@ -693,69 +732,18 @@ internal class RuntimeShaderGlassDelegate(
     effects: GlassRenderEffects,
   ): Boolean = params.depth > 0f && params.depth < 1f && shouldBlur(params, effects)
 
-  private fun DrawScope.buildRenderParams(
-    context: VisualEffectContext,
-    coordinates: GlassCoordinates,
-  ): GlassRenderParams {
-    val scaleFactor = coordinates.scaleFactor
-    val density = context.requireDensity()
-    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
-    val unscaledRadii = effect.shape.toCornerRadiiPx(
-      layerSize = context.size,
-      density = density,
-      layoutDirection = layoutDirection,
-    )
-    val scaledRadii = unscaledRadii * scaleFactor
-    val resolvedOptics = resolveGlassOptics(
-      optics = effect.optics,
-      materialSizePx = context.size,
-      density = density,
-      cornerRadiiPx = unscaledRadii,
-    )
-    val lightPosition = effect.lightPosition
-      .takeOrElse { context.size.center } * scaleFactor
-    return GlassRenderParams(
-      coordinates = coordinates,
-      refractionStrength = resolvedOptics.refractionStrength,
-      specularIntensity = effect.specularIntensity.coerceIn(0f, 1f),
-      depth = resolvedOptics.depth,
-      ambientResponse = effect.ambientResponse.coerceIn(0f, 1f),
-      tint = effect.tint,
-      edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() } * scaleFactor,
-      blurRadiusPx = resolvedOptics.blurRadiusPx * scaleFactor,
-      blurSigmaPx = resolvedOptics.blurSigmaPx * scaleFactor,
-      progressive = resolvedOptics.progressive,
-      refractionHeightPx = resolvedOptics.refractionHeightPx * scaleFactor,
-      chromaticAberrationStrength = effect.chromaticAberrationStrength.coerceIn(0f, 1f),
-      surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),
-      chromaticAberrationMode = effect.chromaticAberrationMode.ordinal.toFloat(),
-      contrast = effect.contrast.coerceIn(-1f, 1f),
-      whitePoint = effect.whitePoint.coerceIn(-1f, 1f),
-      chromaMultiplier = effect.chromaMultiplier.coerceIn(0f, 2f),
-      refractionScalePx = resolvedOptics.refractionScalePx * scaleFactor,
-      contentNormalBlend = effect.contentNormalBlend.coerceIn(0f, 1f),
-      specularExponent = effect.specularExponent.coerceAtLeast(0f),
-      fresnelExponent = effect.fresnelExponent.coerceAtLeast(0f),
-      geometryToneGain = resolvedOptics.toneGain,
-      geometryNeutralLift = resolvedOptics.neutralLiftWeight,
-      cornerRadii = scaledRadii,
-      lightPosition = lightPosition,
-      sampleStepPx = 2f * scaleFactor,
-    )
-  }
-
-  private fun getRenderEffects(params: GlassRenderParams): GlassRenderEffects {
-    val nextBlurKey = params.blurEffectKey()
+  private fun getRenderEffects(render: GlassPreparedRender): GlassRenderEffects {
+    val nextBlurKey = render.blurKey
     if (nextBlurKey != blurKey) {
-      blurEffects = createGlassBlurRenderEffects(nextBlurKey)
+      blurEffects = nextBlurKey?.let(::createGlassBlurRenderEffects)
       blurKey = nextBlurKey
     }
-    val nextOpticalKey = params.opticalEffectKey()
+    val nextOpticalKey = render.opticalKey
     if (nextOpticalKey != opticalKey || opticalEffect == null) {
       opticalEffect = createGlassOpticalRenderEffect(nextOpticalKey)
       opticalKey = nextOpticalKey
     }
-    val nextRefractionDetailKey = params.activeRefractionDetailEffectKey()
+    val nextRefractionDetailKey = render.refractionDetailKey
     if (
       nextRefractionDetailKey != refractionDetailKey ||
       nextRefractionDetailKey != null && refractionDetailEffect == null
@@ -763,9 +751,9 @@ internal class RuntimeShaderGlassDelegate(
       refractionDetailEffect = nextRefractionDetailKey?.let(::createRefractionDetailRenderEffect)
       refractionDetailKey = nextRefractionDetailKey
     }
-    val nextRimKey = params.rimEffectKey()
+    val nextRimKey = render.rimKey
     if (nextRimKey != rimKey) {
-      rimEffect = createGlassRimRenderEffect(nextRimKey)
+      rimEffect = nextRimKey?.let(::createGlassRimRenderEffect)
       rimKey = nextRimKey
     }
     return GlassRenderEffects(

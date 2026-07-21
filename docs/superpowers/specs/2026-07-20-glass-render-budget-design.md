@@ -94,27 +94,36 @@ bounded conversion. Addition is overflow-safe. Invalid or overflowing calculatio
 Evaluate the caller's requested scale first. If it fits, return it unchanged. Otherwise:
 
 1. Evaluate the applicable floor: `min(requestedScale, 0.25f)`.
-2. If the floor does not fit, return `Fallback`.
-3. If the floor fits, run 16 binary-search iterations between the floor and requested scale to
-   select the largest known fitting scale. This bounds scale uncertainty below `1 / 65,536` for
-   the public `0f..1f` scale domain.
-4. Rebuild coordinates, resolved render parameters, and the blur plan for every candidate. Rounded
-   layer dimensions and blur-plan thresholds therefore participate in the decision rather than
-   being approximated from the original graph.
-5. Return the last known fitting candidate. A final exact evaluation must pass before runtime
-   preparation continues.
+2. Detect whether the interval crosses the semantic-blur prefilter transition. Retained cost is
+   not monotonic at this transition: adding the full-size prefilter also reduces both blur working
+   layers, so a scale above an unsafe floor can still fit.
+3. When the transition is present, isolate its two sides to adjacent representable positive
+   `Float` values. This ensures that a narrow fitting interval immediately above the transition is
+   evaluated rather than skipped by a fixed-iteration topology search.
+4. Run 16 binary-search iterations independently within each continuous-topology interval whose
+   lower candidate fits. When there is no transition, search the single interval in the same way.
+5. Build each candidate plan from primitive geometry and active-stage inputs. Rounded layer
+   dimensions, scale-dependent refraction-detail visibility, and blur-plan thresholds therefore
+   participate in the decision without constructing shader kernels, taps, or graphics layers.
+6. Select the largest fitting result across the intervals. Return `Fallback` only when neither
+   interval contains a fitting plan.
+7. Build one exact prepared render bundle for the selected candidate and validate its actual layer
+   plan against the limits before runtime preparation continues.
 
 The search is deterministic and bounded; it must not allocate graphics layers or mutate retained
 state.
 
 ## Renderer integration
 
-`GlassVisualEffect.prepareDraw` resolves the budget before selecting or preparing a delegate. The
-budget decision is recalculated when geometry, input scale, optics, active stages, or interaction
-state changes. The effect retains the selected runtime scale for the current prepared draw.
+`GlassVisualEffect.prepareDraw` resolves the lightweight budget before selecting or preparing a
+delegate. The budget decision is recalculated when geometry, input scale, optics, active stages, or
+interaction state changes. The effect retains the selected runtime scale for the current prepared
+draw.
 
-Platform delegate selection remains responsible for runtime-shader support, but also respects the
-common budget decision:
+Platform runtime-shader capability is checked before constructing the exact prepared render bundle.
+Fallback-only platforms still perform the lightweight bounds and budget validation, but avoid
+building unused shader keys, blur kernels, or tap lists. Delegate selection consumes the same
+capability result and common budget decision:
 
 - supported and budget-safe: select `RuntimeShaderGlassDelegate`;
 - unsupported or `Fallback`: select `FallbackGlassDelegate`.

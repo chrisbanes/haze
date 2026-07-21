@@ -12,9 +12,14 @@ internal actual fun GlassVisualEffect.updateDelegate(
   context: VisualEffectContext,
   drawScope: DrawScope,
 ): GlassVisualEffect.Delegate {
-  // Runtime shaders are always supported on Skiko platforms.
-  return when (delegate) {
-    is RuntimeShaderGlassDelegate -> delegate
-    else -> RuntimeShaderGlassDelegate(this)
+  val wantsRuntime =
+    preparedRenderBudget is GlassRenderBudgetDecision.Runtime &&
+      preparedRender != null
+  return when {
+    wantsRuntime && delegate !is RuntimeShaderGlassDelegate -> RuntimeShaderGlassDelegate(this)
+    !wantsRuntime && delegate !is FallbackGlassDelegate -> FallbackGlassDelegate(this)
+    else -> delegate
   }
 }
+
+internal actual fun isRuntimeShaderGlassSupported(): Boolean = true
