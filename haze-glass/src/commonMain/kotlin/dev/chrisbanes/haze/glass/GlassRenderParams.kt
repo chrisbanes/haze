@@ -657,7 +657,6 @@ internal fun buildGlassRenderParams(
 internal fun buildGlassRetainedLayerPlan(
   params: GlassRenderParams,
   interaction: GlassInteractionUniforms,
-  groupCompositeSize: IntSize? = null,
 ): GlassRetainedLayerPlan {
   val sampleSize = params.coordinates.sampleSize.roundToIntSize()
   val blurActive = params.depth > 0f && params.blurRadiusPx > 0f
@@ -671,7 +670,7 @@ internal fun buildGlassRetainedLayerPlan(
     rimActive = params.specularIntensity > 0f,
     interactionOpticsActive = interaction.hasOptics,
     interactionLightingActive = interaction.hasLighting,
-    groupCompositeSize = groupCompositeSize,
+    groupCompositeSize = null,
   )
 }
 
