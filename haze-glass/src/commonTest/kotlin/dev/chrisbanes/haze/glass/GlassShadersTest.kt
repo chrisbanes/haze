@@ -247,7 +247,7 @@ class GlassShadersTest {
   }
 
   @Test
-  fun refractionShaders_blendRectangleAndCornerNormalsAcrossRefractionZone() {
+  fun refractionShaders_blendRectangleNormalsAcrossRefractionZone() {
     listOf(
       GlassShaders.buildOptical(),
       GlassShaders.buildOptical(interactive = true),
@@ -268,9 +268,9 @@ class GlassShadersTest {
       assertThat(shader).contains(
         "gradSdRoundedRect(localCoord, materialSize, cornerRadii, normalBlendWidth)",
       )
-      assertThat(shader).contains("vec2 blendSdfGradients(")
+      assertThat(shader).doesNotContain("vec2 blendSdfGradients(")
       assertThat(shader).doesNotContain("clamp(min(size.x, size.y) * 0.01, 1.0, 4.0)")
-      assertThat(shader).doesNotContain("if (cornerSd > sd)")
+      assertThat(shader).contains("if (cornerSd > sd)")
       assertThat(shader).contains("float centerFade = smootherstep(")
       assertThat(shader).doesNotContain("edgeDistance.x > edgeDistance.y")
       assertThat(shader).doesNotContain("vec2 centerFallbackDir")

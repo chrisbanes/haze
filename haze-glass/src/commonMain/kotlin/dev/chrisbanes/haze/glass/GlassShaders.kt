@@ -495,51 +495,39 @@ internal object GlassShaders {
         max(totalWeight, 0.0001);
     }
 
-    vec2 blendSdfGradients(
-      vec2 baseGradient,
-      float baseSd,
-      vec2 featureGradient,
-      float featureSd,
-      float blendWidth
-    ) {
-      float maximumSd = max(baseSd, featureSd);
-      float baseWeight = 1.0 - smootherstep((maximumSd - baseSd) / blendWidth);
-      float featureWeight = 1.0 - smootherstep((maximumSd - featureSd) / blendWidth);
-      return (baseGradient * baseWeight + featureGradient * featureWeight) /
-        max(baseWeight + featureWeight, 0.0001);
-    }
-
     vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, float blendWidth) {
       float sd = sdRectangle(localCoord, size);
       vec2 gradient = gradSdRectangle(localCoord, size, blendWidth);
       if (localCoord.x < radii.x && localCoord.y < radii.x) {
         vec2 center = vec2(radii.x);
         float cornerSd = length(localCoord - center) - radii.x;
-        vec2 cornerGradient = safeNormalize(localCoord - center, vec2(-0.70710678));
-        gradient = blendSdfGradients(gradient, sd, cornerGradient, cornerSd, blendWidth);
-        sd = max(sd, cornerSd);
+        if (cornerSd > sd) {
+          sd = cornerSd;
+          gradient = safeNormalize(localCoord - center, vec2(-0.70710678));
+        }
       }
       if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
         vec2 center = vec2(size.x - radii.y, radii.y);
         float cornerSd = length(localCoord - center) - radii.y;
-        vec2 cornerGradient =
-          safeNormalize(localCoord - center, vec2(0.70710678, -0.70710678));
-        gradient = blendSdfGradients(gradient, sd, cornerGradient, cornerSd, blendWidth);
-        sd = max(sd, cornerSd);
+        if (cornerSd > sd) {
+          sd = cornerSd;
+          gradient = safeNormalize(localCoord - center, vec2(0.70710678, -0.70710678));
+        }
       }
       if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
         vec2 center = vec2(size.x - radii.z, size.y - radii.z);
         float cornerSd = length(localCoord - center) - radii.z;
-        vec2 cornerGradient = safeNormalize(localCoord - center, vec2(0.70710678));
-        gradient = blendSdfGradients(gradient, sd, cornerGradient, cornerSd, blendWidth);
-        sd = max(sd, cornerSd);
+        if (cornerSd > sd) {
+          sd = cornerSd;
+          gradient = safeNormalize(localCoord - center, vec2(0.70710678));
+        }
       }
       if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
         vec2 center = vec2(radii.w, size.y - radii.w);
         float cornerSd = length(localCoord - center) - radii.w;
-        vec2 cornerGradient =
-          safeNormalize(localCoord - center, vec2(-0.70710678, 0.70710678));
-        gradient = blendSdfGradients(gradient, sd, cornerGradient, cornerSd, blendWidth);
+        if (cornerSd > sd) {
+          gradient = safeNormalize(localCoord - center, vec2(-0.70710678, 0.70710678));
+        }
       }
       return gradient;
     }
