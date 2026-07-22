@@ -505,8 +505,34 @@ internal fun assertFirstEnabledFrameStable(
 internal fun assertBoundaryContinuous(
   derivative: List<Float>,
   boundaryIndex: Int,
-  boundaryRadius: Int = 0,
 ) {
+  val boundaryRange = checkedBoundaryRange(
+    derivative = derivative,
+    boundaryIndex = boundaryIndex,
+    boundaryRadius = 0,
+  )
+  assertBoundarySignalContinuous(derivative, boundaryRange)
+}
+
+internal fun assertBoundaryCurvatureContinuous(
+  derivative: List<Float>,
+  boundaryIndex: Int,
+  boundaryRadius: Int,
+) {
+  val boundaryRange = checkedBoundaryRange(derivative, boundaryIndex, boundaryRadius)
+  val curvature = derivative.zipWithNext { first, second -> abs(second - first) }
+  val transitionRange = (boundaryRange.first - 1)..boundaryRange.last
+  require(transitionRange.first >= 0 && transitionRange.last < curvature.size) {
+    "Boundary transitions $transitionRange must be within curvature indices ${curvature.indices}"
+  }
+  assertBoundarySignalContinuous(curvature, transitionRange)
+}
+
+private fun checkedBoundaryRange(
+  derivative: List<Float>,
+  boundaryIndex: Int,
+  boundaryRadius: Int,
+): IntRange {
   require(derivative.isNotEmpty()) { "Boundary derivative must be non-empty" }
   require(boundaryIndex in derivative.indices) {
     "boundaryIndex=$boundaryIndex must be within derivative indices ${derivative.indices}"
@@ -517,32 +543,21 @@ internal fun assertBoundaryContinuous(
   require(boundaryStart >= 0 && boundaryEnd < derivative.size) {
     "Boundary window $boundaryStart..$boundaryEnd must be within derivative indices ${derivative.indices}"
   }
-  if (boundaryRadius > 0) {
-    val curvature = derivative.zipWithNext { first, second -> abs(second - first) }
-    val transitionStart = boundaryStart - 1
-    val transitionEnd = boundaryEnd
-    require(transitionStart >= 0 && transitionEnd < curvature.size) {
-      "Boundary transitions $transitionStart..$transitionEnd must be within curvature indices ${curvature.indices}"
-    }
-    val start = maxOf(0, transitionStart - 8)
-    val end = minOf(curvature.size, transitionEnd + 9)
-    val neighborhood = curvature.subList(
-      start,
-      end,
-    ).filterIndexed { index, _ -> start + index !in transitionStart..transitionEnd }
-    val allowed = (neighborhood.maxOrNull() ?: 0f) * 1.5f + PixelTolerance
-    val boundaryPeak = curvature.subList(transitionStart, transitionEnd + 1).max()
-    assertThat(boundaryPeak).isLessThanOrEqualTo(allowed)
-    return
-  }
-  val start = maxOf(0, boundaryStart - 8)
-  val end = minOf(derivative.size, boundaryEnd + 9)
-  val neighborhood = derivative.subList(
+  return boundaryStart..boundaryEnd
+}
+
+private fun assertBoundarySignalContinuous(
+  signal: List<Float>,
+  boundaryRange: IntRange,
+) {
+  val start = maxOf(0, boundaryRange.first - 8)
+  val end = minOf(signal.size, boundaryRange.last + 9)
+  val neighborhood = signal.subList(
     start,
     end,
-  ).filterIndexed { index, _ -> start + index !in boundaryStart..boundaryEnd }
+  ).filterIndexed { index, _ -> start + index !in boundaryRange }
   val allowed = (neighborhood.maxOrNull() ?: 0f) * 1.5f + PixelTolerance
-  val boundaryPeak = derivative.subList(boundaryStart, boundaryEnd + 1).max()
+  val boundaryPeak = signal.subList(boundaryRange.first, boundaryRange.last + 1).max()
   assertThat(boundaryPeak).isLessThanOrEqualTo(allowed)
 }
 

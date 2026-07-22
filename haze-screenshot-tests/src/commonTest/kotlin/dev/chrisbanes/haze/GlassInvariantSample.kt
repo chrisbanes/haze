@@ -262,7 +262,7 @@ private fun assertContinuousAt(
   label: String,
 ) {
   try {
-    assertBoundaryContinuous(
+    assertBoundaryCurvatureContinuous(
       derivative = derivative,
       boundaryIndex = boundaryIndex,
       boundaryRadius = 1,

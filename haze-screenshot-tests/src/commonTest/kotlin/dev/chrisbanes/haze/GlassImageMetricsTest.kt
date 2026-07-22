@@ -416,13 +416,13 @@ class GlassImageMetricsTest {
   }
 
   @Test
-  fun boundaryContinuity_rejectsClusteredSpike() {
+  fun boundaryCurvatureContinuity_rejectsClusteredSpike() {
     val derivative = List(17) { index ->
       if (index in 7..9) 0.25f else 0.01f
     }
 
     assertFailsWith<AssertionError> {
-      assertBoundaryContinuous(
+      assertBoundaryCurvatureContinuous(
         derivative = derivative,
         boundaryIndex = 8,
         boundaryRadius = 1,
@@ -431,7 +431,7 @@ class GlassImageMetricsTest {
   }
 
   @Test
-  fun boundaryContinuity_acceptsSmoothWideTransition() {
+  fun boundaryCurvatureContinuity_acceptsSmoothWideTransition() {
     val derivative = listOf(
       0f,
       0f,
@@ -467,7 +467,7 @@ class GlassImageMetricsTest {
       0f,
     )
 
-    assertBoundaryContinuous(
+    assertBoundaryCurvatureContinuous(
       derivative = derivative,
       boundaryIndex = 16,
       boundaryRadius = 1,
