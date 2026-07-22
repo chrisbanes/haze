@@ -7,5 +7,11 @@ import dev.chrisbanes.haze.benchmark.desktop.runDesktopBenchmarkSuite
 import kotlin.system.exitProcess
 
 public fun main(args: Array<String>) {
-  exitProcess(runDesktopBenchmarkSuite(args, suiteId = "glass", scenarioFactories = emptyList()))
+  exitProcess(
+    runDesktopBenchmarkSuite(
+      args,
+      suiteId = "glass",
+      scenarioFactories = listOf(::IsolatedGlassScenario),
+    ),
+  )
 }
