@@ -25,6 +25,7 @@ the raw results as an artifact, and maintains one summary comment on the pull re
 This design does not add Android or iOS benchmarks, enforce performance thresholds, or attempt to
 share the runner across platforms. The runner is reusable by Desktop benchmark suites, but the
 initial implementation does not add a `haze-blur` scenario or a multiplatform abstraction.
+The existing Android `:internal:benchmark` module remains unchanged.
 
 ## Why macOS
 
@@ -80,7 +81,7 @@ their own small `main` function and runnable distribution.
 
 ### Glass Desktop Benchmark Suite
 
-Add a JVM-only `:internal:benchmark-desktop-glass` module that depends on
+Add a JVM-only `:benchmark:desktop` module that depends on
 `:internal:benchmark-desktop`, `haze-glass`, and `sample:shared`. It owns:
 
 - the isolated pointer-sweep scenario;
@@ -103,7 +104,7 @@ Benchmark mode must:
 - run without Gradle, compilation, or dependency resolution active during measurement;
 - close the window and process deterministically after writing the result.
 
-The CI job builds the `:internal:benchmark-desktop-glass` runnable distributions for both revisions
+The CI job builds the `:benchmark:desktop` runnable distributions for both revisions
 first, stops their Gradle daemons, and then invokes the resulting launchers directly. Build time is
 never included in a benchmark value.
 
@@ -202,7 +203,7 @@ Use a dedicated benchmark workflow rather than appending the benchmark to `mac_b
 runner avoids inheriting variable heat and background work from compilation and iOS simulator
 tests. The workflow is not added as a dependency of build, deployment, or release jobs.
 
-The Glass workflow invokes only the `:internal:benchmark-desktop-glass` distribution and tests. Its
+The Glass workflow invokes only the `:benchmark:desktop` distribution and tests. Its
 pull-request path filter includes the shared runner, Glass suite, `haze`, `haze-utils`, `haze-glass`,
 `haze-materials`, `sample:shared`, Gradle build configuration, dependency versions, and the
 benchmark workflows. Unrelated documentation, web, Android-sample-only, and release changes do not
@@ -247,7 +248,7 @@ compared automatically with GitHub-hosted results.
 - Runner contract tests use an injected fake host and deterministic fake scenario to verify
   lifecycle, warm-up exclusion, scenario selection, failure propagation, and clean shutdown
   without opening a native window or depending on Glass.
-- Tests in `:internal:benchmark-desktop-glass` verify each scenario's exact event count, fixed path,
+- Tests in `:benchmark:desktop` verify each scenario's exact event count, fixed path,
   terminal state, and clean shutdown.
 - A short Glass-suite smoke task launches both scenarios, asserts that Metal was selected, and
   verifies nonempty finite samples and valid metadata. This explicit task is not part of root
