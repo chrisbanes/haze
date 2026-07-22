@@ -1,23 +1,51 @@
 name: Desktop Glass Benchmark
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
+      - 'haze/**'
+      - 'haze-utils/**'
+      - 'haze-glass/**'
+      - 'haze-materials/**'
+      - 'sample/shared/**'
       - 'internal/benchmark-desktop/**'
-      - 'haze-benchmarks/glass/desktop/**'
-      - '.github/workflows/desktop-glass-benchmark.yml'
+      - 'haze-benchmarks/glass/**'
+      - 'gradle/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/desktop-glass-benchmark*.yml'
+      - '.github/scripts/desktop-glass-benchmark-*'
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  metal_probe:
+  benchmark:
     runs-on: macos-26
-    timeout-minutes: 15
+    timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out head
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: head
+          persist-credentials: false
+
+      - name: Check out base
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
 
       - name: Setup JDK
         uses: actions/setup-java@v5
@@ -25,16 +53,112 @@ jobs:
           distribution: 'zulu'
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v6
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
-      - name: Package Desktop Glass benchmark
-        run: ./gradlew :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS
-
-      - name: Probe Metal benchmark environment
+      - name: Package head benchmark
+        working-directory: head
         run: |
-          SKIKO_RENDER_API=METAL java -Xms512m -Xmx512m \
-            -jar haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
-            probe
+          ./gradlew :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS --no-configuration-cache
+          ./gradlew --stop
+
+      - name: Package base benchmark
+        if: github.event_name == 'pull_request'
+        working-directory: base
+        run: |
+          if test -d haze-benchmarks/glass/desktop; then
+            ./gradlew :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS --no-configuration-cache
+            ./gradlew --stop
+          fi
+
+      - name: Run Desktop Glass benchmark
+        run: |
+          benchmark_dir="$RUNNER_TEMP/haze-desktop-benchmark"
+          mkdir -p "$benchmark_dir/raw"
+          head_jar="$benchmark_dir/head.jar"
+          base_jar="$benchmark_dir/base.jar"
+          cp head/haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar "$head_jar"
+          if test -f base/haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar; then
+            cp base/haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar "$base_jar"
+          fi
+          export SKIKO_RENDER_API=METAL
+
+          head_sha="${{ github.event.pull_request.head.sha || github.sha }}"
+          base_sha="${{ github.event.pull_request.base.sha }}"
+
+          run_block() {
+            revision="$1"
+            scenario="$2"
+            round="$3"
+            order="$4"
+            case "$revision" in
+              base) benchmark_jar="$base_jar" ;;
+              head) benchmark_jar="$head_jar" ;;
+              *) exit 2 ;;
+            esac
+            java -Xms512m -Xmx512m -jar "$benchmark_jar" run \
+              --scenario "$scenario" \
+              --revision "$revision" \
+              --round "$round" \
+              --order "$order" \
+              --output "$benchmark_dir/raw/$scenario-$revision-$round-$order.json"
+          }
+
+          measurement_status=0
+          for scenario in pointer_sweep playground_drag; do
+            for round in 0 1 2; do
+              if test -f "$base_jar"; then
+                run_block base "$scenario" "$round" 0 || {
+                  measurement_status=$?
+                  break 2
+                }
+              fi
+              run_block head "$scenario" "$round" 1 || {
+                measurement_status=$?
+                break 2
+              }
+              run_block head "$scenario" "$round" 2 || {
+                measurement_status=$?
+                break 2
+              }
+              if test -f "$base_jar"; then
+                run_block base "$scenario" "$round" 3 || {
+                  measurement_status=$?
+                  break 2
+                }
+              fi
+            done
+          done
+
+          aggregate_args=(
+            aggregate
+            --input "$benchmark_dir/raw"
+            --repository "$GITHUB_REPOSITORY"
+            --head-sha "$head_sha"
+            --output "$benchmark_dir/benchmark.json"
+          )
+          if test -n "$base_sha"; then
+            aggregate_args+=(--base-sha "$base_sha")
+          fi
+
+          aggregate_status=0
+          java -Xms512m -Xmx512m -jar "$head_jar" "${aggregate_args[@]}" || aggregate_status=$?
+
+          if test "$measurement_status" -ne 0; then
+            exit "$measurement_status"
+          fi
+          exit "$aggregate_status"
+
+      - name: Upload Desktop Glass benchmark
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-glass-benchmark
+          path: |
+            ${{ runner.temp }}/haze-desktop-benchmark/benchmark.json
+            ${{ runner.temp }}/haze-desktop-benchmark/raw/*.json
+          if-no-files-found: error
+          retention-days: 30
