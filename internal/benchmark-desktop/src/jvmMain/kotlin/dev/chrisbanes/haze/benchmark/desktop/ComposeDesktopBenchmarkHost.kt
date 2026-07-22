@@ -51,7 +51,7 @@ internal class ComposeDesktopBenchmarkHost(
       }
       val workloadDuration = System.nanoTime() - workloadStartedAt
       val samples = recorder.stopMeasurement()
-      check(samples.isNotEmpty()) { "Desktop benchmark recorded no render callbacks" }
+      validateMeasuredSamples(samples)
 
       return BenchmarkBlockResult(
         suiteId = suiteId,
@@ -151,3 +151,10 @@ private fun Container.descendants(): Sequence<Component> = sequence {
 
 private const val TARGET_FRAMEBUFFER_WIDTH = 1280
 private const val TARGET_FRAMEBUFFER_HEIGHT = 720
+
+internal fun validateMeasuredSamples(samples: List<FrameSample>) {
+  check(samples.size >= 2) {
+    "Desktop benchmark requires at least 2 measured render callbacks for callback-interval " +
+      "metrics but recorded ${samples.size}"
+  }
+}

@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.benchmark.desktop
 
+import java.awt.Component
 import java.awt.event.InputEvent
 import java.awt.event.MouseEvent
 import kotlin.math.roundToInt
@@ -14,25 +15,27 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.skiko.SkiaLayer
 
 internal class DesktopInputReplayer(
-  private val layer: SkiaLayer,
+  layer: SkiaLayer,
   private val nanoTime: () -> Long = System::nanoTime,
 ) {
+  private val eventTarget = layer.canvas
+
   suspend fun replay(events: List<DesktopInputEvent>) {
     val startedAt = nanoTime()
     events.forEach { event ->
-      val target = startedAt + event.offsetNanos
-      val remaining = target - nanoTime()
+      val targetNanos = startedAt + event.offsetNanos
+      val remaining = targetNanos - nanoTime()
       if (remaining > 0) delay(remaining.nanoseconds)
       withContext(Dispatchers.Swing) {
-        layer.dispatchEvent(event.toAwtEvent(layer))
+        eventTarget.dispatchEvent(event.toAwtEvent(eventTarget))
       }
     }
   }
 }
 
-private fun DesktopInputEvent.toAwtEvent(layer: SkiaLayer): MouseEvent {
-  val x = position?.let { (it.x * layer.width).roundToInt() } ?: 0
-  val y = position?.let { (it.y * layer.height).roundToInt() } ?: 0
+private fun DesktopInputEvent.toAwtEvent(target: Component): MouseEvent {
+  val x = position?.let { (it.x * target.width).roundToInt() } ?: 0
+  val y = position?.let { (it.y * target.height).roundToInt() } ?: 0
   val (id, button, modifiers) = when (type) {
     DesktopInputEventType.Move -> Triple(MouseEvent.MOUSE_MOVED, MouseEvent.NOBUTTON, 0)
     DesktopInputEventType.Press -> Triple(MouseEvent.MOUSE_PRESSED, MouseEvent.BUTTON1, 0)
@@ -45,7 +48,7 @@ private fun DesktopInputEvent.toAwtEvent(layer: SkiaLayer): MouseEvent {
     DesktopInputEventType.Exit -> Triple(MouseEvent.MOUSE_EXITED, MouseEvent.NOBUTTON, 0)
   }
   return MouseEvent(
-    layer,
+    target,
     id,
     System.currentTimeMillis(),
     modifiers,
