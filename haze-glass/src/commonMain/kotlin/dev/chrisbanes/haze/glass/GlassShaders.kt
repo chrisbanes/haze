@@ -471,6 +471,11 @@ internal object GlassShaders {
       return len > 0.0001 ? value / len : fallback;
     }
 
+    vec4 reversedSmootherstep(vec4 t) {
+      t = clamp(t, 0.0, 1.0);
+      return vec4(1.0) - t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+    }
+
     vec2 gradSdRectangle(vec2 localCoord, vec2 size) {
       vec4 edgeDistance = vec4(
         -localCoord.x,
@@ -483,7 +488,9 @@ internal object GlassShaders {
         max(edgeDistance.z, edgeDistance.w)
       );
       float blendWidth = clamp(min(size.x, size.y) * 0.01, 1.0, 4.0);
-      vec4 weights = exp((edgeDistance - vec4(maxDistance)) / blendWidth);
+      vec4 weights = reversedSmootherstep(
+        (vec4(maxDistance) - edgeDistance) / (blendWidth * 2.0)
+      );
       float totalWeight = dot(weights, vec4(1.0));
       return vec2(weights.y - weights.x, weights.w - weights.z) /
         max(totalWeight, 0.0001);

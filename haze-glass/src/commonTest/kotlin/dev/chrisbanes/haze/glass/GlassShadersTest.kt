@@ -255,7 +255,12 @@ class GlassShadersTest {
       GlassShaders.buildRefractionDetail(interactive = true),
     ).forEach { shader ->
       assertThat(shader).contains("vec4 edgeDistance = vec4(")
-      assertThat(shader).contains("exp((edgeDistance - vec4(maxDistance)) / blendWidth)")
+      assertThat(shader).contains("vec4 reversedSmootherstep(vec4 t)")
+      assertThat(shader).contains(
+        "return vec4(1.0) - t * t * t * (t * (t * 6.0 - 15.0) + 10.0);",
+      )
+      assertThat(shader).contains("vec4 weights = reversedSmootherstep(")
+      assertThat(shader).doesNotContain("exp((edgeDistance")
       assertThat(shader).contains("float centerFade = smootherstep(")
       assertThat(shader).doesNotContain("edgeDistance.x > edgeDistance.y")
       assertThat(shader).doesNotContain("vec2 centerFallbackDir")

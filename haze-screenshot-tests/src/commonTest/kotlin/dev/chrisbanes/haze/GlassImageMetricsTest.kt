@@ -416,6 +416,65 @@ class GlassImageMetricsTest {
   }
 
   @Test
+  fun boundaryContinuity_rejectsClusteredSpike() {
+    val derivative = List(17) { index ->
+      if (index in 7..9) 0.25f else 0.01f
+    }
+
+    assertFailsWith<AssertionError> {
+      assertBoundaryContinuous(
+        derivative = derivative,
+        boundaryIndex = 8,
+        boundaryRadius = 1,
+      )
+    }
+  }
+
+  @Test
+  fun boundaryContinuity_acceptsSmoothWideTransition() {
+    val derivative = listOf(
+      0f,
+      0f,
+      0.0039f,
+      0f,
+      0.0039f,
+      0.004f,
+      0f,
+      0f,
+      0f,
+      0f,
+      0f,
+      0.004f,
+      0f,
+      0f,
+      0.0119f,
+      0.0228f,
+      0.018f,
+      0.0171f,
+      0.0098f,
+      0.0032f,
+      0f,
+      0f,
+      0f,
+      0f,
+      0f,
+      0.0033f,
+      0f,
+      0f,
+      0f,
+      0.0033f,
+      0f,
+      0f,
+    )
+
+    assertBoundaryContinuous(
+      derivative = derivative,
+      boundaryIndex = 16,
+      boundaryRadius = 1,
+    )
+  }
+
+  @Test
   fun outsideBackgroundComparison_rejectsInvalidInputs() {
     val onePixel = snapshot(width = 1, height = 1)
     val twoPixels = snapshot(width = 2, height = 1)

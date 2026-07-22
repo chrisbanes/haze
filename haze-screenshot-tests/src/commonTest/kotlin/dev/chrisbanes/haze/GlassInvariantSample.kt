@@ -262,9 +262,11 @@ private fun assertContinuousAt(
   label: String,
 ) {
   try {
-    for (index in (boundaryIndex - 1)..(boundaryIndex + 1)) {
-      assertBoundaryContinuous(derivative, index)
-    }
+    assertBoundaryContinuous(
+      derivative = derivative,
+      boundaryIndex = boundaryIndex,
+      boundaryRadius = 1,
+    )
   } catch (failure: AssertionError) {
     throw AssertionError("$label derivative=$derivative", failure)
   }
