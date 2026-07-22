@@ -5,8 +5,9 @@ package dev.chrisbanes.haze.benchmark.desktop.glass
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +29,9 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlin.math.PI
 import kotlin.math.sin
+
+internal val isolatedGlassSurfaceWidthFraction = 0.5625f
+internal val isolatedGlassSurfaceHeightFraction = 5f / 9f
 
 internal fun isolatedPointerEvents(): List<DesktopInputEvent> = buildList {
   repeat(480) { index ->
@@ -89,7 +93,10 @@ private fun IsolatedGlassBenchmarkScene(
     }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
       Box(
-        Modifier.size(360.dp, 200.dp).hazeEffect(hazeState) { visualEffect = effect },
+        Modifier
+          .fillMaxWidth(isolatedGlassSurfaceWidthFraction)
+          .fillMaxHeight(isolatedGlassSurfaceHeightFraction)
+          .hazeEffect(hazeState) { visualEffect = effect },
         contentAlignment = Alignment.Center,
       ) {
         Text("POINTER SWEEP", color = Color.White)
