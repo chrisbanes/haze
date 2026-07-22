@@ -16,6 +16,25 @@ import kotlin.test.assertIs
 class GlassRenderBudgetTest {
 
   @Test
+  fun fractionalAlpha_addsMaterialSizedGroupCompositeToBudget() {
+    val plan = buildGlassBudgetLayerPlan(
+      sampleSize = IntSize(100, 100),
+      groupCompositeSize = IntSize(200, 300),
+      blurRadiusPx = 0f,
+      depth = 0f,
+      allowMultiscaleBlur = true,
+      refractionDetailActive = false,
+      rimActive = false,
+      interactionOpticsActive = false,
+      interactionLightingActive = false,
+    )
+
+    assertThat(plan.layers.last()).isEqualTo(
+      GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, IntSize(200, 300)),
+    )
+  }
+
+  @Test
   fun exactLimits_fitWithoutChangingRequestedScale() {
     val plan = GlassRetainedLayerPlan(
       listOf(GlassRetainedLayer(GlassRetainedLayerKind.Source, IntSize(4096, 4096))),

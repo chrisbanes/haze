@@ -652,6 +652,9 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       requestedScale = requestedScale,
       layerWidth = context.layerSize.width,
       layerHeight = context.layerSize.height,
+      materialWidth = context.size.width,
+      materialHeight = context.size.height,
+      requiresGroupAlpha = requiresGlassGroupAlpha(style.alpha),
       blurRadiusPx = optics.blurRadiusPx,
       depth = optics.depth,
       allowMultiscaleBlur = optics.progressive == null,
@@ -682,6 +685,8 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
         }
         buildGlassBudgetLayerPlan(
           sampleSize = coordinates.sampleSize.roundToIntSize(),
+          groupCompositeSize = context.size.roundToIntSize()
+            .takeIf { requiresGlassGroupAlpha(style.alpha) },
           blurRadiusPx = optics.blurRadiusPx * scaleFactor,
           depth = optics.depth,
           allowMultiscaleBlur = optics.progressive == null,
@@ -746,6 +751,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       params = params,
       interactionUniforms = interactionUniforms,
       alpha = style.alpha,
+      outputSize = context.size.roundToIntSize(),
       previous = previousPrepared,
     )
     if (!exactPrepared.plan.fitsGlassRenderBudget()) {
@@ -1440,6 +1446,9 @@ private data class GlassRenderBudgetStamp(
   val requestedScale: Float,
   val layerWidth: Float,
   val layerHeight: Float,
+  val materialWidth: Float,
+  val materialHeight: Float,
+  val requiresGroupAlpha: Boolean,
   val blurRadiusPx: Float,
   val depth: Float,
   val allowMultiscaleBlur: Boolean,

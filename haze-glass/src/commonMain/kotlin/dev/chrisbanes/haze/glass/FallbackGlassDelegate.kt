@@ -7,13 +7,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.max
 
@@ -25,6 +28,21 @@ internal class FallbackGlassDelegate(
   private var cachedShapePath: Path? = null
   private var cachedSize: Size = Size.Zero
   private var cachedRadii: CornerRadii = CornerRadii.zero
+  private val groupAlpha = RetainedGlassGroupAlphaLayer()
+  private var graphicsContext: GraphicsContext? = null
+
+  override fun DrawScope.prepareDraw(context: VisualEffectContext) {
+    val density = context.requireDensity()
+    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
+    val style = resolveGlassStyle(effect, size, density, layoutDirection)
+    val groupSize = size.roundToIntSize()
+    val currentGraphicsContext = context.requireGraphicsContext()
+    graphicsContext = currentGraphicsContext
+    groupAlpha.prepare(
+      required = requiresGlassGroupAlpha(style.alpha) && groupSize.fitsGlassLayerBudget(),
+      graphicsContext = currentGraphicsContext,
+    )
+  }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     val density = context.requireDensity()
@@ -32,6 +50,7 @@ internal class FallbackGlassDelegate(
     val style = resolveGlassStyle(effect, size, density, layoutDirection)
     val tint = style.tint
     if (!tint.isSpecified) return
+    if (style.alpha <= 0f) return
 
     val edgeSoftnessPx = style.edgeSoftnessPx
     val edgeAlpha = fallbackEdgeAlpha(style.ambientResponse)
@@ -52,19 +71,22 @@ internal class FallbackGlassDelegate(
     }
     val shapePath = cachedShapePath
 
-    withAlpha(alpha = style.alpha, context = context) {
+    fun DrawScope.drawFallback(alphaMultiplier: Float) {
       if (shapePath != null) {
         clipPath(shapePath) {
-          drawRect(color = tint)
+          drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
         }
       } else {
-        drawRect(color = tint)
+        drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
       }
 
       // Specular-ish radial highlight
       if (highlightAlpha > 0f) {
         val highlightBrush = Brush.radialGradient(
-          colors = listOf(Color.White.copy(alpha = highlightAlpha), Color.Transparent),
+          colors = listOf(
+            Color.White.copy(alpha = highlightAlpha * alphaMultiplier),
+            Color.Transparent,
+          ),
           center = highlightCenter,
           radius = highlightRadius,
         )
@@ -87,7 +109,7 @@ internal class FallbackGlassDelegate(
         val stroke = Stroke(width = softness * 2f)
         val edgeBrush = Brush.linearGradient(
           colors = listOf(
-            Color.White.copy(alpha = edgeAlpha),
+            Color.White.copy(alpha = edgeAlpha * alphaMultiplier),
             Color.Transparent,
           ),
           start = Offset.Zero,
@@ -109,7 +131,31 @@ internal class FallbackGlassDelegate(
           size = size,
         ),
         shapePath = shapePath,
+        alphaMultiplier = alphaMultiplier,
       )
+    }
+
+    when {
+      style.alpha >= 1f -> drawFallback(alphaMultiplier = 1f)
+      groupAlpha.isAvailable -> recordAndDrawGlassGroupAlpha(
+        layer = checkNotNull(groupAlpha.layer),
+        alpha = style.alpha,
+        size = size.roundToIntSize(),
+      ) { drawFallback(alphaMultiplier = 1f) }
+      else -> drawFallback(alphaMultiplier = style.alpha)
+    }
+  }
+
+  override fun detach() {
+    groupAlpha.release(graphicsContext)
+    graphicsContext = null
+  }
+
+  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+    if (shouldReleaseRetainedGlass(level)) {
+      groupAlpha.release(graphicsContext ?: context.requireGraphicsContext())
+      graphicsContext = null
+      context.invalidateDraw()
     }
   }
 }
@@ -130,11 +176,12 @@ internal fun resolveFallbackGlassInteraction(
 private fun DrawScope.drawInteractionLighting(
   interaction: GlassInteractionUniforms,
   shapePath: Path?,
+  alphaMultiplier: Float,
 ) {
   if (!interaction.hasLighting) return
   val brush = Brush.radialGradient(
     colors = listOf(
-      Color.White.copy(alpha = 0.32f * interaction.lightingIntensity),
+      Color.White.copy(alpha = 0.32f * interaction.lightingIntensity * alphaMultiplier),
       Color.Transparent,
     ),
     center = interaction.position,

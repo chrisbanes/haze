@@ -6,8 +6,14 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.unit.IntSize
+import dev.chrisbanes.haze.TrimMemoryLevel
+
+internal fun shouldReleaseRetainedGlass(level: TrimMemoryLevel): Boolean =
+  level == TrimMemoryLevel.UI_HIDDEN ||
+    level.severity >= TrimMemoryLevel.MODERATE.severity
 
 internal class GlassLayers {
+  val groupAlpha = RetainedGlassGroupAlphaLayer()
   var source: GraphicsLayer? = null
   var blurPrefiltered: GraphicsLayer? = null
   var blurHorizontal: GraphicsLayer? = null
@@ -36,7 +42,7 @@ internal class GlassLayers {
   val hasRim: Boolean get() = rim?.isReleased == false
 
   val isEmpty: Boolean
-    get() = source == null && blurPrefiltered == null && blurHorizontal == null && blurred == null &&
+    get() = groupAlpha.layer == null && source == null && blurPrefiltered == null && blurHorizontal == null && blurred == null &&
       depthMixed == null && optical == null && refractionDetail == null &&
       interactionOptical == null && interactionRefractionDetail == null &&
       interactionLighting == null && rim == null
@@ -135,6 +141,7 @@ internal class GlassLayers {
   }
 
   fun release(graphicsContext: GraphicsContext?) {
+    groupAlpha.release(graphicsContext)
     listOfNotNull(
       source,
       blurPrefiltered,

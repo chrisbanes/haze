@@ -161,6 +161,10 @@ internal class RuntimeShaderGlassDelegate(
       lightingRequired = interactionLightingRequired,
       graphicsContext = currentGraphicsContext,
     )
+    layers.groupAlpha.prepare(
+      required = requiresGlassGroupAlpha(currentPreparedRender.alpha),
+      graphicsContext = currentGraphicsContext,
+    )
 
     layers.ensureSource(currentGraphicsContext)
     if (blurRequired) {
@@ -219,6 +223,10 @@ internal class RuntimeShaderGlassDelegate(
     val params = preparedParams ?: return
     val effects = preparedRenderEffects ?: return
     val interactionUniforms = preparedInteractionUniforms ?: return
+    if (render.alpha <= 0f) {
+      retainedOutputAvailable = false
+      return
+    }
     requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
     var completed = false
     try {
@@ -323,11 +331,22 @@ internal class RuntimeShaderGlassDelegate(
           ::clearRetainedOutput,
         ) ?: return
       }
-      withAlpha(alpha = render.alpha, context = context) {
-        drawCompletedLayer(completedOptical, context, params, alpha = 1f)
-        if (completedRefractionDetail != null) {
-          drawCompletedLayer(completedRefractionDetail, context, params, alpha = 1f)
-        }
+      if (render.alpha >= 1f) {
+        drawCompletedOutput(completedOptical, completedRefractionDetail, context, params)
+      } else {
+        val groupAlpha = requireRetainedStage(
+          layers.groupAlpha.layer?.takeUnless { it.isReleased },
+          ::clearRetainedOutput,
+        ) ?: return
+        val groupCompositeSize = requireRetainedStage(
+          render.groupCompositeSize,
+          ::clearRetainedOutput,
+        ) ?: return
+        recordAndDrawGlassGroupAlpha(
+          layer = groupAlpha,
+          alpha = render.alpha,
+          size = groupCompositeSize,
+        ) { drawCompletedOutput(completedOptical, completedRefractionDetail, context, params) }
       }
       if (shouldRecordSource) {
         lastSuccessfulSourceSnapshot = sourceState.snapshot
@@ -365,6 +384,7 @@ internal class RuntimeShaderGlassDelegate(
     val interactionDetailRequired = interactionOpticsRequired && detailRequired
     val interactionLightingRequired = interactionUniforms?.hasLighting == true
     return retainedOutputAvailable && layers.hasOptical &&
+      (!requiresGlassGroupAlpha(preparedRender?.alpha ?: 1f) || layers.groupAlpha.isAvailable) &&
       (!detailRequired || layers.hasRefractionDetail) &&
       (!interactionOpticsRequired || layers.hasInteractionOptical) &&
       (!interactionDetailRequired || layers.hasInteractionRefractionDetail) &&
@@ -402,10 +422,6 @@ internal class RuntimeShaderGlassDelegate(
       context.invalidateDraw()
     }
   }
-
-  private fun shouldReleaseRetainedGlass(level: TrimMemoryLevel): Boolean =
-    level == TrimMemoryLevel.UI_HIDDEN ||
-      level.severity >= TrimMemoryLevel.MODERATE.severity
 
   private fun releaseRetainedResources(
     releaseContext: GraphicsContext? = graphicsContext,
@@ -759,6 +775,18 @@ internal class RuntimeShaderGlassDelegate(
       clip = effect.shouldClipToNodeBounds(),
     ) {
       drawLayer(layer)
+    }
+  }
+
+  private fun DrawScope.drawCompletedOutput(
+    optical: GraphicsLayer,
+    refractionDetail: GraphicsLayer?,
+    context: VisualEffectContext,
+    params: GlassRenderParams,
+  ) {
+    drawCompletedLayer(optical, context, params, alpha = 1f)
+    if (refractionDetail != null) {
+      drawCompletedLayer(refractionDetail, context, params, alpha = 1f)
     }
   }
 

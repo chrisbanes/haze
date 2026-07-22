@@ -44,6 +44,51 @@ import sun.misc.Unsafe
 class RuntimeShaderGlassDelegateTrimMemoryTest {
 
   @Test
+  fun fractionalAlpha_reusesGroupLayerAndZeroReleasesIt() {
+    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+    val delegate = RuntimeShaderGlassDelegate(effect)
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+    )
+
+    delegate.prepareDrawForTest(context, effect)
+    val first = checkNotNull(delegate.layers.groupAlpha.layer)
+    delegate.prepareDrawForTest(context, effect)
+    assertSame(first, delegate.layers.groupAlpha.layer)
+
+    effect.alpha = 0f
+    delegate.prepareDrawForTest(context, effect)
+
+    assertThat(delegate.layers.groupAlpha.layer).isNull()
+    assertThat(first in context.graphicsContext.releasedLayers).isTrue()
+  }
+
+  @Test
+  fun retainedGroupAlphaLayer_fractionalFramesReuseAllocation() {
+    val owner = RetainedGlassGroupAlphaLayer()
+    val graphicsContext = TestGraphicsContext()
+
+    owner.prepare(required = true, graphicsContext)
+    val first = checkNotNull(owner.layer)
+    owner.prepare(required = true, graphicsContext)
+
+    assertSame(first, owner.layer)
+    assertThat(graphicsContext.events.filterIsInstance<LayerEvent.Create>().size).isEqualTo(1)
+  }
+
+  @Test
+  fun retainedGroupAlphaLayer_zeroOrOversizedPathOwnsNoAllocation() {
+    val owner = RetainedGlassGroupAlphaLayer()
+    val graphicsContext = TestGraphicsContext()
+
+    owner.prepare(required = false, graphicsContext)
+
+    assertThat(owner.layer).isNull()
+    assertThat(graphicsContext.events.filterIsInstance<LayerEvent.Create>()).isEqualTo(emptyList())
+  }
+
+  @Test
   fun prepareDraw_consumesTheSelectedPreparedRenderParamsInstance() {
     val effect = GlassVisualEffect().apply {
       optics = GlassOptics.Absolute(depth = 0f)
@@ -296,7 +341,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(11)
+    assertThat(retainedLayers.size).isEqualTo(12)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.BACKGROUND)
@@ -324,7 +369,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val retainedLayers = delegate.layers.allLayers()
     delegate.setGraphicsContextForTest(context.graphicsContext)
 
-    assertThat(retainedLayers.size).isEqualTo(11)
+    assertThat(retainedLayers.size).isEqualTo(12)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
 
@@ -352,7 +397,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
     assertThat(delegate.layers.hasRim).isTrue()
-    assertThat(retainedLayers.size).isEqualTo(11)
+    assertThat(retainedLayers.size).isEqualTo(12)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
 
@@ -372,7 +417,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(11)
+    assertThat(retainedLayers.size).isEqualTo(12)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.COMPLETE)
@@ -488,7 +533,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       val delegate = RuntimeShaderGlassDelegate(effect)
       val retainedLayers = delegate.prepareDrawWithRetainedLayers(context, effect)
 
-      assertThat(retainedLayers.size).isEqualTo(11)
+      assertThat(retainedLayers.size).isEqualTo(12)
       assertThat(context.graphicsContext.releasedLayers)
         .containsExactly(*retainedLayers.toTypedArray())
       assertThat(delegate.layers.isEmpty).isTrue()
@@ -522,6 +567,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
 
 @OptIn(InternalComposeUiApi::class)
 private fun GlassLayers.populate(graphicsContext: GraphicsContext) {
+  groupAlpha.prepare(required = true, graphicsContext)
   source = graphicsContext.createGraphicsLayer()
   blurPrefiltered = graphicsContext.createGraphicsLayer()
   blurHorizontal = graphicsContext.createGraphicsLayer()
@@ -536,6 +582,7 @@ private fun GlassLayers.populate(graphicsContext: GraphicsContext) {
 }
 
 private fun GlassLayers.allLayers(): List<GraphicsLayer> = listOfNotNull(
+  groupAlpha.layer,
   source,
   blurPrefiltered,
   blurHorizontal,

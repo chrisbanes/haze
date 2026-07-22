@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
-import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -162,20 +161,15 @@ internal fun DrawScope.drawScaledContent(
   }
 }
 
-internal inline fun DrawScope.withAlpha(
+internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
+  layer: GraphicsLayer,
   alpha: Float,
-  context: VisualEffectContext,
+  size: IntSize,
   crossinline block: DrawScope.() -> Unit,
 ) {
-  if (alpha < 1f) {
-    context.withGraphicsLayer { layer ->
-      layer.alpha = alpha
-      layer.record { block() }
-      drawLayer(layer)
-    }
-  } else {
-    block()
-  }
+  layer.alpha = alpha
+  layer.record(size = size) { block() }
+  drawLayer(layer)
 }
 
 internal inline fun DrawScope.translate(
