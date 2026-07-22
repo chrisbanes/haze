@@ -36,13 +36,10 @@ internal class FallbackGlassDelegate(
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     val style = resolveGlassStyle(effect, size, density, layoutDirection)
     val groupSize = size.roundToIntSize()
-    val groupPlan = GlassRetainedLayerPlan(
-      layers = listOf(GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, groupSize)),
-    )
     val currentGraphicsContext = context.requireGraphicsContext()
     graphicsContext = currentGraphicsContext
     groupAlpha.prepare(
-      required = requiresGlassGroupAlpha(style.alpha) && groupPlan.fitsGlassRenderBudget(),
+      required = requiresGlassGroupAlpha(style.alpha) && groupSize.fitsGlassLayerBudget(),
       graphicsContext = currentGraphicsContext,
     )
   }
@@ -53,6 +50,7 @@ internal class FallbackGlassDelegate(
     val style = resolveGlassStyle(effect, size, density, layoutDirection)
     val tint = style.tint
     if (!tint.isSpecified) return
+    if (style.alpha <= 0f) return
 
     val edgeSoftnessPx = style.edgeSoftnessPx
     val edgeAlpha = fallbackEdgeAlpha(style.ambientResponse)
@@ -138,7 +136,6 @@ internal class FallbackGlassDelegate(
     }
 
     when {
-      style.alpha <= 0f -> return
       style.alpha >= 1f -> drawFallback(alphaMultiplier = 1f)
       groupAlpha.isAvailable -> recordAndDrawGlassGroupAlpha(
         layer = checkNotNull(groupAlpha.layer),
@@ -155,7 +152,7 @@ internal class FallbackGlassDelegate(
   }
 
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
-    if (level == TrimMemoryLevel.UI_HIDDEN || level.severity >= TrimMemoryLevel.MODERATE.severity) {
+    if (shouldReleaseRetainedGlass(level)) {
       groupAlpha.release(graphicsContext ?: context.requireGraphicsContext())
       graphicsContext = null
       context.invalidateDraw()

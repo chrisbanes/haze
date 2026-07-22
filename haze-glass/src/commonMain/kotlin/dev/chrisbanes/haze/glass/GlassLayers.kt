@@ -6,6 +6,11 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.unit.IntSize
+import dev.chrisbanes.haze.TrimMemoryLevel
+
+internal fun shouldReleaseRetainedGlass(level: TrimMemoryLevel): Boolean =
+  level == TrimMemoryLevel.UI_HIDDEN ||
+    level.severity >= TrimMemoryLevel.MODERATE.severity
 
 internal class GlassLayers {
   val groupAlpha = RetainedGlassGroupAlphaLayer()

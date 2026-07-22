@@ -30,6 +30,11 @@ internal data class GlassRetainedLayer(
   val size: IntSize,
 )
 
+internal fun IntSize.fitsGlassLayerBudget(): Boolean =
+  width in 1..MAX_GLASS_LAYER_DIMENSION_PX &&
+    height in 1..MAX_GLASS_LAYER_DIMENSION_PX &&
+    width.toLong() * height.toLong() <= MAX_GLASS_RETAINED_PIXELS
+
 internal data class GlassRetainedLayerPlan(
   val layers: List<GlassRetainedLayer>,
 ) {
@@ -48,10 +53,7 @@ internal data class GlassRetainedLayerPlan(
 
   fun fitsGlassRenderBudget(): Boolean =
     layers.isNotEmpty() &&
-      layers.all {
-        it.size.width <= MAX_GLASS_LAYER_DIMENSION_PX &&
-          it.size.height <= MAX_GLASS_LAYER_DIMENSION_PX
-      } &&
+      layers.all { it.size.fitsGlassLayerBudget() } &&
       (retainedPixelCountOrNull()?.let { it <= MAX_GLASS_RETAINED_PIXELS } == true)
 }
 
