@@ -11,6 +11,7 @@ import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.OpenOption
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.READ
+import java.nio.file.attribute.BasicFileAttributes
 
 public fun aggregateBenchmarkBlocks(
   suiteId: String,
@@ -48,19 +49,34 @@ public fun aggregateBenchmarkBlocks(
 }
 
 internal fun readBenchmarkBlocks(input: Path): List<BenchmarkBlockResult> {
-  require(Files.isDirectory(input, NOFOLLOW_LINKS)) {
-    "Benchmark input is not a directory: $input"
+  val absoluteInput = input.toAbsolutePath().normalize()
+  val inputAttributes = try {
+    Files.readAttributes(absoluteInput, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
+  } catch (failure: IOException) {
+    throw IllegalArgumentException("Unable to inspect benchmark input directory: $input", failure)
   }
-  val files = Files.list(input).use { entries ->
-    entries
-      .filter { it.fileName.toString().endsWith(".json") }
-      .sorted(compareBy { it.fileName.toString() })
-      .toList()
+  require(inputAttributes.isDirectory) { "Benchmark input is not a directory: $input" }
+  val files = try {
+    Files.newDirectoryStream(absoluteInput).use { entries ->
+      entries
+        .filter { it.fileName.toString().endsWith(".json") }
+        .sortedBy { it.fileName.toString() }
+    }
+  } catch (failure: IOException) {
+    throw IllegalArgumentException("Unable to list benchmark input directory: $input", failure)
   }
   require(files.isNotEmpty()) { "No JSON benchmark blocks found in: $input" }
   var totalBytes = 0L
   return files.map { file ->
     try {
+      val attributes = Files.readAttributes(
+        file,
+        BasicFileAttributes::class.java,
+        NOFOLLOW_LINKS,
+      )
+      require(attributes.isRegularFile) {
+        "Benchmark JSON entry is not a regular file: $file"
+      }
       val bytes = readJsonEntry(file) { count ->
         totalBytes += count
         require(totalBytes <= MAX_ARTIFACT_BYTES) {

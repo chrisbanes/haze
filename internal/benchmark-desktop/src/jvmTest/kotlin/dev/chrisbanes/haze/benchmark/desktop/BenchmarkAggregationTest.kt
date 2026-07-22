@@ -13,8 +13,12 @@ import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlin.math.abs
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlinx.serialization.encodeToString
 
 class BenchmarkAggregationTest {
@@ -362,6 +366,72 @@ class BenchmarkAggregationTest {
 
     assertFailure { readBenchmarkBlocks(directory) }
   }
+
+  @Test
+  fun strictBlockReaderRejectsJsonDirectoriesAsNonRegular() = withTempDirectory { directory ->
+    Files.createDirectories(directory.resolve("blocked.json"))
+
+    val failure = assertFailsWith<IllegalArgumentException> { readBenchmarkBlocks(directory) }
+
+    assertThat(failure.message.orEmpty().contains("regular file")).isTrue()
+  }
+
+  @Test
+  fun strictBlockReaderRejectsInputDirectorySymlinkWhenSupported() = withTempDirectory { directory ->
+    val input = Files.createDirectories(directory.resolve("input"))
+    Files.writeString(
+      input.resolve("block.json"),
+      BenchmarkJson.encodeToString(headOnlyFixture().first()),
+    )
+    val link = directory.resolve("input-link")
+    if (runCatching { Files.createSymbolicLink(link, input.fileName) }.isFailure) {
+      return@withTempDirectory
+    }
+
+    assertFailure { readBenchmarkBlocks(link) }
+  }
+
+  @Test
+  fun strictBlockReaderRejectsJsonFifoWithoutBlockingWhenSupported() =
+    withTempDirectory { directory ->
+      val mkfifo = Path.of("/usr/bin/mkfifo")
+      if (!Files.isExecutable(mkfifo)) return@withTempDirectory
+      val fifo = directory.resolve("blocked.json")
+      val process = ProcessBuilder(mkfifo.toString(), fifo.toString()).start()
+      if (!process.waitFor(2, TimeUnit.SECONDS) || process.exitValue() != 0) {
+        process.destroyForcibly()
+        return@withTempDirectory
+      }
+
+      val executor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "benchmark-fifo-test").apply { isDaemon = true }
+      }
+      val read = executor.submit<Throwable?> {
+        runCatching { readBenchmarkBlocks(directory) }.exceptionOrNull()
+      }
+      try {
+        val failure = try {
+          read.get(1, TimeUnit.SECONDS)
+        } catch (_: TimeoutException) {
+          val writer = Thread(
+            { Files.newOutputStream(fifo).use {} },
+            "benchmark-fifo-unblock",
+          ).apply {
+            isDaemon = true
+            start()
+          }
+          read.get(2, TimeUnit.SECONDS)
+          writer.join(2_000)
+          throw AssertionError("JSON FIFO validation blocked while opening the entry")
+        }
+        assertThat(
+          failure is IllegalArgumentException &&
+            failure.message.orEmpty().contains("regular file"),
+        ).isTrue()
+      } finally {
+        executor.shutdownNow()
+      }
+    }
 
   @Test
   fun strictBlockReaderEnforcesCumulativeByteLimit() = withTempDirectory { directory ->

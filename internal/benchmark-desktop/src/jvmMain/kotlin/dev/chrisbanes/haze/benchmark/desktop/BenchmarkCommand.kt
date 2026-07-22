@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.benchmark.desktop
 
+import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -255,7 +256,7 @@ private fun writeFailureArtifact(
 internal fun writeText(
   path: Path,
   value: String,
-  replaceFile: (Path, Path) -> Unit = ::replaceFile,
+  atomicMove: (Path, Path) -> Unit = ::atomicMove,
 ) {
   val destination = path.toAbsolutePath()
   val parent = requireNotNull(destination.parent) { "Output path has no parent: $path" }
@@ -263,18 +264,18 @@ internal fun writeText(
   val temporary = Files.createTempFile(parent, ".${destination.fileName}.", ".tmp")
   try {
     Files.writeString(temporary, value)
-    replaceFile(temporary, destination)
+    try {
+      atomicMove(temporary, destination)
+    } catch (failure: AtomicMoveNotSupportedException) {
+      throw IOException("Atomic replacement is required for benchmark output: $destination", failure)
+    }
   } finally {
     Files.deleteIfExists(temporary)
   }
 }
 
-private fun replaceFile(source: Path, destination: Path) {
-  try {
-    Files.move(source, destination, ATOMIC_MOVE, REPLACE_EXISTING)
-  } catch (_: AtomicMoveNotSupportedException) {
-    Files.move(source, destination, REPLACE_EXISTING)
-  }
+private fun atomicMove(source: Path, destination: Path) {
+  Files.move(source, destination, ATOMIC_MOVE, REPLACE_EXISTING)
 }
 
 private fun reportFailure(failure: Exception) {

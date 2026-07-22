@@ -8,10 +8,13 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
+import assertk.assertions.isTrue
 import java.io.IOException
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlinx.serialization.encodeToString
 
 class BenchmarkCommandTest {
@@ -281,15 +284,22 @@ class BenchmarkCommandTest {
   }
 
   @Test
-  fun writeTextPreservesExistingDestinationWhenReplacementFails() =
+  fun writeTextRejectsNonAtomicMoveAndPreservesExistingDestination() =
     withCommandTempDirectory { directory ->
       val output = directory.resolve("result.json")
       Files.writeString(output, "old")
 
-      assertFailure {
-        writeText(output, "new") { _, _ -> throw IOException("replacement failed") }
-      }.isInstanceOf<IOException>()
+      val failure = assertFailsWith<IOException> {
+        writeText(output, "new") { source, destination ->
+          throw AtomicMoveNotSupportedException(
+            source.toString(),
+            destination.toString(),
+            "not supported",
+          )
+        }
+      }
 
+      assertThat(failure.cause is AtomicMoveNotSupportedException).isTrue()
       assertThat(Files.readString(output)).isEqualTo("old")
       assertThat(Files.list(directory).use { it.count() }).isEqualTo(1L)
     }
