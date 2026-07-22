@@ -282,8 +282,9 @@ class BenchmarkStatisticsTest {
   }
 
   @Test fun variationAboveTenPercent_isNoisy() {
-    assertThat(robustRelativeVariationPercent(listOf(10.0, 10.0, 14.0))).isGreaterThan(10.0)
-    assertThat(isNoisy(listOf(10.0, 10.0, 14.0))).isTrue()
+    assertThat(robustRelativeVariationPercent(listOf(10.0, 10.0, 14.0, 14.0)))
+      .isGreaterThan(10.0)
+    assertThat(isNoisy(listOf(10.0, 10.0, 14.0, 14.0))).isTrue()
   }
 
   @Test fun pairedDelta_usesThreeAbbaRounds() {
