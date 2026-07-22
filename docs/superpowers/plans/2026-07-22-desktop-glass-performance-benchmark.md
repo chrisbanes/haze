@@ -267,8 +267,8 @@ git commit -m "Add shared Desktop benchmark contract"
 **Interfaces:**
 
 - Produces: `FrameSample`, `BenchmarkEnvironment`, `BenchmarkBlockResult`, `BenchmarkArtifact`,
-  `ScenarioSummary`, `MetricSummary`, `summarizeScenario()`, `encodeArtifact()`, and
-  `decodeBlocks()`.
+  `ScenarioSummary`, `MetricSummary`, `nearestRank()`, `robustRelativeVariationPercent()`,
+  `isNoisy()`, `pairedDeltaPercent()`, `encodeArtifact()`, and `boundedDiagnostic()`.
 - Consumes: scenario identifiers and protocol versions from Task 1.
 
 - [ ] **Step 1: Write failing statistical behavior tests**
@@ -494,10 +494,7 @@ private fun List<Double>.median(): Double {
 }
 ```
 
-Use `16_666_667L` and `33_333_333L` as reference budgets. Reject empty measured sample sets,
-negative durations, duplicate `(revision, round, order)` blocks, and mixed environment render APIs.
-Set `comparable=false` and paired deltas to `null` when protocol versions differ or base blocks are
-absent.
+Use `16_666_667L` and `33_333_333L` as reference budgets when Task 6 builds metric summaries.
 
 - [ ] **Step 6: Implement bounded JSON helpers**
 
@@ -1320,7 +1317,10 @@ private val ExpectedHeadOnlySlots = setOf(
 ```
 
 Summarize render durations and non-null callback intervals separately. Preserve every validated
-block in the artifact. Sort scenarios and blocks deterministically before encoding.
+block in the artifact. Reject empty measured sample sets, negative durations, duplicate
+`(revision, round, order)` blocks, and mixed environment render APIs. Set `comparable=false` and
+paired deltas to `null` when protocol versions differ or base blocks are absent. Sort scenarios and
+blocks deterministically before encoding.
 
 - [ ] **Step 4: Wire the aggregate command and smoke flag**
 
