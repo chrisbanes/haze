@@ -23,7 +23,10 @@ class BenchmarkJsonTest {
 
   @Test
   fun artifactOverFiveMiB_isRejected() {
-    val oversized = artifactFixture(diagnostic = "x".repeat(5 * 1024 * 1024))
+    val oversized = artifactFixture(diagnostic = "").copy(
+      diagnostic = null,
+      headSha = "b".repeat(5 * 1024 * 1024),
+    )
     assertFailure { encodeArtifact(oversized) }.isInstanceOf<IllegalArgumentException>()
   }
 
