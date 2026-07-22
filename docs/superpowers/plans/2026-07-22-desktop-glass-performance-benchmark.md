@@ -10,7 +10,7 @@ measurements, and updates one informational pull-request comment.
 
 **Architecture:** A JVM-only `:internal:benchmark-desktop` library owns the window, input replay,
 Skiko callbacks, statistics, result schema, and command handling. A separate
-`:benchmark:desktop` executable owns the isolated pointer and Playground scenarios.
+`:haze-benchmarks:glass:desktop` executable owns the isolated pointer and Playground scenarios.
 An unprivileged workflow executes pull-request code and uploads JSON; a trusted `workflow_run`
 workflow validates that JSON and posts the comment.
 
@@ -23,7 +23,10 @@ workflow validates that JSON and posts the comment.
 - Leave the existing Android `:internal:benchmark` module unchanged.
 - The shared runner must not depend on Haze, Glass, haze-blur, or sample modules.
 - Glass scenarios, tests, entry point, and distribution live only in
-  `:benchmark:desktop`.
+  `:haze-benchmarks:glass:desktop`.
+- Reserve `:haze-benchmarks:glass:common` for content shared by two or more platform suites and
+  `:haze-benchmarks:glass:android` for a future Android instrumentation runner; do not create either
+  module in this Desktop-only phase.
 - Require `GraphicsApi.METAL`; never silently fall back to software rendering.
 - Use a 1280 by 720 physical-pixel backing surface.
 - Launch measured processes with JDK 21, `-Xms512m`, and `-Xmx512m`.
@@ -66,15 +69,15 @@ workflow validates that JSON and posts the comment.
 
 ### Glass suite module
 
-- `benchmark/desktop/build.gradle.kts`: Glass/sample dependencies and Desktop
+- `haze-benchmarks/glass/desktop/build.gradle.kts`: Glass/sample dependencies and Desktop
   application packaging.
-- `benchmark/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/Main.kt`:
+- `haze-benchmarks/glass/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/Main.kt`:
   Glass suite registry and process entry point.
-- `benchmark/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/IsolatedGlassScenario.kt`:
+- `haze-benchmarks/glass/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/IsolatedGlassScenario.kt`:
   focused pointer-highlight scene and 120 Hz path.
-- `benchmark/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/PlaygroundGlassScenario.kt`:
+- `haze-benchmarks/glass/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/PlaygroundGlassScenario.kt`:
   fixed Playground scene and 60 Hz hover/press/drag path.
-- Matching scenario tests under `benchmark/desktop/src/jvmTest/kotlin/`.
+- Matching scenario tests under `haze-benchmarks/glass/desktop/src/jvmTest/kotlin/`.
 
 ### CI reporting
 
@@ -105,8 +108,8 @@ workflow validates that JSON and posts the comment.
 
 - [ ] **Step 1: Register the shared module and add its test dependencies**
 
-Add `":internal:benchmark-desktop"` and `":benchmark:desktop"` to `settings.gradle.kts`. Create the
-shared build file:
+Add `":internal:benchmark-desktop"` and `":haze-benchmarks:glass:desktop"` to
+`settings.gradle.kts`. Create the shared build file:
 
 ```kotlin
 // Copyright 2026, Christopher Banes and the Haze project contributors
@@ -543,8 +546,8 @@ Expected: tests pass and the commit contains no Glass dependency.
 - Create: `internal/benchmark-desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/BenchmarkCommand.kt`
 - Create: `internal/benchmark-desktop/src/jvmTest/kotlin/dev/chrisbanes/haze/benchmark/desktop/FrameRecorderTest.kt`
 - Create: `internal/benchmark-desktop/src/jvmTest/kotlin/dev/chrisbanes/haze/benchmark/desktop/BenchmarkCommandTest.kt`
-- Create: `benchmark/desktop/build.gradle.kts`
-- Create: `benchmark/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/Main.kt`
+- Create: `haze-benchmarks/glass/desktop/build.gradle.kts`
+- Create: `haze-benchmarks/glass/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/Main.kt`
 - Create: `.github/workflows/desktop-glass-benchmark.yml`
 
 **Interfaces:**
@@ -826,7 +829,7 @@ its own workflow file, that packages the Uber JAR and runs:
 
 ```shell
 SKIKO_RENDER_API=METAL java -Xms512m -Xmx512m \
-  -jar benchmark/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
+  -jar haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
   probe
 ```
 
@@ -835,13 +838,13 @@ SKIKO_RENDER_API=METAL java -Xms512m -Xmx512m \
 ```shell
 ./gradlew \
   :internal:benchmark-desktop:jvmTest \
-  :benchmark:desktop:packageUberJarForCurrentOS \
+  :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS \
   :internal:benchmark-desktop:spotlessCheck \
-  :benchmark:desktop:spotlessCheck
+  :haze-benchmarks:glass:desktop:spotlessCheck
 SKIKO_RENDER_API=METAL java -Xms512m -Xmx512m \
-  -jar benchmark/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
+  -jar haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
   probe
-git add internal/benchmark-desktop benchmark/desktop \
+git add internal/benchmark-desktop haze-benchmarks/glass/desktop \
   .github/workflows/desktop-glass-benchmark.yml
 git commit -m "Add Desktop benchmark Metal host"
 ```
@@ -867,9 +870,9 @@ timings.
 
 **Files:**
 
-- Create: `benchmark/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/IsolatedGlassScenario.kt`
-- Create: `benchmark/desktop/src/jvmTest/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/IsolatedGlassScenarioTest.kt`
-- Modify: `benchmark/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/Main.kt`
+- Create: `haze-benchmarks/glass/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/IsolatedGlassScenario.kt`
+- Create: `haze-benchmarks/glass/desktop/src/jvmTest/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/IsolatedGlassScenarioTest.kt`
+- Modify: `haze-benchmarks/glass/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/Main.kt`
 
 **Interfaces:**
 
@@ -901,7 +904,7 @@ class IsolatedGlassScenarioTest {
 - [ ] **Step 2: Run the focused test and verify failure**
 
 ```shell
-./gradlew :benchmark:desktop:jvmTest \
+./gradlew :haze-benchmarks:glass:desktop:jvmTest \
   --tests '*IsolatedGlassScenarioTest'
 ```
 
@@ -993,9 +996,9 @@ Change `Main.kt` to pass `listOf(::IsolatedGlassScenario)` and run:
 
 ```shell
 ./gradlew \
-  :benchmark:desktop:jvmTest \
-  :benchmark:desktop:spotlessCheck
-git add benchmark/desktop
+  :haze-benchmarks:glass:desktop:jvmTest \
+  :haze-benchmarks:glass:desktop:spotlessCheck
+git add haze-benchmarks/glass/desktop
 git commit -m "Add isolated Glass pointer benchmark"
 ```
 
@@ -1007,9 +1010,9 @@ Expected: deterministic path tests pass.
 
 **Files:**
 
-- Create: `benchmark/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/PlaygroundGlassScenario.kt`
-- Create: `benchmark/desktop/src/jvmTest/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/PlaygroundGlassScenarioTest.kt`
-- Modify: `benchmark/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/Main.kt`
+- Create: `haze-benchmarks/glass/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/PlaygroundGlassScenario.kt`
+- Create: `haze-benchmarks/glass/desktop/src/jvmTest/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/PlaygroundGlassScenarioTest.kt`
+- Modify: `haze-benchmarks/glass/desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/glass/Main.kt`
 - Modify: `sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassPlaygroundSample.kt`
 
 **Interfaces:**
@@ -1044,7 +1047,7 @@ class PlaygroundGlassScenarioTest {
 - [ ] **Step 2: Run the test and verify failure**
 
 ```shell
-./gradlew :benchmark:desktop:jvmTest \
+./gradlew :haze-benchmarks:glass:desktop:jvmTest \
   --tests '*PlaygroundGlassScenarioTest'
 ```
 
@@ -1170,14 +1173,14 @@ tasks.register<Exec>("desktopBenchmarkSmoke") {
 
 ```shell
 ./gradlew \
-  :benchmark:desktop:jvmTest \
-  :benchmark:desktop:packageUberJarForCurrentOS \
-  :benchmark:desktop:spotlessCheck
+  :haze-benchmarks:glass:desktop:jvmTest \
+  :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS \
+  :haze-benchmarks:glass:desktop:spotlessCheck
 SKIKO_RENDER_API=METAL java -Xms512m -Xmx512m \
-  -jar benchmark/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
+  -jar haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
   run --scenario pointer_sweep --revision local --round 0 --order 0 \
   --output /tmp/haze-pointer-sweep.json --smoke
-git add benchmark/desktop
+git add haze-benchmarks/glass/desktop
 git add sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassPlaygroundSample.kt
 git commit -m "Add Glass Playground benchmark"
 ```
@@ -1367,7 +1370,7 @@ on:
       - 'haze-materials/**'
       - 'sample/shared/**'
       - 'internal/benchmark-desktop/**'
-      - 'benchmark/desktop/**'
+      - 'haze-benchmarks/glass/**'
       - 'gradle/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
@@ -1412,12 +1415,12 @@ base_sha="${{ github.event.pull_request.base.sha }}"
 
 ```shell
 cd head
-./gradlew :benchmark:desktop:packageUberJarForCurrentOS --no-configuration-cache
+./gradlew :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS --no-configuration-cache
 ./gradlew --stop
 cd ..
-if test -d base/benchmark/desktop; then
+if test -d base/haze-benchmarks/glass/desktop; then
   cd base
-  ./gradlew :benchmark:desktop:packageUberJarForCurrentOS --no-configuration-cache
+  ./gradlew :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS --no-configuration-cache
   ./gradlew --stop
   cd ..
 fi
@@ -1431,9 +1434,9 @@ benchmark_dir="$RUNNER_TEMP/haze-desktop-benchmark"
 mkdir -p "$benchmark_dir/raw"
 head_jar="$benchmark_dir/head.jar"
 base_jar="$benchmark_dir/base.jar"
-cp head/benchmark/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar "$head_jar"
-if test -f base/benchmark/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar; then
-  cp base/benchmark/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar "$base_jar"
+cp head/haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar "$head_jar"
+if test -f base/haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar; then
+  cp base/haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar "$base_jar"
 fi
 export SKIKO_RENDER_API=METAL
 ```
@@ -1499,7 +1502,7 @@ cannot fail the job; missing/invalid measurement output does.
 - [ ] **Step 6: Validate the workflow and commit**
 
 ```shell
-./gradlew :benchmark:desktop:packageUberJarForCurrentOS
+./gradlew :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS
 git diff --check
 git add .github/workflows/desktop-glass-benchmark.yml
 git commit -m "Run Desktop Glass benchmark on pull requests"
@@ -1963,8 +1966,8 @@ Expected: all Node tests pass and the reporting workflow has no permission beyon
 ./gradlew \
   :internal:benchmark-desktop:jvmTest \
   :internal:benchmark-desktop:spotlessCheck \
-  :benchmark:desktop:jvmTest \
-  :benchmark:desktop:spotlessCheck
+  :haze-benchmarks:glass:desktop:jvmTest \
+  :haze-benchmarks:glass:desktop:spotlessCheck
 node --test .github/scripts/desktop-glass-benchmark-report.test.mjs
 ```
 
@@ -1973,9 +1976,9 @@ Expected: `BUILD SUCCESSFUL` and all Node tests pass.
 - [ ] **Step 2: Package and probe the real Desktop path**
 
 ```shell
-./gradlew :benchmark:desktop:packageUberJarForCurrentOS
+./gradlew :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS
 SKIKO_RENDER_API=METAL java -Xms512m -Xmx512m \
-  -jar benchmark/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
+  -jar haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
   probe
 ```
 
@@ -1988,7 +1991,7 @@ Run six smoke blocks for each scenario as `revision=head`, then aggregate them:
 ```shell
 benchmark_smoke_dir="$(mktemp -d)"
 mkdir -p "$benchmark_smoke_dir/raw"
-benchmark_jar="benchmark/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar"
+benchmark_jar="haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar"
 for scenario in pointer_sweep playground_drag; do
   for round in 0 1 2; do
     for order in 1 2; do
@@ -2028,7 +2031,7 @@ Expected: all checks pass; only intentional implementation files are modified.
 If Step 1-4 required changes:
 
 ```shell
-git add settings.gradle.kts internal/benchmark-desktop benchmark/desktop \
+git add settings.gradle.kts internal/benchmark-desktop haze-benchmarks/glass/desktop \
   .github/scripts .github/workflows
 git commit -m "Polish Desktop Glass benchmark"
 ```
@@ -2043,7 +2046,7 @@ If no changes were required, do not create an empty commit.
   4-5 add the isolated and Playground Glass suite; Task 6 implements ABBA aggregation, protocol
   compatibility, variation, JSON limits, and failure artifacts; Tasks 7-8 implement the
   unprivileged measurement and trusted comment workflows; Task 9 verifies the complete path.
-- **Module isolation:** Only `:benchmark:desktop` depends on Glass and sample code.
+- **Module isolation:** Only `:haze-benchmarks:glass:desktop` depends on Glass and sample code.
   Timed and native-window tasks remain outside root `check`, allowing CI to select the Glass suite
   independently.
 - **Type consistency:** `DesktopBenchmarkScenario`, `DesktopInputEvent`, `BenchmarkCommand`,

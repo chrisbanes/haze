@@ -81,7 +81,7 @@ their own small `main` function and runnable distribution.
 
 ### Glass Desktop Benchmark Suite
 
-Add a JVM-only `:benchmark:desktop` module that depends on
+Add a JVM-only `:haze-benchmarks:glass:desktop` module that depends on
 `:internal:benchmark-desktop`, `haze-glass`, and `sample:shared`. It owns:
 
 - the isolated pointer-sweep scenario;
@@ -94,6 +94,12 @@ The module passes its scenario registry to the shared runner; it does not duplic
 measurement, statistics, serialization, or environment code. A future Desktop `haze-blur`
 benchmark belongs in a separate suite module that depends on the same runner.
 
+The `:haze-benchmarks:glass` namespace is intentionally platform-oriented. A future
+`:haze-benchmarks:glass:common` module can own content and deterministic workload definitions shared
+by platform runners, while `:haze-benchmarks:glass:android` can own the Android instrumentation
+entry point. Neither sibling is added in this Desktop-only phase; shared code stays in the Desktop
+suite until a second platform provides a concrete consumer.
+
 Benchmark mode must:
 
 - request Metal and abort with a clear infrastructure error if Skiko selects another backend;
@@ -104,7 +110,7 @@ Benchmark mode must:
 - run without Gradle, compilation, or dependency resolution active during measurement;
 - close the window and process deterministically after writing the result.
 
-The CI job builds the `:benchmark:desktop` runnable distributions for both revisions
+The CI job builds the `:haze-benchmarks:glass:desktop` runnable distributions for both revisions
 first, stops their Gradle daemons, and then invokes the resulting launchers directly. Build time is
 never included in a benchmark value.
 
@@ -203,7 +209,7 @@ Use a dedicated benchmark workflow rather than appending the benchmark to `mac_b
 runner avoids inheriting variable heat and background work from compilation and iOS simulator
 tests. The workflow is not added as a dependency of build, deployment, or release jobs.
 
-The Glass workflow invokes only the `:benchmark:desktop` distribution and tests. Its
+The Glass workflow invokes only the `:haze-benchmarks:glass:desktop` distribution and tests. Its
 pull-request path filter includes the shared runner, Glass suite, `haze`, `haze-utils`, `haze-glass`,
 `haze-materials`, `sample:shared`, Gradle build configuration, dependency versions, and the
 benchmark workflows. Unrelated documentation, web, Android-sample-only, and release changes do not
@@ -248,7 +254,7 @@ compared automatically with GitHub-hosted results.
 - Runner contract tests use an injected fake host and deterministic fake scenario to verify
   lifecycle, warm-up exclusion, scenario selection, failure propagation, and clean shutdown
   without opening a native window or depending on Glass.
-- Tests in `:benchmark:desktop` verify each scenario's exact event count, fixed path,
+- Tests in `:haze-benchmarks:glass:desktop` verify each scenario's exact event count, fixed path,
   terminal state, and clean shutdown.
 - A short Glass-suite smoke task launches both scenarios, asserts that Metal was selected, and
   verifies nonempty finite samples and valid metadata. This explicit task is not part of root
