@@ -110,6 +110,7 @@ include(
   ":haze-materials",
   ":haze-screenshot-tests",
   ":internal:benchmark",
+  ":internal:benchmark-desktop",
   ":internal:context-test",
   ":internal:test-utils",
   ":internal:dokka",
