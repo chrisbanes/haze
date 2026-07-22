@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
@@ -37,6 +38,20 @@ import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 class GlassVisualEffectLifecycleTest {
+
+  @Test
+  fun prepareBudget_fractionalAlphaIncludesMaterialSizedGroupComposite() {
+    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+
+    val decision = effect.prepareRenderBudget(
+      context = TrackingVisualEffectContext(effectSize = Size(100f, 80f), layerSize = Size(120f, 100f)),
+      runtimeShaderSupported = false,
+    ) as GlassRenderBudgetDecision.Runtime
+
+    assertThat(decision.plan.layers.last()).isEqualTo(
+      GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, IntSize(100, 80)),
+    )
+  }
 
   @Test
   fun prepareBudget_safeGraphPreservesRequestedScale() {
@@ -201,7 +216,11 @@ class GlassVisualEffectLifecycleTest {
     assertSame(first.opticalKey, second.opticalKey)
     assertSame(first.refractionDetailKey, second.refractionDetailKey)
     assertSame(first.rimKey, second.rimKey)
-    assertSame(first.plan, second.plan)
+    assertThat(first.plan.layers.any { it.kind == GlassRetainedLayerKind.GroupComposite })
+      .isEqualTo(false)
+    assertThat(second.plan.layers.any { it.kind == GlassRetainedLayerKind.GroupComposite })
+      .isEqualTo(true)
+    assertNotSame(first.plan, second.plan)
   }
 
   @Test

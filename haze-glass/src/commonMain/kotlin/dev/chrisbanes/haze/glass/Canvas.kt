@@ -178,6 +178,17 @@ internal inline fun DrawScope.withAlpha(
   }
 }
 
+internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
+  layer: GraphicsLayer,
+  alpha: Float,
+  size: IntSize,
+  crossinline block: DrawScope.() -> Unit,
+) {
+  layer.alpha = alpha
+  layer.record(size = size) { block() }
+  drawLayer(layer)
+}
+
 internal inline fun DrawScope.translate(
   offset: Offset,
   block: DrawScope.() -> Unit,

@@ -161,6 +161,10 @@ internal class RuntimeShaderGlassDelegate(
       lightingRequired = interactionLightingRequired,
       graphicsContext = currentGraphicsContext,
     )
+    layers.groupAlpha.prepare(
+      required = requiresGlassGroupAlpha(currentPreparedRender.alpha),
+      graphicsContext = currentGraphicsContext,
+    )
 
     layers.ensureSource(currentGraphicsContext)
     if (blurRequired) {
@@ -219,6 +223,10 @@ internal class RuntimeShaderGlassDelegate(
     val params = preparedParams ?: return
     val effects = preparedRenderEffects ?: return
     val interactionUniforms = preparedInteractionUniforms ?: return
+    if (render.alpha <= 0f) {
+      retainedOutputAvailable = false
+      return
+    }
     requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
     var completed = false
     try {
@@ -323,11 +331,25 @@ internal class RuntimeShaderGlassDelegate(
           ::clearRetainedOutput,
         ) ?: return
       }
-      withAlpha(alpha = render.alpha, context = context) {
+      val drawCompletedOutput: DrawScope.() -> Unit = {
         drawCompletedLayer(completedOptical, context, params, alpha = 1f)
         if (completedRefractionDetail != null) {
           drawCompletedLayer(completedRefractionDetail, context, params, alpha = 1f)
         }
+      }
+      if (render.alpha >= 1f) {
+        drawCompletedOutput()
+      } else {
+        val groupAlpha = requireRetainedStage(
+          layers.groupAlpha.layer?.takeUnless { it.isReleased },
+          ::clearRetainedOutput,
+        ) ?: return
+        recordAndDrawGlassGroupAlpha(
+          layer = groupAlpha,
+          alpha = render.alpha,
+          size = params.coordinates.materialSize.roundToIntSize(),
+          block = drawCompletedOutput,
+        )
       }
       if (shouldRecordSource) {
         lastSuccessfulSourceSnapshot = sourceState.snapshot
@@ -365,6 +387,7 @@ internal class RuntimeShaderGlassDelegate(
     val interactionDetailRequired = interactionOpticsRequired && detailRequired
     val interactionLightingRequired = interactionUniforms?.hasLighting == true
     return retainedOutputAvailable && layers.hasOptical &&
+      (!requiresGlassGroupAlpha(preparedRender?.alpha ?: 1f) || layers.groupAlpha.isAvailable) &&
       (!detailRequired || layers.hasRefractionDetail) &&
       (!interactionOpticsRequired || layers.hasInteractionOptical) &&
       (!interactionDetailRequired || layers.hasInteractionRefractionDetail) &&

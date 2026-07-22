@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Bound and reuse Glass group-alpha composition surfaces, including allocation-free zero-alpha drawing and predictable fallback for oversized output in #1062.
 - Reuse retained Glass stages, prepared render data, and runtime shaders during animation in #1045.
 - **Fix cross-window recomposition livelock** in #974. When a `HazeState` is shared between effects in different windows (e.g. a host composable and a `Dialog`), the previously-shared `HazeState.resolvedStrategy` oscillated between `Local` and `Screen`, causing an infinite recomposition loop. The resolved position strategy is now per-effect (`HazeEffectNode.resolvedPositionStrategy`), so effects in different windows no longer stomp on each other.
 - Fix sticky header haze scroll sync in #994. `HazeSourceNode` now refreshes local coordinates from every `onPlaced`, and observed area-position reads dirty `HazeEffectNode` area offsets so sticky headers blur the currently visible content while scrolling.

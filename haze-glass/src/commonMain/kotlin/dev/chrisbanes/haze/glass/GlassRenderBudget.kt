@@ -22,6 +22,7 @@ internal enum class GlassRetainedLayerKind {
   InteractionOptical,
   InteractionDetail,
   InteractionLighting,
+  GroupComposite,
 }
 
 internal data class GlassRetainedLayer(

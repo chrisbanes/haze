@@ -54,6 +54,27 @@ import kotlin.test.assertSame
 class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
   @Test
+  fun alphaZero_clearsRetainedOutputUntilVisibleFrameRefreshesIt() = runComposeUiTest {
+    val effect = activeDetailEffect().apply { alpha = 0.5f }
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val sourceRecordsBeforeZero = delegate.sourceRecordCount
+
+    effect.alpha = 0f
+    waitForIdle()
+
+    assertThat(delegate.canDrawRetainedOutput()).isFalse()
+
+    effect.alpha = 0.5f
+    waitForIdle()
+
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    assertThat(delegate.sourceRecordCount).isGreaterThan(sourceRecordsBeforeZero)
+  }
+
+  @Test
   fun nonFiniteCornerShape_runtimeUsesCanonicalSafeRadii() = runComposeUiTest {
     val effect = activeDetailEffect().apply {
       shape = invalidCornerShape(Float.NaN)
