@@ -71,8 +71,12 @@ internal class FrameRecorder(
     previousFrameEnd = end
   }
 
-  internal fun armNextFrameCompletion(): FrameCompletionToken = synchronized(lock) {
-    FrameCompletionToken(startedFrameGeneration + 1)
+  internal fun requestNextFrameCompletion(
+    requestFrame: () -> Unit,
+  ): FrameCompletionToken = synchronized(lock) {
+    val token = FrameCompletionToken(startedFrameGeneration + 1)
+    requestFrame()
+    token
   }
 
   internal fun isFrameCompleted(token: FrameCompletionToken): Boolean = synchronized(lock) {

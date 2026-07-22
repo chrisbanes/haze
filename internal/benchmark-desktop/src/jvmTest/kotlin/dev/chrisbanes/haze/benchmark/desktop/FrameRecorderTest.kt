@@ -5,8 +5,12 @@ package dev.chrisbanes.haze.benchmark.desktop
 
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.test.Test
 
 class FrameRecorderTest {
@@ -50,7 +54,7 @@ class FrameRecorderTest {
     val clock = FakeNanoClock(100, 110)
     val recorder = FrameRecorder(clock::next)
     recorder.beforeFrameRender()
-    val token = recorder.armNextFrameCompletion()
+    val token = recorder.requestNextFrameCompletion {}
     recorder.afterFrameRender()
     assertThat(recorder.isFrameCompleted(token)).isFalse()
   }
@@ -59,8 +63,31 @@ class FrameRecorderTest {
   fun firstFrameStartedAfterToken_completesIt() {
     val clock = FakeNanoClock(100, 110)
     val recorder = FrameRecorder(clock::next)
-    val token = recorder.armNextFrameCompletion()
+    val token = recorder.requestNextFrameCompletion {}
     recorder.beforeFrameRender()
+    assertThat(recorder.isFrameCompleted(token)).isFalse()
+    recorder.afterFrameRender()
+    assertThat(recorder.isFrameCompleted(token)).isTrue()
+  }
+
+  @Test
+  fun callbackCannotInterleaveBetweenTokenAndRequest() {
+    val clock = FakeNanoClock(100, 110)
+    val recorder = FrameRecorder(clock::next)
+    val callbackAttempted = CountDownLatch(1)
+    lateinit var callbackThread: Thread
+
+    val token = recorder.requestNextFrameCompletion {
+      callbackThread = thread(name = "frame-callback") {
+        callbackAttempted.countDown()
+        recorder.beforeFrameRender()
+      }
+      assertThat(callbackAttempted.await(1, TimeUnit.SECONDS)).isTrue()
+      awaitBlocked(callbackThread)
+    }
+
+    callbackThread.join(1_000)
+    assertThat(callbackThread.isAlive).isFalse()
     assertThat(recorder.isFrameCompleted(token)).isFalse()
     recorder.afterFrameRender()
     assertThat(recorder.isFrameCompleted(token)).isTrue()
@@ -71,6 +98,14 @@ private class FakeNanoClock(vararg values: Long) {
   private val iterator = values.iterator()
 
   fun next(): Long = iterator.nextLong()
+}
+
+private fun awaitBlocked(thread: Thread) {
+  val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1)
+  while (thread.state != Thread.State.BLOCKED && System.nanoTime() < deadline) {
+    Thread.yield()
+  }
+  assertThat(thread.state).isEqualTo(Thread.State.BLOCKED)
 }
 
 private fun recorderForTwoMeasuredFrames(): FrameRecorder {

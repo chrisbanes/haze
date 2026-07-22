@@ -43,8 +43,9 @@ internal class ComposeDesktopBenchmarkHost(
       recorder.startMeasurement()
       val workloadStartedAt = System.nanoTime()
       replayer.replay(scenario.events)
-      val finalFrame = recorder.armNextFrameCompletion()
-      onSwing { session.layer.needRender() }
+      val finalFrame = onSwing {
+        recorder.requestNextFrameCompletion { session.layer.needRender() }
+      }
       withTimeout(2.seconds) {
         while (!recorder.isFrameCompleted(finalFrame)) delay(1)
       }
