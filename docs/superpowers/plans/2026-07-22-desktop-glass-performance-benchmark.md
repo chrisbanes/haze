@@ -933,8 +933,10 @@ internal fun isolatedPointerEvents(): List<DesktopInputEvent> = buildList {
 Adapt the existing deterministic interaction scene from
 `haze-screenshot-tests/src/commonTest/kotlin/dev/chrisbanes/haze/GlassInteractionScreenshotTest.kt`.
 Use one remembered `GlassVisualEffect` with `hovered()`, forced full-motion interaction, a 20 dp
-rounded shape, and a centered 360 by 200 dp Glass surface over the striped background. Do not copy
-test input code or use `Robot`:
+rounded shape, and a centered Glass surface over the striped background. Size the surface to
+`0.5625` of the viewport width and `5 / 9` of its height. This is 360 by 200 logical units on the
+target 640 by 360 logical viewport, while keeping the surface and normalized pointer path aligned
+at any content scale. Do not copy test input code or use `Robot`:
 
 ```kotlin
 internal class IsolatedGlassScenario : DesktopBenchmarkScenario {
@@ -979,7 +981,10 @@ private fun IsolatedGlassBenchmarkScene(
     }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
       Box(
-        Modifier.size(360.dp, 200.dp).hazeEffect(hazeState) { visualEffect = effect },
+        Modifier
+          .fillMaxWidth(0.5625f)
+          .fillMaxHeight(5f / 9f)
+          .hazeEffect(hazeState) { visualEffect = effect },
         contentAlignment = Alignment.Center,
       ) {
         Text("POINTER SWEEP", color = Color.White)
@@ -1118,7 +1123,7 @@ Keep the state and test accessors in the scenario:
 ```kotlin
 private var dragOffset by mutableStateOf(Offset.Zero)
 
-override suspend fun reset() {
+override suspend fun reset() = withContext(Dispatchers.Swing) {
   dragOffset = Offset.Zero
 }
 
@@ -1142,18 +1147,20 @@ fun main(args: Array<String>) {
 }
 ```
 
-Register a `desktopBenchmarkSmoke` process task in the Glass build file. Do not attach it to
-`check`:
+Register two private process tasks and a `desktopBenchmarkSmoke` lifecycle task in the Glass build
+file. The lifecycle task must launch both scenarios and must not be attached to `check`:
 
 ```kotlin
 val benchmarkJavaLauncher = javaToolchains.launcherFor {
   languageVersion.set(JavaLanguageVersion.of(21))
 }
 
-tasks.register<Exec>("desktopBenchmarkSmoke") {
+fun registerScenarioSmoke(name: String, scenarioId: String) = tasks.register<Exec>(name) {
   dependsOn("packageUberJarForCurrentOS")
   environment("SKIKO_RENDER_API", "METAL")
   doFirst {
+    val output = layout.buildDirectory.file("benchmark-smoke/$scenarioId.json").get().asFile
+    output.parentFile.mkdirs()
     commandLine(
       benchmarkJavaLauncher.get().executablePath.asFile.absolutePath,
       "-Xms512m",
@@ -1162,9 +1169,23 @@ tasks.register<Exec>("desktopBenchmarkSmoke") {
       layout.buildDirectory.file(
         "compose/jars/desktop-macos-arm64-1.0.0.jar",
       ).get().asFile.absolutePath,
-      "probe",
+      "run",
+      "--scenario", scenarioId,
+      "--revision", "smoke",
+      "--round", "0",
+      "--order", "0",
+      "--output", output.absolutePath,
+      "--smoke",
     )
   }
+}
+
+val pointerSmoke = registerScenarioSmoke("desktopPointerBenchmarkSmoke", "pointer_sweep")
+val playgroundSmoke = registerScenarioSmoke("desktopPlaygroundBenchmarkSmoke", "playground_drag")
+playgroundSmoke.configure { mustRunAfter(pointerSmoke) }
+
+tasks.register("desktopBenchmarkSmoke") {
+  dependsOn(pointerSmoke, playgroundSmoke)
 }
 ```
 
@@ -1174,17 +1195,14 @@ tasks.register<Exec>("desktopBenchmarkSmoke") {
 ./gradlew \
   :haze-benchmarks:glass:desktop:jvmTest \
   :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS \
-  :haze-benchmarks:glass:desktop:spotlessCheck
-SKIKO_RENDER_API=METAL java -Xms512m -Xmx512m \
-  -jar haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
-  run --scenario pointer_sweep --revision local --round 0 --order 0 \
-  --output /tmp/haze-pointer-sweep.json --smoke
+  :haze-benchmarks:glass:desktop:spotlessCheck \
+  :haze-benchmarks:glass:desktop:desktopBenchmarkSmoke
 git add haze-benchmarks/glass/desktop
 git add sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/GlassPlaygroundSample.kt
 git commit -m "Add Glass Playground benchmark"
 ```
 
-Expected: the JSON contains finite samples and reports `METAL`.
+Expected: both smoke JSON files contain finite samples and report `METAL`.
 
 ---
 
