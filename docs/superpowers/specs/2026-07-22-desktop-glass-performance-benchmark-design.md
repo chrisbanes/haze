@@ -19,8 +19,8 @@ the raw results as an artifact, and maintains one summary comment on the pull re
 - Compare base and pull-request revisions in alternating blocks on the same runner.
 - Upload machine-readable results and publish an informational pull-request comment.
 - Put the reusable Desktop runner in a dedicated internal module.
-- Keep the initial scenarios Glass-specific while allowing another Desktop visual effect to add a
-  scenario without changing the runner.
+- Put the Glass scenarios, tests, and executable in a separate module so CI can select them without
+  running every Desktop benchmark suite.
 
 This design does not add Android or iOS benchmarks, enforce performance thresholds, or attempt to
 share the runner across platforms. The runner is reusable by Desktop benchmark suites, but the
@@ -48,7 +48,9 @@ reduce dynamic-frequency, thermal, and host-load noise.
 hardware and runner-image metadata so a GitHub runner migration is visible as a discontinuity
 rather than silently mixed into the history.
 
-## Shared Desktop Benchmark Module
+## Module Boundaries
+
+### Shared Desktop Runner
 
 Add a JVM-only `:internal:benchmark-desktop` module. "Shared" means that its runner is reusable by
 multiple Desktop visual-effect benchmark suites; it does not mean Kotlin Multiplatform common code.
@@ -62,8 +64,8 @@ The new module owns:
 - block aggregation and statistical calculations;
 - environment metadata collection;
 - JSON serialization and validation;
-- the command-line interface and runnable distribution;
-- registration and selection of Desktop benchmark scenarios.
+- command-line parsing and validation;
+- the scenario contract and benchmark-suite entry function.
 
 An internal `DesktopBenchmarkScenario` contract separates the shared runner from each workload. A
 scenario supplies a stable identifier and protocol version, composes its content, performs its
@@ -71,11 +73,25 @@ deterministic warm-up and measured input sequence, and reports completion. The r
 window lifecycle, repetition, aggregation, and output. The interface exposes no Haze or Glass
 types, so adding a future `haze-blur` scenario is additive.
 
-The module contains the two initial Glass scenario implementations and depends on `haze-glass` and
-`sample:shared` for the isolated effect and existing Playground respectively. Scenario-specific
-dependencies do not leak into the runner contract. Splitting every visual effect into another
-Gradle module is deferred until there is a concrete need for independent distributions or build
-isolation.
+The runner is a JVM library. It does not depend on `haze`, `haze-blur`, `haze-glass`, any sample
+module, or a concrete scenario. It exposes one internal entry function that accepts the command-line
+arguments and an explicit list of scenarios, then returns a process result. Suite modules provide
+their own small `main` function and runnable distribution.
+
+### Glass Desktop Benchmark Suite
+
+Add a JVM-only `:internal:benchmark-desktop-glass` module that depends on
+`:internal:benchmark-desktop`, `haze-glass`, and `sample:shared`. It owns:
+
+- the isolated pointer-sweep scenario;
+- the Glass Playground scenario and its narrow deterministic controls;
+- Glass scenario tests and the Metal smoke test;
+- the Glass scenario registry and executable entry point;
+- the runnable distribution invoked by local development and CI.
+
+The module passes its scenario registry to the shared runner; it does not duplicate window,
+measurement, statistics, serialization, or environment code. A future Desktop `haze-blur`
+benchmark belongs in a separate suite module that depends on the same runner.
 
 Benchmark mode must:
 
@@ -87,9 +103,9 @@ Benchmark mode must:
 - run without Gradle, compilation, or dependency resolution active during measurement;
 - close the window and process deterministically after writing the result.
 
-The CI job builds the `:internal:benchmark-desktop` runnable distributions for both revisions first,
-stops their Gradle daemons, and then invokes the resulting launchers directly. Build time is never
-included in a benchmark value.
+The CI job builds the `:internal:benchmark-desktop-glass` runnable distributions for both revisions
+first, stops their Gradle daemons, and then invokes the resulting launchers directly. Build time is
+never included in a benchmark value.
 
 ## Workloads
 
@@ -186,6 +202,14 @@ Use a dedicated benchmark workflow rather than appending the benchmark to `mac_b
 runner avoids inheriting variable heat and background work from compilation and iOS simulator
 tests. The workflow is not added as a dependency of build, deployment, or release jobs.
 
+The Glass workflow invokes only the `:internal:benchmark-desktop-glass` distribution and tests. Its
+pull-request path filter includes the shared runner, Glass suite, `haze`, `haze-utils`, `haze-glass`,
+`haze-materials`, `sample:shared`, Gradle build configuration, dependency versions, and the
+benchmark workflows. Unrelated documentation, web, Android-sample-only, and release changes do not
+start the Desktop Glass benchmark. The performance task is not attached to the root `check` task.
+Ordinary unit tests for both benchmark modules may remain part of normal verification because they
+do not launch or time a benchmark workload.
+
 The reporting path uses two workflows:
 
 1. An unprivileged `pull_request` workflow checks out and runs base and head code on `macos-26`,
@@ -219,12 +243,15 @@ compared automatically with GitHub-hosted results.
 ## Testing
 
 - Pure JVM tests cover percentile calculation, over-budget counts, median absolute deviation,
-  paired deltas, protocol compatibility, and JSON round trips.
-- Runner contract tests use a deterministic fake scenario to verify lifecycle, warm-up exclusion,
-  scenario selection, failure propagation, and clean shutdown without depending on Glass.
-- Scenario tests verify the exact event count, fixed path, terminal state, and clean shutdown.
-- A short Desktop smoke test launches both scenarios, asserts that Metal was selected, and verifies
-  nonempty finite samples and valid metadata.
+  paired deltas, protocol compatibility, and JSON round trips in `:internal:benchmark-desktop`.
+- Runner contract tests use an injected fake host and deterministic fake scenario to verify
+  lifecycle, warm-up exclusion, scenario selection, failure propagation, and clean shutdown
+  without opening a native window or depending on Glass.
+- Tests in `:internal:benchmark-desktop-glass` verify each scenario's exact event count, fixed path,
+  terminal state, and clean shutdown.
+- A short Glass-suite smoke task launches both scenarios, asserts that Metal was selected, and
+  verifies nonempty finite samples and valid metadata. This explicit task is not part of root
+  `check`.
 - Workflow tests use fixture artifacts to cover valid comments, noisy and non-comparable labels,
   rejected identifiers, non-finite numbers, oversized input, and marker-based comment updates.
 - Normal Desktop sample launch and existing Glass Gallery screenshot tests remain unchanged.
@@ -242,3 +269,5 @@ compared automatically with GitHub-hosted results.
   boundary accurately.
 - A new Desktop visual-effect scenario can use the runner without changing its window,
   measurement, aggregation, JSON, or CI-reporting code.
+- CI can build, test, run, and path-filter the Glass benchmark suite independently from every other
+  Desktop benchmark suite.
