@@ -18,11 +18,13 @@ the raw results as an artifact, and maintains one summary comment on the pull re
 - Measure Skiko render callbacks from a real Compose Desktop window.
 - Compare base and pull-request revisions in alternating blocks on the same runner.
 - Upload machine-readable results and publish an informational pull-request comment.
-- Keep benchmark code internal and Glass-specific.
+- Put the reusable Desktop runner in a dedicated internal module.
+- Keep the initial scenarios Glass-specific while allowing another Desktop visual effect to add a
+  scenario without changing the runner.
 
 This design does not add Android or iOS benchmarks, enforce performance thresholds, or attempt to
-generalize the harness for `haze-blur`. The structure may be extracted when a second visual effect
-needs it, but that reuse does not justify an abstraction in the first implementation.
+share the runner across platforms. The runner is reusable by Desktop benchmark suites, but the
+initial implementation does not add a `haze-blur` scenario or a multiplatform abstraction.
 
 ## Why macOS
 
@@ -46,12 +48,34 @@ reduce dynamic-frequency, thermal, and host-load noise.
 hardware and runner-image metadata so a GitHub runner migration is visible as a discontinuity
 rather than silently mixed into the history.
 
-## Benchmark Host Application
+## Shared Desktop Benchmark Module
 
-Keep the first implementation in `sample:desktop`, which already depends on the shared sample UI
-and Compose Desktop's current native artifacts. The existing application remains unchanged when
-launched normally. A benchmark command-line mode starts a separate fixed-purpose window and exits
-after writing one JSON result.
+Add a JVM-only `:internal:benchmark-desktop` module. "Shared" means that its runner is reusable by
+multiple Desktop visual-effect benchmark suites; it does not mean Kotlin Multiplatform common code.
+The existing `sample:desktop` application and entry point remain untouched.
+
+The new module owns:
+
+- the Compose Desktop application and fixed-purpose benchmark window;
+- Skiko render callback collection;
+- warm-up and measurement scheduling;
+- block aggregation and statistical calculations;
+- environment metadata collection;
+- JSON serialization and validation;
+- the command-line interface and runnable distribution;
+- registration and selection of Desktop benchmark scenarios.
+
+An internal `DesktopBenchmarkScenario` contract separates the shared runner from each workload. A
+scenario supplies a stable identifier and protocol version, composes its content, performs its
+deterministic warm-up and measured input sequence, and reports completion. The runner owns timing,
+window lifecycle, repetition, aggregation, and output. The interface exposes no Haze or Glass
+types, so adding a future `haze-blur` scenario is additive.
+
+The module contains the two initial Glass scenario implementations and depends on `haze-glass` and
+`sample:shared` for the isolated effect and existing Playground respectively. Scenario-specific
+dependencies do not leak into the runner contract. Splitting every visual effect into another
+Gradle module is deferred until there is a concrete need for independent distributions or build
+isolation.
 
 Benchmark mode must:
 
@@ -63,8 +87,9 @@ Benchmark mode must:
 - run without Gradle, compilation, or dependency resolution active during measurement;
 - close the window and process deterministically after writing the result.
 
-The CI job builds runnable distributions for both revisions first, stops their Gradle daemons, and
-then invokes the resulting launchers directly. Build time is never included in a benchmark value.
+The CI job builds the `:internal:benchmark-desktop` runnable distributions for both revisions first,
+stops their Gradle daemons, and then invokes the resulting launchers directly. Build time is never
+included in a benchmark value.
 
 ## Workloads
 
@@ -130,16 +155,18 @@ Block-level medians use median absolute deviation to describe variation. If eith
 block medians have more than 10 percent robust relative variation, the report labels that metric
 `noisy`. This label is informational and never changes the workflow conclusion.
 
-Every JSON result includes a benchmark protocol version. A protocol mismatch, including a pull
-request that intentionally changes workload semantics, suppresses the percentage comparison and
-labels the revisions `not comparable`. The initial landing may only benchmark the head because the
-base revision has no benchmark launcher; this bootstrap case is reported without a delta.
+Every JSON result includes a runner schema version and a protocol version for each scenario. A
+scenario protocol mismatch, including a pull request that intentionally changes workload
+semantics, suppresses that scenario's percentage comparison and labels the revisions
+`not comparable`. Other scenarios remain comparable. The initial landing may only benchmark the
+head because the base revision has no benchmark launcher; this bootstrap case is reported without
+a delta.
 
 ## Result Format
 
 The aggregate JSON artifact contains only structured data:
 
-- schema and benchmark protocol versions;
+- runner schema and per-scenario protocol versions;
 - repository, base SHA, and head SHA;
 - scenario identifiers and configuration;
 - raw frame samples for every block;
@@ -184,15 +211,17 @@ not a performance regression.
 
 ## Local Use
 
-The same benchmark command supports a single-revision local run with configurable output path and
-iteration count. Defaults match CI, while a short smoke mode reduces warm-up and repetition for
-development. Local results identify the actual renderer and host and are never compared
-automatically with GitHub-hosted results.
+The shared runner supports a single-revision local run with scenario selection, configurable output
+path, and iteration count. Defaults match CI, while a short smoke mode reduces warm-up and
+repetition for development. Local results identify the actual renderer and host and are never
+compared automatically with GitHub-hosted results.
 
 ## Testing
 
 - Pure JVM tests cover percentile calculation, over-budget counts, median absolute deviation,
   paired deltas, protocol compatibility, and JSON round trips.
+- Runner contract tests use a deterministic fake scenario to verify lifecycle, warm-up exclusion,
+  scenario selection, failure propagation, and clean shutdown without depending on Glass.
 - Scenario tests verify the exact event count, fixed path, terminal state, and clean shutdown.
 - A short Desktop smoke test launches both scenarios, asserts that Metal was selected, and verifies
   nonempty finite samples and valid metadata.
@@ -211,3 +240,5 @@ automatically with GitHub-hosted results.
 - No performance value can fail, block, deploy, or publish the project.
 - The benchmark uses the real Compose Desktop, Skiko, and Metal path and describes the callback
   boundary accurately.
+- A new Desktop visual-effect scenario can use the runner without changing its window,
+  measurement, aggregation, JSON, or CI-reporting code.
