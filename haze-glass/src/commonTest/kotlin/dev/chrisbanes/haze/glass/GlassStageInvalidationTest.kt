@@ -12,6 +12,7 @@ import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import kotlin.test.Test
+import kotlin.test.assertSame
 
 class GlassStageInvalidationTest {
 
@@ -353,6 +354,20 @@ class GlassStageInvalidationTest {
     ).snapshot!!
 
     assertThat(first).isEqualTo(second)
+  }
+
+  @Test
+  fun resolveGlassSourceState_unchangedInputsReuseAcceptedSnapshot() {
+    val first = stateOf(sourceArea()).snapshot!!
+    val second = resolveGlassSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      areas = listOf(sourceArea()),
+      previousSnapshot = first,
+    ).snapshot
+
+    assertSame(first, second)
   }
 
   @Test

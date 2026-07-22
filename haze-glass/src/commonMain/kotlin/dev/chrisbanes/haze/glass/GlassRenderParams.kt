@@ -792,37 +792,132 @@ internal data class GlassPreparedRender(
 )
 
 internal fun buildGlassPreparedRender(
-  style: ResolvedGlassStyle,
-  coordinates: GlassCoordinates,
-  interaction: ResolvedGlassInteraction,
+  params: GlassRenderParams,
+  interactionUniforms: GlassInteractionUniforms,
+  alpha: Float,
+  previous: GlassPreparedRender? = null,
 ): GlassPreparedRender {
-  val params = buildGlassRenderParams(style, coordinates)
-  val interactionUniforms = interaction.uniforms(coordinates)
   val blurKey = if (params.depth > 0f && params.blurRadiusPx > 0f) {
-    params.blurEffectKey()
+    if (previous != null && previous.params.hasSameBlurEffectInputs(params)) {
+      previous.blurKey ?: params.blurEffectKey()
+    } else {
+      params.blurEffectKey()
+    }
   } else {
     null
   }
-  val refractionDetailKey = params.activeRefractionDetailEffectKey()
-  val rimKey = params.rimEffectKey().takeIf { params.specularIntensity > 0f }
-  val plan = buildGlassRetainedLayerPlan(
-    sampleSize = coordinates.sampleSize.roundToIntSize(),
-    blurWorkingSize = blurKey?.plan?.workingSize,
-    blurRequiresPrefilter = blurKey?.plan?.requiresPrefilter == true,
-    depthMixActive = blurKey != null && params.depth < 1f,
-    refractionDetailActive = refractionDetailKey != null,
-    rimActive = rimKey != null,
-    interactionOpticsActive = interactionUniforms.hasOptics,
-    interactionLightingActive = interactionUniforms.hasLighting,
-  )
+  val opticalKey = if (previous != null && previous.params.hasSameOpticalEffectInputs(params)) {
+    previous.opticalKey
+  } else {
+    params.opticalEffectKey()
+  }
+  val refractionDetailKey = if (
+    previous != null && previous.params.hasSameRefractionDetailEffectInputs(params)
+  ) {
+    previous.refractionDetailKey
+  } else {
+    params.activeRefractionDetailEffectKey()
+  }
+  val rimKey = if (previous != null && previous.params.hasSameRimEffectInputs(params)) {
+    previous.rimKey
+  } else {
+    params.rimEffectKey().takeIf { params.specularIntensity > 0f }
+  }
+  val plan = if (
+    previous != null && previous.hasSameRetainedLayerPlanInputs(
+      params = params,
+      interactionUniforms = interactionUniforms,
+      blurKey = blurKey,
+      refractionDetailKey = refractionDetailKey,
+      rimKey = rimKey,
+    )
+  ) {
+    previous.plan
+  } else {
+    buildGlassRetainedLayerPlan(
+      sampleSize = params.coordinates.sampleSize.roundToIntSize(),
+      blurWorkingSize = blurKey?.plan?.workingSize,
+      blurRequiresPrefilter = blurKey?.plan?.requiresPrefilter == true,
+      depthMixActive = blurKey != null && params.depth < 1f,
+      refractionDetailActive = refractionDetailKey != null,
+      rimActive = rimKey != null,
+      interactionOpticsActive = interactionUniforms.hasOptics,
+      interactionLightingActive = interactionUniforms.hasLighting,
+    )
+  }
   return GlassPreparedRender(
     params = params,
     interactionUniforms = interactionUniforms,
     plan = plan,
-    alpha = style.alpha,
+    alpha = alpha,
     blurKey = blurKey,
-    opticalKey = params.opticalEffectKey(),
+    opticalKey = opticalKey,
     refractionDetailKey = refractionDetailKey,
     rimKey = rimKey,
   )
 }
+
+private fun GlassRenderParams.hasSameBlurEffectInputs(other: GlassRenderParams): Boolean =
+  coordinates == other.coordinates &&
+    blurRadiusPx == other.blurRadiusPx &&
+    blurSigmaPx == other.blurSigmaPx &&
+    progressive == other.progressive
+
+private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParams): Boolean =
+  coordinates == other.coordinates &&
+    refractionStrength == other.refractionStrength &&
+    ambientResponse == other.ambientResponse &&
+    tint == other.tint &&
+    edgeSoftnessPx == other.edgeSoftnessPx &&
+    refractionHeightPx == other.refractionHeightPx &&
+    chromaticAberrationStrength == other.chromaticAberrationStrength &&
+    surfaceProfile == other.surfaceProfile &&
+    chromaticAberrationMode == other.chromaticAberrationMode &&
+    contrast == other.contrast &&
+    whitePoint == other.whitePoint &&
+    chromaMultiplier == other.chromaMultiplier &&
+    refractionScalePx == other.refractionScalePx &&
+    contentNormalBlend == other.contentNormalBlend &&
+    fresnelExponent == other.fresnelExponent &&
+    geometryToneGain == other.geometryToneGain &&
+    geometryNeutralLift == other.geometryNeutralLift &&
+    cornerRadii == other.cornerRadii &&
+    sampleStepPx == other.sampleStepPx
+
+private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
+  other: GlassRenderParams,
+): Boolean =
+  coordinates == other.coordinates &&
+    refractionStrength == other.refractionStrength &&
+    refractionHeightPx == other.refractionHeightPx &&
+    refractionScalePx == other.refractionScalePx &&
+    surfaceProfile == other.surfaceProfile &&
+    edgeSoftnessPx == other.edgeSoftnessPx &&
+    cornerRadii == other.cornerRadii &&
+    sampleStepPx == other.sampleStepPx
+
+private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): Boolean =
+  coordinates == other.coordinates &&
+    specularIntensity == other.specularIntensity &&
+    specularExponent == other.specularExponent &&
+    edgeSoftnessPx == other.edgeSoftnessPx &&
+    cornerRadii == other.cornerRadii &&
+    lightPosition == other.lightPosition &&
+    sampleStepPx == other.sampleStepPx
+
+private fun GlassPreparedRender.hasSameRetainedLayerPlanInputs(
+  params: GlassRenderParams,
+  interactionUniforms: GlassInteractionUniforms,
+  blurKey: GlassBlurEffectKey?,
+  refractionDetailKey: GlassRefractionDetailEffectKey?,
+  rimKey: GlassRimEffectKey?,
+): Boolean =
+  this.params.coordinates.sampleSize == params.coordinates.sampleSize &&
+    this.blurKey?.plan?.workingSize == blurKey?.plan?.workingSize &&
+    this.blurKey?.plan?.requiresPrefilter == blurKey?.plan?.requiresPrefilter &&
+    (this.blurKey != null && this.params.depth < 1f) ==
+    (blurKey != null && params.depth < 1f) &&
+    (this.refractionDetailKey != null) == (refractionDetailKey != null) &&
+    (this.rimKey != null) == (rimKey != null) &&
+    this.interactionUniforms.hasOptics == interactionUniforms.hasOptics &&
+    this.interactionUniforms.hasLighting == interactionUniforms.hasLighting

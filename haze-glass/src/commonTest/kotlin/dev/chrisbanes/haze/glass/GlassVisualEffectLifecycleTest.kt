@@ -29,6 +29,7 @@ import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
+import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -148,6 +149,19 @@ class GlassVisualEffectLifecycleTest {
   }
 
   @Test
+  fun detach_clearsPreparedRenderBundle() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    assertThat(effect.preparedRender).isNotNull()
+
+    effect.detach(context)
+
+    assertThat(effect.preparedRender).isNull()
+  }
+
+  @Test
   fun prepareBudget_unchangedBudgetInputsReuseDecisionAndSelectedPlan() {
     val effect = GlassVisualEffect()
     val context = TrackingVisualEffectContext()
@@ -156,13 +170,79 @@ class GlassVisualEffectLifecycleTest {
       context,
       runtimeShaderSupported = true,
     ) as GlassRenderBudgetDecision.Runtime
+    val firstPrepared = checkNotNull(effect.preparedRender)
     val second = effect.prepareRenderBudget(
       context,
       runtimeShaderSupported = true,
     ) as GlassRenderBudgetDecision.Runtime
+    val secondPrepared = checkNotNull(effect.preparedRender)
 
     assertSame(first, second)
-    assertSame(second.plan, checkNotNull(effect.preparedRender).plan)
+    assertSame(firstPrepared, secondPrepared)
+    assertSame(firstPrepared.blurKey?.plan, secondPrepared.blurKey?.plan)
+    assertSame(second.plan, secondPrepared.plan)
+  }
+
+  @Test
+  fun prepareBudget_alphaOnlyChangeReusesUnderlyingPreparedData() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val first = checkNotNull(effect.preparedRender)
+
+    effect.alpha = 0.5f
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val second = checkNotNull(effect.preparedRender)
+
+    assertNotSame(first, second)
+    assertSame(first.params, second.params)
+    assertSame(first.blurKey, second.blurKey)
+    assertSame(first.opticalKey, second.opticalKey)
+    assertSame(first.refractionDetailKey, second.refractionDetailKey)
+    assertSame(first.rimKey, second.rimKey)
+    assertSame(first.plan, second.plan)
+  }
+
+  @Test
+  fun prepareBudget_lightingOnlyChangeReusesUnchangedPreparedData() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val first = checkNotNull(effect.preparedRender)
+
+    effect.lightPosition = Offset(20f, 30f)
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val second = checkNotNull(effect.preparedRender)
+
+    assertNotSame(first.params, second.params)
+    assertSame(first.blurKey, second.blurKey)
+    assertSame(first.opticalKey, second.opticalKey)
+    assertSame(first.refractionDetailKey, second.refractionDetailKey)
+    assertNotSame(first.rimKey, second.rimKey)
+    assertSame(first.plan, second.plan)
+  }
+
+  @Test
+  fun prepareBudget_interactionOnlyChangeReusesBasePreparedData() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val first = checkNotNull(effect.preparedRender)
+
+    effect.interactionLightRadiusFraction = 0.8f
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val second = checkNotNull(effect.preparedRender)
+
+    assertNotSame(first.interactionUniforms, second.interactionUniforms)
+    assertSame(first.params, second.params)
+    assertSame(first.blurKey, second.blurKey)
+    assertSame(first.opticalKey, second.opticalKey)
+    assertSame(first.refractionDetailKey, second.refractionDetailKey)
+    assertSame(first.rimKey, second.rimKey)
+    assertSame(first.plan, second.plan)
   }
 
   @Test
@@ -304,6 +384,18 @@ class GlassVisualEffectLifecycleTest {
     val interactionBounds = effect.calculateLayerBounds(rect, Density(1f))
 
     assertThat(-interactionBounds.left).isGreaterThan(-baseBounds.left)
+  }
+
+  @Test
+  fun calculateLayerBounds_depthZeroDoesNotReserveBlurPadding() {
+    val rect = Rect(0f, 0f, 100f, 100f)
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(depth = 0f, blurRadius = 40.dp, refractionStrength = 0f)
+      edgeSoftness = 0.dp
+      specularIntensity = 0f
+    }
+
+    assertThat(effect.calculateLayerBounds(rect, Density(1f))).isEqualTo(rect)
   }
 
   @Test

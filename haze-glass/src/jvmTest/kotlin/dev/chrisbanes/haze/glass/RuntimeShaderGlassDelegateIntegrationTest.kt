@@ -14,8 +14,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
@@ -35,11 +37,17 @@ import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.RetainedOutputVisualEffect
+import dev.chrisbanes.haze.TrimMemoryLevel
+import dev.chrisbanes.haze.VisualEffect
+import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 
 @OptIn(ExperimentalTestApi::class)
@@ -161,6 +169,39 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
   }
+
+  @Test
+  fun activeInteraction_liveAndBaseUniformChangesRetainInteractionShaderHandles() =
+    runComposeUiTest {
+      val effect = runtimeInteractiveEffect()
+      setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+      waitForIdle()
+
+      onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
+      mainClock.advanceTimeBy(500)
+      waitForIdle()
+
+      val delegate = effect.delegate as RuntimeShaderGlassDelegate
+      val opticalEffect = delegate.interactionShaderHandle("interactionOpticalEffect")
+      val detailEffect = delegate.interactionShaderHandle("interactionDetailEffect")
+      val lightingEffect = delegate.interactionShaderHandle("interactionLightingEffect")
+
+      effect.setPressedForTest(Offset(80f, 60f))
+      mainClock.advanceTimeBy(16)
+      waitForIdle()
+      effect.ambientResponse = 0.6f
+      effect.optics = (effect.optics as GlassOptics.Absolute).copy(refractionScale = 18f)
+      waitForIdle()
+
+      assertSame(opticalEffect, delegate.interactionShaderHandle("interactionOpticalEffect"))
+      assertSame(detailEffect, delegate.interactionShaderHandle("interactionDetailEffect"))
+      assertSame(lightingEffect, delegate.interactionShaderHandle("interactionLightingEffect"))
+
+      effect.onTrimMemory(checkNotNull(effect.attachedContextForTest), TrimMemoryLevel.UI_HIDDEN)
+      assertThat(delegate.interactionShaderHandleOrNull("interactionOpticalEffect")).isNull()
+      assertThat(delegate.interactionShaderHandleOrNull("interactionDetailEffect")).isNull()
+      assertThat(delegate.interactionShaderHandleOrNull("interactionLightingEffect")).isNull()
+    }
 
   @Test
   fun heldInteraction_sourceContentChangeRecordsSource() = runComposeUiTest {
@@ -367,6 +408,125 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(checkNotNull(delegate.layers.refractionDetail).alpha).isEqualTo(1f)
   }
 
+  @Test
+  fun initialBlurWorkingSizeSetup_doesNotInvalidateDraw() = runComposeUiTest {
+    val glassEffect = animatedStageEffect().apply { resetDirtyTracker() }
+    val effect = InvalidationTrackingVisualEffect(glassEffect)
+
+    setContent {
+      Box(
+        Modifier
+          .size(120.dp)
+          .hazeEffect {
+            inputScale = HazeInputScale.None
+            visualEffect = effect
+          },
+      ) {
+        Box(Modifier.fillMaxSize().background(Color.Red))
+      }
+    }
+    waitForIdle()
+
+    val delegate = glassEffect.delegate as RuntimeShaderGlassDelegate
+    assertThat(effect.invalidateDrawCalls).isEqualTo(0)
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+  }
+
+  @Test
+  fun foregroundUniformChanges_retainShadersAndRecordOnlyAffectedStages() = runComposeUiTest {
+    val effect = animatedStageEffect()
+    setContent { RuntimeForegroundGlassTestContent(effect) }
+    waitForIdle()
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+
+    val beforeAlpha = delegate.stageRecordCounts
+    effect.alpha = 0.5f
+    waitForIdle()
+
+    assertThat(delegate.stageRecordCounts).isEqualTo(beforeAlpha)
+
+    val opticalShader = delegate.opticalShader
+    effect.ambientResponse = 0.6f
+    waitForIdle()
+
+    assertSame(opticalShader, delegate.opticalShader)
+    assertThat(delegate.opticalRecordCount).isEqualTo(beforeAlpha.optical + 1)
+    assertThat(delegate.blurRecordCount).isEqualTo(beforeAlpha.blur)
+    assertThat(delegate.depthRecordCount).isEqualTo(beforeAlpha.depth)
+
+    val beforeRim = delegate.rimRecordCount
+    val rimShader = delegate.rimShader
+    effect.lightPosition = Offset(10f, 20f)
+    waitForIdle()
+
+    assertSame(rimShader, delegate.rimShader)
+    assertThat(delegate.rimRecordCount).isEqualTo(beforeRim + 1)
+  }
+
+  @Test
+  fun uniformBlurAndDetailChanges_retainShadersAndReplaceRenderEffects() = runComposeUiTest {
+    val effect = retainedBlurEffect()
+    setContent { RuntimeForegroundGlassTestContent(effect) }
+    waitForIdle()
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+
+    val horizontalShader = checkNotNull(delegate.blurHorizontalShader)
+    val verticalShader = checkNotNull(delegate.blurVerticalShader)
+    val prefilterShader = checkNotNull(delegate.blurPrefilterShader)
+    val detailShader = checkNotNull(delegate.refractionDetailShader)
+    val horizontalEffect = checkNotNull(delegate.layers.blurHorizontal?.renderEffect)
+    val verticalEffect = checkNotNull(delegate.layers.blurred?.renderEffect)
+    val prefilterEffect = checkNotNull(delegate.layers.blurPrefiltered?.renderEffect)
+    val detailEffect = checkNotNull(delegate.layers.refractionDetail?.renderEffect)
+
+    effect.optics = (effect.optics as GlassOptics.Absolute).copy(
+      blurRadius = 36.dp,
+      refractionScale = 18f,
+    )
+    waitForIdle()
+
+    assertSame(horizontalShader, delegate.blurHorizontalShader)
+    assertSame(verticalShader, delegate.blurVerticalShader)
+    assertSame(prefilterShader, delegate.blurPrefilterShader)
+    assertSame(detailShader, delegate.refractionDetailShader)
+    assertNotSame(horizontalEffect, delegate.layers.blurHorizontal?.renderEffect)
+    assertNotSame(verticalEffect, delegate.layers.blurred?.renderEffect)
+    assertNotSame(prefilterEffect, delegate.layers.blurPrefiltered?.renderEffect)
+    assertNotSame(detailEffect, delegate.layers.refractionDetail?.renderEffect)
+  }
+
+  @Test
+  fun progressiveBlurChanges_retainShadersAndReplaceRenderEffects() = runComposeUiTest {
+    val effect = retainedBlurEffect(
+      progressive = HazeProgressive.verticalGradient(
+        startIntensity = 0f,
+        endIntensity = 1f,
+      ),
+    )
+    setContent { RuntimeForegroundGlassTestContent(effect) }
+    waitForIdle()
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+
+    val horizontalShader = checkNotNull(delegate.progressiveBlurHorizontalShader)
+    val verticalShader = checkNotNull(delegate.progressiveBlurVerticalShader)
+    val horizontalEffect = checkNotNull(delegate.layers.blurHorizontal?.renderEffect)
+    val verticalEffect = checkNotNull(delegate.layers.blurred?.renderEffect)
+
+    effect.optics = (effect.optics as GlassOptics.Absolute).copy(
+      blurRadius = 34.dp,
+      progressive = HazeProgressive.verticalGradient(
+        startIntensity = 0.1f,
+        endIntensity = 0.9f,
+      ),
+    )
+    waitForIdle()
+
+    assertSame(horizontalShader, delegate.progressiveBlurHorizontalShader)
+    assertSame(verticalShader, delegate.progressiveBlurVerticalShader)
+    assertNotSame(horizontalEffect, delegate.layers.blurHorizontal?.renderEffect)
+    assertNotSame(verticalEffect, delegate.layers.blurred?.renderEffect)
+  }
+
   private fun activeDetailEffect() = GlassVisualEffect().apply {
     optics = GlassOptics.Absolute(
       refractionStrength = 0.5f,
@@ -386,6 +546,45 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
   }
 
+  private fun animatedStageEffect() = GlassVisualEffect().apply {
+    optics = GlassOptics.Absolute(
+      refractionStrength = 0.5f,
+      refractionScale = 20f,
+      depth = 0.5f,
+      blurRadius = 14.dp,
+    )
+    specularIntensity = 1f
+    ambientResponse = 0.5f
+    lightPosition = Offset(60f, 60f)
+  }
+
+  private fun retainedBlurEffect(
+    progressive: HazeProgressive? = null,
+  ) = GlassVisualEffect().apply {
+    optics = GlassOptics.Absolute(
+      refractionStrength = 0.5f,
+      refractionScale = 20f,
+      depth = 0.5f,
+      blurRadius = 38.5.dp,
+      progressive = progressive,
+    )
+    specularIntensity = 0f
+  }
+
+  @Composable
+  private fun RuntimeForegroundGlassTestContent(effect: GlassVisualEffect) {
+    Box(
+      Modifier
+        .size(120.dp)
+        .hazeEffect {
+          inputScale = HazeInputScale.None
+          visualEffect = effect
+        },
+    ) {
+      Box(Modifier.fillMaxSize().background(Color.Red))
+    }
+  }
+
   private fun invalidCornerShape(radius: Float) = RoundedCornerShape(
     object : CornerSize {
       override fun toPx(shapeSize: Size, density: Density): Float = radius
@@ -398,6 +597,86 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     bottomRight,
     bottomLeft,
   )
+
+  private fun RuntimeShaderGlassDelegate.interactionShaderHandle(fieldName: String): Any {
+    return checkNotNull(interactionShaderHandleOrNull(fieldName))
+  }
+
+  private fun RuntimeShaderGlassDelegate.interactionShaderHandleOrNull(fieldName: String): Any? {
+    val field = RuntimeShaderGlassDelegate::class.java.getDeclaredField(fieldName)
+    field.isAccessible = true
+    return field.get(this)
+  }
+
+  private class InvalidationTrackingVisualEffect(
+    private val delegate: GlassVisualEffect,
+  ) : VisualEffect, RetainedOutputVisualEffect {
+    var invalidateDrawCalls = 0
+      private set
+
+    private var trackingContext: VisualEffectContext? = null
+
+    private fun trackingContext(original: VisualEffectContext): VisualEffectContext {
+      return trackingContext ?: object : VisualEffectContext by original {
+        override fun invalidateDraw() {
+          invalidateDrawCalls++
+          original.invalidateDraw()
+        }
+      }.also { trackingContext = it }
+    }
+
+    override fun DrawScope.prepareDraw(context: VisualEffectContext) {
+      with(delegate) { prepareDraw(trackingContext(context)) }
+    }
+
+    override fun DrawScope.draw(context: VisualEffectContext) {
+      with(delegate) { draw(trackingContext(context)) }
+    }
+
+    override fun DrawScope.drawForeground(context: VisualEffectContext) {
+      with(delegate) { drawForeground(trackingContext(context)) }
+    }
+
+    override fun attach(context: VisualEffectContext) {
+      delegate.attach(trackingContext(context))
+    }
+
+    override fun update(context: VisualEffectContext) {
+      delegate.update(trackingContext(context))
+    }
+
+    override fun detach(context: VisualEffectContext) {
+      delegate.detach(trackingContext(context))
+    }
+
+    override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+      delegate.onTrimMemory(trackingContext(context), level)
+    }
+
+    override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
+      return delegate.shouldDrawContentBehind(trackingContext(context))
+    }
+
+    override fun shouldClipToNodeBounds(): Boolean = delegate.shouldClipToNodeBounds()
+
+    override fun shouldPreferClipToAreaBounds(): Boolean = delegate.shouldPreferClipToAreaBounds()
+
+    override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
+      return delegate.calculateLayerBounds(rect, density)
+    }
+
+    override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean {
+      return delegate.canDrawRetainedOutput(trackingContext(context))
+    }
+
+    override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+      return delegate.shouldDrawRetainedOutput(trackingContext(context))
+    }
+
+    override fun clearRetainedOutput() {
+      delegate.clearRetainedOutput()
+    }
+  }
 
   @Composable
   private fun RuntimeGlassTestContent(effect: GlassVisualEffect, tag: String) {

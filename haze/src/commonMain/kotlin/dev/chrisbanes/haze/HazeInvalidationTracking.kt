@@ -23,6 +23,7 @@ internal enum class HazeInvalidationType {
 }
 
 internal enum class HazeInvalidationReason {
+  Content,
   DirtyFields,
   PreDraw,
   VisualEffect,

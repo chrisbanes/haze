@@ -8,25 +8,27 @@ package dev.chrisbanes.haze.glass
 import android.os.Build
 import androidx.annotation.RequiresApi
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @InternalHazeApi
-internal actual fun createGlassBlurRenderEffects(
-  key: GlassBlurEffectKey,
-): GlassBlurRenderEffects? = createSharedGlassBlurRenderEffects(key)
+internal actual fun createGlassBlurRenderEffect(
+  horizontal: Boolean,
+  progressive: Boolean,
+): MutableRuntimeShaderRenderEffect = createSharedGlassBlurRenderEffect(horizontal, progressive)
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassOpticalRenderEffect(
-  key: GlassOpticalEffectKey,
-): PlatformRenderEffect = createSharedGlassOpticalRenderEffect(key)
+internal actual fun createGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createSharedGlassBlurPrefilterRenderEffect()
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createRefractionDetailRenderEffect(
-  key: GlassRefractionDetailEffectKey,
-): PlatformRenderEffect = createSharedRefractionDetailRenderEffect(key)
+internal actual fun createGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createSharedGlassOpticalRenderEffect()
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassRimRenderEffect(
-  key: GlassRimEffectKey,
-): PlatformRenderEffect? = createSharedGlassRimRenderEffect(key)
+internal actual fun createRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createSharedRefractionDetailRenderEffect()
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+internal actual fun createGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createSharedGlassRimRenderEffect()

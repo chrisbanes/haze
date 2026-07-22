@@ -126,6 +126,37 @@ internal class GlassSourceSnapshot(
     result = 31 * result + layerOffset.hashCode()
     return 31 * result + areas.hashCode()
   }
+
+  fun matches(
+    captureScale: Float,
+    layerSize: Size,
+    layerOffset: Offset,
+    areas: List<GlassSourceArea>,
+  ): Boolean {
+    if (
+      this.captureScale != captureScale ||
+      this.layerSize != layerSize ||
+      this.layerOffset != layerOffset
+    ) {
+      return false
+    }
+    var drawableIndex = 0
+    for (area in areas) {
+      if (!area.isDrawable) continue
+      val previous = this.areas.getOrNull(drawableIndex++) ?: return false
+      if (
+        area.contentVersion == null ||
+        previous.areaIdentity !== area.areaIdentity ||
+        previous.contentLayerIdentity !== area.contentLayerIdentity ||
+        previous.contentVersion != area.contentVersion ||
+        previous.position != area.position ||
+        previous.size != area.size
+      ) {
+        return false
+      }
+    }
+    return drawableIndex == this.areas.size
+  }
 }
 
 /** The drawable-source status for a capture, including its known snapshot when available. */
@@ -143,7 +174,11 @@ internal fun resolveGlassSourceState(
   layerSize: Size,
   layerOffset: Offset,
   areas: List<GlassSourceArea>,
+  previousSnapshot: GlassSourceSnapshot? = null,
 ): GlassSourceState {
+  if (previousSnapshot?.matches(captureScale, layerSize, layerOffset, areas) == true) {
+    return GlassSourceState(hasDrawableSource = true, snapshot = previousSnapshot)
+  }
   var drawableAreas: MutableList<GlassSourceArea>? = null
   for (area in areas) {
     if (!area.isDrawable) continue
@@ -161,12 +196,48 @@ internal fun resolveGlassSourceState(
 @OptIn(InternalHazeApi::class)
 internal fun VisualEffectContext.resolveGlassSourceState(
   captureScale: Float,
-): GlassSourceState = resolveGlassSourceState(
-  captureScale = captureScale,
-  layerSize = layerSize,
-  layerOffset = layerOffset,
-  areas = areas.map { area -> area.toGlassSourceArea(this) },
-)
+  previousSnapshot: GlassSourceSnapshot? = null,
+): GlassSourceState {
+  if (previousSnapshot?.matches(captureScale, this) == true) {
+    return GlassSourceState(hasDrawableSource = true, snapshot = previousSnapshot)
+  }
+  return resolveGlassSourceState(
+    captureScale = captureScale,
+    layerSize = layerSize,
+    layerOffset = layerOffset,
+    areas = areas.map { area -> area.toGlassSourceArea(this) },
+  )
+}
+
+@OptIn(InternalHazeApi::class)
+private fun GlassSourceSnapshot.matches(
+  captureScale: Float,
+  context: VisualEffectContext,
+): Boolean {
+  if (
+    this.captureScale != captureScale ||
+    layerSize != context.layerSize ||
+    layerOffset != context.layerOffset
+  ) {
+    return false
+  }
+  var drawableIndex = 0
+  for (area in context.areas) {
+    val layer = area.contentLayer?.takeUnless { it.isReleased || !it.isDrawable } ?: continue
+    val previous = areas.getOrNull(drawableIndex++) ?: return false
+    val contentVersion = context.contentVersionOf(area) ?: return false
+    if (
+      previous.areaIdentity !== area ||
+      previous.contentLayerIdentity !== layer ||
+      previous.contentVersion != contentVersion ||
+      previous.position != context.positionOf(area) ||
+      previous.size != area.size
+    ) {
+      return false
+    }
+  }
+  return drawableIndex == areas.size
+}
 
 @OptIn(InternalHazeApi::class)
 private fun HazeArea.toGlassSourceArea(context: VisualEffectContext): GlassSourceArea {

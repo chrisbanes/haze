@@ -6,21 +6,22 @@
 package dev.chrisbanes.haze.glass
 
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
 
 @InternalHazeApi
-internal actual fun createGlassBlurRenderEffects(
-  key: GlassBlurEffectKey,
-): GlassBlurRenderEffects? = createSharedGlassBlurRenderEffects(key)
+internal actual fun createGlassBlurRenderEffect(
+  horizontal: Boolean,
+  progressive: Boolean,
+): MutableRuntimeShaderRenderEffect = createSharedGlassBlurRenderEffect(horizontal, progressive)
 
-internal actual fun createGlassOpticalRenderEffect(
-  key: GlassOpticalEffectKey,
-): PlatformRenderEffect = createSharedGlassOpticalRenderEffect(key)
+internal actual fun createGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createSharedGlassBlurPrefilterRenderEffect()
 
-internal actual fun createRefractionDetailRenderEffect(
-  key: GlassRefractionDetailEffectKey,
-): PlatformRenderEffect = createSharedRefractionDetailRenderEffect(key)
+internal actual fun createGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createSharedGlassOpticalRenderEffect()
 
-internal actual fun createGlassRimRenderEffect(
-  key: GlassRimEffectKey,
-): PlatformRenderEffect? = createSharedGlassRimRenderEffect(key)
+internal actual fun createRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createSharedRefractionDetailRenderEffect()
+
+internal actual fun createGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createSharedGlassRimRenderEffect()

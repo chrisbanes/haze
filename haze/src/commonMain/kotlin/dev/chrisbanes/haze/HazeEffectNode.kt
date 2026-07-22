@@ -86,6 +86,9 @@ public class HazeEffectNode(
 
   private var needsPreDrawInvalidation = false
   private var needsDirtyFieldsInvalidation = false
+  private var needsVisualEffectInvalidation = false
+  private var needsContentInvalidation = false
+  private var isDrawing = false
 
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
@@ -373,6 +376,7 @@ public class HazeEffectNode(
   }
 
   override fun ContentDrawScope.draw() {
+    isDrawing = true
     try {
       HazeLogger.d(TAG) { "-> start draw()" }
 
@@ -433,7 +437,13 @@ public class HazeEffectNode(
           contentLayer.record(size.toIntSize()) {
             this@draw.drawContentSafely()
           }
-          contentDrawArea.contentVersion++
+          val effectOnlyDraw = needsVisualEffectInvalidation &&
+            !needsPreDrawInvalidation &&
+            !needsDirtyFieldsInvalidation &&
+            !needsContentInvalidation
+          if (!effectOnlyDraw) {
+            contentDrawArea.contentVersion++
+          }
           with(visualEffect) {
             prepareDraw(visualEffectContext)
           }
@@ -453,6 +463,7 @@ public class HazeEffectNode(
       }
     } finally {
       onPostDraw()
+      isDrawing = false
       HazeLogger.d(TAG) { "-> end draw()" }
     }
   }
@@ -627,6 +638,20 @@ public class HazeEffectNode(
     invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
   }
 
+  internal fun invalidateVisualEffectDraw() {
+    needsVisualEffectInvalidation = true
+    invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
+  }
+
+  internal fun onForegroundContentDraw() {
+    if (!needsContentInvalidation) {
+      needsContentInvalidation = true
+      if (!isDrawing) {
+        invalidateHazeDraw(HazeInvalidationReason.Content)
+      }
+    }
+  }
+
   private fun onPostDraw() {
     dirtyTracker = Bitmask()
     resetPendingInvalidations()
@@ -635,6 +660,8 @@ public class HazeEffectNode(
   private fun resetPendingInvalidations() {
     needsPreDrawInvalidation = false
     needsDirtyFieldsInvalidation = false
+    needsVisualEffectInvalidation = false
+    needsContentInvalidation = false
   }
 
   private fun invalidateIfNeeded() {
