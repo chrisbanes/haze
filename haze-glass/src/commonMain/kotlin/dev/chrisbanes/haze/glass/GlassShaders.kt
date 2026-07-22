@@ -496,41 +496,31 @@ internal object GlassShaders {
     }
 
     vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, float blendWidth) {
-      float sd = sdRectangle(localCoord, size);
-      vec2 gradient = gradSdRectangle(localCoord, size, blendWidth);
-      if (localCoord.x < radii.x && localCoord.y < radii.x) {
-        vec2 center = vec2(radii.x);
-        float cornerSd = length(localCoord - center) - radii.x;
-        if (cornerSd > sd) {
-          sd = cornerSd;
-          gradient = safeNormalize(localCoord - center, vec2(-0.70710678));
-        }
-      }
-      if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
-        vec2 center = vec2(size.x - radii.y, radii.y);
-        float cornerSd = length(localCoord - center) - radii.y;
-        if (cornerSd > sd) {
-          sd = cornerSd;
-          gradient = safeNormalize(localCoord - center, vec2(0.70710678, -0.70710678));
-        }
-      }
-      if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
-        vec2 center = vec2(size.x - radii.z, size.y - radii.z);
-        float cornerSd = length(localCoord - center) - radii.z;
-        if (cornerSd > sd) {
-          sd = cornerSd;
-          gradient = safeNormalize(localCoord - center, vec2(0.70710678));
-        }
-      }
-      if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
-        vec2 center = vec2(radii.w, size.y - radii.w);
-        float cornerSd = length(localCoord - center) - radii.w;
-        if (cornerSd > sd) {
-          gradient = safeNormalize(localCoord - center, vec2(-0.70710678, 0.70710678));
-        }
-      }
-      return gradient;
+      vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
+      vec2 halfSize = size * 0.5;
+      vec2 centered = localCoord - halfSize;
+      float xSide = step(0.0, centered.x);
+      float ySide = step(0.0, centered.y);
+      float topRadius = mix(radii.x, radii.y, xSide);
+      float bottomRadius = mix(radii.w, radii.z, xSide);
+      float radius = mix(topRadius, bottomRadius, ySide);
+      vec2 cornerDelta = max(
+        abs(centered) - (halfSize - vec2(radius)),
+        vec2(0.0)
+      );
+      float cornerProgress = clamp(
+        length(cornerDelta) / max(radius, 0.0001),
+        0.0,
+        1.0
+      );
+      vec2 cornerGradient = safeNormalize(
+        cornerDelta * sign(centered),
+        rectangleGradient
+      );
+      float cornerWeight = smootherstep(cornerProgress);
+      return mix(rectangleGradient, cornerGradient, cornerWeight);
     }
+
   """
 
   private fun surfaceAndDisplacementHelpers(): String = """

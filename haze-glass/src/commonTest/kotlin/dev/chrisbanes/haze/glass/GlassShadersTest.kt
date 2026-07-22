@@ -247,7 +247,7 @@ class GlassShadersTest {
   }
 
   @Test
-  fun refractionShaders_blendRectangleNormalsAcrossRefractionZone() {
+  fun refractionShaders_blendContinuousRoundedCornerNormals() {
     listOf(
       GlassShaders.buildOptical(),
       GlassShaders.buildOptical(interactive = true),
@@ -268,9 +268,19 @@ class GlassShadersTest {
       assertThat(shader).contains(
         "gradSdRoundedRect(localCoord, materialSize, cornerRadii, normalBlendWidth)",
       )
+      assertThat(shader).contains("vec2 gradSdRoundedRect(")
+      assertThat(shader).contains(
+        "vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);",
+      )
+      assertThat(shader).contains("float xSide = step(0.0, centered.x);")
+      assertThat(shader).contains("vec2 cornerDelta = max(")
+      assertThat(shader).contains("float cornerWeight = smootherstep(")
+      assertThat(shader).contains(
+        "return mix(rectangleGradient, cornerGradient, cornerWeight);",
+      )
       assertThat(shader).doesNotContain("vec2 blendSdfGradients(")
       assertThat(shader).doesNotContain("clamp(min(size.x, size.y) * 0.01, 1.0, 4.0)")
-      assertThat(shader).contains("if (cornerSd > sd)")
+      assertThat(shader).doesNotContain("float cornerSd")
       assertThat(shader).contains("float centerFade = smootherstep(")
       assertThat(shader).doesNotContain("edgeDistance.x > edgeDistance.y")
       assertThat(shader).doesNotContain("vec2 centerFallbackDir")
@@ -483,7 +493,7 @@ class GlassShadersTest {
   }
 
   @Test
-  fun opticalAndDetailShaders_useFullRoundedRectForSurfaceAndDisplacement() {
+  fun opticalAndDetailShaders_useRoundedSurfaceAndContinuousRoundedNormals() {
     listOf(
       GlassShaders.buildOptical(),
       GlassShaders.buildOptical(interactive = true),
@@ -494,8 +504,12 @@ class GlassShadersTest {
         "float surfaceHeightAt(vec2 localCoord, vec4 customRadii)",
       )
       assertThat(shader).contains(
+        "float sd = sdRoundedRect(localCoord, materialSize, customRadii);",
+      )
+      assertThat(shader).contains(
         "gradSdRoundedRect(localCoord, materialSize, cornerRadii, normalBlendWidth)",
       )
+      assertThat(shader).contains("vec2 gradSdRoundedRect(")
       assertThat(shader).doesNotContain("min(smoothRadius, min(halfSize.x, halfSize.y))")
     }
   }
