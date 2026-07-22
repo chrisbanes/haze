@@ -751,6 +751,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       params = params,
       interactionUniforms = interactionUniforms,
       alpha = style.alpha,
+      outputSize = context.size.roundToIntSize(),
       previous = previousPrepared,
     )
     if (!exactPrepared.plan.fitsGlassRenderBudget()) {

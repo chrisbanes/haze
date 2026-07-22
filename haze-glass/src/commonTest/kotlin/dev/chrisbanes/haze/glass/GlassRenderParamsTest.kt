@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
@@ -158,6 +159,7 @@ class GlassRenderParamsTest {
         radiusFraction = 0f,
       ).uniforms(coordinates),
       alpha = style.alpha,
+      outputSize = coordinates.materialSize.roundToIntSize(),
     )
 
     assertThat(prepared.alpha).isEqualTo(GlassDefaults.alpha)

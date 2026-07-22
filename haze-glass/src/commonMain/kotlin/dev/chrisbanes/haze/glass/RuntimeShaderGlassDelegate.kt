@@ -344,10 +344,14 @@ internal class RuntimeShaderGlassDelegate(
           layers.groupAlpha.layer?.takeUnless { it.isReleased },
           ::clearRetainedOutput,
         ) ?: return
+        val groupCompositeSize = requireRetainedStage(
+          render.groupCompositeSize,
+          ::clearRetainedOutput,
+        ) ?: return
         recordAndDrawGlassGroupAlpha(
           layer = groupAlpha,
           alpha = render.alpha,
-          size = params.coordinates.materialSize.roundToIntSize(),
+          size = groupCompositeSize,
           block = drawCompletedOutput,
         )
       }

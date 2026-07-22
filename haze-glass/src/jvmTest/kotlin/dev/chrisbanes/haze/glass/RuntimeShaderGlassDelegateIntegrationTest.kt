@@ -28,6 +28,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -430,6 +431,29 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun fractionalAlpha_inputScalingUsesOutputSizedGroupLayerAndPlan() = runComposeUiTest {
+    val effect = activeDetailEffect().apply { alpha = 0.5f }
+
+    setContent {
+      RuntimeGlassTestContent(
+        effect = effect,
+        tag = "glass",
+        inputScale = HazeInputScale.Fixed(0.5f),
+      )
+    }
+    waitForIdle()
+
+    val outputSize = checkNotNull(effect.attachedContextForTest).size.roundToIntSize()
+    val groupLayer = checkNotNull((effect.delegate as RuntimeShaderGlassDelegate).layers.groupAlpha.layer)
+    val groupPlan = checkNotNull(effect.preparedRender).plan.layers.single {
+      it.kind == GlassRetainedLayerKind.GroupComposite
+    }
+
+    assertThat(groupLayer.size).isEqualTo(outputSize)
+    assertThat(groupPlan.size).isEqualTo(outputSize)
+  }
+
+  @Test
   fun initialBlurWorkingSizeSetup_doesNotInvalidateDraw() = runComposeUiTest {
     val glassEffect = animatedStageEffect().apply { resetDirtyTracker() }
     val effect = InvalidationTrackingVisualEffect(glassEffect)
@@ -700,7 +724,11 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Composable
-  private fun RuntimeGlassTestContent(effect: GlassVisualEffect, tag: String) {
+  private fun RuntimeGlassTestContent(
+    effect: GlassVisualEffect,
+    tag: String,
+    inputScale: HazeInputScale = HazeInputScale.None,
+  ) {
     val hazeState = remember { HazeState() }
     Box(Modifier.size(120.dp)) {
       Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))
@@ -709,7 +737,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           .fillMaxSize()
           .testTag(tag)
           .hazeEffect(hazeState) {
-            inputScale = HazeInputScale.None
+            this.inputScale = inputScale
             visualEffect = effect
           },
       )
