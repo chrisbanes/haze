@@ -6,12 +6,17 @@ package dev.chrisbanes.haze.benchmark.desktop.glass
 import dev.chrisbanes.haze.benchmark.desktop.runDesktopBenchmarkSuite
 import kotlin.system.exitProcess
 
+private val GlassScenarios = listOf(
+  ::IsolatedGlassScenario,
+  ::PlaygroundGlassScenario,
+)
+
 public fun main(args: Array<String>) {
   exitProcess(
     runDesktopBenchmarkSuite(
       args,
       suiteId = "glass",
-      scenarioFactories = listOf(::IsolatedGlassScenario),
+      scenarioFactories = GlassScenarios,
     ),
   )
 }

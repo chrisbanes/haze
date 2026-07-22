@@ -192,6 +192,7 @@ public fun GlassPlaygroundSampleContent(
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
   interactionSourceProvider: (GlassPlaygroundSurfaceId) -> InteractionSource? = { null },
+  interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
@@ -220,6 +221,7 @@ public fun GlassPlaygroundSampleContent(
       onDrag = onDrag,
       onDragEnd = onDragEnd,
       interactionSourceProvider = interactionSourceProvider,
+      interactionReducedMotionPolicy = interactionReducedMotionPolicy,
       modifier = Modifier.fillMaxSize(),
     )
 
@@ -249,6 +251,7 @@ private fun PlaygroundSurfaceScene(
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
   interactionSourceProvider: (GlassPlaygroundSurfaceId) -> InteractionSource?,
+  interactionReducedMotionPolicy: GlassReducedMotionPolicy,
   modifier: Modifier = Modifier,
 ) {
   Layout(
@@ -265,6 +268,7 @@ private fun PlaygroundSurfaceScene(
           onDrag = onDrag,
           onDragEnd = onDragEnd,
           interactionSourceProvider = interactionSourceProvider,
+          interactionReducedMotionPolicy = interactionReducedMotionPolicy,
         )
       }
     },
@@ -337,6 +341,7 @@ private fun PlaygroundSurface(
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
   interactionSourceProvider: (GlassPlaygroundSurfaceId) -> InteractionSource?,
+  interactionReducedMotionPolicy: GlassReducedMotionPolicy,
 ) {
   val size = playgroundSurfaceSize(id)
   val density = LocalDensity.current
@@ -344,11 +349,11 @@ private fun PlaygroundSurface(
     IntSize(size.width.roundToPx(), size.height.roundToPx())
   }
   val interactionSource = interactionSourceProvider(id)
-  val effect = remember(id, interactionSource) {
+  val effect = remember(id, interactionSource, interactionReducedMotionPolicy) {
     GlassVisualEffect().apply {
       style = glassPlaygroundStyle(id)
       shape = glassPlaygroundShape(id)
-      configurePlaygroundInteraction(interactionSource)
+      configurePlaygroundInteraction(interactionSource, interactionReducedMotionPolicy)
     }
   }
   val latestProgressProvider by rememberUpdatedState(progressProvider)
@@ -400,12 +405,15 @@ private fun PlaygroundSurface(
   }
 }
 
-internal fun GlassVisualEffect.configurePlaygroundInteraction(source: InteractionSource?) {
+internal fun GlassVisualEffect.configurePlaygroundInteraction(
+  source: InteractionSource?,
+  reducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
+) {
   interactionSource = source
   interactionTransformTarget = GlassTransformTarget.MaterialAndContent
   interactionTransformPivot = GlassTransformPivot.Pointer
   interactionPositionAnimationSpec = GlassDefaults.positionAnimationSpec
-  interactionReducedMotionPolicy = GlassReducedMotionPolicy.System
+  interactionReducedMotionPolicy = reducedMotionPolicy
   hovered()
   pressed {
     animate(
