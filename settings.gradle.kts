@@ -109,6 +109,7 @@ include(
   ":haze-utils",
   ":haze-materials",
   ":haze-screenshot-tests",
+  ":haze-benchmarks:glass:desktop",
   ":internal:benchmark",
   ":internal:benchmark-desktop",
   ":internal:context-test",

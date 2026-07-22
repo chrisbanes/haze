@@ -1,0 +1,40 @@
+name: Desktop Glass Benchmark
+
+on:
+  pull_request:
+    paths:
+      - 'internal/benchmark-desktop/**'
+      - 'haze-benchmarks/glass/desktop/**'
+      - '.github/workflows/desktop-glass-benchmark.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  metal_probe:
+    runs-on: macos-26
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'zulu'
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-home-cache-excludes: |
+            caches/build-cache-1
+
+      - name: Package Desktop Glass benchmark
+        run: ./gradlew :haze-benchmarks:glass:desktop:packageUberJarForCurrentOS
+
+      - name: Probe Metal benchmark environment
+        run: |
+          SKIKO_RENDER_API=METAL java -Xms512m -Xmx512m \
+            -jar haze-benchmarks/glass/desktop/build/compose/jars/desktop-macos-arm64-1.0.0.jar \
+            probe
