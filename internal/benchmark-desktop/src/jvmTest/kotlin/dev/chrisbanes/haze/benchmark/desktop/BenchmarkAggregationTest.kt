@@ -21,7 +21,7 @@ class BenchmarkAggregationTest {
   @Test
   fun matchingProtocolsProducePairedDelta() {
     val summary = aggregate(abbaFixture(baseValue = 10_000_000, headValue = 11_000_000))
-      .scenarios.single()
+      .scenarios.first { it.id == "pointer_sweep" }
 
     assertThat(summary.comparable).isTrue()
     assertThat(abs(checkNotNull(summary.renderPairedDeltaPercent) - 10.0)).isLessThan(0.0001)
@@ -31,13 +31,13 @@ class BenchmarkAggregationTest {
   @Test
   fun protocolMismatchSuppressesOnlyThatScenarioDelta() {
     val artifact = aggregate(
-      abbaFixture(
+      abbaScenarioFixture(
         baseValue = 10_000_000,
         headValue = 11_000_000,
         scenarioId = "pointer_sweep",
         baseProtocol = 1,
         headProtocol = 2,
-      ) + abbaFixture(10_000_000, 11_000_000, "playground_drag"),
+      ) + abbaScenarioFixture(10_000_000, 11_000_000, "playground_drag"),
     )
 
     with(artifact.scenarios.first { it.id == "pointer_sweep" }) {
@@ -50,7 +50,7 @@ class BenchmarkAggregationTest {
 
   @Test
   fun headOnlyBootstrapHasNoDelta() {
-    val summary = aggregate(headOnlyFixture()).scenarios.single()
+    val summary = aggregate(headOnlyFixture()).scenarios.first { it.id == "pointer_sweep" }
 
     assertThat(summary.baseRender).isNull()
     assertThat(summary.baseInterval).isNull()
@@ -74,8 +74,31 @@ class BenchmarkAggregationTest {
   @Test
   fun unknownScenarioIsRejected() {
     assertFailure {
-      aggregate(abbaFixture(10_000_000, 11_000_000, scenarioId = "unknown"))
+      aggregate(
+        abbaFixture(10_000_000, 11_000_000) +
+          abbaScenarioFixture(10_000_000, 11_000_000, scenarioId = "unknown"),
+      )
     }
+  }
+
+  @Test
+  fun everyAllowedScenarioMustBePresent() {
+    assertFailure {
+      aggregate(abbaScenarioFixture(10_000_000, 11_000_000, scenarioId = "pointer_sweep"))
+    }
+  }
+
+  @Test
+  fun baseBlocksRequireBaseSha() {
+    assertFailure {
+      aggregate(abbaFixture(10_000_000, 11_000_000), baseSha = null)
+    }
+  }
+
+  @Test
+  fun headOnlyBootstrapAllowsPresentOrAbsentBaseSha() {
+    assertThat(aggregate(headOnlyFixture(), baseSha = BASE_SHA).scenarios.size).isEqualTo(2)
+    assertThat(aggregate(headOnlyFixture(), baseSha = null).scenarios.size).isEqualTo(2)
   }
 
   @Test
@@ -173,10 +196,7 @@ class BenchmarkAggregationTest {
 
   @Test
   fun scenariosAndBlocksAreSortedDeterministically() {
-    val blocks = (
-      abbaFixture(10_000_000, 11_000_000, "pointer_sweep") +
-        abbaFixture(10_000_000, 11_000_000, "playground_drag")
-      ).reversed()
+    val blocks = abbaFixture(10_000_000, 11_000_000).reversed()
 
     val artifact = aggregate(blocks)
 
@@ -201,7 +221,7 @@ class BenchmarkAggregationTest {
       FrameSample(40_000_000, 40_000_000),
     )
     val summary = aggregate(headOnlyFixture().map { it.copy(samples = samples) })
-      .scenarios.single()
+      .scenarios.first { it.id == "pointer_sweep" }
 
     assertThat(summary.headRender.sampleCount).isEqualTo(18)
     assertThat(summary.headRender.p50Nanos).isEqualTo(20_000_000)
@@ -216,6 +236,25 @@ class BenchmarkAggregationTest {
   }
 
   @Test
+  fun budgetCountsUseExactNanosecondBoundaries() {
+    val samples = listOf(
+      FrameSample(16_666_666, null),
+      FrameSample(16_666_667, 16_666_667),
+      FrameSample(16_666_668, 16_666_668),
+      FrameSample(33_333_332, 33_333_332),
+      FrameSample(33_333_333, 33_333_333),
+      FrameSample(33_333_334, 33_333_334),
+    )
+    val summary = aggregate(headOnlyFixture().map { it.copy(samples = samples) })
+      .scenarios.first { it.id == "pointer_sweep" }
+
+    assertThat(summary.headRender.above16MillisCount).isEqualTo(24)
+    assertThat(summary.headRender.above33MillisCount).isEqualTo(6)
+    assertThat(summary.headInterval.above16MillisCount).isEqualTo(24)
+    assertThat(summary.headInterval.above33MillisCount).isEqualTo(6)
+  }
+
+  @Test
   fun robustBlockMedianVariationSetsNoiseFlag() {
     val blocks = headOnlyFixture().map { block ->
       val value = if (block.round == 0 || block.round == 1 && block.order == 1) {
@@ -226,7 +265,7 @@ class BenchmarkAggregationTest {
       block.copy(samples = listOf(FrameSample(value, value)))
     }
 
-    val summary = aggregate(blocks).scenarios.single()
+    val summary = aggregate(blocks).scenarios.first { it.id == "pointer_sweep" }
 
     assertThat(abs(summary.headRender.robustVariationPercent - 100.0 / 3.0)).isLessThan(0.0001)
     assertThat(summary.headRender.noisy).isTrue()
@@ -258,14 +297,95 @@ class BenchmarkAggregationTest {
     )
     assertFailure { readBenchmarkBlocks(directory) }
   }
+
+  @Test
+  fun environmentMetadataAccepts256Utf8Bytes() {
+    val boundary = "é".repeat(128)
+    val environment = metadataEnvironment(boundary)
+
+    assertThat(
+      aggregate(headOnlyFixture().map { it.copy(environment = environment) }).scenarios.size,
+    ).isEqualTo(2)
+  }
+
+  @Test
+  fun requiredEnvironmentMetadataRejectsBlankAndOversizedValues() {
+    val environment = benchmarkEnvironmentFixture()
+    listOf(" \t", "é".repeat(129)).forEach { invalid ->
+      requiredMetadataVariants(environment, invalid).forEach { invalidEnvironment ->
+        assertFailure {
+          aggregate(headOnlyFixture().map { it.copy(environment = invalidEnvironment) })
+        }
+      }
+    }
+  }
+
+  @Test
+  fun optionalEnvironmentMetadataMustBeValidWhenPresent() {
+    val environment = benchmarkEnvironmentFixture()
+    listOf(
+      environment.copy(runnerImage = ""),
+      environment.copy(runnerImageVersion = " \t"),
+      environment.copy(runnerImage = "é".repeat(129)),
+      environment.copy(runnerImageVersion = "é".repeat(129)),
+    ).forEach { invalidEnvironment ->
+      assertFailure {
+        aggregate(headOnlyFixture().map { it.copy(environment = invalidEnvironment) })
+      }
+    }
+  }
+
+  @Test
+  fun environmentRequiresFixedFramebufferAndPositiveNumbers() {
+    val environment = benchmarkEnvironmentFixture()
+    listOf(
+      environment.copy(memoryBytes = 0),
+      environment.copy(framebufferWidth = 1279),
+      environment.copy(framebufferHeight = 721),
+      environment.copy(contentScale = 0f),
+      environment.copy(refreshRateHz = 0),
+    ).forEach { invalidEnvironment ->
+      assertFailure {
+        aggregate(headOnlyFixture().map { it.copy(environment = invalidEnvironment) })
+      }
+    }
+  }
+
+  @Test
+  fun strictBlockReaderRejectsJsonSymlinksWhenSupported() = withTempDirectory { directory ->
+    val target = directory.resolve("target.txt")
+    Files.writeString(target, BenchmarkJson.encodeToString(headOnlyFixture().first()))
+    val link = directory.resolve("link.json")
+    if (runCatching { Files.createSymbolicLink(link, target.fileName) }.isFailure) {
+      return@withTempDirectory
+    }
+
+    assertFailure { readBenchmarkBlocks(directory) }
+  }
+
+  @Test
+  fun strictBlockReaderEnforcesCumulativeByteLimit() = withTempDirectory { directory ->
+    val padding = " ".repeat(3 * 1024 * 1024)
+    headOnlyFixture().take(2).forEachIndexed { index, block ->
+      Files.writeString(
+        directory.resolve("$index.json"),
+        BenchmarkJson.encodeToString(block) + padding,
+      )
+    }
+
+    assertFailure { readBenchmarkBlocks(directory) }
+  }
 }
 
-private fun aggregate(blocks: List<BenchmarkBlockResult>): BenchmarkArtifact =
+private fun aggregate(
+  blocks: List<BenchmarkBlockResult>,
+  baseSha: String? = BASE_SHA,
+): BenchmarkArtifact =
   aggregateBenchmarkBlocks(
     suiteId = "glass",
     allowedScenarioIds = ALLOWED_SCENARIO_IDS,
     repository = REPOSITORY,
-    baseSha = BASE_SHA,
+    baseSha = baseSha,
     headSha = HEAD_SHA,
     blocks = blocks,
   )
@@ -273,7 +393,14 @@ private fun aggregate(blocks: List<BenchmarkBlockResult>): BenchmarkArtifact =
 private fun abbaFixture(
   baseValue: Long,
   headValue: Long,
-  scenarioId: String = "pointer_sweep",
+): List<BenchmarkBlockResult> = ALLOWED_SCENARIO_IDS.flatMap { scenarioId ->
+  abbaScenarioFixture(baseValue, headValue, scenarioId)
+}
+
+private fun abbaScenarioFixture(
+  baseValue: Long,
+  headValue: Long,
+  scenarioId: String,
   baseProtocol: Int = 1,
   headProtocol: Int = 1,
 ): List<BenchmarkBlockResult> = buildList {
@@ -285,12 +412,42 @@ private fun abbaFixture(
   }
 }
 
-private fun headOnlyFixture(): List<BenchmarkBlockResult> = buildList {
-  repeat(3) { round ->
-    add(blockFixture("pointer_sweep", 1, "head", round, 1, 11_000_000))
-    add(blockFixture("pointer_sweep", 1, "head", round, 2, 11_000_000))
+private fun headOnlyFixture(): List<BenchmarkBlockResult> = ALLOWED_SCENARIO_IDS.flatMap { scenarioId ->
+  buildList {
+    repeat(3) { round ->
+      add(blockFixture(scenarioId, 1, "head", round, 1, 11_000_000))
+      add(blockFixture(scenarioId, 1, "head", round, 2, 11_000_000))
+    }
   }
 }
+
+private fun metadataEnvironment(value: String): BenchmarkEnvironment =
+  benchmarkEnvironmentFixture().copy(
+    osName = value,
+    osVersion = value,
+    architecture = value,
+    cpu = value,
+    javaVendor = value,
+    javaVersion = value,
+    composeVersion = value,
+    skikoVersion = value,
+    runnerImage = value,
+    runnerImageVersion = value,
+  )
+
+private fun requiredMetadataVariants(
+  environment: BenchmarkEnvironment,
+  value: String,
+): List<BenchmarkEnvironment> = listOf(
+  environment.copy(osName = value),
+  environment.copy(osVersion = value),
+  environment.copy(architecture = value),
+  environment.copy(cpu = value),
+  environment.copy(javaVendor = value),
+  environment.copy(javaVersion = value),
+  environment.copy(composeVersion = value),
+  environment.copy(skikoVersion = value),
+)
 
 private fun blockFixture(
   scenarioId: String,

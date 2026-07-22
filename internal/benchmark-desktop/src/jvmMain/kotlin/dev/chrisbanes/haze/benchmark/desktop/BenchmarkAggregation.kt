@@ -3,9 +3,14 @@
 
 package dev.chrisbanes.haze.benchmark.desktop
 
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
+import java.nio.file.OpenOption
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption.READ
 
 public fun aggregateBenchmarkBlocks(
   suiteId: String,
@@ -21,9 +26,15 @@ public fun aggregateBenchmarkBlocks(
     "Benchmark blocks exceed the $MAX_SAMPLE_COUNT sample limit"
   }
   blocks.forEach { block -> validateBlock(block, suiteId, allowedScenarioIds) }
+  require(baseSha != null || blocks.none { it.revision == BASE_REVISION }) {
+    "Base benchmark blocks require a base SHA"
+  }
 
-  val scenarios = blocks
-    .groupBy(BenchmarkBlockResult::scenarioId)
+  val groupedScenarios = blocks.groupBy(BenchmarkBlockResult::scenarioId)
+  require(groupedScenarios.keys == allowedScenarioIds) {
+    "Benchmark scenario ids must exactly match the allowed scenario ids"
+  }
+  val scenarios = groupedScenarios
     .toSortedMap()
     .map { (scenarioId, scenarioBlocks) -> summarizeScenario(scenarioId, scenarioBlocks) }
 
@@ -47,17 +58,44 @@ internal fun readBenchmarkBlocks(input: Path): List<BenchmarkBlockResult> {
       .toList()
   }
   require(files.isNotEmpty()) { "No JSON benchmark blocks found in: $input" }
-  files.forEach { file ->
-    require(Files.isRegularFile(file, NOFOLLOW_LINKS)) {
-      "Benchmark JSON entry is not a regular file: $file"
+  var totalBytes = 0L
+  return files.map { file ->
+    try {
+      val bytes = readJsonEntry(file) { count ->
+        totalBytes += count
+        require(totalBytes <= MAX_ARTIFACT_BYTES) {
+          "Raw benchmark JSON exceeds the $MAX_ARTIFACT_BYTES byte limit"
+        }
+      }
+      BenchmarkJson.decodeFromString<BenchmarkBlockResult>(
+        bytes.decodeToString(throwOnInvalidSequence = true),
+      )
+    } catch (failure: IOException) {
+      throw IllegalArgumentException("Unable to read benchmark JSON entry: $file", failure)
     }
   }
-  require(files.sumOf(Files::size) <= MAX_ARTIFACT_BYTES) {
-    "Raw benchmark JSON exceeds the $MAX_ARTIFACT_BYTES byte limit"
+}
+
+private fun readJsonEntry(
+  file: Path,
+  onBytesRead: (Int) -> Unit,
+): ByteArray {
+  val output = ByteArrayOutputStream()
+  val buffer = ByteBuffer.allocate(BYTE_BUFFER_SIZE)
+  Files.newByteChannel(file, setOf<OpenOption>(READ, NOFOLLOW_LINKS)).use { channel ->
+    while (true) {
+      val count = channel.read(buffer)
+      if (count < 0) break
+      if (count == 0) continue
+      onBytesRead(count)
+      buffer.flip()
+      val chunk = ByteArray(count)
+      buffer.get(chunk)
+      output.write(chunk)
+      buffer.clear()
+    }
   }
-  return files.map { file ->
-    BenchmarkJson.decodeFromString<BenchmarkBlockResult>(Files.readString(file))
-  }
+  return output.toByteArray()
 }
 
 internal fun validateAggregateIdentity(
@@ -121,17 +159,40 @@ private fun validateBlock(
 }
 
 private fun validateEnvironment(environment: BenchmarkEnvironment) {
+  listOf(
+    "osName" to environment.osName,
+    "osVersion" to environment.osVersion,
+    "architecture" to environment.architecture,
+    "cpu" to environment.cpu,
+    "javaVendor" to environment.javaVendor,
+    "javaVersion" to environment.javaVersion,
+    "composeVersion" to environment.composeVersion,
+    "skikoVersion" to environment.skikoVersion,
+    "renderApi" to environment.renderApi,
+  ).forEach { (name, value) -> validateRequiredMetadata(name, value) }
+  environment.runnerImage?.let { validateRequiredMetadata("runnerImage", it) }
+  environment.runnerImageVersion?.let { validateRequiredMetadata("runnerImageVersion", it) }
   require(environment.renderApi == METAL_RENDER_API) {
     "Desktop benchmark requires METAL but found ${environment.renderApi}"
   }
-  require(environment.memoryBytes >= 0) { "Memory size must be nonnegative" }
-  require(environment.framebufferWidth > 0 && environment.framebufferHeight > 0) {
-    "Framebuffer dimensions must be positive"
+  require(environment.memoryBytes > 0) { "Memory size must be positive" }
+  require(
+    environment.framebufferWidth == TARGET_FRAMEBUFFER_WIDTH &&
+      environment.framebufferHeight == TARGET_FRAMEBUFFER_HEIGHT,
+  ) {
+    "Framebuffer dimensions must be ${TARGET_FRAMEBUFFER_WIDTH}x$TARGET_FRAMEBUFFER_HEIGHT"
   }
   require(environment.contentScale.isFinite() && environment.contentScale > 0f) {
     "Content scale must be finite and positive"
   }
   require(environment.refreshRateHz > 0) { "Refresh rate must be positive" }
+}
+
+private fun validateRequiredMetadata(name: String, value: String) {
+  require(value.isNotBlank()) { "$name must not be blank" }
+  require(value.encodeToByteArray().size <= MAX_METADATA_BYTES) {
+    "$name exceeds the $MAX_METADATA_BYTES byte limit"
+  }
 }
 
 private fun summarizeScenario(
@@ -280,5 +341,9 @@ private const val HEAD_REVISION = "head"
 private const val METAL_RENDER_API = "METAL"
 private const val MAX_SAMPLE_COUNT = 100_000L
 private const val MAX_ARTIFACT_BYTES = 5L * 1024 * 1024
-private const val SIXTEEN_MILLIS_NANOS = 16_670_000L
-private const val THIRTY_THREE_MILLIS_NANOS = 33_330_000L
+private const val MAX_METADATA_BYTES = 256
+private const val TARGET_FRAMEBUFFER_WIDTH = 1280
+private const val TARGET_FRAMEBUFFER_HEIGHT = 720
+private const val BYTE_BUFFER_SIZE = 8192
+private const val SIXTEEN_MILLIS_NANOS = 16_666_667L
+private const val THIRTY_THREE_MILLIS_NANOS = 33_333_333L

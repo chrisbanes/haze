@@ -3,8 +3,11 @@
 
 package dev.chrisbanes.haze.benchmark.desktop
 
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption.ATOMIC_MOVE
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 
@@ -249,9 +252,29 @@ private fun writeFailureArtifact(
   }
 }
 
-private fun writeText(path: Path, value: String) {
-  path.toAbsolutePath().parent?.let(Files::createDirectories)
-  Files.writeString(path, value)
+internal fun writeText(
+  path: Path,
+  value: String,
+  replaceFile: (Path, Path) -> Unit = ::replaceFile,
+) {
+  val destination = path.toAbsolutePath()
+  val parent = requireNotNull(destination.parent) { "Output path has no parent: $path" }
+  Files.createDirectories(parent)
+  val temporary = Files.createTempFile(parent, ".${destination.fileName}.", ".tmp")
+  try {
+    Files.writeString(temporary, value)
+    replaceFile(temporary, destination)
+  } finally {
+    Files.deleteIfExists(temporary)
+  }
+}
+
+private fun replaceFile(source: Path, destination: Path) {
+  try {
+    Files.move(source, destination, ATOMIC_MOVE, REPLACE_EXISTING)
+  } catch (_: AtomicMoveNotSupportedException) {
+    Files.move(source, destination, REPLACE_EXISTING)
+  }
 }
 
 private fun reportFailure(failure: Exception) {

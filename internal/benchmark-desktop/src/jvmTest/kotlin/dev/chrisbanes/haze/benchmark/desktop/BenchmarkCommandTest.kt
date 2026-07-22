@@ -8,6 +8,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -200,6 +201,28 @@ class BenchmarkCommandTest {
   }
 
   @Test
+  fun symlinkBlockWritesFailedArtifactAndReturnsExitTwoWhenSupported() =
+    withCommandTempDirectory { directory ->
+      val input = Files.createDirectories(directory.resolve("raw"))
+      val target = input.resolve("target.txt")
+      Files.writeString(target, BenchmarkJson.encodeToString(benchmarkBlockFixture()))
+      if (runCatching { Files.createSymbolicLink(input.resolve("block.json"), target.fileName) }.isFailure) {
+        return@withCommandTempDirectory
+      }
+      val output = directory.resolve("benchmark.json")
+
+      val exitCode = runDesktopBenchmarkSuite(
+        aggregateArgs(input, output),
+        suiteId = "glass",
+        scenarioFactories = listOf(::CommandFakeScenario),
+      )
+
+      assertThat(exitCode).isEqualTo(2)
+      val artifact = BenchmarkJson.decodeFromString<BenchmarkArtifact>(Files.readString(output))
+      assertThat(artifact.status).isEqualTo("failed")
+    }
+
+  @Test
   fun unexpectedAggregationFailureWritesBoundedFailedArtifactAndReturnsExitOne() =
     withCommandTempDirectory { directory ->
       val input = Files.createDirectories(directory.resolve("raw"))
@@ -245,6 +268,30 @@ class BenchmarkCommandTest {
 
       assertThat(exitCode).isEqualTo(1)
       assertThat(Files.exists(output)).isEqualTo(false)
+    }
+
+  @Test
+  fun writeTextCompletelyReplacesExistingDestination() = withCommandTempDirectory { directory ->
+    val output = directory.resolve("result.json")
+    Files.writeString(output, "old trailing content")
+
+    writeText(output, "new")
+
+    assertThat(Files.readString(output)).isEqualTo("new")
+  }
+
+  @Test
+  fun writeTextPreservesExistingDestinationWhenReplacementFails() =
+    withCommandTempDirectory { directory ->
+      val output = directory.resolve("result.json")
+      Files.writeString(output, "old")
+
+      assertFailure {
+        writeText(output, "new") { _, _ -> throw IOException("replacement failed") }
+      }.isInstanceOf<IOException>()
+
+      assertThat(Files.readString(output)).isEqualTo("old")
+      assertThat(Files.list(directory).use { it.count() }).isEqualTo(1L)
     }
 }
 
