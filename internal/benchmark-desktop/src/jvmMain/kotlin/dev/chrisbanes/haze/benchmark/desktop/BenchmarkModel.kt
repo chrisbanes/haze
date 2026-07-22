@@ -95,6 +95,7 @@ public val BenchmarkJson: Json = Json {
 }
 
 public fun encodeArtifact(value: BenchmarkArtifact): String {
+  require(value.diagnostic == null || value.diagnostic.encodeToByteArray().size <= 2048)
   val encoded = BenchmarkJson.encodeToString(value)
   require(encoded.encodeToByteArray().size <= 5 * 1024 * 1024)
   return encoded

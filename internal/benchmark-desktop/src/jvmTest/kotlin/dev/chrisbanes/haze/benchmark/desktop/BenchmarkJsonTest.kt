@@ -28,6 +28,12 @@ class BenchmarkJsonTest {
   }
 
   @Test
+  fun artifactDiagnosticOver2048Bytes_isRejected() {
+    val oversized = artifactFixture(diagnostic = "x".repeat(2049))
+    assertFailure { encodeArtifact(oversized) }.isInstanceOf<IllegalArgumentException>()
+  }
+
+  @Test
   fun diagnosticOver2048Bytes_isTruncatedAtUtf8Boundary() {
     assertThat(boundedDiagnostic("é".repeat(2048)).encodeToByteArray().size)
       .isLessThanOrEqualTo(2048)
