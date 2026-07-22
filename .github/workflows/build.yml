@@ -77,6 +77,9 @@ jobs:
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
+      - name: Test benchmark report renderer
+        run: node --test .github/scripts/desktop-glass-benchmark-report.test.mjs
+
       - name: Assemble and check
         run: ./gradlew check assembleDebug -Phaze.disableAppleTargets -Pandroidx.baselineprofile.skipgeneration
         env:
