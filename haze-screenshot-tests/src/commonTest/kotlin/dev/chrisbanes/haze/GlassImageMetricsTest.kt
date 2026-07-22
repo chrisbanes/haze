@@ -412,7 +412,7 @@ class GlassImageMetricsTest {
       assertFailsWith<IllegalArgumentException> {
         assertBoundaryContinuous(listOf(0f), boundaryIndex = 1)
       }.message.orEmpty(),
-    ).contains("boundaryIndex")
+    ).contains("Boundary range")
   }
 
   @Test
@@ -425,7 +425,6 @@ class GlassImageMetricsTest {
       assertBoundaryCurvatureContinuous(
         derivative = derivative,
         boundaryIndex = 8,
-        boundaryRadius = 1,
       )
     }
   }
@@ -470,7 +469,6 @@ class GlassImageMetricsTest {
     assertBoundaryCurvatureContinuous(
       derivative = derivative,
       boundaryIndex = 16,
-      boundaryRadius = 1,
     )
   }
 

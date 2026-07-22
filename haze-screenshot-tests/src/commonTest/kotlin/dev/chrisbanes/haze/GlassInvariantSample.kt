@@ -265,7 +265,6 @@ private fun assertContinuousAt(
     assertBoundaryCurvatureContinuous(
       derivative = derivative,
       boundaryIndex = boundaryIndex,
-      boundaryRadius = 1,
     )
   } catch (failure: AssertionError) {
     throw AssertionError("$label derivative=$derivative", failure)

@@ -506,50 +506,25 @@ internal fun assertBoundaryContinuous(
   derivative: List<Float>,
   boundaryIndex: Int,
 ) {
-  val boundaryRange = checkedBoundaryRange(
-    derivative = derivative,
-    boundaryIndex = boundaryIndex,
-    boundaryRadius = 0,
-  )
-  assertBoundarySignalContinuous(derivative, boundaryRange)
+  assertBoundarySignalContinuous(derivative, boundaryIndex..boundaryIndex)
 }
 
 internal fun assertBoundaryCurvatureContinuous(
   derivative: List<Float>,
   boundaryIndex: Int,
-  boundaryRadius: Int,
 ) {
-  val boundaryRange = checkedBoundaryRange(derivative, boundaryIndex, boundaryRadius)
   val curvature = derivative.zipWithNext { first, second -> abs(second - first) }
-  val transitionRange = (boundaryRange.first - 1)..boundaryRange.last
-  require(transitionRange.first >= 0 && transitionRange.last < curvature.size) {
-    "Boundary transitions $transitionRange must be within curvature indices ${curvature.indices}"
-  }
-  assertBoundarySignalContinuous(curvature, transitionRange)
-}
-
-private fun checkedBoundaryRange(
-  derivative: List<Float>,
-  boundaryIndex: Int,
-  boundaryRadius: Int,
-): IntRange {
-  require(derivative.isNotEmpty()) { "Boundary derivative must be non-empty" }
-  require(boundaryIndex in derivative.indices) {
-    "boundaryIndex=$boundaryIndex must be within derivative indices ${derivative.indices}"
-  }
-  require(boundaryRadius >= 0) { "boundaryRadius=$boundaryRadius must be non-negative" }
-  val boundaryStart = boundaryIndex - boundaryRadius
-  val boundaryEnd = boundaryIndex + boundaryRadius
-  require(boundaryStart >= 0 && boundaryEnd < derivative.size) {
-    "Boundary window $boundaryStart..$boundaryEnd must be within derivative indices ${derivative.indices}"
-  }
-  return boundaryStart..boundaryEnd
+  assertBoundarySignalContinuous(curvature, (boundaryIndex - 2)..(boundaryIndex + 1))
 }
 
 private fun assertBoundarySignalContinuous(
   signal: List<Float>,
   boundaryRange: IntRange,
 ) {
+  require(signal.isNotEmpty()) { "Boundary signal must be non-empty" }
+  require(boundaryRange.first >= 0 && boundaryRange.last < signal.size) {
+    "Boundary range $boundaryRange must be within signal indices ${signal.indices}"
+  }
   val start = maxOf(0, boundaryRange.first - 8)
   val end = minOf(signal.size, boundaryRange.last + 9)
   val neighborhood = signal.subList(
