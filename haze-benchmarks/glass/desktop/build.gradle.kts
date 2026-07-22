@@ -40,7 +40,6 @@ fun registerScenarioSmoke(name: String, scenarioId: String) = tasks.register<Exe
   dependsOn("packageUberJarForCurrentOS")
   environment("SKIKO_RENDER_API", "METAL")
   val output = layout.buildDirectory.file("benchmark-smoke/$scenarioId.json")
-  outputs.file(output)
   commandLine(
     benchmarkJavaLauncher.get().executablePath.asFile.absolutePath,
     "-Xms512m",
