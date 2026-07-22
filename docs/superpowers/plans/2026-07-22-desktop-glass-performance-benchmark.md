@@ -221,6 +221,8 @@ public interface DesktopBenchmarkScenario {
   @Composable public fun Content()
 
   public suspend fun reset()
+
+  public suspend fun verifyCompleted() = Unit
 }
 
 public fun validateScenario(scenario: DesktopBenchmarkScenario) {
@@ -682,16 +684,22 @@ calculate the interval from the prior measured frame end.
 - [ ] **Step 5: Implement normalized input replay on the Skia component**
 
 Find exactly one descendant `SkiaLayer` below `ComposeWindow.contentPane`. Dispatch every event on
-the Swing EDT with coordinates derived from the layer's current logical width and height:
+the Swing EDT to `SkiaLayer.canvas`, because Skiko installs Compose's mouse listeners on that
+backed `HardwareLayer`, not on the outer `SkiaLayer`. Derive coordinates from the canvas's current
+logical width and height:
 
 ```kotlin
-private fun DesktopInputEvent.toAwtEvent(layer: SkiaLayer): MouseEvent {
+private fun DesktopInputEvent.toAwtEvent(target: Component): MouseEvent {
   val point = position
-  val x = point?.let { (it.x * layer.width).roundToInt() } ?: 0
-  val y = point?.let { (it.y * layer.height).roundToInt() } ?: 0
+  val x = point?.let { (it.x * target.width).roundToInt() } ?: 0
+  val y = point?.let { (it.y * target.height).roundToInt() } ?: 0
   val (id, button, modifiers) = when (type) {
     DesktopInputEventType.Move -> Triple(MouseEvent.MOUSE_MOVED, MouseEvent.NOBUTTON, 0)
-    DesktopInputEventType.Press -> Triple(MouseEvent.MOUSE_PRESSED, MouseEvent.BUTTON1, 0)
+    DesktopInputEventType.Press -> Triple(
+      MouseEvent.MOUSE_PRESSED,
+      MouseEvent.BUTTON1,
+      InputEvent.BUTTON1_DOWN_MASK,
+    )
     DesktopInputEventType.Drag -> Triple(
       MouseEvent.MOUSE_DRAGGED,
       MouseEvent.NOBUTTON,
@@ -700,7 +708,7 @@ private fun DesktopInputEvent.toAwtEvent(layer: SkiaLayer): MouseEvent {
     DesktopInputEventType.Release -> Triple(MouseEvent.MOUSE_RELEASED, MouseEvent.BUTTON1, 0)
     DesktopInputEventType.Exit -> Triple(MouseEvent.MOUSE_EXITED, MouseEvent.NOBUTTON, 0)
   }
-  return MouseEvent(layer, id, System.currentTimeMillis(), modifiers, x, y, 1, false, button)
+  return MouseEvent(target, id, System.currentTimeMillis(), modifiers, x, y, 1, false, button)
 }
 ```
 
@@ -733,9 +741,10 @@ check(window.renderApi == GraphicsApi.METAL) {
 }
 ```
 
-Warm up by resetting and replaying the scenario once with recording disabled. Reset again, wait
-500 ms for interaction release, start the recorder, replay once, request one final render, wait for
-the callback, then stop. Always dispose the window on the EDT in `finally`.
+Warm up by resetting and replaying the scenario once with recording disabled, then call
+`verifyCompleted()`. Reset again, wait 500 ms for interaction release, start the recorder, replay
+once, call `verifyCompleted()`, request one final render, wait for the callback, then stop. Always
+dispose the window on the EDT in `finally`.
 
 - [ ] **Step 7: Collect bounded environment metadata**
 
@@ -1133,6 +1142,12 @@ internal fun applyDragForTest(delta: Offset) {
 
 internal fun dragOffsetForTest(): Offset = dragOffset
 ```
+
+Track Prism drag starts and callbacks in the same Swing-confined scenario state. Override
+`verifyCompleted()` to require a Prism drag start, at least 160 delivered drag callbacks, and a
+final offset consistent with the normalized replay displacement. Reset these counters with the
+offset. This is an input-path invariant, not a render-performance threshold; it prevents a valid
+AWT stream that never enters Compose's drag gesture from producing a benchmark artifact.
 
 - [ ] **Step 5: Register both scenarios and add the Metal smoke task**
 
