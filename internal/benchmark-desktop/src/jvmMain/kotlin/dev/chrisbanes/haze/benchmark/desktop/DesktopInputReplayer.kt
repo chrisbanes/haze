@@ -38,7 +38,11 @@ private fun DesktopInputEvent.toAwtEvent(target: Component): MouseEvent {
   val y = position?.let { (it.y * target.height).roundToInt() } ?: 0
   val (id, button, modifiers) = when (type) {
     DesktopInputEventType.Move -> Triple(MouseEvent.MOUSE_MOVED, MouseEvent.NOBUTTON, 0)
-    DesktopInputEventType.Press -> Triple(MouseEvent.MOUSE_PRESSED, MouseEvent.BUTTON1, 0)
+    DesktopInputEventType.Press -> Triple(
+      MouseEvent.MOUSE_PRESSED,
+      MouseEvent.BUTTON1,
+      InputEvent.BUTTON1_DOWN_MASK,
+    )
     DesktopInputEventType.Drag -> Triple(
       MouseEvent.MOUSE_DRAGGED,
       MouseEvent.NOBUTTON,

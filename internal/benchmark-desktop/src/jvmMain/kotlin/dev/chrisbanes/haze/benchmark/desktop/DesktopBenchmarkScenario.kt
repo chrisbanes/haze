@@ -29,6 +29,8 @@ public interface DesktopBenchmarkScenario {
   public fun Content()
 
   public suspend fun reset()
+
+  public suspend fun verifyCompleted() = Unit
 }
 
 public fun validateScenario(scenario: DesktopBenchmarkScenario) {

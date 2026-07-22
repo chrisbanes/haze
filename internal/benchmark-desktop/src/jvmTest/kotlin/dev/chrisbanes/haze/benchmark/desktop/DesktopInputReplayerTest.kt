@@ -5,7 +5,9 @@ package dev.chrisbanes.haze.benchmark.desktop
 
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isEqualTo
 import assertk.assertions.isTrue
+import java.awt.event.InputEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import kotlin.test.Test
@@ -66,6 +68,7 @@ class DesktopInputReplayerTest {
         0 to 0,
       )
       assertThat(received.all { it.source === layer.canvas }).isTrue()
+      assertThat(received[1].modifiersEx).isEqualTo(InputEvent.BUTTON1_DOWN_MASK)
     } finally {
       withContext(Dispatchers.Swing) { layer.dispose() }
     }

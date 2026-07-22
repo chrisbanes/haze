@@ -49,6 +49,8 @@ internal class PlaygroundGlassScenario : DesktopBenchmarkScenario {
   override val events: List<DesktopInputEvent> = playgroundEvents()
 
   private var dragOffset by mutableStateOf(Offset.Zero)
+  private var prismDragStarts = 0
+  private var prismDragCallbacks = 0
 
   @Composable
   override fun Content() {
@@ -64,9 +66,14 @@ internal class PlaygroundGlassScenario : DesktopBenchmarkScenario {
         onReset = {},
         onRecordingModeChanged = {},
         onBack = {},
-        onDragStart = {},
+        onDragStart = { id ->
+          if (id == GlassPlaygroundSurfaceId.Prism) prismDragStarts++
+        },
         onDrag = { id, delta ->
-          if (id == GlassPlaygroundSurfaceId.Prism) dragOffset += delta
+          if (id == GlassPlaygroundSurfaceId.Prism) {
+            prismDragCallbacks++
+            dragOffset += delta
+          }
         },
         onDragEnd = {},
         interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
@@ -76,6 +83,19 @@ internal class PlaygroundGlassScenario : DesktopBenchmarkScenario {
 
   override suspend fun reset() = withContext(Dispatchers.Swing) {
     dragOffset = Offset.Zero
+    prismDragStarts = 0
+    prismDragCallbacks = 0
+  }
+
+  override suspend fun verifyCompleted() = withContext(Dispatchers.Swing) {
+    check(prismDragStarts > 0) { "Playground replay did not start a Prism drag" }
+    check(prismDragCallbacks >= MINIMUM_PRISM_DRAG_CALLBACKS) {
+      "Playground replay delivered $prismDragCallbacks Prism drags; expected at least " +
+        MINIMUM_PRISM_DRAG_CALLBACKS
+    }
+    check(dragOffset.x >= MINIMUM_PRISM_DRAG_DISTANCE && kotlin.math.abs(dragOffset.y) <= 16f) {
+      "Playground Prism offset $dragOffset is inconsistent with the replay displacement"
+    }
   }
 
   internal fun applyDragForTest(delta: Offset) {
@@ -83,4 +103,16 @@ internal class PlaygroundGlassScenario : DesktopBenchmarkScenario {
   }
 
   internal fun dragOffsetForTest(): Offset = dragOffset
+
+  internal fun recordPrismDragForTest(delta: Offset, count: Int) {
+    prismDragStarts = 1
+    prismDragCallbacks = count
+    dragOffset = delta
+  }
+
+  private companion object {
+    // Compose coalesces the 60 Hz AWT stream; 160 proves a delivered majority of 300 drag events.
+    const val MINIMUM_PRISM_DRAG_CALLBACKS = 160
+    const val MINIMUM_PRISM_DRAG_DISTANCE = 100f
+  }
 }

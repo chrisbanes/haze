@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.benchmark.desktop.glass
 
 import androidx.compose.ui.geometry.Offset
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isSameInstanceAs
@@ -63,17 +64,31 @@ class PlaygroundGlassScenarioTest {
   }
 
   @Test
-  fun scenario_isValidAndResetClearsOnlyScenarioDragState() = runBlocking {
+  fun scenario_isValidAndResetClearsOnlyScenarioDragState() {
+    runBlocking {
+      val scenario = PlaygroundGlassScenario()
+
+      assertThat(scenario.id).isEqualTo("playground_drag")
+      assertThat(scenario.protocolVersion).isEqualTo(1)
+      assertThat(validateScenario(scenario)).isSameInstanceAs(Unit)
+      scenario.applyDragForTest(Offset(80f, 40f))
+      assertThat(scenario.dragOffsetForTest()).isEqualTo(Offset(80f, 40f))
+      scenario.recordPrismDragForTest(Offset(128f, 0f), count = 250)
+
+      scenario.reset()
+
+      assertThat(scenario.dragOffsetForTest()).isEqualTo(Offset.Zero)
+      assertFailure { runBlocking { scenario.verifyCompleted() } }
+    }
+  }
+
+  @Test
+  fun completionVerification_requiresSubstantialPrismDrag() {
     val scenario = PlaygroundGlassScenario()
 
-    assertThat(scenario.id).isEqualTo("playground_drag")
-    assertThat(scenario.protocolVersion).isEqualTo(1)
-    assertThat(validateScenario(scenario)).isSameInstanceAs(Unit)
-    scenario.applyDragForTest(Offset(80f, 40f))
-    assertThat(scenario.dragOffsetForTest()).isEqualTo(Offset(80f, 40f))
+    assertFailure { runBlocking { scenario.verifyCompleted() } }
+    scenario.recordPrismDragForTest(Offset(128f, 0f), count = 250)
 
-    scenario.reset()
-
-    assertThat(scenario.dragOffsetForTest()).isEqualTo(Offset.Zero)
+    runBlocking { scenario.verifyCompleted() }
   }
 }

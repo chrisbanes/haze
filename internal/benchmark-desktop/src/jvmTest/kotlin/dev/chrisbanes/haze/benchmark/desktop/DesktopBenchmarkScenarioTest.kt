@@ -9,8 +9,15 @@ import assertk.assertThat
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isSameInstanceAs
 import kotlin.test.Test
+import kotlinx.coroutines.runBlocking
 
 class DesktopBenchmarkScenarioTest {
+
+  @Test
+  fun completionVerification_defaultsToNoOp() = runBlocking {
+    FakeScenario("pointer_sweep", 1, validEvents()).verifyCompleted()
+  }
+
   @Test
   fun validScenario_isAccepted() {
     assertThat(validateScenario(FakeScenario("pointer_sweep", 1, validEvents()))).isSameInstanceAs(Unit)
