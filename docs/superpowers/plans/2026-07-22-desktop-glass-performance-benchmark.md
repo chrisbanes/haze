@@ -1265,6 +1265,8 @@ class BenchmarkAggregationTest {
 }
 
 private fun aggregate(blocks: List<BenchmarkBlockResult>) = aggregateBenchmarkBlocks(
+  suiteId = "glass",
+  allowedScenarioIds = setOf("pointer_sweep", "playground_drag"),
   repository = "chrisbanes/haze",
   baseSha = "a".repeat(40),
   headSha = "b".repeat(40),
@@ -1328,10 +1330,11 @@ Expected: compilation fails because aggregation does not exist.
 
 - [ ] **Step 3: Implement strict aggregation**
 
-Decode only `*.json` block files from the explicit input directory. Require suite `glass`, schema
-version `1`, scenario identifiers from the suite registry, allowed revisions `base`/`head`, rounds
-`0..2`, orders `0..3`, SHA-shaped identities, and at most 100,000 total samples. Validate these ABBA
-slots in every comparable scenario:
+Decode only `*.json` block files from the explicit input directory. Pass the current `suiteId` and
+the scenario identifiers from the suite registry into `aggregateBenchmarkBlocks()`; the shared
+runner must not hard-code Glass. Require the supplied suite, schema version `1`, identifiers from
+that allow-list, revisions `base`/`head`, rounds `0..2`, orders `0..3`, SHA-shaped identities, and
+at most 100,000 total samples. Validate these ABBA slots in every comparable scenario:
 
 ```kotlin
 private val ExpectedSlots = setOf(
@@ -1358,12 +1361,16 @@ blocks deterministically before encoding.
 
 - [ ] **Step 4: Wire the aggregate command and smoke flag**
 
-`--smoke` reduces each scenario to the first 30 events and skips the 500 ms post-warm-up wait; it
-does not alter protocol versions and is forbidden when `CI=true`. `aggregate` never creates a
-window. After identities and an output path are validated, catch launch/measurement failures and
-write a `BenchmarkArtifact(status = "failed", scenarios = emptyList(), diagnostic =
-boundedDiagnostic(message))` before returning exit code `1`. Return exit code `2` for invalid
-arguments/data that cannot produce a trustworthy artifact.
+`--smoke` skips only the 500 ms post-warm-up wait, does not alter the event protocol, and is
+forbidden when `CI=true`. Truncating the event list would omit Playground release/exit and bypass
+its completion invariant. `aggregate` never creates a window.
+
+Return exit code `2` for invalid arguments or block data. A `run` measurement failure returns exit
+code `1` without inventing repository/SHA fields that are not present in that command. For
+`aggregate`, once repository identities and the output path are validated, catch invalid block data
+or unexpected aggregation failures and write a `BenchmarkArtifact(status = "failed", scenarios =
+emptyList(), diagnostic = boundedDiagnostic(message))` before returning `2` or `1` respectively.
+This preserves a trustworthy failure artifact without fabricating identity metadata.
 
 - [ ] **Step 5: Run tests and commit**
 
