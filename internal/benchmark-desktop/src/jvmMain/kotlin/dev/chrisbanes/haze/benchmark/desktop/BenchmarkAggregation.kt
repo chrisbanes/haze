@@ -1,0 +1,284 @@
+// Copyright 2026, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze.benchmark.desktop
+
+import java.nio.file.Files
+import java.nio.file.LinkOption.NOFOLLOW_LINKS
+import java.nio.file.Path
+
+public fun aggregateBenchmarkBlocks(
+  suiteId: String,
+  allowedScenarioIds: Set<String>,
+  repository: String,
+  baseSha: String?,
+  headSha: String,
+  blocks: List<BenchmarkBlockResult>,
+): BenchmarkArtifact {
+  validateAggregateIdentity(suiteId, allowedScenarioIds, repository, baseSha, headSha)
+  require(blocks.isNotEmpty()) { "No benchmark blocks were provided" }
+  require(blocks.sumOf { it.samples.size.toLong() } <= MAX_SAMPLE_COUNT) {
+    "Benchmark blocks exceed the $MAX_SAMPLE_COUNT sample limit"
+  }
+  blocks.forEach { block -> validateBlock(block, suiteId, allowedScenarioIds) }
+
+  val scenarios = blocks
+    .groupBy(BenchmarkBlockResult::scenarioId)
+    .toSortedMap()
+    .map { (scenarioId, scenarioBlocks) -> summarizeScenario(scenarioId, scenarioBlocks) }
+
+  return BenchmarkArtifact(
+    suiteId = suiteId,
+    repository = repository,
+    baseSha = baseSha,
+    headSha = headSha,
+    scenarios = scenarios,
+  )
+}
+
+internal fun readBenchmarkBlocks(input: Path): List<BenchmarkBlockResult> {
+  require(Files.isDirectory(input, NOFOLLOW_LINKS)) {
+    "Benchmark input is not a directory: $input"
+  }
+  val files = Files.list(input).use { entries ->
+    entries
+      .filter { it.fileName.toString().endsWith(".json") }
+      .sorted(compareBy { it.fileName.toString() })
+      .toList()
+  }
+  require(files.isNotEmpty()) { "No JSON benchmark blocks found in: $input" }
+  files.forEach { file ->
+    require(Files.isRegularFile(file, NOFOLLOW_LINKS)) {
+      "Benchmark JSON entry is not a regular file: $file"
+    }
+  }
+  require(files.sumOf(Files::size) <= MAX_ARTIFACT_BYTES) {
+    "Raw benchmark JSON exceeds the $MAX_ARTIFACT_BYTES byte limit"
+  }
+  return files.map { file ->
+    BenchmarkJson.decodeFromString<BenchmarkBlockResult>(Files.readString(file))
+  }
+}
+
+internal fun validateAggregateIdentity(
+  suiteId: String,
+  allowedScenarioIds: Set<String>,
+  repository: String,
+  baseSha: String?,
+  headSha: String,
+) {
+  require(suiteId.matches(IdentifierRegex)) { "Invalid suite id: $suiteId" }
+  require(allowedScenarioIds.isNotEmpty()) { "At least one scenario id is required" }
+  require(allowedScenarioIds.all { it.matches(IdentifierRegex) }) {
+    "Invalid allowed scenario id"
+  }
+  val repositorySegments = repository.split('/')
+  require(
+    repositorySegments.size == 2 && repositorySegments.all { segment ->
+      segment.matches(RepositorySegmentRegex) && segment != "." && segment != ".."
+    },
+  ) { "Invalid repository: $repository" }
+  require(baseSha == null || baseSha.matches(ShaRegex)) { "Invalid base SHA: $baseSha" }
+  require(headSha.matches(ShaRegex)) { "Invalid head SHA: $headSha" }
+}
+
+private fun validateBlock(
+  block: BenchmarkBlockResult,
+  suiteId: String,
+  allowedScenarioIds: Set<String>,
+) {
+  require(block.schemaVersion == RUNNER_SCHEMA_VERSION) {
+    "Unsupported block schema version: ${block.schemaVersion}"
+  }
+  require(block.suiteId == suiteId) {
+    "Block suite ${block.suiteId} does not match $suiteId"
+  }
+  require(block.scenarioId in allowedScenarioIds) {
+    "Unknown scenario id: ${block.scenarioId}"
+  }
+  require(block.protocolVersion > 0) { "Invalid protocol version: ${block.protocolVersion}" }
+  require(block.revision == BASE_REVISION || block.revision == HEAD_REVISION) {
+    "Invalid revision: ${block.revision}"
+  }
+  require(block.round in 0..2) { "Invalid round: ${block.round}" }
+  require(block.order in 0..3) { "Invalid order: ${block.order}" }
+  require(block.workloadDurationNanos >= 0) { "Workload duration must be nonnegative" }
+  require(block.samples.isNotEmpty()) { "Measured render samples must not be empty" }
+  require(block.samples.any { it.callbackIntervalNanos != null }) {
+    "Measured callback interval samples must not be empty"
+  }
+  block.samples.forEach { sample ->
+    require(sample.renderDurationNanos >= 0) { "Render durations must be nonnegative" }
+    require(sample.renderDurationNanos.toDouble().isFinite()) {
+      "Render duration is not finite-compatible"
+    }
+    sample.callbackIntervalNanos?.let { interval ->
+      require(interval >= 0) { "Callback intervals must be nonnegative" }
+      require(interval.toDouble().isFinite()) { "Callback interval is not finite-compatible" }
+    }
+  }
+  validateEnvironment(block.environment)
+}
+
+private fun validateEnvironment(environment: BenchmarkEnvironment) {
+  require(environment.renderApi == METAL_RENDER_API) {
+    "Desktop benchmark requires METAL but found ${environment.renderApi}"
+  }
+  require(environment.memoryBytes >= 0) { "Memory size must be nonnegative" }
+  require(environment.framebufferWidth > 0 && environment.framebufferHeight > 0) {
+    "Framebuffer dimensions must be positive"
+  }
+  require(environment.contentScale.isFinite() && environment.contentScale > 0f) {
+    "Content scale must be finite and positive"
+  }
+  require(environment.refreshRateHz > 0) { "Refresh rate must be positive" }
+}
+
+private fun summarizeScenario(
+  scenarioId: String,
+  blocks: List<BenchmarkBlockResult>,
+): ScenarioSummary {
+  val sortedBlocks = blocks.sortedWith(
+    compareBy(BenchmarkBlockResult::round, BenchmarkBlockResult::order, BenchmarkBlockResult::revision),
+  )
+  val slots = sortedBlocks.map { BlockSlot(it.revision, it.round, it.order) }
+  require(slots.distinct().size == slots.size) {
+    "Scenario $scenarioId contains duplicate revision/round/order blocks"
+  }
+  val slotSet = slots.toSet()
+  require(slotSet == ExpectedAbbaSlots || slotSet == ExpectedHeadOnlySlots) {
+    "Scenario $scenarioId does not contain the required ABBA or head-only slots"
+  }
+
+  val baseBlocks = sortedBlocks.filter { it.revision == BASE_REVISION }
+  val headBlocks = sortedBlocks.filter { it.revision == HEAD_REVISION }
+  val baseProtocols = baseBlocks.map(BenchmarkBlockResult::protocolVersion).distinct()
+  val headProtocols = headBlocks.map(BenchmarkBlockResult::protocolVersion).distinct()
+  require(baseProtocols.size <= 1) { "Scenario $scenarioId mixes base protocol versions" }
+  require(headProtocols.size == 1) { "Scenario $scenarioId mixes head protocol versions" }
+
+  val baseProtocol = baseProtocols.singleOrNull()
+  val headProtocol = headProtocols.single()
+  val comparable = baseBlocks.isNotEmpty() && baseProtocol == headProtocol
+  val baseRender = baseBlocks.takeIf(List<*>::isNotEmpty)?.let { summarizeMetric(it, ::renderValues) }
+  val headRender = summarizeMetric(headBlocks, ::renderValues)
+  val baseInterval = baseBlocks.takeIf(List<*>::isNotEmpty)?.let { summarizeMetric(it, ::intervalValues) }
+  val headInterval = summarizeMetric(headBlocks, ::intervalValues)
+
+  return ScenarioSummary(
+    id = scenarioId,
+    baseProtocolVersion = baseProtocol,
+    headProtocolVersion = headProtocol,
+    comparable = comparable,
+    baseRender = baseRender,
+    headRender = headRender,
+    baseInterval = baseInterval,
+    headInterval = headInterval,
+    renderPairedDeltaPercent = if (comparable) {
+      pairedMetricDelta(baseBlocks, headBlocks, ::renderValues)
+    } else {
+      null
+    },
+    intervalPairedDeltaPercent = if (comparable) {
+      pairedMetricDelta(baseBlocks, headBlocks, ::intervalValues)
+    } else {
+      null
+    },
+    blocks = sortedBlocks,
+  )
+}
+
+private fun summarizeMetric(
+  blocks: List<BenchmarkBlockResult>,
+  values: (BenchmarkBlockResult) -> List<Long>,
+): MetricSummary {
+  val allValues = blocks.flatMap(values)
+  require(allValues.isNotEmpty()) { "Metric sample set must not be empty" }
+  val blockMedians = blocks.map { block -> values(block).median() }
+  val variation = robustRelativeVariationPercent(blockMedians)
+  require(variation.isFinite()) { "Metric variation is not finite" }
+  val above16MillisCount = allValues.count { it > SIXTEEN_MILLIS_NANOS }
+  val above33MillisCount = allValues.count { it > THIRTY_THREE_MILLIS_NANOS }
+  return MetricSummary(
+    sampleCount = allValues.size,
+    p50Nanos = nearestRank(allValues, 0.50),
+    p95Nanos = nearestRank(allValues, 0.95),
+    p99Nanos = nearestRank(allValues, 0.99),
+    above16MillisCount = above16MillisCount,
+    above16MillisPercent = percent(above16MillisCount, allValues.size),
+    above33MillisCount = above33MillisCount,
+    above33MillisPercent = percent(above33MillisCount, allValues.size),
+    robustVariationPercent = variation,
+    noisy = variation > 10.0,
+  )
+}
+
+private fun pairedMetricDelta(
+  baseBlocks: List<BenchmarkBlockResult>,
+  headBlocks: List<BenchmarkBlockResult>,
+  values: (BenchmarkBlockResult) -> List<Long>,
+): Double {
+  val baseMedians = baseBlocks.map { values(it).median() }
+  require(baseMedians.all { it > 0.0 }) {
+    "Paired delta requires positive base block medians"
+  }
+  val delta = pairedDeltaPercent(
+    base = baseMedians,
+    head = headBlocks.map { values(it).median() },
+  )
+  require(delta.isFinite()) { "Paired delta is not finite" }
+  return delta
+}
+
+private fun renderValues(block: BenchmarkBlockResult): List<Long> =
+  block.samples.map(FrameSample::renderDurationNanos)
+
+private fun intervalValues(block: BenchmarkBlockResult): List<Long> =
+  block.samples.mapNotNull(FrameSample::callbackIntervalNanos)
+
+private fun List<Long>.median(): Double {
+  require(isNotEmpty()) { "Block metric sample set must not be empty" }
+  val sorted = sorted()
+  val middle = size / 2
+  return if (size % 2 == 1) {
+    sorted[middle].toDouble()
+  } else {
+    sorted[middle - 1] / 2.0 + sorted[middle] / 2.0
+  }
+}
+
+private fun percent(count: Int, total: Int): Double {
+  require(total > 0)
+  return count.toDouble() / total * 100.0
+}
+
+private data class BlockSlot(val revision: String, val round: Int, val order: Int)
+
+private val ExpectedAbbaSlots = buildSet {
+  repeat(3) { round ->
+    add(BlockSlot(BASE_REVISION, round, 0))
+    add(BlockSlot(HEAD_REVISION, round, 1))
+    add(BlockSlot(HEAD_REVISION, round, 2))
+    add(BlockSlot(BASE_REVISION, round, 3))
+  }
+}
+
+private val ExpectedHeadOnlySlots = buildSet {
+  repeat(3) { round ->
+    add(BlockSlot(HEAD_REVISION, round, 1))
+    add(BlockSlot(HEAD_REVISION, round, 2))
+  }
+}
+
+private val IdentifierRegex = Regex("[a-z][a-z0-9_]{0,63}")
+private val RepositorySegmentRegex = Regex("[A-Za-z0-9_.-]{1,100}")
+private val ShaRegex = Regex("[0-9a-fA-F]{40}")
+
+private const val RUNNER_SCHEMA_VERSION = 1
+private const val BASE_REVISION = "base"
+private const val HEAD_REVISION = "head"
+private const val METAL_RENDER_API = "METAL"
+private const val MAX_SAMPLE_COUNT = 100_000L
+private const val MAX_ARTIFACT_BYTES = 5L * 1024 * 1024
+private const val SIXTEEN_MILLIS_NANOS = 16_670_000L
+private const val THIRTY_THREE_MILLIS_NANOS = 33_330_000L

@@ -32,6 +32,7 @@ internal sealed interface BenchmarkCommand {
 internal fun parseBenchmarkCommand(
   args: Array<String>,
   scenarioIds: Set<String>,
+  ci: String? = System.getenv("CI"),
 ): BenchmarkCommand {
   require(args.isNotEmpty()) { "Expected a command: probe, run, or aggregate" }
   return when (args.first()) {
@@ -48,7 +49,7 @@ internal fun parseBenchmarkCommand(
       )
       val scenarioId = options.required("--scenario")
       require(scenarioId in scenarioIds) { "Unknown scenario: $scenarioId" }
-      BenchmarkCommand.Run(
+      val command = BenchmarkCommand.Run(
         scenarioId = scenarioId,
         revision = options.required("--revision"),
         round = options.requiredInt("--round"),
@@ -56,6 +57,16 @@ internal fun parseBenchmarkCommand(
         output = Path.of(options.required("--output")),
         smoke = options.flag("--smoke"),
       )
+      require(command.revision.matches(Regex("[a-z][a-z0-9_]{0,63}"))) {
+        "Invalid revision: ${command.revision}"
+      }
+      require(command.round in 0..2) { "Invalid round: ${command.round}" }
+      require(command.order in 0..3) { "Invalid order: ${command.order}" }
+      require(command.output.fileName?.toString()?.endsWith(".json") == true) {
+        "Run output must be a JSON file"
+      }
+      require(!command.smoke || ci.isNullOrBlank()) { "--smoke is not allowed in CI" }
+      command
     }
 
     "aggregate" -> {
@@ -80,30 +91,171 @@ public fun runDesktopBenchmarkSuite(
   args: Array<String>,
   suiteId: String,
   scenarioFactories: List<() -> DesktopBenchmarkScenario>,
-): Int = try {
-  require(suiteId.matches(Regex("[a-z][a-z0-9_]{0,63}"))) { "Invalid suite id: $suiteId" }
-  val scenarios = scenarioFactories.map { factory -> factory().also(::validateScenario) }
-  require(scenarios.map { it.id }.distinct().size == scenarios.size) {
-    "Scenario ids must be unique"
-  }
-  val command = parseBenchmarkCommand(args, scenarios.mapTo(mutableSetOf()) { it.id })
-  val host = ComposeDesktopBenchmarkHost(suiteId)
-  runBlocking {
-    when (command) {
-      BenchmarkCommand.Probe -> println(BenchmarkJson.encodeToString(host.probe()))
-      is BenchmarkCommand.Run -> {
-        val scenario = scenarios.single { it.id == command.scenarioId }
-        val result = host.runBlock(command) { scenario }
-        command.output.toAbsolutePath().parent?.let(Files::createDirectories)
-        Files.writeString(command.output, BenchmarkJson.encodeToString(result))
-      }
-      is BenchmarkCommand.Aggregate -> error("aggregate is not available yet")
+): Int {
+  var host: ComposeDesktopBenchmarkHost? = null
+  fun host(): ComposeDesktopBenchmarkHost =
+    host ?: ComposeDesktopBenchmarkHost(suiteId).also { host = it }
+  return executeDesktopBenchmarkSuite(
+    args = args,
+    suiteId = suiteId,
+    scenarioFactories = scenarioFactories,
+    ci = System.getenv("CI"),
+    probe = { host().probe() },
+    runBlock = { command, scenarioFactory -> host().runBlock(command, scenarioFactory) },
+  )
+}
+
+internal fun executeDesktopBenchmarkSuite(
+  args: Array<String>,
+  suiteId: String,
+  scenarioFactories: List<() -> DesktopBenchmarkScenario>,
+  ci: String?,
+  probe: suspend () -> BenchmarkEnvironment,
+  runBlock: suspend (
+    BenchmarkCommand.Run,
+    () -> DesktopBenchmarkScenario,
+  ) -> BenchmarkBlockResult,
+  aggregateBlocks: (
+    suiteId: String,
+    allowedScenarioIds: Set<String>,
+    repository: String,
+    baseSha: String?,
+    headSha: String,
+    blocks: List<BenchmarkBlockResult>,
+  ) -> BenchmarkArtifact = ::aggregateBenchmarkBlocks,
+): Int {
+  val scenarios: List<DesktopBenchmarkScenario>
+  val command: BenchmarkCommand
+  try {
+    require(suiteId.matches(Regex("[a-z][a-z0-9_]{0,63}"))) { "Invalid suite id: $suiteId" }
+    scenarios = scenarioFactories.map { factory -> factory().also(::validateScenario) }
+    require(scenarios.map { it.id }.distinct().size == scenarios.size) {
+      "Scenario ids must be unique"
     }
+    command = parseBenchmarkCommand(
+      args,
+      scenarios.mapTo(mutableSetOf()) { it.id },
+      ci,
+    )
+  } catch (failure: IllegalArgumentException) {
+    reportFailure(failure)
+    return INVALID_INPUT_EXIT_CODE
+  } catch (failure: Exception) {
+    reportFailure(failure)
+    return RUNTIME_FAILURE_EXIT_CODE
   }
-  0
+
+  return when (command) {
+    BenchmarkCommand.Probe -> executeRuntimeCommand {
+      println(BenchmarkJson.encodeToString(runBlocking { probe() }))
+    }
+
+    is BenchmarkCommand.Run -> executeRuntimeCommand {
+      val scenario = scenarios.single { it.id == command.scenarioId }
+      val result = runBlocking { runBlock(command) { scenario } }
+      writeText(command.output, BenchmarkJson.encodeToString(result))
+    }
+
+    is BenchmarkCommand.Aggregate -> executeAggregateCommand(
+      command = command,
+      suiteId = suiteId,
+      allowedScenarioIds = scenarios.mapTo(mutableSetOf()) { it.id },
+      aggregateBlocks = aggregateBlocks,
+    )
+  }
+}
+
+private fun executeRuntimeCommand(block: () -> Unit): Int = try {
+  block()
+  SUCCESS_EXIT_CODE
 } catch (failure: Exception) {
+  reportFailure(failure)
+  RUNTIME_FAILURE_EXIT_CODE
+}
+
+private fun executeAggregateCommand(
+  command: BenchmarkCommand.Aggregate,
+  suiteId: String,
+  allowedScenarioIds: Set<String>,
+  aggregateBlocks: (
+    suiteId: String,
+    allowedScenarioIds: Set<String>,
+    repository: String,
+    baseSha: String?,
+    headSha: String,
+    blocks: List<BenchmarkBlockResult>,
+  ) -> BenchmarkArtifact,
+): Int {
+  try {
+    validateAggregateIdentity(
+      suiteId = suiteId,
+      allowedScenarioIds = allowedScenarioIds,
+      repository = command.repository,
+      baseSha = command.baseSha,
+      headSha = command.headSha,
+    )
+    require(command.output.fileName?.toString()?.endsWith(".json") == true) {
+      "Aggregate output must be a JSON file"
+    }
+  } catch (failure: IllegalArgumentException) {
+    reportFailure(failure)
+    return INVALID_INPUT_EXIT_CODE
+  }
+
+  return try {
+    val artifact = aggregateBlocks(
+      suiteId,
+      allowedScenarioIds,
+      command.repository,
+      command.baseSha,
+      command.headSha,
+      readBenchmarkBlocks(command.input),
+    )
+    writeText(command.output, encodeArtifact(artifact))
+    SUCCESS_EXIT_CODE
+  } catch (failure: IllegalArgumentException) {
+    writeFailureArtifact(command, suiteId, failure, INVALID_INPUT_EXIT_CODE)
+  } catch (failure: Exception) {
+    writeFailureArtifact(command, suiteId, failure, RUNTIME_FAILURE_EXIT_CODE)
+  }
+}
+
+private fun writeFailureArtifact(
+  command: BenchmarkCommand.Aggregate,
+  suiteId: String,
+  failure: Exception,
+  exitCode: Int,
+): Int {
+  reportFailure(failure)
+  return try {
+    writeText(
+      command.output,
+      encodeArtifact(
+        BenchmarkArtifact(
+          suiteId = suiteId,
+          repository = command.repository,
+          baseSha = command.baseSha,
+          headSha = command.headSha,
+          scenarios = emptyList(),
+          status = "failed",
+          diagnostic = boundedDiagnostic(failure.message ?: failure::class.java.name),
+        ),
+      ),
+    )
+    exitCode
+  } catch (writeFailure: Exception) {
+    reportFailure(writeFailure)
+    RUNTIME_FAILURE_EXIT_CODE
+  }
+}
+
+private fun writeText(path: Path, value: String) {
+  path.toAbsolutePath().parent?.let(Files::createDirectories)
+  Files.writeString(path, value)
+}
+
+private fun reportFailure(failure: Exception) {
   System.err.println(failure.message ?: failure::class.java.name)
-  1
 }
 
 private class ParsedOptions(
@@ -144,3 +296,7 @@ private fun parseOptions(
   }
   return ParsedOptions(values)
 }
+
+private const val SUCCESS_EXIT_CODE = 0
+private const val RUNTIME_FAILURE_EXIT_CODE = 1
+private const val INVALID_INPUT_EXIT_CODE = 2

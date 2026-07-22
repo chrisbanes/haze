@@ -40,7 +40,7 @@ internal class ComposeDesktopBenchmarkHost(
       scenario.verifyCompleted()
 
       scenario.reset()
-      delay(500)
+      postWarmupDelayMillis(command.smoke).takeIf { it > 0 }?.let { delay(it) }
       recorder.startMeasurement()
       val workloadStartedAt = System.nanoTime()
       replayer.replay(scenario.events)
@@ -160,3 +160,5 @@ internal fun validateMeasuredSamples(samples: List<FrameSample>) {
       "metrics but recorded ${samples.size}"
   }
 }
+
+internal fun postWarmupDelayMillis(smoke: Boolean): Long = if (smoke) 0 else 500
