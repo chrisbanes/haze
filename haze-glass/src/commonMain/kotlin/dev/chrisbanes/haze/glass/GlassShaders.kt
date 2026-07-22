@@ -471,21 +471,22 @@ internal object GlassShaders {
       return len > 0.0001 ? value / len : fallback;
     }
 
-    vec2 axisSafeSign(vec2 value) {
-      return vec2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0);
-    }
-
     vec2 gradSdRectangle(vec2 localCoord, vec2 size) {
-      vec2 halfSize = size * 0.5;
-      vec2 centeredCoord = localCoord - halfSize;
-      vec2 edgeDistance = abs(centeredCoord) - halfSize;
-      vec2 coordSign = axisSafeSign(centeredCoord);
-      if (edgeDistance.x >= 0.0 || edgeDistance.y >= 0.0) {
-        return coordSign * safeNormalize(max(edgeDistance, 0.0), vec2(0.0));
-      }
-      return edgeDistance.x > edgeDistance.y
-        ? vec2(coordSign.x, 0.0)
-        : vec2(0.0, coordSign.y);
+      vec4 edgeDistance = vec4(
+        -localCoord.x,
+        localCoord.x - size.x,
+        -localCoord.y,
+        localCoord.y - size.y
+      );
+      float maxDistance = max(
+        max(edgeDistance.x, edgeDistance.y),
+        max(edgeDistance.z, edgeDistance.w)
+      );
+      float blendWidth = clamp(min(size.x, size.y) * 0.01, 1.0, 4.0);
+      vec4 weights = exp((edgeDistance - vec4(maxDistance)) / blendWidth);
+      float totalWeight = dot(weights, vec4(1.0));
+      return vec2(weights.y - weights.x, weights.w - weights.z) /
+        max(totalWeight, 0.0001);
     }
 
     vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii) {
@@ -531,14 +532,17 @@ internal object GlassShaders {
       return 1.0 - sqrt(max(0.0, 1.0 - x * x));
     }
 
-    float squircleMap(float x) {
-      return pow(1.0 - pow(1.0 - x, 4.0), 0.25);
+    float squircleMap(float t) {
+      float profile = pow(max(0.0, 1.0 - pow(t, 4.0)), 0.25);
+      float terminalT = clamp((t - 0.75) / 0.25, 0.0, 1.0);
+      float terminalTaper = 1.0 - smootherstep(terminalT);
+      return profile * terminalTaper;
     }
 
     float evaluateProfile(float t) {
       float x = 1.0 - clamp(t, 0.0, 1.0);
       if (surfaceProfile == 1) {
-        return squircleMap(x);
+        return squircleMap(t);
       } else if (surfaceProfile == 2) {
         return -circleMap(x);
       } else if (surfaceProfile == 3) {
@@ -576,12 +580,11 @@ internal object GlassShaders {
         clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
       float displacementMagnitude =
         heightNorm * effectiveRefractionStrength * refractionScale;
-      vec2 centerFallbackDir = vec2(1.0, 0.0);
-      vec2 refractionDir = safeNormalize(
-        gradSdRoundedRect(localCoord, materialSize, cornerRadii),
-        centerFallbackDir
-      );
-      return -refractionDir * displacementMagnitude;
+      vec2 opticalGradient = gradSdRoundedRect(localCoord, materialSize, cornerRadii);
+      float gradientLength = length(opticalGradient);
+      float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
+      vec2 refractionDir = opticalGradient / max(gradientLength, 0.0001);
+      return -refractionDir * displacementMagnitude * centerFade;
     }
   """
 

@@ -237,12 +237,43 @@ class GlassShadersTest {
   fun sharedRefractionDisplacement_samplesInwardForOutwardVisualWarp() {
     val optical = GlassShaders.buildOptical()
     val detail = GlassShaders.buildRefractionDetail()
-    val inwardSampleDirection = "return -refractionDir * displacementMagnitude;"
+    val inwardSampleDirection =
+      "return -refractionDir * displacementMagnitude * centerFade;"
 
     assertThat(optical).contains(inwardSampleDirection)
     assertThat(detail).contains(inwardSampleDirection)
     assertThat(optical).doesNotContain("return refractionDir * displacementMagnitude;")
     assertThat(detail).doesNotContain("return refractionDir * displacementMagnitude;")
+  }
+
+  @Test
+  fun refractionShaders_blendRectangleNormalsAndFadeCenterCancellation() {
+    listOf(
+      GlassShaders.buildOptical(),
+      GlassShaders.buildOptical(interactive = true),
+      GlassShaders.buildRefractionDetail(),
+      GlassShaders.buildRefractionDetail(interactive = true),
+    ).forEach { shader ->
+      assertThat(shader).contains("vec4 edgeDistance = vec4(")
+      assertThat(shader).contains("exp((edgeDistance - vec4(maxDistance)) / blendWidth)")
+      assertThat(shader).contains("float centerFade = smootherstep(")
+      assertThat(shader).doesNotContain("edgeDistance.x > edgeDistance.y")
+      assertThat(shader).doesNotContain("vec2 centerFallbackDir")
+    }
+  }
+
+  @Test
+  fun refractionShaders_taperOnlyTheSquircleTerminalQuarter() {
+    listOf(
+      GlassShaders.buildOptical(),
+      GlassShaders.buildRefractionDetail(),
+    ).forEach { shader ->
+      assertThat(shader).contains("float squircleMap(float t)")
+      assertThat(shader).contains("float terminalT = clamp((t - 0.75) / 0.25, 0.0, 1.0);")
+      assertThat(shader).contains("float terminalTaper = 1.0 - smootherstep(terminalT);")
+      assertThat(shader).contains("return profile * terminalTaper;")
+      assertThat(shader).contains("return squircleMap(t);")
+    }
   }
 
   @Test

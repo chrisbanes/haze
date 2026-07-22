@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import assertk.assertThat
@@ -201,6 +202,56 @@ class GlassImageMetricsTest {
         snapshot.scanlineDerivative(y = 0, xRange = 1..3)
       }.message.orEmpty(),
     ).contains("xRange")
+  }
+
+  @Test
+  fun verticalScanlineDerivative_returnsAdjacentLuminanceDifferences() {
+    val gray25 = Color(0.25f, 0.25f, 0.25f)
+    val gray75 = Color(0.75f, 0.75f, 0.75f)
+    val snapshot = PixelSnapshot(
+      width = 2,
+      height = 4,
+      colors = listOf(
+        Color.Black,
+        Color.Black,
+        Color.Black,
+        gray25,
+        Color.Black,
+        gray75,
+        Color.Black,
+        Color.White,
+      ),
+    )
+
+    assertThat(snapshot.verticalScanlineDerivative(x = 1, yRange = 0..3))
+      .isEqualTo(
+        listOf(
+          gray25.luminance(),
+          gray75.luminance() - gray25.luminance(),
+          Color.White.luminance() - gray75.luminance(),
+        ),
+      )
+  }
+
+  @Test
+  fun verticalScanlineDerivative_rejectsInvalidCoordinatesAndShortRanges() {
+    val snapshot = snapshot(width = 2, height = 3)
+
+    assertThat(
+      assertFailsWith<IllegalArgumentException> {
+        snapshot.verticalScanlineDerivative(x = 2, yRange = 0..2)
+      }.message.orEmpty(),
+    ).contains("x")
+    assertThat(
+      assertFailsWith<IllegalArgumentException> {
+        snapshot.verticalScanlineDerivative(x = 0, yRange = 1..1)
+      }.message.orEmpty(),
+    ).contains("at least 2")
+    assertThat(
+      assertFailsWith<IllegalArgumentException> {
+        snapshot.verticalScanlineDerivative(x = 0, yRange = 1..3)
+      }.message.orEmpty(),
+    ).contains("yRange")
   }
 
   @Test

@@ -343,6 +343,22 @@ internal fun PixelSnapshot.scanlineDerivative(
   }
 }
 
+internal fun PixelSnapshot.verticalScanlineDerivative(
+  x: Int,
+  yRange: IntRange,
+): List<Float> {
+  require(x in 0 until width) { "Vertical scanline x=$x must be within 0 until $width" }
+  require(yRange.first < yRange.last) {
+    "Vertical scanline yRange=$yRange must contain at least 2 pixels"
+  }
+  require(yRange.first >= 0 && yRange.last < height) {
+    "Vertical scanline yRange=$yRange must be within 0 until $height"
+  }
+  return (yRange.first until yRange.last).map { y ->
+    abs(this[x, y + 1].luminance() - this[x, y].luminance())
+  }
+}
+
 internal fun PixelSnapshot.horizontalEdgePosition(
   y: Int,
   xRange: IntRange,
