@@ -108,8 +108,8 @@ workflow validates that JSON and posts the comment.
 
 - [ ] **Step 1: Register the shared module and add its test dependencies**
 
-Add `":internal:benchmark-desktop"` and `":haze-benchmarks:glass:desktop"` to
-`settings.gradle.kts`. Create the shared build file:
+Add `":internal:benchmark-desktop"` to `settings.gradle.kts`. The Glass suite is registered in
+Task 3 when its build file is created. Create the shared build file:
 
 ```kotlin
 // Copyright 2026, Christopher Banes and the Haze project contributors
@@ -539,6 +539,7 @@ Expected: tests pass and the commit contains no Glass dependency.
 
 **Files:**
 
+- Modify: `settings.gradle.kts`
 - Create: `internal/benchmark-desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/FrameRecorder.kt`
 - Create: `internal/benchmark-desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/DesktopInputReplayer.kt`
 - Create: `internal/benchmark-desktop/src/jvmMain/kotlin/dev/chrisbanes/haze/benchmark/desktop/BenchmarkEnvironment.kt`
@@ -756,7 +757,7 @@ Read `machdep.cpu.brand_string` and `hw.memsize`; bound every metadata string to
 
 - [ ] **Step 8: Add the Glass executable shell and probe-only workflow**
 
-Create the Glass build file:
+Add `":haze-benchmarks:glass:desktop"` to `settings.gradle.kts`, then create the Glass build file:
 
 ```kotlin
 plugins {
