@@ -1868,6 +1868,19 @@ Do not render generic HTML/Markdown from the artifact. Apply one `escapeMarkdown
 artifact-provided string that enters the comment, including CPU, OS, versions, identifiers, and the
 bounded diagnostic.
 
+The trusted reporter must not trust the aggregate summaries produced by pull-request code. Validate
+the exact registered scenario set, ABBA/head-only slots, protocol consistency, base-SHA coupling,
+metadata bounds, fixed Metal/1280x720 environment, and every raw sample again. Recompute all render
+and interval summaries, robust variation/noise flags, and paired deltas from the validated raw
+blocks using the schema-1 formulas; reject the artifact if any supplied summary, comparability flag,
+protocol field, or delta differs from the trusted recomputation. Use `Number.isSafeInteger` for raw
+integer fields. Add tests that tamper with a summary while leaving raw samples unchanged, omit a
+registered scenario, alter an ABBA slot, and exceed a metadata bound.
+
+Require `status = complete` to contain exactly `pointer_sweep` and `playground_drag` with a null
+diagnostic. Require `status = failed` to contain no scenarios and a nonblank bounded diagnostic;
+render that escaped diagnostic as an infrastructure-failure comment rather than a metrics table.
+
 - [ ] **Step 4: Render the fixed comment format**
 
 ```markdown
@@ -1928,6 +1941,10 @@ Run on `ubuntu-24.04`. Check out only `${{ github.event.repository.default_branc
 `persist-credentials: false`. Download `desktop-glass-benchmark` from
 `${{ github.event.workflow_run.id }}` using `actions/download-artifact@v8` with
 `github-token: ${{ secrets.GITHUB_TOKEN }}`.
+
+Run the job only when `github.event.workflow_run.event == 'pull_request'`. Before validating or
+commenting, require the fetched pull request's current head SHA to equal
+`github.event.workflow_run.head_sha`; return without updating the comment for a stale completed run.
 
 Use `actions/github-script@v9`. Read the PR number only from the event, fetch its trusted identities,
 run the checked-in default-branch validator, and update the marker comment:
