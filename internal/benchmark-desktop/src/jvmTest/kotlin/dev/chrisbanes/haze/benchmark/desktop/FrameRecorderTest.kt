@@ -5,6 +5,8 @@ package dev.chrisbanes.haze.benchmark.desktop
 
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isFalse
+import assertk.assertions.isTrue
 import kotlin.test.Test
 
 class FrameRecorderTest {
@@ -27,6 +29,41 @@ class FrameRecorderTest {
     val recorder = recorderForTwoMeasuredFrames()
     assertThat(recorder.stopMeasurement().map { it.callbackIntervalNanos })
       .containsExactly(null, 20L)
+  }
+
+  @Test
+  fun frameStartedBeforeMeasurement_isExcluded() {
+    val clock = FakeNanoClock(100, 110, 120, 130)
+    val recorder = FrameRecorder(clock::next)
+    recorder.beforeFrameRender()
+    recorder.startMeasurement()
+    recorder.afterFrameRender()
+    recorder.beforeFrameRender()
+    recorder.afterFrameRender()
+    assertThat(recorder.stopMeasurement()).containsExactly(
+      FrameSample(renderDurationNanos = 10, callbackIntervalNanos = null),
+    )
+  }
+
+  @Test
+  fun frameStartedBeforeToken_doesNotCompleteIt() {
+    val clock = FakeNanoClock(100, 110)
+    val recorder = FrameRecorder(clock::next)
+    recorder.beforeFrameRender()
+    val token = recorder.armNextFrameCompletion()
+    recorder.afterFrameRender()
+    assertThat(recorder.isFrameCompleted(token)).isFalse()
+  }
+
+  @Test
+  fun firstFrameStartedAfterToken_completesIt() {
+    val clock = FakeNanoClock(100, 110)
+    val recorder = FrameRecorder(clock::next)
+    val token = recorder.armNextFrameCompletion()
+    recorder.beforeFrameRender()
+    assertThat(recorder.isFrameCompleted(token)).isFalse()
+    recorder.afterFrameRender()
+    assertThat(recorder.isFrameCompleted(token)).isTrue()
   }
 }
 

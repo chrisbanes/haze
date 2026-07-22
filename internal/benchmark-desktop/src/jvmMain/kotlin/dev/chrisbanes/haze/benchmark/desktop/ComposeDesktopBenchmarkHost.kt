@@ -13,6 +13,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
@@ -42,10 +43,10 @@ internal class ComposeDesktopBenchmarkHost(
       recorder.startMeasurement()
       val workloadStartedAt = System.nanoTime()
       replayer.replay(scenario.events)
-      val callbacksBeforeFinalRender = recorder.callbackCount()
+      val finalFrame = recorder.armNextFrameCompletion()
       onSwing { session.layer.needRender() }
       withTimeout(2.seconds) {
-        while (recorder.callbackCount() <= callbacksBeforeFinalRender) delay(1)
+        while (!recorder.isFrameCompleted(finalFrame)) delay(1)
       }
       val workloadDuration = System.nanoTime() - workloadStartedAt
       val samples = recorder.stopMeasurement()
@@ -63,7 +64,7 @@ internal class ComposeDesktopBenchmarkHost(
         samples = samples,
       )
     } finally {
-      onSwing { session.window.dispose() }
+      disposeWindow(session.window)
     }
   }
 
@@ -73,7 +74,7 @@ internal class ComposeDesktopBenchmarkHost(
     return try {
       collectBenchmarkEnvironment(session.environment)
     } finally {
-      onSwing { session.window.dispose() }
+      disposeWindow(session.window)
     }
   }
 
@@ -129,6 +130,10 @@ private data class BenchmarkWindowSession(
 )
 
 private suspend fun <T> onSwing(block: () -> T): T = withContext(Dispatchers.Swing) { block() }
+
+private suspend fun disposeWindow(window: ComposeWindow) {
+  withContext(NonCancellable + Dispatchers.Swing) { window.dispose() }
+}
 
 private fun Container.singleSkiaLayer(): SkiaLayer {
   val layers = descendants().filterIsInstance<SkiaLayer>().toList()

@@ -15,8 +15,11 @@ internal class FrameRecorder(
   private val lock = Any()
   private var measuring = false
   private var frameStart = 0L
+  private var frameStartedWhileMeasuring = false
   private var previousFrameEnd: Long? = null
-  private var callbackCount = 0L
+  private var startedFrameGeneration = 0L
+  private var activeFrameGeneration = 0L
+  private var completedFrameGeneration = 0L
   private val samples = mutableListOf<FrameSample>()
 
   private val deviceAnalytics = object : SkiaLayerAnalytics.DeviceAnalytics {
@@ -39,6 +42,7 @@ internal class FrameRecorder(
   internal fun startMeasurement() = synchronized(lock) {
     samples.clear()
     previousFrameEnd = null
+    frameStartedWhileMeasuring = false
     measuring = true
   }
 
@@ -49,12 +53,16 @@ internal class FrameRecorder(
 
   internal fun beforeFrameRender() = synchronized(lock) {
     frameStart = nanoTime()
+    frameStartedWhileMeasuring = measuring
+    activeFrameGeneration = ++startedFrameGeneration
   }
 
   internal fun afterFrameRender() = synchronized(lock) {
     val end = nanoTime()
-    callbackCount++
-    if (!measuring) return@synchronized
+    completedFrameGeneration = maxOf(completedFrameGeneration, activeFrameGeneration)
+    val shouldRecord = measuring && frameStartedWhileMeasuring
+    frameStartedWhileMeasuring = false
+    if (!shouldRecord) return@synchronized
     require(end >= frameStart)
     samples += FrameSample(
       renderDurationNanos = end - frameStart,
@@ -63,5 +71,13 @@ internal class FrameRecorder(
     previousFrameEnd = end
   }
 
-  internal fun callbackCount(): Long = synchronized(lock) { callbackCount }
+  internal fun armNextFrameCompletion(): FrameCompletionToken = synchronized(lock) {
+    FrameCompletionToken(startedFrameGeneration + 1)
+  }
+
+  internal fun isFrameCompleted(token: FrameCompletionToken): Boolean = synchronized(lock) {
+    completedFrameGeneration >= token.generation
+  }
 }
+
+internal data class FrameCompletionToken(val generation: Long)

@@ -56,10 +56,24 @@ private fun sysctl(name: String): String {
   val process = ProcessBuilder("/usr/sbin/sysctl", "-n", name)
     .redirectErrorStream(true)
     .start()
-  check(process.waitFor(2, TimeUnit.SECONDS)) { "sysctl $name timed out" }
-  val output = process.inputStream.bufferedReader().use { it.readText().trim() }
-  check(process.exitValue() == 0) { "sysctl $name failed: ${metadata(output)}" }
-  return output
+  return try {
+    check(process.waitFor(2, TimeUnit.SECONDS)) { "sysctl $name timed out" }
+    val output = process.inputStream.bufferedReader().use { it.readText().trim() }
+    check(process.exitValue() == 0) { "sysctl $name failed: ${metadata(output)}" }
+    output
+  } finally {
+    process.closeStreamsAndTerminate()
+  }
+}
+
+private fun Process.closeStreamsAndTerminate() {
+  runCatching { outputStream.close() }
+  runCatching { inputStream.close() }
+  runCatching { errorStream.close() }
+  if (isAlive) {
+    destroy()
+    if (isAlive) destroyForcibly()
+  }
 }
 
 private fun metadata(value: String?): String {
