@@ -75,6 +75,11 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_roundedEdgePixelsAreContinuous() = runScreenshotTest {
+    assertGlassRoundedEdgePixelsAreContinuous()
+  }
+
+  @Test
   fun glass_transparentOutputIsPremultiplied() = runScreenshotTest {
     assertGlassTransparentOutputInvariant()
   }
