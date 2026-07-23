@@ -70,6 +70,7 @@ jobs:
           retention-days: 1
           path: |
             docs/
+            !docs/agents/**
             !docs/specs/**
             !docs/superpowers/**
 

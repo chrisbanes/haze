@@ -9,6 +9,7 @@ strict: true
 
 docs_dir: docs
 exclude_docs: |
+  agents/**
   specs/**
   superpowers/**
 
