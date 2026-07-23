@@ -15,7 +15,7 @@ actual val Samples: List<Sample> = buildList {
 }
 
 @Serializable
-data object AndroidGlassProfiling : Sample {
+internal data object AndroidGlassProfiling : Sample {
   override val title: String = "Glass — Profiling"
 
   @Composable
