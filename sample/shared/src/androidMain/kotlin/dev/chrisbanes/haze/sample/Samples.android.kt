@@ -4,12 +4,27 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
 import kotlinx.serialization.Serializable
 
 actual val Samples: List<Sample> = buildList {
   addAll(CommonSamples)
   add(AndroidExoPlayer)
+  add(AndroidGlassProfiling)
+}
+
+@Serializable
+data object AndroidGlassProfiling : Sample {
+  override val title: String = "Glass — Profiling"
+
+  @Composable
+  override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    GlassProfilingSampleContent(
+      state = remember { GlassProfilingState() },
+      onBack = navController::navigateUp,
+    )
+  }
 }
 
 @Serializable
