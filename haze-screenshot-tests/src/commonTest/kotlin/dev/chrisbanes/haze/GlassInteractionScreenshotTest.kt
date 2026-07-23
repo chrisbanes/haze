@@ -36,7 +36,6 @@ import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
-import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.test.Test
@@ -146,35 +145,6 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
     waitForIdle()
     assertThat(idle.changedPixelRatio(captureRootPixels().snapshot())).isEqualTo(0f)
   }
-}
-
-private fun PixelSnapshot.changedPixelRatioOutside(
-  other: PixelSnapshot,
-  excludedBounds: IntRect,
-): Float {
-  require(width == other.width && height == other.height)
-  var changedPixels = 0
-  var comparedPixels = 0
-  for (y in 0 until height) {
-    for (x in 0 until width) {
-      if (x in excludedBounds.left until excludedBounds.right &&
-        y in excludedBounds.top until excludedBounds.bottom
-      ) {
-        continue
-      }
-      comparedPixels++
-      val first = this[x, y]
-      val second = other[x, y]
-      val maxChannelDelta = maxOf(
-        abs(first.red - second.red),
-        abs(first.green - second.green),
-        abs(first.blue - second.blue),
-        abs(first.alpha - second.alpha),
-      )
-      if (maxChannelDelta > 1f / 255f) changedPixels++
-    }
-  }
-  return changedPixels.toFloat() / comparedPixels
 }
 
 private fun ScreenshotUiTest.capturePressed(tag: String, label: String, effect: GlassVisualEffect) {

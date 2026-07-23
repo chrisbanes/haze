@@ -881,13 +881,16 @@ internal class RuntimeShaderGlassDelegate(
       scaledSize = params.coordinates.materialSize,
       clip = effect.shouldClipToNodeBounds(),
     ) {
-      val compositeBounds = patch.compositeBounds
+      val compositeBounds = patch.compositeBounds.translate(
+        translateX = -patch.bounds.left,
+        translateY = -patch.bounds.top,
+      )
       translate(Offset(patch.bounds.left.toFloat(), patch.bounds.top.toFloat())) {
         clipRect(
-          left = (compositeBounds.left - patch.bounds.left).toFloat(),
-          top = (compositeBounds.top - patch.bounds.top).toFloat(),
-          right = (compositeBounds.right - patch.bounds.left).toFloat(),
-          bottom = (compositeBounds.bottom - patch.bounds.top).toFloat(),
+          left = compositeBounds.left.toFloat(),
+          top = compositeBounds.top.toFloat(),
+          right = compositeBounds.right.toFloat(),
+          bottom = compositeBounds.bottom.toFloat(),
         ) {
           drawLayer(layer)
         }
