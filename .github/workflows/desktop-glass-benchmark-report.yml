@@ -12,7 +12,9 @@ permissions:
 
 jobs:
   report:
-    if: github.event.workflow_run.event == 'pull_request'
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -23,7 +25,7 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
 
-      - name: Download Desktop Glass benchmark
+      - name: Download benchmark
         uses: actions/download-artifact@v8
         with:
           name: desktop-glass-benchmark
@@ -31,48 +33,37 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Validate results and maintain PR comment
+      - name: Maintain PR comment
         uses: actions/github-script@v9
         with:
           script: |
-            const { execFileSync } = require('node:child_process')
+            const fs = require('node:fs')
             const { pathToFileURL } = require('node:url')
-            const workflowRun = context.payload.workflow_run
-            const prNumber = workflowRun.pull_requests[0]?.number
-            if (!prNumber) {
-              core.notice('The completed workflow run is not associated with a pull request')
-              return
-            }
+            const run = context.payload.workflow_run
+            const prNumber = run.pull_requests[0]?.number
+            if (!prNumber) return
 
             const { data: pr } = await github.rest.pulls.get({
               ...context.repo,
               pull_number: prNumber,
             })
-            if (pr.head.sha !== workflowRun.head_sha) {
-              core.notice('Ignoring a stale benchmark run for an earlier pull-request head')
-              return
-            }
+            if (pr.head.sha !== run.head_sha) return
 
-            const body = execFileSync('node', [
-              '.github/scripts/desktop-glass-benchmark-report.mjs',
-              'artifact/benchmark.json',
-              `${context.repo.owner}/${context.repo.repo}`,
-              pr.base.sha,
-              pr.head.sha,
-              workflowRun.html_url,
-            ], {
-              encoding: 'utf8',
-              maxBuffer: 1024 * 1024,
-            })
-
+            const path = 'artifact/benchmark.json'
+            if (fs.statSync(path).size > 1024 * 1024) throw new Error('Benchmark report is too large')
+            const report = JSON.parse(fs.readFileSync(path, 'utf8'))
+            const reporter = await import(
+              pathToFileURL('.github/scripts/desktop-glass-benchmark-report.mjs').href,
+            )
+            const body = reporter.renderComment(
+              reporter.validateReport(report, pr.head.sha),
+              run.html_url,
+            )
             const comments = await github.paginate(github.rest.issues.listComments, {
               ...context.repo,
               issue_number: prNumber,
               per_page: 100,
             })
-            const reporter = await import(
-              pathToFileURL('.github/scripts/desktop-glass-benchmark-report.mjs').href,
-            )
             const selection = reporter.selectMarkerComment(comments)
             if (selection.operation === 'update') {
               await github.rest.issues.updateComment({

@@ -15,17 +15,17 @@ class DesktopBenchmarkScenarioTest {
 
   @Test
   fun completionVerification_defaultsToNoOp() = runBlocking {
-    FakeScenario("pointer_sweep", 1, validEvents()).verifyCompleted()
+    FakeScenario("pointer_sweep", validEvents()).verifyCompleted()
   }
 
   @Test
   fun validScenario_isAccepted() {
-    assertThat(validateScenario(FakeScenario("pointer_sweep", 1, validEvents()))).isSameInstanceAs(Unit)
+    assertThat(validateScenario(FakeScenario("pointer_sweep", validEvents()))).isSameInstanceAs(Unit)
   }
 
   @Test
   fun identifiers_areRestricted() {
-    assertFailure { validateScenario(FakeScenario("Pointer Sweep!", 1, validEvents())) }
+    assertFailure { validateScenario(FakeScenario("Pointer Sweep!", validEvents())) }
       .isInstanceOf<IllegalArgumentException>()
   }
 
@@ -35,7 +35,6 @@ class DesktopBenchmarkScenarioTest {
       validateScenario(
         FakeScenario(
           "pointer_sweep",
-          1,
           listOf(
             DesktopInputEvent(10, DesktopInputEventType.Move, NormalizedPoint(0.5f, 0.5f)),
             DesktopInputEvent(5, DesktopInputEventType.Exit, null),
@@ -48,7 +47,6 @@ class DesktopBenchmarkScenarioTest {
 
 private class FakeScenario(
   override val id: String,
-  override val protocolVersion: Int,
   override val events: List<DesktopInputEvent>,
 ) : DesktopBenchmarkScenario {
   @Composable

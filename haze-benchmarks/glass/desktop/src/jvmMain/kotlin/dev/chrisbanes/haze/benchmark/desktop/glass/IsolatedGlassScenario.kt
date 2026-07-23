@@ -52,7 +52,6 @@ internal fun isolatedPointerEvents(): List<DesktopInputEvent> = buildList {
 
 internal class IsolatedGlassScenario : DesktopBenchmarkScenario {
   override val id: String = "pointer_sweep"
-  override val protocolVersion: Int = 1
   override val events: List<DesktopInputEvent> = isolatedPointerEvents()
 
   @Composable

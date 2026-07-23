@@ -4,11 +4,9 @@
 package dev.chrisbanes.haze.benchmark.desktop
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-@Serializable
-public data class FrameSample(
+internal data class FrameSample(
   val renderDurationNanos: Long,
   val callbackIntervalNanos: Long? = null,
 )
@@ -34,77 +32,30 @@ public data class BenchmarkEnvironment(
 )
 
 @Serializable
-public data class BenchmarkBlockResult(
-  val schemaVersion: Int = 1,
-  val suiteId: String,
-  val scenarioId: String,
-  val protocolVersion: Int,
-  val revision: String,
-  val round: Int,
-  val order: Int,
-  val environment: BenchmarkEnvironment,
-  val workloadDurationNanos: Long,
-  val samples: List<FrameSample>,
-)
-
-@Serializable
 public data class MetricSummary(
   val sampleCount: Int,
   val p50Nanos: Long,
   val p95Nanos: Long,
-  val p99Nanos: Long,
-  val above16MillisCount: Int,
-  val above16MillisPercent: Double,
-  val above33MillisCount: Int,
-  val above33MillisPercent: Double,
-  val robustVariationPercent: Double,
-  val noisy: Boolean,
+  val maxNanos: Long,
 )
 
 @Serializable
-public data class ScenarioSummary(
+public data class BenchmarkScenarioResult(
   val id: String,
-  val baseProtocolVersion: Int?,
-  val headProtocolVersion: Int,
-  val comparable: Boolean,
-  val baseRender: MetricSummary?,
-  val headRender: MetricSummary,
-  val baseInterval: MetricSummary?,
-  val headInterval: MetricSummary,
-  val renderPairedDeltaPercent: Double?,
-  val intervalPairedDeltaPercent: Double?,
-  val blocks: List<BenchmarkBlockResult>,
+  val environment: BenchmarkEnvironment,
+  val renderDuration: MetricSummary,
+  val callbackInterval: MetricSummary,
 )
 
 @Serializable
-public data class BenchmarkArtifact(
+public data class BenchmarkReport(
   val schemaVersion: Int = 1,
   val suiteId: String,
-  val repository: String,
-  val baseSha: String?,
-  val headSha: String,
-  val scenarios: List<ScenarioSummary>,
-  val status: String = "complete",
-  val diagnostic: String? = null,
+  val commitSha: String,
+  val scenarios: List<BenchmarkScenarioResult>,
 )
 
 public val BenchmarkJson: Json = Json {
   encodeDefaults = true
-  explicitNulls = true
   ignoreUnknownKeys = false
-}
-
-public fun encodeArtifact(value: BenchmarkArtifact): String {
-  require(value.diagnostic == null || value.diagnostic.encodeToByteArray().size <= 2048)
-  val encoded = BenchmarkJson.encodeToString(value)
-  require(encoded.encodeToByteArray().size <= 5 * 1024 * 1024)
-  return encoded
-}
-
-public fun boundedDiagnostic(value: String): String = buildString {
-  for (character in value) {
-    val candidate = toString() + character
-    if (candidate.encodeToByteArray().size > 2048) break
-    append(character)
-  }
 }

@@ -69,7 +69,6 @@ class PlaygroundGlassScenarioTest {
       val scenario = PlaygroundGlassScenario()
 
       assertThat(scenario.id).isEqualTo("playground_drag")
-      assertThat(scenario.protocolVersion).isEqualTo(1)
       assertThat(validateScenario(scenario)).isSameInstanceAs(Unit)
       scenario.applyDragForTest(Offset(80f, 40f))
       assertThat(scenario.dragOffsetForTest()).isEqualTo(Offset(80f, 40f))

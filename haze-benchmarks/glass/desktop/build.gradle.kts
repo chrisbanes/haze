@@ -36,10 +36,10 @@ val benchmarkJavaLauncher = javaToolchains.launcherFor {
   languageVersion.set(JavaLanguageVersion.of(21))
 }
 
-fun registerScenarioSmoke(name: String, scenarioId: String) = tasks.register<Exec>(name) {
+tasks.register<Exec>("desktopBenchmarkSmoke") {
   dependsOn("packageUberJarForCurrentOS")
   environment("SKIKO_RENDER_API", "METAL")
-  val output = layout.buildDirectory.file("benchmark-smoke/$scenarioId.json")
+  val output = layout.buildDirectory.file("benchmark-smoke/benchmark.json")
   commandLine(
     benchmarkJavaLauncher.get().executablePath.asFile.absolutePath,
     "-Xms512m",
@@ -48,21 +48,7 @@ fun registerScenarioSmoke(name: String, scenarioId: String) = tasks.register<Exe
     layout.buildDirectory.file(
       "compose/jars/desktop-macos-arm64-1.0.0.jar",
     ).get().asFile.absolutePath,
-    "run",
-    "--scenario", scenarioId,
-    "--revision", "smoke",
-    "--round", "0",
-    "--order", "0",
+    "--commit-sha", "0".repeat(40),
     "--output", output.get().asFile.absolutePath,
-    "--smoke",
   )
-}
-
-val pointerSmoke = registerScenarioSmoke("desktopPointerBenchmarkSmoke", "pointer_sweep")
-val playgroundSmoke = registerScenarioSmoke("desktopPlaygroundBenchmarkSmoke", "playground_drag")
-
-playgroundSmoke.configure { mustRunAfter(pointerSmoke) }
-
-tasks.register("desktopBenchmarkSmoke") {
-  dependsOn(pointerSmoke, playgroundSmoke)
 }

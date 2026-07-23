@@ -45,7 +45,6 @@ internal fun playgroundEvents(): List<DesktopInputEvent> = buildList {
 
 internal class PlaygroundGlassScenario : DesktopBenchmarkScenario {
   override val id: String = "playground_drag"
-  override val protocolVersion: Int = 1
   override val events: List<DesktopInputEvent> = playgroundEvents()
 
   private var dragOffset by mutableStateOf(Offset.Zero)

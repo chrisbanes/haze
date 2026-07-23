@@ -22,7 +22,6 @@ public data class DesktopInputEvent(
 
 public interface DesktopBenchmarkScenario {
   public val id: String
-  public val protocolVersion: Int
   public val events: List<DesktopInputEvent>
 
   @Composable
@@ -35,7 +34,6 @@ public interface DesktopBenchmarkScenario {
 
 public fun validateScenario(scenario: DesktopBenchmarkScenario) {
   require(scenario.id.matches(Regex("[a-z][a-z0-9_]{0,63}")))
-  require(scenario.protocolVersion > 0)
   require(scenario.events.isNotEmpty())
   require(scenario.events.zipWithNext().all { (a, b) -> a.offsetNanos <= b.offsetNanos })
   scenario.events.forEach { event ->

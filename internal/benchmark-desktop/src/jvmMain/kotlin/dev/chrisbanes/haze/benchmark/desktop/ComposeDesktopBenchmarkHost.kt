@@ -23,13 +23,10 @@ import org.jetbrains.skiko.GraphicsApi
 import org.jetbrains.skiko.SkiaLayer
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalSkikoApi::class)
-internal class ComposeDesktopBenchmarkHost(
-  private val suiteId: String,
-) {
-  suspend fun runBlock(
-    command: BenchmarkCommand.Run,
+internal class ComposeDesktopBenchmarkHost() {
+  suspend fun runScenario(
     scenarioFactory: () -> DesktopBenchmarkScenario,
-  ): BenchmarkBlockResult {
+  ): BenchmarkScenarioResult {
     val scenario = scenarioFactory().also(::validateScenario)
     val recorder = FrameRecorder()
     val session = openWindow(recorder) { scenario.Content() }
@@ -40,9 +37,8 @@ internal class ComposeDesktopBenchmarkHost(
       scenario.verifyCompleted()
 
       scenario.reset()
-      postWarmupDelayMillis(command.smoke).takeIf { it > 0 }?.let { delay(it) }
+      delay(500)
       recorder.startMeasurement()
-      val workloadStartedAt = System.nanoTime()
       replayer.replay(scenario.events)
       scenario.verifyCompleted()
       val finalFrame = onSwing {
@@ -51,31 +47,15 @@ internal class ComposeDesktopBenchmarkHost(
       withTimeout(2.seconds) {
         while (!recorder.isFrameCompleted(finalFrame)) delay(1)
       }
-      val workloadDuration = System.nanoTime() - workloadStartedAt
       val samples = recorder.stopMeasurement()
       validateMeasuredSamples(samples)
 
-      return BenchmarkBlockResult(
-        suiteId = suiteId,
-        scenarioId = scenario.id,
-        protocolVersion = scenario.protocolVersion,
-        revision = command.revision,
-        round = command.round,
-        order = command.order,
+      return BenchmarkScenarioResult(
+        id = scenario.id,
         environment = collectBenchmarkEnvironment(session.environment),
-        workloadDurationNanos = workloadDuration,
-        samples = samples,
+        renderDuration = summarizeMetric(samples.map { it.renderDurationNanos }),
+        callbackInterval = summarizeMetric(samples.mapNotNull { it.callbackIntervalNanos }),
       )
-    } finally {
-      disposeWindow(session.window)
-    }
-  }
-
-  suspend fun probe(): BenchmarkEnvironment {
-    val recorder = FrameRecorder()
-    val session = openWindow(recorder) {}
-    return try {
-      collectBenchmarkEnvironment(session.environment)
     } finally {
       disposeWindow(session.window)
     }
@@ -160,5 +140,3 @@ internal fun validateMeasuredSamples(samples: List<FrameSample>) {
       "metrics but recorded ${samples.size}"
   }
 }
-
-internal fun postWarmupDelayMillis(smoke: Boolean): Long = if (smoke) 0 else 500
