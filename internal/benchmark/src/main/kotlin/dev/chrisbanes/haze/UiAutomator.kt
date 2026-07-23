@@ -78,6 +78,37 @@ internal fun UiDevice.navigateToCreditCard() {
   waitForIdle()
 }
 
+internal fun UiDevice.navigateToGlassProduct() {
+  findSampleListItem(By.res("Glass — Product")).click()
+  waitForObject(By.res("glass_product_page_0"))
+}
+
+internal fun UiDevice.advanceGlassProduct() {
+  waitForObject(By.desc("Next artwork")).click()
+  waitForObject(By.res("glass_product_page_1"))
+}
+
+internal fun UiDevice.navigateToGlassPlayground() {
+  findSampleListItem(By.res("Glass — Playground")).click()
+  waitForObject(By.res("glass_playground_loop_1"), timeout = 20.seconds)
+}
+
+internal fun UiDevice.awaitNextGlassPlaygroundLoop() {
+  waitForObject(By.res("glass_playground_loop_2"), timeout = 20.seconds)
+}
+
+internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
+  findSampleListItem(By.res("Glass — Profiling")).click()
+  waitForObject(By.res("glass_profiling_select_$scenarioId")).click()
+  waitForObject(By.res("glass_profiling_selected_$scenarioId"))
+  waitForObject(By.res("glass_profiling_phase_ready"))
+}
+
+internal fun UiDevice.runGlassProfilingScenario() {
+  waitForObject(By.res("glass_profiling_start")).click()
+  waitForObject(By.res("glass_profiling_phase_complete"), timeout = 10.seconds)
+}
+
 internal fun UiDevice.findSampleListItem(selector: BySelector): UiObject2 {
   return waitForObject(By.res("sample_list"))
     .apply { setGestureMarginPercentage(0.1f) }
