@@ -26,6 +26,7 @@ import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
+import dev.chrisbanes.haze.trace
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderGlassDelegate(
@@ -242,247 +243,294 @@ internal class RuntimeShaderGlassDelegate(
     }
   }
 
-  override fun DrawScope.draw(context: VisualEffectContext) {
-    val render = preparedRender ?: return
-    val params = preparedParams ?: return
-    val effects = preparedRenderEffects ?: return
-    val interactionUniforms = preparedInteractionUniforms ?: return
-    val interactionPatch = preparedInteractionPatch
-    if (render.alpha <= 0f) {
-      retainedOutputAvailable = false
-      return
-    }
-    requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
-    var completed = false
-    try {
-      val currentInputs = GlassStageInputs(
-        blur = render.blurKey?.takeIf { shouldBlur(params, effects) },
-        depth = params.depth,
-        optical = render.opticalKey,
-        detail = render.refractionDetailKey,
-        rim = render.rimKey,
-      )
-      val sourceState = context.resolveGlassSourceState(
-        captureScale = params.coordinates.scaleFactor,
-        previousSnapshot = lastSuccessfulSourceSnapshot,
-      )
-      val shouldRecordSource = sourceState.hasDrawableSource && (
-        sourceState.snapshot == null ||
-          sourceState.snapshot != lastSuccessfulSourceSnapshot ||
-          !preparedSourceAvailable ||
-          !retainedOutputAvailable
+  override fun DrawScope.draw(context: VisualEffectContext): Unit =
+    trace(GlassTraceSection.RuntimeDraw) {
+      val render = preparedRender ?: return
+      val params = preparedParams ?: return
+      val effects = preparedRenderEffects ?: return
+      val interactionUniforms = preparedInteractionUniforms ?: return
+      val interactionPatch = preparedInteractionPatch
+      if (render.alpha <= 0f) {
+        retainedOutputAvailable = false
+        return
+      }
+      requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
+      var completed = false
+      try {
+        val currentInputs = GlassStageInputs(
+          blur = render.blurKey?.takeIf { shouldBlur(params, effects) },
+          depth = params.depth,
+          optical = render.opticalKey,
+          detail = render.refractionDetailKey,
+          rim = render.rimKey,
         )
-      val source = requireRetainedStage(
-        if (shouldRecordSource) recordSource(context, params) else retainedSource(),
-        ::clearRetainedOutput,
-      )
-        ?: return
-      val invalidation = calculateRequiredStageInvalidation(
-        previous = lastSuccessfulStageInputs,
-        current = currentInputs,
-        sourceChanged = shouldRecordSource,
-        availability = preparedStageAvailability ?: stageAvailability(params, effects),
-      )
-      val blurred = requireRetainedStage(
-        if (invalidation.blur) {
-          recordBlurredIfNeeded(source, params, effects)
-        } else {
-          retainedBlurInput(source, params, effects)
-        },
-        ::clearRetainedOutput,
-      ) ?: return
-      val depthInput = requireRetainedStage(
-        if (invalidation.depth) {
-          recordDepthInput(source, blurred, params.depth)
-        } else {
-          retainedDepthInput(source, blurred, params.depth)
-        },
-        ::clearRetainedOutput,
-      ) ?: return
-      val optical = requireRetainedStage(
-        if (invalidation.optical) recordOptical(depthInput, params, effects) else layers.optical,
-        ::clearRetainedOutput,
-      ) ?: return
-      val refractionDetail = effects.refractionDetail?.let {
-        requireRetainedStage(
-          if (invalidation.detail) {
-            recordRefractionDetail(source, params, it)
+        val sourceState = context.resolveGlassSourceState(
+          captureScale = params.coordinates.scaleFactor,
+          previousSnapshot = lastSuccessfulSourceSnapshot,
+        )
+        val shouldRecordSource = sourceState.hasDrawableSource && (
+          sourceState.snapshot == null ||
+            sourceState.snapshot != lastSuccessfulSourceSnapshot ||
+            !preparedSourceAvailable ||
+            !retainedOutputAvailable
+          )
+        val source = requireRetainedStage(
+          if (shouldRecordSource) {
+            trace(GlassTraceSection.Source) { recordSource(context, params) }
           } else {
-            layers.refractionDetail?.takeUnless { layer -> layer.isReleased }
+            retainedSource()
           },
           ::clearRetainedOutput,
         ) ?: return
-      }
-      val refractionDetailCoverage = effects.refractionDetail?.let {
-        requireRetainedStage(
-          if (invalidation.detail) {
-            recordRefractionDetailCoverage(source, params, it)
+        val invalidation = calculateRequiredStageInvalidation(
+          previous = lastSuccessfulStageInputs,
+          current = currentInputs,
+          sourceChanged = shouldRecordSource,
+          availability = preparedStageAvailability ?: stageAvailability(params, effects),
+        )
+        val blurred = requireRetainedStage(
+          if (invalidation.blur) {
+            trace(GlassTraceSection.Blur) {
+              recordBlurredIfNeeded(source, params, effects)
+            }
           } else {
-            layers.refractionDetailCoverage?.takeUnless { layer -> layer.isReleased }
+            retainedBlurInput(source, params, effects)
           },
           ::clearRetainedOutput,
         ) ?: return
-      }
-      val completedOptical = if (
-        refractionDetail != null && refractionDetailCoverage != null
-      ) {
+        val depthInput = requireRetainedStage(
+          if (invalidation.depth) {
+            trace(GlassTraceSection.Depth) {
+              recordDepthInput(source, blurred, params.depth)
+            }
+          } else {
+            retainedDepthInput(source, blurred, params.depth)
+          },
+          ::clearRetainedOutput,
+        ) ?: return
+        val optical = requireRetainedStage(
+          if (invalidation.optical) {
+            trace(GlassTraceSection.Optical) {
+              recordOptical(depthInput, params, effects)
+            }
+          } else {
+            layers.optical
+          },
+          ::clearRetainedOutput,
+        ) ?: return
+        val refractionDetail = effects.refractionDetail?.let {
+          requireRetainedStage(
+            if (invalidation.detail) {
+              trace(GlassTraceSection.Detail) {
+                recordRefractionDetail(source, params, it)
+              }
+            } else {
+              layers.refractionDetail?.takeUnless { layer -> layer.isReleased }
+            },
+            ::clearRetainedOutput,
+          ) ?: return
+        }
+        val refractionDetailCoverage = effects.refractionDetail?.let {
+          requireRetainedStage(
+            if (invalidation.detail) {
+              trace(GlassTraceSection.Detail) {
+                recordRefractionDetailCoverage(source, params, it)
+              }
+            } else {
+              layers.refractionDetailCoverage?.takeUnless { layer -> layer.isReleased }
+            },
+            ::clearRetainedOutput,
+          ) ?: return
+        }
+        val completedOptical = if (
+          refractionDetail != null && refractionDetailCoverage != null
+        ) {
+          requireRetainedStage(
+            if (invalidation.optical || invalidation.detail) {
+              trace(GlassTraceSection.Optical) {
+                recordRefractionComposite(
+                  optical = optical,
+                  detail = refractionDetail,
+                  coverage = refractionDetailCoverage,
+                  params = params,
+                )
+              }
+            } else {
+              layers.refractionComposite?.takeUnless { layer -> layer.isReleased }
+            },
+            ::clearRetainedOutput,
+          ) ?: return
+        } else {
+          optical
+        }
         requireRetainedStage(
-          if (invalidation.optical || invalidation.detail) {
-            recordRefractionComposite(
-              optical = optical,
-              detail = refractionDetail,
-              coverage = refractionDetailCoverage,
+          if (invalidation.rim) {
+            trace(GlassTraceSection.Rim) { recordRimIfNeeded(params, effects) }
+          } else {
+            retainedRim(effects)
+          },
+          ::clearRetainedOutput,
+        ) ?: return
+        val interactionOptical = if (
+          interactionUniforms.hasOptics && interactionPatch != null
+        ) {
+          requireRetainedStage(
+            trace(GlassTraceSection.InteractionOptical) {
+              recordInteractionOptical(
+                input = depthInput,
+                key = render.opticalKey,
+                patch = interactionPatch,
+              )
+            },
+            ::clearRetainedOutput,
+          ) ?: return
+        } else {
+          null
+        }
+        val interactionRefractionDetail = if (
+          interactionUniforms.hasOptics &&
+          effects.refractionDetail != null &&
+          interactionPatch != null
+        ) {
+          requireRetainedStage(
+            trace(GlassTraceSection.InteractionDetail) {
+              recordInteractionRefractionDetail(
+                input = source,
+                key = effects.refractionDetail.key,
+                patch = interactionPatch,
+              )
+            },
+            ::clearRetainedOutput,
+          ) ?: return
+        } else {
+          null
+        }
+        val interactionRefractionDetailCoverage = if (
+          interactionUniforms.hasOptics &&
+          effects.refractionDetail != null &&
+          interactionPatch != null
+        ) {
+          requireRetainedStage(
+            trace(GlassTraceSection.InteractionDetail) {
+              recordInteractionRefractionDetailCoverage(
+                input = source,
+                key = effects.refractionDetail.key,
+                patch = interactionPatch,
+              )
+            },
+            ::clearRetainedOutput,
+          ) ?: return
+        } else {
+          null
+        }
+        val completedInteractionOutput = if (
+          interactionOptical != null &&
+          interactionRefractionDetail != null &&
+          interactionRefractionDetailCoverage != null &&
+          interactionPatch != null
+        ) {
+          requireRetainedStage(
+            trace(GlassTraceSection.InteractionDetail) {
+              recordInteractionRefractionComposite(
+                optical = interactionOptical,
+                detail = interactionRefractionDetail,
+                coverage = interactionRefractionDetailCoverage,
+                patch = interactionPatch,
+              )
+            },
+            ::clearRetainedOutput,
+          ) ?: return
+        } else {
+          interactionOptical
+        }
+        if (interactionUniforms.hasLighting && interactionPatch != null) {
+          requireRetainedStage(
+            trace(GlassTraceSection.InteractionLighting) {
+              recordInteractionLighting(
+                key = GlassInteractionLightingKey(
+                  coordinates = interactionPatch.coordinates,
+                  edgeSoftnessPx = params.edgeSoftnessPx,
+                  cornerRadii = params.cornerRadii,
+                ),
+                patch = interactionPatch,
+              )
+            },
+            ::clearRetainedOutput,
+          ) ?: return
+        }
+        if (render.alpha >= 1f && completedInteractionOutput == null) {
+          trace(GlassTraceSection.Compose) {
+            drawCompletedOutput(
+              optical = completedOptical,
+              interactionOutput = completedInteractionOutput,
+              interactionPatch = interactionPatch,
+              context = context,
               params = params,
             )
-          } else {
-            layers.refractionComposite?.takeUnless { layer -> layer.isReleased }
-          },
-          ::clearRetainedOutput,
-        ) ?: return
-      } else {
-        optical
+          }
+        } else {
+          val groupAlpha = requireRetainedStage(
+            layers.groupAlpha.layer?.takeUnless { it.isReleased },
+            ::clearRetainedOutput,
+          ) ?: return
+          val groupCompositeSize = requireRetainedStage(
+            render.groupCompositeSize,
+            ::clearRetainedOutput,
+          ) ?: return
+          trace(GlassTraceSection.GroupAlpha) {
+            recordAndDrawGlassGroupAlpha(
+              layer = groupAlpha,
+              alpha = render.alpha,
+              size = groupCompositeSize,
+            ) {
+              trace(GlassTraceSection.Compose) {
+                drawCompletedOutput(
+                  optical = completedOptical,
+                  interactionOutput = completedInteractionOutput,
+                  interactionPatch = interactionPatch,
+                  context = context,
+                  params = params,
+                )
+              }
+            }
+          }
+        }
+        if (shouldRecordSource) {
+          lastSuccessfulSourceSnapshot = sourceState.snapshot
+        }
+        lastSuccessfulStageInputs = currentInputs
+        retainedOutputAvailable = true
+        completed = true
+      } finally {
+        if (!completed) {
+          clearRetainedOutput()
+        }
       }
-      requireRetainedStage(
-        if (invalidation.rim) recordRimIfNeeded(params, effects) else retainedRim(effects),
-        ::clearRetainedOutput,
-      ) ?: return
-      val interactionOptical = if (interactionUniforms.hasOptics && interactionPatch != null) {
-        requireRetainedStage(
-          recordInteractionOptical(
-            input = depthInput,
-            key = render.opticalKey,
-            patch = interactionPatch,
-          ),
-          ::clearRetainedOutput,
-        ) ?: return
-      } else {
-        null
-      }
-      val interactionRefractionDetail = if (
-        interactionUniforms.hasOptics && effects.refractionDetail != null && interactionPatch != null
-      ) {
-        requireRetainedStage(
-          recordInteractionRefractionDetail(
-            input = source,
-            key = effects.refractionDetail.key,
-            patch = interactionPatch,
-          ),
-          ::clearRetainedOutput,
-        ) ?: return
-      } else {
-        null
-      }
-      val interactionRefractionDetailCoverage = if (
-        interactionUniforms.hasOptics && effects.refractionDetail != null && interactionPatch != null
-      ) {
-        requireRetainedStage(
-          recordInteractionRefractionDetailCoverage(
-            input = source,
-            key = effects.refractionDetail.key,
-            patch = interactionPatch,
-          ),
-          ::clearRetainedOutput,
-        ) ?: return
-      } else {
-        null
-      }
-      val completedInteractionOutput = if (
-        interactionOptical != null &&
-        interactionRefractionDetail != null &&
-        interactionRefractionDetailCoverage != null &&
-        interactionPatch != null
-      ) {
-        requireRetainedStage(
-          recordInteractionRefractionComposite(
-            optical = interactionOptical,
-            detail = interactionRefractionDetail,
-            coverage = interactionRefractionDetailCoverage,
-            patch = interactionPatch,
-          ),
-          ::clearRetainedOutput,
-        ) ?: return
-      } else {
-        interactionOptical
-      }
-      if (interactionUniforms.hasLighting && interactionPatch != null) {
-        requireRetainedStage(
-          recordInteractionLighting(
-            key = GlassInteractionLightingKey(
-              coordinates = interactionPatch.coordinates,
-              edgeSoftnessPx = params.edgeSoftnessPx,
-              cornerRadii = params.cornerRadii,
-            ),
-            patch = interactionPatch,
-          ),
-          ::clearRetainedOutput,
-        ) ?: return
-      }
-      if (render.alpha >= 1f && completedInteractionOutput == null) {
-        drawCompletedOutput(
-          optical = completedOptical,
-          interactionOutput = completedInteractionOutput,
-          interactionPatch = interactionPatch,
-          context = context,
-          params = params,
-        )
-      } else {
-        val groupAlpha = requireRetainedStage(
-          layers.groupAlpha.layer?.takeUnless { it.isReleased },
-          ::clearRetainedOutput,
-        ) ?: return
-        val groupCompositeSize = requireRetainedStage(
-          render.groupCompositeSize,
-          ::clearRetainedOutput,
-        ) ?: return
-        recordAndDrawGlassGroupAlpha(
-          layer = groupAlpha,
-          alpha = render.alpha,
-          size = groupCompositeSize,
-        ) {
-          drawCompletedOutput(
-            optical = completedOptical,
-            interactionOutput = completedInteractionOutput,
-            interactionPatch = interactionPatch,
+    }
+
+  override fun DrawScope.drawForeground(context: VisualEffectContext): Unit =
+    trace(GlassTraceSection.Compose) {
+      val render = preparedRender ?: return
+      val params = preparedParams ?: return
+      requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
+      if (!retainedOutputAvailable) return
+      preparedInteractionUniforms?.takeIf { it.hasLighting }?.let {
+        val patch = preparedInteractionPatch ?: return@let
+        layers.interactionLighting?.takeUnless { layer -> layer.isReleased }?.let { layer ->
+          drawCompletedPatch(
+            layer = layer,
+            patch = patch,
             context = context,
             params = params,
+            blendMode = BlendMode.SrcOver,
+            alpha = render.alpha,
           )
         }
       }
-      if (shouldRecordSource) {
-        lastSuccessfulSourceSnapshot = sourceState.snapshot
-      }
-      lastSuccessfulStageInputs = currentInputs
-      retainedOutputAvailable = true
-      completed = true
-    } finally {
-      if (!completed) {
-        clearRetainedOutput()
+      layers.rim?.takeUnless { it.isReleased }?.let { rim ->
+        drawCompletedLayer(rim, context, params, alpha = render.alpha)
       }
     }
-  }
-
-  override fun DrawScope.drawForeground(context: VisualEffectContext) {
-    val render = preparedRender ?: return
-    val params = preparedParams ?: return
-    requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
-    if (!retainedOutputAvailable) return
-    preparedInteractionUniforms?.takeIf { it.hasLighting }?.let {
-      val patch = preparedInteractionPatch ?: return@let
-      layers.interactionLighting?.takeUnless { layer -> layer.isReleased }?.let { layer ->
-        drawCompletedPatch(
-          layer = layer,
-          patch = patch,
-          context = context,
-          params = params,
-          blendMode = BlendMode.SrcOver,
-          alpha = render.alpha,
-        )
-      }
-    }
-    layers.rim?.takeUnless { it.isReleased }?.let { rim ->
-      drawCompletedLayer(rim, context, params, alpha = render.alpha)
-    }
-  }
 
   override fun canDrawRetainedOutput(): Boolean {
     val detailRequired = preparedRenderEffects?.refractionDetail != null ||

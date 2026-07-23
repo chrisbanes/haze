@@ -41,6 +41,7 @@ import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.VisualEffectTransform
+import dev.chrisbanes.haze.trace
 
 private data class GlassPreparedRenderCacheKey(
   val style: ResolvedGlassStyle,
@@ -488,13 +489,15 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   override fun DrawScope.prepareDraw(context: VisualEffectContext) {
-    val previousBudget = preparedRenderBudget
-    prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
-    if (previousBudget::class != preparedRenderBudget::class) {
-      needsDelegateSelection = true
+    trace(GlassTraceSection.Prepare) {
+      val previousBudget = preparedRenderBudget
+      prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
+      if (previousBudget::class != preparedRenderBudget::class) {
+        needsDelegateSelection = true
+      }
+      selectDelegateForDraw(context)
+      with(delegate) { prepareDraw(context) }
     }
-    selectDelegateForDraw(context)
-    with(delegate) { prepareDraw(context) }
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
