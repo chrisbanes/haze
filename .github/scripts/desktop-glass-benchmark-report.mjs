@@ -93,8 +93,11 @@ const MAX_METADATA_BYTES = 256
 const MAX_SAMPLE_COUNT = 100_000
 const SIXTEEN_MILLIS_NANOS = 16_666_667
 const THIRTY_THREE_MILLIS_NANOS = 33_333_333
-const FLOAT_ABSOLUTE_TOLERANCE = 1e-9
-const FLOAT_RELATIVE_TOLERANCE = 1e-12
+const MAX_FLOAT_ULPS = 2n
+const FLOAT_SIGN_BIT = 1n << 63n
+const FLOAT_MAGNITUDE_MASK = FLOAT_SIGN_BIT - 1n
+const floatBuffer = new ArrayBuffer(8)
+const floatView = new DataView(floatBuffer)
 const trustedArtifacts = new WeakSet()
 
 export function parseArtifactBuffer(buffer, expected) {
@@ -335,6 +338,18 @@ export function renderComment(artifact, runUrl) {
     '',
   )
   return lines.join('\n')
+}
+
+export function selectMarkerComment(comments) {
+  assert.ok(Array.isArray(comments), 'comments must be an array')
+  const existing = comments.find(comment =>
+    comment?.user?.type === 'Bot' &&
+      typeof comment.body === 'string' &&
+      comment.body.includes(MARKER),
+  )
+  return existing === undefined
+    ? { operation: 'create' }
+    : { operation: 'update', commentId: existing.id }
 }
 
 function validateExpectedIdentity(expected) {
@@ -649,11 +664,23 @@ function assertOptionalFloatEqual(actual, expected, message) {
 
 function assertFloatEqual(actual, expected, message) {
   validateFiniteNumber(actual, message)
-  const tolerance = Math.max(
-    FLOAT_ABSOLUTE_TOLERANCE,
-    Math.abs(expected) * FLOAT_RELATIVE_TOLERANCE,
-  )
-  assert.ok(Math.abs(actual - expected) <= tolerance, message)
+  validateFiniteNumber(expected, message)
+  assert.ok(floatUlpDistance(actual, expected) <= MAX_FLOAT_ULPS, message)
+}
+
+function floatUlpDistance(left, right) {
+  if (left === right) return 0n
+  const leftBits = orderedFloatBits(left)
+  const rightBits = orderedFloatBits(right)
+  return leftBits >= rightBits ? leftBits - rightBits : rightBits - leftBits
+}
+
+function orderedFloatBits(value) {
+  floatView.setFloat64(0, value, false)
+  const bits = floatView.getBigUint64(0, false)
+  return bits & FLOAT_SIGN_BIT
+    ? FLOAT_SIGN_BIT - (bits & FLOAT_MAGNITUDE_MASK)
+    : FLOAT_SIGN_BIT + bits
 }
 
 function renderProtocolLabel(scenarios) {
@@ -717,7 +744,14 @@ function escapeMarkdown(value) {
       (codePoint >= 0x2066 && codePoint <= 0x2069)
     ) {
       escaped += `\\u${codePoint.toString(16).padStart(4, '0')}`
-    } else if ('\\`*_{}[]<>()#+-.!|'.includes(character)) {
+    } else if (character === '@') {
+      escaped += '\\@\u200b'
+    } else if (
+      (codePoint >= 0x21 && codePoint <= 0x2f) ||
+      (codePoint >= 0x3a && codePoint <= 0x40) ||
+      (codePoint >= 0x5b && codePoint <= 0x60) ||
+      (codePoint >= 0x7b && codePoint <= 0x7e)
+    ) {
       escaped += `\\${character}`
     } else {
       escaped += character

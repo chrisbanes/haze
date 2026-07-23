@@ -36,6 +36,7 @@ jobs:
         with:
           script: |
             const { execFileSync } = require('node:child_process')
+            const { pathToFileURL } = require('node:url')
             const workflowRun = context.payload.workflow_run
             const prNumber = workflowRun.pull_requests[0]?.number
             if (!prNumber) {
@@ -64,19 +65,19 @@ jobs:
               maxBuffer: 1024 * 1024,
             })
 
-            const marker = '<!-- desktop-glass-benchmark -->'
             const comments = await github.paginate(github.rest.issues.listComments, {
               ...context.repo,
               issue_number: prNumber,
               per_page: 100,
             })
-            const existing = comments.find(comment =>
-              comment.user?.type === 'Bot' && comment.body?.includes(marker),
+            const reporter = await import(
+              pathToFileURL('.github/scripts/desktop-glass-benchmark-report.mjs').href,
             )
-            if (existing) {
+            const selection = reporter.selectMarkerComment(comments)
+            if (selection.operation === 'update') {
               await github.rest.issues.updateComment({
                 ...context.repo,
-                comment_id: existing.id,
+                comment_id: selection.commentId,
                 body,
               })
             } else {

@@ -7,6 +7,7 @@ import test from 'node:test'
 import {
   parseArtifactBuffer,
   renderComment,
+  selectMarkerComment,
   validateArtifact,
 } from './desktop-glass-benchmark-report.mjs'
 
@@ -376,6 +377,46 @@ test('rejects paired render and interval delta tampering', () => {
   }
 })
 
+test('rejects a material extreme paired-delta mismatch without magnitude-relative slack', () => {
+  const artifact = validArtifact({
+    samples({ revision, interval }) {
+      return revision === 'base'
+        ? [
+            { renderDurationNanos: 0, callbackIntervalNanos: null },
+            { renderDurationNanos: 1, callbackIntervalNanos: interval },
+          ]
+        : [
+            { renderDurationNanos: Number.MAX_SAFE_INTEGER, callbackIntervalNanos: null },
+            { renderDurationNanos: Number.MAX_SAFE_INTEGER, callbackIntervalNanos: interval },
+          ]
+    },
+  })
+  artifact.scenarios[0].renderPairedDeltaPercent += 1_000_000
+
+  assert.throws(() => validateArtifact(artifact, expectedIdentity), /paired delta mismatch/)
+})
+
+test('accepts exact JSON round trips of extreme finite derived doubles', () => {
+  const artifact = validArtifact({
+    samples({ revision, interval }) {
+      return revision === 'base'
+        ? [
+            { renderDurationNanos: 0, callbackIntervalNanos: null },
+            { renderDurationNanos: 1, callbackIntervalNanos: interval },
+          ]
+        : [
+            { renderDurationNanos: Number.MAX_SAFE_INTEGER, callbackIntervalNanos: null },
+            { renderDurationNanos: Number.MAX_SAFE_INTEGER, callbackIntervalNanos: interval },
+          ]
+    },
+  })
+
+  assert.doesNotThrow(() => validateArtifact(
+    JSON.parse(JSON.stringify(artifact)),
+    expectedIdentity,
+  ))
+})
+
 test('rejects a non-finite delta and a zero base block median', () => {
   const nonFinite = validArtifact()
   nonFinite.scenarios[0].renderPairedDeltaPercent = Number.POSITIVE_INFINITY
@@ -435,6 +476,45 @@ test('renders escaped infrastructure failures without a metrics table', () => {
   assert.match(body, /Workflow run/)
 })
 
+test('neutralizes mentions and every ASCII punctuation character in artifact text', () => {
+  const punctuation = Array.from(
+    { length: 94 },
+    (_, index) => String.fromCharCode(index + 33),
+  ).filter(character => !/[A-Za-z0-9]/.test(character)).join('')
+  const expected = [...punctuation]
+    .map(character => character === '@' ? '\\@\u200b' : `\\${character}`)
+    .join('')
+  const body = renderComment(
+    validateArtifact(failedArtifact(`@octocat @org/team ${punctuation}`), expectedIdentity),
+    runUrl,
+  )
+
+  assert.doesNotMatch(body, /@octocat|@org\/team/)
+  assert.ok(body.includes(expected))
+})
+
+test('neutralizes GFM extensions, links, images, HTML, tables, and newlines in artifact text', () => {
+  const diagnostic = [
+    '~~strike~~',
+    '[link](https://evil.example)',
+    '![image](https://evil.example/pixel.png)',
+    '<details open>',
+    '| cell |',
+    '## injected heading',
+  ].join('\n')
+  const body = renderComment(
+    validateArtifact(failedArtifact(diagnostic), expectedIdentity),
+    runUrl,
+  )
+
+  assert.doesNotMatch(body, /~~strike~~/)
+  assert.doesNotMatch(body, /\[link\]\(https:\/\/evil\.example\)/)
+  assert.doesNotMatch(body, /!\[image\]/)
+  assert.doesNotMatch(body, /(?<!\\)<details/)
+  assert.doesNotMatch(body, /(?<!\\)\| cell (?<!\\)\|/)
+  assert.doesNotMatch(body, /\n## injected heading/)
+})
+
 test('escapes every artifact metadata string used in the fixed comment', () => {
   const environment = benchmarkEnvironment({
     cpu: 'M1 | [fake]\n## injected -->',
@@ -455,6 +535,24 @@ test('renderComment accepts only validator-produced artifacts and a trusted run 
   assert.throws(() => renderComment(validArtifact(), runUrl), /validated artifact/)
   const artifact = validateArtifact(validArtifact(), expectedIdentity)
   assert.throws(() => renderComment(artifact, 'https://evil.example/run'), /trusted workflow run URL/)
+})
+
+test('selects update only for a bot comment containing the stable marker', () => {
+  const selection = selectMarkerComment([
+    { id: 1, user: { type: 'User' }, body: '<!-- desktop-glass-benchmark -->' },
+    { id: 2, user: { type: 'Bot' }, body: 'unrelated' },
+    { id: 3, user: { type: 'Bot' }, body: '<!-- desktop-glass-benchmark -->\nold report' },
+  ])
+
+  assert.deepEqual(selection, { operation: 'update', commentId: 3 })
+})
+
+test('selects comment creation when no bot marker comment exists', () => {
+  assert.deepEqual(selectMarkerComment([
+    { id: 1, user: { type: 'User' }, body: '<!-- desktop-glass-benchmark -->' },
+    { id: 2, user: { type: 'Bot' }, body: 'unrelated' },
+  ]), { operation: 'create' })
+  assert.deepEqual(selectMarkerComment([]), { operation: 'create' })
 })
 
 function validArtifact(options = {}) {
