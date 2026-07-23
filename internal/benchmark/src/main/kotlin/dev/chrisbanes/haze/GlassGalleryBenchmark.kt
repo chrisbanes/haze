@@ -43,7 +43,7 @@ class GlassGalleryBenchmark {
   fun playgroundTimeline() {
     benchmarkRule.measureRepeated(
       packageName = GLASS_TARGET_PACKAGE,
-      metrics = glassMetrics(includeMemory = true),
+      metrics = glassMetrics(includeMemory = false),
       compilationMode = CompilationMode.Full(),
       startupMode = StartupMode.WARM,
       iterations = GLASS_BENCHMARK_ITERATIONS,
