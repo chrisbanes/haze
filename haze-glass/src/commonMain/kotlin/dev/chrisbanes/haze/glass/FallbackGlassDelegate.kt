@@ -25,9 +25,7 @@ internal class FallbackGlassDelegate(
   private val effect: GlassVisualEffect,
 ) : GlassVisualEffect.Delegate {
 
-  private var cachedShapePath: Path? = null
-  private var cachedSize: Size = Size.Zero
-  private var cachedRadii: CornerRadii = CornerRadii.zero
+  private var preparedDraw: FallbackGlassPreparedDraw? = null
   private val groupAlpha = RetainedGlassGroupAlphaLayer()
   private var graphicsContext: GraphicsContext? = null
 
@@ -35,6 +33,110 @@ internal class FallbackGlassDelegate(
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     val style = resolveGlassStyle(effect, size, density, layoutDirection)
+    val interaction = resolveFallbackGlassInteraction(
+      state = effect.currentInteractionState,
+      radiusFraction = effect.interactionLightRadiusFraction,
+      size = size,
+    )
+    val previous = preparedDraw
+    if (previous?.size != size || previous.style != style || previous.interaction != interaction) {
+      val shapePath = previous
+        ?.takeIf { it.size == size && it.style.cornerRadii == style.cornerRadii }
+        ?.shapePath
+        ?: style.cornerRadii.takeUnless { it.isZero() }
+          ?.toRoundRect(size)
+          ?.let { Path().apply { addRoundRect(it) } }
+
+      val highlightAlpha = 0.25f * style.specularIntensity * style.alpha
+      val highlightRadius = max(size.minDimension / 2f, style.edgeSoftnessPx * 4f)
+      val highlightBrush = when {
+        highlightAlpha <= 0f || highlightRadius <= 0f -> null
+        previous?.highlightAlpha == highlightAlpha &&
+          previous.style.lightPosition == style.lightPosition &&
+          previous.highlightRadius == highlightRadius -> previous.highlightBrush
+        else -> Brush.radialGradient(
+          colors = listOf(
+            Color.White.copy(alpha = highlightAlpha),
+            Color.Transparent,
+          ),
+          center = style.lightPosition,
+          radius = highlightRadius,
+        )
+      }
+
+      val edgeAlpha = fallbackEdgeAlpha(style.ambientResponse)
+      val edgeBrush = when {
+        style.edgeSoftnessPx <= 0f || edgeAlpha <= 0f || style.alpha <= 0f -> null
+        previous?.edgeBrush != null &&
+          previous.edgeAlpha == edgeAlpha &&
+          previous.size == size -> previous.edgeBrush
+        else -> Brush.linearGradient(
+          colors = listOf(
+            Color.White.copy(alpha = edgeAlpha),
+            Color.Transparent,
+          ),
+          start = Offset.Zero,
+          end = Offset(size.width, size.height),
+        )
+      }
+      val edgeDirectAlpha = edgeAlpha * style.alpha
+      val edgeDirectBrush = when {
+        style.edgeSoftnessPx <= 0f || edgeDirectAlpha <= 0f -> null
+        previous?.edgeDirectBrush != null &&
+          previous.edgeDirectAlpha == edgeDirectAlpha &&
+          previous.size == size -> {
+          previous.edgeDirectBrush
+        }
+        else -> Brush.linearGradient(
+          colors = listOf(
+            Color.White.copy(alpha = edgeDirectAlpha),
+            Color.Transparent,
+          ),
+          start = Offset.Zero,
+          end = Offset(size.width, size.height),
+        )
+      }
+
+      val edgeStroke = when {
+        style.edgeSoftnessPx <= 0f -> null
+        previous?.style?.edgeSoftnessPx == style.edgeSoftnessPx -> previous.edgeStroke
+        else -> Stroke(width = style.edgeSoftnessPx * 2f)
+      }
+
+      val interactionAlpha = 0.32f * interaction.lightingIntensity * style.alpha
+      val interactionBrush = when {
+        !interaction.hasLighting || interactionAlpha <= 0f -> null
+        previous?.interactionAlpha == interactionAlpha &&
+          previous.interaction.position == interaction.position &&
+          previous.interaction.radiusPx == interaction.radiusPx -> previous.interactionBrush
+        else -> Brush.radialGradient(
+          colors = listOf(
+            Color.White.copy(alpha = interactionAlpha),
+            Color.Transparent,
+          ),
+          center = interaction.position,
+          radius = interaction.radiusPx,
+        )
+      }
+
+      preparedDraw = FallbackGlassPreparedDraw(
+        size = size,
+        style = style,
+        shapePath = shapePath,
+        highlightAlpha = highlightAlpha,
+        highlightRadius = highlightRadius,
+        highlightBrush = highlightBrush,
+        edgeAlpha = edgeAlpha,
+        edgeBrush = edgeBrush,
+        edgeDirectAlpha = edgeDirectAlpha,
+        edgeDirectBrush = edgeDirectBrush,
+        edgeStroke = edgeStroke,
+        interaction = interaction,
+        interactionAlpha = interactionAlpha,
+        interactionBrush = interactionBrush,
+      )
+    }
+
     val groupSize = size.roundToIntSize()
     val currentGraphicsContext = context.requireGraphicsContext()
     graphicsContext = currentGraphicsContext
@@ -45,31 +147,12 @@ internal class FallbackGlassDelegate(
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
-    val density = context.requireDensity()
-    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
-    val style = resolveGlassStyle(effect, size, density, layoutDirection)
+    val prepared = preparedDraw ?: return
+    val style = prepared.style
     val tint = style.tint
     if (!tint.isSpecified) return
     if (style.alpha <= 0f) return
-
-    val edgeSoftnessPx = style.edgeSoftnessPx
-    val edgeAlpha = fallbackEdgeAlpha(style.ambientResponse)
-    val highlightCenter = style.lightPosition
-    val highlightAlpha = 0.25f * style.specularIntensity
-    val highlightRadius = max(size.minDimension / 2f, edgeSoftnessPx * 4f)
-
-    val radii = style.cornerRadii
-
-    if (size != cachedSize || radii != cachedRadii) {
-      cachedSize = size
-      cachedRadii = radii
-      cachedShapePath = if (!radii.isZero()) {
-        radii.toRoundRect(size).let { Path().apply { addRoundRect(it) } }
-      } else {
-        null
-      }
-    }
-    val shapePath = cachedShapePath
+    val shapePath = prepared.shapePath
 
     fun DrawScope.drawFallback(alphaMultiplier: Float) {
       if (shapePath != null) {
@@ -80,59 +163,19 @@ internal class FallbackGlassDelegate(
         drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
       }
 
-      // Specular-ish radial highlight
-      if (highlightAlpha > 0f) {
-        val highlightBrush = Brush.radialGradient(
-          colors = listOf(
-            Color.White.copy(alpha = highlightAlpha * alphaMultiplier),
-            Color.Transparent,
-          ),
-          center = highlightCenter,
-          radius = highlightRadius,
-        )
-        if (shapePath != null) {
-          clipPath(shapePath) {
-            drawCircle(brush = highlightBrush, radius = highlightRadius, center = highlightCenter)
-          }
-        } else {
-          drawCircle(
-            brush = highlightBrush,
-            center = highlightCenter,
-            radius = highlightRadius,
-          )
-        }
+      // The edge falloff is part of the base material and remains behind child content.
+      val edgeBrush = if (alphaMultiplier >= 1f) {
+        prepared.edgeBrush
+      } else {
+        prepared.edgeDirectBrush
       }
-
-      // Edge falloff
-      if (edgeSoftnessPx > 0f) {
-        val softness = edgeSoftnessPx
-        val stroke = Stroke(width = softness * 2f)
-        val edgeBrush = Brush.linearGradient(
-          colors = listOf(
-            Color.White.copy(alpha = edgeAlpha * alphaMultiplier),
-            Color.Transparent,
-          ),
-          start = Offset.Zero,
-          end = Offset(size.width, size.height),
+      edgeBrush?.let {
+        drawFallbackEdge(
+          brush = it,
+          stroke = checkNotNull(prepared.edgeStroke),
+          shapePath = shapePath,
         )
-        if (shapePath != null) {
-          clipPath(shapePath) {
-            drawPath(path = shapePath, brush = edgeBrush, style = stroke)
-          }
-        } else {
-          drawRect(brush = edgeBrush, style = stroke)
-        }
       }
-
-      drawInteractionLighting(
-        interaction = resolveFallbackGlassInteraction(
-          state = effect.currentInteractionState,
-          radiusFraction = effect.interactionLightRadiusFraction,
-          size = size,
-        ),
-        shapePath = shapePath,
-        alphaMultiplier = alphaMultiplier,
-      )
     }
 
     when {
@@ -146,9 +189,45 @@ internal class FallbackGlassDelegate(
     }
   }
 
+  override fun DrawScope.drawForeground(context: VisualEffectContext) {
+    val prepared = preparedDraw ?: return
+    val style = prepared.style
+    val tint = style.tint
+    if (!tint.isSpecified) return
+    if (style.alpha <= 0f) return
+
+    val shapePath = prepared.shapePath
+
+    drawInteractionLighting(
+      interaction = prepared.interaction,
+      brush = prepared.interactionBrush,
+      shapePath = shapePath,
+    )
+
+    // Draw the fallback rim approximation above child content, matching the runtime path.
+    prepared.highlightBrush?.let { highlightBrush ->
+      if (shapePath != null) {
+        clipPath(shapePath) {
+          drawCircle(
+            brush = highlightBrush,
+            radius = prepared.highlightRadius,
+            center = style.lightPosition,
+          )
+        }
+      } else {
+        drawCircle(
+          brush = highlightBrush,
+          center = style.lightPosition,
+          radius = prepared.highlightRadius,
+        )
+      }
+    }
+  }
+
   override fun detach() {
     groupAlpha.release(graphicsContext)
     graphicsContext = null
+    preparedDraw = null
   }
 
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
@@ -175,18 +254,10 @@ internal fun resolveFallbackGlassInteraction(
 
 private fun DrawScope.drawInteractionLighting(
   interaction: GlassInteractionUniforms,
+  brush: Brush?,
   shapePath: Path?,
-  alphaMultiplier: Float,
 ) {
-  if (!interaction.hasLighting) return
-  val brush = Brush.radialGradient(
-    colors = listOf(
-      Color.White.copy(alpha = 0.32f * interaction.lightingIntensity * alphaMultiplier),
-      Color.Transparent,
-    ),
-    center = interaction.position,
-    radius = interaction.radiusPx,
-  )
+  if (brush == null) return
   val drawHighlight: DrawScope.() -> Unit = {
     drawCircle(brush = brush, center = interaction.position, radius = interaction.radiusPx)
   }
@@ -197,4 +268,35 @@ private fun DrawScope.drawInteractionLighting(
   }
 }
 
+private fun DrawScope.drawFallbackEdge(
+  brush: Brush,
+  stroke: Stroke,
+  shapePath: Path?,
+) {
+  if (shapePath != null) {
+    clipPath(shapePath) {
+      drawPath(path = shapePath, brush = brush, style = stroke)
+    }
+  } else {
+    drawRect(brush = brush, style = stroke)
+  }
+}
+
 internal fun fallbackEdgeAlpha(ambientResponse: Float): Float = 0.18f * ambientResponse.coerceIn(0f, 1f)
+
+private data class FallbackGlassPreparedDraw(
+  val size: Size,
+  val style: ResolvedGlassStyle,
+  val shapePath: Path?,
+  val highlightAlpha: Float,
+  val highlightRadius: Float,
+  val highlightBrush: Brush?,
+  val edgeAlpha: Float,
+  val edgeBrush: Brush?,
+  val edgeDirectAlpha: Float,
+  val edgeDirectBrush: Brush?,
+  val edgeStroke: Stroke?,
+  val interaction: GlassInteractionUniforms,
+  val interactionAlpha: Float,
+  val interactionBrush: Brush?,
+)
