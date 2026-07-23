@@ -471,59 +471,65 @@ internal object GlassShaders {
       return len > 0.0001 ? value / len : fallback;
     }
 
-    vec2 axisSafeSign(vec2 value) {
-      return vec2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0);
+    vec4 reversedSmootherstep(vec4 t) {
+      t = clamp(t, 0.0, 1.0);
+      return vec4(1.0) - t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
     }
 
-    vec2 gradSdRectangle(vec2 localCoord, vec2 size) {
-      vec2 halfSize = size * 0.5;
-      vec2 centeredCoord = localCoord - halfSize;
-      vec2 edgeDistance = abs(centeredCoord) - halfSize;
-      vec2 coordSign = axisSafeSign(centeredCoord);
-      if (edgeDistance.x >= 0.0 || edgeDistance.y >= 0.0) {
-        return coordSign * safeNormalize(max(edgeDistance, 0.0), vec2(0.0));
-      }
-      return edgeDistance.x > edgeDistance.y
-        ? vec2(coordSign.x, 0.0)
-        : vec2(0.0, coordSign.y);
+    vec2 gradSdRectangle(vec2 localCoord, vec2 size, float blendWidth) {
+      vec4 edgeDistance = vec4(
+        -localCoord.x,
+        localCoord.x - size.x,
+        -localCoord.y,
+        localCoord.y - size.y
+      );
+      float maxDistance = max(
+        max(edgeDistance.x, edgeDistance.y),
+        max(edgeDistance.z, edgeDistance.w)
+      );
+      vec4 weights = reversedSmootherstep(
+        (vec4(maxDistance) - edgeDistance) / blendWidth
+      );
+      float totalWeight = dot(weights, vec4(1.0));
+      return vec2(weights.y - weights.x, weights.w - weights.z) /
+        max(totalWeight, 0.0001);
     }
 
-    vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii) {
-      float sd = sdRectangle(localCoord, size);
-      vec2 gradient = gradSdRectangle(localCoord, size);
-      if (localCoord.x < radii.x && localCoord.y < radii.x) {
-        vec2 center = vec2(radii.x);
-        float cornerSd = length(localCoord - center) - radii.x;
-        if (cornerSd > sd) {
-          sd = cornerSd;
-          gradient = safeNormalize(localCoord - center, vec2(-0.70710678));
-        }
-      }
-      if (localCoord.x > size.x - radii.y && localCoord.y < radii.y) {
-        vec2 center = vec2(size.x - radii.y, radii.y);
-        float cornerSd = length(localCoord - center) - radii.y;
-        if (cornerSd > sd) {
-          sd = cornerSd;
-          gradient = safeNormalize(localCoord - center, vec2(0.70710678, -0.70710678));
-        }
-      }
-      if (localCoord.x > size.x - radii.z && localCoord.y > size.y - radii.z) {
-        vec2 center = vec2(size.x - radii.z, size.y - radii.z);
-        float cornerSd = length(localCoord - center) - radii.z;
-        if (cornerSd > sd) {
-          sd = cornerSd;
-          gradient = safeNormalize(localCoord - center, vec2(0.70710678));
-        }
-      }
-      if (localCoord.x < radii.w && localCoord.y > size.y - radii.w) {
-        vec2 center = vec2(radii.w, size.y - radii.w);
-        float cornerSd = length(localCoord - center) - radii.w;
-        if (cornerSd > sd) {
-          gradient = safeNormalize(localCoord - center, vec2(-0.70710678, 0.70710678));
-        }
-      }
-      return gradient;
+    vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, float blendWidth) {
+      vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
+      vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
+      vec2 topRightDelta = vec2(
+        max(localCoord.x - (size.x - radii.y), 0.0),
+        min(localCoord.y - radii.y, 0.0)
+      );
+      vec2 bottomRightDelta = max(
+        localCoord - vec2(size.x - radii.z, size.y - radii.z),
+        vec2(0.0)
+      );
+      vec2 bottomLeftDelta = vec2(
+        min(localCoord.x - radii.w, 0.0),
+        max(localCoord.y - (size.y - radii.w), 0.0)
+      );
+      vec4 cornerWeights = vec4(
+        smootherstep(clamp(length(topLeftDelta) / max(radii.x, 0.0001), 0.0, 1.0)),
+        smootherstep(clamp(length(topRightDelta) / max(radii.y, 0.0001), 0.0, 1.0)),
+        smootherstep(clamp(length(bottomRightDelta) / max(radii.z, 0.0001), 0.0, 1.0)),
+        smootherstep(clamp(length(bottomLeftDelta) / max(radii.w, 0.0001), 0.0, 1.0))
+      );
+      vec2 cornerGradient = safeNormalize(
+        safeNormalize(topLeftDelta, rectangleGradient) * cornerWeights.x +
+          safeNormalize(topRightDelta, rectangleGradient) * cornerWeights.y +
+          safeNormalize(bottomRightDelta, rectangleGradient) * cornerWeights.z +
+          safeNormalize(bottomLeftDelta, rectangleGradient) * cornerWeights.w,
+        rectangleGradient
+      );
+      float cornerWeight = max(
+        max(cornerWeights.x, cornerWeights.y),
+        max(cornerWeights.z, cornerWeights.w)
+      );
+      return mix(rectangleGradient, cornerGradient, cornerWeight);
     }
+
   """
 
   private fun surfaceAndDisplacementHelpers(): String = """
@@ -531,14 +537,17 @@ internal object GlassShaders {
       return 1.0 - sqrt(max(0.0, 1.0 - x * x));
     }
 
-    float squircleMap(float x) {
-      return pow(1.0 - pow(1.0 - x, 4.0), 0.25);
+    float squircleMap(float t) {
+      float profile = pow(max(0.0, 1.0 - pow(t, 4.0)), 0.25);
+      float terminalT = clamp((t - 0.75) / 0.25, 0.0, 1.0);
+      float terminalTaper = 1.0 - smootherstep(terminalT);
+      return profile * terminalTaper;
     }
 
     float evaluateProfile(float t) {
       float x = 1.0 - clamp(t, 0.0, 1.0);
       if (surfaceProfile == 1) {
-        return squircleMap(x);
+        return squircleMap(t);
       } else if (surfaceProfile == 2) {
         return -circleMap(x);
       } else if (surfaceProfile == 3) {
@@ -576,12 +585,13 @@ internal object GlassShaders {
         clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
       float displacementMagnitude =
         heightNorm * effectiveRefractionStrength * refractionScale;
-      vec2 centerFallbackDir = vec2(1.0, 0.0);
-      vec2 refractionDir = safeNormalize(
-        gradSdRoundedRect(localCoord, materialSize, cornerRadii),
-        centerFallbackDir
-      );
-      return -refractionDir * displacementMagnitude;
+      float normalBlendWidth = max(refractionHeight, 1.0);
+      vec2 opticalGradient =
+        gradSdRoundedRect(localCoord, materialSize, cornerRadii, normalBlendWidth);
+      float gradientLength = length(opticalGradient);
+      float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
+      vec2 refractionDir = opticalGradient / max(gradientLength, 0.0001);
+      return -refractionDir * displacementMagnitude * centerFade;
     }
   """
 

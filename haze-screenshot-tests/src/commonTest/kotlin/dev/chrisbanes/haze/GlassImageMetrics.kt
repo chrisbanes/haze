@@ -330,6 +330,23 @@ internal fun recoverPremultipliedSnapshot(
 internal fun PixelSnapshot.scanlineDerivative(
   y: Int,
   xRange: IntRange,
+): List<Float> = scanlineDerivative(width, height, y, xRange) { x, sampleY ->
+  this[x, sampleY]
+}
+
+internal fun PixelMap.scanlineDerivative(
+  y: Int,
+  xRange: IntRange,
+): List<Float> = scanlineDerivative(width, height, y, xRange) { x, sampleY ->
+  this[x, sampleY]
+}
+
+private fun scanlineDerivative(
+  width: Int,
+  height: Int,
+  y: Int,
+  xRange: IntRange,
+  colorAt: (Int, Int) -> Color,
 ): List<Float> {
   require(y in 0 until height) { "Scanline y=$y must be within 0 until $height" }
   require(xRange.first < xRange.last) {
@@ -339,8 +356,63 @@ internal fun PixelSnapshot.scanlineDerivative(
     "Scanline xRange=$xRange must be within 0 until $width"
   }
   return (xRange.first until xRange.last).map { x ->
-    abs(this[x + 1, y].luminance() - this[x, y].luminance())
+    abs(colorAt(x + 1, y).luminance() - colorAt(x, y).luminance())
   }
+}
+
+internal fun PixelSnapshot.verticalScanlineDerivative(
+  x: Int,
+  yRange: IntRange,
+): List<Float> = verticalScanlineDerivative(width, height, x, yRange) { sampleX, y ->
+  this[sampleX, y]
+}
+
+internal fun PixelMap.verticalScanlineDerivative(
+  x: Int,
+  yRange: IntRange,
+): List<Float> = verticalScanlineDerivative(width, height, x, yRange) { sampleX, y ->
+  this[sampleX, y]
+}
+
+private fun verticalScanlineDerivative(
+  width: Int,
+  height: Int,
+  x: Int,
+  yRange: IntRange,
+  colorAt: (Int, Int) -> Color,
+): List<Float> {
+  require(x in 0 until width) { "Vertical scanline x=$x must be within 0 until $width" }
+  require(yRange.first < yRange.last) {
+    "Vertical scanline yRange=$yRange must contain at least 2 pixels"
+  }
+  require(yRange.first >= 0 && yRange.last < height) {
+    "Vertical scanline yRange=$yRange must be within 0 until $height"
+  }
+  return (yRange.first until yRange.last).map { y ->
+    abs(colorAt(x, y + 1).luminance() - colorAt(x, y).luminance())
+  }
+}
+
+internal fun PixelMap.scanlineLuminance(
+  y: Int,
+  xRange: IntRange,
+): List<Float> {
+  require(y in 0 until height) { "Scanline y=$y must be within 0 until $height" }
+  require(xRange.first >= 0 && xRange.last < width) {
+    "Scanline xRange=$xRange must be within 0 until $width"
+  }
+  return xRange.map { x -> this[x, y].luminance() }
+}
+
+internal fun PixelMap.verticalScanlineLuminance(
+  x: Int,
+  yRange: IntRange,
+): List<Float> {
+  require(x in 0 until width) { "Vertical scanline x=$x must be within 0 until $width" }
+  require(yRange.first >= 0 && yRange.last < height) {
+    "Vertical scanline yRange=$yRange must be within 0 until $height"
+  }
+  return yRange.map { y -> this[x, y].luminance() }
 }
 
 internal fun PixelSnapshot.horizontalEdgePosition(
@@ -490,18 +562,34 @@ internal fun assertBoundaryContinuous(
   derivative: List<Float>,
   boundaryIndex: Int,
 ) {
-  require(derivative.isNotEmpty()) { "Boundary derivative must be non-empty" }
-  require(boundaryIndex in derivative.indices) {
-    "boundaryIndex=$boundaryIndex must be within derivative indices ${derivative.indices}"
+  assertBoundarySignalContinuous(derivative, boundaryIndex..boundaryIndex)
+}
+
+internal fun assertBoundaryCurvatureContinuous(
+  derivative: List<Float>,
+  boundaryIndex: Int,
+) {
+  val curvature = derivative.zipWithNext { first, second -> abs(second - first) }
+  assertBoundarySignalContinuous(curvature, (boundaryIndex - 2)..(boundaryIndex + 1))
+}
+
+private fun assertBoundarySignalContinuous(
+  signal: List<Float>,
+  boundaryRange: IntRange,
+) {
+  require(signal.isNotEmpty()) { "Boundary signal must be non-empty" }
+  require(boundaryRange.first >= 0 && boundaryRange.last < signal.size) {
+    "Boundary range $boundaryRange must be within signal indices ${signal.indices}"
   }
-  val start = maxOf(0, boundaryIndex - 8)
-  val end = minOf(derivative.size, boundaryIndex + 9)
-  val neighborhood = derivative.subList(
+  val start = maxOf(0, boundaryRange.first - 8)
+  val end = minOf(signal.size, boundaryRange.last + 9)
+  val neighborhood = signal.subList(
     start,
     end,
-  ).filterIndexed { index, _ -> index != boundaryIndex - start }
+  ).filterIndexed { index, _ -> start + index !in boundaryRange }
   val allowed = (neighborhood.maxOrNull() ?: 0f) * 1.5f + PixelTolerance
-  assertThat(derivative[boundaryIndex]).isLessThanOrEqualTo(allowed)
+  val boundaryPeak = signal.subList(boundaryRange.first, boundaryRange.last + 1).max()
+  assertThat(boundaryPeak).isLessThanOrEqualTo(allowed)
 }
 
 internal fun assertEquivalentAlphaEdgePosition(

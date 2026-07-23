@@ -23,7 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -40,6 +42,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
@@ -50,6 +53,11 @@ private val InvariantRootHeightRange = 1919..1920
 private const val InvariantSurfaceWidthPx = 770
 private const val InvariantSurfaceHeightPx = 495
 private val InvariantSourceColor = Color(0xFF101820)
+
+internal enum class GlassContinuityCarrier {
+  Horizontal,
+  Vertical,
+}
 
 @Composable
 internal fun GlassInvariantSample(
@@ -67,6 +75,7 @@ internal fun GlassInvariantSample(
   adversarialStripePeriodPx: Int? = null,
   horizontalStripes: Boolean = false,
   checkerStripes: Boolean = false,
+  continuityCarrier: GlassContinuityCarrier? = null,
   showSource: Boolean = true,
 ) {
   val hazeState = rememberHazeState()
@@ -98,9 +107,11 @@ internal fun GlassInvariantSample(
           gridSpacingPx = gridSpacingPx,
           verticalCarrierFractionInsideLeftEdge = verticalCarrierFractionInsideLeftEdge,
           surfaceWidthPx = surfaceSize.width.toPx(),
+          surfaceHeightPx = surfaceSize.height.toPx(),
           adversarialStripePeriodPx = adversarialStripePeriodPx,
           horizontalStripes = horizontalStripes,
           checkerStripes = checkerStripes,
+          continuityCarrier = continuityCarrier,
         )
       }
     }
@@ -163,10 +174,31 @@ private fun DrawScope.drawInvariantGrid(
   gridSpacingPx: Int? = null,
   verticalCarrierFractionInsideLeftEdge: Float?,
   surfaceWidthPx: Float,
+  surfaceHeightPx: Float,
   adversarialStripePeriodPx: Int?,
   horizontalStripes: Boolean,
   checkerStripes: Boolean,
+  continuityCarrier: GlassContinuityCarrier?,
 ) {
+  val surfaceLeft = (size.width - surfaceWidthPx) * 0.5f
+  val surfaceTop = (size.height - surfaceHeightPx) * 0.5f
+  val continuityBrush = when (continuityCarrier) {
+    GlassContinuityCarrier.Horizontal -> Brush.horizontalGradient(
+      colors = listOf(Color.Black, Color.White),
+      startX = surfaceLeft,
+      endX = surfaceLeft + surfaceWidthPx,
+    )
+    GlassContinuityCarrier.Vertical -> Brush.verticalGradient(
+      colors = listOf(Color.Black, Color.White),
+      startY = surfaceTop,
+      endY = surfaceTop + surfaceHeightPx,
+    )
+    null -> null
+  }
+  if (continuityBrush != null) {
+    drawRect(brush = continuityBrush)
+    return
+  }
   if (adversarialStripePeriodPx != null) {
     drawRect(Color.Black.copy(alpha = alpha))
     var position = 0f
@@ -196,7 +228,6 @@ private fun DrawScope.drawInvariantGrid(
   }
   drawRect(InvariantSourceColor.copy(alpha = alpha))
   if (verticalCarrierFractionInsideLeftEdge != null) {
-    val surfaceLeft = (size.width - surfaceWidthPx) * 0.5f
     val carrierX = surfaceLeft + surfaceWidthPx * verticalCarrierFractionInsideLeftEdge
     drawLine(
       color = Color.White.copy(alpha = alpha),
@@ -216,6 +247,242 @@ private fun DrawScope.drawInvariantGrid(
     while (y < size.height) {
       drawLine(Color.Cyan.copy(alpha = alpha), Offset(0f, y), Offset(size.width, y), 2f)
       y += spacing
+    }
+  }
+}
+
+private data class GlassContinuityCase(
+  val name: String,
+  val size: DpSize,
+  val shape: RoundedCornerShape,
+)
+
+private fun assertContinuousAt(
+  derivative: List<Float>,
+  boundaryIndex: Int,
+  label: String,
+) {
+  try {
+    assertBoundaryCurvatureContinuous(
+      derivative = derivative,
+      boundaryIndex = boundaryIndex,
+    )
+  } catch (failure: AssertionError) {
+    throw AssertionError("$label derivative=$derivative", failure)
+  }
+}
+
+internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
+  val cases = listOf(
+    GlassContinuityCase("square", DpSize(220.dp, 220.dp), RoundedCornerShape(28.dp)),
+    GlassContinuityCase("wide", DpSize(280.dp, 160.dp), RoundedCornerShape(28.dp)),
+    GlassContinuityCase("tall", DpSize(160.dp, 280.dp), RoundedCornerShape(28.dp)),
+  )
+  val profiles = listOf(SurfaceProfile.Circle, SurfaceProfile.Squircle)
+  val opticsCases = listOf(
+    GlassOptics.Adaptive,
+    GlassOptics.Absolute(
+      refractionStrength = 1f,
+      refractionHeight = 0.75f,
+      refractionScale = 48f,
+      depth = 0f,
+      blurRadius = 0.dp,
+    ),
+  )
+  var currentCase by mutableStateOf(cases.first())
+  var carrier by mutableStateOf(GlassContinuityCarrier.Horizontal)
+  val effect = GlassVisualEffect().apply {
+    tint = Color.Transparent
+    specularIntensity = 0f
+    ambientResponse = 0f
+    chromaticAberrationStrength = 0f
+    edgeSoftness = 0.dp
+    shape = currentCase.shape
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        inputScale = HazeInputScale.None,
+        shape = currentCase.shape,
+        surfaceSize = currentCase.size,
+        drawGridLines = false,
+        continuityCarrier = carrier,
+      )
+    }
+  }
+
+  for (case in cases) {
+    currentCase = case
+    effect.shape = case.shape
+    for (profile in profiles) {
+      effect.surfaceProfile = profile
+      for (optics in opticsCases) {
+        effect.optics = optics
+
+        carrier = GlassContinuityCarrier.Horizontal
+        waitForIdle()
+        val horizontal = captureInvariantPixels()
+        val bounds = horizontal.centeredSurfaceBounds(case.size)
+        val centerXRange = (bounds.center.x - 16)..(bounds.center.x + 16)
+        assertContinuousAt(
+          derivative = horizontal.scanlineDerivative(bounds.center.y, centerXRange),
+          boundaryIndex = bounds.center.x - centerXRange.first,
+          label = "${case.name}/$profile/$optics horizontal center",
+        )
+        val cornerOffset = minOf(bounds.width, bounds.height) / 4
+        val diagonalX = bounds.left + cornerOffset
+        val diagonalRange = (diagonalX - 16)..(diagonalX + 16)
+        assertContinuousAt(
+          derivative = horizontal.scanlineDerivative(bounds.top + cornerOffset, diagonalRange),
+          boundaryIndex = diagonalX - diagonalRange.first,
+          label = "${case.name}/$profile/$optics diagonal",
+        )
+
+        carrier = GlassContinuityCarrier.Vertical
+        waitForIdle()
+        val vertical = captureInvariantPixels()
+        val centerYRange = (bounds.center.y - 16)..(bounds.center.y + 16)
+        assertContinuousAt(
+          derivative = vertical.verticalScanlineDerivative(bounds.center.x, centerYRange),
+          boundaryIndex = bounds.center.y - centerYRange.first,
+          label = "${case.name}/$profile/$optics vertical center",
+        )
+      }
+    }
+  }
+}
+
+internal fun ScreenshotUiTest.assertGlassAsymmetricCornerNormalsContinuous() {
+  val surfaceSize = DpSize(120.dp, 100.dp)
+  val shape = RoundedCornerShape(
+    topStart = 100.dp,
+    topEnd = 100.dp,
+    bottomEnd = 0.dp,
+    bottomStart = 0.dp,
+  )
+  val effect = GlassVisualEffect().apply {
+    tint = Color.Transparent
+    optics = GlassOptics.Absolute(
+      refractionStrength = 1f,
+      refractionHeight = 0.5f,
+      refractionScale = 48f,
+      depth = 0f,
+      blurRadius = 0.dp,
+    )
+    specularIntensity = 0f
+    ambientResponse = 0f
+    chromaticAberrationStrength = 0f
+    edgeSoftness = 0.dp
+    this.shape = shape
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        inputScale = HazeInputScale.None,
+        shape = shape,
+        surfaceSize = surfaceSize,
+        drawGridLines = false,
+        continuityCarrier = GlassContinuityCarrier.Vertical,
+      )
+    }
+  }
+
+  waitForIdle()
+  val enabled = captureInvariantPixels()
+  val bounds = enabled.centeredSurfaceBounds(surfaceSize)
+  val density = bounds.width / surfaceSize.width.value
+  val probeX = bounds.left + (10f * density).roundToInt()
+  val centerYRange = (bounds.center.y - 16)..(bounds.center.y + 16)
+  val enabledSignal = enabled.verticalScanlineLuminance(probeX, centerYRange)
+  val enabledDerivative = enabled.verticalScanlineDerivative(probeX, centerYRange)
+
+  effect.updateAbsoluteOptics { copy(refractionStrength = 0f) }
+  waitForIdle()
+  val disabled = captureInvariantPixels()
+  val disabledSignal = disabled.verticalScanlineLuminance(probeX, centerYRange)
+  val refractionDelta = enabledSignal.zip(disabledSignal).maxOf { (first, second) ->
+    abs(first - second)
+  }
+  assertThat(refractionDelta).isGreaterThan(1f / 255f)
+  assertBoundaryContinuous(
+    derivative = enabledDerivative,
+    boundaryIndex = bounds.center.y - centerYRange.first,
+  )
+}
+
+internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
+  val cases = listOf(
+    DpSize(220.dp, 220.dp),
+    DpSize(280.dp, 160.dp),
+    DpSize(160.dp, 280.dp),
+  )
+  val shape = RoundedCornerShape(28.dp)
+  var surfaceSize by mutableStateOf(cases.first())
+  val effect = GlassVisualEffect().apply {
+    tint = Color.Transparent
+    optics = GlassOptics.Absolute(
+      refractionStrength = 1f,
+      refractionHeight = 0.25f,
+      refractionScale = 48f,
+      depth = 0f,
+      blurRadius = 0.dp,
+    )
+    surfaceProfile = SurfaceProfile.Squircle
+    specularIntensity = 0f
+    ambientResponse = 0f
+    chromaticAberrationStrength = 0f
+    edgeSoftness = 0.dp
+    this.shape = shape
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        inputScale = HazeInputScale.None,
+        shape = shape,
+        surfaceSize = surfaceSize,
+        drawGridLines = false,
+        continuityCarrier = GlassContinuityCarrier.Horizontal,
+      )
+    }
+  }
+
+  for ((index, case) in cases.withIndex()) {
+    surfaceSize = case
+    waitForIdle()
+    val rendered = captureInvariantPixels()
+    val bounds = rendered.centeredSurfaceBounds(case)
+    val refractionHeightPx = (minOf(bounds.width, bounds.height) * 0.25f).roundToInt()
+    val cutoffs = listOf(
+      bounds.left + refractionHeightPx,
+      bounds.right - refractionHeightPx,
+    )
+    for (cutoff in cutoffs) {
+      val range = (cutoff - 16)..(cutoff + 16)
+      assertContinuousAt(
+        derivative = rendered.scanlineDerivative(bounds.center.y, range),
+        boundaryIndex = cutoff - range.first,
+        label = "$case cutoff=$cutoff",
+      )
+    }
+    if (index == 0) {
+      val activeSignal = rendered.scanlineLuminance(
+        y = bounds.center.y,
+        xRange = bounds.left until bounds.right,
+      )
+      effect.updateAbsoluteOptics { copy(refractionStrength = 0f) }
+      waitForIdle()
+      val disabledSignal = captureInvariantPixels().scanlineLuminance(
+        y = bounds.center.y,
+        xRange = bounds.left until bounds.right,
+      )
+      val refractionDelta = activeSignal.zip(disabledSignal).maxOf { (first, second) ->
+        abs(first - second)
+      }
+      assertThat(refractionDelta).isGreaterThan(1f / 255f)
+      effect.updateAbsoluteOptics { copy(refractionStrength = 1f) }
     }
   }
 }
@@ -676,9 +943,11 @@ private fun ProgressiveInvariantPanel(effect: GlassVisualEffect, height: android
         drawGridLines = true,
         verticalCarrierFractionInsideLeftEdge = null,
         surfaceWidthPx = size.width,
+        surfaceHeightPx = size.height,
         adversarialStripePeriodPx = null,
         horizontalStripes = false,
         checkerStripes = false,
+        continuityCarrier = null,
       )
     }
     Box(
@@ -1268,6 +1537,18 @@ private fun ScreenshotUiTest.assertGlassCornersMatchComposeClipInvariant(
 }
 
 private fun PixelSnapshot.centeredSurfaceBounds(surfaceSize: DpSize): IntRect {
+  return centeredSurfaceBounds(width, height, surfaceSize)
+}
+
+private fun PixelMap.centeredSurfaceBounds(surfaceSize: DpSize): IntRect {
+  return centeredSurfaceBounds(width, height, surfaceSize)
+}
+
+private fun centeredSurfaceBounds(
+  width: Int,
+  height: Int,
+  surfaceSize: DpSize,
+): IntRect {
   val density = InvariantSurfaceWidthPx / 280f
   val surfaceWidthPx = (surfaceSize.width.value * density).roundToInt()
   val surfaceHeightPx = (surfaceSize.height.value * density).roundToInt()
@@ -1286,13 +1567,17 @@ private fun invariantEffect(shape: RoundedCornerShape) = GlassVisualEffect().app
 }
 
 private fun ScreenshotUiTest.captureInvariantSnapshot(): PixelSnapshot {
-  val snapshot = captureRootPixels().snapshot()
-  require(snapshot.width == InvariantRootWidth && snapshot.height in InvariantRootHeightRange) {
+  return captureInvariantPixels().snapshot()
+}
+
+private fun ScreenshotUiTest.captureInvariantPixels(): PixelMap {
+  val pixels = captureRootPixels()
+  require(pixels.width == InvariantRootWidth && pixels.height in InvariantRootHeightRange) {
     "Invariant root must be width $InvariantRootWidth and height in " +
       "$InvariantRootHeightRange, " +
-      "but capture was ${snapshot.width}x${snapshot.height}"
+      "but capture was ${pixels.width}x${pixels.height}"
   }
-  return snapshot
+  return pixels
 }
 
 private fun ScreenshotUiTest.captureTransparentSnapshot(

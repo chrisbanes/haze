@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import assertk.assertThat
@@ -204,6 +205,56 @@ class GlassImageMetricsTest {
   }
 
   @Test
+  fun verticalScanlineDerivative_returnsAdjacentLuminanceDifferences() {
+    val gray25 = Color(0.25f, 0.25f, 0.25f)
+    val gray75 = Color(0.75f, 0.75f, 0.75f)
+    val snapshot = PixelSnapshot(
+      width = 2,
+      height = 4,
+      colors = listOf(
+        Color.Black,
+        Color.Black,
+        Color.Black,
+        gray25,
+        Color.Black,
+        gray75,
+        Color.Black,
+        Color.White,
+      ),
+    )
+
+    assertThat(snapshot.verticalScanlineDerivative(x = 1, yRange = 0..3))
+      .isEqualTo(
+        listOf(
+          gray25.luminance(),
+          gray75.luminance() - gray25.luminance(),
+          Color.White.luminance() - gray75.luminance(),
+        ),
+      )
+  }
+
+  @Test
+  fun verticalScanlineDerivative_rejectsInvalidCoordinatesAndShortRanges() {
+    val snapshot = snapshot(width = 2, height = 3)
+
+    assertThat(
+      assertFailsWith<IllegalArgumentException> {
+        snapshot.verticalScanlineDerivative(x = 2, yRange = 0..2)
+      }.message.orEmpty(),
+    ).contains("x")
+    assertThat(
+      assertFailsWith<IllegalArgumentException> {
+        snapshot.verticalScanlineDerivative(x = 0, yRange = 1..1)
+      }.message.orEmpty(),
+    ).contains("at least 2")
+    assertThat(
+      assertFailsWith<IllegalArgumentException> {
+        snapshot.verticalScanlineDerivative(x = 0, yRange = 1..3)
+      }.message.orEmpty(),
+    ).contains("yRange")
+  }
+
+  @Test
   fun alphaEdgePosition_ignoresStrongerContentEdges() {
     val snapshot = PixelSnapshot(
       width = 5,
@@ -361,7 +412,64 @@ class GlassImageMetricsTest {
       assertFailsWith<IllegalArgumentException> {
         assertBoundaryContinuous(listOf(0f), boundaryIndex = 1)
       }.message.orEmpty(),
-    ).contains("boundaryIndex")
+    ).contains("Boundary range")
+  }
+
+  @Test
+  fun boundaryCurvatureContinuity_rejectsClusteredSpike() {
+    val derivative = List(17) { index ->
+      if (index in 7..9) 0.25f else 0.01f
+    }
+
+    assertFailsWith<AssertionError> {
+      assertBoundaryCurvatureContinuous(
+        derivative = derivative,
+        boundaryIndex = 8,
+      )
+    }
+  }
+
+  @Test
+  fun boundaryCurvatureContinuity_acceptsSmoothWideTransition() {
+    val derivative = listOf(
+      0f,
+      0f,
+      0.0039f,
+      0f,
+      0.0039f,
+      0.004f,
+      0f,
+      0f,
+      0f,
+      0f,
+      0f,
+      0.004f,
+      0f,
+      0f,
+      0.0119f,
+      0.0228f,
+      0.018f,
+      0.0171f,
+      0.0098f,
+      0.0032f,
+      0f,
+      0f,
+      0f,
+      0f,
+      0f,
+      0.0033f,
+      0f,
+      0f,
+      0f,
+      0.0033f,
+      0f,
+      0f,
+    )
+
+    assertBoundaryCurvatureContinuous(
+      derivative = derivative,
+      boundaryIndex = 16,
+    )
   }
 
   @Test

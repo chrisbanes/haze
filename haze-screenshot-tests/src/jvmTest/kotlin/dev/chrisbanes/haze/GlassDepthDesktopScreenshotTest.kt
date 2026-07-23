@@ -10,6 +10,21 @@ import kotlin.test.Test
 class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
 
   @Test
+  fun glass_asymmetricCornerNormalsAreContinuous() = runScreenshotTest {
+    assertGlassAsymmetricCornerNormalsContinuous()
+  }
+
+  @Test
+  fun glass_squircleInteriorIsContinuous() = runScreenshotTest {
+    assertGlassSquircleInteriorContinuous()
+  }
+
+  @Test
+  fun glass_medialAxesAreContinuous() = runScreenshotTest {
+    assertGlassMedialAxesContinuous()
+  }
+
+  @Test
   fun glass_depthProgression() = runScreenshotTest {
     assertGlassDepthProgression()
   }
