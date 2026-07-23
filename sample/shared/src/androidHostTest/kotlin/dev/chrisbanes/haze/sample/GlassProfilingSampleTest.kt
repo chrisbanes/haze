@@ -12,8 +12,10 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
+import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalTestApi::class)
+@Config(qualifiers = "w393dp-h698dp-440dpi")
 class GlassProfilingSampleTest : ContextTest() {
   @Test
   fun androidSamples_registersTheProfilingDestination() {
