@@ -74,3 +74,19 @@ GitHub REST API to fetch release notes: `curl -s
 Gradle convention plugins expect Java 21; verify your local toolchain matches `gradle/build-logic`.
 Secrets are not required for local builds, but Android sample runs need a connected device or
 emulator with API level ≥34, matching the raised compile SDK settings.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues for `chrisbanes/haze`. See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default canonical triage labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use a single-context layout with a root `CONTEXT.md` and `docs/adr/`. See
+`docs/agents/domain.md`.
