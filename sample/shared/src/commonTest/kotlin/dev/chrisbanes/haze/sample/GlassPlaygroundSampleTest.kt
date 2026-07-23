@@ -5,6 +5,10 @@ package dev.chrisbanes.haze.sample
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -17,8 +21,30 @@ import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
-@OptIn(ExperimentalHazeApi::class)
+@OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassPlaygroundSampleTest : ContextTest() {
+  @Test
+  fun content_exposesCompletedTimelineLoop() = runComposeUiTest {
+    setContent {
+      GlassPlaygroundSampleContent(
+        progressProvider = { 0f },
+        dragOffsetProvider = { Offset.Zero },
+        isPlaying = true,
+        recordingMode = true,
+        completedLoopCount = 2,
+        onPlayPause = {},
+        onReset = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+        onDragStart = {},
+        onDrag = { _, _ -> },
+        onDragEnd = {},
+      )
+    }
+
+    onNodeWithTag("glass_playground_loop_2").assertIsDisplayed()
+  }
+
   @Test
   fun playgroundInteraction_keepsHoverAfterPressAndUsesPointerContentTransform() {
     val source = MutableInteractionSource()

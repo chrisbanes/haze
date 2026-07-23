@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,6 +71,8 @@ internal class GlassPlaygroundState {
   var isPlaying by mutableStateOf(true)
     private set
   var recordingMode by mutableStateOf(false)
+    private set
+  var completedLoopCount by mutableIntStateOf(0)
     private set
   var activeSurface by mutableStateOf<GlassPlaygroundSurfaceId?>(null)
     private set
@@ -118,6 +121,7 @@ internal class GlassPlaygroundState {
         ),
       )
       progressAnimation.snapTo(0f)
+      completedLoopCount++
     }
   }
 
@@ -125,6 +129,7 @@ internal class GlassPlaygroundState {
     activeSurface = null
     dragOffsets.clear()
     progressAnimation.snapTo(0f)
+    completedLoopCount = 0
     isPlaying = true
     recordingMode = false
   }
@@ -158,6 +163,7 @@ public fun GlassPlaygroundSample(navController: NavHostController) {
     dragOffsetProvider = state::dragOffset,
     isPlaying = state.isPlaying,
     recordingMode = state.recordingMode,
+    completedLoopCount = state.completedLoopCount,
     onPlayPause = state::togglePlayback,
     onReset = {
       returnJobs.values.forEach(Job::cancel)
@@ -184,6 +190,7 @@ public fun GlassPlaygroundSampleContent(
   dragOffsetProvider: (GlassPlaygroundSurfaceId) -> Offset,
   isPlaying: Boolean,
   recordingMode: Boolean,
+  completedLoopCount: Int = 0,
   onPlayPause: () -> Unit,
   onReset: () -> Unit,
   onRecordingModeChanged: (Boolean) -> Unit,
@@ -195,7 +202,11 @@ public fun GlassPlaygroundSampleContent(
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
-  BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+  BoxWithConstraints(
+    modifier = modifier
+      .fillMaxSize()
+      .testTag("glass_playground_loop_$completedLoopCount"),
+  ) {
     GalleryBackdrop(
       hazeState = hazeState,
       artworkIndex = 0,

@@ -89,7 +89,9 @@ class GlassProductSampleTest : ContextTest() {
       )
     }
 
+    onNodeWithTag("glass_product_page_0").assertIsDisplayed()
     onNodeWithContentDescription("Next artwork").performClick()
+    onNodeWithTag("glass_product_page_1").assertIsDisplayed()
     onNodeWithText("Signal Garden").assertIsDisplayed()
     onNodeWithContentDescription("Favorite artwork").performClick()
     onNodeWithContentDescription("Remove from favorites").assertIsDisplayed()
