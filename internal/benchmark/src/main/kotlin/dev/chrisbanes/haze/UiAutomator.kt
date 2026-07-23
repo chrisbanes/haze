@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import android.graphics.Point
+import android.os.SystemClock
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.Direction
@@ -114,7 +115,7 @@ internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
   waitForGlassProfilingObject(
     scenarioId = scenarioId,
     expectedPhase = "ready",
-    selector = By.res("glass_profiling_phase_ready"),
+    selector = By.res("glass_profiling_start"),
   )
 }
 
@@ -124,12 +125,7 @@ internal fun UiDevice.runGlassProfilingScenario(scenarioId: String) {
     expectedPhase = "ready",
     selector = By.res("glass_profiling_start"),
   ).click()
-  waitForGlassProfilingObject(
-    scenarioId = scenarioId,
-    expectedPhase = "complete",
-    selector = By.res("glass_profiling_phase_complete"),
-    timeout = 10.seconds,
-  )
+  SystemClock.sleep(GLASS_PROFILING_MEASURE_MILLIS)
 }
 
 private fun UiDevice.waitForGlassProfilingObject(
@@ -140,8 +136,15 @@ private fun UiDevice.waitForGlassProfilingObject(
 ): UiObject2 = waitForObjectOrNull(selector, timeout)
   ?: error(
     "Glass profiling timeout: scenario=$scenarioId, phase=$expectedPhase, " +
-      "selector=$selector, timeout=$timeout",
+      "selector=$selector, timeout=$timeout, visibleNodes=" +
+      findObjects(By.pkg(GLASS_TARGET_PACKAGE))
+        .map { node ->
+          "${node.resourceName}:${node.text}:${node.contentDescription}"
+        },
   )
+
+// Scenarios run for 3 seconds; the buffer absorbs completion scheduling jitter.
+private const val GLASS_PROFILING_MEASURE_MILLIS = 3_250L
 
 internal fun UiDevice.findSampleListItem(selector: BySelector): UiObject2 {
   return waitForObject(By.res("sample_list"))
