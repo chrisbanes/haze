@@ -272,9 +272,12 @@ class GlassShadersTest {
       assertThat(shader).contains(
         "vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);",
       )
-      assertThat(shader).contains("float xSide = step(0.0, centered.x);")
-      assertThat(shader).contains("vec2 cornerDelta = max(")
-      assertThat(shader).contains("float cornerWeight = smootherstep(")
+      assertThat(shader).contains("vec2 topLeftDelta = min(")
+      assertThat(shader).contains("vec2 topRightDelta = vec2(")
+      assertThat(shader).contains("vec2 bottomRightDelta = max(")
+      assertThat(shader).contains("vec2 bottomLeftDelta = vec2(")
+      assertThat(shader).contains("vec4 cornerWeights = vec4(")
+      assertThat(shader).doesNotContain("float xSide = step(")
       assertThat(shader).contains(
         "return mix(rectangleGradient, cornerGradient, cornerWeight);",
       )

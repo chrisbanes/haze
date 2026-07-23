@@ -25,6 +25,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -321,7 +322,7 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
 
         carrier = GlassContinuityCarrier.Horizontal
         waitForIdle()
-        val horizontal = captureInvariantSnapshot()
+        val horizontal = captureInvariantPixels()
         val bounds = horizontal.centeredSurfaceBounds(case.size)
         val centerXRange = (bounds.center.x - 16)..(bounds.center.x + 16)
         assertContinuousAt(
@@ -340,7 +341,7 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
 
         carrier = GlassContinuityCarrier.Vertical
         waitForIdle()
-        val vertical = captureInvariantSnapshot()
+        val vertical = captureInvariantPixels()
         val centerYRange = (bounds.center.y - 16)..(bounds.center.y + 16)
         assertContinuousAt(
           derivative = vertical.verticalScanlineDerivative(bounds.center.x, centerYRange),
@@ -350,6 +351,65 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
       }
     }
   }
+}
+
+internal fun ScreenshotUiTest.assertGlassAsymmetricCornerNormalsContinuous() {
+  val surfaceSize = DpSize(120.dp, 100.dp)
+  val shape = RoundedCornerShape(
+    topStart = 100.dp,
+    topEnd = 100.dp,
+    bottomEnd = 0.dp,
+    bottomStart = 0.dp,
+  )
+  val effect = GlassVisualEffect().apply {
+    tint = Color.Transparent
+    optics = GlassOptics.Absolute(
+      refractionStrength = 1f,
+      refractionHeight = 0.5f,
+      refractionScale = 48f,
+      depth = 0f,
+      blurRadius = 0.dp,
+    )
+    specularIntensity = 0f
+    ambientResponse = 0f
+    chromaticAberrationStrength = 0f
+    edgeSoftness = 0.dp
+    this.shape = shape
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        inputScale = HazeInputScale.None,
+        shape = shape,
+        surfaceSize = surfaceSize,
+        drawGridLines = false,
+        continuityCarrier = GlassContinuityCarrier.Vertical,
+      )
+    }
+  }
+
+  waitForIdle()
+  val enabled = captureInvariantPixels()
+  val bounds = enabled.centeredSurfaceBounds(surfaceSize)
+  val density = bounds.width / surfaceSize.width.value
+  val probeX = bounds.left + (10f * density).roundToInt()
+  val centerYRange = (bounds.center.y - 16)..(bounds.center.y + 16)
+  val enabledSignal = enabled.verticalScanlineLuminance(probeX, centerYRange)
+  val enabledDerivative = enabled.verticalScanlineDerivative(probeX, centerYRange)
+
+  effect.updateAbsoluteOptics { copy(refractionStrength = 0f) }
+  waitForIdle()
+  val disabled = captureInvariantPixels()
+  val disabledSignal = disabled.verticalScanlineLuminance(probeX, centerYRange)
+  val refractionDelta = enabledSignal.zip(disabledSignal).maxOf { (first, second) ->
+    abs(first - second)
+  }
+  assertThat(refractionDelta).isGreaterThan(1f / 255f)
+  assertBoundaryContinuous(
+    derivative = enabledDerivative,
+    boundaryIndex = bounds.center.y - centerYRange.first,
+  )
 }
 
 internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
@@ -389,10 +449,10 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
     }
   }
 
-  for (case in cases) {
+  for ((index, case) in cases.withIndex()) {
     surfaceSize = case
     waitForIdle()
-    val rendered = captureInvariantSnapshot()
+    val rendered = captureInvariantPixels()
     val bounds = rendered.centeredSurfaceBounds(case)
     val refractionHeightPx = (minOf(bounds.width, bounds.height) * 0.25f).roundToInt()
     val cutoffs = listOf(
@@ -406,6 +466,23 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
         boundaryIndex = cutoff - range.first,
         label = "$case cutoff=$cutoff",
       )
+    }
+    if (index == 0) {
+      val activeSignal = rendered.scanlineLuminance(
+        y = bounds.center.y,
+        xRange = bounds.left until bounds.right,
+      )
+      effect.updateAbsoluteOptics { copy(refractionStrength = 0f) }
+      waitForIdle()
+      val disabledSignal = captureInvariantPixels().scanlineLuminance(
+        y = bounds.center.y,
+        xRange = bounds.left until bounds.right,
+      )
+      val refractionDelta = activeSignal.zip(disabledSignal).maxOf { (first, second) ->
+        abs(first - second)
+      }
+      assertThat(refractionDelta).isGreaterThan(1f / 255f)
+      effect.updateAbsoluteOptics { copy(refractionStrength = 1f) }
     }
   }
 }
@@ -1460,6 +1537,18 @@ private fun ScreenshotUiTest.assertGlassCornersMatchComposeClipInvariant(
 }
 
 private fun PixelSnapshot.centeredSurfaceBounds(surfaceSize: DpSize): IntRect {
+  return centeredSurfaceBounds(width, height, surfaceSize)
+}
+
+private fun PixelMap.centeredSurfaceBounds(surfaceSize: DpSize): IntRect {
+  return centeredSurfaceBounds(width, height, surfaceSize)
+}
+
+private fun centeredSurfaceBounds(
+  width: Int,
+  height: Int,
+  surfaceSize: DpSize,
+): IntRect {
   val density = InvariantSurfaceWidthPx / 280f
   val surfaceWidthPx = (surfaceSize.width.value * density).roundToInt()
   val surfaceHeightPx = (surfaceSize.height.value * density).roundToInt()
@@ -1478,13 +1567,17 @@ private fun invariantEffect(shape: RoundedCornerShape) = GlassVisualEffect().app
 }
 
 private fun ScreenshotUiTest.captureInvariantSnapshot(): PixelSnapshot {
-  val snapshot = captureRootPixels().snapshot()
-  require(snapshot.width == InvariantRootWidth && snapshot.height in InvariantRootHeightRange) {
+  return captureInvariantPixels().snapshot()
+}
+
+private fun ScreenshotUiTest.captureInvariantPixels(): PixelMap {
+  val pixels = captureRootPixels()
+  require(pixels.width == InvariantRootWidth && pixels.height in InvariantRootHeightRange) {
     "Invariant root must be width $InvariantRootWidth and height in " +
       "$InvariantRootHeightRange, " +
-      "but capture was ${snapshot.width}x${snapshot.height}"
+      "but capture was ${pixels.width}x${pixels.height}"
   }
-  return snapshot
+  return pixels
 }
 
 private fun ScreenshotUiTest.captureTransparentSnapshot(

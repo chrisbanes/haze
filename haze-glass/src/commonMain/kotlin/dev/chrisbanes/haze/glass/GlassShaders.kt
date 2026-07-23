@@ -497,27 +497,36 @@ internal object GlassShaders {
 
     vec2 gradSdRoundedRect(vec2 localCoord, vec2 size, vec4 radii, float blendWidth) {
       vec2 rectangleGradient = gradSdRectangle(localCoord, size, blendWidth);
-      vec2 halfSize = size * 0.5;
-      vec2 centered = localCoord - halfSize;
-      float xSide = step(0.0, centered.x);
-      float ySide = step(0.0, centered.y);
-      float topRadius = mix(radii.x, radii.y, xSide);
-      float bottomRadius = mix(radii.w, radii.z, xSide);
-      float radius = mix(topRadius, bottomRadius, ySide);
-      vec2 cornerDelta = max(
-        abs(centered) - (halfSize - vec2(radius)),
+      vec2 topLeftDelta = min(localCoord - vec2(radii.x), vec2(0.0));
+      vec2 topRightDelta = vec2(
+        max(localCoord.x - (size.x - radii.y), 0.0),
+        min(localCoord.y - radii.y, 0.0)
+      );
+      vec2 bottomRightDelta = max(
+        localCoord - vec2(size.x - radii.z, size.y - radii.z),
         vec2(0.0)
       );
-      float cornerProgress = clamp(
-        length(cornerDelta) / max(radius, 0.0001),
-        0.0,
-        1.0
+      vec2 bottomLeftDelta = vec2(
+        min(localCoord.x - radii.w, 0.0),
+        max(localCoord.y - (size.y - radii.w), 0.0)
+      );
+      vec4 cornerWeights = vec4(
+        smootherstep(clamp(length(topLeftDelta) / max(radii.x, 0.0001), 0.0, 1.0)),
+        smootherstep(clamp(length(topRightDelta) / max(radii.y, 0.0001), 0.0, 1.0)),
+        smootherstep(clamp(length(bottomRightDelta) / max(radii.z, 0.0001), 0.0, 1.0)),
+        smootherstep(clamp(length(bottomLeftDelta) / max(radii.w, 0.0001), 0.0, 1.0))
       );
       vec2 cornerGradient = safeNormalize(
-        cornerDelta * sign(centered),
+        safeNormalize(topLeftDelta, rectangleGradient) * cornerWeights.x +
+          safeNormalize(topRightDelta, rectangleGradient) * cornerWeights.y +
+          safeNormalize(bottomRightDelta, rectangleGradient) * cornerWeights.z +
+          safeNormalize(bottomLeftDelta, rectangleGradient) * cornerWeights.w,
         rectangleGradient
       );
-      float cornerWeight = smootherstep(cornerProgress);
+      float cornerWeight = max(
+        max(cornerWeights.x, cornerWeights.y),
+        max(cornerWeights.z, cornerWeights.w)
+      );
       return mix(rectangleGradient, cornerGradient, cornerWeight);
     }
 

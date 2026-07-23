@@ -330,6 +330,23 @@ internal fun recoverPremultipliedSnapshot(
 internal fun PixelSnapshot.scanlineDerivative(
   y: Int,
   xRange: IntRange,
+): List<Float> = scanlineDerivative(width, height, y, xRange) { x, sampleY ->
+  this[x, sampleY]
+}
+
+internal fun PixelMap.scanlineDerivative(
+  y: Int,
+  xRange: IntRange,
+): List<Float> = scanlineDerivative(width, height, y, xRange) { x, sampleY ->
+  this[x, sampleY]
+}
+
+private fun scanlineDerivative(
+  width: Int,
+  height: Int,
+  y: Int,
+  xRange: IntRange,
+  colorAt: (Int, Int) -> Color,
 ): List<Float> {
   require(y in 0 until height) { "Scanline y=$y must be within 0 until $height" }
   require(xRange.first < xRange.last) {
@@ -339,13 +356,30 @@ internal fun PixelSnapshot.scanlineDerivative(
     "Scanline xRange=$xRange must be within 0 until $width"
   }
   return (xRange.first until xRange.last).map { x ->
-    abs(this[x + 1, y].luminance() - this[x, y].luminance())
+    abs(colorAt(x + 1, y).luminance() - colorAt(x, y).luminance())
   }
 }
 
 internal fun PixelSnapshot.verticalScanlineDerivative(
   x: Int,
   yRange: IntRange,
+): List<Float> = verticalScanlineDerivative(width, height, x, yRange) { sampleX, y ->
+  this[sampleX, y]
+}
+
+internal fun PixelMap.verticalScanlineDerivative(
+  x: Int,
+  yRange: IntRange,
+): List<Float> = verticalScanlineDerivative(width, height, x, yRange) { sampleX, y ->
+  this[sampleX, y]
+}
+
+private fun verticalScanlineDerivative(
+  width: Int,
+  height: Int,
+  x: Int,
+  yRange: IntRange,
+  colorAt: (Int, Int) -> Color,
 ): List<Float> {
   require(x in 0 until width) { "Vertical scanline x=$x must be within 0 until $width" }
   require(yRange.first < yRange.last) {
@@ -355,8 +389,30 @@ internal fun PixelSnapshot.verticalScanlineDerivative(
     "Vertical scanline yRange=$yRange must be within 0 until $height"
   }
   return (yRange.first until yRange.last).map { y ->
-    abs(this[x, y + 1].luminance() - this[x, y].luminance())
+    abs(colorAt(x, y + 1).luminance() - colorAt(x, y).luminance())
   }
+}
+
+internal fun PixelMap.scanlineLuminance(
+  y: Int,
+  xRange: IntRange,
+): List<Float> {
+  require(y in 0 until height) { "Scanline y=$y must be within 0 until $height" }
+  require(xRange.first >= 0 && xRange.last < width) {
+    "Scanline xRange=$xRange must be within 0 until $width"
+  }
+  return xRange.map { x -> this[x, y].luminance() }
+}
+
+internal fun PixelMap.verticalScanlineLuminance(
+  x: Int,
+  yRange: IntRange,
+): List<Float> {
+  require(x in 0 until width) { "Vertical scanline x=$x must be within 0 until $width" }
+  require(yRange.first >= 0 && yRange.last < height) {
+    "Vertical scanline yRange=$yRange must be within 0 until $height"
+  }
+  return yRange.map { y -> this[x, y].luminance() }
 }
 
 internal fun PixelSnapshot.horizontalEdgePosition(
