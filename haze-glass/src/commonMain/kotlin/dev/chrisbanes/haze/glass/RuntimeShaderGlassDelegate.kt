@@ -71,6 +71,7 @@ internal class RuntimeShaderGlassDelegate(
   private var preparedParams: GlassRenderParams? = null
   private var preparedRenderEffects: GlassRenderEffects? = null
   private var preparedInteractionUniforms: GlassInteractionUniforms? = null
+  private var preparedInteractionPatch: GlassInteractionPatch? = null
   private var preparedSourceAvailable: Boolean = false
   private var preparedStageAvailability: GlassStageAvailability? = null
   private var retainedOutputAvailable: Boolean = false
@@ -111,6 +112,11 @@ internal class RuntimeShaderGlassDelegate(
     }
     val params = currentPreparedRender.params
     val interactionUniforms = currentPreparedRender.interactionUniforms
+    val interactionPatch = resolveGlassInteractionPatch(
+      params = params,
+      uniforms = interactionUniforms,
+      topology = currentPreparedRender.interactionTopology,
+    )
     val currentRenderEffects = getRenderEffects(currentPreparedRender)
     val scaledSize = params.coordinates.sampleSize.roundToIntSize()
 
@@ -130,9 +136,9 @@ internal class RuntimeShaderGlassDelegate(
     val depthMixRequired = shouldDepthMix(params, currentRenderEffects)
     val refractionDetailRequired = currentRenderEffects.refractionDetail != null
     val rimRequired = currentRenderEffects.rim != null
-    val interactionOpticsRequired = interactionUniforms.hasOptics
+    val interactionOpticsRequired = interactionUniforms.hasOptics && interactionPatch != null
     val interactionDetailRequired = interactionOpticsRequired && refractionDetailRequired
-    val interactionLightingRequired = interactionUniforms.hasLighting
+    val interactionLightingRequired = interactionUniforms.hasLighting && interactionPatch != null
 
     // Drop stages which are no longer part of the graph before allocating their replacements.
     // This keeps topology transitions from temporarily retaining both complete graphs.
@@ -196,6 +202,7 @@ internal class RuntimeShaderGlassDelegate(
     preparedParams = params
     preparedRenderEffects = currentRenderEffects
     preparedInteractionUniforms = interactionUniforms
+    preparedInteractionPatch = interactionPatch
   }
 
   private fun releaseObsoleteInteractionLayers(
@@ -223,6 +230,7 @@ internal class RuntimeShaderGlassDelegate(
     val params = preparedParams ?: return
     val effects = preparedRenderEffects ?: return
     val interactionUniforms = preparedInteractionUniforms ?: return
+    val interactionPatch = preparedInteractionPatch
     if (render.alpha <= 0f) {
       retainedOutputAvailable = false
       return
@@ -292,47 +300,55 @@ internal class RuntimeShaderGlassDelegate(
         if (invalidation.rim) recordRimIfNeeded(params, effects) else retainedRim(effects),
         ::clearRetainedOutput,
       ) ?: return
-      val completedOptical = if (interactionUniforms.hasOptics) {
+      val interactionOptical = if (interactionUniforms.hasOptics && interactionPatch != null) {
         requireRetainedStage(
           recordInteractionOptical(
             input = depthInput,
             key = render.opticalKey,
-            uniforms = interactionUniforms,
+            patch = interactionPatch,
           ),
           ::clearRetainedOutput,
         ) ?: return
       } else {
-        optical
+        null
       }
-      val completedRefractionDetail = if (
-        interactionUniforms.hasOptics && effects.refractionDetail != null
+      val interactionRefractionDetail = if (
+        interactionUniforms.hasOptics && effects.refractionDetail != null && interactionPatch != null
       ) {
         requireRetainedStage(
           recordInteractionRefractionDetail(
             input = source,
             key = effects.refractionDetail.key,
-            uniforms = interactionUniforms,
+            patch = interactionPatch,
           ),
           ::clearRetainedOutput,
         ) ?: return
       } else {
-        refractionDetail
+        null
       }
-      if (interactionUniforms.hasLighting) {
+      if (interactionUniforms.hasLighting && interactionPatch != null) {
         requireRetainedStage(
           recordInteractionLighting(
             key = GlassInteractionLightingKey(
-              coordinates = params.coordinates,
+              coordinates = interactionPatch.coordinates,
               edgeSoftnessPx = params.edgeSoftnessPx,
               cornerRadii = params.cornerRadii,
             ),
-            uniforms = interactionUniforms,
+            patch = interactionPatch,
           ),
           ::clearRetainedOutput,
         ) ?: return
       }
       if (render.alpha >= 1f) {
-        drawCompletedOutput(completedOptical, completedRefractionDetail, context, params)
+        drawCompletedOutput(
+          optical = optical,
+          refractionDetail = refractionDetail,
+          interactionOptical = interactionOptical,
+          interactionRefractionDetail = interactionRefractionDetail,
+          interactionPatch = interactionPatch,
+          context = context,
+          params = params,
+        )
       } else {
         val groupAlpha = requireRetainedStage(
           layers.groupAlpha.layer?.takeUnless { it.isReleased },
@@ -346,7 +362,17 @@ internal class RuntimeShaderGlassDelegate(
           layer = groupAlpha,
           alpha = render.alpha,
           size = groupCompositeSize,
-        ) { drawCompletedOutput(completedOptical, completedRefractionDetail, context, params) }
+        ) {
+          drawCompletedOutput(
+            optical = optical,
+            refractionDetail = refractionDetail,
+            interactionOptical = interactionOptical,
+            interactionRefractionDetail = interactionRefractionDetail,
+            interactionPatch = interactionPatch,
+            context = context,
+            params = params,
+          )
+        }
       }
       if (shouldRecordSource) {
         lastSuccessfulSourceSnapshot = sourceState.snapshot
@@ -367,8 +393,16 @@ internal class RuntimeShaderGlassDelegate(
     requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
     if (!retainedOutputAvailable) return
     preparedInteractionUniforms?.takeIf { it.hasLighting }?.let {
+      val patch = preparedInteractionPatch ?: return@let
       layers.interactionLighting?.takeUnless { layer -> layer.isReleased }?.let { layer ->
-        drawCompletedLayer(layer, context, params, alpha = render.alpha)
+        drawCompletedPatch(
+          layer = layer,
+          patch = patch,
+          context = context,
+          params = params,
+          blendMode = BlendMode.SrcOver,
+          alpha = render.alpha,
+        )
       }
     }
     layers.rim?.takeUnless { it.isReleased }?.let { rim ->
@@ -380,9 +414,10 @@ internal class RuntimeShaderGlassDelegate(
     val detailRequired = preparedRenderEffects?.refractionDetail != null ||
       preparedRenderEffects == null && lastSuccessfulStageInputs?.detail != null
     val interactionUniforms = preparedInteractionUniforms
-    val interactionOpticsRequired = interactionUniforms?.hasOptics == true
+    val interactionPatchAvailable = preparedInteractionPatch != null
+    val interactionOpticsRequired = interactionPatchAvailable && interactionUniforms?.hasOptics == true
     val interactionDetailRequired = interactionOpticsRequired && detailRequired
-    val interactionLightingRequired = interactionUniforms?.hasLighting == true
+    val interactionLightingRequired = interactionPatchAvailable && interactionUniforms?.hasLighting == true
     return retainedOutputAvailable && layers.hasOptical &&
       (!requiresGlassGroupAlpha(preparedRender?.alpha ?: 1f) || layers.groupAlpha.isAvailable) &&
       (!detailRequired || layers.hasRefractionDetail) &&
@@ -452,6 +487,7 @@ internal class RuntimeShaderGlassDelegate(
     preparedRender = null
     preparedRenderEffects = null
     preparedInteractionUniforms = null
+    preparedInteractionPatch = null
     preparedSourceAvailable = false
     preparedStageAvailability = null
     clearRetainedMetadata()
@@ -649,30 +685,32 @@ internal class RuntimeShaderGlassDelegate(
   private fun DrawScope.recordInteractionOptical(
     input: GraphicsLayer,
     key: GlassOpticalEffectKey,
-    uniforms: GlassInteractionUniforms,
+    patch: GlassInteractionPatch,
   ): GraphicsLayer? = layers.interactionOptical?.takeUnless { it.isReleased }?.also { layer ->
+    val localKey = key.copy(coordinates = patch.coordinates)
     input.alpha = 1f
     input.blendMode = BlendMode.SrcOver
     layer.alpha = 1f
-    layer.renderEffect = updateInteractionOpticalEffect(key, uniforms).asComposeRenderEffect()
+    layer.renderEffect = updateInteractionOpticalEffect(localKey, patch.uniforms).asComposeRenderEffect()
     if (
       layer !== recordedInteractionOpticalLayer ||
       input !== recordedInteractionOpticalInput ||
-      key != recordedInteractionOpticalKey
+      localKey != recordedInteractionOpticalKey
     ) {
-      layer.record(key.coordinates.sampleSize.roundToIntSize()) {
-        drawLayer(input)
+      val origin = patch.bounds.topLeft
+      layer.record(patch.bounds.size) {
+        translate(Offset(-origin.x.toFloat(), -origin.y.toFloat())) { drawLayer(input) }
       }
       recordedInteractionOpticalLayer = layer
       recordedInteractionOpticalInput = input
-      recordedInteractionOpticalKey = key
+      recordedInteractionOpticalKey = localKey
     }
   }
 
   private fun DrawScope.recordInteractionRefractionDetail(
     input: GraphicsLayer,
     key: GlassRefractionDetailEffectKey,
-    uniforms: GlassInteractionUniforms,
+    patch: GlassInteractionPatch,
   ): GraphicsLayer? = layers.interactionRefractionDetail
     ?.takeUnless { it.isReleased }
     ?.also { layer ->
@@ -680,30 +718,36 @@ internal class RuntimeShaderGlassDelegate(
       input.blendMode = BlendMode.SrcOver
       layer.alpha = 1f
       layer.blendMode = BlendMode.SrcOver
-      layer.renderEffect = updateInteractionDetailEffect(key, uniforms).asComposeRenderEffect()
+      val localKey = key.copy(
+        sampleSize = patch.coordinates.sampleSize,
+        materialOrigin = patch.coordinates.materialOrigin,
+        materialSize = patch.coordinates.materialSize,
+      )
+      layer.renderEffect = updateInteractionDetailEffect(localKey, patch.uniforms).asComposeRenderEffect()
       if (
         layer !== recordedInteractionDetailLayer ||
         input !== recordedInteractionDetailInput ||
-        key != recordedInteractionDetailKey
+        localKey != recordedInteractionDetailKey
       ) {
-        layer.record(key.sampleSize.roundToIntSize()) {
-          drawLayer(input)
+        val origin = patch.bounds.topLeft
+        layer.record(patch.bounds.size) {
+          translate(Offset(-origin.x.toFloat(), -origin.y.toFloat())) { drawLayer(input) }
         }
         recordedInteractionDetailLayer = layer
         recordedInteractionDetailInput = input
-        recordedInteractionDetailKey = key
+        recordedInteractionDetailKey = localKey
       }
     }
 
   private fun DrawScope.recordInteractionLighting(
     key: GlassInteractionLightingKey,
-    uniforms: GlassInteractionUniforms,
+    patch: GlassInteractionPatch,
   ): GraphicsLayer? = layers.interactionLighting?.takeUnless { it.isReleased }?.also { layer ->
     layer.alpha = 1f
     layer.blendMode = BlendMode.SrcOver
-    layer.renderEffect = updateInteractionLightingEffect(key, uniforms).asComposeRenderEffect()
+    layer.renderEffect = updateInteractionLightingEffect(key, patch.uniforms).asComposeRenderEffect()
     if (layer !== recordedInteractionLightingLayer || key != recordedInteractionLightingKey) {
-      layer.record(key.coordinates.sampleSize.roundToIntSize()) {
+      layer.record(patch.bounds.size) {
         drawRect(Color.Black)
       }
       recordedInteractionLightingLayer = layer
@@ -781,12 +825,55 @@ internal class RuntimeShaderGlassDelegate(
   private fun DrawScope.drawCompletedOutput(
     optical: GraphicsLayer,
     refractionDetail: GraphicsLayer?,
+    interactionOptical: GraphicsLayer?,
+    interactionRefractionDetail: GraphicsLayer?,
+    interactionPatch: GlassInteractionPatch?,
     context: VisualEffectContext,
     params: GlassRenderParams,
   ) {
     drawCompletedLayer(optical, context, params, alpha = 1f)
     if (refractionDetail != null) {
       drawCompletedLayer(refractionDetail, context, params, alpha = 1f)
+    }
+    if (interactionOptical != null && interactionPatch != null) {
+      drawCompletedPatch(
+        layer = interactionOptical,
+        patch = interactionPatch,
+        context = context,
+        params = params,
+        blendMode = BlendMode.Src,
+        alpha = 1f,
+      )
+    }
+    if (interactionRefractionDetail != null && interactionPatch != null) {
+      drawCompletedPatch(
+        layer = interactionRefractionDetail,
+        patch = interactionPatch,
+        context = context,
+        params = params,
+        blendMode = BlendMode.SrcOver,
+        alpha = 1f,
+      )
+    }
+  }
+
+  private fun DrawScope.drawCompletedPatch(
+    layer: GraphicsLayer,
+    patch: GlassInteractionPatch,
+    context: VisualEffectContext,
+    params: GlassRenderParams,
+    blendMode: BlendMode,
+    alpha: Float,
+  ) {
+    layer.clip = false
+    layer.alpha = alpha
+    layer.blendMode = blendMode
+    drawScaledContent(
+      offset = -context.layerOffset,
+      scaledSize = params.coordinates.materialSize,
+      clip = effect.shouldClipToNodeBounds(),
+    ) {
+      translate(Offset(patch.bounds.left.toFloat(), patch.bounds.top.toFloat())) { drawLayer(layer) }
     }
   }
 

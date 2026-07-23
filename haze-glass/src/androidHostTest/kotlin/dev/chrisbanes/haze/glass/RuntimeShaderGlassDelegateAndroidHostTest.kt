@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,8 +24,10 @@ import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -94,6 +97,106 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertSame(opticalEffect, delegate.interactionShaderHandle("interactionOpticalEffect"))
       assertSame(detailEffect, delegate.interactionShaderHandle("interactionDetailEffect"))
       assertSame(lightingEffect, delegate.interactionShaderHandle("interactionLightingEffect"))
+    }
+
+  @Test
+  fun largePanel_interactionPatchRetainsBaseLayersAcrossFrames() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = largePanelInteractiveEffect()
+      setContent { RuntimeLargeGlassTestContent(effect) }
+      waitForIdle()
+      drawFrame()
+      mainClock.autoAdvance = false
+
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      val source = checkNotNull(delegate.layers.source)
+      val optical = checkNotNull(delegate.layers.optical)
+      val detail = checkNotNull(delegate.layers.refractionDetail)
+      val scaleFactor = (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor
+      val plannedKinds = checkNotNull(effect.preparedRender).plan.layers.map { it.kind }
+      val positions = listOf(Offset(200f, 150f), Offset(400f, 240f), Offset(600f, 360f))
+
+      effect.setPressedForTest(positions.first())
+      drawInteractionFrame()
+
+      val interactionOptical = checkNotNull(delegate.layers.interactionOptical)
+      val interactionDetail = checkNotNull(delegate.layers.interactionRefractionDetail)
+      val interactionLighting = checkNotNull(delegate.layers.interactionLighting)
+      val interactionOpticalShader = delegate.interactionShaderHandle("interactionOpticalEffect")
+      val interactionDetailShader = delegate.interactionShaderHandle("interactionDetailEffect")
+      val interactionLightingShader = delegate.interactionShaderHandle("interactionLightingEffect")
+
+      positions.forEach { position ->
+        effect.setPressedForTest(position)
+        drawInteractionFrame()
+
+        assertSame(delegate, effect.delegate)
+        assertSame(source, delegate.layers.source)
+        assertSame(optical, delegate.layers.optical)
+        assertSame(detail, delegate.layers.refractionDetail)
+        assertSame(interactionOptical, delegate.layers.interactionOptical)
+        assertSame(interactionDetail, delegate.layers.interactionRefractionDetail)
+        assertSame(interactionLighting, delegate.layers.interactionLighting)
+        assertSame(interactionOpticalShader, delegate.interactionShaderHandle("interactionOpticalEffect"))
+        assertSame(interactionDetailShader, delegate.interactionShaderHandle("interactionDetailEffect"))
+        assertSame(interactionLightingShader, delegate.interactionShaderHandle("interactionLightingEffect"))
+        assertEquals(
+          scaleFactor,
+          (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
+        )
+        assertEquals(plannedKinds, checkNotNull(effect.preparedRender).plan.layers.map { it.kind })
+        listOf(interactionOptical, interactionDetail, interactionLighting).forEach { layer ->
+          assertTrue(layer.size.width < source.size.width)
+          assertTrue(layer.size.height < source.size.height)
+        }
+      }
+
+      effect.setPressedForTest(positions.last(), pressed = false)
+      repeat(3) {
+        drawInteractionFrame()
+
+        assertTrue(effect.currentInteractionState.hasLighting)
+        assertTrue(effect.currentInteractionState.hasOptics)
+        assertSame(delegate, effect.delegate)
+        assertSame(source, delegate.layers.source)
+        assertSame(optical, delegate.layers.optical)
+        assertSame(detail, delegate.layers.refractionDetail)
+        assertSame(interactionOptical, delegate.layers.interactionOptical)
+        assertSame(interactionDetail, delegate.layers.interactionRefractionDetail)
+        assertSame(interactionLighting, delegate.layers.interactionLighting)
+        assertSame(interactionOpticalShader, delegate.interactionShaderHandle("interactionOpticalEffect"))
+        assertSame(interactionDetailShader, delegate.interactionShaderHandle("interactionDetailEffect"))
+        assertSame(interactionLightingShader, delegate.interactionShaderHandle("interactionLightingEffect"))
+        assertEquals(
+          scaleFactor,
+          (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
+        )
+        assertEquals(plannedKinds, checkNotNull(effect.preparedRender).plan.layers.map { it.kind })
+        listOf(interactionOptical, interactionDetail, interactionLighting).forEach { layer ->
+          assertTrue(layer.size.width < source.size.width)
+          assertTrue(layer.size.height < source.size.height)
+        }
+      }
+      repeat(12) {
+        drawInteractionFrame()
+
+        assertSame(delegate, effect.delegate)
+        assertSame(source, delegate.layers.source)
+        assertSame(optical, delegate.layers.optical)
+        assertSame(detail, delegate.layers.refractionDetail)
+        assertEquals(
+          scaleFactor,
+          (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
+        )
+        assertEquals(plannedKinds, checkNotNull(effect.preparedRender).plan.layers.map { it.kind })
+      }
+      assertTrue(!effect.currentInteractionState.hasLighting)
+      assertTrue(!effect.currentInteractionState.hasOptics)
+      assertTrue(delegate.layers.interactionOptical?.isReleased != false)
+      assertTrue(delegate.layers.interactionRefractionDetail?.isReleased != false)
+      assertTrue(delegate.layers.interactionLighting?.isReleased != false)
+      assertTrue(delegate.canDrawRetainedOutput())
+      mainClock.autoAdvance = true
     }
 
   @Test
@@ -193,6 +296,25 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
   }
 
+  private fun largePanelInteractiveEffect() = GlassVisualEffect().apply {
+    optics = GlassOptics.Absolute(
+      refractionStrength = 0.5f,
+      refractionScale = 20f,
+      blurRadius = 0.dp,
+    )
+    specularIntensity = 0f
+    pressed {
+      animate(toSpec = tween(1), fromSpec = tween(160)) {
+        lightingIntensity(1f)
+        refractionMultiplier(1.08f)
+        whitePointDelta(0.04f)
+      }
+    }
+    interactionLightRadiusFraction = 0.25f
+    interactionPositionAnimationSpec = tween(1)
+    interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+  }
+
   private fun retainedBlurEffect(
     progressive: HazeProgressive? = null,
   ) = GlassVisualEffect().apply {
@@ -220,6 +342,20 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
   }
 
+  @Composable
+  private fun RuntimeLargeGlassTestContent(effect: GlassVisualEffect) {
+    Box(
+      Modifier
+        .size(width = 800.dp, height = 480.dp)
+        .hazeEffect {
+          inputScale = HazeInputScale.None
+          visualEffect = effect
+        },
+    ) {
+      Box(Modifier.fillMaxSize().background(Color.Red))
+    }
+  }
+
   private fun AndroidComposeUiTest<ComponentActivity>.drawFrame() {
     runOnIdle {
       val view = checkNotNull(activity).window.decorView
@@ -230,6 +366,13 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         bitmap.recycle()
       }
     }
+  }
+
+  private fun AndroidComposeUiTest<ComponentActivity>.drawInteractionFrame() {
+    mainClock.advanceTimeByFrame()
+    mainClock.advanceTimeByFrame()
+    waitForIdle()
+    drawFrame()
   }
 
   private fun RuntimeShaderGlassDelegate.interactionShaderHandle(fieldName: String): Any {

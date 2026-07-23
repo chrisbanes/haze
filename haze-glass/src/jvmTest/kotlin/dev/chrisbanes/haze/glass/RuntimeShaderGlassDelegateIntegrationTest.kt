@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +34,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
@@ -190,6 +192,89 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(delegate.layers.hasInteractionOptical).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
+  }
+
+  @Test
+  fun largePanel_interactionPatchRetainsBaseLayersAcrossFrames() = runComposeUiTest {
+    val effect = activeDetailEffect().apply {
+      pressed {
+        animate(toSpec = tween(1), fromSpec = tween(1)) {
+          lightingIntensity(1f)
+          refractionMultiplier(1.08f)
+          whitePointDelta(0.04f)
+        }
+      }
+      interactionLightRadiusFraction = 0.25f
+      interactionPositionAnimationSpec = tween(1)
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+    }
+    setContent { RuntimeLargeGlassTestContent(effect) }
+    waitForIdle()
+    mainClock.autoAdvance = false
+
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val source = checkNotNull(delegate.layers.source)
+    val optical = checkNotNull(delegate.layers.optical)
+    val detail = checkNotNull(delegate.layers.refractionDetail)
+    val decision = effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime
+    val plannedKinds = checkNotNull(effect.preparedRender).plan.layers.map { it.kind }
+    val positions = listOf(Offset(200f, 150f), Offset(500f, 300f), Offset(800f, 450f))
+
+    positions.forEach { position ->
+      effect.setPressedForTest(position)
+      mainClock.advanceTimeByFrame()
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+
+      assertSame(delegate, effect.delegate)
+      assertSame(source, delegate.layers.source)
+      assertSame(optical, delegate.layers.optical)
+      assertSame(detail, delegate.layers.refractionDetail)
+      assertThat((effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+        .isEqualTo(decision.scaleFactor)
+      assertThat(checkNotNull(delegate.layers.interactionOptical).size.width).isLessThan(source.size.width)
+      assertThat(checkNotNull(delegate.layers.interactionOptical).size.height).isLessThan(source.size.height)
+      assertThat(checkNotNull(effect.preparedRender).plan.layers.map { it.kind }).isEqualTo(plannedKinds)
+    }
+
+    effect.setPressedForTest(positions.last(), pressed = false)
+    repeat(12) {
+      mainClock.advanceTimeByFrame()
+      waitForIdle()
+      assertSame(delegate, effect.delegate)
+      assertSame(source, delegate.layers.source)
+      assertSame(optical, delegate.layers.optical)
+      assertSame(detail, delegate.layers.refractionDetail)
+      assertThat((effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+        .isEqualTo(decision.scaleFactor)
+      assertThat(checkNotNull(effect.preparedRender).plan.layers.map { it.kind }).isEqualTo(plannedKinds)
+    }
+    mainClock.autoAdvance = true
+    setContent {}
+    waitForIdle()
+  }
+
+  @Test
+  fun activeInteractionWithoutPatch_retainsBaseOutput() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect()
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    effect.setPressedForTest(Offset(60f, 60f))
+    mainClock.advanceTimeBy(500)
+    waitForIdle()
+
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    RuntimeShaderGlassDelegate::class.java.getDeclaredField("preparedInteractionPatch").apply {
+      isAccessible = true
+      set(delegate, null)
+    }
+    delegate.layers.interactionOptical = null
+    delegate.layers.interactionRefractionDetail = null
+    delegate.layers.interactionLighting = null
+
+    assertThat(effect.currentInteractionSignals.pressed).isTrue()
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
   }
 
   @Test
@@ -738,6 +823,22 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           .testTag(tag)
           .hazeEffect(hazeState) {
             this.inputScale = inputScale
+            visualEffect = effect
+          },
+      )
+    }
+  }
+
+  @Composable
+  private fun RuntimeLargeGlassTestContent(effect: GlassVisualEffect) {
+    val hazeState = remember { HazeState() }
+    Box(Modifier.size(1000.dp, 600.dp)) {
+      Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))
+      Box(
+        Modifier
+          .fillMaxSize()
+          .hazeEffect(hazeState) {
+            inputScale = HazeInputScale.None
             visualEffect = effect
           },
       )

@@ -25,6 +25,161 @@ import kotlin.test.assertFailsWith
 class GlassRenderParamsTest {
 
   @Test
+  fun interactionTopology_usesConfiguredWorstCaseInsteadOfAnimatedValues() {
+    val effect = GlassVisualEffect().apply {
+      hovered { lightingIntensity(0.4f) }
+      pressed {
+        refractionMultiplier(1.2f)
+        whitePointDelta(0.1f)
+      }
+    }
+
+    assertThat(effect.interactionSlots.resolveInteractionTopology()).isEqualTo(
+      GlassInteractionTopology(
+        hasOptics = true,
+        hasLighting = true,
+        maxRefractionMultiplier = 1.2f,
+      ),
+    )
+  }
+
+  @Test
+  fun interactionTopology_ignoresIdentityOnlyDeclarations() {
+    val effect = GlassVisualEffect().apply {
+      hovered {
+        lightingIntensity(0f)
+        refractionMultiplier(1f)
+        whitePointDelta(0f)
+      }
+    }
+
+    assertThat(effect.interactionSlots.resolveInteractionTopology()).isEqualTo(
+      GlassInteractionTopology(false, false, 1f),
+    )
+  }
+
+  @Test
+  fun interactionPatch_tracksPositionAndIncludesOpticalPadding() {
+    val params = testRenderParams(
+      coordinates = GlassCoordinates(
+        sampleSize = Size(1000f, 600f),
+        materialOrigin = Offset.Zero,
+        materialSize = Size(1000f, 600f),
+        scaleFactor = 1f,
+      ),
+      refractionStrength = 0.5f,
+      refractionScalePx = 20f,
+    )
+    val topology = GlassInteractionTopology(true, true, 1.2f)
+    val patch = checkNotNull(
+      resolveGlassInteractionPatch(
+        params = params,
+        uniforms = GlassInteractionUniforms(Offset(500f, 300f), 60f, 1f, 1.1f, 0.04f),
+        topology = topology,
+      ),
+    )
+
+    assertThat(patch.bounds.width).isLessThan(1000)
+    assertThat(patch.bounds.height).isLessThan(600)
+    assertThat(patch.bounds.left).isLessThan(500 - 60)
+    assertThat(patch.bounds.right).isGreaterThan(500 + 60)
+    assertThat(patch.coordinates.sampleSize).isEqualTo(
+      Size(patch.bounds.width.toFloat(), patch.bounds.height.toFloat()),
+    )
+  }
+
+  @Test
+  fun interactionPatch_clipsAtSampleEdge() {
+    val params = testRenderParams(
+      coordinates = GlassCoordinates(Size(200f, 100f), Offset.Zero, Size(200f, 100f), 1f),
+      refractionStrength = 0.5f,
+      refractionScalePx = 20f,
+    )
+    val patch = checkNotNull(
+      resolveGlassInteractionPatch(
+        params,
+        GlassInteractionUniforms(Offset(0f, 0f), 30f, 1f, 1.2f, 0.04f),
+        GlassInteractionTopology(true, true, 1.2f),
+      ),
+    )
+
+    assertThat(patch.bounds.left).isEqualTo(0)
+    assertThat(patch.bounds.top).isEqualTo(0)
+    assertThat(patch.uniforms.position).isEqualTo(Offset.Zero)
+  }
+
+  @Test
+  fun interactionPatchSize_isSmallerThanLargeSample() {
+    val params = testRenderParams(
+      coordinates = GlassCoordinates(Size(2000f, 1200f), Offset.Zero, Size(2000f, 1200f), 1f),
+      refractionStrength = 0.5f,
+      refractionScalePx = 20f,
+    )
+
+    val size = calculateGlassInteractionPatchSize(
+      params,
+      radiusFraction = 0.1f,
+      topology = GlassInteractionTopology(true, true, 1.2f),
+    )
+
+    assertThat(size.width).isLessThan(2000)
+    assertThat(size.height).isLessThan(1200)
+  }
+
+  @Test
+  fun interactionPatchSize_coversFractionallyPositionedRuntimePatch() {
+    val params = testRenderParams(
+      coordinates = GlassCoordinates(Size(1000f, 600f), Offset.Zero, Size(1000f, 600f), 1f),
+      refractionStrength = 0.5f,
+      refractionScalePx = 20f,
+    )
+    val topology = GlassInteractionTopology(true, true, 1.2f)
+    val reserved = calculateGlassInteractionPatchSize(params, radiusFraction = 0.1f, topology)
+    val runtime = checkNotNull(
+      resolveGlassInteractionPatch(
+        params,
+        GlassInteractionUniforms(Offset(500.25f, 300.75f), 60f, 1f, 1.2f, 0.04f),
+        topology,
+      ),
+    )
+
+    assertThat(reserved.width >= runtime.bounds.width).isEqualTo(true)
+    assertThat(reserved.height >= runtime.bounds.height).isEqualTo(true)
+  }
+
+  @Test
+  fun interactionPatch_clampsOvershootingRefractionToConfiguredTopology() {
+    val topology = GlassInteractionTopology(true, false, 1.1f)
+    val patch = checkNotNull(
+      resolveGlassInteractionPatch(
+        testRenderParams(),
+        GlassInteractionUniforms(Offset(50f, 40f), 20f, 1f, 1.5f, 0f),
+        topology,
+      ),
+    )
+
+    assertThat(patch.uniforms.refractionMultiplier).isEqualTo(1.1f)
+  }
+
+  @Test
+  fun interactionPatch_localizesLightingUniformsForNonOriginPatch() {
+    val position = Offset(500f, 300f)
+    val patch = checkNotNull(
+      resolveGlassInteractionPatch(
+        testRenderParams(
+          coordinates = GlassCoordinates(Size(1000f, 600f), Offset.Zero, Size(1000f, 600f), 1f),
+        ),
+        GlassInteractionUniforms(position, 60f, 1f, 1f, 0f),
+        GlassInteractionTopology(false, true, 1f),
+      ),
+    )
+
+    assertThat(patch.uniforms.position).isEqualTo(
+      position - Offset(patch.bounds.left.toFloat(), patch.bounds.top.toFloat()),
+    )
+  }
+
+  @Test
   fun resolvedStyle_canonicalizesAllScalarsEquallyAcrossPrecedenceLevels() {
     val lighting = GlassLighting(
       specularIntensity = 2f,

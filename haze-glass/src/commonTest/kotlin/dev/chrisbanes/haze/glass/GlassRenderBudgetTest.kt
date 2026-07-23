@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
+import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThanOrEqualTo
@@ -14,6 +15,26 @@ import kotlin.test.Test
 import kotlin.test.assertIs
 
 class GlassRenderBudgetTest {
+
+  @Test
+  fun configuredInteractionBudget_usesLocalPatchSize() {
+    val patchSize = IntSize(240, 240)
+    val plan = buildGlassBudgetLayerPlan(
+      sampleSize = IntSize(1000, 600),
+      blurRadiusPx = 0f,
+      depth = 0f,
+      allowMultiscaleBlur = true,
+      refractionDetailActive = true,
+      rimActive = false,
+      interactionPatchSize = patchSize,
+      interactionOpticsActive = true,
+      interactionLightingActive = true,
+    )
+
+    assertThat(
+      plan.layers.filter { it.kind.name.startsWith("Interaction") }.map { it.size },
+    ).containsExactly(patchSize, patchSize, patchSize)
+  }
 
   @Test
   fun fractionalAlpha_addsMaterialSizedGroupCompositeToBudget() {

@@ -46,6 +46,7 @@ private data class GlassPreparedRenderCacheKey(
   val style: ResolvedGlassStyle,
   val coordinates: GlassCoordinates,
   val interaction: ResolvedGlassInteraction,
+  val interactionTopology: GlassInteractionTopology,
 )
 
 private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): Boolean =
@@ -647,6 +648,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       state = interactionRenderState(context),
       radiusFraction = interactionLightRadiusFraction,
     )
+    val interactionTopology = interactionSlots.resolveInteractionTopology()
     val optics = style.resolvedOptics
     val stamp = GlassRenderBudgetStamp(
       requestedScale = requestedScale,
@@ -663,8 +665,8 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       refractionHeightPx = optics.refractionHeightPx,
       edgeSoftnessPx = style.edgeSoftnessPx,
       rimActive = style.specularIntensity > 0f,
-      interactionOpticsActive = interaction.hasOptics,
-      interactionLightingActive = interaction.hasLighting,
+      interactionTopology = interactionTopology,
+      interactionRadiusFraction = interaction.radiusFraction,
     )
     val decision = if (stamp == budgetCacheStamp) {
       checkNotNull(budgetCacheDecision)
@@ -698,8 +700,13 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
             sampleStepPx = 2f * scaleFactor,
           ),
           rimActive = style.specularIntensity > 0f,
-          interactionOpticsActive = interaction.hasOptics,
-          interactionLightingActive = interaction.hasLighting,
+          interactionPatchSize = calculateGlassInteractionPatchSize(
+            buildGlassRenderParams(style, coordinates),
+            radiusFraction = interaction.radiusFraction,
+            topology = interactionTopology,
+          ),
+          interactionOpticsActive = interactionTopology.hasOptics,
+          interactionLightingActive = interactionTopology.hasLighting,
         )
       }.also {
         budgetCacheStamp = stamp
@@ -723,6 +730,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       style = style,
       coordinates = coordinates,
       interaction = interaction,
+      interactionTopology = interactionTopology,
     )
     if (preparedRenderCacheKey == this.preparedRenderCacheKey) {
       return GlassRenderPreparation(decision, checkNotNull(preparedRenderCache))
@@ -750,6 +758,8 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     val exactPrepared = buildGlassPreparedRender(
       params = params,
       interactionUniforms = interactionUniforms,
+      interactionTopology = interactionTopology,
+      interactionRadiusFraction = interaction.radiusFraction,
       alpha = style.alpha,
       outputSize = context.size.roundToIntSize(),
       previous = previousPrepared,
@@ -1457,8 +1467,8 @@ private data class GlassRenderBudgetStamp(
   val refractionHeightPx: Float,
   val edgeSoftnessPx: Float,
   val rimActive: Boolean,
-  val interactionOpticsActive: Boolean,
-  val interactionLightingActive: Boolean,
+  val interactionTopology: GlassInteractionTopology,
+  val interactionRadiusFraction: Float,
 )
 
 internal interface RetainedOutputDelegate {
