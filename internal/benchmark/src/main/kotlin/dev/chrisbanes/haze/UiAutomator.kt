@@ -108,6 +108,11 @@ internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
   ).click()
   waitForGlassProfilingObject(
     scenarioId = scenarioId,
+    expectedPhase = "settling",
+    selector = By.res("glass_profiling_selected_$scenarioId"),
+  )
+  waitForGlassProfilingObject(
+    scenarioId = scenarioId,
     expectedPhase = "ready",
     selector = By.res("glass_profiling_phase_ready"),
   )

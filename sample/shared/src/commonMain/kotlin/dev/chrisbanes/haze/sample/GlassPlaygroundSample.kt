@@ -64,7 +64,9 @@ import kotlinx.coroutines.launch
 private const val PLAYGROUND_LOOP_DURATION_MILLIS = 12_000
 
 @Stable
-internal class GlassPlaygroundState {
+internal class GlassPlaygroundState(
+  private val loopDurationMillis: Int = PLAYGROUND_LOOP_DURATION_MILLIS,
+) {
   private val progressAnimation = Animatable(0f)
   private val dragOffsets = mutableStateMapOf<GlassPlaygroundSurfaceId, Offset>()
 
@@ -112,18 +114,20 @@ internal class GlassPlaygroundState {
     if (activeSurface == id) activeSurface = null
   }
 
-  suspend fun runAutoplayLoop() {
-    while (isPlaying && activeSurface == null) {
+  suspend fun runAutoplayLoop(loopLimit: Int = Int.MAX_VALUE) {
+    var loops = 0
+    while (isPlaying && activeSurface == null && loops < loopLimit) {
       val remaining = 1f - progressAnimation.value
       progressAnimation.animateTo(
         targetValue = 1f,
         animationSpec = tween(
-          durationMillis = (PLAYGROUND_LOOP_DURATION_MILLIS * remaining).roundToInt(),
+          durationMillis = (loopDurationMillis * remaining).roundToInt(),
           easing = LinearEasing,
         ),
       )
       progressAnimation.snapTo(0f)
       completedLoopCount++
+      loops++
     }
   }
 
@@ -148,7 +152,18 @@ internal fun rememberGlassPlaygroundState(): GlassPlaygroundState = remember { G
 
 @Composable
 public fun GlassPlaygroundSample(navController: NavHostController) {
-  val state = rememberGlassPlaygroundState()
+  GlassPlaygroundSample(
+    navController = navController,
+    state = rememberGlassPlaygroundState(),
+  )
+}
+
+@Composable
+internal fun GlassPlaygroundSample(
+  navController: NavHostController,
+  state: GlassPlaygroundState,
+  runAutoplay: suspend GlassPlaygroundState.() -> Unit = { runAutoplayLoop() },
+) {
   val scope = rememberCoroutineScope()
   val returnJobs = remember { mutableMapOf<GlassPlaygroundSurfaceId, Job>() }
 
@@ -157,7 +172,7 @@ public fun GlassPlaygroundSample(navController: NavHostController) {
     if (!animationsEnabled) {
       state.disableAutoplay()
     } else if (state.isPlaying && state.activeSurface == null) {
-      state.runAutoplayLoop()
+      runAutoplay(state)
     }
   }
 
