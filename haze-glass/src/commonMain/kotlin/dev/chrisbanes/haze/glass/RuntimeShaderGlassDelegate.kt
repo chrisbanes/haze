@@ -9,9 +9,11 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
@@ -64,7 +66,7 @@ internal class RuntimeShaderGlassDelegate(
   private var recordedInteractionDetailInput: GraphicsLayer? = null
   private var recordedInteractionDetailKey: GlassRefractionDetailEffectKey? = null
   private var recordedInteractionLightingLayer: GraphicsLayer? = null
-  private var recordedInteractionLightingKey: GlassInteractionLightingKey? = null
+  private var recordedInteractionLightingSize: IntSize? = null
   internal val layers = GlassLayers()
   private var graphicsContext: GraphicsContext? = null
   private var preparedRender: GlassPreparedRender? = null
@@ -90,6 +92,8 @@ internal class RuntimeShaderGlassDelegate(
   internal var detailRecordCount: Int = 0
     private set
   internal var rimRecordCount: Int = 0
+    private set
+  internal var interactionLightingRecordCount: Int = 0
     private set
   internal val stageRecordCounts: GlassStageRecordCounts
     get() = GlassStageRecordCounts(
@@ -444,7 +448,7 @@ internal class RuntimeShaderGlassDelegate(
     recordedInteractionDetailInput = null
     recordedInteractionDetailKey = null
     recordedInteractionLightingLayer = null
-    recordedInteractionLightingKey = null
+    recordedInteractionLightingSize = null
   }
 
   override fun detach() {
@@ -746,12 +750,16 @@ internal class RuntimeShaderGlassDelegate(
     layer.alpha = 1f
     layer.blendMode = BlendMode.SrcOver
     layer.renderEffect = updateInteractionLightingEffect(key, patch.uniforms).asComposeRenderEffect()
-    if (layer !== recordedInteractionLightingLayer || key != recordedInteractionLightingKey) {
+    if (
+      layer !== recordedInteractionLightingLayer ||
+      patch.bounds.size != recordedInteractionLightingSize
+    ) {
       layer.record(patch.bounds.size) {
         drawRect(Color.Black)
       }
+      interactionLightingRecordCount++
       recordedInteractionLightingLayer = layer
-      recordedInteractionLightingKey = key
+      recordedInteractionLightingSize = patch.bounds.size
     }
   }
 
@@ -873,7 +881,17 @@ internal class RuntimeShaderGlassDelegate(
       scaledSize = params.coordinates.materialSize,
       clip = effect.shouldClipToNodeBounds(),
     ) {
-      translate(Offset(patch.bounds.left.toFloat(), patch.bounds.top.toFloat())) { drawLayer(layer) }
+      val compositeBounds = patch.compositeBounds
+      translate(Offset(patch.bounds.left.toFloat(), patch.bounds.top.toFloat())) {
+        clipRect(
+          left = (compositeBounds.left - patch.bounds.left).toFloat(),
+          top = (compositeBounds.top - patch.bounds.top).toFloat(),
+          right = (compositeBounds.right - patch.bounds.left).toFloat(),
+          bottom = (compositeBounds.bottom - patch.bounds.top).toFloat(),
+        ) {
+          drawLayer(layer)
+        }
+      }
     }
   }
 

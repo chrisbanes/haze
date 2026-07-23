@@ -255,6 +255,28 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun movingInteractionWithinSamePatchSize_doesNotRerecordLightingContent() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect().apply {
+      interactionLightRadiusFraction = 0.25f
+      interactionPositionAnimationSpec = tween(1)
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    }
+    setContent { RuntimeLargeGlassTestContent(effect) }
+    waitForIdle()
+
+    effect.setPressedForTest(Offset(300f, 240f))
+    waitForIdle()
+
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val recordsAfterPress = delegate.interactionLightingRecordCount
+
+    effect.setPressedForTest(Offset(500f, 320f))
+    waitForIdle()
+
+    assertThat(delegate.interactionLightingRecordCount).isEqualTo(recordsAfterPress)
+  }
+
+  @Test
   fun activeInteractionWithoutPatch_retainsBaseOutput() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }

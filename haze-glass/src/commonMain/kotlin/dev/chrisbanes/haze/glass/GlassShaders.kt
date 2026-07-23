@@ -312,14 +312,6 @@ internal object GlassShaders {
       if (outputSd > 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
-      float sampleDiagonal = length(sampleSize);
-      float maxPossibleDisplacement = min(
-        abs(refractionScale * refractionStrength)${if (interactive) " * max(1.0, interactionRefractionMultiplier)" else ""},
-        sampleDiagonal
-      );
-      if (outputDistToEdge > detailWidth + maxPossibleDisplacement) return vec4(0.0);
-
-      float heightNorm = surfaceHeightNorm(localCoord);
       ${if (interactive) {
     """
       float interactionWeight = interactionFalloff(coord);
@@ -329,6 +321,14 @@ internal object GlassShaders {
   } else {
     ""
   }}
+      float sampleDiagonal = length(sampleSize);
+      float maxPossibleDisplacement = min(
+        abs(refractionScale * refractionStrength)${if (interactive) " * max(1.0, localizedRefractionMultiplier)" else ""},
+        sampleDiagonal
+      );
+      if (outputDistToEdge > detailWidth + maxPossibleDisplacement) return vec4(0.0);
+
+      float heightNorm = surfaceHeightNorm(localCoord);
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,

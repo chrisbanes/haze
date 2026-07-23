@@ -37,6 +37,7 @@ internal fun GlassInteractionSlots.resolveInteractionTopology(): GlassInteractio
 
 internal data class GlassInteractionPatch(
   val bounds: IntRect,
+  val compositeBounds: IntRect,
   val coordinates: GlassCoordinates,
   val uniforms: GlassInteractionUniforms,
 )
@@ -75,17 +76,26 @@ internal fun resolveGlassInteractionPatch(
   }
   val sampleSize = params.coordinates.sampleSize
   if (!sampleSize.isDrawable()) return null
-  val extent = uniforms.radiusPx + calculateInteractionSamplingPadding(params, topology)
-  val bounds = IntRect(
-    left = floor(uniforms.position.x - extent).toInt().coerceIn(0, sampleSize.width.toInt()),
-    top = floor(uniforms.position.y - extent).toInt().coerceIn(0, sampleSize.height.toInt()),
-    right = ceil(uniforms.position.x + extent).toInt().coerceIn(0, sampleSize.width.toInt()),
-    bottom = ceil(uniforms.position.y + extent).toInt().coerceIn(0, sampleSize.height.toInt()),
+  val bounds = resolveInteractionBounds(
+    position = uniforms.position,
+    extent = uniforms.radiusPx + calculateInteractionSamplingPadding(params, topology),
+    sampleSize = sampleSize,
   )
-  if (bounds.width <= 0 || bounds.height <= 0) return null
+  val compositeBounds = resolveInteractionBounds(
+    position = uniforms.position,
+    extent = uniforms.radiusPx,
+    sampleSize = sampleSize,
+  )
+  if (
+    bounds.width <= 0 || bounds.height <= 0 ||
+    compositeBounds.width <= 0 || compositeBounds.height <= 0
+  ) {
+    return null
+  }
   val origin = Offset(bounds.left.toFloat(), bounds.top.toFloat())
   return GlassInteractionPatch(
     bounds = bounds,
+    compositeBounds = compositeBounds,
     coordinates = params.coordinates.copy(
       sampleSize = Size(bounds.width.toFloat(), bounds.height.toFloat()),
       materialOrigin = params.coordinates.materialOrigin - origin,
@@ -99,6 +109,17 @@ internal fun resolveGlassInteractionPatch(
     ),
   )
 }
+
+private fun resolveInteractionBounds(
+  position: Offset,
+  extent: Float,
+  sampleSize: Size,
+): IntRect = IntRect(
+  left = floor(position.x - extent).toInt().coerceIn(0, sampleSize.width.toInt()),
+  top = floor(position.y - extent).toInt().coerceIn(0, sampleSize.height.toInt()),
+  right = ceil(position.x + extent).toInt().coerceIn(0, sampleSize.width.toInt()),
+  bottom = ceil(position.y + extent).toInt().coerceIn(0, sampleSize.height.toInt()),
+)
 
 private fun calculateInteractionSamplingPadding(
   params: GlassRenderParams,
