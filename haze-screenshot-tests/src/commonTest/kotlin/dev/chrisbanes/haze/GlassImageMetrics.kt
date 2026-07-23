@@ -189,18 +189,43 @@ internal fun PixelSnapshot.changedPixelRatio(other: PixelSnapshot): Float {
 
   var changedPixels = 0
   for (index in colors.indices) {
-    val first = colors[index]
-    val second = other.colors[index]
-    val maxChannelDelta = maxOf(
-      abs(first.red - second.red),
-      abs(first.green - second.green),
-      abs(first.blue - second.blue),
-      abs(first.alpha - second.alpha),
-    )
-    if (maxChannelDelta > PixelTolerance) changedPixels++
+    if (colors[index].differsFrom(other.colors[index])) changedPixels++
   }
   return changedPixels.toFloat() / colors.size
 }
+
+internal fun PixelSnapshot.changedPixelRatioOutside(
+  other: PixelSnapshot,
+  excludedBounds: IntRect,
+): Float {
+  requireComparableSnapshot(other)
+  require(excludedBounds.width >= 0 && excludedBounds.height >= 0) {
+    "Excluded bounds must not be inverted"
+  }
+  requireContains(excludedBounds, "Excluded bounds")
+  val comparedPixels = colors.size - excludedBounds.width * excludedBounds.height
+  require(comparedPixels > 0) { "Excluded bounds must leave pixels to compare" }
+
+  var changedPixels = 0
+  for (y in 0 until height) {
+    for (x in 0 until width) {
+      if (
+        x !in excludedBounds.left until excludedBounds.right ||
+        y !in excludedBounds.top until excludedBounds.bottom
+      ) {
+        if (this[x, y].differsFrom(other[x, y])) changedPixels++
+      }
+    }
+  }
+  return changedPixels.toFloat() / comparedPixels
+}
+
+private fun Color.differsFrom(other: Color): Boolean = maxOf(
+  abs(red - other.red),
+  abs(green - other.green),
+  abs(blue - other.blue),
+  abs(alpha - other.alpha),
+) > PixelTolerance
 
 internal fun measureRefractionStrengthMetrics(
   disabledDisplacementPx: Float,

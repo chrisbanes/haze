@@ -322,6 +322,9 @@ class GlassShadersTest {
     assertThat(optical).contains("heightNorm,\n        localizedRefractionMultiplier")
     assertThat(detail).contains("uniform float interactionRefractionMultiplier;")
     assertThat(detail).contains("heightNorm,\n        localizedRefractionMultiplier")
+    assertThat(detail).contains(
+      "abs(refractionScale * refractionStrength) * max(1.0, localizedRefractionMultiplier),",
+    )
     assertThat(lighting).contains("uniform float interactionLightingIntensity;")
   }
 

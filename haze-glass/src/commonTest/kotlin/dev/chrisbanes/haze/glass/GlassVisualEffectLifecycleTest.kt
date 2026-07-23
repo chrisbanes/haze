@@ -224,6 +224,52 @@ class GlassVisualEffectLifecycleTest {
   }
 
   @Test
+  fun prepareBudget_interactionRadiusChangeRebuildsPlanButReusesBaseEffectKeys() {
+    val effect = GlassVisualEffect().apply {
+      pressed {
+        lightingIntensity(1f)
+        refractionMultiplier(1.1f)
+      }
+      interactionLightRadiusFraction = 0.2f
+    }
+    val context = TrackingVisualEffectContext(effectSize = Size(1000f, 600f))
+
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val first = checkNotNull(effect.preparedRender)
+
+    effect.interactionLightRadiusFraction = 0.8f
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val second = checkNotNull(effect.preparedRender)
+
+    assertNotSame(first.plan, second.plan)
+    assertSame(first.params, second.params)
+    assertSame(first.blurKey, second.blurKey)
+    assertSame(first.opticalKey, second.opticalKey)
+    assertSame(first.refractionDetailKey, second.refractionDetailKey)
+    assertSame(first.rimKey, second.rimKey)
+  }
+
+  @Test
+  fun prepareBudget_zeroInteractionRadiusMatchesNoInteractionResponses() {
+    val configured = GlassVisualEffect().apply {
+      pressed {
+        lightingIntensity(1f)
+        refractionMultiplier(1.1f)
+      }
+      interactionLightRadiusFraction = 0f
+    }
+    val context = TrackingVisualEffectContext(effectSize = Size(1000f, 600f))
+
+    configured.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val configuredPlan = checkNotNull(configured.preparedRender).plan
+
+    val baseline = GlassVisualEffect()
+    baseline.prepareRenderBudget(context, runtimeShaderSupported = true)
+
+    assertThat(configuredPlan).isEqualTo(checkNotNull(baseline.preparedRender).plan)
+  }
+
+  @Test
   fun prepareBudget_lightingOnlyChangeReusesUnchangedPreparedData() {
     val effect = GlassVisualEffect()
     val context = TrackingVisualEffectContext()
@@ -261,7 +307,35 @@ class GlassVisualEffectLifecycleTest {
     assertSame(first.opticalKey, second.opticalKey)
     assertSame(first.refractionDetailKey, second.refractionDetailKey)
     assertSame(first.rimKey, second.rimKey)
-    assertSame(first.plan, second.plan)
+    assertNotSame(first.plan, second.plan)
+  }
+
+  @Test
+  fun prepareBudget_configuredInteractionTopologyIsStableAcrossAnimatedValues() {
+    val effect = GlassVisualEffect().apply {
+      pressed {
+        lightingIntensity(1f)
+        refractionMultiplier(1.2f)
+        whitePointDelta(0.04f)
+      }
+    }
+    val context = TrackingVisualEffectContext()
+    effect.attach(context)
+    effect.update(context)
+
+    val idle = effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+      as GlassRenderBudgetDecision.Runtime
+    val idleKinds = checkNotNull(effect.preparedRender).plan.layers.map { it.kind }
+
+    effect.setPressedForTest(Offset(50f, 50f))
+    val pressed = effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+      as GlassRenderBudgetDecision.Runtime
+    val pressedKinds = checkNotNull(effect.preparedRender).plan.layers.map { it.kind }
+
+    assertThat(pressed.scaleFactor).isEqualTo(idle.scaleFactor)
+    assertThat(pressedKinds).isEqualTo(idleKinds)
+    assertThat(pressedKinds.any { it.name.startsWith("Interaction") }).isEqualTo(true)
+    effect.detach(context)
   }
 
   @Test
