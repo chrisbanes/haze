@@ -21,6 +21,8 @@ internal class GlassLayers {
   var depthMixed: GraphicsLayer? = null
   var optical: GraphicsLayer? = null
   var refractionDetail: GraphicsLayer? = null
+  var refractionDetailCoverage: GraphicsLayer? = null
+  var refractionComposite: GraphicsLayer? = null
   var interactionOptical: GraphicsLayer? = null
   var interactionRefractionDetail: GraphicsLayer? = null
   var interactionLighting: GraphicsLayer? = null
@@ -35,6 +37,8 @@ internal class GlassLayers {
   val hasDepthMixed: Boolean get() = depthMixed?.isReleased == false
   val hasOptical: Boolean get() = optical?.isReleased == false
   val hasRefractionDetail: Boolean get() = refractionDetail?.isReleased == false
+  val hasRefractionDetailCoverage: Boolean get() = refractionDetailCoverage?.isReleased == false
+  val hasRefractionComposite: Boolean get() = refractionComposite?.isReleased == false
   val hasInteractionOptical: Boolean get() = interactionOptical?.isReleased == false
   val hasInteractionRefractionDetail: Boolean
     get() = interactionRefractionDetail?.isReleased == false
@@ -44,6 +48,7 @@ internal class GlassLayers {
   val isEmpty: Boolean
     get() = groupAlpha.layer == null && source == null && blurPrefiltered == null && blurHorizontal == null && blurred == null &&
       depthMixed == null && optical == null && refractionDetail == null &&
+      refractionDetailCoverage == null && refractionComposite == null &&
       interactionOptical == null && interactionRefractionDetail == null &&
       interactionLighting == null && rim == null
 
@@ -79,6 +84,14 @@ internal class GlassLayers {
 
   fun ensureRefractionDetail(graphicsContext: GraphicsContext): GraphicsLayer =
     ensureLayer(refractionDetail, graphicsContext).also { refractionDetail = it }
+
+  fun ensureRefractionDetailCoverage(graphicsContext: GraphicsContext): GraphicsLayer =
+    ensureLayer(refractionDetailCoverage, graphicsContext).also {
+      refractionDetailCoverage = it
+    }
+
+  fun ensureRefractionComposite(graphicsContext: GraphicsContext): GraphicsLayer =
+    ensureLayer(refractionComposite, graphicsContext).also { refractionComposite = it }
 
   fun prepareRefractionDetail(
     required: Boolean,
@@ -138,6 +151,10 @@ internal class GlassLayers {
   fun releaseRefractionDetail(graphicsContext: GraphicsContext?) {
     releaseLayer(refractionDetail, graphicsContext)
     refractionDetail = null
+    releaseLayer(refractionDetailCoverage, graphicsContext)
+    refractionDetailCoverage = null
+    releaseLayer(refractionComposite, graphicsContext)
+    refractionComposite = null
   }
 
   fun release(graphicsContext: GraphicsContext?) {
@@ -150,6 +167,8 @@ internal class GlassLayers {
       depthMixed,
       optical,
       refractionDetail,
+      refractionDetailCoverage,
+      refractionComposite,
       interactionOptical,
       interactionRefractionDetail,
       interactionLighting,
@@ -164,6 +183,8 @@ internal class GlassLayers {
     depthMixed = null
     optical = null
     refractionDetail = null
+    refractionDetailCoverage = null
+    refractionComposite = null
     interactionOptical = null
     interactionRefractionDetail = null
     interactionLighting = null

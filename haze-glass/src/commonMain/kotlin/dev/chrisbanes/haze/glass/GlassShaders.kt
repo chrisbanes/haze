@@ -277,7 +277,10 @@ internal object GlassShaders {
     }
   """
 
-  fun buildRefractionDetail(interactive: Boolean = false): String = """
+  fun buildRefractionDetail(
+    interactive: Boolean = false,
+    coverageOnly: Boolean = false,
+  ): String = """
     uniform shader content;
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
@@ -351,6 +354,7 @@ internal object GlassShaders {
       float detailAlpha = sourceShapeMask * innerEnvelope * outerEnvelope * detailIntensity * detailVisibility;
       if (detailAlpha <= 0.0) return vec4(0.0);
 
+      ${if (coverageOnly) "return vec4(vec3(detailAlpha), detailAlpha);" else ""}
       vec4 sharpSample = content.eval(refractCoord);
       vec4 detailColor = sharpSample * detailAlpha;
       return detailColor.a > 0.0 ? detailColor : vec4(0.0);

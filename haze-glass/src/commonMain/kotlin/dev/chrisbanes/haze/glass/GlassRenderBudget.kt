@@ -18,6 +18,8 @@ internal enum class GlassRetainedLayerKind {
   DepthMixed,
   Optical,
   RefractionDetail,
+  RefractionDetailCoverage,
+  RefractionComposite,
   Rim,
   InteractionOptical,
   InteractionDetail,

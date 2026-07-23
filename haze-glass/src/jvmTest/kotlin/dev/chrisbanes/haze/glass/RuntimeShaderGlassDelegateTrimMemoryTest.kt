@@ -319,16 +319,20 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
-  fun releaseRefractionDetail_releasesOnlyDetailLayer() {
+  fun releaseRefractionDetail_releasesDetailCompositeGraph() {
     val layers = GlassLayers()
     val graphicsContext = TestGraphicsContext()
     layers.populate(graphicsContext)
     val detail = checkNotNull(layers.refractionDetail)
+    val coverage = checkNotNull(layers.refractionDetailCoverage)
+    val composite = checkNotNull(layers.refractionComposite)
 
     layers.releaseRefractionDetail(graphicsContext)
 
-    assertThat(graphicsContext.releasedLayers).containsExactly(detail)
+    assertThat(graphicsContext.releasedLayers).containsExactly(detail, coverage, composite)
     assertThat(layers.hasRefractionDetail).isFalse()
+    assertThat(layers.hasRefractionDetailCoverage).isFalse()
+    assertThat(layers.hasRefractionComposite).isFalse()
     assertThat(layers.hasOptical).isTrue()
   }
 
@@ -341,7 +345,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(12)
+    assertThat(retainedLayers.size).isEqualTo(14)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.BACKGROUND)
@@ -353,6 +357,8 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.hasDepthMixed).isTrue()
     assertThat(delegate.layers.hasOptical).isTrue()
     assertThat(delegate.layers.hasRefractionDetail).isTrue()
+    assertThat(delegate.layers.hasRefractionDetailCoverage).isTrue()
+    assertThat(delegate.layers.hasRefractionComposite).isTrue()
     assertThat(delegate.layers.hasInteractionOptical).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
@@ -369,7 +375,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val retainedLayers = delegate.layers.allLayers()
     delegate.setGraphicsContextForTest(context.graphicsContext)
 
-    assertThat(retainedLayers.size).isEqualTo(12)
+    assertThat(retainedLayers.size).isEqualTo(14)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
 
@@ -397,7 +403,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
     assertThat(delegate.layers.hasRim).isTrue()
-    assertThat(retainedLayers.size).isEqualTo(12)
+    assertThat(retainedLayers.size).isEqualTo(14)
 
     delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
 
@@ -417,7 +423,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.seedRetainedOutputAvailable()
     val retainedLayers = delegate.layers.allLayers()
 
-    assertThat(retainedLayers.size).isEqualTo(12)
+    assertThat(retainedLayers.size).isEqualTo(14)
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.COMPLETE)
@@ -533,7 +539,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       val delegate = RuntimeShaderGlassDelegate(effect)
       val retainedLayers = delegate.prepareDrawWithRetainedLayers(context, effect)
 
-      assertThat(retainedLayers.size).isEqualTo(12)
+      assertThat(retainedLayers.size).isEqualTo(14)
       assertThat(context.graphicsContext.releasedLayers)
         .containsExactly(*retainedLayers.toTypedArray())
       assertThat(delegate.layers.isEmpty).isTrue()
@@ -575,6 +581,8 @@ private fun GlassLayers.populate(graphicsContext: GraphicsContext) {
   depthMixed = graphicsContext.createGraphicsLayer()
   optical = graphicsContext.createGraphicsLayer()
   refractionDetail = graphicsContext.createGraphicsLayer()
+  refractionDetailCoverage = graphicsContext.createGraphicsLayer()
+  refractionComposite = graphicsContext.createGraphicsLayer()
   interactionOptical = graphicsContext.createGraphicsLayer()
   interactionRefractionDetail = graphicsContext.createGraphicsLayer()
   interactionLighting = graphicsContext.createGraphicsLayer()
@@ -590,6 +598,8 @@ private fun GlassLayers.allLayers(): List<GraphicsLayer> = listOfNotNull(
   depthMixed,
   optical,
   refractionDetail,
+  refractionDetailCoverage,
+  refractionComposite,
   interactionOptical,
   interactionRefractionDetail,
   interactionLighting,
