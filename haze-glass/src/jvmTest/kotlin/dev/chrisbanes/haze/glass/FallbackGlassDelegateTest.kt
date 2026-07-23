@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -42,6 +43,9 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.abs
 import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.test.assertNotSame
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
@@ -185,6 +189,95 @@ class FallbackGlassDelegateTest {
     )
   }
 
+  @Test
+  fun foregroundLighting_drawsOverOpaqueContent() {
+    val effect = GlassVisualEffect().apply {
+      tint = Color.Transparent
+      specularIntensity = 1f
+      ambientResponse = 0f
+      edgeSoftness = 0.dp
+      lightPosition = Offset(60f, 60f)
+    }
+    val fallback = FallbackGlassDelegate(effect)
+    val context = FallbackRecordingContext(size = Size(120f, 120f))
+    val image = ImageBitmap(120, 120)
+    CanvasDrawScope().draw(
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+      canvas = Canvas(image),
+      size = context.size,
+    ) {
+      with(fallback) {
+        prepareDraw(context)
+        draw(context)
+      }
+      drawRect(Color.Black)
+      with(fallback) { drawForeground(context) }
+    }
+
+    assertTrue(image.toPixelMap()[60, 60].red > 0.01f)
+  }
+
+  @Test
+  fun stablePrepare_reusesResourcesUntilTheirSemanticInputsChange() {
+    val effect = GlassVisualEffect().apply {
+      tint = Color.Red
+      specularIntensity = 1f
+      ambientResponse = 1f
+      edgeSoftness = 8.dp
+      shape = RoundedCornerShape(12.dp)
+    }
+    val delegate = FallbackGlassDelegate(effect)
+    val context = FallbackRecordingContext(size = Size(100f, 100f))
+
+    delegate.prepare(context)
+    val first = delegate.preparedResourcesForTest()
+    delegate.prepare(context)
+    val stable = delegate.preparedResourcesForTest()
+
+    assertSame(first.prepared, stable.prepared)
+    assertSame(first.style, stable.style)
+    assertSame(first.shapePath, stable.shapePath)
+    assertSame(first.highlightBrush, stable.highlightBrush)
+    assertSame(first.edgeBrush, stable.edgeBrush)
+    assertSame(first.edgeStroke, stable.edgeStroke)
+
+    effect.lightPosition = Offset(24f, 36f)
+    delegate.prepare(context)
+    val movedLight = delegate.preparedResourcesForTest()
+
+    assertNotSame(stable.prepared, movedLight.prepared)
+    assertNotSame(stable.highlightBrush, movedLight.highlightBrush)
+    assertSame(stable.shapePath, movedLight.shapePath)
+    assertSame(stable.edgeBrush, movedLight.edgeBrush)
+    assertSame(stable.edgeStroke, movedLight.edgeStroke)
+
+    effect.ambientResponse = 0.5f
+    delegate.prepare(context)
+    val changedEdge = delegate.preparedResourcesForTest()
+
+    assertSame(movedLight.highlightBrush, changedEdge.highlightBrush)
+    assertNotSame(movedLight.edgeBrush, changedEdge.edgeBrush)
+    assertSame(movedLight.edgeStroke, changedEdge.edgeStroke)
+    assertSame(movedLight.shapePath, changedEdge.shapePath)
+
+    effect.edgeSoftness = 0.dp
+    delegate.prepare(context)
+    val noEdge = delegate.preparedResourcesForTest()
+
+    assertNull(noEdge.edgeBrush)
+    assertNull(noEdge.edgeDirectBrush)
+    assertNull(noEdge.edgeStroke)
+
+    effect.edgeSoftness = 8.dp
+    delegate.prepare(context)
+    val restoredEdge = delegate.preparedResourcesForTest()
+
+    assertNotNull(restoredEdge.edgeBrush)
+    assertNotNull(restoredEdge.edgeDirectBrush)
+    assertNotNull(restoredEdge.edgeStroke)
+  }
+
   private fun FallbackGlassDelegate.prepare(context: FallbackRecordingContext) {
     CanvasDrawScope().draw(
       density = Density(1f),
@@ -202,6 +295,27 @@ class FallbackGlassDelegateTest {
       get(this@groupAlphaForTest) as RetainedGlassGroupAlphaLayer
     }
 
+  private fun FallbackGlassDelegate.preparedResourcesForTest(): PreparedResourcesForTest {
+    val prepared = javaClass.getDeclaredField("preparedDraw").run {
+      isAccessible = true
+      get(this@preparedResourcesForTest)
+    }
+    checkNotNull(prepared)
+    fun field(name: String): Any? = prepared.javaClass.getDeclaredField(name).run {
+      isAccessible = true
+      get(prepared)
+    }
+    return PreparedResourcesForTest(
+      prepared = prepared,
+      style = field("style"),
+      shapePath = field("shapePath"),
+      highlightBrush = field("highlightBrush"),
+      edgeBrush = field("edgeBrush"),
+      edgeDirectBrush = field("edgeDirectBrush"),
+      edgeStroke = field("edgeStroke"),
+    )
+  }
+
   @Composable
   private fun FallbackTestContent(fallbackVisualEffect: FallbackOnlyVisualEffect) {
     Box(
@@ -212,6 +326,16 @@ class FallbackGlassDelegateTest {
     )
   }
 }
+
+private data class PreparedResourcesForTest(
+  val prepared: Any,
+  val style: Any?,
+  val shapePath: Any?,
+  val highlightBrush: Any?,
+  val edgeBrush: Any?,
+  val edgeDirectBrush: Any?,
+  val edgeStroke: Any?,
+)
 
 private const val FALLBACK_TAG = "fallback"
 
@@ -227,11 +351,20 @@ private class FallbackOnlyVisualEffect(
   }
 
   override fun androidx.compose.ui.graphics.drawscope.DrawScope.prepareDraw(context: VisualEffectContext) {
-    if (prepareGroup) with(fallback) { prepareDraw(context) }
+    with(fallback) { prepareDraw(context) }
+    if (!prepareGroup) {
+      fallback.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
+    }
   }
 
   override fun androidx.compose.ui.graphics.drawscope.DrawScope.draw(context: VisualEffectContext) {
     with(fallback) { draw(context) }
+  }
+
+  override fun androidx.compose.ui.graphics.drawscope.DrawScope.drawForeground(
+    context: VisualEffectContext,
+  ) {
+    with(fallback) { drawForeground(context) }
   }
 
   override fun attach(context: VisualEffectContext) {
