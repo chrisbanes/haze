@@ -37,6 +37,14 @@
          <lastmod>2026-07-23</lastmod>
     </url>
     <url>
+         <loc>https://chribanes.github.io/haze/dev/adr/0001-treat-haze-2-as-an-intentional-source-break/</loc>
+         <lastmod>2026-07-23</lastmod>
+    </url>
+    <url>
+         <loc>https://chribanes.github.io/haze/dev/adr/0002-use-a-shared-retained-stage-graph-for-glass/</loc>
+         <lastmod>2026-07-23</lastmod>
+    </url>
+    <url>
          <loc>https://chribanes.github.io/haze/dev/blur/</loc>
          <lastmod>2026-07-23</lastmod>
     </url>
