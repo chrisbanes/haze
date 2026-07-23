@@ -758,6 +758,8 @@ private fun buildGlassRetainedLayerPlan(
     add(GlassRetainedLayer(GlassRetainedLayerKind.Optical, sampleSize))
     if (refractionDetailActive) {
       add(GlassRetainedLayer(GlassRetainedLayerKind.RefractionDetail, sampleSize))
+      add(GlassRetainedLayer(GlassRetainedLayerKind.RefractionDetailCoverage, sampleSize))
+      add(GlassRetainedLayer(GlassRetainedLayerKind.RefractionComposite, sampleSize))
     }
     if (rimActive) add(GlassRetainedLayer(GlassRetainedLayerKind.Rim, sampleSize))
     if (interactionOpticsActive) {

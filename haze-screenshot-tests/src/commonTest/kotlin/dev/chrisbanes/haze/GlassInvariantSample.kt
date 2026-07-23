@@ -1140,10 +1140,14 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = GlassVisualEffect().apply {
     tint = Color.Transparent
-    optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
+    optics = GlassOptics.Absolute(
+      depth = 0f,
+      blurRadius = 0.dp,
+    )
+    chromaticAberrationStrength = 0f
     specularIntensity = 0f
     ambientResponse = 0f
-    edgeSoftness = 8.dp
+    edgeSoftness = 0.dp
     this.shape = shape
   }
   var showSource by mutableStateOf(true)
@@ -1167,6 +1171,29 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
     x = (geometry.surfaceBounds.left + geometry.surfaceBounds.right) / 2,
     y = (geometry.surfaceBounds.top + geometry.surfaceBounds.bottom) / 2,
   )
+  val detailBandColors = (
+    geometry.surfaceBounds.left + 2..<geometry.surfaceBounds.right - 2
+    ).map { x -> live[x, geometry.centerY] }
+  val expectedAlpha = 0.5f
+  val expectedRed = InvariantSourceColor.red * expectedAlpha
+  val expectedGreen = InvariantSourceColor.green * expectedAlpha
+  val expectedBlue = InvariantSourceColor.blue * expectedAlpha
+  val maximumDetailBandAlphaError = detailBandColors.maxOf { color ->
+    abs(color.alpha - expectedAlpha)
+  }
+  val maximumDetailBandPremultipliedRgbError = detailBandColors.maxOf { color ->
+    maxOf(
+      abs(color.red - expectedRed),
+      abs(color.green - expectedGreen),
+      abs(color.blue - expectedBlue),
+    )
+  }
+  val maximumAdjacentAlphaDelta = detailBandColors
+    .zipWithNext { first, second -> abs(first.alpha - second.alpha) }
+    .max()
+  assertThat(maximumDetailBandAlphaError).isLessThanOrEqualTo(2f / 255f)
+  assertThat(maximumDetailBandPremultipliedRgbError).isLessThanOrEqualTo(2f / 255f)
+  assertThat(maximumAdjacentAlphaDelta).isLessThanOrEqualTo(1.001f / 255f)
   assertThat(kotlin.math.abs(live[center.x, center.y].alpha - 0.5f))
     .isLessThanOrEqualTo(1f / 255f)
   assertThat(kotlin.math.abs(live[center.x, center.y].red - InvariantSourceColor.red * 0.5f))

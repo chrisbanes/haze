@@ -367,6 +367,8 @@ class GlassRenderParamsTest {
       GlassRetainedLayerKind.Source,
       GlassRetainedLayerKind.Optical,
       GlassRetainedLayerKind.RefractionDetail,
+      GlassRetainedLayerKind.RefractionDetailCoverage,
+      GlassRetainedLayerKind.RefractionComposite,
       GlassRetainedLayerKind.Rim,
       GlassRetainedLayerKind.InteractionOptical,
       GlassRetainedLayerKind.InteractionDetail,
