@@ -134,7 +134,12 @@ private fun GlassProfilingScene(
     if (state.phase != GlassProfilingPhase.Running) return@LaunchedEffect
     when (scenario) {
       GlassProfilingScenario.EffectAttach -> {
+        val startNanos = androidx.compose.runtime.withFrameNanos { it }
         repeat(8) { androidx.compose.runtime.withFrameNanos {} }
+        val elapsedMillis = (
+          androidx.compose.runtime.withFrameNanos { it } - startNanos
+          ) / 1_000_000
+        delay((GLASS_PROFILING_DURATION_MILLIS - elapsedMillis).coerceAtLeast(0))
       }
       GlassProfilingScenario.InteractionUpdate -> {
         val press = PressInteraction.Press(
@@ -174,8 +179,7 @@ private fun GlassProfilingScene(
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(Color(0xFF10131A))
-      .testTag("glass_profiling_selected_${scenario.id}"),
+      .background(Color(0xFF10131A)),
   ) {
     Canvas(
       Modifier
@@ -226,7 +230,8 @@ private fun GlassProfilingScene(
     Column(
       modifier = Modifier
         .align(Alignment.TopStart)
-        .padding(16.dp),
+        .padding(16.dp)
+        .testTag("glass_profiling_selected_${scenario.id}"),
       verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
       Text(
