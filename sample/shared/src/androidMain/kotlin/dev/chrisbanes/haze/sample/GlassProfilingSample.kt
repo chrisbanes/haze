@@ -131,6 +131,13 @@ private fun GlassProfilingScene(
   }
 
   LaunchedEffect(state.phase, scenario, effect, interactionSource, surfaceSizePx) {
+    if (state.phase == GlassProfilingPhase.Settling) {
+      repeat(GLASS_PROFILING_SETTLING_FRAMES) {
+        androidx.compose.runtime.withFrameNanos {}
+      }
+      state.markReady()
+      return@LaunchedEffect
+    }
     if (state.phase != GlassProfilingPhase.Running) return@LaunchedEffect
     when (scenario) {
       GlassProfilingScenario.EffectAttach -> {
@@ -172,9 +179,7 @@ private fun GlassProfilingScene(
     state.complete()
   }
 
-  val attachGlass =
-    scenario != GlassProfilingScenario.EffectAttach ||
-      state.phase != GlassProfilingPhase.Ready
+  val attachGlass = shouldAttachProfilingGlass(scenario, state.phase)
 
   Box(
     modifier = modifier
@@ -186,7 +191,10 @@ private fun GlassProfilingScene(
         .fillMaxSize()
         .hazeSource(hazeState),
     ) {
-      val frame = glassProfilingFrame(scenario, state.progress)
+      val frame = glassProfilingFrame(
+        scenario = scenario,
+        progress = glassProfilingSourceProgress(scenario) { state.progress },
+      )
       val translatedX = size.width * frame.sourceOffset
       drawRect(Color(0xFF172554))
       repeat(12) { index ->

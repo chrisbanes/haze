@@ -37,4 +37,32 @@ class GlassProfilingSampleTest : ContextTest() {
     onNodeWithTag("glass_profiling_start").performClick()
     onNodeWithTag("glass_profiling_phase_complete").assertIsDisplayed()
   }
+
+  @Test
+  fun effectAttach_settlesWithoutGlassBeforeExposingStart() = runComposeUiTest {
+    mainClock.autoAdvance = false
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_effect_attach").performClick()
+    mainClock.advanceTimeByFrame()
+    onNodeWithTag("glass_profiling_phase_settling").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_surface").assertDoesNotExist()
+    onNodeWithTag("glass_profiling_start").assertDoesNotExist()
+
+    repeat(GLASS_PROFILING_SETTLING_FRAMES + 1) {
+      mainClock.advanceTimeByFrame()
+    }
+    waitForIdle()
+
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_surface").assertDoesNotExist()
+    onNodeWithTag("glass_profiling_start").performClick()
+    mainClock.advanceTimeByFrame()
+    onNodeWithTag("glass_profiling_surface").assertIsDisplayed()
+  }
 }

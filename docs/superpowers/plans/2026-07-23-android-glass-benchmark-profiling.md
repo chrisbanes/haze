@@ -1840,3 +1840,24 @@ git commit -m "Document local Glass profiling workflow"
   wrapping is protected by a stable-name contract and the existing renderer integration suites.
 - Placeholder scan: Every task names exact files, interfaces, commands, expected results, and code
   shapes. No incomplete implementation steps remain.
+
+## Final Review Corrections
+
+This section supersedes the earlier scenario-state, source-draw, Playground-loop, and UI Automator
+snippets where they conflict:
+
+- Scenario selection enters an internal `settling` phase. The scene waits eight rendered frames
+  before calling `markReady()`, and `start()` rejects every phase except `ready`.
+- `effect_attach` settles and captures its source with Glass detached, remains detached while
+  ready, and attaches only after the measured Start action. Other Glass scenarios settle with
+  Glass attached.
+- The `hazeSource` draw reads changing progress only for `source_update` and
+  `source_update_no_glass`. Retained reuse and every effect-only scenario keep the source draw
+  independent of frame-rate progress.
+- Playground measurement no longer treats the next already-running loop as a full cycle. Setup
+  first observes loop 1; the measured block clicks the existing Reset action, waits for loop 0,
+  then waits for loop 1. Reset snaps progress to zero before publishing loop 0 and increments an
+  internal autoplay generation key so the `LaunchedEffect` cancels and restarts deterministically.
+- Controlled profiling waits pass `scenarioId` through the run helper. Timeout failures include
+  scenario, expected phase, selector, and timeout; no missing marker or phase is allowed to
+  continue silently.

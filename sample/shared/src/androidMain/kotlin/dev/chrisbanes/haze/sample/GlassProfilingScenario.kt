@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 internal const val GLASS_PROFILING_DURATION_MILLIS: Int = 3_000
+internal const val GLASS_PROFILING_SETTLING_FRAMES: Int = 8
 
 internal enum class GlassProfilingScenario(
   val id: String,
@@ -31,6 +32,7 @@ internal enum class GlassProfilingScenario(
 
 internal enum class GlassProfilingPhase(val id: String) {
   Selecting("selecting"),
+  Settling("settling"),
   Ready("ready"),
   Running("running"),
   Complete("complete"),
@@ -75,6 +77,23 @@ internal fun glassProfilingFrame(
   }
 }
 
+internal inline fun glassProfilingSourceProgress(
+  scenario: GlassProfilingScenario,
+  progress: () -> Float,
+): Float = when (scenario) {
+  GlassProfilingScenario.SourceUpdate,
+  GlassProfilingScenario.SourceUpdateNoGlass,
+  -> progress()
+  else -> 0f
+}
+
+internal fun shouldAttachProfilingGlass(
+  scenario: GlassProfilingScenario,
+  phase: GlassProfilingPhase,
+): Boolean = scenario != GlassProfilingScenario.EffectAttach ||
+  phase == GlassProfilingPhase.Running ||
+  phase == GlassProfilingPhase.Complete
+
 @Stable
 internal class GlassProfilingState {
   var scenario: GlassProfilingScenario? by mutableStateOf(null)
@@ -88,6 +107,11 @@ internal class GlassProfilingState {
     check(phase != GlassProfilingPhase.Running)
     scenario = value
     progress = 0f
+    phase = GlassProfilingPhase.Settling
+  }
+
+  fun markReady() {
+    check(phase == GlassProfilingPhase.Settling)
     phase = GlassProfilingPhase.Ready
   }
 

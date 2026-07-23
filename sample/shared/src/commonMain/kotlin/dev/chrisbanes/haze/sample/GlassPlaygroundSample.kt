@@ -74,6 +74,8 @@ internal class GlassPlaygroundState {
     private set
   var completedLoopCount by mutableIntStateOf(0)
     private set
+  var autoplayGeneration by mutableIntStateOf(0)
+    private set
   var activeSurface by mutableStateOf<GlassPlaygroundSurfaceId?>(null)
     private set
 
@@ -132,6 +134,7 @@ internal class GlassPlaygroundState {
     completedLoopCount = 0
     isPlaying = true
     recordingMode = false
+    autoplayGeneration++
   }
 
   suspend fun disableAutoplay() {
@@ -149,7 +152,7 @@ public fun GlassPlaygroundSample(navController: NavHostController) {
   val scope = rememberCoroutineScope()
   val returnJobs = remember { mutableMapOf<GlassPlaygroundSurfaceId, Job>() }
 
-  LaunchedEffect(state.isPlaying, state.activeSurface) {
+  LaunchedEffect(state.isPlaying, state.activeSurface, state.autoplayGeneration) {
     val animationsEnabled = (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) > 0f
     if (!animationsEnabled) {
       state.disableAutoplay()

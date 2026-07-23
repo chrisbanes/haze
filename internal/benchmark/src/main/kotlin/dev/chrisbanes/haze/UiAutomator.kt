@@ -93,21 +93,50 @@ internal fun UiDevice.navigateToGlassPlayground() {
   waitForObject(By.res("glass_playground_loop_1"), timeout = 20.seconds)
 }
 
-internal fun UiDevice.awaitNextGlassPlaygroundLoop() {
-  waitForObject(By.res("glass_playground_loop_2"), timeout = 20.seconds)
+internal fun UiDevice.measureFullGlassPlaygroundLoop() {
+  waitForObject(By.desc("Reset demo")).click()
+  waitForObject(By.res("glass_playground_loop_0"))
+  waitForObject(By.res("glass_playground_loop_1"), timeout = 20.seconds)
 }
 
 internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
   findSampleListItem(By.res("Glass — Profiling")).click()
-  waitForObject(By.res("glass_profiling_select_$scenarioId")).click()
-  waitForObject(By.res("glass_profiling_selected_$scenarioId"))
-  waitForObject(By.res("glass_profiling_phase_ready"))
+  waitForGlassProfilingObject(
+    scenarioId = scenarioId,
+    expectedPhase = "selecting",
+    selector = By.res("glass_profiling_select_$scenarioId"),
+  ).click()
+  waitForGlassProfilingObject(
+    scenarioId = scenarioId,
+    expectedPhase = "ready",
+    selector = By.res("glass_profiling_phase_ready"),
+  )
 }
 
-internal fun UiDevice.runGlassProfilingScenario() {
-  waitForObject(By.res("glass_profiling_start")).click()
-  waitForObject(By.res("glass_profiling_phase_complete"), timeout = 10.seconds)
+internal fun UiDevice.runGlassProfilingScenario(scenarioId: String) {
+  waitForGlassProfilingObject(
+    scenarioId = scenarioId,
+    expectedPhase = "ready",
+    selector = By.res("glass_profiling_start"),
+  ).click()
+  waitForGlassProfilingObject(
+    scenarioId = scenarioId,
+    expectedPhase = "complete",
+    selector = By.res("glass_profiling_phase_complete"),
+    timeout = 10.seconds,
+  )
 }
+
+private fun UiDevice.waitForGlassProfilingObject(
+  scenarioId: String,
+  expectedPhase: String,
+  selector: BySelector,
+  timeout: Duration = 15.seconds,
+): UiObject2 = waitForObjectOrNull(selector, timeout)
+  ?: error(
+    "Glass profiling timeout: scenario=$scenarioId, phase=$expectedPhase, " +
+      "selector=$selector, timeout=$timeout",
+  )
 
 internal fun UiDevice.findSampleListItem(selector: BySelector): UiObject2 {
   return waitForObject(By.res("sample_list"))

@@ -68,7 +68,7 @@ class GlassProfilingBenchmark {
         device.navigateToGlassProfiling(scenarioId)
       },
     ) {
-      device.runGlassProfilingScenario()
+      device.runGlassProfilingScenario(scenarioId)
     }
   }
 }

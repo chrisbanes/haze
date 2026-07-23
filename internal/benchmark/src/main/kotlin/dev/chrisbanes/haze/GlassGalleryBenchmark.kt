@@ -52,7 +52,7 @@ class GlassGalleryBenchmark {
         device.navigateToGlassPlayground()
       },
     ) {
-      device.awaitNextGlassPlaygroundLoop()
+      device.measureFullGlassPlaygroundLoop()
     }
   }
 }

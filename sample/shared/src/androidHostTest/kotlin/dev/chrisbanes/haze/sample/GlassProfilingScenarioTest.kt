@@ -63,12 +63,32 @@ class GlassProfilingScenarioTest {
   }
 
   @Test
-  fun state_enforcesSelectingReadyRunningCompleteOrder() {
+  fun sourceProgress_isReadOnlyForSourceScenarios() {
+    GlassProfilingScenario.entries.forEach { scenario ->
+      var readCount = 0
+      val resolved = glassProfilingSourceProgress(scenario) {
+        readCount++
+        0.75f
+      }
+      val updatesSource = scenario == GlassProfilingScenario.SourceUpdate ||
+        scenario == GlassProfilingScenario.SourceUpdateNoGlass
+
+      assertEquals(if (updatesSource) 1 else 0, readCount, scenario.id)
+      assertEquals(if (updatesSource) 0.75f else 0f, resolved, scenario.id)
+    }
+  }
+
+  @Test
+  fun state_enforcesSelectingSettlingReadyRunningCompleteOrder() {
     val state = GlassProfilingState()
     assertEquals(GlassProfilingPhase.Selecting, state.phase)
     assertFalse(state.start())
 
     state.select(GlassProfilingScenario.SourceUpdate)
+    assertEquals(GlassProfilingPhase.Settling, state.phase)
+    assertFalse(state.start())
+
+    state.markReady()
     assertEquals(GlassProfilingPhase.Ready, state.phase)
     assertTrue(state.start())
     assertEquals(GlassProfilingPhase.Running, state.phase)
@@ -85,6 +105,7 @@ class GlassProfilingScenarioTest {
   fun state_rejectsInvalidProgressAndSelectionDuringRun() {
     val state = GlassProfilingState()
     state.select(GlassProfilingScenario.BlurUpdate)
+    state.markReady()
     assertTrue(state.start())
 
     assertFailsWith<IllegalArgumentException> { state.updateProgress(Float.NaN) }
@@ -92,6 +113,25 @@ class GlassProfilingScenarioTest {
     assertFailsWith<IllegalStateException> {
       state.select(GlassProfilingScenario.DepthUpdate)
     }
+  }
+
+  @Test
+  fun effectAttach_isDetachedUntilMeasurementStarts() {
+    GlassProfilingPhase.entries.forEach { phase ->
+      assertEquals(
+        phase == GlassProfilingPhase.Running || phase == GlassProfilingPhase.Complete,
+        shouldAttachProfilingGlass(GlassProfilingScenario.EffectAttach, phase),
+        phase.id,
+      )
+    }
+
+    GlassProfilingScenario.entries
+      .filter { it.glassEnabled && it != GlassProfilingScenario.EffectAttach }
+      .forEach { scenario ->
+        GlassProfilingPhase.entries.forEach { phase ->
+          assertTrue(shouldAttachProfilingGlass(scenario, phase), "${scenario.id}/${phase.id}")
+        }
+      }
   }
 }
 

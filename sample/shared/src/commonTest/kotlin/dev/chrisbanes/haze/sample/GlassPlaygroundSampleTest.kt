@@ -20,9 +20,25 @@ import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassPlaygroundSampleTest : ContextTest() {
+  @Test
+  fun reset_restartsAutoplayFromLoopZeroWithANewGeneration() = runTest {
+    val state = GlassPlaygroundState()
+    val initialGeneration = state.autoplayGeneration
+
+    state.reset()
+
+    assertEquals(0f, state.progress())
+    assertEquals(0, state.completedLoopCount)
+    assertEquals(initialGeneration + 1, state.autoplayGeneration)
+    assertTrue(state.isPlaying)
+  }
+
   @Test
   fun content_exposesCompletedTimelineLoop() = runComposeUiTest {
     setContent {
