@@ -418,9 +418,16 @@ internal class RuntimeShaderGlassDelegate(
             ::clearRetainedOutput,
           ) ?: return
         }
+        val sharedDetailCompositionInvalidated = preparedSharedBlurGroup != null &&
+          lastSuccessfulStageInputs?.detail != currentInputs.detail
+        val detailCoverageInvalidated = if (preparedSharedBlurGroup != null) {
+          sharedDetailCompositionInvalidated || !layers.hasRefractionDetailCoverage
+        } else {
+          invalidation.detail
+        }
         val refractionDetailCoverage = effects.refractionDetail?.let {
           requireRetainedStage(
-            if (invalidation.detail) {
+            if (detailCoverageInvalidated) {
               trace(GlassTraceSection.Detail) {
                 recordRefractionDetailCoverage(source, params, it)
               }
@@ -433,8 +440,13 @@ internal class RuntimeShaderGlassDelegate(
         val completedOptical = if (
           refractionDetail != null && refractionDetailCoverage != null
         ) {
+          val detailCompositeInvalidated = if (preparedSharedBlurGroup != null) {
+            sharedDetailCompositionInvalidated || !layers.hasRefractionComposite
+          } else {
+            invalidation.optical || invalidation.detail
+          }
           requireRetainedStage(
-            if (invalidation.optical || invalidation.detail) {
+            if (detailCompositeInvalidated) {
               trace(GlassTraceSection.Optical) {
                 recordRefractionComposite(
                   optical = optical,
