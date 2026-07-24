@@ -25,7 +25,6 @@ import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
@@ -46,7 +45,6 @@ class GlassPlaygroundSampleTest : ContextTest() {
   @Test
   fun resetAction_restartsAutoplayThroughACompleteLoop() = runComposeUiTest {
     mainClock.autoAdvance = false
-    val autoplayGate = Channel<Unit>(capacity = Channel.UNLIMITED)
     val state = GlassPlaygroundState(
       loopDurationMillis = TEST_PLAYGROUND_LOOP_DURATION_MILLIS,
     ).apply {
@@ -57,7 +55,6 @@ class GlassPlaygroundSampleTest : ContextTest() {
         navController = rememberNavController(),
         state = state,
         runAutoplay = {
-          autoplayGate.receive()
           runAutoplayLoop(loopLimit = 1)
         },
       )
@@ -65,7 +62,6 @@ class GlassPlaygroundSampleTest : ContextTest() {
 
     state.togglePlayback()
     mainClock.advanceTimeByFrame()
-    autoplayGate.trySend(Unit)
     mainClock.advanceTimeBy(TEST_PLAYGROUND_LOOP_DURATION_MILLIS.toLong() + 1_000)
     onNodeWithTag("glass_playground_loop_1").assertIsDisplayed()
 
@@ -73,12 +69,10 @@ class GlassPlaygroundSampleTest : ContextTest() {
     mainClock.advanceTimeByFrame()
     onNodeWithTag("glass_playground_loop_0").assertIsDisplayed()
 
-    autoplayGate.trySend(Unit)
     mainClock.advanceTimeBy(TEST_PLAYGROUND_LOOP_DURATION_MILLIS.toLong() + 1_000)
     onNodeWithTag("glass_playground_loop_1").assertIsDisplayed()
 
     state.togglePlayback()
-    autoplayGate.close()
     mainClock.advanceTimeByFrame()
   }
 
