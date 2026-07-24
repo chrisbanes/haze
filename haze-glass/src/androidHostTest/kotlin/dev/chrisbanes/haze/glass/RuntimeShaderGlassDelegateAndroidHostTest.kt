@@ -106,6 +106,11 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       delegates.drop(1).forEach { delegate ->
         assertSame(sharedBlurred, delegate.sharedBlurredLayerForTest)
       }
+      val sharedOptical = checkNotNull(delegates.first().sharedOpticalLayerForTest)
+      assertTrue(delegates.all { it.layers.optical?.renderEffect == null })
+      delegates.drop(1).forEach { delegate ->
+        assertSame(sharedOptical, delegate.sharedOpticalLayerForTest)
+      }
       val sharedRefractionDetail = checkNotNull(
         delegates.first().sharedRefractionDetailLayerForTest,
       ) {
@@ -147,6 +152,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
       }
       assertTrue(delegates.all(RuntimeShaderGlassDelegate::usesSharedBlurForTest))
+      assertTrue(delegates.all { it.sharedOpticalLayerForTest == null })
+      assertTrue(delegates.all { it.layers.optical?.renderEffect != null })
       assertTrue(delegates.all { it.sharedRefractionDetailLayerForTest == null })
       assertTrue(delegates.all { it.layers.refractionDetail?.renderEffect != null })
     }
@@ -177,6 +184,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
       val firstDelegate = checkNotNull(effects.first().delegate as? RuntimeShaderGlassDelegate)
       assertTrue(firstDelegate.usesSharedBlurForTest)
+      assertTrue(firstDelegate.layers.optical?.renderEffect == null)
       assertTrue(firstDelegate.layers.refractionDetail?.renderEffect == null)
       val sharedPixels = captureRegionPixels(
         left = 0,
@@ -191,6 +199,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
       assertFalse(firstDelegate.usesSharedBlurForTest)
+      assertTrue(firstDelegate.layers.optical?.renderEffect != null)
       assertTrue(firstDelegate.layers.refractionDetail?.renderEffect != null)
       val restoredDedicatedPixels = captureRegionPixels(
         left = 0,

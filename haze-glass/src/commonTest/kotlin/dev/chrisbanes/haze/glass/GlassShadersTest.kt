@@ -50,11 +50,13 @@ class GlassShadersTest {
   }
 
   @Test
-  fun prefilter_isBoundedNineTapLowPass() {
+  fun prefilter_usesFourBilinearSamplesForTheNineTapLowPass() {
     val shader = GlassShaders.buildDownsamplePrefilter()
 
-    assertThat(Regex("content\\.eval").findAll(shader).count()).isEqualTo(9)
+    assertThat(Regex("content\\.eval").findAll(shader).count()).isEqualTo(4)
     assertThat(shader).contains("0.25")
+    assertThat(shader).contains("vec2(-0.5, -0.5)")
+    assertThat(shader).contains("vec2(0.5, 0.5)")
     assertThat(shader).contains("clampSample")
   }
 
@@ -121,6 +123,22 @@ class GlassShadersTest {
   }
 
   @Test
+  fun opticalShaders_sampleBaseContentOnlyAcrossTheSoftEdge() {
+    listOf(
+      GlassShaders.buildOptical(),
+      GlassShaders.buildOptical(tiled = true),
+    ).forEach { shader ->
+      val main = shader.substringAfter("vec4 main(vec2 coord)")
+      val processedColor = main.indexOf("vec4 processedColor =")
+      val interiorReturn = main.indexOf("if (shapeMask >= 1.0)")
+      val baseSample = main.indexOf("vec4 baseSample =")
+
+      assertThat(processedColor).isLessThan(interiorReturn)
+      assertThat(interiorReturn).isLessThan(baseSample)
+    }
+  }
+
+  @Test
   fun opticalShaders_gammaConversionNeverRaisesNegativeLinearChannelsToFractionalPower() {
     listOf(
       GlassShaders.buildOptical(),
@@ -157,6 +175,17 @@ class GlassShadersTest {
     assertThat(shader).contains("coord + vec2(0.0, sampleStep)")
     assertThat(shader).contains("* (0.5 / max(sampleStep, 0.0001))")
     assertThat(shader).doesNotContain("float sampleStep = 2.0;")
+  }
+
+  @Test
+  fun refractionShaders_reuseTheSignedDistanceForSurfaceHeight() {
+    val opticalMain = GlassShaders.buildOptical().substringAfter("vec4 main(vec2 coord)")
+    val detailMain = GlassShaders.buildRefractionDetail().substringAfter("vec4 main(vec2 coord)")
+
+    assertThat(opticalMain).contains("surfaceHeightNormFromSignedDistance(sd)")
+    assertThat(detailMain).contains("surfaceHeightNormFromSignedDistance(outputSd)")
+    assertThat(opticalMain).doesNotContain("surfaceHeightNorm(localCoord)")
+    assertThat(detailMain).doesNotContain("surfaceHeightNorm(localCoord)")
   }
 
   @Test
@@ -373,7 +402,9 @@ class GlassShadersTest {
     )
     assertThat(shader).contains("vec2 refractCoord = clampSample(coord + displacement);")
     assertThat(shader).contains("vec4 sharpSample = content.eval(refractCoord);")
-    assertThat(shader).contains("float heightNorm = surfaceHeightNorm(localCoord);")
+    assertThat(shader).contains(
+      "float heightNorm = surfaceHeightNormFromSignedDistance(outputSd);",
+    )
     assertThat(shader).contains("float refractionMultiplier")
     assertThat(shader).contains("heightNorm,\n        1.0")
     assertThat(shader).contains("if (surfaceProfile == 1)")
@@ -416,7 +447,9 @@ class GlassShadersTest {
     assertThat(shader).contains("float maxPossibleDisplacement = min(")
     assertThat(shader).contains(conservativeRejection)
     assertThat(shader.indexOf(conservativeRejection))
-      .isLessThan(shader.indexOf("float heightNorm = surfaceHeightNorm(localCoord);"))
+      .isLessThan(
+        shader.indexOf("float heightNorm = surfaceHeightNormFromSignedDistance(outputSd);"),
+      )
     assertThat(shader.indexOf(conservativeRejection))
       .isLessThan(shader.indexOf("vec4 sharpSample = content.eval(refractCoord);"))
   }

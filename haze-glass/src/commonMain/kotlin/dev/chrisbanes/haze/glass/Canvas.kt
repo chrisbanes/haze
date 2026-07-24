@@ -34,13 +34,29 @@ internal fun DrawScope.recordDepthMix(
   blurred: GraphicsLayer,
   depth: Float,
 ) {
+  recordDepthMix(
+    layer = layer,
+    size = size,
+    depth = depth,
+    drawSource = { drawLayer(source) },
+    drawBlurred = { drawLayer(blurred) },
+  )
+}
+
+internal fun DrawScope.recordDepthMix(
+  layer: GraphicsLayer,
+  size: IntSize,
+  depth: Float,
+  drawSource: DrawScope.() -> Unit,
+  drawBlurred: DrawScope.() -> Unit,
+) {
   layer.compositingStrategy = CompositingStrategy.Offscreen
   layer.record(size) {
     withLayerPaint(alpha = 1f - depth, blendMode = BlendMode.SrcOver) {
-      drawLayer(source)
+      drawSource()
     }
     withLayerPaint(alpha = depth, blendMode = BlendMode.Plus) {
-      drawLayer(blurred)
+      drawBlurred()
     }
   }
 }

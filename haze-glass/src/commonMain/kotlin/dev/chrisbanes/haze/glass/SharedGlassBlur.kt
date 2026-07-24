@@ -47,6 +47,7 @@ internal object SharedGlassBlurRegistry {
     owner: RuntimeShaderGlassDelegate,
     context: VisualEffectContext,
     params: GlassRenderParams,
+    opticalKey: GlassOpticalEffectKey?,
     detailKey: GlassRefractionDetailEffectKey?,
     graphicsContext: GraphicsContext,
   ): SharedGlassBlurGroup? {
@@ -65,7 +66,13 @@ internal object SharedGlassBlurRegistry {
         ownerGroups[owner] = it
       }
     }
-    group.update(owner, context, detailKey)
+    group.update(
+      owner = owner,
+      context = context,
+      opticalKey = opticalKey,
+      opticalDepth = params.depth,
+      detailKey = detailKey,
+    )
     return group.takeIf { it.memberCount > 1 }
   }
 
@@ -143,6 +150,9 @@ internal class SharedGlassBlurGroup(
   private var horizontal: GraphicsLayer? = null
   internal var blurred: GraphicsLayer? = null
     private set
+  private var opticalAtlasInput: GraphicsLayer? = null
+  internal var opticalAtlas: GraphicsLayer? = null
+    private set
   private var refractionDetailAtlasSource: GraphicsLayer? = null
   internal var refractionDetailAtlas: GraphicsLayer? = null
     private set
@@ -150,9 +160,11 @@ internal class SharedGlassBlurGroup(
   private var horizontalShader: MutableRuntimeShaderRenderEffect? = null
   private var verticalShader: MutableRuntimeShaderRenderEffect? = null
   private var prefilterShader: MutableRuntimeShaderRenderEffect? = null
+  private var opticalAtlasShader: MutableRuntimeShaderRenderEffect? = null
   private var refractionDetailAtlasShader: MutableRuntimeShaderRenderEffect? = null
   private var effectsKey: GlassBlurEffectKey? = null
   private var effects: SharedGlassBlurEffects? = null
+  private var opticalAtlasKey: SharedGlassOpticalAtlasKey? = null
   private var refractionDetailAtlasKey: SharedGlassRefractionDetailAtlasKey? = null
   private var lastSourceSnapshot: GlassSourceSnapshot? = null
   private var lastBounds: Rect? = null
@@ -162,12 +174,16 @@ internal class SharedGlassBlurGroup(
   fun update(
     owner: RuntimeShaderGlassDelegate,
     context: VisualEffectContext,
+    opticalKey: GlassOpticalEffectKey?,
+    opticalDepth: Float,
     detailKey: GlassRefractionDetailEffectKey?,
   ) {
     val topLeft = context.position - context.layerOffset
     members[owner] = SharedGlassBlurMember(
       context = context,
       bounds = Rect(topLeft, context.layerSize),
+      opticalKey = opticalKey,
+      opticalDepth = opticalDepth,
       detailKey = detailKey,
     )
   }
@@ -245,6 +261,158 @@ internal class SharedGlassBlurGroup(
     )
   }
 
+  fun DrawScope.obtainOptical(
+    owner: RuntimeShaderGlassDelegate,
+    opticalKey: GlassOpticalEffectKey,
+    depth: Float,
+  ): SharedGlassOpticalOutput? {
+    val ownerMember = members[owner]
+    if (
+      memberCount <= 1 ||
+      ownerMember?.opticalKey != opticalKey ||
+      ownerMember.opticalDepth != depth
+    ) {
+      releaseOpticalAtlasLayers()
+      return null
+    }
+    val compatibleGroups = members.entries
+      .filter { (_, member) -> member.opticalKey != null }
+      .groupBy { (_, member) ->
+        SharedGlassOpticalStyleKey(
+          opticalStyleKey = checkNotNull(member.opticalKey).atlasStyleKey(),
+          depth = member.opticalDepth,
+        )
+      }
+    val selectedGroup = compatibleGroups.values.maxByOrNull { entries -> entries.size }
+    if (selectedGroup == null || selectedGroup.size <= 1) {
+      releaseOpticalAtlasLayers()
+      return null
+    }
+    val selectedMembers = selectedGroup.take(GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY)
+    val opticalStyleKey = SharedGlassOpticalStyleKey(
+      opticalStyleKey = checkNotNull(selectedMembers.first().value.opticalKey).atlasStyleKey(),
+      depth = selectedMembers.first().value.opticalDepth,
+    )
+    if (selectedMembers.none { (memberOwner, _) -> memberOwner === owner }) {
+      if (opticalAtlasKey?.opticalStyleKey != opticalStyleKey) {
+        releaseOpticalAtlasLayers()
+      }
+      return null
+    }
+    val source = source?.takeUnless { it.isReleased } ?: run {
+      releaseOpticalAtlasLayers()
+      return null
+    }
+    val blurred = blurred?.takeUnless { it.isReleased } ?: run {
+      releaseOpticalAtlasLayers()
+      return null
+    }
+    val sourceBounds = lastBounds ?: run {
+      releaseOpticalAtlasLayers()
+      return null
+    }
+    val sampleSizes = selectedMembers.map { (_, member) ->
+      checkNotNull(member.opticalKey).coordinates.sampleSize.roundToIntSize()
+    }
+    if (sampleSizes.any { size -> size.width <= 0 || size.height <= 0 }) {
+      releaseOpticalAtlasLayers()
+      return null
+    }
+    val tileSize = IntSize(
+      width = sampleSizes.maxOf(IntSize::width),
+      height = sampleSizes.maxOf(IntSize::height),
+    )
+    val columns = ceil(sqrt(selectedMembers.size.toDouble())).toInt().coerceAtLeast(1)
+    val rows = (selectedMembers.size + columns - 1) / columns
+    val atlasWidth = tileSize.width.toLong() * columns
+    val atlasHeight = tileSize.height.toLong() * rows
+    if (
+      atlasWidth > MAX_SHARED_GLASS_ATLAS_DIMENSION ||
+      atlasHeight > MAX_SHARED_GLASS_ATLAS_DIMENSION
+    ) {
+      releaseOpticalAtlasLayers()
+      return null
+    }
+    val atlasSize = IntSize(atlasWidth.toInt(), atlasHeight.toInt())
+    val placements = selectedMembers.mapIndexed { index, (memberOwner, member) ->
+      val memberOpticalKey = checkNotNull(member.opticalKey)
+      SharedGlassOpticalPlacement(
+        owner = memberOwner,
+        tileOrigin = Offset(
+          x = (index % columns * tileSize.width).toFloat(),
+          y = (index / columns * tileSize.height).toFloat(),
+        ),
+        sampleOffset = (member.bounds.topLeft - sourceBounds.topLeft) * key.captureScale,
+        sampleSize = memberOpticalKey.coordinates.sampleSize.roundToIntSize(),
+        opticalKey = memberOpticalKey,
+      )
+    }
+    val atlasKey = SharedGlassOpticalAtlasKey(
+      source = source,
+      blurred = blurred,
+      opticalStyleKey = opticalStyleKey,
+      tileSize = tileSize,
+      atlasSize = atlasSize,
+      columns = columns,
+      placements = placements,
+    )
+    val atlasInput = ensureLayer(opticalAtlasInput, key.graphicsContext).also {
+      opticalAtlasInput = it
+    }
+    val atlas = ensureLayer(opticalAtlas, key.graphicsContext).also {
+      opticalAtlas = it
+    }
+    if (opticalAtlasKey != atlasKey) {
+      source.alpha = 1f
+      source.blendMode = BlendMode.SrcOver
+      blurred.alpha = 1f
+      blurred.blendMode = BlendMode.SrcOver
+      atlasInput.alpha = 1f
+      atlasInput.blendMode = BlendMode.SrcOver
+      atlasInput.scaleX = 1f
+      atlasInput.scaleY = 1f
+      atlasInput.pivotOffset = Offset.Zero
+      atlasInput.renderEffect = null
+      recordDepthMix(
+        layer = atlasInput,
+        size = atlasSize,
+        depth = opticalStyleKey.depth,
+        drawSource = { drawOpticalAtlasTiles(placements, source) },
+        drawBlurred = { drawOpticalAtlasTiles(placements, blurred) },
+      )
+
+      val shader = opticalAtlasShader
+        ?: createSharedGlassOpticalAtlasRenderEffect().also {
+          opticalAtlasShader = it
+        }
+      val effect = shader.updateUniforms {
+        setOpticalAtlasUniforms(
+          key = placements.first().opticalKey,
+          tileSize = tileSize,
+          columns = columns,
+          tileKeys = placements.map(SharedGlassOpticalPlacement::opticalKey),
+        )
+      }
+      atlas.alpha = 1f
+      atlas.blendMode = BlendMode.SrcOver
+      atlas.scaleX = 1f
+      atlas.scaleY = 1f
+      atlas.pivotOffset = Offset.Zero
+      atlas.renderEffect = effect.asComposeRenderEffect()
+      atlas.record(atlasSize) {
+        drawLayer(atlasInput)
+      }
+      opticalAtlasKey = atlasKey
+    }
+
+    val placement = placements.firstOrNull { placement -> placement.owner === owner } ?: return null
+    return SharedGlassOpticalOutput(
+      layer = atlas,
+      tileOrigin = placement.tileOrigin,
+      tileSize = placement.sampleSize,
+    )
+  }
+
   fun DrawScope.obtainRefractionDetail(
     owner: RuntimeShaderGlassDelegate,
     detailKey: GlassRefractionDetailEffectKey,
@@ -294,8 +462,8 @@ internal class SharedGlassBlurGroup(
     val atlasWidth = tileSize.width.toLong() * columns
     val atlasHeight = tileSize.height.toLong() * rows
     if (
-      atlasWidth > MAX_SHARED_GLASS_REFRACTION_DETAIL_ATLAS_DIMENSION ||
-      atlasHeight > MAX_SHARED_GLASS_REFRACTION_DETAIL_ATLAS_DIMENSION
+      atlasWidth > MAX_SHARED_GLASS_ATLAS_DIMENSION ||
+      atlasHeight > MAX_SHARED_GLASS_ATLAS_DIMENSION
     ) {
       releaseRefractionDetailAtlasLayers()
       return null
@@ -390,6 +558,24 @@ internal class SharedGlassBlurGroup(
       tileOrigin = placement.tileOrigin,
       tileSize = placement.sampleSize,
     )
+  }
+
+  private fun DrawScope.drawOpticalAtlasTiles(
+    placements: List<SharedGlassOpticalPlacement>,
+    input: GraphicsLayer,
+  ) {
+    placements.forEach { placement ->
+      clipRect(
+        left = placement.tileOrigin.x,
+        top = placement.tileOrigin.y,
+        right = placement.tileOrigin.x + placement.sampleSize.width,
+        bottom = placement.tileOrigin.y + placement.sampleSize.height,
+      ) {
+        translate(placement.tileOrigin - placement.sampleOffset) {
+          drawLayer(input)
+        }
+      }
+    }
   }
 
   private fun DrawScope.recordBlur(
@@ -502,6 +688,7 @@ internal class SharedGlassBlurGroup(
     releaseLayer(prefiltered, key.graphicsContext)
     releaseLayer(horizontal, key.graphicsContext)
     releaseLayer(blurred, key.graphicsContext)
+    releaseOpticalAtlasLayers()
     releaseRefractionDetailAtlasLayers()
     source = null
     prefiltered = null
@@ -516,9 +703,18 @@ internal class SharedGlassBlurGroup(
     horizontalShader = null
     verticalShader = null
     prefilterShader = null
+    opticalAtlasShader = null
     refractionDetailAtlasShader = null
     effectsKey = null
     effects = null
+  }
+
+  private fun releaseOpticalAtlasLayers() {
+    releaseLayer(opticalAtlasInput, key.graphicsContext)
+    releaseLayer(opticalAtlas, key.graphicsContext)
+    opticalAtlasInput = null
+    opticalAtlas = null
+    opticalAtlasKey = null
   }
 
   private fun releaseRefractionDetailAtlasLayers() {
@@ -554,6 +750,8 @@ internal class SharedGlassBlurGroup(
 private data class SharedGlassBlurMember(
   val context: VisualEffectContext,
   val bounds: Rect,
+  val opticalKey: GlassOpticalEffectKey?,
+  val opticalDepth: Float,
   val detailKey: GlassRefractionDetailEffectKey?,
 )
 
@@ -561,6 +759,35 @@ internal data class SharedGlassBlurOutput(
   val layer: GraphicsLayer,
   val bounds: Rect,
   val captureScale: Float,
+)
+
+private data class SharedGlassOpticalPlacement(
+  val owner: RuntimeShaderGlassDelegate,
+  val tileOrigin: Offset,
+  val sampleOffset: Offset,
+  val sampleSize: IntSize,
+  val opticalKey: GlassOpticalEffectKey,
+)
+
+private data class SharedGlassOpticalStyleKey(
+  val opticalStyleKey: GlassOpticalEffectKey,
+  val depth: Float,
+)
+
+private data class SharedGlassOpticalAtlasKey(
+  val source: GraphicsLayer,
+  val blurred: GraphicsLayer,
+  val opticalStyleKey: SharedGlassOpticalStyleKey,
+  val tileSize: IntSize,
+  val atlasSize: IntSize,
+  val columns: Int,
+  val placements: List<SharedGlassOpticalPlacement>,
+)
+
+internal data class SharedGlassOpticalOutput(
+  val layer: GraphicsLayer,
+  val tileOrigin: Offset,
+  val tileSize: IntSize,
 )
 
 private data class SharedGlassRefractionDetailPlacement(
@@ -595,7 +822,14 @@ private data class SharedGlassBlurEffects(
 
 internal expect val supportsSharedGlassBlur: Boolean
 
-private const val MAX_SHARED_GLASS_REFRACTION_DETAIL_ATLAS_DIMENSION = 4096L
+private const val MAX_SHARED_GLASS_ATLAS_DIMENSION = 4096L
+
+private fun GlassOpticalEffectKey.atlasStyleKey(): GlassOpticalEffectKey = copy(
+  coordinates = coordinates.copy(
+    sampleSize = Size.Zero,
+    materialOrigin = Offset.Zero,
+  ),
+)
 
 private fun GlassRefractionDetailEffectKey.atlasStyleKey(): GlassRefractionDetailEffectKey = copy(
   sampleSize = Size.Zero,

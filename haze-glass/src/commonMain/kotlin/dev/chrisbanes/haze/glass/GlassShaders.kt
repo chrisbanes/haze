@@ -15,15 +15,10 @@ internal object GlassShaders {
     }
 
     vec4 main(vec2 coord) {
-      vec4 result = content.eval(clampSample(coord + vec2(-1.0, -1.0))) * 0.0625;
-      result += content.eval(clampSample(coord + vec2(0.0, -1.0))) * 0.125;
-      result += content.eval(clampSample(coord + vec2(1.0, -1.0))) * 0.0625;
-      result += content.eval(clampSample(coord + vec2(-1.0, 0.0))) * 0.125;
-      result += content.eval(clampSample(coord)) * 0.25;
-      result += content.eval(clampSample(coord + vec2(1.0, 0.0))) * 0.125;
-      result += content.eval(clampSample(coord + vec2(-1.0, 1.0))) * 0.0625;
-      result += content.eval(clampSample(coord + vec2(0.0, 1.0))) * 0.125;
-      result += content.eval(clampSample(coord + vec2(1.0, 1.0))) * 0.0625;
+      vec4 result = content.eval(clampSample(coord + vec2(-0.5, -0.5))) * 0.25;
+      result += content.eval(clampSample(coord + vec2(0.5, -0.5))) * 0.25;
+      result += content.eval(clampSample(coord + vec2(-0.5, 0.5))) * 0.25;
+      result += content.eval(clampSample(coord + vec2(0.5, 0.5))) * 0.25;
       return result.a > 0.0 ? result : vec4(0.0);
     }
   """
@@ -326,11 +321,6 @@ internal object GlassShaders {
       float shapeMask = edgeSoftness <= 0.0
         ? 1.0
         : smootherstep(clamp(distToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0));
-      vec4 baseSample = ${if (tiled) {
-    "sampleContent(sampleCoord, tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample(coord))"
-  }};
       ${if (interactive) {
     """
       float interactionWeight = interactionFalloff(${if (tiled) "sampleCoord" else "coord"});
@@ -346,7 +336,7 @@ internal object GlassShaders {
     ""
   }}
 
-      float heightNorm = surfaceHeightNorm(localCoord);
+      float heightNorm = surfaceHeightNormFromSignedDistance(sd);
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
@@ -405,6 +395,14 @@ internal object GlassShaders {
       vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);
       vec3 finalStraightColor = tintedColor * ambient;
       vec4 processedColor = premultiply(finalStraightColor, refractedCenterSample.a);
+      if (shapeMask >= 1.0) {
+        return processedColor.a > 0.0 ? processedColor : vec4(0.0);
+      }
+      vec4 baseSample = ${if (tiled) {
+    "sampleContent(sampleCoord, tileOrigin, sampleSize)"
+  } else {
+    "content.eval(clampSample(coord))"
+  }};
       vec4 composedColor = mix(baseSample, processedColor, shapeMask);
       return composedColor.a > 0.0 ? composedColor : vec4(0.0);
     }
@@ -499,7 +497,7 @@ internal object GlassShaders {
       );
       if (outputDistToEdge > detailWidth + maxPossibleDisplacement) return vec4(0.0);
 
-      float heightNorm = surfaceHeightNorm(localCoord);
+      float heightNorm = surfaceHeightNormFromSignedDistance(outputSd);
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
@@ -767,21 +765,25 @@ internal object GlassShaders {
       return circleMap(x);
     }
 
-    float surfaceHeightAt(vec2 localCoord, vec4 customRadii) {
-      float sd = sdRoundedRect(localCoord, materialSize, customRadii);
+    float surfaceHeightFromSignedDistance(float sd) {
       float distToEdge = max(-sd, 0.0);
       float refractionZone = max(refractionHeight, 0.0001);
       float t = clamp(distToEdge / refractionZone, 0.0, 1.0);
       return evaluateProfile(t) * refractionZone;
     }
 
+    float surfaceHeightAt(vec2 localCoord, vec4 customRadii) {
+      float sd = sdRoundedRect(localCoord, materialSize, customRadii);
+      return surfaceHeightFromSignedDistance(sd);
+    }
+
     float surfaceHeight(vec2 localCoord) {
       return surfaceHeightAt(localCoord, cornerRadii);
     }
 
-    float surfaceHeightNorm(vec2 localCoord) {
+    float surfaceHeightNormFromSignedDistance(float sd) {
       float refractionZone = max(refractionHeight, 0.0001);
-      return clamp(surfaceHeight(localCoord) / refractionZone, -1.0, 1.0);
+      return clamp(surfaceHeightFromSignedDistance(sd) / refractionZone, -1.0, 1.0);
     }
 
     vec2 refractionDisplacement(
