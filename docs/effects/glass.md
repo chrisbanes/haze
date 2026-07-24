@@ -147,8 +147,8 @@ glassEffect {
 
 On the modern Android path, compatible sibling Glass effects share retained blur and tiled optical
 work. Effects that cannot safely share use their dedicated rendering path. See
-[Glass on Android](../performance.md#glass-on-android) for the physical-device benchmark setup,
-results, and Perfetto interpretation.
+[Glass performance](../glass/performance.md) for the physical-device benchmark setup, results, and
+Perfetto interpretation.
 
 ## Interaction
 
