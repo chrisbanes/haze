@@ -6,18 +6,25 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class GlassGalleryVisualsTest : ContextTest() {
   @Test
-  fun demoChrome_showsConfiguredActions() = runComposeUiTest {
+  fun demoChrome_showsAndForwardsConfiguredActions() = runComposeUiTest {
+    var playPauseCount = 0
+    var resetCount = 0
+    var recordingMode = false
     setContent {
       val hazeState = rememberHazeState()
       Box(Modifier.fillMaxSize()) {
@@ -30,10 +37,10 @@ class GlassGalleryVisualsTest : ContextTest() {
         DemoChrome(
           hazeState = hazeState,
           onBack = {},
-          onEnterRecordingMode = {},
-          onReset = {},
+          onEnterRecordingMode = { recordingMode = true },
+          onReset = { resetCount++ },
           isPlaying = true,
-          onPlayPause = {},
+          onPlayPause = { playPauseCount++ },
         )
       }
     }
@@ -42,5 +49,16 @@ class GlassGalleryVisualsTest : ContextTest() {
     onNodeWithContentDescription("Enter recording mode").assertIsDisplayed()
     onNodeWithContentDescription("Pause animation").assertIsDisplayed()
     onNodeWithContentDescription("Reset demo").assertIsDisplayed()
+
+    onNodeWithContentDescription("Pause animation")
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
+    onNodeWithContentDescription("Reset demo")
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
+    onNodeWithContentDescription("Enter recording mode")
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
+
+    assertEquals(1, playPauseCount)
+    assertEquals(1, resetCount)
+    assertTrue(recordingMode)
   }
 }

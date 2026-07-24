@@ -5,10 +5,6 @@ package dev.chrisbanes.haze.sample
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassTransformPivot
@@ -19,7 +15,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
+@OptIn(ExperimentalHazeApi::class)
 class GlassPlaygroundSampleTest : ContextTest() {
   @Test
   fun playgroundInteraction_keepsHoverAfterPressAndUsesPointerContentTransform() {
@@ -37,36 +33,6 @@ class GlassPlaygroundSampleTest : ContextTest() {
     assertTrue(effect.observesPointerEvents)
     effect.clearHovered()
     assertEquals(false, effect.observesPointerEvents)
-  }
-
-  @Test
-  fun controlsForwardPlayResetAndRecordingEvents() = runComposeUiTest {
-    var playPauseCount = 0
-    var resetCount = 0
-    var recordingMode = false
-    setContent {
-      GlassPlaygroundSampleContent(
-        progressProvider = { 0.25f },
-        dragOffsetProvider = { Offset.Zero },
-        isPlaying = true,
-        recordingMode = recordingMode,
-        onPlayPause = { playPauseCount++ },
-        onReset = { resetCount++ },
-        onRecordingModeChanged = { recordingMode = it },
-        onBack = {},
-        onDragStart = {},
-        onDrag = { _, _ -> },
-        onDragEnd = {},
-      )
-    }
-
-    onNodeWithContentDescription("Pause animation").performClick()
-    onNodeWithContentDescription("Reset demo").performClick()
-    onNodeWithContentDescription("Enter recording mode").performClick()
-
-    assertEquals(1, playPauseCount)
-    assertEquals(1, resetCount)
-    assertTrue(recordingMode)
   }
 
   @Test
