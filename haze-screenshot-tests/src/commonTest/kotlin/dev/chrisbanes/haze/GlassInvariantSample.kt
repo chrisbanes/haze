@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +31,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.down
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.up
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -41,6 +47,7 @@ import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -77,6 +84,7 @@ internal fun GlassInvariantSample(
   checkerStripes: Boolean = false,
   continuityCarrier: GlassContinuityCarrier? = null,
   showSource: Boolean = true,
+  effectTestTag: String? = null,
 ) {
   val hazeState = rememberHazeState()
   Box(
@@ -119,6 +127,7 @@ internal fun GlassInvariantSample(
       Modifier
         .align(Alignment.Center)
         .size(surfaceSize)
+        .then(if (effectTestTag != null) Modifier.testTag(effectTestTag) else Modifier)
         .then(
           if (enabled) {
             Modifier.hazeEffect(hazeState) {
@@ -1136,7 +1145,9 @@ internal fun ScreenshotUiTest.assertGlassTransparentOutputInvariant() {
   rendered.assertTransparentAt(outsidePoints)
 }
 
-internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
+internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
+  withInteraction: Boolean = false,
+) {
   val shape = RoundedCornerShape(28.dp)
   val effect = GlassVisualEffect().apply {
     tint = Color.Transparent
@@ -1148,6 +1159,16 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
+    if (withInteraction) {
+      pressed {
+        animate(toSpec = snap(), fromSpec = snap()) {
+          refractionMultiplier(1.2f)
+          whitePointDelta(0.2f)
+        }
+      }
+      interactionPositionAnimationSpec = snap()
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    }
     this.shape = shape
   }
   var showSource by mutableStateOf(true)
@@ -1162,6 +1183,7 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
       sourceAlpha = 0.5f,
       drawGridLines = false,
       showSource = showSource,
+      effectTestTag = "glass".takeIf { withInteraction },
     )
   }
 
@@ -1204,6 +1226,27 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant() {
     .isLessThanOrEqualTo(1f / 255f)
   live.assertTransparentAt(geometry.outsidePoints)
 
+  if (withInteraction) {
+    val glassNode = onNodeWithTag("glass")
+    glassNode.performTouchInput {
+      down(Offset(50f, InvariantSurfaceHeightPx / 2f))
+    }
+    waitForIdle()
+    val interactive = captureTransparentSnapshot { matte = it }
+    val interactionDetailBand = (
+      geometry.surfaceBounds.left + 2..geometry.surfaceBounds.left + 160
+      ).map { x -> interactive[x, geometry.centerY] }
+    assertThat(
+      interactive.crop(geometry.surfaceBounds)
+        .meanAbsoluteDifference(live.crop(geometry.surfaceBounds)),
+    ).isGreaterThan(1f / 255f)
+    assertThat(
+      interactionDetailBand.maxOf { color -> abs(color.alpha - expectedAlpha) },
+    ).isLessThanOrEqualTo(2f / 255f)
+
+    glassNode.performTouchInput { up() }
+    waitForIdle()
+  }
   showSource = false
   waitForIdle()
   val retained = captureTransparentSnapshot { matte = it }

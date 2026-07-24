@@ -139,6 +139,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val delegate = effect.delegate as RuntimeShaderGlassDelegate
     assertThat(delegate.layers.hasInteractionOptical).isFalse()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isFalse()
+    assertThat(delegate.layers.hasInteractionRefractionDetailCoverage).isFalse()
+    assertThat(delegate.layers.hasInteractionRefractionComposite).isFalse()
     assertThat(delegate.layers.hasInteractionLighting).isFalse()
   }
 
@@ -191,6 +193,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertSame(opticalEffect, delegate.opticalEffect)
     assertThat(delegate.layers.hasInteractionOptical).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionDetailCoverage).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionComposite).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
   }
 
@@ -420,6 +424,22 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(delegate.lastSuccessfulStageInputs?.detail).isNotNull().isEqualTo(detailKey)
     assertThat(delegate.layers.hasRefractionDetail).isTrue()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
+  }
+
+  @Test
+  fun activeDetail_recordsAllDetailPipelineLayers() = runComposeUiTest {
+    val effect = activeDetailEffect()
+
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val beforeDetail = delegate.detailRecordCount
+
+    effect.optics = (effect.optics as GlassOptics.Absolute).copy(refractionScale = 18f)
+    waitForIdle()
+
+    assertThat(delegate.detailRecordCount).isEqualTo(beforeDetail + 3)
   }
 
   @Test
