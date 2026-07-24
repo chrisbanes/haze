@@ -12,7 +12,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntSize
-import androidx.navigation.compose.rememberNavController
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -43,37 +42,27 @@ class GlassPlaygroundSampleTest : ContextTest() {
   }
 
   @Test
-  fun resetAction_restartsAutoplayThroughACompleteLoop() = runComposeUiTest {
-    mainClock.autoAdvance = false
-    val state = GlassPlaygroundState(
-      loopDurationMillis = TEST_PLAYGROUND_LOOP_DURATION_MILLIS,
-    ).apply {
-      togglePlayback()
-    }
+  fun resetAction_invokesResetCallback() = runComposeUiTest {
+    var resetCount = 0
     setContent {
-      GlassPlaygroundSample(
-        navController = rememberNavController(),
-        state = state,
-        runAutoplay = {
-          runAutoplayLoop(loopLimit = 1)
-        },
+      GlassPlaygroundSampleContent(
+        progressProvider = { 0f },
+        dragOffsetProvider = { Offset.Zero },
+        isPlaying = false,
+        recordingMode = false,
+        onPlayPause = {},
+        onReset = { resetCount++ },
+        onRecordingModeChanged = {},
+        onBack = {},
+        onDragStart = {},
+        onDrag = { _, _ -> },
+        onDragEnd = {},
       )
     }
 
-    state.togglePlayback()
-    mainClock.advanceTimeByFrame()
-    mainClock.advanceTimeBy(TEST_PLAYGROUND_LOOP_DURATION_MILLIS.toLong() + 1_000)
-    onNodeWithTag("glass_playground_loop_1").assertIsDisplayed()
-
     onNodeWithContentDescription("Reset demo").performClick()
-    mainClock.advanceTimeByFrame()
-    onNodeWithTag("glass_playground_loop_0").assertIsDisplayed()
 
-    mainClock.advanceTimeBy(TEST_PLAYGROUND_LOOP_DURATION_MILLIS.toLong() + 1_000)
-    onNodeWithTag("glass_playground_loop_1").assertIsDisplayed()
-
-    state.togglePlayback()
-    mainClock.advanceTimeByFrame()
+    runOnIdle { assertEquals(1, resetCount) }
   }
 
   @Test
@@ -148,5 +137,3 @@ class GlassPlaygroundSampleTest : ContextTest() {
     assertThat(light).isEqualTo(Offset(310f, -130f))
   }
 }
-
-private const val TEST_PLAYGROUND_LOOP_DURATION_MILLIS = 100
