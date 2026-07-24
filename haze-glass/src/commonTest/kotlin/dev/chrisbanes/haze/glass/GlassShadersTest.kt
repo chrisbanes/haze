@@ -520,6 +520,16 @@ class GlassShadersTest {
     }
   }
 
+  @Test
+  fun rimShader_omitsUnusedRefractionGradientHelpers() {
+    val shader = GlassShaders.buildRim()
+
+    assertThat(shader).contains("vec2 sdfGradient(vec2 localCoord)")
+    assertThat(shader).doesNotContain("vec4 reversedSmootherstep(vec4 t)")
+    assertThat(shader).doesNotContain("vec2 gradSdRectangle(")
+    assertThat(shader).doesNotContain("vec2 gradSdRoundedRect(")
+  }
+
   private class RecordingUniformProvider : RuntimeShaderUniformProvider {
     val values = mutableMapOf<String, List<Float>>()
 

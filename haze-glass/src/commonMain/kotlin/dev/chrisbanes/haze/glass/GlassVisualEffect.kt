@@ -491,12 +491,18 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   override fun DrawScope.prepareDraw(context: VisualEffectContext) {
     trace(GlassTraceSection.Prepare) {
       val previousBudget = preparedRenderBudget
-      prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
+      trace(GlassTraceSection.PrepareBudget) {
+        prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
+      }
       if (previousBudget::class != preparedRenderBudget::class) {
         needsDelegateSelection = true
       }
-      selectDelegateForDraw(context)
-      with(delegate) { prepareDraw(context) }
+      trace(GlassTraceSection.SelectDelegate) {
+        selectDelegateForDraw(context)
+      }
+      trace(GlassTraceSection.DelegatePrepare) {
+        with(delegate) { prepareDraw(context) }
+      }
     }
   }
 

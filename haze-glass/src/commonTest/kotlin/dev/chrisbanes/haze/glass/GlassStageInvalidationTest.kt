@@ -140,6 +140,23 @@ class GlassStageInvalidationTest {
   }
 
   @Test
+  fun calculateStageInvalidation_depthMergeChangeInvalidatesOpticalOnly() {
+    val previous = inputs()
+    val current = previous.copy(mergeDepthIntoOptical = true)
+
+    assertThat(calculateStageInvalidation(previous, current, sourceChanged = false))
+      .isEqualTo(
+        GlassStageInvalidation(
+          blur = false,
+          depth = false,
+          optical = true,
+          detail = false,
+          rim = false,
+        ),
+      )
+  }
+
+  @Test
   fun calculateStageInvalidation_inactiveBlurAndRimAreNotDirtyOnFirstPipeline() {
     assertThat(
       calculateStageInvalidation(

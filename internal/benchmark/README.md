@@ -26,8 +26,36 @@ Run one controlled scenario:
 
 ```shell
 ./gradlew :internal:benchmark:connectedCheck \
+  -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.fullTracing.enable=true \
   -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdate
 ```
+
+The cold-initialization scenarios attach 1, 3, or 9 independent Glass effects while keeping their
+combined surface area constant. Run each method separately from the same initial thermal state:
+
+```shell
+./gradlew :internal:benchmark:connectedCheck \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#effectAttach
+```
+
+Repeat with `effectAttach3` and `effectAttach9`, allowing the device to return to the same thermal
+state between runs. Running all three in one instrumentation session is useful for automation
+validation, but later cases may be frequency-throttled.
+
+The reports include `HazeGlass.createRenderEffect` count and total duration, plus total
+`HazeGlass.prepareEffects` and `HazeGlass.prepareLayers` durations. Expect 6, 18, and 54 render
+effect creations. Linear duration growth points to per-effect shader/delegate construction; a
+mostly fixed cost points to shared process or renderer initialization. Also inspect RenderThread
+`DrawFrames`, `flush layers`, and `Vulkan finish frame` slices: independent Glass nodes can add
+render-graph submission work even when their combined visible area is constant.
+
+Full tracing adds composable function slices to Perfetto traces and is intended for diagnostic
+profiling. Omit `androidx.benchmark.fullTracing.enable` from runs used for comparable benchmark
+metrics.
+
+AndroidX Tracing Perfetto 1.0.1 cannot currently enable full tracing on API 37 because the platform
+rejects its sideloaded native library as writable. Use an API 33–36 device for full-tracing runs;
+ordinary benchmark tracing remains available on API 37.
 
 Run the realistic journeys:
 
@@ -55,6 +83,12 @@ system frame-timeline and GPU data when attributing GPU cost.
 Expected Glass markers include:
 
 - `HazeGlass.prepare`
+  - `HazeGlass.prepareBudget`
+  - `HazeGlass.selectDelegate`
+  - `HazeGlass.delegatePrepare`
+    - `HazeGlass.prepareEffects`
+      - `HazeGlass.createRenderEffect` on shader cache misses
+    - `HazeGlass.prepareLayers`
 - `HazeGlass.runtimeDraw`
 - `HazeGlass.source`
 - `HazeGlass.blur`

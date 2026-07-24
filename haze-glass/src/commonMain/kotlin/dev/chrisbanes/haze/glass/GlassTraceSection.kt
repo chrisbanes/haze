@@ -6,6 +6,12 @@ package dev.chrisbanes.haze.glass
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object GlassTraceSection {
   const val Prepare = "HazeGlass.prepare"
+  const val PrepareBudget = "HazeGlass.prepareBudget"
+  const val SelectDelegate = "HazeGlass.selectDelegate"
+  const val DelegatePrepare = "HazeGlass.delegatePrepare"
+  const val PrepareEffects = "HazeGlass.prepareEffects"
+  const val PrepareLayers = "HazeGlass.prepareLayers"
+  const val CreateRenderEffect = "HazeGlass.createRenderEffect"
   const val RuntimeDraw = "HazeGlass.runtimeDraw"
   const val Source = "HazeGlass.source"
   const val Blur = "HazeGlass.blur"
@@ -21,6 +27,12 @@ internal object GlassTraceSection {
 
   val all = listOf(
     Prepare,
+    PrepareBudget,
+    SelectDelegate,
+    DelegatePrepare,
+    PrepareEffects,
+    PrepareLayers,
+    CreateRenderEffect,
     RuntimeDraw,
     Source,
     Blur,

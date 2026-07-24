@@ -15,6 +15,23 @@ class GlassProfilingScenarioTest {
     assertEquals(
       listOf(
         "effect_attach",
+        "effect_attach_3",
+        "effect_attach_9",
+        "effect_reattach",
+        "steady_full",
+        "steady_full_3",
+        "steady_full_9",
+        "steady_no_rim",
+        "steady_no_rim_9",
+        "steady_no_refraction",
+        "steady_no_refraction_9",
+        "steady_no_blur",
+        "steady_no_blur_9",
+        "steady_depth_1",
+        "steady_scale_60",
+        "steady_scale_50",
+        "steady_scale_50_9",
+        "steady_no_glass",
         "retained_reuse",
         "interaction_update",
         "optical_update",
@@ -35,7 +52,8 @@ class GlassProfilingScenarioTest {
   fun noGlassControl_isTheOnlyDisabledScenario() {
     GlassProfilingScenario.entries.forEach { scenario ->
       assertEquals(
-        scenario == GlassProfilingScenario.SourceUpdateNoGlass,
+        scenario == GlassProfilingScenario.SourceUpdateNoGlass ||
+          scenario == GlassProfilingScenario.SteadyNoGlass,
         !scenario.glassEnabled,
         scenario.id,
       )
@@ -46,6 +64,23 @@ class GlassProfilingScenarioTest {
   fun frames_changeOnlyTheInputNamedByTheScenario() {
     val expected = mapOf(
       GlassProfilingScenario.EffectAttach to emptySet(),
+      GlassProfilingScenario.EffectAttach3 to emptySet(),
+      GlassProfilingScenario.EffectAttach9 to emptySet(),
+      GlassProfilingScenario.EffectReattach to emptySet(),
+      GlassProfilingScenario.SteadyFull to emptySet(),
+      GlassProfilingScenario.SteadyFull3 to emptySet(),
+      GlassProfilingScenario.SteadyFull9 to emptySet(),
+      GlassProfilingScenario.SteadyNoRim to emptySet(),
+      GlassProfilingScenario.SteadyNoRim9 to emptySet(),
+      GlassProfilingScenario.SteadyNoRefraction to emptySet(),
+      GlassProfilingScenario.SteadyNoRefraction9 to emptySet(),
+      GlassProfilingScenario.SteadyNoBlur to emptySet(),
+      GlassProfilingScenario.SteadyNoBlur9 to emptySet(),
+      GlassProfilingScenario.SteadyDepth1 to emptySet(),
+      GlassProfilingScenario.SteadyScale60 to emptySet(),
+      GlassProfilingScenario.SteadyScale50 to emptySet(),
+      GlassProfilingScenario.SteadyScale50Nine to emptySet(),
+      GlassProfilingScenario.SteadyNoGlass to emptySet(),
       GlassProfilingScenario.RetainedReuse to setOf("markerOffset"),
       GlassProfilingScenario.InteractionUpdate to setOf("pressed"),
       GlassProfilingScenario.OpticalUpdate to setOf("lightPosition"),
@@ -116,22 +151,44 @@ class GlassProfilingScenarioTest {
   }
 
   @Test
-  fun effectAttach_isDetachedUntilMeasurementStarts() {
-    GlassProfilingPhase.entries.forEach { phase ->
-      assertEquals(
-        phase == GlassProfilingPhase.Running || phase == GlassProfilingPhase.Complete,
-        shouldAttachProfilingGlass(GlassProfilingScenario.EffectAttach, phase),
-        phase.id,
-      )
-    }
+  fun effectAttachScenarios_areDetachedUntilMeasurementStarts() {
+    GlassProfilingScenario.entries
+      .filter { it.attachesDuringMeasurement && !it.prewarmsBeforeMeasurement }
+      .forEach { scenario ->
+        GlassProfilingPhase.entries.forEach { phase ->
+          assertEquals(
+            phase == GlassProfilingPhase.Running || phase == GlassProfilingPhase.Complete,
+            shouldAttachProfilingGlass(scenario, phase),
+            "${scenario.id}/${phase.id}",
+          )
+        }
+      }
+
+    assertEquals(
+      listOf(1, 3, 9),
+      GlassProfilingScenario.entries
+        .filter { it.attachesDuringMeasurement && !it.prewarmsBeforeMeasurement }
+        .map(GlassProfilingScenario::effectCount),
+    )
 
     GlassProfilingScenario.entries
-      .filter { it.glassEnabled && it != GlassProfilingScenario.EffectAttach }
+      .filter { it.glassEnabled && !it.attachesDuringMeasurement }
       .forEach { scenario ->
         GlassProfilingPhase.entries.forEach { phase ->
           assertTrue(shouldAttachProfilingGlass(scenario, phase), "${scenario.id}/${phase.id}")
         }
       }
+  }
+
+  @Test
+  fun effectReattach_isPrewarmedDetachedAndReattachedAcrossMeasurementBoundary() {
+    val scenario = GlassProfilingScenario.EffectReattach
+
+    assertFalse(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Selecting))
+    assertTrue(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Settling))
+    assertFalse(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Ready))
+    assertTrue(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Running))
+    assertTrue(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Complete))
   }
 }
 

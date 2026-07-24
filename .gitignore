@@ -3,6 +3,7 @@
 build/
 
 captures
+trace_processor
 
 /local.properties
 

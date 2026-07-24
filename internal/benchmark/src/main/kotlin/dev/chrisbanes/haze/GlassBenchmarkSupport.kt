@@ -15,6 +15,9 @@ import org.junit.Assume.assumeTrue
 internal const val GLASS_TARGET_PACKAGE = "dev.chrisbanes.haze.sample.android"
 internal const val GLASS_BENCHMARK_ITERATIONS = 8
 internal const val GLASS_RUNTIME_DRAW_SECTION = "HazeGlass.runtimeDraw"
+internal const val GLASS_CREATE_RENDER_EFFECT_SECTION = "HazeGlass.createRenderEffect"
+internal const val GLASS_PREPARE_EFFECTS_SECTION = "HazeGlass.prepareEffects"
+internal const val GLASS_PREPARE_LAYERS_SECTION = "HazeGlass.prepareLayers"
 
 internal fun requireGlassBenchmarkDevice() {
   assumeTrue(
@@ -31,6 +34,7 @@ internal fun requireGlassBenchmarkDevice() {
 internal fun glassMetrics(
   includeMemory: Boolean,
   requireRuntimeMarker: Boolean = true,
+  includeColdInitializationMetrics: Boolean = false,
 ): List<Metric> = buildList {
   add(FrameTimingMetric())
   if (requireRuntimeMarker) {
@@ -44,6 +48,29 @@ internal fun glassMetrics(
   }
   if (includeMemory) {
     add(MemoryUsageMetric(MemoryUsageMetric.Mode.Max))
+  }
+  if (includeColdInitializationMetrics) {
+    add(
+      TraceSectionMetric(
+        sectionName = GLASS_CREATE_RENDER_EFFECT_SECTION,
+        mode = TraceSectionMetric.Mode.Sum,
+        label = "hazeGlassCreateRenderEffect",
+      ),
+    )
+    add(
+      TraceSectionMetric(
+        sectionName = GLASS_PREPARE_EFFECTS_SECTION,
+        mode = TraceSectionMetric.Mode.Sum,
+        label = "hazeGlassPrepareEffects",
+      ),
+    )
+    add(
+      TraceSectionMetric(
+        sectionName = GLASS_PREPARE_LAYERS_SECTION,
+        mode = TraceSectionMetric.Mode.Sum,
+        label = "hazeGlassPrepareLayers",
+      ),
+    )
   }
 }
 

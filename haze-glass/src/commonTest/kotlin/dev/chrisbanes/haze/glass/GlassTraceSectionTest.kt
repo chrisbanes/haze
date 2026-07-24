@@ -13,6 +13,12 @@ class GlassTraceSectionTest {
     assertEquals(
       listOf(
         "HazeGlass.prepare",
+        "HazeGlass.prepareBudget",
+        "HazeGlass.selectDelegate",
+        "HazeGlass.delegatePrepare",
+        "HazeGlass.prepareEffects",
+        "HazeGlass.prepareLayers",
+        "HazeGlass.createRenderEffect",
         "HazeGlass.runtimeDraw",
         "HazeGlass.source",
         "HazeGlass.blur",

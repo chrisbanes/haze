@@ -9,9 +9,11 @@ import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -29,8 +31,14 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.test.assertFalse
+import kotlin.test.assertNotSame
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -38,6 +46,103 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35])
 class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
+
+  @Test
+  fun standardBlur_avoidsDedicatedDepthLayer() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = retainedBlurEffect()
+      setContent { RuntimeGlassTestContent(effect) }
+      waitForIdle()
+      drawFrame()
+
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      assertFalse(delegate.layers.hasDepthMixed)
+      assertTrue(delegate.layers.hasBlurPrefiltered)
+      assertTrue(delegate.layers.hasBlurHorizontal)
+      assertTrue(delegate.layers.hasBlurred)
+      assertTrue(delegate.layers.hasOptical)
+    }
+
+  @Test
+  fun progressiveBlur_preservesDedicatedDepthLayer() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = retainedBlurEffect(
+        progressive = HazeProgressive.verticalGradient(
+          startIntensity = 0f,
+          endIntensity = 1f,
+        ),
+      )
+      setContent { RuntimeGlassTestContent(effect) }
+      waitForIdle()
+      drawFrame()
+
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      assertTrue(delegate.layers.hasDepthMixed)
+      assertTrue(delegate.layers.hasBlurHorizontal)
+      assertTrue(delegate.layers.hasBlurred)
+      assertTrue(delegate.layers.hasOptical)
+    }
+
+  @Test
+  fun compatibleSiblingEffects_shareSourceBlur() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effects = List(3) { retainedBlurEffect() }
+      setContent { SharedRuntimeGlassTestContent(effects) }
+      waitForIdle()
+      drawFrame()
+      drawFrame()
+
+      val delegates = effects.map { effect ->
+        checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      }
+      assertTrue(delegates.all(RuntimeShaderGlassDelegate::usesSharedBlurForTest))
+      assertTrue(delegates.all { !it.layers.hasBlurPrefiltered })
+      assertTrue(delegates.all { !it.layers.hasBlurHorizontal })
+      assertTrue(delegates.all { it.layers.hasBlurred })
+      val sharedBlurred = checkNotNull(delegates.first().sharedBlurredLayerForTest)
+      delegates.drop(1).forEach { delegate ->
+        assertSame(sharedBlurred, delegate.sharedBlurredLayerForTest)
+      }
+
+      val blurRecordCounts = delegates.map { it.stageRecordCounts.blur }
+      drawFrame()
+      assertTrue(
+        delegates.zip(blurRecordCounts).all { (delegate, count) ->
+          delegate.stageRecordCounts.blur == count
+        },
+      )
+    }
+
+  @Test
+  fun detachAndReattach_releasesLayersAndRetainsShaderHandles() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = animatedStageEffect()
+      val attached = mutableStateOf(true)
+      setContent { RuntimeGlassTestContent(effect, attachEffect = attached.value) }
+      waitForIdle()
+      drawFrame()
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      val opticalShader = checkNotNull(delegate.opticalShader)
+      val detailShader = checkNotNull(delegate.refractionDetailShader)
+      val rimShader = checkNotNull(delegate.rimShader)
+
+      attached.value = false
+      waitForIdle()
+      drawFrame()
+
+      assertFalse(delegate.layers.hasSource)
+      assertSame(opticalShader, delegate.opticalShader)
+      assertSame(detailShader, delegate.refractionDetailShader)
+      assertSame(rimShader, delegate.rimShader)
+
+      attached.value = true
+      waitForIdle()
+      drawFrame()
+
+      assertSame(opticalShader, delegate.opticalShader)
+      assertSame(detailShader, delegate.refractionDetailShader)
+      assertSame(rimShader, delegate.rimShader)
+    }
 
   @Test
   fun liveUniformChanges_retainShadersAndReplaceOnlyAffectedRenderEffectWrappers() =
@@ -341,14 +446,23 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   }
 
   @Composable
-  private fun RuntimeGlassTestContent(effect: GlassVisualEffect) {
+  private fun RuntimeGlassTestContent(
+    effect: GlassVisualEffect,
+    attachEffect: Boolean = true,
+  ) {
     Box(
       Modifier
         .size(120.dp)
-        .hazeEffect {
-          inputScale = HazeInputScale.None
-          visualEffect = effect
-        },
+        .then(
+          if (attachEffect) {
+            Modifier.hazeEffect {
+              inputScale = HazeInputScale.None
+              visualEffect = effect
+            }
+          } else {
+            Modifier
+          },
+        ),
     ) {
       Box(Modifier.fillMaxSize().background(Color.Red))
     }
@@ -365,6 +479,31 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         },
     ) {
       Box(Modifier.fillMaxSize().background(Color.Red))
+    }
+  }
+
+  @Composable
+  private fun SharedRuntimeGlassTestContent(effects: List<GlassVisualEffect>) {
+    val hazeState = rememberHazeState()
+    Box(Modifier.size(width = 360.dp, height = 120.dp)) {
+      Box(
+        Modifier
+          .fillMaxSize()
+          .background(Color.Red)
+          .hazeSource(hazeState),
+      )
+      Row(Modifier.fillMaxSize()) {
+        effects.forEach { effect ->
+          Box(
+            Modifier
+              .size(120.dp)
+              .hazeEffect(hazeState) {
+                inputScale = HazeInputScale.None
+                visualEffect = effect
+              },
+          )
+        }
+      }
     }
   }
 

@@ -102,11 +102,13 @@ internal fun UiDevice.measureFullGlassPlaygroundLoop() {
 
 internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
   findSampleListItem(By.res("Glass — Profiling")).click()
-  waitForGlassProfilingObject(
-    scenarioId = scenarioId,
-    expectedPhase = "selecting",
-    selector = By.res("glass_profiling_select_$scenarioId"),
-  ).click()
+  waitForObject(By.res("glass_profiling_picker"))
+    .apply { setGestureMarginPercentage(0.1f) }
+    .scrollUntil(
+      Direction.DOWN,
+      Until.findObject(By.res("glass_profiling_select_$scenarioId")),
+    )
+    .click()
   waitForGlassProfilingObject(
     scenarioId = scenarioId,
     expectedPhase = "settling",

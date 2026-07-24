@@ -55,6 +55,7 @@ dependencies {
 
   implementation(libs.androidx.core)
   implementation(libs.androidx.activity.compose)
+  implementation(libs.androidx.compose.runtime.tracing)
   implementation(libs.androidx.profileinstaller)
 
   debugImplementation(libs.androidx.compose.ui.tooling)

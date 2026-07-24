@@ -32,3 +32,7 @@ internal actual fun createRefractionDetailRenderEffect(): MutableRuntimeShaderRe
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal actual fun createGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
   createSharedGlassRimRenderEffect()
+
+internal actual val supportsMergedGlassDepthOpticalLayer: Boolean = true
+
+internal actual val supportsSharedGlassBlur: Boolean = true

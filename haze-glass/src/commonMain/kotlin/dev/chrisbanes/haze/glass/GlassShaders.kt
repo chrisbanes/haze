@@ -405,7 +405,7 @@ internal object GlassShaders {
       return clamp(coord, vec2(0.0), materialSize);
     }
 
-    ${sdfHelpers()}
+    ${sdfShapeHelpers()}
 
     float materialSdf(vec2 localCoord) {
       return sdRoundedRect(localCoord, materialSize, cornerRadii);
@@ -437,6 +437,12 @@ internal object GlassShaders {
   """
 
   private fun sdfHelpers(): String = """
+    ${sdfShapeHelpers()}
+
+    ${sdfGradientHelpers()}
+  """
+
+  private fun sdfShapeHelpers(): String = """
     float smootherstep(float x) {
       float t = clamp(x, 0.0, 1.0);
       return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
@@ -474,7 +480,9 @@ internal object GlassShaders {
       float len = length(value);
       return len > 0.0001 ? value / len : fallback;
     }
+  """
 
+  private fun sdfGradientHelpers(): String = """
     vec4 reversedSmootherstep(vec4 t) {
       t = clamp(t, 0.0, 1.0);
       return vec4(1.0) - t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
