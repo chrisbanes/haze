@@ -104,14 +104,8 @@ internal class RuntimeShaderGlassDelegate(
   private var recordedSharedBlurCaptureScale: Float = Float.NaN
   private var recordedSharedBlurLocalTopLeft: Offset? = null
   private var recordedSharedBlurSampleSize: androidx.compose.ui.unit.IntSize? = null
-  private var recordedSharedOpticalLayer: GraphicsLayer? = null
-  private var recordedSharedOpticalTargetLayer: GraphicsLayer? = null
-  private var recordedSharedOpticalTileOrigin: Offset? = null
-  private var recordedSharedOpticalTileSize: androidx.compose.ui.unit.IntSize? = null
-  private var recordedSharedRefractionDetailLayer: GraphicsLayer? = null
-  private var recordedSharedRefractionDetailTargetLayer: GraphicsLayer? = null
-  private var recordedSharedRefractionDetailTileOrigin: Offset? = null
-  private var recordedSharedRefractionDetailTileSize: androidx.compose.ui.unit.IntSize? = null
+  private var recordedSharedOpticalSlice: SharedGlassAtlasSlice? = null
+  private var recordedSharedRefractionDetailSlice: SharedGlassAtlasSlice? = null
   internal var lastSuccessfulSourceSnapshot: GlassSourceSnapshot? = null
     private set
   internal var lastSuccessfulStageInputs: GlassStageInputs? = null
@@ -691,17 +685,11 @@ internal class RuntimeShaderGlassDelegate(
   }
 
   private fun clearSharedOpticalSliceMetadata() {
-    recordedSharedOpticalLayer = null
-    recordedSharedOpticalTargetLayer = null
-    recordedSharedOpticalTileOrigin = null
-    recordedSharedOpticalTileSize = null
+    recordedSharedOpticalSlice = null
   }
 
   private fun clearSharedRefractionDetailSliceMetadata() {
-    recordedSharedRefractionDetailLayer = null
-    recordedSharedRefractionDetailTargetLayer = null
-    recordedSharedRefractionDetailTileOrigin = null
-    recordedSharedRefractionDetailTileSize = null
+    recordedSharedRefractionDetailSlice = null
   }
 
   override fun detach() {
@@ -1005,7 +993,7 @@ internal class RuntimeShaderGlassDelegate(
     effects: GlassRenderEffects,
     invalidated: Boolean,
   ): GraphicsLayer? {
-    val wasShared = recordedSharedOpticalLayer != null
+    val wasShared = recordedSharedOpticalSlice != null
     val shared = with(group) {
       obtainOptical(
         owner = this@RuntimeShaderGlassDelegate,
@@ -1030,28 +1018,16 @@ internal class RuntimeShaderGlassDelegate(
       }
     }
 
-    if (
-      recordedSharedOpticalLayer !== shared.layer ||
-      recordedSharedOpticalTargetLayer !== target ||
-      recordedSharedOpticalTileOrigin != shared.tileOrigin ||
-      recordedSharedOpticalTileSize != shared.tileSize
-    ) {
-      target.alpha = 1f
-      target.blendMode = BlendMode.SrcOver
-      target.scaleX = 1f
-      target.scaleY = 1f
-      target.pivotOffset = Offset.Zero
-      target.compositingStrategy = CompositingStrategy.Auto
-      target.renderEffect = null
-      target.record(shared.tileSize) {
-        translate(-shared.tileOrigin) {
-          drawLayer(shared.layer)
-        }
-      }
-      recordedSharedOpticalLayer = shared.layer
-      recordedSharedOpticalTargetLayer = target
-      recordedSharedOpticalTileOrigin = shared.tileOrigin
-      recordedSharedOpticalTileSize = shared.tileSize
+    val previousSlice = recordedSharedOpticalSlice
+    recordedSharedOpticalSlice = recordSharedAtlasSlice(
+      previous = previousSlice,
+      source = shared.layer,
+      target = target,
+      tileOrigin = shared.tileOrigin,
+      tileSize = shared.tileSize,
+      resetCompositingStrategy = true,
+    )
+    if (recordedSharedOpticalSlice !== previousSlice) {
       opticalRecordCount++
     }
     return target
@@ -1121,7 +1097,7 @@ internal class RuntimeShaderGlassDelegate(
     detail: GlassRefractionDetailRenderEffect,
     invalidated: Boolean,
   ): GraphicsLayer? {
-    val wasShared = recordedSharedRefractionDetailLayer != null
+    val wasShared = recordedSharedRefractionDetailSlice != null
     val shared = with(group) {
       obtainRefractionDetail(
         owner = this@RuntimeShaderGlassDelegate,
@@ -1139,30 +1115,51 @@ internal class RuntimeShaderGlassDelegate(
       }
     }
 
-    if (
-      recordedSharedRefractionDetailLayer !== shared.layer ||
-      recordedSharedRefractionDetailTargetLayer !== target ||
-      recordedSharedRefractionDetailTileOrigin != shared.tileOrigin ||
-      recordedSharedRefractionDetailTileSize != shared.tileSize
-    ) {
-      target.alpha = 1f
-      target.blendMode = BlendMode.SrcOver
-      target.scaleX = 1f
-      target.scaleY = 1f
-      target.pivotOffset = Offset.Zero
-      target.renderEffect = null
-      target.record(shared.tileSize) {
-        translate(-shared.tileOrigin) {
-          drawLayer(shared.layer)
-        }
-      }
-      recordedSharedRefractionDetailLayer = shared.layer
-      recordedSharedRefractionDetailTargetLayer = target
-      recordedSharedRefractionDetailTileOrigin = shared.tileOrigin
-      recordedSharedRefractionDetailTileSize = shared.tileSize
+    val previousSlice = recordedSharedRefractionDetailSlice
+    recordedSharedRefractionDetailSlice = recordSharedAtlasSlice(
+      previous = previousSlice,
+      source = shared.layer,
+      target = target,
+      tileOrigin = shared.tileOrigin,
+      tileSize = shared.tileSize,
+      resetCompositingStrategy = false,
+    )
+    if (recordedSharedRefractionDetailSlice !== previousSlice) {
       detailRecordCount++
     }
     return target
+  }
+
+  private fun DrawScope.recordSharedAtlasSlice(
+    previous: SharedGlassAtlasSlice?,
+    source: GraphicsLayer,
+    target: GraphicsLayer,
+    tileOrigin: Offset,
+    tileSize: androidx.compose.ui.unit.IntSize,
+    resetCompositingStrategy: Boolean,
+  ): SharedGlassAtlasSlice {
+    if (previous?.matches(source, target, tileOrigin, tileSize) == true) return previous
+
+    target.alpha = 1f
+    target.blendMode = BlendMode.SrcOver
+    target.scaleX = 1f
+    target.scaleY = 1f
+    target.pivotOffset = Offset.Zero
+    if (resetCompositingStrategy) {
+      target.compositingStrategy = CompositingStrategy.Auto
+    }
+    target.renderEffect = null
+    target.record(tileSize) {
+      translate(-tileOrigin) {
+        drawLayer(source)
+      }
+    }
+    return SharedGlassAtlasSlice(
+      source = source,
+      target = target,
+      tileOrigin = tileOrigin,
+      tileSize = tileSize,
+    )
   }
 
   private fun DrawScope.recordRimIfNeeded(
@@ -1627,6 +1624,23 @@ internal class RuntimeShaderGlassDelegate(
     trace(GlassTraceSection.CreateRenderEffect, block)
 }
 
+private class SharedGlassAtlasSlice(
+  val source: GraphicsLayer,
+  val target: GraphicsLayer,
+  val tileOrigin: Offset,
+  val tileSize: androidx.compose.ui.unit.IntSize,
+) {
+  fun matches(
+    source: GraphicsLayer,
+    target: GraphicsLayer,
+    tileOrigin: Offset,
+    tileSize: androidx.compose.ui.unit.IntSize,
+  ): Boolean = this.source === source &&
+    this.target === target &&
+    this.tileOrigin == tileOrigin &&
+    this.tileSize == tileSize
+}
+
 internal data class GlassStageRecordCounts(
   val source: Int,
   val blur: Int,
@@ -1837,10 +1851,10 @@ internal fun RuntimeShaderUniformProvider.setOpticalAtlasUniforms(
   columns: Int,
   tileKeys: List<GlassOpticalEffectKey>,
 ) {
-  require(tileKeys.size <= GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY)
+  require(tileKeys.size <= GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY)
   setFloatUniform("tileSize", tileSize.width.toFloat(), tileSize.height.toFloat())
   setFloatUniform("atlasColumns", columns.toFloat())
-  repeat(GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY) { index ->
+  repeat(GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY) { index ->
     val coordinates = tileKeys.getOrNull(index)?.coordinates
     setFloatUniform(
       "tileGeometry$index",
@@ -1907,10 +1921,10 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailAtlasUniforms(
   columns: Int,
   tileKeys: List<GlassRefractionDetailEffectKey>,
 ) {
-  require(tileKeys.size <= GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY)
+  require(tileKeys.size <= GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY)
   setFloatUniform("tileSize", tileSize.width.toFloat(), tileSize.height.toFloat())
   setFloatUniform("atlasColumns", columns.toFloat())
-  repeat(GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY) { index ->
+  repeat(GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY) { index ->
     val tileKey = tileKeys.getOrNull(index)
     setFloatUniform(
       "tileGeometry$index",

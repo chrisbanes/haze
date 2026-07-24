@@ -288,7 +288,7 @@ internal class SharedGlassBlurGroup(
       releaseOpticalAtlasLayers()
       return null
     }
-    val selectedMembers = selectedGroup.take(GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY)
+    val selectedMembers = selectedGroup.take(GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY)
     val opticalStyleKey = SharedGlassOpticalStyleKey(
       opticalStyleKey = checkNotNull(selectedMembers.first().value.opticalKey).atlasStyleKey(),
       depth = selectedMembers.first().value.opticalDepth,
@@ -314,46 +314,28 @@ internal class SharedGlassBlurGroup(
     val sampleSizes = selectedMembers.map { (_, member) ->
       checkNotNull(member.opticalKey).coordinates.sampleSize.roundToIntSize()
     }
-    if (sampleSizes.any { size -> size.width <= 0 || size.height <= 0 }) {
+    val layout = createSharedGlassAtlasLayout(sampleSizes) ?: run {
       releaseOpticalAtlasLayers()
       return null
     }
-    val tileSize = IntSize(
-      width = sampleSizes.maxOf(IntSize::width),
-      height = sampleSizes.maxOf(IntSize::height),
-    )
-    val columns = ceil(sqrt(selectedMembers.size.toDouble())).toInt().coerceAtLeast(1)
-    val rows = (selectedMembers.size + columns - 1) / columns
-    val atlasWidth = tileSize.width.toLong() * columns
-    val atlasHeight = tileSize.height.toLong() * rows
-    if (
-      atlasWidth > MAX_SHARED_GLASS_ATLAS_DIMENSION ||
-      atlasHeight > MAX_SHARED_GLASS_ATLAS_DIMENSION
-    ) {
-      releaseOpticalAtlasLayers()
-      return null
-    }
-    val atlasSize = IntSize(atlasWidth.toInt(), atlasHeight.toInt())
     val placements = selectedMembers.mapIndexed { index, (memberOwner, member) ->
       val memberOpticalKey = checkNotNull(member.opticalKey)
-      SharedGlassOpticalPlacement(
+      SharedGlassAtlasPlacement(
         owner = memberOwner,
         tileOrigin = Offset(
-          x = (index % columns * tileSize.width).toFloat(),
-          y = (index / columns * tileSize.height).toFloat(),
+          x = (index % layout.columns * layout.tileSize.width).toFloat(),
+          y = (index / layout.columns * layout.tileSize.height).toFloat(),
         ),
         sampleOffset = (member.bounds.topLeft - sourceBounds.topLeft) * key.captureScale,
         sampleSize = memberOpticalKey.coordinates.sampleSize.roundToIntSize(),
-        opticalKey = memberOpticalKey,
+        effectKey = memberOpticalKey,
       )
     }
     val atlasKey = SharedGlassOpticalAtlasKey(
       source = source,
       blurred = blurred,
       opticalStyleKey = opticalStyleKey,
-      tileSize = tileSize,
-      atlasSize = atlasSize,
-      columns = columns,
+      layout = layout,
       placements = placements,
     )
     val atlasInput = ensureLayer(opticalAtlasInput, key.graphicsContext).also {
@@ -375,10 +357,10 @@ internal class SharedGlassBlurGroup(
       atlasInput.renderEffect = null
       recordDepthMix(
         layer = atlasInput,
-        size = atlasSize,
+        size = layout.atlasSize,
         depth = opticalStyleKey.depth,
-        drawSource = { drawOpticalAtlasTiles(placements, source) },
-        drawBlurred = { drawOpticalAtlasTiles(placements, blurred) },
+        drawSource = { drawAtlasTiles(placements, source) },
+        drawBlurred = { drawAtlasTiles(placements, blurred) },
       )
 
       val shader = opticalAtlasShader
@@ -387,10 +369,10 @@ internal class SharedGlassBlurGroup(
         }
       val effect = shader.updateUniforms {
         setOpticalAtlasUniforms(
-          key = placements.first().opticalKey,
-          tileSize = tileSize,
-          columns = columns,
-          tileKeys = placements.map(SharedGlassOpticalPlacement::opticalKey),
+          key = placements.first().effectKey,
+          tileSize = layout.tileSize,
+          columns = layout.columns,
+          tileKeys = placements.map { it.effectKey },
         )
       }
       atlas.alpha = 1f
@@ -399,7 +381,7 @@ internal class SharedGlassBlurGroup(
       atlas.scaleY = 1f
       atlas.pivotOffset = Offset.Zero
       atlas.renderEffect = effect.asComposeRenderEffect()
-      atlas.record(atlasSize) {
+      atlas.record(layout.atlasSize) {
         drawLayer(atlasInput)
       }
       opticalAtlasKey = atlasKey
@@ -429,7 +411,7 @@ internal class SharedGlassBlurGroup(
       releaseRefractionDetailAtlasLayers()
       return null
     }
-    val selectedMembers = selectedGroup.take(GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY)
+    val selectedMembers = selectedGroup.take(GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY)
     val detailStyleKey = checkNotNull(selectedMembers.first().value.detailKey).atlasStyleKey()
     if (selectedMembers.none { (memberOwner, _) -> memberOwner === owner }) {
       if (refractionDetailAtlasKey?.detailStyleKey != detailStyleKey) {
@@ -448,46 +430,27 @@ internal class SharedGlassBlurGroup(
     val sampleSizes = selectedMembers.map { (_, member) ->
       checkNotNull(member.detailKey).sampleSize.roundToIntSize()
     }
-    if (sampleSizes.any { size -> size.width <= 0 || size.height <= 0 }) {
+    val layout = createSharedGlassAtlasLayout(sampleSizes) ?: run {
       releaseRefractionDetailAtlasLayers()
       return null
     }
-    val tileSize = IntSize(
-      width = sampleSizes.maxOf(IntSize::width),
-      height = sampleSizes.maxOf(IntSize::height),
-    )
-
-    val columns = ceil(sqrt(selectedMembers.size.toDouble())).toInt().coerceAtLeast(1)
-    val rows = (selectedMembers.size + columns - 1) / columns
-    val atlasWidth = tileSize.width.toLong() * columns
-    val atlasHeight = tileSize.height.toLong() * rows
-    if (
-      atlasWidth > MAX_SHARED_GLASS_ATLAS_DIMENSION ||
-      atlasHeight > MAX_SHARED_GLASS_ATLAS_DIMENSION
-    ) {
-      releaseRefractionDetailAtlasLayers()
-      return null
-    }
-    val atlasSize = IntSize(atlasWidth.toInt(), atlasHeight.toInt())
     val placements = selectedMembers.mapIndexed { index, (memberOwner, member) ->
       val memberDetailKey = checkNotNull(member.detailKey)
-      SharedGlassRefractionDetailPlacement(
+      SharedGlassAtlasPlacement(
         owner = memberOwner,
         tileOrigin = Offset(
-          x = (index % columns * tileSize.width).toFloat(),
-          y = (index / columns * tileSize.height).toFloat(),
+          x = (index % layout.columns * layout.tileSize.width).toFloat(),
+          y = (index / layout.columns * layout.tileSize.height).toFloat(),
         ),
         sampleOffset = (member.bounds.topLeft - sourceBounds.topLeft) * key.captureScale,
         sampleSize = memberDetailKey.sampleSize.roundToIntSize(),
-        detailKey = memberDetailKey,
+        effectKey = memberDetailKey,
       )
     }
     val atlasKey = SharedGlassRefractionDetailAtlasKey(
       source = source,
       detailStyleKey = detailStyleKey,
-      tileSize = tileSize,
-      atlasSize = atlasSize,
-      columns = columns,
+      layout = layout,
       placements = placements,
     )
     val atlasSource = ensureLayer(refractionDetailAtlasSource, key.graphicsContext).also {
@@ -513,19 +476,8 @@ internal class SharedGlassBlurGroup(
       atlasSource.scaleY = 1f
       atlasSource.pivotOffset = Offset.Zero
       atlasSource.renderEffect = null
-      atlasSource.record(atlasSize) {
-        placements.forEach { placement ->
-          clipRect(
-            left = placement.tileOrigin.x,
-            top = placement.tileOrigin.y,
-            right = placement.tileOrigin.x + placement.sampleSize.width,
-            bottom = placement.tileOrigin.y + placement.sampleSize.height,
-          ) {
-            translate(placement.tileOrigin - placement.sampleOffset) {
-              drawLayer(source)
-            }
-          }
-        }
+      atlasSource.record(layout.atlasSize) {
+        drawAtlasTiles(placements, source)
       }
 
       val shader = refractionDetailAtlasShader
@@ -534,10 +486,10 @@ internal class SharedGlassBlurGroup(
         }
       val effect = shader.updateUniforms {
         setRefractionDetailAtlasUniforms(
-          key = placements.first().detailKey,
-          tileSize = tileSize,
-          columns = columns,
-          tileKeys = placements.map(SharedGlassRefractionDetailPlacement::detailKey),
+          key = placements.first().effectKey,
+          tileSize = layout.tileSize,
+          columns = layout.columns,
+          tileKeys = placements.map { it.effectKey },
         )
       }
       atlas.alpha = 1f
@@ -546,7 +498,7 @@ internal class SharedGlassBlurGroup(
       atlas.scaleY = 1f
       atlas.pivotOffset = Offset.Zero
       atlas.renderEffect = effect.asComposeRenderEffect()
-      atlas.record(atlasSize) {
+      atlas.record(layout.atlasSize) {
         drawLayer(atlasSource)
       }
       refractionDetailAtlasKey = atlasKey
@@ -560,8 +512,8 @@ internal class SharedGlassBlurGroup(
     )
   }
 
-  private fun DrawScope.drawOpticalAtlasTiles(
-    placements: List<SharedGlassOpticalPlacement>,
+  private fun <T> DrawScope.drawAtlasTiles(
+    placements: List<SharedGlassAtlasPlacement<T>>,
     input: GraphicsLayer,
   ) {
     placements.forEach { placement ->
@@ -761,12 +713,12 @@ internal data class SharedGlassBlurOutput(
   val captureScale: Float,
 )
 
-private data class SharedGlassOpticalPlacement(
+private data class SharedGlassAtlasPlacement<T>(
   val owner: RuntimeShaderGlassDelegate,
   val tileOrigin: Offset,
   val sampleOffset: Offset,
   val sampleSize: IntSize,
-  val opticalKey: GlassOpticalEffectKey,
+  val effectKey: T,
 )
 
 private data class SharedGlassOpticalStyleKey(
@@ -778,10 +730,8 @@ private data class SharedGlassOpticalAtlasKey(
   val source: GraphicsLayer,
   val blurred: GraphicsLayer,
   val opticalStyleKey: SharedGlassOpticalStyleKey,
-  val tileSize: IntSize,
-  val atlasSize: IntSize,
-  val columns: Int,
-  val placements: List<SharedGlassOpticalPlacement>,
+  val layout: SharedGlassAtlasLayout,
+  val placements: List<SharedGlassAtlasPlacement<GlassOpticalEffectKey>>,
 )
 
 internal data class SharedGlassOpticalOutput(
@@ -790,21 +740,11 @@ internal data class SharedGlassOpticalOutput(
   val tileSize: IntSize,
 )
 
-private data class SharedGlassRefractionDetailPlacement(
-  val owner: RuntimeShaderGlassDelegate,
-  val tileOrigin: Offset,
-  val sampleOffset: Offset,
-  val sampleSize: IntSize,
-  val detailKey: GlassRefractionDetailEffectKey,
-)
-
 private data class SharedGlassRefractionDetailAtlasKey(
   val source: GraphicsLayer,
   val detailStyleKey: GlassRefractionDetailEffectKey,
-  val tileSize: IntSize,
-  val atlasSize: IntSize,
-  val columns: Int,
-  val placements: List<SharedGlassRefractionDetailPlacement>,
+  val layout: SharedGlassAtlasLayout,
+  val placements: List<SharedGlassAtlasPlacement<GlassRefractionDetailEffectKey>>,
 )
 
 internal data class SharedGlassRefractionDetailOutput(
@@ -820,9 +760,40 @@ private data class SharedGlassBlurEffects(
   val vertical: PlatformRenderEffect,
 )
 
+private data class SharedGlassAtlasLayout(
+  val tileSize: IntSize,
+  val columns: Int,
+  val atlasSize: IntSize,
+)
+
 internal expect val supportsSharedGlassBlur: Boolean
 
 private const val MAX_SHARED_GLASS_ATLAS_DIMENSION = 4096L
+
+private fun createSharedGlassAtlasLayout(sampleSizes: List<IntSize>): SharedGlassAtlasLayout? {
+  if (sampleSizes.isEmpty() || sampleSizes.any { size -> size.width <= 0 || size.height <= 0 }) {
+    return null
+  }
+  val tileSize = IntSize(
+    width = sampleSizes.maxOf(IntSize::width),
+    height = sampleSizes.maxOf(IntSize::height),
+  )
+  val columns = ceil(sqrt(sampleSizes.size.toDouble())).toInt().coerceAtLeast(1)
+  val rows = (sampleSizes.size + columns - 1) / columns
+  val atlasWidth = tileSize.width.toLong() * columns
+  val atlasHeight = tileSize.height.toLong() * rows
+  if (
+    atlasWidth > MAX_SHARED_GLASS_ATLAS_DIMENSION ||
+    atlasHeight > MAX_SHARED_GLASS_ATLAS_DIMENSION
+  ) {
+    return null
+  }
+  return SharedGlassAtlasLayout(
+    tileSize = tileSize,
+    columns = columns,
+    atlasSize = IntSize(atlasWidth.toInt(), atlasHeight.toInt()),
+  )
+}
 
 private fun GlassOpticalEffectKey.atlasStyleKey(): GlassOpticalEffectKey = copy(
   coordinates = coordinates.copy(

@@ -4,7 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 internal object GlassShaders {
-  const val REFRACTION_DETAIL_ATLAS_TILE_CAPACITY: Int = 9
+  const val SHARED_GLASS_ATLAS_TILE_CAPACITY: Int = 9
 
   fun buildDownsamplePrefilter(): String = """
     uniform shader content;
@@ -534,12 +534,12 @@ internal object GlassShaders {
   private fun glassAtlasUniforms(): String = buildString {
     appendLine("uniform float2 tileSize;")
     appendLine("uniform float atlasColumns;")
-    repeat(REFRACTION_DETAIL_ATLAS_TILE_CAPACITY) { index ->
+    repeat(SHARED_GLASS_ATLAS_TILE_CAPACITY) { index ->
       appendLine("uniform float4 tileGeometry$index;")
     }
     appendLine()
     appendLine("vec4 tileGeometry(float index) {")
-    repeat(REFRACTION_DETAIL_ATLAS_TILE_CAPACITY) { index ->
+    repeat(SHARED_GLASS_ATLAS_TILE_CAPACITY) { index ->
       appendLine("  if (index < ${index + 0.5}) return tileGeometry$index;")
     }
     appendLine("  return vec4(0.0);")
