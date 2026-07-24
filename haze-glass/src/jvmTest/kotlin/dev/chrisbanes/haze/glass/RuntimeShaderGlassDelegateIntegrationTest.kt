@@ -37,7 +37,9 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
@@ -50,8 +52,6 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
-import kotlin.test.assertNotSame
-import kotlin.test.assertSame
 
 @OptIn(ExperimentalTestApi::class)
 class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
@@ -190,7 +190,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     mainClock.advanceTimeBy(500)
     waitForIdle()
 
-    assertSame(opticalEffect, delegate.opticalEffect)
+    assertThat(delegate.opticalEffect).isSameInstanceAs(opticalEffect)
     assertThat(delegate.layers.hasInteractionOptical).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetailCoverage).isTrue()
@@ -229,10 +229,10 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       mainClock.advanceTimeByFrame()
       mainClock.advanceTimeByFrame()
 
-      assertSame(delegate, effect.delegate)
-      assertSame(source, delegate.layers.source)
-      assertSame(optical, delegate.layers.optical)
-      assertSame(detail, delegate.layers.refractionDetail)
+      assertThat(effect.delegate).isSameInstanceAs(delegate)
+      assertThat(delegate.layers.source).isSameInstanceAs(source)
+      assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+      assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
       assertThat((effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
         .isEqualTo(decision.scaleFactor)
       assertThat(checkNotNull(delegate.layers.interactionOptical).size.width).isLessThan(source.size.width)
@@ -243,10 +243,10 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     effect.setPressedForTest(positions.last(), pressed = false)
     repeat(12) {
       mainClock.advanceTimeByFrame()
-      assertSame(delegate, effect.delegate)
-      assertSame(source, delegate.layers.source)
-      assertSame(optical, delegate.layers.optical)
-      assertSame(detail, delegate.layers.refractionDetail)
+      assertThat(effect.delegate).isSameInstanceAs(delegate)
+      assertThat(delegate.layers.source).isSameInstanceAs(source)
+      assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+      assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
       assertThat((effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
         .isEqualTo(decision.scaleFactor)
       assertThat(checkNotNull(effect.preparedRender).plan.layers.map { it.kind }).isEqualTo(plannedKinds)
@@ -324,9 +324,12 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       effect.optics = (effect.optics as GlassOptics.Absolute).copy(refractionScale = 18f)
       waitForIdle()
 
-      assertSame(opticalEffect, delegate.interactionShaderHandle("interactionOpticalEffect"))
-      assertSame(detailEffect, delegate.interactionShaderHandle("interactionDetailEffect"))
-      assertSame(lightingEffect, delegate.interactionShaderHandle("interactionLightingEffect"))
+      assertThat(delegate.interactionShaderHandle("interactionOpticalEffect"))
+        .isSameInstanceAs(opticalEffect)
+      assertThat(delegate.interactionShaderHandle("interactionDetailEffect"))
+        .isSameInstanceAs(detailEffect)
+      assertThat(delegate.interactionShaderHandle("interactionLightingEffect"))
+        .isSameInstanceAs(lightingEffect)
 
       effect.onTrimMemory(checkNotNull(effect.attachedContextForTest), TrimMemoryLevel.UI_HIDDEN)
       assertThat(delegate.interactionShaderHandleOrNull("interactionOpticalEffect")).isNull()
@@ -416,9 +419,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     showSource.value = false
     waitForIdle()
 
-    assertSame(detailLayer, delegate.layers.refractionDetail)
-    assertSame(delegate, effect.delegate)
-    assertSame(sourceSnapshot, delegate.lastSuccessfulSourceSnapshot)
+    assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detailLayer)
+    assertThat(effect.delegate).isSameInstanceAs(delegate)
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(sourceSnapshot)
     assertThat(delegate.lastSuccessfulStageInputs?.detail).isNotNull().isEqualTo(detailKey)
     assertThat(delegate.layers.hasRefractionDetail).isTrue()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
@@ -619,7 +622,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     effect.ambientResponse = 0.6f
     waitForIdle()
 
-    assertSame(opticalShader, delegate.opticalShader)
+    assertThat(delegate.opticalShader).isSameInstanceAs(opticalShader)
     assertThat(delegate.opticalRecordCount).isEqualTo(beforeAlpha.optical + 1)
     assertThat(delegate.blurRecordCount).isEqualTo(beforeAlpha.blur)
     assertThat(delegate.depthRecordCount).isEqualTo(beforeAlpha.depth)
@@ -629,7 +632,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     effect.lightPosition = Offset(10f, 20f)
     waitForIdle()
 
-    assertSame(rimShader, delegate.rimShader)
+    assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
     assertThat(delegate.rimRecordCount).isEqualTo(beforeRim + 1)
   }
 
@@ -655,14 +658,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     )
     waitForIdle()
 
-    assertSame(horizontalShader, delegate.blurHorizontalShader)
-    assertSame(verticalShader, delegate.blurVerticalShader)
-    assertSame(prefilterShader, delegate.blurPrefilterShader)
-    assertSame(detailShader, delegate.refractionDetailShader)
-    assertNotSame(horizontalEffect, delegate.layers.blurHorizontal?.renderEffect)
-    assertNotSame(verticalEffect, delegate.layers.blurred?.renderEffect)
-    assertNotSame(prefilterEffect, delegate.layers.blurPrefiltered?.renderEffect)
-    assertNotSame(detailEffect, delegate.layers.refractionDetail?.renderEffect)
+    assertThat(delegate.blurHorizontalShader).isSameInstanceAs(horizontalShader)
+    assertThat(delegate.blurVerticalShader).isSameInstanceAs(verticalShader)
+    assertThat(delegate.blurPrefilterShader).isSameInstanceAs(prefilterShader)
+    assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
+    assertThat(delegate.layers.blurHorizontal?.renderEffect).isNotSameInstanceAs(horizontalEffect)
+    assertThat(delegate.layers.blurred?.renderEffect).isNotSameInstanceAs(verticalEffect)
+    assertThat(delegate.layers.blurPrefiltered?.renderEffect).isNotSameInstanceAs(prefilterEffect)
+    assertThat(delegate.layers.refractionDetail?.renderEffect).isNotSameInstanceAs(detailEffect)
   }
 
   @Test
@@ -691,10 +694,10 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     )
     waitForIdle()
 
-    assertSame(horizontalShader, delegate.progressiveBlurHorizontalShader)
-    assertSame(verticalShader, delegate.progressiveBlurVerticalShader)
-    assertNotSame(horizontalEffect, delegate.layers.blurHorizontal?.renderEffect)
-    assertNotSame(verticalEffect, delegate.layers.blurred?.renderEffect)
+    assertThat(delegate.progressiveBlurHorizontalShader).isSameInstanceAs(horizontalShader)
+    assertThat(delegate.progressiveBlurVerticalShader).isSameInstanceAs(verticalShader)
+    assertThat(delegate.layers.blurHorizontal?.renderEffect).isNotSameInstanceAs(horizontalEffect)
+    assertThat(delegate.layers.blurred?.renderEffect).isNotSameInstanceAs(verticalEffect)
   }
 
   private fun activeDetailEffect() = GlassVisualEffect().apply {

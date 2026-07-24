@@ -8,11 +8,11 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThanOrEqualTo
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isTrue
 import kotlin.math.roundToInt
 import kotlin.test.Test
-import kotlin.test.assertIs
 
 class GlassRenderBudgetTest {
 
@@ -134,7 +134,7 @@ class GlassRenderBudgetTest {
   @Test
   fun overBudgetRequest_selectsLargestSafeScale() {
     val result = resolveGlassRenderBudget(1f) { squarePlan(it, 8192) }
-    val runtime = assertIs<GlassRenderBudgetDecision.Runtime>(result)
+    val runtime = result.assertRuntime()
 
     assertThat(runtime.scaleFactor).isGreaterThanOrEqualTo(0.5f)
     assertThat(runtime.scaleFactor).isLessThanOrEqualTo(4096.5f / 8192f)
@@ -150,9 +150,7 @@ class GlassRenderBudgetTest {
 
   @Test
   fun explicitlyRequestedSubFloorScale_isNeverIncreased() {
-    val result = assertIs<GlassRenderBudgetDecision.Runtime>(
-      resolveGlassRenderBudget(0.125f) { squarePlan(it, 8192) },
-    )
+    val result = resolveGlassRenderBudget(0.125f) { squarePlan(it, 8192) }.assertRuntime()
 
     assertThat(result.scaleFactor).isEqualTo(0.125f)
   }
@@ -162,7 +160,7 @@ class GlassRenderBudgetTest {
     val result = resolveGlassRenderBudget(1f) { scale ->
       blurThresholdPlan(scale = scale, sideAtFullScale = 7_370, blurRadiusAtFullScale = 85.49f)
     }
-    val runtime = assertIs<GlassRenderBudgetDecision.Runtime>(result)
+    val runtime = result.assertRuntime()
 
     assertThat(runtime.scaleFactor).isGreaterThanOrEqualTo(0.261f)
     assertThat(checkNotNull(runtime.plan.retainedPixelCountOrNull())).isLessThanOrEqualTo(
@@ -185,7 +183,7 @@ class GlassRenderBudgetTest {
         interactionLightingActive = false,
       )
     }
-    val runtime = assertIs<GlassRenderBudgetDecision.Runtime>(result)
+    val runtime = result.assertRuntime()
 
     assertThat(runtime.scaleFactor).isGreaterThanOrEqualTo(0.9993f)
     assertThat(runtime.scaleFactor).isLessThanOrEqualTo(0.9994f)
@@ -228,4 +226,9 @@ class GlassRenderBudgetTest {
       },
     )
   }
+}
+
+private fun GlassRenderBudgetDecision.assertRuntime(): GlassRenderBudgetDecision.Runtime {
+  assertThat(this).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+  return this as GlassRenderBudgetDecision.Runtime
 }

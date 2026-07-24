@@ -8,16 +8,20 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassOptics
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class GlassPlaygroundTimelineTest {
   @Test
   fun timeline_isSeamlessAtLoopBoundary() {
-    assertEquals(glassPlaygroundFrame(0f), glassPlaygroundFrame(1f))
+    assertThat(glassPlaygroundFrame(1f)).isEqualTo(glassPlaygroundFrame(0f))
   }
 
   @Test
@@ -26,8 +30,8 @@ class GlassPlaygroundTimelineTest {
       val frame = glassPlaygroundFrame(progress)
       GlassPlaygroundSurfaceId.entries.forEach { id ->
         val position = frame.position(id)
-        assertTrue(position.x in 0.1f..0.9f, "$id x out of bounds at $progress: $position")
-        assertTrue(position.y in 0.1f..0.9f, "$id y out of bounds at $progress: $position")
+        assertThat(position.x in 0.1f..0.9f, "$id x at $progress").isTrue()
+        assertThat(position.y in 0.1f..0.9f, "$id y at $progress").isTrue()
       }
     }
   }
@@ -50,10 +54,16 @@ class GlassPlaygroundTimelineTest {
           surfaceSize = surfaceSize,
           dragOffset = Offset.Zero,
         )
-        assertTrue(center.x - surfaceSize.width / 2f >= 0f, "$id crosses left edge at $step")
-        assertTrue(center.x + surfaceSize.width / 2f <= sceneSize.width, "$id crosses right edge at $step")
-        assertTrue(center.y - surfaceSize.height / 2f >= 0f, "$id crosses top edge at $step")
-        assertTrue(center.y + surfaceSize.height / 2f <= sceneSize.height, "$id crosses bottom edge at $step")
+        assertThat(center.x - surfaceSize.width / 2f >= 0f, "$id left edge at $step").isTrue()
+        assertThat(
+          center.x + surfaceSize.width / 2f <= sceneSize.width,
+          "$id right edge at $step",
+        ).isTrue()
+        assertThat(center.y - surfaceSize.height / 2f >= 0f, "$id top edge at $step").isTrue()
+        assertThat(
+          center.y + surfaceSize.height / 2f <= sceneSize.height,
+          "$id bottom edge at $step",
+        ).isTrue()
       }
     }
   }
@@ -62,16 +72,22 @@ class GlassPlaygroundTimelineTest {
   fun backdropAndLight_moveAcrossTheLoop() {
     val opening = glassPlaygroundFrame(0f)
     val quarter = glassPlaygroundFrame(0.25f)
-    assertTrue(opening.backdropOffset != quarter.backdropOffset)
-    assertTrue(opening.lightPosition != quarter.lightPosition)
+    assertThat(opening.backdropOffset).isNotEqualTo(quarter.backdropOffset)
+    assertThat(opening.lightPosition).isNotEqualTo(quarter.lightPosition)
   }
 
   @Test
   fun smallSurfacesUseAdaptiveAndFeatureSurfacesUseLiteralOptics() {
-    assertEquals(GlassOptics.Adaptive, glassPlaygroundStyle(GlassPlaygroundSurfaceId.Lens).optics)
-    assertEquals(GlassOptics.Adaptive, glassPlaygroundStyle(GlassPlaygroundSurfaceId.Pill).optics)
-    assertTrue(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Card).optics is GlassOptics.Absolute)
-    assertTrue(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Prism).optics is GlassOptics.Absolute)
+    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Lens).optics)
+      .isEqualTo(GlassOptics.Adaptive)
+    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Pill).optics)
+      .isEqualTo(GlassOptics.Adaptive)
+    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Card).optics)
+      .isNotNull()
+      .isInstanceOf<GlassOptics.Absolute>()
+    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Prism).optics)
+      .isNotNull()
+      .isInstanceOf<GlassOptics.Absolute>()
   }
 
   @Test
@@ -84,6 +100,6 @@ class GlassPlaygroundTimelineTest {
       cardPosition = Offset(0.6f, 0.6f),
       prismPosition = Offset(0.8f, 0.8f),
     )
-    assertEquals(Offset(0.8f, 0.8f), frame.position(GlassPlaygroundSurfaceId.Prism))
+    assertThat(frame.position(GlassPlaygroundSurfaceId.Prism)).isEqualTo(Offset(0.8f, 0.8f))
   }
 }

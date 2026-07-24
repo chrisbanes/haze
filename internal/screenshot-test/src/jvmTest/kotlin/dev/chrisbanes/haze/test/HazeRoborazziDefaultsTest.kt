@@ -3,11 +3,12 @@
 
 package dev.chrisbanes.haze.test
 
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isTrue
 import com.dropbox.differ.ImageComparator.ComparisonResult
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class HazeRoborazziDefaultsTest {
 
@@ -25,8 +26,8 @@ class HazeRoborazziDefaultsTest {
       ),
     )
 
-    assertTrue(result)
-    assertEquals(emptyList(), messages)
+    assertThat(result).isTrue()
+    assertThat(messages).isEqualTo(emptyList())
   }
 
   @Test
@@ -43,13 +44,12 @@ class HazeRoborazziDefaultsTest {
       ),
     )
 
-    assertFalse(result)
-    assertEquals(
+    assertThat(result).isFalse()
+    assertThat(messages).isEqualTo(
       listOf(
         "Roborazzi image diff: 0.81% unmatched " +
           "(81/10000 pixels, threshold 0.80%, maxDistance 0.02, hShift 2, vShift 2)",
       ),
-      messages,
     )
   }
 
@@ -59,8 +59,8 @@ class HazeRoborazziDefaultsTest {
       unmatchedPixelThreshold = 0.014f,
     )
 
-    assertEquals(0.7, options.recordOptions.resizeScale)
-    assertTrue(
+    assertThat(options.recordOptions.resizeScale).isEqualTo(0.7)
+    assertThat(
       options.compareOptions.resultValidator(
         ComparisonResult(
           pixelDifferences = 13_100,
@@ -69,6 +69,6 @@ class HazeRoborazziDefaultsTest {
           height = 1_000,
         ),
       ),
-    )
+    ).isTrue()
   }
 }

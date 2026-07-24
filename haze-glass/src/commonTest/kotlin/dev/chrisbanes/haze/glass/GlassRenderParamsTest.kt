@@ -12,15 +12,17 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import kotlin.math.abs
 import kotlin.math.sqrt
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 
 class GlassRenderParamsTest {
 
@@ -277,16 +279,15 @@ class GlassRenderParamsTest {
       )
     }
 
-    val exception = assertFailsWith<IllegalArgumentException> {
+    assertFailure {
       resolveGlassStyle(
         effect = effect,
         materialSizePx = Size(100f, 80f),
         density = Density(1f),
         layoutDirection = LayoutDirection.Ltr,
       )
-    }
-
-    assertThat(exception.message).isEqualTo("custom corner conversion failed")
+    }.isInstanceOf<IllegalArgumentException>()
+      .hasMessage("custom corner conversion failed")
   }
 
   @Test

@@ -3,9 +3,11 @@
 
 package dev.chrisbanes.haze.glass
 
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeArea
@@ -13,7 +15,6 @@ import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.VisualEffect
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 
 class GlassInteractionDslTest {
 
@@ -74,12 +75,12 @@ class GlassInteractionDslTest {
     val pressed = checkNotNull(effect.pressedSlot)
     effect.resetDirtyTracker()
 
-    assertFailsWith<IllegalStateException> {
+    assertFailure {
       scope.glassEffect {
         pressed { lightingIntensity(0.6f) }
         throw IllegalStateException("rollback")
       }
-    }
+    }.isInstanceOf<IllegalStateException>()
 
     assertThat(effect.hoveredSlot).isEqualTo(hovered)
     assertThat(effect.focusedSlot).isEqualTo(focused)
@@ -179,18 +180,18 @@ class GlassInteractionDslTest {
 
   @Test
   fun invalidValues_failDuringResponseCompilation() {
-    assertFailsWith<IllegalArgumentException> {
+    assertFailure {
       GlassVisualEffect().pressed { scale(Float.NaN) }
-    }
-    assertFailsWith<IllegalArgumentException> {
+    }.isInstanceOf<IllegalArgumentException>()
+    assertFailure {
       GlassVisualEffect().pressed { lightingIntensity(1.1f) }
-    }
-    assertFailsWith<IllegalArgumentException> {
+    }.isInstanceOf<IllegalArgumentException>()
+    assertFailure {
       GlassVisualEffect().pressed { refractionMultiplier(2.1f) }
-    }
-    assertFailsWith<IllegalArgumentException> {
+    }.isInstanceOf<IllegalArgumentException>()
+    assertFailure {
       GlassVisualEffect().pressed { whitePointDelta(-1.1f) }
-    }
+    }.isInstanceOf<IllegalArgumentException>()
   }
 
   private fun configureAndReturn(scope: TestHazeEffectScope): String {

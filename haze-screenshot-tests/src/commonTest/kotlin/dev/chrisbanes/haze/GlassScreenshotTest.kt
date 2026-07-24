@@ -26,6 +26,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import assertk.assertThat
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassLighting
 import dev.chrisbanes.haze.glass.GlassOptics
@@ -38,7 +41,6 @@ import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.test.assertTrue
 
 class GlassScreenshotTest : ScreenshotTest() {
 
@@ -135,10 +137,10 @@ class GlassScreenshotTest : ScreenshotTest() {
     val lowAlphaPixels = captureRootPixels().snapshot()
     captureRoot("15")
 
-    assertTrue(
-      initialPixels.changedPixelRatio(lowAlphaPixels) > 0.01f,
-      "Expected changing alpha to affect more than 1% of pixels",
-    )
+    assertThat(
+      initialPixels.changedPixelRatio(lowAlphaPixels),
+      "changing alpha affected pixel ratio",
+    ).isGreaterThan(0.01f)
   }
 
   @Test
@@ -251,19 +253,19 @@ class GlassScreenshotTest : ScreenshotTest() {
     waitForIdle()
     val densityOnePixels = captureRootPixels().snapshot()
 
-    assertTrue(
-      zeroBlurPixels.changedPixelRatio(densityOnePixels) > 0.01f,
-      "Expected capped blur to materially change the rendered pixels",
-    )
+    assertThat(
+      zeroBlurPixels.changedPixelRatio(densityOnePixels),
+      "capped blur changed pixel ratio",
+    ).isGreaterThan(0.01f)
 
     density = Density(3f)
     waitForIdle()
     val densityThreePixels = captureRootPixels().snapshot()
 
-    assertTrue(
-      densityOnePixels.changedPixelRatio(densityThreePixels) <= 0.001f,
-      "Expected above-cap blur to stay visually stable across densities",
-    )
+    assertThat(
+      densityOnePixels.changedPixelRatio(densityThreePixels),
+      "above-cap blur changed pixel ratio across densities",
+    ).isLessThanOrEqualTo(0.001f)
   }
 
   @Test

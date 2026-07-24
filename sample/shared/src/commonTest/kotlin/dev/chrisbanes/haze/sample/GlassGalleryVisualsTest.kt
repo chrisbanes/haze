@@ -12,11 +12,12 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.v2.runComposeUiTest
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class GlassGalleryVisualsTest : ContextTest() {
@@ -57,8 +58,8 @@ class GlassGalleryVisualsTest : ContextTest() {
     onNodeWithContentDescription("Enter recording mode")
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
 
-    assertEquals(1, playPauseCount)
-    assertEquals(1, resetCount)
-    assertTrue(recordingMode)
+    assertThat(playPauseCount).isEqualTo(1)
+    assertThat(resetCount).isEqualTo(1)
+    assertThat(recordingMode).isTrue()
   }
 }

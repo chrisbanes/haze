@@ -10,9 +10,9 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import kotlin.test.Test
-import kotlin.test.assertSame
 
 class GlassStageInvalidationTest {
 
@@ -367,7 +367,7 @@ class GlassStageInvalidationTest {
       previousSnapshot = first,
     ).snapshot
 
-    assertSame(first, second)
+    assertThat(second).isSameInstanceAs(first)
   }
 
   @Test

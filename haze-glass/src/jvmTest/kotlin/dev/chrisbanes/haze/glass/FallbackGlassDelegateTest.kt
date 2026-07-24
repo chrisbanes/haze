@@ -29,7 +29,12 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isLessThan
+import assertk.assertions.isNotNull
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
@@ -43,11 +48,6 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.abs
 import kotlin.test.Test
-import kotlin.test.assertNotNull
-import kotlin.test.assertNotSame
-import kotlin.test.assertNull
-import kotlin.test.assertSame
-import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import sun.misc.Unsafe
 
@@ -64,7 +64,7 @@ class FallbackGlassDelegateTest {
     val first = checkNotNull(delegate.groupAlphaForTest().layer)
     delegate.prepare(context)
 
-    assertSame(first, delegate.groupAlphaForTest().layer)
+    assertThat(delegate.groupAlphaForTest().layer).isSameInstanceAs(first)
     assertThat(context.graphicsContext.createdLayers).isEqualTo(listOf(first))
   }
 
@@ -147,8 +147,8 @@ class FallbackGlassDelegateTest {
       ]
 
       assertThat(fallback.groupAlphaForTest().isAvailable).isFalse()
-      assertTrue(opaque.alpha > 0.01f)
-      assertTrue(abs(direct.alpha - opaque.alpha / 2f) < 0.03f)
+      assertThat(opaque.alpha).isGreaterThan(0.01f)
+      assertThat(abs(direct.alpha - opaque.alpha / 2f)).isLessThan(0.03f)
     }
 
     assertDirectAlphaHalvesContribution(
@@ -215,7 +215,7 @@ class FallbackGlassDelegateTest {
       with(fallback) { drawForeground(context) }
     }
 
-    assertTrue(image.toPixelMap()[60, 60].red > 0.01f)
+    assertThat(image.toPixelMap()[60, 60].red).isGreaterThan(0.01f)
   }
 
   @Test
@@ -235,47 +235,47 @@ class FallbackGlassDelegateTest {
     delegate.prepare(context)
     val stable = delegate.preparedResourcesForTest()
 
-    assertSame(first.prepared, stable.prepared)
-    assertSame(first.style, stable.style)
-    assertSame(first.shapePath, stable.shapePath)
-    assertSame(first.highlightBrush, stable.highlightBrush)
-    assertSame(first.edgeBrush, stable.edgeBrush)
-    assertSame(first.edgeStroke, stable.edgeStroke)
+    assertThat(stable.prepared).isSameInstanceAs(first.prepared)
+    assertThat(stable.style).isSameInstanceAs(first.style)
+    assertThat(stable.shapePath).isSameInstanceAs(first.shapePath)
+    assertThat(stable.highlightBrush).isSameInstanceAs(first.highlightBrush)
+    assertThat(stable.edgeBrush).isSameInstanceAs(first.edgeBrush)
+    assertThat(stable.edgeStroke).isSameInstanceAs(first.edgeStroke)
 
     effect.lightPosition = Offset(24f, 36f)
     delegate.prepare(context)
     val movedLight = delegate.preparedResourcesForTest()
 
-    assertNotSame(stable.prepared, movedLight.prepared)
-    assertNotSame(stable.highlightBrush, movedLight.highlightBrush)
-    assertSame(stable.shapePath, movedLight.shapePath)
-    assertSame(stable.edgeBrush, movedLight.edgeBrush)
-    assertSame(stable.edgeStroke, movedLight.edgeStroke)
+    assertThat(movedLight.prepared).isNotSameInstanceAs(stable.prepared)
+    assertThat(movedLight.highlightBrush).isNotSameInstanceAs(stable.highlightBrush)
+    assertThat(movedLight.shapePath).isSameInstanceAs(stable.shapePath)
+    assertThat(movedLight.edgeBrush).isSameInstanceAs(stable.edgeBrush)
+    assertThat(movedLight.edgeStroke).isSameInstanceAs(stable.edgeStroke)
 
     effect.ambientResponse = 0.5f
     delegate.prepare(context)
     val changedEdge = delegate.preparedResourcesForTest()
 
-    assertSame(movedLight.highlightBrush, changedEdge.highlightBrush)
-    assertNotSame(movedLight.edgeBrush, changedEdge.edgeBrush)
-    assertSame(movedLight.edgeStroke, changedEdge.edgeStroke)
-    assertSame(movedLight.shapePath, changedEdge.shapePath)
+    assertThat(changedEdge.highlightBrush).isSameInstanceAs(movedLight.highlightBrush)
+    assertThat(changedEdge.edgeBrush).isNotSameInstanceAs(movedLight.edgeBrush)
+    assertThat(changedEdge.edgeStroke).isSameInstanceAs(movedLight.edgeStroke)
+    assertThat(changedEdge.shapePath).isSameInstanceAs(movedLight.shapePath)
 
     effect.edgeSoftness = 0.dp
     delegate.prepare(context)
     val noEdge = delegate.preparedResourcesForTest()
 
-    assertNull(noEdge.edgeBrush)
-    assertNull(noEdge.edgeDirectBrush)
-    assertNull(noEdge.edgeStroke)
+    assertThat(noEdge.edgeBrush).isNull()
+    assertThat(noEdge.edgeDirectBrush).isNull()
+    assertThat(noEdge.edgeStroke).isNull()
 
     effect.edgeSoftness = 8.dp
     delegate.prepare(context)
     val restoredEdge = delegate.preparedResourcesForTest()
 
-    assertNotNull(restoredEdge.edgeBrush)
-    assertNotNull(restoredEdge.edgeDirectBrush)
-    assertNotNull(restoredEdge.edgeStroke)
+    assertThat(restoredEdge.edgeBrush).isNotNull()
+    assertThat(restoredEdge.edgeDirectBrush).isNotNull()
+    assertThat(restoredEdge.edgeStroke).isNotNull()
   }
 
   private fun FallbackGlassDelegate.prepare(context: FallbackRecordingContext) {

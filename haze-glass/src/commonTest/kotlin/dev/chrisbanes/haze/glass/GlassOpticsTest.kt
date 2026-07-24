@@ -5,10 +5,11 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 
 class GlassOpticsTest {
 
@@ -31,7 +32,7 @@ class GlassOpticsTest {
       { GlassOptics.Absolute(blurRadius = Dp.Unspecified) },
       { GlassOptics.Absolute(blurRadius = (-1).dp) },
     ).forEach { create ->
-      assertFailsWith<IllegalArgumentException> { create() }
+      assertFailure { create() }.isInstanceOf<IllegalArgumentException>()
     }
   }
 }

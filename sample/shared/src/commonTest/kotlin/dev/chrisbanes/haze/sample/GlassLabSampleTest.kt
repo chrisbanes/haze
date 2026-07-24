@@ -23,11 +23,13 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassLabSampleTest : ContextTest() {
@@ -75,20 +77,20 @@ class GlassLabSampleTest : ContextTest() {
           action(textLayouts)
         }
       val textLayout = textLayouts.single()
-      assertEquals(1, textLayout.lineCount, optionName)
-      assertTrue(
+      assertThat(textLayout.lineCount, optionName).isEqualTo(1)
+      assertThat(
         textLayout.multiParagraph.intrinsics.maxIntrinsicWidth <= textLayout.size.width + 1f,
         "$optionName: size=${textLayout.size}, intrinsicWidth=" +
           textLayout.multiParagraph.intrinsics.maxIntrinsicWidth,
-      )
+      ).isTrue()
     }
   }
 
   @Test
   fun narrowLabSizesSelectorsToWholeVisibleItems() {
-    assertEquals(288.dp, labSegmentedButtonWidth(288.dp, itemCount = 5))
-    assertEquals(174.dp, labSegmentedButtonWidth(348.dp, itemCount = 5))
-    assertEquals(160.dp, labSegmentedButtonWidth(800.dp, itemCount = 5))
+    assertThat(labSegmentedButtonWidth(288.dp, itemCount = 5)).isEqualTo(288.dp)
+    assertThat(labSegmentedButtonWidth(348.dp, itemCount = 5)).isEqualTo(174.dp)
+    assertThat(labSegmentedButtonWidth(800.dp, itemCount = 5)).isEqualTo(160.dp)
   }
 
   @Test
@@ -106,22 +108,22 @@ class GlassLabSampleTest : ContextTest() {
     onNode(hasText("Prism") and hasClickAction())
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
-    assertEquals(GlassLabPresetId.Prism, state.preset)
+    assertThat(state.preset).isEqualTo(GlassLabPresetId.Prism)
 
     onNode(hasText("Grid") and hasClickAction())
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
-    assertEquals(GlassGalleryBackdropId.Grid, state.backdrop)
+    assertThat(state.backdrop).isEqualTo(GlassGalleryBackdropId.Grid)
 
     onNode(hasText("Off") and hasClickAction())
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
-    assertEquals(GlassLabInteractionMode.Off, state.interaction)
+    assertThat(state.interaction).isEqualTo(GlassLabInteractionMode.Off)
 
     onNodeWithText("Advanced")
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
-    assertTrue(state.advancedExpanded)
+    assertThat(state.advancedExpanded).isTrue()
   }
 
   @Test
@@ -154,6 +156,6 @@ class GlassLabSampleTest : ContextTest() {
     }
 
     onNodeWithContentDescription("Glass specimen").performTouchInput { click() }
-    assertEquals(false, recordingModeChanged)
+    assertThat(recordingModeChanged).isFalse()
   }
 }
