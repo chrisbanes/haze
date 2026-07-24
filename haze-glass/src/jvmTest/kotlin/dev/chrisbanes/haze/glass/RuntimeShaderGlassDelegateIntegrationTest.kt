@@ -228,7 +228,6 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       effect.setPressedForTest(position)
       mainClock.advanceTimeByFrame()
       mainClock.advanceTimeByFrame()
-      waitForIdle()
 
       assertSame(delegate, effect.delegate)
       assertSame(source, delegate.layers.source)
@@ -244,7 +243,6 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     effect.setPressedForTest(positions.last(), pressed = false)
     repeat(12) {
       mainClock.advanceTimeByFrame()
-      waitForIdle()
       assertSame(delegate, effect.delegate)
       assertSame(source, delegate.layers.source)
       assertSame(optical, delegate.layers.optical)
