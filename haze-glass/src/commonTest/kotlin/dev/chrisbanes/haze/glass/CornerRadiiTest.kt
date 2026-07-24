@@ -8,10 +8,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 
 class CornerRadiiTest {
 
@@ -91,13 +93,12 @@ class CornerRadiiTest {
       bottomStart = 0.dp,
     )
 
-    val exception = assertFailsWith<IllegalArgumentException> {
+    assertFailure {
       shape.toCornerRadiiPx(Size(100f, 100f), Density(1f), LayoutDirection.Ltr)
-    }
-
-    assertThat(exception.message).isEqualTo(
-      "Corner size in Px can't be negative(topStart = -1.0, topEnd = 0.0, " +
-        "bottomEnd = 0.0, bottomStart = 0.0)!",
-    )
+    }.isInstanceOf<IllegalArgumentException>()
+      .hasMessage(
+        "Corner size in Px can't be negative(topStart = -1.0, topEnd = 0.0, " +
+          "bottomEnd = 0.0, bottomStart = 0.0)!",
+      )
   }
 }

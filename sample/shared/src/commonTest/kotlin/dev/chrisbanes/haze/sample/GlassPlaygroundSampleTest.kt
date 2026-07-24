@@ -6,14 +6,16 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalHazeApi::class)
 class GlassPlaygroundSampleTest : ContextTest() {
@@ -24,15 +26,15 @@ class GlassPlaygroundSampleTest : ContextTest() {
 
     effect.configurePlaygroundInteraction(source)
 
-    assertEquals(source, effect.interactionSource)
-    assertEquals(GlassTransformTarget.MaterialAndContent, effect.interactionTransformTarget)
-    assertEquals(GlassTransformPivot.Pointer, effect.interactionTransformPivot)
-    assertTrue(effect.observesPointerEvents)
+    assertThat(effect.interactionSource).isEqualTo(source)
+    assertThat(effect.interactionTransformTarget).isEqualTo(GlassTransformTarget.MaterialAndContent)
+    assertThat(effect.interactionTransformPivot).isEqualTo(GlassTransformPivot.Pointer)
+    assertThat(effect.observesPointerEvents).isTrue()
 
     effect.clearPressed()
-    assertTrue(effect.observesPointerEvents)
+    assertThat(effect.observesPointerEvents).isTrue()
     effect.clearHovered()
-    assertEquals(false, effect.observesPointerEvents)
+    assertThat(effect.observesPointerEvents).isFalse()
   }
 
   @Test
@@ -50,8 +52,8 @@ class GlassPlaygroundSampleTest : ContextTest() {
       dragOffset = Offset(-200f, 200f),
     )
 
-    assertEquals(Offset(140f, 150f), base)
-    assertEquals(Offset(-60f, 350f), dragged)
+    assertThat(base).isEqualTo(Offset(140f, 150f))
+    assertThat(dragged).isEqualTo(Offset(-60f, 350f))
   }
 
   @Test
@@ -64,6 +66,6 @@ class GlassPlaygroundSampleTest : ContextTest() {
       dragOffset = Offset(40f, -20f),
     )
 
-    assertEquals(Offset(310f, -130f), light)
+    assertThat(light).isEqualTo(Offset(310f, -130f))
   }
 }

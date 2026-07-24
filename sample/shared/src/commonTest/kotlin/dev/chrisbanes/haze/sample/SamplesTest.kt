@@ -7,17 +7,19 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
+import assertk.assertThat
+import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class SamplesTest : ContextTest() {
   @Test
   fun commonSamples_containsOnlyThreeGlassGalleryDestinations() {
-    assertEquals(
-      listOf("Glass — Product", "Glass — Playground", "Glass — Lab"),
+    assertThat(
       CommonSamples.map(Sample::title).filter { "Glass" in it },
+    ).isEqualTo(
+      listOf("Glass — Product", "Glass — Playground", "Glass — Lab"),
     )
   }
 

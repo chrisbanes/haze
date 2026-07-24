@@ -25,6 +25,7 @@ import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
@@ -36,7 +37,6 @@ import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
-import kotlin.test.assertSame
 import kotlinx.coroutines.CoroutineScope
 import sun.misc.Unsafe
 
@@ -55,7 +55,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     delegate.prepareDrawForTest(context, effect)
     val first = checkNotNull(delegate.layers.groupAlpha.layer)
     delegate.prepareDrawForTest(context, effect)
-    assertSame(first, delegate.layers.groupAlpha.layer)
+    assertThat(delegate.layers.groupAlpha.layer).isSameInstanceAs(first)
 
     effect.alpha = 0f
     delegate.prepareDrawForTest(context, effect)
@@ -73,7 +73,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     val first = checkNotNull(owner.layer)
     owner.prepare(required = true, graphicsContext)
 
-    assertSame(first, owner.layer)
+    assertThat(owner.layer).isSameInstanceAs(first)
     assertThat(graphicsContext.events.filterIsInstance<LayerEvent.Create>().size).isEqualTo(1)
   }
 
@@ -105,7 +105,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       with(delegate) { prepareDraw(context) }
     }
 
-    assertSame(prepared.params, delegate.preparedParamsForTest())
+    assertThat(delegate.preparedParamsForTest()).isSameInstanceAs(prepared.params)
   }
 
   @Test
@@ -192,8 +192,8 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     }
     assertThat(lastObsoleteRelease).isGreaterThanOrEqualTo(0)
     assertThat(firstCreate).isGreaterThan(lastObsoleteRelease)
-    assertSame(retainedSource, delegate.layers.source)
-    assertSame(retainedOptical, delegate.layers.optical)
+    assertThat(delegate.layers.source).isSameInstanceAs(retainedSource)
+    assertThat(delegate.layers.optical).isSameInstanceAs(retainedOptical)
   }
 
   @Test

@@ -3,9 +3,10 @@
 
 package dev.chrisbanes.haze
 
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isTrue
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSThread
 import platform.UIKit.UIApplicationDidReceiveMemoryWarningNotification
@@ -13,7 +14,7 @@ import platform.UIKit.UIApplicationDidReceiveMemoryWarningNotification
 class TrimMemoryCallbackTest {
   @Test
   fun memoryWarning_deliversCompleteUntilDisposed() {
-    assertTrue(NSThread.isMainThread)
+    assertThat(NSThread.isMainThread).isTrue()
     val received = mutableListOf<TrimMemoryLevel>()
     val handle = registerTrimMemoryCallback(
       context = PlatformContext.INSTANCE,
@@ -24,13 +25,13 @@ class TrimMemoryCallbackTest {
       UIApplicationDidReceiveMemoryWarningNotification,
       null,
     )
-    assertEquals(listOf(TrimMemoryLevel.COMPLETE), received)
+    assertThat(received).isEqualTo(listOf(TrimMemoryLevel.COMPLETE))
 
     handle.dispose()
     NSNotificationCenter.defaultCenter.postNotificationName(
       UIApplicationDidReceiveMemoryWarningNotification,
       null,
     )
-    assertEquals(listOf(TrimMemoryLevel.COMPLETE), received)
+    assertThat(received).isEqualTo(listOf(TrimMemoryLevel.COMPLETE))
   }
 }

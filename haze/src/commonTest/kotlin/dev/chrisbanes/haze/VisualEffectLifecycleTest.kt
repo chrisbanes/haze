@@ -19,15 +19,16 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 
 @OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class, InternalHazeApi::class)
 class VisualEffectLifecycleTest : ContextTest() {
@@ -260,9 +261,9 @@ class VisualEffectLifecycleTest : ContextTest() {
     assertThat(sharedEffect.attachCalls).isEqualTo(1)
 
     // Attempting to attach the same instance to a second active node must fail
-    assertFailsWith<IllegalStateException> {
+    assertFailure {
       HazeEffectNode().attachVisualEffect(sharedEffect)
-    }
+    }.isInstanceOf<IllegalStateException>()
   }
 
   @Test

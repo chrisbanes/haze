@@ -27,9 +27,12 @@ for parameters, and `*Defaults` naming for reusable configuration containers.
 ## Testing Guidelines
 
 Unit and snapshot tests sit alongside sources (for example, `haze/src/commonTest/kotlin`). Compose
-UI tests leverage `assertk`, `kotlin.test`, and Roborazzi-based screenshot assertions. Prefer
-descriptive method-level names such as `functionName_emitsExpectedBlur`. Run `./gradlew check`
-locally before opening a PR. Regenerate library snapshots with
+UI tests use Compose semantics and Roborazzi screenshot assertions where appropriate. Use AssertK
+for every author-written value, type, collection, boolean, and exception assertion; do not use
+assertion functions from `kotlin.test`, JUnit, or Truth. Semantic custom assertion helpers are
+allowed when implemented with AssertK. Prefer descriptive method-level names such as
+`functionName_emitsExpectedBlur`. Run `./gradlew check` locally before opening a PR. Regenerate
+library snapshots with
 `./gradlew :haze-screenshot-tests:recordRoborazzi`; regenerate Glass Gallery snapshots with
 `./gradlew :sample:screenshot-tests:recordRoborazzi` when intentional UI changes occur.
 

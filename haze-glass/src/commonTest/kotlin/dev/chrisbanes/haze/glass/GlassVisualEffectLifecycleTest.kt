@@ -20,7 +20,9 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
@@ -30,8 +32,6 @@ import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
-import kotlin.test.assertNotSame
-import kotlin.test.assertSame
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -224,10 +224,10 @@ class GlassVisualEffectLifecycleTest {
     ) as GlassRenderBudgetDecision.Runtime
     val secondPrepared = checkNotNull(effect.preparedRender)
 
-    assertSame(first, second)
-    assertSame(firstPrepared, secondPrepared)
-    assertSame(firstPrepared.blurKey?.plan, secondPrepared.blurKey?.plan)
-    assertSame(second.plan, secondPrepared.plan)
+    assertThat(second).isSameInstanceAs(first)
+    assertThat(secondPrepared).isSameInstanceAs(firstPrepared)
+    assertThat(secondPrepared.blurKey?.plan).isSameInstanceAs(firstPrepared.blurKey?.plan)
+    assertThat(secondPrepared.plan).isSameInstanceAs(second.plan)
   }
 
   @Test
@@ -242,17 +242,17 @@ class GlassVisualEffectLifecycleTest {
     effect.prepareRenderBudget(context, runtimeShaderSupported = true)
     val second = checkNotNull(effect.preparedRender)
 
-    assertNotSame(first, second)
-    assertSame(first.params, second.params)
-    assertSame(first.blurKey, second.blurKey)
-    assertSame(first.opticalKey, second.opticalKey)
-    assertSame(first.refractionDetailKey, second.refractionDetailKey)
-    assertSame(first.rimKey, second.rimKey)
+    assertThat(second).isNotSameInstanceAs(first)
+    assertThat(second.params).isSameInstanceAs(first.params)
+    assertThat(second.blurKey).isSameInstanceAs(first.blurKey)
+    assertThat(second.opticalKey).isSameInstanceAs(first.opticalKey)
+    assertThat(second.refractionDetailKey).isSameInstanceAs(first.refractionDetailKey)
+    assertThat(second.rimKey).isSameInstanceAs(first.rimKey)
     assertThat(first.plan.layers.any { it.kind == GlassRetainedLayerKind.GroupComposite })
       .isEqualTo(false)
     assertThat(second.plan.layers.any { it.kind == GlassRetainedLayerKind.GroupComposite })
       .isEqualTo(true)
-    assertNotSame(first.plan, second.plan)
+    assertThat(second.plan).isNotSameInstanceAs(first.plan)
   }
 
   @Test
@@ -273,12 +273,12 @@ class GlassVisualEffectLifecycleTest {
     effect.prepareRenderBudget(context, runtimeShaderSupported = true)
     val second = checkNotNull(effect.preparedRender)
 
-    assertNotSame(first.plan, second.plan)
-    assertSame(first.params, second.params)
-    assertSame(first.blurKey, second.blurKey)
-    assertSame(first.opticalKey, second.opticalKey)
-    assertSame(first.refractionDetailKey, second.refractionDetailKey)
-    assertSame(first.rimKey, second.rimKey)
+    assertThat(second.plan).isNotSameInstanceAs(first.plan)
+    assertThat(second.params).isSameInstanceAs(first.params)
+    assertThat(second.blurKey).isSameInstanceAs(first.blurKey)
+    assertThat(second.opticalKey).isSameInstanceAs(first.opticalKey)
+    assertThat(second.refractionDetailKey).isSameInstanceAs(first.refractionDetailKey)
+    assertThat(second.rimKey).isSameInstanceAs(first.rimKey)
   }
 
   @Test
@@ -313,12 +313,12 @@ class GlassVisualEffectLifecycleTest {
     effect.prepareRenderBudget(context, runtimeShaderSupported = true)
     val second = checkNotNull(effect.preparedRender)
 
-    assertNotSame(first.params, second.params)
-    assertSame(first.blurKey, second.blurKey)
-    assertSame(first.opticalKey, second.opticalKey)
-    assertSame(first.refractionDetailKey, second.refractionDetailKey)
-    assertNotSame(first.rimKey, second.rimKey)
-    assertSame(first.plan, second.plan)
+    assertThat(second.params).isNotSameInstanceAs(first.params)
+    assertThat(second.blurKey).isSameInstanceAs(first.blurKey)
+    assertThat(second.opticalKey).isSameInstanceAs(first.opticalKey)
+    assertThat(second.refractionDetailKey).isSameInstanceAs(first.refractionDetailKey)
+    assertThat(second.rimKey).isNotSameInstanceAs(first.rimKey)
+    assertThat(second.plan).isSameInstanceAs(first.plan)
   }
 
   @Test
@@ -333,13 +333,13 @@ class GlassVisualEffectLifecycleTest {
     effect.prepareRenderBudget(context, runtimeShaderSupported = true)
     val second = checkNotNull(effect.preparedRender)
 
-    assertNotSame(first.interactionUniforms, second.interactionUniforms)
-    assertSame(first.params, second.params)
-    assertSame(first.blurKey, second.blurKey)
-    assertSame(first.opticalKey, second.opticalKey)
-    assertSame(first.refractionDetailKey, second.refractionDetailKey)
-    assertSame(first.rimKey, second.rimKey)
-    assertNotSame(first.plan, second.plan)
+    assertThat(second.interactionUniforms).isNotSameInstanceAs(first.interactionUniforms)
+    assertThat(second.params).isSameInstanceAs(first.params)
+    assertThat(second.blurKey).isSameInstanceAs(first.blurKey)
+    assertThat(second.opticalKey).isSameInstanceAs(first.opticalKey)
+    assertThat(second.refractionDetailKey).isSameInstanceAs(first.refractionDetailKey)
+    assertThat(second.rimKey).isSameInstanceAs(first.rimKey)
+    assertThat(second.plan).isNotSameInstanceAs(first.plan)
   }
 
   @Test

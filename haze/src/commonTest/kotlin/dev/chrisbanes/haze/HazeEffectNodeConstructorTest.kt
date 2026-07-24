@@ -4,10 +4,11 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 
 @OptIn(ExperimentalHazeApi::class)
 class HazeEffectNodeConstructorTest {
@@ -69,9 +70,9 @@ class HazeEffectNodeConstructorTest {
     val node2 = HazeEffectNode()
     val effect = ThrowOnFirstAttachVisualEffect()
 
-    assertFailsWith<IllegalStateException> {
+    assertFailure {
       node1.attachVisualEffect(effect)
-    }
+    }.isInstanceOf<IllegalStateException>()
 
     // Should succeed after failure on another node if attach bookkeeping is rolled back
     node2.attachVisualEffect(effect)
@@ -101,9 +102,9 @@ class HazeEffectNodeConstructorTest {
     node.attachVisualEffect(effect)
 
     // detachVisualEffect still throws, but the registry cleanup runs in the finally block.
-    assertFailsWith<IllegalStateException> {
+    assertFailure {
       node.detachVisualEffect(effect)
-    }
+    }.isInstanceOf<IllegalStateException>()
 
     // After detach (which threw), the effect should no longer be owned,
     // so attaching it to a different node should succeed.

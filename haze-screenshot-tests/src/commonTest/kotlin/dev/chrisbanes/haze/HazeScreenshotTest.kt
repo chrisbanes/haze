@@ -24,6 +24,13 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import assertk.assertThat
+import assertk.assertions.containsAtLeast
+import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isLessThan
+import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.blur.BlurVisualEffect
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -35,8 +42,6 @@ import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class HazeScreenshotTest : ScreenshotTest() {
 
@@ -120,10 +125,8 @@ class HazeScreenshotTest : ScreenshotTest() {
 
     if (supportsRuntimeBlur) {
       val blurChangedPixelRatio = defaultPixels.changedPixelRatio(disabledPixels)
-      assertTrue(
-        blurChangedPixelRatio > 0.01f,
-        "Expected disabling blur to affect more than 1% of pixels, got $blurChangedPixelRatio",
-      )
+      assertThat(blurChangedPixelRatio, "disabling blur changed pixel ratio")
+        .isGreaterThan(0.01f)
     }
   }
 
@@ -229,18 +232,18 @@ class HazeScreenshotTest : ScreenshotTest() {
     captureRoot("70")
     val alpha70Pixels = captureRootPixels().snapshot()
 
-    assertTrue(
-      initialPixels.changedPixelRatio(alpha20Pixels) > 0.01f,
-      "Expected changing alpha from the initial value to 0.2 to affect more than 1% of pixels",
-    )
-    assertTrue(
-      alpha20Pixels.changedPixelRatio(alpha70Pixels) > 0.01f,
-      "Expected changing alpha from 0.2 to 0.7 to affect more than 1% of pixels",
-    )
-    assertTrue(
-      initialPixels.changedPixelRatio(alpha70Pixels) > 0.01f,
-      "Expected changing alpha from the initial value to 0.7 to affect more than 1% of pixels",
-    )
+    assertThat(
+      initialPixels.changedPixelRatio(alpha20Pixels),
+      "initial-to-0.2 alpha changed pixel ratio",
+    ).isGreaterThan(0.01f)
+    assertThat(
+      alpha20Pixels.changedPixelRatio(alpha70Pixels),
+      "0.2-to-0.7 alpha changed pixel ratio",
+    ).isGreaterThan(0.01f)
+    assertThat(
+      initialPixels.changedPixelRatio(alpha70Pixels),
+      "initial-to-0.7 alpha changed pixel ratio",
+    ).isGreaterThan(0.01f)
   }
 
   @Test
@@ -388,18 +391,18 @@ class HazeScreenshotTest : ScreenshotTest() {
     captureRoot("red")
     val redPixels = captureRootPixels().snapshot()
 
-    assertTrue(
-      magentaPixels.changedPixelRatio(yellowPixels) > 0.01f,
-      "Expected changing child tint from magenta to yellow to affect more than 1% of pixels",
-    )
-    assertTrue(
-      yellowPixels.changedPixelRatio(redPixels) > 0.01f,
-      "Expected changing child tint from yellow to red to affect more than 1% of pixels",
-    )
-    assertTrue(
-      magentaPixels.changedPixelRatio(redPixels) > 0.01f,
-      "Expected changing child tint from magenta to red to affect more than 1% of pixels",
-    )
+    assertThat(
+      magentaPixels.changedPixelRatio(yellowPixels),
+      "magenta-to-yellow tint changed pixel ratio",
+    ).isGreaterThan(0.01f)
+    assertThat(
+      yellowPixels.changedPixelRatio(redPixels),
+      "yellow-to-red tint changed pixel ratio",
+    ).isGreaterThan(0.01f)
+    assertThat(
+      magentaPixels.changedPixelRatio(redPixels),
+      "magenta-to-red tint changed pixel ratio",
+    ).isGreaterThan(0.01f)
   }
 
   @Test
@@ -762,30 +765,32 @@ class HazeScreenshotTest : ScreenshotTest() {
     val initialPagerState = requireNotNull(pagerState)
     recompositionToken++
     waitForIdle()
-    assertTrue(pagerState === initialPagerState)
+    assertThat(pagerState).isSameInstanceAs(initialPagerState)
 
     requestedPage = 2
     waitForIdle()
-    assertEquals(2, initialPagerState.currentPage)
-    assertTrue(composedEffects.keys.containsAll((0..2).toList()))
-    assertTrue(composedEffects.all { (page, effect) -> effect === threePageEffects[page] })
-    assertTrue(
-      composedEffects[0] !== composedEffects[1] && composedEffects[1] !== composedEffects[2],
-    )
+    assertThat(initialPagerState.currentPage).isEqualTo(2)
+    assertThat(composedEffects.keys).containsAtLeast(0, 1, 2)
+    (0..2).forEach { page ->
+      assertThat(composedEffects[page], "effect for page $page")
+        .isSameInstanceAs(threePageEffects[page])
+    }
+    assertThat(composedEffects[0]).isNotSameInstanceAs(composedEffects[1])
+    assertThat(composedEffects[1]).isNotSameInstanceAs(composedEffects[2])
 
     threePageEffects[0].blurRadius = 16.dp
-    assertEquals(8.dp, threePageEffects[1].blurRadius)
+    assertThat(threePageEffects[1].blurRadius).isEqualTo(8.dp)
 
     pageCount = 2
     waitForIdle()
-    assertTrue(pagerState === initialPagerState)
-    assertTrue(initialPagerState.currentPage < pageCount)
+    assertThat(pagerState).isSameInstanceAs(initialPagerState)
+    assertThat(initialPagerState.currentPage).isLessThan(pageCount)
 
     pageCount = 3
     requestedPage = 0
     waitForIdle()
-    assertTrue(pagerState === initialPagerState)
-    assertTrue(composedEffects[0] === threePageEffects[0])
+    assertThat(pagerState).isSameInstanceAs(initialPagerState)
+    assertThat(composedEffects[0]).isSameInstanceAs(threePageEffects[0])
   }
 
   @Test

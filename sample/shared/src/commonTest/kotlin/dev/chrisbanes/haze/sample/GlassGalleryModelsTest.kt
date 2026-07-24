@@ -5,40 +5,46 @@
 
 package dev.chrisbanes.haze.sample
 
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThan
+import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertIs
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
 class GlassGalleryModelsTest {
   @Test
   fun adaptivePreset_usesBuiltInAdaptiveOptics() {
-    assertEquals(GlassOptics.Adaptive, glassLabPresetStyle(GlassLabPresetId.Adaptive).optics)
+    assertThat(glassLabPresetStyle(GlassLabPresetId.Adaptive).optics)
+      .isEqualTo(GlassOptics.Adaptive)
   }
 
   @Test
   fun literalPresets_haveDistinctCompleteOptics() {
-    val clear = assertIs<GlassOptics.Absolute>(glassLabPresetStyle(GlassLabPresetId.Clear).optics)
-    val frosted = assertIs<GlassOptics.Absolute>(glassLabPresetStyle(GlassLabPresetId.Frosted).optics)
-    val deep = assertIs<GlassOptics.Absolute>(glassLabPresetStyle(GlassLabPresetId.Deep).optics)
-    val prism = assertIs<GlassOptics.Absolute>(glassLabPresetStyle(GlassLabPresetId.Prism).optics)
+    val clear = absoluteOpticsFor(GlassLabPresetId.Clear)
+    val frosted = absoluteOpticsFor(GlassLabPresetId.Frosted)
+    val deep = absoluteOpticsFor(GlassLabPresetId.Deep)
+    val prism = absoluteOpticsFor(GlassLabPresetId.Prism)
 
-    assertTrue(clear.blurRadius < frosted.blurRadius)
-    assertTrue(clear.depth < deep.depth)
-    assertNotEquals(deep, prism)
-    assertEquals(
-      ChromaticAberrationMode.Full,
+    assertThat(clear.blurRadius).isLessThan(frosted.blurRadius)
+    assertThat(clear.depth).isLessThan(deep.depth)
+    assertThat(prism).isNotEqualTo(deep)
+    assertThat(
       glassLabPresetStyle(GlassLabPresetId.Prism).rendering.chromaticAberrationMode,
+    ).isEqualTo(
+      ChromaticAberrationMode.Full,
     )
-    assertEquals(
-      0.22f,
+    assertThat(
       glassLabPresetStyle(GlassLabPresetId.Prism).rendering.chromaticAberrationStrength,
+    ).isEqualTo(
+      0.22f,
     )
   }
 
@@ -48,29 +54,29 @@ class GlassGalleryModelsTest {
       style.copy(optics = GlassOptics.Absolute(refractionStrength = 0.6f))
     }
 
-    assertEquals(GlassLabPresetId.Custom, edited.preset)
-    assertIs<GlassOptics.Absolute>(edited.style.optics)
+    assertThat(edited.preset).isEqualTo(GlassLabPresetId.Custom)
+    assertThat(edited.style.optics).isNotNull().isInstanceOf<GlassOptics.Absolute>()
   }
 
   @Test
   fun interactionModes_configureExpectedPointerSlots() {
     val off = GlassVisualEffect()
     GlassLabInteractionMode.Off.applyTo(off)
-    assertFalse(off.observesPointerEvents)
+    assertThat(off.observesPointerEvents).isFalse()
 
     val pressed = GlassVisualEffect()
     GlassLabInteractionMode.Pressed.applyTo(pressed)
-    assertTrue(pressed.observesPointerEvents)
+    assertThat(pressed.observesPointerEvents).isTrue()
     pressed.clearPressed()
-    assertFalse(pressed.observesPointerEvents)
+    assertThat(pressed.observesPointerEvents).isFalse()
 
     val all = GlassVisualEffect()
     GlassLabInteractionMode.All.applyTo(all)
-    assertTrue(all.observesPointerEvents)
+    assertThat(all.observesPointerEvents).isTrue()
     all.clearPressed()
-    assertTrue(all.observesPointerEvents)
+    assertThat(all.observesPointerEvents).isTrue()
     all.clearHovered()
-    assertFalse(all.observesPointerEvents)
+    assertThat(all.observesPointerEvents).isFalse()
   }
 
   @Test
@@ -83,6 +89,12 @@ class GlassGalleryModelsTest {
       style = glassLabPresetStyle(GlassLabPresetId.Prism),
     )
 
-    assertEquals(GlassLabState(), changed.reset())
+    assertThat(changed.reset()).isEqualTo(GlassLabState())
   }
+}
+
+private fun absoluteOpticsFor(id: GlassLabPresetId): GlassOptics.Absolute {
+  val optics = glassLabPresetStyle(id).optics
+  assertThat(optics).isNotNull().isInstanceOf<GlassOptics.Absolute>()
+  return optics as GlassOptics.Absolute
 }

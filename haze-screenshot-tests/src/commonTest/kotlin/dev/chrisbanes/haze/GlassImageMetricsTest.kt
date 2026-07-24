@@ -7,11 +7,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
+import assertk.assertFailure
 import assertk.assertThat
-import assertk.assertions.contains
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
+import assertk.assertions.messageContains
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 
 class GlassImageMetricsTest {
 
@@ -154,54 +155,48 @@ class GlassImageMetricsTest {
     assertThat(
       signedHorizontalCorrelationDisplacementPx(reference, shifted, y = 0, range = 8..55, maxShiftPx = 6),
     ).isEqualTo(3f)
-    assertFailsWith<AssertionError> {
+    assertFailure {
       assertContentAlignedAcrossInputScales(reference, shifted, y = 0, range = 8..55)
-    }
+    }.isInstanceOf<AssertionError>()
     assertContentAlignedAcrossInputScales(reference, reference, y = 0, range = 8..55)
   }
 
   @Test
   fun pixelSnapshot_rejectsMismatchedStorage() {
-    val failure = assertFailsWith<IllegalArgumentException> {
+    assertFailure {
       PixelSnapshot(width = 2, height = 2, colors = listOf(Color.Black))
-    }
-
-    assertThat(failure.message.orEmpty()).contains("4 colors")
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("4 colors")
   }
 
   @Test
   fun comparisons_rejectEmptySnapshots() {
     val empty = PixelSnapshot(width = 0, height = 0, colors = emptyList())
 
-    assertThat(
-      assertFailsWith<IllegalArgumentException> { empty.changedPixelRatio(empty) }
-        .message.orEmpty(),
-    ).contains("non-empty")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> { empty.meanAbsoluteDifference(empty) }
-        .message.orEmpty(),
-    ).contains("non-empty")
+    assertFailure { empty.changedPixelRatio(empty) }
+      .isInstanceOf<IllegalArgumentException>()
+      .messageContains("non-empty")
+    assertFailure { empty.meanAbsoluteDifference(empty) }
+      .isInstanceOf<IllegalArgumentException>()
+      .messageContains("non-empty")
   }
 
   @Test
   fun scanlineDerivative_rejectsInvalidCoordinatesAndShortRanges() {
     val snapshot = snapshot(width = 3, height = 2)
 
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.scanlineDerivative(y = 2, xRange = 0..2)
-      }.message.orEmpty(),
-    ).contains("y")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.scanlineDerivative(y = 0, xRange = 1..1)
-      }.message.orEmpty(),
-    ).contains("at least 2")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.scanlineDerivative(y = 0, xRange = 1..3)
-      }.message.orEmpty(),
-    ).contains("xRange")
+    assertFailure {
+      snapshot.scanlineDerivative(y = 2, xRange = 0..2)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("y")
+    assertFailure {
+      snapshot.scanlineDerivative(y = 0, xRange = 1..1)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("at least 2")
+    assertFailure {
+      snapshot.scanlineDerivative(y = 0, xRange = 1..3)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("xRange")
   }
 
   @Test
@@ -237,21 +232,18 @@ class GlassImageMetricsTest {
   fun verticalScanlineDerivative_rejectsInvalidCoordinatesAndShortRanges() {
     val snapshot = snapshot(width = 2, height = 3)
 
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.verticalScanlineDerivative(x = 2, yRange = 0..2)
-      }.message.orEmpty(),
-    ).contains("x")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.verticalScanlineDerivative(x = 0, yRange = 1..1)
-      }.message.orEmpty(),
-    ).contains("at least 2")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.verticalScanlineDerivative(x = 0, yRange = 1..3)
-      }.message.orEmpty(),
-    ).contains("yRange")
+    assertFailure {
+      snapshot.verticalScanlineDerivative(x = 2, yRange = 0..2)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("x")
+    assertFailure {
+      snapshot.verticalScanlineDerivative(x = 0, yRange = 1..1)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("at least 2")
+    assertFailure {
+      snapshot.verticalScanlineDerivative(x = 0, yRange = 1..3)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("yRange")
   }
 
   @Test
@@ -300,41 +292,37 @@ class GlassImageMetricsTest {
   fun highFrequencyEnergy_rejectsSmallAndOutOfBoundsRegions() {
     val snapshot = snapshot(width = 3, height = 3)
 
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.highFrequencyEnergy(IntRect(0, 0, 1, 2))
-      }.message.orEmpty(),
-    ).contains("at least 2x2")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.highFrequencyEnergy(IntRect(0, 0, 4, 3))
-      }.message.orEmpty(),
-    ).contains("bounds")
+    assertFailure {
+      snapshot.highFrequencyEnergy(IntRect(0, 0, 1, 2))
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("at least 2x2")
+    assertFailure {
+      snapshot.highFrequencyEnergy(IntRect(0, 0, 4, 3))
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("bounds")
   }
 
   @Test
   fun crop_rejectsEmptyAndOutOfBoundsRegions() {
     val snapshot = snapshot(width = 3, height = 3)
 
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.crop(IntRect(1, 1, 1, 2))
-      }.message.orEmpty(),
-    ).contains("non-empty")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        snapshot.crop(IntRect(-1, 0, 2, 2))
-      }.message.orEmpty(),
-    ).contains("bounds")
+    assertFailure {
+      snapshot.crop(IntRect(1, 1, 1, 2))
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("non-empty")
+    assertFailure {
+      snapshot.crop(IntRect(-1, 0, 2, 2))
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("bounds")
   }
 
   @Test
   fun transparentPoints_requireTransparentAlphaAndRgb() {
     val opaque = PixelSnapshot(width = 1, height = 1, colors = listOf(Color.Black))
 
-    assertFailsWith<AssertionError> {
+    assertFailure {
       opaque.assertTransparentAt(listOf(IntOffset.Zero))
-    }
+    }.isInstanceOf<AssertionError>()
 
     PixelSnapshot(width = 1, height = 1, colors = listOf(Color.Transparent))
       .assertTransparentAt(listOf(IntOffset.Zero))
@@ -372,21 +360,18 @@ class GlassImageMetricsTest {
       listOf(Color(red = 0.5f, green = 0.6f, blue = 0.5f)),
     )
 
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        recoverPremultipliedSnapshot(opaqueBlack, translucentWhite)
-      }.message.orEmpty(),
-    ).contains("opaque")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        recoverPremultipliedSnapshot(brighterBlack, darkerWhite)
-      }.message.orEmpty(),
-    ).contains("darker")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        recoverPremultipliedSnapshot(opaqueBlack, inconsistentWhite)
-      }.message.orEmpty(),
-    ).contains("agree")
+    assertFailure {
+      recoverPremultipliedSnapshot(opaqueBlack, translucentWhite)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("opaque")
+    assertFailure {
+      recoverPremultipliedSnapshot(brighterBlack, darkerWhite)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("darker")
+    assertFailure {
+      recoverPremultipliedSnapshot(opaqueBlack, inconsistentWhite)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("agree")
   }
 
   @Test
@@ -396,23 +381,21 @@ class GlassImageMetricsTest {
     val depth100 = PixelSnapshot(1, 1, listOf(Color.Gray))
 
     assertDepthProgression(depth0, depth50, depth100)
-    assertFailsWith<AssertionError> {
+    assertFailure {
       assertDepthProgression(depth0, depth0, depth100)
-    }
+    }.isInstanceOf<AssertionError>()
   }
 
   @Test
   fun boundaryContinuity_rejectsEmptyDerivativeAndInvalidIndex() {
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        assertBoundaryContinuous(emptyList(), boundaryIndex = 0)
-      }.message.orEmpty(),
-    ).contains("non-empty")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        assertBoundaryContinuous(listOf(0f), boundaryIndex = 1)
-      }.message.orEmpty(),
-    ).contains("Boundary range")
+    assertFailure {
+      assertBoundaryContinuous(emptyList(), boundaryIndex = 0)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("non-empty")
+    assertFailure {
+      assertBoundaryContinuous(listOf(0f), boundaryIndex = 1)
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("Boundary range")
   }
 
   @Test
@@ -421,12 +404,12 @@ class GlassImageMetricsTest {
       if (index in 7..9) 0.25f else 0.01f
     }
 
-    assertFailsWith<AssertionError> {
+    assertFailure {
       assertBoundaryCurvatureContinuous(
         derivative = derivative,
         boundaryIndex = 8,
       )
-    }
+    }.isInstanceOf<AssertionError>()
   }
 
   @Test
@@ -477,21 +460,18 @@ class GlassImageMetricsTest {
     val onePixel = snapshot(width = 1, height = 1)
     val twoPixels = snapshot(width = 2, height = 1)
 
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        assertOutsideMatchesBackground(onePixel, onePixel, emptyList())
-      }.message.orEmpty(),
-    ).contains("non-empty")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        assertOutsideMatchesBackground(onePixel, twoPixels, listOf(IntOffset.Zero))
-      }.message.orEmpty(),
-    ).contains("dimensions")
-    assertThat(
-      assertFailsWith<IllegalArgumentException> {
-        assertOutsideMatchesBackground(onePixel, onePixel, listOf(IntOffset(1, 0)))
-      }.message.orEmpty(),
-    ).contains("within")
+    assertFailure {
+      assertOutsideMatchesBackground(onePixel, onePixel, emptyList())
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("non-empty")
+    assertFailure {
+      assertOutsideMatchesBackground(onePixel, twoPixels, listOf(IntOffset.Zero))
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("dimensions")
+    assertFailure {
+      assertOutsideMatchesBackground(onePixel, onePixel, listOf(IntOffset(1, 0)))
+    }.isInstanceOf<IllegalArgumentException>()
+      .messageContains("within")
   }
 }
 
