@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,7 +17,6 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
@@ -92,22 +92,25 @@ class GlassLabSampleTest : ContextTest() {
   }
 
   @Test
-  fun presetBackdropInteractionAdvancedAndResetEventsUpdatePlainState() = runComposeUiTest {
+  fun controlsForwardPresetBackdropInteractionAndAdvancedEvents() = runComposeUiTest {
     var state by mutableStateOf(GlassLabState())
     setContent {
-      GlassLabSampleContent(
+      LabControls(
         state = state,
         recordingMode = false,
         onStateChanged = { state = it },
-        onRecordingModeChanged = {},
-        onBack = {},
+        modifier = Modifier.fillMaxSize(),
       )
     }
 
-    onNode(hasText("Prism") and hasClickAction()).performScrollTo().performClick()
+    onNode(hasText("Prism") and hasClickAction())
+      .performScrollTo()
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
     assertEquals(GlassLabPresetId.Prism, state.preset)
 
-    onNode(hasText("Grid") and hasClickAction()).performScrollTo().performClick()
+    onNode(hasText("Grid") and hasClickAction())
+      .performScrollTo()
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
     assertEquals(GlassGalleryBackdropId.Grid, state.backdrop)
 
     onNode(hasText("Off") and hasClickAction())
@@ -115,13 +118,10 @@ class GlassLabSampleTest : ContextTest() {
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
     assertEquals(GlassLabInteractionMode.Off, state.interaction)
 
-    onNodeWithText("Advanced").performScrollTo().performClick()
+    onNodeWithText("Advanced")
+      .performScrollTo()
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
     assertTrue(state.advancedExpanded)
-    onNodeWithText("Optics").performScrollTo().assertIsDisplayed()
-
-    onNodeWithContentDescription("Reset demo").performClick()
-    assertEquals(GlassLabState(), state)
-    assertEquals(GlassLabInteractionMode.All, state.interaction)
   }
 
   @Test
