@@ -25,10 +25,12 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.containsAtLeast
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isLessThan
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
-import assertk.assertions.isTrue
 import dev.chrisbanes.haze.blur.BlurVisualEffect
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -768,11 +770,13 @@ class HazeScreenshotTest : ScreenshotTest() {
     requestedPage = 2
     waitForIdle()
     assertThat(initialPagerState.currentPage).isEqualTo(2)
-    assertThat(composedEffects.keys.containsAll((0..2).toList())).isTrue()
-    assertThat(composedEffects.all { (page, effect) -> effect === threePageEffects[page] }).isTrue()
-    assertThat(
-      composedEffects[0] !== composedEffects[1] && composedEffects[1] !== composedEffects[2],
-    ).isTrue()
+    assertThat(composedEffects.keys).containsAtLeast(0, 1, 2)
+    (0..2).forEach { page ->
+      assertThat(composedEffects[page], "effect for page $page")
+        .isSameInstanceAs(threePageEffects[page])
+    }
+    assertThat(composedEffects[0]).isNotSameInstanceAs(composedEffects[1])
+    assertThat(composedEffects[1]).isNotSameInstanceAs(composedEffects[2])
 
     threePageEffects[0].blurRadius = 16.dp
     assertThat(threePageEffects[1].blurRadius).isEqualTo(8.dp)
@@ -780,7 +784,7 @@ class HazeScreenshotTest : ScreenshotTest() {
     pageCount = 2
     waitForIdle()
     assertThat(pagerState).isSameInstanceAs(initialPagerState)
-    assertThat(initialPagerState.currentPage < pageCount).isTrue()
+    assertThat(initialPagerState.currentPage).isLessThan(pageCount)
 
     pageCount = 3
     requestedPage = 0

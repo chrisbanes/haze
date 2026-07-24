@@ -10,10 +10,11 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
-import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassOptics
 import kotlin.test.Test
@@ -30,8 +31,10 @@ class GlassPlaygroundTimelineTest {
       val frame = glassPlaygroundFrame(progress)
       GlassPlaygroundSurfaceId.entries.forEach { id ->
         val position = frame.position(id)
-        assertThat(position.x in 0.1f..0.9f, "$id x at $progress").isTrue()
-        assertThat(position.y in 0.1f..0.9f, "$id y at $progress").isTrue()
+        assertThat(position.x, "$id x at $progress").isGreaterThanOrEqualTo(0.1f)
+        assertThat(position.x, "$id x at $progress").isLessThanOrEqualTo(0.9f)
+        assertThat(position.y, "$id y at $progress").isGreaterThanOrEqualTo(0.1f)
+        assertThat(position.y, "$id y at $progress").isLessThanOrEqualTo(0.9f)
       }
     }
   }
@@ -54,16 +57,14 @@ class GlassPlaygroundTimelineTest {
           surfaceSize = surfaceSize,
           dragOffset = Offset.Zero,
         )
-        assertThat(center.x - surfaceSize.width / 2f >= 0f, "$id left edge at $step").isTrue()
-        assertThat(
-          center.x + surfaceSize.width / 2f <= sceneSize.width,
-          "$id right edge at $step",
-        ).isTrue()
-        assertThat(center.y - surfaceSize.height / 2f >= 0f, "$id top edge at $step").isTrue()
-        assertThat(
-          center.y + surfaceSize.height / 2f <= sceneSize.height,
-          "$id bottom edge at $step",
-        ).isTrue()
+        assertThat(center.x - surfaceSize.width / 2f, "$id left edge at $step")
+          .isGreaterThanOrEqualTo(0f)
+        assertThat(center.x + surfaceSize.width / 2f, "$id right edge at $step")
+          .isLessThanOrEqualTo(sceneSize.width.toFloat())
+        assertThat(center.y - surfaceSize.height / 2f, "$id top edge at $step")
+          .isGreaterThanOrEqualTo(0f)
+        assertThat(center.y + surfaceSize.height / 2f, "$id bottom edge at $step")
+          .isLessThanOrEqualTo(sceneSize.height.toFloat())
       }
     }
   }

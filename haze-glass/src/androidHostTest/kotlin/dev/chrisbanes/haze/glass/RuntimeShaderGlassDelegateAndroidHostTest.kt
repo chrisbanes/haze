@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isLessThan
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -154,8 +155,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         assertThat(checkNotNull(effect.preparedRender).plan.layers.map { it.kind })
           .isEqualTo(plannedKinds)
         listOf(interactionOptical, interactionDetail, interactionLighting).forEach { layer ->
-          assertThat(layer.size.width < source.size.width).isTrue()
-          assertThat(layer.size.height < source.size.height).isTrue()
+          assertThat(layer.size.width).isLessThan(source.size.width)
+          assertThat(layer.size.height).isLessThan(source.size.height)
         }
       }
 
@@ -184,8 +185,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         assertThat(checkNotNull(effect.preparedRender).plan.layers.map { it.kind })
           .isEqualTo(plannedKinds)
         listOf(interactionOptical, interactionDetail, interactionLighting).forEach { layer ->
-          assertThat(layer.size.width < source.size.width).isTrue()
-          assertThat(layer.size.height < source.size.height).isTrue()
+          assertThat(layer.size.width).isLessThan(source.size.width)
+          assertThat(layer.size.height).isLessThan(source.size.height)
         }
       }
       repeat(12) {
