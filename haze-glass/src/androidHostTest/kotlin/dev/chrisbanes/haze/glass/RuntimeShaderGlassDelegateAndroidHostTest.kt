@@ -9,8 +9,10 @@ import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +37,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
@@ -86,8 +89,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   @Test
   fun compatibleSiblingEffects_shareSourceBlur() =
     runAndroidComposeUiTest<ComponentActivity> {
-      val effects = List(3) { retainedBlurEffect() }
-      setContent { SharedRuntimeGlassTestContent(effects) }
+      val effects = List(9) { retainedBlurEffect() }
+      setContent { SharedRuntimeGlassGridTestContent(effects) }
       waitForIdle()
       drawFrame()
       drawFrame()
@@ -103,14 +106,99 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       delegates.drop(1).forEach { delegate ->
         assertSame(sharedBlurred, delegate.sharedBlurredLayerForTest)
       }
+      val sharedRefractionDetail = checkNotNull(
+        delegates.first().sharedRefractionDetailLayerForTest,
+      ) {
+        "Expected shared detail atlas; keys=${effects.map { it.preparedRender?.refractionDetailKey }}"
+      }
+      assertTrue(delegates.all { it.layers.refractionDetail?.renderEffect == null })
+      delegates.drop(1).forEach { delegate ->
+        assertSame(sharedRefractionDetail, delegate.sharedRefractionDetailLayerForTest)
+      }
 
       val blurRecordCounts = delegates.map { it.stageRecordCounts.blur }
+      val detailRecordCounts = delegates.map { it.stageRecordCounts.detail }
       drawFrame()
       assertTrue(
         delegates.zip(blurRecordCounts).all { (delegate, count) ->
           delegate.stageRecordCounts.blur == count
         },
       )
+      assertTrue(
+        delegates.zip(detailRecordCounts).all { (delegate, count) ->
+          delegate.stageRecordCounts.detail == count
+        },
+      )
+    }
+
+  @Test
+  fun incompatibleSiblingEffects_keepDedicatedRefractionDetailPasses() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effects = listOf(
+        retainedBlurEffect(refractionStrength = 0.4f),
+        retainedBlurEffect(refractionStrength = 0.5f),
+      )
+      setContent { SharedRuntimeGlassTestContent(effects) }
+      waitForIdle()
+      drawFrame()
+      drawFrame()
+
+      val delegates = effects.map { effect ->
+        checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      }
+      assertTrue(delegates.all(RuntimeShaderGlassDelegate::usesSharedBlurForTest))
+      assertTrue(delegates.all { it.sharedRefractionDetailLayerForTest == null })
+      assertTrue(delegates.all { it.layers.refractionDetail?.renderEffect != null })
+    }
+
+  @Test
+  fun sharedRefractionDetail_preservesDedicatedPassPixels() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effects = List(2) { retainedBlurEffect() }
+      val attachSecond = mutableStateOf(false)
+      setContent {
+        SharedRuntimeGlassComparisonContent(
+          effects = effects,
+          attachSecond = attachSecond.value,
+        )
+      }
+      waitForIdle()
+      drawFrame()
+      val dedicatedPixels = captureRegionPixels(
+        left = 0,
+        top = 0,
+        width = 160,
+        height = 120,
+      )
+
+      attachSecond.value = true
+      waitForIdle()
+      drawFrame()
+      drawFrame()
+      val firstDelegate = checkNotNull(effects.first().delegate as? RuntimeShaderGlassDelegate)
+      assertTrue(firstDelegate.usesSharedBlurForTest)
+      assertTrue(firstDelegate.layers.refractionDetail?.renderEffect == null)
+      val sharedPixels = captureRegionPixels(
+        left = 0,
+        top = 0,
+        width = 160,
+        height = 120,
+      )
+
+      assertContentEquals(dedicatedPixels, sharedPixels)
+
+      attachSecond.value = false
+      waitForIdle()
+      drawFrame()
+      assertFalse(firstDelegate.usesSharedBlurForTest)
+      assertTrue(firstDelegate.layers.refractionDetail?.renderEffect != null)
+      val restoredDedicatedPixels = captureRegionPixels(
+        left = 0,
+        top = 0,
+        width = 160,
+        height = 120,
+      )
+      assertContentEquals(dedicatedPixels, restoredDedicatedPixels)
     }
 
   @Test
@@ -434,9 +522,10 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
   private fun retainedBlurEffect(
     progressive: HazeProgressive? = null,
+    refractionStrength: Float = 0.5f,
   ) = GlassVisualEffect().apply {
     optics = GlassOptics.Absolute(
-      refractionStrength = 0.5f,
+      refractionStrength = refractionStrength,
       refractionScale = 20f,
       depth = 0.5f,
       blurRadius = 38.5.dp,
@@ -507,17 +596,110 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
   }
 
-  private fun AndroidComposeUiTest<ComponentActivity>.drawFrame() {
-    runOnIdle {
-      val view = checkNotNull(activity).window.decorView
-      val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-      try {
-        view.draw(Canvas(bitmap))
-      } finally {
-        bitmap.recycle()
+  @Composable
+  private fun SharedRuntimeGlassGridTestContent(effects: List<GlassVisualEffect>) {
+    require(effects.size == 9)
+    val hazeState = rememberHazeState()
+    Box(Modifier.size(300.dp)) {
+      Box(
+        Modifier
+          .fillMaxSize()
+          .background(Color.Red)
+          .hazeSource(hazeState),
+      )
+      Column {
+        repeat(3) { row ->
+          Row {
+            repeat(3) { column ->
+              val effect = effects[row * 3 + column]
+              Box(
+                Modifier
+                  .size(100.dp)
+                  .hazeEffect(hazeState) {
+                    inputScale = HazeInputScale.None
+                    visualEffect = effect
+                  },
+              )
+            }
+          }
+        }
       }
     }
   }
+
+  @Composable
+  private fun SharedRuntimeGlassComparisonContent(
+    effects: List<GlassVisualEffect>,
+    attachSecond: Boolean,
+  ) {
+    val hazeState = rememberHazeState()
+    Box(Modifier.size(width = 300.dp, height = 100.dp)) {
+      Row(
+        Modifier
+          .fillMaxSize()
+          .hazeSource(hazeState),
+      ) {
+        listOf(
+          Color.Red,
+          Color.Green,
+          Color.Blue,
+          Color.Yellow,
+          Color.Magenta,
+          Color.Cyan,
+        ).forEach { color ->
+          Box(Modifier.size(width = 50.dp, height = 100.dp).background(color))
+        }
+      }
+      Box(
+        Modifier
+          .offset(x = 50.dp)
+          .size(100.dp)
+          .hazeEffect(hazeState) {
+            inputScale = HazeInputScale.None
+            visualEffect = effects[0]
+          },
+      )
+      if (attachSecond) {
+        Box(
+          Modifier
+            .offset(x = 180.dp)
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              inputScale = HazeInputScale.None
+              visualEffect = effects[1]
+            },
+        )
+      }
+    }
+  }
+
+  private fun AndroidComposeUiTest<ComponentActivity>.drawFrame() {
+    captureFrame().recycle()
+  }
+
+  private fun AndroidComposeUiTest<ComponentActivity>.captureRegionPixels(
+    left: Int,
+    top: Int,
+    width: Int,
+    height: Int,
+  ): IntArray {
+    val bitmap = captureFrame()
+    return try {
+      IntArray(width * height).also { pixels ->
+        bitmap.getPixels(pixels, 0, width, left, top, width, height)
+      }
+    } finally {
+      bitmap.recycle()
+    }
+  }
+
+  private fun AndroidComposeUiTest<ComponentActivity>.captureFrame(): Bitmap =
+    runOnIdle {
+      val view = checkNotNull(activity).window.decorView
+      val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+      view.draw(Canvas(bitmap))
+      bitmap
+    }
 
   private fun AndroidComposeUiTest<ComponentActivity>.drawInteractionFrame() {
     mainClock.advanceTimeByFrame()

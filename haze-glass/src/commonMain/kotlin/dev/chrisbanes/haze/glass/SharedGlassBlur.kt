@@ -11,10 +11,12 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazePositionStrategy
@@ -24,9 +26,11 @@ import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asComposeRenderEffect
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * Shares the expensive source-space blur between compatible effects observing the same source.
@@ -43,6 +47,7 @@ internal object SharedGlassBlurRegistry {
     owner: RuntimeShaderGlassDelegate,
     context: VisualEffectContext,
     params: GlassRenderParams,
+    detailKey: GlassRefractionDetailEffectKey?,
     graphicsContext: GraphicsContext,
   ): SharedGlassBlurGroup? {
     val key = sharedBlurKey(context, params, graphicsContext)
@@ -60,7 +65,7 @@ internal object SharedGlassBlurRegistry {
         ownerGroups[owner] = it
       }
     }
-    group.update(owner, context)
+    group.update(owner, context, detailKey)
     return group.takeIf { it.memberCount > 1 }
   }
 
@@ -138,22 +143,32 @@ internal class SharedGlassBlurGroup(
   private var horizontal: GraphicsLayer? = null
   internal var blurred: GraphicsLayer? = null
     private set
+  private var refractionDetailAtlasSource: GraphicsLayer? = null
+  internal var refractionDetailAtlas: GraphicsLayer? = null
+    private set
 
   private var horizontalShader: MutableRuntimeShaderRenderEffect? = null
   private var verticalShader: MutableRuntimeShaderRenderEffect? = null
   private var prefilterShader: MutableRuntimeShaderRenderEffect? = null
+  private var refractionDetailAtlasShader: MutableRuntimeShaderRenderEffect? = null
   private var effectsKey: GlassBlurEffectKey? = null
   private var effects: SharedGlassBlurEffects? = null
+  private var refractionDetailAtlasKey: SharedGlassRefractionDetailAtlasKey? = null
   private var lastSourceSnapshot: GlassSourceSnapshot? = null
   private var lastBounds: Rect? = null
 
   val memberCount: Int get() = members.size
 
-  fun update(owner: RuntimeShaderGlassDelegate, context: VisualEffectContext) {
+  fun update(
+    owner: RuntimeShaderGlassDelegate,
+    context: VisualEffectContext,
+    detailKey: GlassRefractionDetailEffectKey?,
+  ) {
     val topLeft = context.position - context.layerOffset
     members[owner] = SharedGlassBlurMember(
       context = context,
       bounds = Rect(topLeft, context.layerSize),
+      detailKey = detailKey,
     )
   }
 
@@ -227,6 +242,153 @@ internal class SharedGlassBlurGroup(
       layer = blurred?.takeUnless { it.isReleased } ?: return null,
       bounds = bounds,
       captureScale = key.captureScale,
+    )
+  }
+
+  fun DrawScope.obtainRefractionDetail(
+    owner: RuntimeShaderGlassDelegate,
+    detailKey: GlassRefractionDetailEffectKey,
+  ): SharedGlassRefractionDetailOutput? {
+    if (memberCount <= 1 || members[owner]?.detailKey != detailKey) {
+      releaseRefractionDetailAtlasLayers()
+      return null
+    }
+    val compatibleGroups = members.entries
+      .filter { (_, member) -> member.detailKey != null }
+      .groupBy { (_, member) -> checkNotNull(member.detailKey).atlasStyleKey() }
+    val selectedGroup = compatibleGroups.values.maxByOrNull { entries -> entries.size }
+    if (selectedGroup == null || selectedGroup.size <= 1) {
+      releaseRefractionDetailAtlasLayers()
+      return null
+    }
+    val selectedMembers = selectedGroup.take(GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY)
+    val detailStyleKey = checkNotNull(selectedMembers.first().value.detailKey).atlasStyleKey()
+    if (selectedMembers.none { (memberOwner, _) -> memberOwner === owner }) {
+      if (refractionDetailAtlasKey?.detailStyleKey != detailStyleKey) {
+        releaseRefractionDetailAtlasLayers()
+      }
+      return null
+    }
+    val source = source?.takeUnless { it.isReleased } ?: run {
+      releaseRefractionDetailAtlasLayers()
+      return null
+    }
+    val sourceBounds = lastBounds ?: run {
+      releaseRefractionDetailAtlasLayers()
+      return null
+    }
+    val sampleSizes = selectedMembers.map { (_, member) ->
+      checkNotNull(member.detailKey).sampleSize.roundToIntSize()
+    }
+    if (sampleSizes.any { size -> size.width <= 0 || size.height <= 0 }) {
+      releaseRefractionDetailAtlasLayers()
+      return null
+    }
+    val tileSize = IntSize(
+      width = sampleSizes.maxOf(IntSize::width),
+      height = sampleSizes.maxOf(IntSize::height),
+    )
+
+    val columns = ceil(sqrt(selectedMembers.size.toDouble())).toInt().coerceAtLeast(1)
+    val rows = (selectedMembers.size + columns - 1) / columns
+    val atlasWidth = tileSize.width.toLong() * columns
+    val atlasHeight = tileSize.height.toLong() * rows
+    if (
+      atlasWidth > MAX_SHARED_GLASS_REFRACTION_DETAIL_ATLAS_DIMENSION ||
+      atlasHeight > MAX_SHARED_GLASS_REFRACTION_DETAIL_ATLAS_DIMENSION
+    ) {
+      releaseRefractionDetailAtlasLayers()
+      return null
+    }
+    val atlasSize = IntSize(atlasWidth.toInt(), atlasHeight.toInt())
+    val placements = selectedMembers.mapIndexed { index, (memberOwner, member) ->
+      val memberDetailKey = checkNotNull(member.detailKey)
+      SharedGlassRefractionDetailPlacement(
+        owner = memberOwner,
+        tileOrigin = Offset(
+          x = (index % columns * tileSize.width).toFloat(),
+          y = (index / columns * tileSize.height).toFloat(),
+        ),
+        sampleOffset = (member.bounds.topLeft - sourceBounds.topLeft) * key.captureScale,
+        sampleSize = memberDetailKey.sampleSize.roundToIntSize(),
+        detailKey = memberDetailKey,
+      )
+    }
+    val atlasKey = SharedGlassRefractionDetailAtlasKey(
+      source = source,
+      detailStyleKey = detailStyleKey,
+      tileSize = tileSize,
+      atlasSize = atlasSize,
+      columns = columns,
+      placements = placements,
+    )
+    val atlasSource = ensureLayer(refractionDetailAtlasSource, key.graphicsContext).also {
+      refractionDetailAtlasSource = it
+    }
+    val atlas = ensureLayer(refractionDetailAtlas, key.graphicsContext).also {
+      refractionDetailAtlas = it
+    }
+    if (
+      refractionDetailAtlasKey != atlasKey ||
+      atlasSource.isReleased ||
+      atlas.isReleased
+    ) {
+      source.alpha = 1f
+      source.blendMode = BlendMode.SrcOver
+      source.scaleX = 1f
+      source.scaleY = 1f
+      source.pivotOffset = Offset.Zero
+
+      atlasSource.alpha = 1f
+      atlasSource.blendMode = BlendMode.SrcOver
+      atlasSource.scaleX = 1f
+      atlasSource.scaleY = 1f
+      atlasSource.pivotOffset = Offset.Zero
+      atlasSource.renderEffect = null
+      atlasSource.record(atlasSize) {
+        placements.forEach { placement ->
+          clipRect(
+            left = placement.tileOrigin.x,
+            top = placement.tileOrigin.y,
+            right = placement.tileOrigin.x + placement.sampleSize.width,
+            bottom = placement.tileOrigin.y + placement.sampleSize.height,
+          ) {
+            translate(placement.tileOrigin - placement.sampleOffset) {
+              drawLayer(source)
+            }
+          }
+        }
+      }
+
+      val shader = refractionDetailAtlasShader
+        ?: createSharedRefractionDetailAtlasRenderEffect().also {
+          refractionDetailAtlasShader = it
+        }
+      val effect = shader.updateUniforms {
+        setRefractionDetailAtlasUniforms(
+          key = placements.first().detailKey,
+          tileSize = tileSize,
+          columns = columns,
+          tileKeys = placements.map(SharedGlassRefractionDetailPlacement::detailKey),
+        )
+      }
+      atlas.alpha = 1f
+      atlas.blendMode = BlendMode.SrcOver
+      atlas.scaleX = 1f
+      atlas.scaleY = 1f
+      atlas.pivotOffset = Offset.Zero
+      atlas.renderEffect = effect.asComposeRenderEffect()
+      atlas.record(atlasSize) {
+        drawLayer(atlasSource)
+      }
+      refractionDetailAtlasKey = atlasKey
+    }
+
+    val placement = placements.firstOrNull { placement -> placement.owner === owner } ?: return null
+    return SharedGlassRefractionDetailOutput(
+      layer = atlas,
+      tileOrigin = placement.tileOrigin,
+      tileSize = placement.sampleSize,
     )
   }
 
@@ -340,6 +502,7 @@ internal class SharedGlassBlurGroup(
     releaseLayer(prefiltered, key.graphicsContext)
     releaseLayer(horizontal, key.graphicsContext)
     releaseLayer(blurred, key.graphicsContext)
+    releaseRefractionDetailAtlasLayers()
     source = null
     prefiltered = null
     horizontal = null
@@ -353,8 +516,17 @@ internal class SharedGlassBlurGroup(
     horizontalShader = null
     verticalShader = null
     prefilterShader = null
+    refractionDetailAtlasShader = null
     effectsKey = null
     effects = null
+  }
+
+  private fun releaseRefractionDetailAtlasLayers() {
+    releaseLayer(refractionDetailAtlasSource, key.graphicsContext)
+    releaseLayer(refractionDetailAtlas, key.graphicsContext)
+    refractionDetailAtlasSource = null
+    refractionDetailAtlas = null
+    refractionDetailAtlasKey = null
   }
 
   private fun unionBounds(): Rect? {
@@ -382,12 +554,36 @@ internal class SharedGlassBlurGroup(
 private data class SharedGlassBlurMember(
   val context: VisualEffectContext,
   val bounds: Rect,
+  val detailKey: GlassRefractionDetailEffectKey?,
 )
 
 internal data class SharedGlassBlurOutput(
   val layer: GraphicsLayer,
   val bounds: Rect,
   val captureScale: Float,
+)
+
+private data class SharedGlassRefractionDetailPlacement(
+  val owner: RuntimeShaderGlassDelegate,
+  val tileOrigin: Offset,
+  val sampleOffset: Offset,
+  val sampleSize: IntSize,
+  val detailKey: GlassRefractionDetailEffectKey,
+)
+
+private data class SharedGlassRefractionDetailAtlasKey(
+  val source: GraphicsLayer,
+  val detailStyleKey: GlassRefractionDetailEffectKey,
+  val tileSize: IntSize,
+  val atlasSize: IntSize,
+  val columns: Int,
+  val placements: List<SharedGlassRefractionDetailPlacement>,
+)
+
+internal data class SharedGlassRefractionDetailOutput(
+  val layer: GraphicsLayer,
+  val tileOrigin: Offset,
+  val tileSize: IntSize,
 )
 
 @OptIn(InternalHazeApi::class)
@@ -398,3 +594,10 @@ private data class SharedGlassBlurEffects(
 )
 
 internal expect val supportsSharedGlassBlur: Boolean
+
+private const val MAX_SHARED_GLASS_REFRACTION_DETAIL_ATLAS_DIMENSION = 4096L
+
+private fun GlassRefractionDetailEffectKey.atlasStyleKey(): GlassRefractionDetailEffectKey = copy(
+  sampleSize = Size.Zero,
+  materialOrigin = Offset.Zero,
+)

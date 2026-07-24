@@ -93,6 +93,8 @@ internal class RuntimeShaderGlassDelegate(
   internal val usesSharedBlurForTest: Boolean get() = preparedSharedBlurGroup != null
   internal val sharedBlurredLayerForTest: GraphicsLayer?
     get() = preparedSharedBlurGroup?.blurred
+  internal val sharedRefractionDetailLayerForTest: GraphicsLayer?
+    get() = preparedSharedBlurGroup?.refractionDetailAtlas
   private var retainedOutputAvailable: Boolean = false
   private var recordedSharedBlurLayer: GraphicsLayer? = null
   private var recordedSharedBlurTargetLayer: GraphicsLayer? = null
@@ -100,6 +102,10 @@ internal class RuntimeShaderGlassDelegate(
   private var recordedSharedBlurCaptureScale: Float = Float.NaN
   private var recordedSharedBlurLocalTopLeft: Offset? = null
   private var recordedSharedBlurSampleSize: androidx.compose.ui.unit.IntSize? = null
+  private var recordedSharedRefractionDetailLayer: GraphicsLayer? = null
+  private var recordedSharedRefractionDetailTargetLayer: GraphicsLayer? = null
+  private var recordedSharedRefractionDetailTileOrigin: Offset? = null
+  private var recordedSharedRefractionDetailTileSize: androidx.compose.ui.unit.IntSize? = null
   internal var lastSuccessfulSourceSnapshot: GlassSourceSnapshot? = null
     private set
   internal var lastSuccessfulStageInputs: GlassStageInputs? = null
@@ -157,6 +163,7 @@ internal class RuntimeShaderGlassDelegate(
         owner = this@RuntimeShaderGlassDelegate,
         context = context,
         params = params,
+        detailKey = currentPreparedRender.refractionDetailKey,
         graphicsContext = currentGraphicsContext,
       )
       preparedSharedBlurGroup = sharedBlurGroup
@@ -373,11 +380,22 @@ internal class RuntimeShaderGlassDelegate(
           },
           ::clearRetainedOutput,
         ) ?: return
-        val refractionDetail = effects.refractionDetail?.let {
+        val refractionDetail = effects.refractionDetail?.let { detail ->
           requireRetainedStage(
-            if (invalidation.detail) {
+            if (preparedSharedBlurGroup != null) {
               trace(GlassTraceSection.Detail) {
-                recordRefractionDetail(source, params, it)
+                recordSharedRefractionDetail(
+                  group = checkNotNull(preparedSharedBlurGroup),
+                  source = source,
+                  params = params,
+                  detail = detail,
+                  invalidated = invalidation.detail,
+                )
+              }
+            } else if (invalidation.detail) {
+              trace(GlassTraceSection.Detail) {
+                clearSharedRefractionDetailSliceMetadata()
+                recordRefractionDetail(source, params, detail)
               }
             } else {
               layers.refractionDetail?.takeUnless { layer -> layer.isReleased }
@@ -619,6 +637,7 @@ internal class RuntimeShaderGlassDelegate(
     lastSuccessfulSourceSnapshot = null
     lastSuccessfulStageInputs = null
     clearSharedBlurSliceMetadata()
+    clearSharedRefractionDetailSliceMetadata()
   }
 
   private fun clearInteractionLayerMetadata() {
@@ -647,6 +666,13 @@ internal class RuntimeShaderGlassDelegate(
     recordedSharedBlurCaptureScale = Float.NaN
     recordedSharedBlurLocalTopLeft = null
     recordedSharedBlurSampleSize = null
+  }
+
+  private fun clearSharedRefractionDetailSliceMetadata() {
+    recordedSharedRefractionDetailLayer = null
+    recordedSharedRefractionDetailTargetLayer = null
+    recordedSharedRefractionDetailTileOrigin = null
+    recordedSharedRefractionDetailTileSize = null
   }
 
   override fun detach() {
@@ -997,6 +1023,57 @@ internal class RuntimeShaderGlassDelegate(
       }
       detailRecordCount++
     }
+
+  private fun DrawScope.recordSharedRefractionDetail(
+    group: SharedGlassBlurGroup,
+    source: GraphicsLayer,
+    params: GlassRenderParams,
+    detail: GlassRefractionDetailRenderEffect,
+    invalidated: Boolean,
+  ): GraphicsLayer? {
+    val wasShared = recordedSharedRefractionDetailLayer != null
+    val shared = with(group) {
+      obtainRefractionDetail(
+        owner = this@RuntimeShaderGlassDelegate,
+        detailKey = detail.key,
+      )
+    }
+    val target = layers.refractionDetail?.takeUnless { it.isReleased } ?: return null
+    val expectedSize = params.coordinates.sampleSize.roundToIntSize()
+    if (shared == null || shared.tileSize != expectedSize) {
+      clearSharedRefractionDetailSliceMetadata()
+      return if (invalidated || wasShared) {
+        recordRefractionDetail(source, params, detail)
+      } else {
+        target
+      }
+    }
+
+    if (
+      recordedSharedRefractionDetailLayer !== shared.layer ||
+      recordedSharedRefractionDetailTargetLayer !== target ||
+      recordedSharedRefractionDetailTileOrigin != shared.tileOrigin ||
+      recordedSharedRefractionDetailTileSize != shared.tileSize
+    ) {
+      target.alpha = 1f
+      target.blendMode = BlendMode.SrcOver
+      target.scaleX = 1f
+      target.scaleY = 1f
+      target.pivotOffset = Offset.Zero
+      target.renderEffect = null
+      target.record(shared.tileSize) {
+        translate(-shared.tileOrigin) {
+          drawLayer(shared.layer)
+        }
+      }
+      recordedSharedRefractionDetailLayer = shared.layer
+      recordedSharedRefractionDetailTargetLayer = target
+      recordedSharedRefractionDetailTileOrigin = shared.tileOrigin
+      recordedSharedRefractionDetailTileSize = shared.tileSize
+      detailRecordCount++
+    }
+    return target
+  }
 
   private fun DrawScope.recordRimIfNeeded(
     params: GlassRenderParams,
@@ -1556,6 +1633,13 @@ internal fun createSharedRefractionDetailCoverageRenderEffect(): MutableRuntimeS
     inputs = arrayOf(null),
   )
 
+internal fun createSharedRefractionDetailAtlasRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createMutableRuntimeShaderRenderEffect(
+    effect = GLASS_REFRACTION_DETAIL_ATLAS_EFFECT,
+    shaderNames = arrayOf("content"),
+    inputs = arrayOf(null),
+  )
+
 internal fun createSharedGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
     effect = GLASS_RIM_EFFECT,
@@ -1613,6 +1697,9 @@ private val GLASS_REFRACTION_DETAIL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
 private val GLASS_REFRACTION_DETAIL_COVERAGE_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildRefractionDetail(coverageOnly = true))
 }
+private val GLASS_REFRACTION_DETAIL_ATLAS_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildRefractionDetail(tiled = true))
+}
 private val GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildRefractionDetail(interactive = true))
 }
@@ -1660,6 +1747,34 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
 ) {
   setFloatUniform("sampleSize", key.sampleSize.width, key.sampleSize.height)
   setFloatUniform("materialOrigin", key.materialOrigin.x, key.materialOrigin.y)
+  setRefractionDetailStyleUniforms(key)
+}
+
+internal fun RuntimeShaderUniformProvider.setRefractionDetailAtlasUniforms(
+  key: GlassRefractionDetailEffectKey,
+  tileSize: IntSize,
+  columns: Int,
+  tileKeys: List<GlassRefractionDetailEffectKey>,
+) {
+  require(tileKeys.size <= GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY)
+  setFloatUniform("tileSize", tileSize.width.toFloat(), tileSize.height.toFloat())
+  setFloatUniform("atlasColumns", columns.toFloat())
+  repeat(GlassShaders.REFRACTION_DETAIL_ATLAS_TILE_CAPACITY) { index ->
+    val tileKey = tileKeys.getOrNull(index)
+    setFloatUniform(
+      "tileGeometry$index",
+      tileKey?.sampleSize?.width ?: 0f,
+      tileKey?.sampleSize?.height ?: 0f,
+      tileKey?.materialOrigin?.x ?: 0f,
+      tileKey?.materialOrigin?.y ?: 0f,
+    )
+  }
+  setRefractionDetailStyleUniforms(key)
+}
+
+private fun RuntimeShaderUniformProvider.setRefractionDetailStyleUniforms(
+  key: GlassRefractionDetailEffectKey,
+) {
   setFloatUniform("materialSize", key.materialSize.width, key.materialSize.height)
   setFloatUniform("edgeSoftness", key.edgeSoftnessPx)
   setFloatUniform(
