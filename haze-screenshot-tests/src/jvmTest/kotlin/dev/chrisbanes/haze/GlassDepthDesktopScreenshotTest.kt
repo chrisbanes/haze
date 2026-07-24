@@ -80,6 +80,11 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_interactionPreservesTranslucentPremultipliedRgba() = runScreenshotTest {
+    assertGlassTranslucentSourceInvariant(withInteraction = true)
+  }
+
+  @Test
   fun glass_maximumChromaKeepsSaturatedPrimariesFinite() = runScreenshotTest {
     assertGlassChromaMultiplierFiniteInvariant()
   }

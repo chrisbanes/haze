@@ -685,10 +685,22 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
         if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
           return@resolveGlassRenderBudget GlassRetainedLayerPlan(emptyList())
         }
+        val outputSize = context.size.roundToIntSize()
+        val interactionPatchSize = calculateGlassInteractionPatchSize(
+          buildGlassRenderParams(style, coordinates),
+          radiusFraction = interaction.radiusFraction,
+          topology = interactionTopology,
+        )
+        val interactionLayersActive =
+          interactionPatchSize.width > 0 && interactionPatchSize.height > 0
         buildGlassBudgetLayerPlan(
           sampleSize = coordinates.sampleSize.roundToIntSize(),
-          groupCompositeSize = context.size.roundToIntSize()
-            .takeIf { requiresGlassGroupAlpha(style.alpha) },
+          groupCompositeSize = resolveGlassGroupCompositeSize(
+            outputSize = outputSize,
+            alpha = style.alpha,
+            interactionLayersActive = interactionLayersActive,
+            interactionTopology = interactionTopology,
+          ),
           blurRadiusPx = optics.blurRadiusPx * scaleFactor,
           depth = optics.depth,
           allowMultiscaleBlur = optics.progressive == null,
@@ -700,11 +712,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
             sampleStepPx = 2f * scaleFactor,
           ),
           rimActive = style.specularIntensity > 0f,
-          interactionPatchSize = calculateGlassInteractionPatchSize(
-            buildGlassRenderParams(style, coordinates),
-            radiusFraction = interaction.radiusFraction,
-            topology = interactionTopology,
-          ),
+          interactionPatchSize = interactionPatchSize,
           interactionOpticsActive = interactionTopology.hasOptics,
           interactionLightingActive = interactionTopology.hasLighting,
         )

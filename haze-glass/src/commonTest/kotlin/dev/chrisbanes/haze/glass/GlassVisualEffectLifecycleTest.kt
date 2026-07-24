@@ -54,6 +54,38 @@ class GlassVisualEffectLifecycleTest {
   }
 
   @Test
+  fun prepareBudget_interactionGroupCompositeContributesToScaleSelection() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(
+        refractionStrength = 0f,
+        refractionScale = 0f,
+        blurRadius = 0.dp,
+      )
+      specularIntensity = 0f
+      pressed { refractionMultiplier(1.1f) }
+    }
+    val context = TrackingVisualEffectContext(
+      effectSize = Size(2_000f, 2_000f),
+      layerSize = Size(2_600f, 2_600f),
+    )
+    effect.attach(context)
+    effect.update(context)
+    effect.setPressedForTest(Offset(1_000f, 1_000f))
+
+    val decision = effect.prepareRenderBudget(
+      context = context,
+      runtimeShaderSupported = true,
+    ) as GlassRenderBudgetDecision.Runtime
+
+    assertThat(decision.scaleFactor < 1f).isEqualTo(true)
+    assertThat(decision.plan.layers.last()).isEqualTo(
+      GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, IntSize(2_000, 2_000)),
+    )
+    assertThat(decision.plan.fitsGlassRenderBudget()).isEqualTo(true)
+    effect.detach(context)
+  }
+
+  @Test
   fun prepareBudget_safeGraphPreservesRequestedScale() {
     val decision = GlassVisualEffect().resolveGlassRenderBudget(
       TrackingVisualEffectContext(effectSize = Size(100f, 100f), layerSize = Size(120f, 120f)),

@@ -33,7 +33,7 @@ class GlassRenderBudgetTest {
 
     assertThat(
       plan.layers.filter { it.kind.name.startsWith("Interaction") }.map { it.size },
-    ).containsExactly(patchSize, patchSize, patchSize)
+    ).containsExactly(patchSize, patchSize, patchSize, patchSize, patchSize)
   }
 
   @Test

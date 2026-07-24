@@ -353,7 +353,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun retainedPlan_interactionCountsAllThreeInteractionLayers() {
+  fun retainedPlan_interactionCountsCompositeGraph() {
     val plan = buildGlassRetainedLayerPlan(
       params = testRenderParams(
         blurRadiusPx = 0f,
@@ -372,6 +372,8 @@ class GlassRenderParamsTest {
       GlassRetainedLayerKind.Rim,
       GlassRetainedLayerKind.InteractionOptical,
       GlassRetainedLayerKind.InteractionDetail,
+      GlassRetainedLayerKind.InteractionDetailCoverage,
+      GlassRetainedLayerKind.InteractionComposite,
       GlassRetainedLayerKind.InteractionLighting,
     )
   }

@@ -168,6 +168,9 @@ internal inline fun DrawScope.recordAndDrawGlassGroupAlpha(
   crossinline block: DrawScope.() -> Unit,
 ) {
   layer.alpha = alpha
+  layer.blendMode = BlendMode.SrcOver
+  layer.compositingStrategy = CompositingStrategy.Offscreen
+  layer.renderEffect = null
   layer.record(size = size) { block() }
   drawLayer(layer)
 }
