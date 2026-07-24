@@ -154,7 +154,8 @@ internal fun GlassSurface(
 ) {
   Box(
     modifier = modifier
-      .clip(shape)
+      // Let Glass own the material silhouette. An outer Compose clip creates a second,
+      // independently-rasterized rounded boundary and exposes isolated carrier pixels on Skiko.
       .hazeEffect(state = hazeState) {
         glassEffect {
           this.style = style
@@ -162,7 +163,9 @@ internal fun GlassSurface(
           this.interactionSource = interactionSource
           interaction?.invoke(this)
         }
-      },
+      }
+      // This clip is inside the effect node, so it only constrains foreground content.
+      .clip(shape),
     content = content,
   )
 }

@@ -192,7 +192,7 @@ private fun LabSpecimen(
 }
 
 @Composable
-private fun LabControls(
+internal fun LabControls(
   state: GlassLabState,
   recordingMode: Boolean,
   onStateChanged: (GlassLabState) -> Unit,
