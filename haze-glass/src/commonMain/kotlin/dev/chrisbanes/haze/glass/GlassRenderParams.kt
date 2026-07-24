@@ -827,6 +827,16 @@ internal data class GlassPreparedRender(
   val rimKey: GlassRimEffectKey?,
 )
 
+internal fun resolveGlassGroupCompositeSize(
+  outputSize: IntSize,
+  alpha: Float,
+  interactionLayersActive: Boolean,
+  interactionTopology: GlassInteractionTopology,
+): IntSize? = outputSize.takeIf {
+  requiresGlassGroupAlpha(alpha) ||
+    interactionLayersActive && interactionTopology.hasOptics
+}
+
 internal fun buildGlassPreparedRender(
   params: GlassRenderParams,
   interactionUniforms: GlassInteractionUniforms,
@@ -847,10 +857,12 @@ internal fun buildGlassPreparedRender(
     topology = interactionTopology,
   )
   val interactionLayersActive = interactionPatchSize.width > 0 && interactionPatchSize.height > 0
-  val groupCompositeSize = outputSize.takeIf {
-    requiresGlassGroupAlpha(alpha) ||
-      interactionLayersActive && interactionTopology.hasOptics
-  }
+  val groupCompositeSize = resolveGlassGroupCompositeSize(
+    outputSize = outputSize,
+    alpha = alpha,
+    interactionLayersActive = interactionLayersActive,
+    interactionTopology = interactionTopology,
+  )
   val blurKey = if (params.depth > 0f && params.blurRadiusPx > 0f) {
     if (previous != null && previous.params.hasSameBlurEffectInputs(params)) {
       previous.blurKey ?: params.blurEffectKey()

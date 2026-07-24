@@ -403,6 +403,8 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(delegate.layers.hasRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionOptical).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionDetailCoverage).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionComposite).isTrue()
     assertThat(delegate.layers.hasInteractionLighting).isTrue()
     assertThat(delegate.layers.hasRim).isTrue()
     assertThat(retainedLayers.size).isEqualTo(16)
