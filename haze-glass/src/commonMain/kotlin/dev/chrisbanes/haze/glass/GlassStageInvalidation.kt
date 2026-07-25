@@ -17,6 +17,7 @@ internal data class GlassStageInputs(
   val optical: Any,
   val detail: Any?,
   val rim: Any?,
+  val mergeDepthIntoOptical: Boolean = false,
 )
 
 /** Retained stages that need to be re-recorded. */
@@ -55,7 +56,10 @@ internal fun calculateStageInvalidation(
   val blurInputChanged = previous?.blur != current.blur
   val blur = current.blur != null && (sourceChanged || blurInputChanged)
   val depth = sourceChanged || blurInputChanged || previous?.depth != current.depth
-  val optical = previous == null || depth || previous.optical != current.optical
+  val optical = previous == null ||
+    depth ||
+    previous.optical != current.optical ||
+    previous.mergeDepthIntoOptical != current.mergeDepthIntoOptical
   val detail = current.detail != null && (sourceChanged || previous?.detail != current.detail)
   val rim = current.rim != null && previous?.rim != current.rim
   return GlassStageInvalidation(blur, depth, optical, detail, rim)
@@ -197,15 +201,29 @@ internal fun resolveGlassSourceState(
 internal fun VisualEffectContext.resolveGlassSourceState(
   captureScale: Float,
   previousSnapshot: GlassSourceSnapshot? = null,
+): GlassSourceState = resolveGlassSourceState(
+  captureScale = captureScale,
+  layerSize = layerSize,
+  layerOffset = layerOffset,
+  previousSnapshot = previousSnapshot,
+)
+
+@OptIn(InternalHazeApi::class)
+internal fun VisualEffectContext.resolveGlassSourceState(
+  captureScale: Float,
+  layerSize: Size,
+  layerOffset: Offset,
+  previousSnapshot: GlassSourceSnapshot? = null,
 ): GlassSourceState {
-  if (previousSnapshot?.matches(captureScale, this) == true) {
+  val sourceAreas = areas.map { area -> area.toGlassSourceArea(this) }
+  if (previousSnapshot?.matches(captureScale, layerSize, layerOffset, sourceAreas) == true) {
     return GlassSourceState(hasDrawableSource = true, snapshot = previousSnapshot)
   }
   return resolveGlassSourceState(
     captureScale = captureScale,
     layerSize = layerSize,
     layerOffset = layerOffset,
-    areas = areas.map { area -> area.toGlassSourceArea(this) },
+    areas = sourceAreas,
   )
 }
 

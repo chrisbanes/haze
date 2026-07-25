@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,13 +64,19 @@ import kotlinx.coroutines.launch
 private const val PLAYGROUND_LOOP_DURATION_MILLIS = 12_000
 
 @Stable
-internal class GlassPlaygroundState {
+internal class GlassPlaygroundState(
+  private val loopDurationMillis: Int = PLAYGROUND_LOOP_DURATION_MILLIS,
+) {
   private val progressAnimation = Animatable(0f)
   private val dragOffsets = mutableStateMapOf<GlassPlaygroundSurfaceId, Offset>()
 
   var isPlaying by mutableStateOf(true)
     private set
   var recordingMode by mutableStateOf(false)
+    private set
+  var completedLoopCount by mutableIntStateOf(0)
+    private set
+  var autoplayGeneration by mutableIntStateOf(0)
     private set
   var activeSurface by mutableStateOf<GlassPlaygroundSurfaceId?>(null)
     private set
@@ -107,17 +114,20 @@ internal class GlassPlaygroundState {
     if (activeSurface == id) activeSurface = null
   }
 
-  suspend fun runAutoplayLoop() {
-    while (isPlaying && activeSurface == null) {
+  suspend fun runAutoplayLoop(loopLimit: Int = Int.MAX_VALUE) {
+    var loops = 0
+    while (isPlaying && activeSurface == null && loops < loopLimit) {
       val remaining = 1f - progressAnimation.value
       progressAnimation.animateTo(
         targetValue = 1f,
         animationSpec = tween(
-          durationMillis = (PLAYGROUND_LOOP_DURATION_MILLIS * remaining).roundToInt(),
+          durationMillis = (loopDurationMillis * remaining).roundToInt(),
           easing = LinearEasing,
         ),
       )
       progressAnimation.snapTo(0f)
+      completedLoopCount++
+      loops++
     }
   }
 
@@ -125,8 +135,10 @@ internal class GlassPlaygroundState {
     activeSurface = null
     dragOffsets.clear()
     progressAnimation.snapTo(0f)
+    completedLoopCount = 0
     isPlaying = true
     recordingMode = false
+    autoplayGeneration++
   }
 
   suspend fun disableAutoplay() {
@@ -140,16 +152,27 @@ internal fun rememberGlassPlaygroundState(): GlassPlaygroundState = remember { G
 
 @Composable
 public fun GlassPlaygroundSample(navController: NavHostController) {
-  val state = rememberGlassPlaygroundState()
+  GlassPlaygroundSample(
+    navController = navController,
+    state = rememberGlassPlaygroundState(),
+  )
+}
+
+@Composable
+internal fun GlassPlaygroundSample(
+  navController: NavHostController,
+  state: GlassPlaygroundState,
+  runAutoplay: suspend GlassPlaygroundState.() -> Unit = { runAutoplayLoop() },
+) {
   val scope = rememberCoroutineScope()
   val returnJobs = remember { mutableMapOf<GlassPlaygroundSurfaceId, Job>() }
 
-  LaunchedEffect(state.isPlaying, state.activeSurface) {
+  LaunchedEffect(state.isPlaying, state.activeSurface, state.autoplayGeneration) {
     val animationsEnabled = (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) > 0f
     if (!animationsEnabled) {
       state.disableAutoplay()
     } else if (state.isPlaying && state.activeSurface == null) {
-      state.runAutoplayLoop()
+      runAutoplay(state)
     }
   }
 
@@ -158,6 +181,7 @@ public fun GlassPlaygroundSample(navController: NavHostController) {
     dragOffsetProvider = state::dragOffset,
     isPlaying = state.isPlaying,
     recordingMode = state.recordingMode,
+    completedLoopCount = state.completedLoopCount,
     onPlayPause = state::togglePlayback,
     onReset = {
       returnJobs.values.forEach(Job::cancel)
@@ -184,6 +208,7 @@ public fun GlassPlaygroundSampleContent(
   dragOffsetProvider: (GlassPlaygroundSurfaceId) -> Offset,
   isPlaying: Boolean,
   recordingMode: Boolean,
+  completedLoopCount: Int = 0,
   onPlayPause: () -> Unit,
   onReset: () -> Unit,
   onRecordingModeChanged: (Boolean) -> Unit,
@@ -195,7 +220,11 @@ public fun GlassPlaygroundSampleContent(
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
-  BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+  BoxWithConstraints(
+    modifier = modifier
+      .fillMaxSize()
+      .testTag("glass_playground_loop_$completedLoopCount"),
+  ) {
     GalleryBackdrop(
       hazeState = hazeState,
       artworkIndex = 0,

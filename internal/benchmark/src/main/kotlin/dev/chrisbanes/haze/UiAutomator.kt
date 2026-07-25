@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 import android.graphics.Point
+import android.os.SystemClock
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.Direction
@@ -77,6 +78,75 @@ internal fun UiDevice.navigateToCreditCard() {
   findSampleListItem(By.res("Credit Card")).click()
   waitForIdle()
 }
+
+internal fun UiDevice.navigateToGlassProduct() {
+  findSampleListItem(By.res("Glass — Product")).click()
+  waitForObject(By.res("glass_product_page_0"))
+}
+
+internal fun UiDevice.advanceGlassProduct() {
+  waitForObject(By.desc("Next artwork")).click()
+  waitForObject(By.res("glass_product_page_1"))
+}
+
+internal fun UiDevice.navigateToGlassPlayground() {
+  findSampleListItem(By.res("Glass — Playground")).click()
+  waitForObject(By.res("glass_playground_loop_1"), timeout = 20.seconds)
+}
+
+internal fun UiDevice.measureFullGlassPlaygroundLoop() {
+  waitForObject(By.desc("Reset demo")).click()
+  waitForObject(By.res("glass_playground_loop_0"))
+  waitForObject(By.res("glass_playground_loop_1"), timeout = 20.seconds)
+}
+
+internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
+  findSampleListItem(By.res("Glass — Profiling")).click()
+  waitForObject(By.res("glass_profiling_picker"))
+    .apply { setGestureMarginPercentage(0.1f) }
+    .scrollUntil(
+      Direction.DOWN,
+      Until.findObject(By.res("glass_profiling_select_$scenarioId")),
+    )
+    .click()
+  waitForGlassProfilingObject(
+    scenarioId = scenarioId,
+    expectedPhase = "settling",
+    selector = By.res("glass_profiling_selected_$scenarioId"),
+  )
+  waitForGlassProfilingObject(
+    scenarioId = scenarioId,
+    expectedPhase = "ready",
+    selector = By.res("glass_profiling_start"),
+  )
+}
+
+internal fun UiDevice.runGlassProfilingScenario(scenarioId: String) {
+  waitForGlassProfilingObject(
+    scenarioId = scenarioId,
+    expectedPhase = "ready",
+    selector = By.res("glass_profiling_start"),
+  ).click()
+  SystemClock.sleep(GLASS_PROFILING_MEASURE_MILLIS)
+}
+
+private fun UiDevice.waitForGlassProfilingObject(
+  scenarioId: String,
+  expectedPhase: String,
+  selector: BySelector,
+  timeout: Duration = 15.seconds,
+): UiObject2 = waitForObjectOrNull(selector, timeout)
+  ?: error(
+    "Glass profiling timeout: scenario=$scenarioId, phase=$expectedPhase, " +
+      "selector=$selector, timeout=$timeout, visibleNodes=" +
+      findObjects(By.pkg(GLASS_TARGET_PACKAGE))
+        .map { node ->
+          "${node.resourceName}:${node.text}:${node.contentDescription}"
+        },
+  )
+
+// Scenarios run for 3 seconds; the buffer absorbs completion scheduling jitter.
+private const val GLASS_PROFILING_MEASURE_MILLIS = 3_250L
 
 internal fun UiDevice.findSampleListItem(selector: BySelector): UiObject2 {
   return waitForObject(By.res("sample_list"))

@@ -143,6 +143,13 @@ glassEffect {
 - Runtime shader path: deterministic semantic Gaussian blur, rounded SDF refraction, tint/specular/Fresnel, chromatic aberration, and edge softness.
 - Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable. Interaction lighting and transforms work on this path, but interactive optics, white-point adjustment, and refraction are no-ops.
 
+## Performance
+
+On the modern Android path, compatible sibling Glass effects share retained blur and tiled optical
+work. Effects that cannot safely share use their dedicated rendering path. See
+[Glass performance](../glass/performance.md) for the physical-device benchmark setup, results, and
+Perfetto interpretation.
+
 ## Interaction
 
 Glass interaction is default-disabled and entirely opt-in. It adds a visual response only: it does

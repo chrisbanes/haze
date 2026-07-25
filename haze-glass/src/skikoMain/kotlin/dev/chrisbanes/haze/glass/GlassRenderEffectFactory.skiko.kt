@@ -25,3 +25,7 @@ internal actual fun createRefractionDetailRenderEffect(): MutableRuntimeShaderRe
 
 internal actual fun createGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
   createSharedGlassRimRenderEffect()
+
+internal actual val supportsMergedGlassDepthOpticalLayer: Boolean = false
+
+internal actual val supportsSharedGlassBlur: Boolean = false

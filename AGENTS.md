@@ -30,9 +30,11 @@ Unit and snapshot tests sit alongside sources (for example, `haze/src/commonTest
 UI tests use Compose semantics and Roborazzi screenshot assertions where appropriate. Use AssertK
 for every author-written value, type, collection, boolean, and exception assertion; do not use
 assertion functions from `kotlin.test`, JUnit, or Truth. Semantic custom assertion helpers are
-allowed when implemented with AssertK. Prefer descriptive method-level names such as
-`functionName_emitsExpectedBlur`. Run `./gradlew check` locally before opening a PR. Regenerate
-library snapshots with
+allowed when implemented with AssertK. Prefer the most specific semantic assertion available,
+such as `isNull()`, `contains()`, or `isInstanceOf()`. Avoid converting conditions into booleans
+and asserting `isTrue()` or `isFalse()`; reserve those assertions for APIs whose actual result is
+boolean. Prefer descriptive method-level names such as `functionName_emitsExpectedBlur`. Run
+`./gradlew check` locally before opening a PR. Regenerate library snapshots with
 `./gradlew :haze-screenshot-tests:recordRoborazzi`; regenerate Glass Gallery snapshots with
 `./gradlew :sample:screenshot-tests:recordRoborazzi` when intentional UI changes occur.
 

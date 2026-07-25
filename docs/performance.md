@@ -61,3 +61,8 @@ The values are all very close, with the differences easily being within a margin
 
 !!! example "Full results"
     For those interested, you can find the full results in this [spreadsheet](https://docs.google.com/spreadsheets/d/1wZ9pbX0HDIa08ITwYy7BrYYwOq2sX-HUyAMQlcb3dI4/edit?usp=sharing).
+
+### Glass on Android
+
+Glass has its own [performance guide](glass/performance.md), covering the modern Android benchmark
+results and Perfetto interpretation.

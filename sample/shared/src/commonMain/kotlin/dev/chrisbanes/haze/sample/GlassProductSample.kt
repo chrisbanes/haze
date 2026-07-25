@@ -111,7 +111,11 @@ public fun GlassProductSampleContent(
       .collect(onArtworkSelected)
   }
 
-  BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+  BoxWithConstraints(
+    modifier = modifier
+      .fillMaxSize()
+      .testTag("glass_product_page_${pagerState.settledPage}"),
+  ) {
     val landscape = maxWidth > maxHeight
     val galleryHeight = maxHeight
     HorizontalPager(

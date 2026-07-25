@@ -76,6 +76,12 @@ internal class GlassLayers {
     blurPrefiltered = null
   }
 
+  fun releaseBlurIntermediates(graphicsContext: GraphicsContext?) {
+    releaseBlurPrefiltered(graphicsContext)
+    releaseLayer(blurHorizontal, graphicsContext)
+    blurHorizontal = null
+  }
+
   fun updateBlurWorkingSize(size: IntSize, graphicsContext: GraphicsContext?): Boolean {
     if (blurWorkingSize == size) return false
     if (blurWorkingSize != null) releaseBlurred(graphicsContext)
@@ -141,9 +147,7 @@ internal class GlassLayers {
   }
 
   fun releaseBlurred(graphicsContext: GraphicsContext?) {
-    releaseBlurPrefiltered(graphicsContext)
-    releaseLayer(blurHorizontal, graphicsContext)
-    blurHorizontal = null
+    releaseBlurIntermediates(graphicsContext)
     releaseLayer(blurred, graphicsContext)
     blurred = null
     blurWorkingSize = null
