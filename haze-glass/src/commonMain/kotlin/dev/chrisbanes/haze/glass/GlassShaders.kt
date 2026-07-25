@@ -371,15 +371,26 @@ internal object GlassShaders {
     "sampleChroma(refractCoord, chromaOffset, refractedCenterSample)"
   }};
 
-      vec2 gradient = surfaceGradient(localCoord);
-      vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
-      vec3 contentNormal = computeContentNormal(
-        ${if (tiled) "sampleCoord, tileOrigin, sampleSize" else "coord"}
-      );
-      vec3 normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
-      float fresnelBase = 1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
-      float fresnel = fresnelExponent == 0.0 ? 1.0 : pow(fresnelBase, fresnelExponent);
-      float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
+      float ambient = 1.0;
+      if (ambientResponse > 0.0) {
+        float clampedAmbientResponse = clamp(ambientResponse, 0.0, 1.0);
+        if (fresnelExponent == 0.0) {
+          ambient = 1.0 + clampedAmbientResponse;
+        } else {
+          vec2 gradient = surfaceGradient(localCoord);
+          vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
+          vec3 normal = shapeNormal;
+          if (contentNormalBlend > 0.0) {
+            vec3 contentNormal = computeContentNormal(
+              ${if (tiled) "sampleCoord, tileOrigin, sampleSize" else "coord"}
+            );
+            normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
+          }
+          float fresnelBase = 1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
+          float fresnel = pow(fresnelBase, fresnelExponent);
+          ambient = mix(1.0, 1.0 + fresnel, clampedAmbientResponse);
+        }
+      }
       vec3 opticalColor = refractedStraightColor;
       vec3 gradedColor = applyColorGrading(
         opticalColor,
