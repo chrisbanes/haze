@@ -866,6 +866,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#interaction" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1040,6 +1051,11 @@ For privacy-sensitive surfaces, disable retained output on the shared effect sco
 <li>Runtime shader path: deterministic semantic Gaussian blur, rounded SDF refraction, tint/specular/Fresnel, chromatic aberration, and edge softness.</li>
 <li>Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable. Interaction lighting and transforms work on this path, but interactive optics, white-point adjustment, and refraction are no-ops.</li>
 </ul>
+<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">¶</a></h2>
+<p>On the modern Android path, compatible sibling Glass effects share retained blur and tiled optical
+work. Effects that cannot safely share use their dedicated rendering path. See
+<a href="../../glass/performance/">Glass performance</a> for the physical-device benchmark setup, results, and
+Perfetto interpretation.</p>
 <h2 id="interaction">Interaction<a class="headerlink" href="#interaction" title="Permanent link">¶</a></h2>
 <p>Glass interaction is default-disabled and entirely opt-in. It adds a visual response only: it does
 not add click handling, focusability, semantics, or keyboard/D-pad activation.</p>
