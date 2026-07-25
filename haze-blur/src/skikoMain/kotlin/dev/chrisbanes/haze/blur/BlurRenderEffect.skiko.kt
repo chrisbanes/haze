@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import dev.chrisbanes.haze.HazeBlendMode
 import dev.chrisbanes.haze.InternalHazeApi
@@ -25,6 +26,14 @@ private val NOISE_SHADER by lazy(LazyThreadSafetyMode.NONE) {
     seed = 2.0f,
   )
 }
+
+internal actual fun createCombinedNoiseTintRenderEffectOrNull(
+  context: PlatformContext,
+  input: PlatformRenderEffect,
+  noiseFactor: Float,
+  tintColor: Color,
+  scale: Float,
+): PlatformRenderEffect? = null
 
 internal actual fun createNoiseEffect(
   context: PlatformContext,
