@@ -47,7 +47,7 @@ internal fun createRenderEffect(
   val size = ceil(params.contentSize * params.scale)
   val offset = (params.contentOffset * params.scale).round()
 
-  val blurRadiusPx = with(density) { blurRadius.toPx() }
+  val blurRadiusPx = params.resolveBlurRadiusPx(density)
   val progressiveShader = params.progressive?.asBrush()?.toShader(size)
 
   val blur = if (progressiveShader != null && isRuntimeShaderRenderEffectSupported()) {
@@ -68,14 +68,62 @@ internal fun createRenderEffect(
     ) ?: createOffsetRenderEffect(0f, 0f)
   }
 
-  val noise = createNoiseEffect(context, params.noiseFactor, progressiveShader, params.scale)
+  val combinedNoiseTintEffect = params.combinedNoiseTintColor()?.let { tintColor ->
+    createCombinedNoiseTintRenderEffectOrNull(
+      context = context,
+      input = blur,
+      noiseFactor = params.noiseFactor,
+      tintColor = tintColor,
+      scale = params.scale,
+    )
+  }
 
-  return blur
-    .blendForeground(foreground = noise, blendMode = HazeBlendMode.Softlight)
-    .withTints(params.colorEffects, size, offset, params.colorEffectsAlphaModulate, progressiveShader)
+  val styled = combinedNoiseTintEffect ?: run {
+    val blurWithNoise = if (params.noiseFactor.hasVisibleNoise()) {
+      blur.blendForeground(
+        foreground = createNoiseEffect(
+          context = context,
+          noiseFactor = params.noiseFactor,
+          mask = progressiveShader,
+          scale = params.scale,
+        ),
+        blendMode = HazeBlendMode.Softlight,
+      )
+    } else {
+      blur
+    }
+
+    blurWithNoise.withTints(
+      params.colorEffects,
+      size,
+      offset,
+      params.colorEffectsAlphaModulate,
+      progressiveShader,
+    )
+  }
+
+  return styled
     .withMask(params.mask, size, offset)
     .asComposeRenderEffect()
 }
+
+internal fun Float.hasVisibleNoise(): Boolean = this > 0f
+
+private fun RenderEffectParams.combinedNoiseTintColor(): Color? {
+  if (!noiseFactor.hasVisibleNoise() || progressive != null || mask != null) return null
+  val tint = colorEffects.singleOrNull() as? HazeColorEffect.TintColor ?: return null
+  if (tint.blendMode != BlendMode.SrcOver) return null
+
+  return tint.resolveColor(colorEffectsAlphaModulate)
+}
+
+internal expect fun createCombinedNoiseTintRenderEffectOrNull(
+  context: PlatformContext,
+  input: PlatformRenderEffect,
+  noiseFactor: Float,
+  tintColor: Color,
+  scale: Float,
+): PlatformRenderEffect?
 
 /**
  * Creates the platform-specific noise effect.
@@ -162,12 +210,7 @@ private fun PlatformRenderEffect.withColorTint(
   alphaModulate: Float,
   mask: Shader?,
 ): PlatformRenderEffect {
-  val tintColor = when {
-    alphaModulate < 1f -> effect.color.copy(alpha = effect.color.alpha * alphaModulate)
-    else -> effect.color
-  }
-
-  if (tintColor.alpha < 0.005f) return this
+  val tintColor = effect.resolveColor(alphaModulate) ?: return this
 
   val colorEffect = createBlendColorFilter(tintColor.toArgb(), effect.blendMode.toHazeBlendMode())
 
@@ -192,6 +235,14 @@ private fun PlatformRenderEffect.withColorTint(
   } else {
     effectWithMask
   }
+}
+
+private fun HazeColorEffect.TintColor.resolveColor(alphaModulate: Float): Color? {
+  val resolved = when {
+    alphaModulate < 1f -> color.copy(alpha = color.alpha * alphaModulate)
+    else -> color
+  }
+  return resolved.takeIf { it.alpha >= 0.005f }
 }
 
 /**

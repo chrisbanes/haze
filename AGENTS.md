@@ -23,6 +23,9 @@ All Kotlin sources use the default JetBrains style (four-space indentation, trai
 helpful). Spotless with ktlint enforces formatting; run `./gradlew spotlessApply` before committing.
 Keep public packages under `dev.chrisbanes.haze.*` and follow PascalCase for composables, camelCase
 for parameters, and `*Defaults` naming for reusable configuration containers.
+For internal or private value types, prefer `@Poko` over `data class`. Configure modules that use
+the project annotation with `pokoAnnotation.set("dev/chrisbanes/haze/Poko")`; reserve `data class`
+for types that intentionally require generated `copy` or component functions.
 
 ## Testing Guidelines
 

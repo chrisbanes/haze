@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
@@ -62,7 +63,7 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
 }
 
 private val renderEffectCache = lazy(mode = LazyThreadSafetyMode.NONE) {
-  LruCache<RenderEffectParams, RenderEffect>(maxSize = 50)
+  LruCache<RenderEffectCacheKey, RenderEffect>(maxSize = 50)
 }
 
 internal fun clearRenderEffectCache() {
@@ -89,21 +90,64 @@ internal class RenderEffectParams(
   val blurTileMode: TileMode,
 )
 
+@Poko
+internal class RenderEffectCacheKey(
+  val blurRadiusPx: Float,
+  val noiseFactor: Float,
+  val scale: Float,
+  val contentSize: Size,
+  val contentOffset: Offset,
+  val colorEffects: List<HazeColorEffect>,
+  val colorEffectsAlphaModulate: Float,
+  val mask: Brush?,
+  val progressive: HazeProgressive?,
+  val blurTileMode: TileMode,
+)
+
+internal fun RenderEffectParams.resolveBlurRadiusPx(density: Density): Float =
+  with(density) { (blurRadius * scale).toPx() }
+
+internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEffectCacheKey {
+  val hasBrushTint = colorEffects.any { it is HazeColorEffect.TintBrush }
+  val hasOffsetColorEffect = colorEffects.any {
+    it is HazeColorEffect.TintBrush || it is HazeColorEffect.ColorFilter
+  }
+  val usesContentSize = progressive != null || mask != null || hasBrushTint
+  val usesContentOffset = progressive != null || mask != null || hasOffsetColorEffect
+
+  return RenderEffectCacheKey(
+    blurRadiusPx = resolveBlurRadiusPx(density),
+    noiseFactor = if (noiseFactor.hasVisibleNoise()) noiseFactor else 0f,
+    scale = scale,
+    contentSize = if (usesContentSize) contentSize else Size.Zero,
+    contentOffset = if (usesContentOffset) contentOffset else Offset.Zero,
+    colorEffects = colorEffects,
+    colorEffectsAlphaModulate = colorEffectsAlphaModulate,
+    mask = mask,
+    progressive = progressive,
+    blurTileMode = blurTileMode,
+  )
+}
+
 @OptIn(ExperimentalHazeApi::class)
 private fun getOrCreateRenderEffect(context: VisualEffectContext, params: RenderEffectParams): RenderEffect? {
   HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect: $params" }
-  val cached = renderEffectCache.value[params]
+  val density = context.requireDensity()
+  val cacheKey = params.renderEffectCacheKey(density)
+  val cached = renderEffectCache.value[cacheKey]
   if (cached != null) {
     HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
     return cached
   }
 
   HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect. Creating: $params" }
-  return createRenderEffect(
-    context = context.requirePlatformContext(),
-    density = context.requireDensity(),
-    params = params,
-  ).also { effect ->
-    renderEffectCache.value.put(params, effect)
+  return trace("HazeBlur-createRenderEffect") {
+    createRenderEffect(
+      context = context.requirePlatformContext(),
+      density = density,
+      params = params,
+    )
+  }.also { effect ->
+    renderEffectCache.value.put(cacheKey, effect)
   }
 }

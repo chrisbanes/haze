@@ -67,8 +67,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
 ) = with(drawScope) {
   val colorEffects = blurVisualEffect.colorEffects
   val noiseFactor = blurVisualEffect.noiseFactor
-  val blurRadius = blurVisualEffect.blurRadius.takeOrElse { 0.dp } *
-    blurVisualEffect.resolveInputScaleFactor(context.inputScale)
+  val blurRadius = blurVisualEffect.blurRadius.takeOrElse { 0.dp }
 
   drawProgressiveWithMultipleLayers(progressive) { mask, intensity ->
     context.withGraphicsLayer { layer ->

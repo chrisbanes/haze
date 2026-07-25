@@ -167,7 +167,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
         // Draw the noise on top...
         val noiseFactor = blurVisualEffect.noiseFactor
-        if (noiseFactor > 0f) {
+        if (noiseFactor.hasVisibleNoise()) {
           translate(offset = -offset) {
             PaintPool.usePaint { paint ->
               paint.isAntiAlias = true
