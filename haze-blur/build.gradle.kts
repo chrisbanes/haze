@@ -120,3 +120,7 @@ kotlin {
 tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest> {
   enabled = false
 }
+
+poko {
+  pokoAnnotation.set("dev/chrisbanes/haze/Poko")
+}

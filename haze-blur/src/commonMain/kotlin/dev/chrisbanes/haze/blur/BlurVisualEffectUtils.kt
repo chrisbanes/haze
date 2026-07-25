@@ -90,7 +90,8 @@ internal class RenderEffectParams(
   val blurTileMode: TileMode,
 )
 
-internal data class RenderEffectCacheKey(
+@Poko
+internal class RenderEffectCacheKey(
   val blurRadiusPx: Float,
   val noiseFactor: Float,
   val scale: Float,
