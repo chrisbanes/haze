@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.test.AndroidComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runAndroidComposeUiTest
@@ -328,6 +329,35 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
+  fun stableInteractionFrames_retainExistingStageRenderEffects() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = interactiveEffect()
+      setContent { RuntimeGlassTestContent(effect) }
+      waitForIdle()
+      drawFrame()
+
+      effect.setPressedForTest(Offset(20f, 20f))
+      waitForIdle()
+      drawFrame()
+
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      val opticalEffect = checkNotNull(delegate.layers.interactionOptical?.renderEffect)
+      val detailEffect = checkNotNull(delegate.layers.interactionRefractionDetail?.renderEffect)
+      val detailCoverageEffect = checkNotNull(
+        delegate.layers.interactionRefractionDetailCoverage?.renderEffect,
+      )
+      val lightingEffect = checkNotNull(delegate.layers.interactionLighting?.renderEffect)
+
+      drawFrame()
+
+      assertThat(delegate.layers.interactionOptical?.renderEffect).isSameInstanceAs(opticalEffect)
+      assertThat(delegate.layers.interactionRefractionDetail?.renderEffect).isSameInstanceAs(detailEffect)
+      assertThat(delegate.layers.interactionRefractionDetailCoverage?.renderEffect)
+        .isSameInstanceAs(detailCoverageEffect)
+      assertThat(delegate.layers.interactionLighting?.renderEffect).isSameInstanceAs(lightingEffect)
+    }
+
+  @Test
   fun largePanel_interactionPatchRetainsBaseLayersAcrossFrames() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = largePanelInteractiveEffect()
@@ -429,6 +459,25 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.layers.interactionOptical?.isReleased != false).isTrue()
       assertThat(delegate.layers.interactionRefractionDetail?.isReleased != false).isTrue()
       assertThat(delegate.layers.interactionLighting?.isReleased != false).isTrue()
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionOpticalLayer")).isNull()
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionDetailLayer")).isNull()
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionDetailCoverageLayer")).isNull()
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionCompositeLayer")).isNull()
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionLightingLayer")).isNull()
+
+      effect.setPressedForTest(positions.first())
+      drawInteractionFrame()
+
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionOpticalLayer"))
+        .isSameInstanceAs(delegate.layers.interactionOptical)
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionDetailLayer"))
+        .isSameInstanceAs(delegate.layers.interactionRefractionDetail)
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionDetailCoverageLayer"))
+        .isSameInstanceAs(delegate.layers.interactionRefractionDetailCoverage)
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionCompositeLayer"))
+        .isSameInstanceAs(delegate.layers.interactionRefractionComposite)
+      assertThat(delegate.recordedInteractionLayer("recordedInteractionLightingLayer"))
+        .isSameInstanceAs(delegate.layers.interactionLighting)
       assertThat(delegate.canDrawRetainedOutput()).isTrue()
       mainClock.autoAdvance = true
     }
@@ -737,9 +786,15 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     drawFrame()
   }
 
-  private fun RuntimeShaderGlassDelegate.interactionShaderHandle(fieldName: String): Any {
+  private fun RuntimeShaderGlassDelegate.interactionShaderHandle(fieldName: String): Any =
+    checkNotNull(interactionField(fieldName))
+
+  private fun RuntimeShaderGlassDelegate.interactionField(fieldName: String): Any? {
     val field = RuntimeShaderGlassDelegate::class.java.getDeclaredField(fieldName)
     field.isAccessible = true
-    return checkNotNull(field.get(this))
+    return field.get(this)
   }
+
+  private fun RuntimeShaderGlassDelegate.recordedInteractionLayer(fieldName: String): GraphicsLayer? =
+    interactionField(fieldName) as? GraphicsLayer
 }
