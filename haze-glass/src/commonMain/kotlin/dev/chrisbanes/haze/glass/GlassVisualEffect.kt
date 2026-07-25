@@ -1264,7 +1264,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     }
 
   /**
-   * Exponent controlling specular highlight shape.
+   * Exponent controlling specular highlight shape. A value of `0f` produces a full response.
    *
    * There are precedence rules to how this styling property is applied:
    *
@@ -1288,7 +1288,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     }
 
   /**
-   * Exponent controlling Fresnel edge effect intensity.
+   * Exponent controlling Fresnel edge effect intensity. A value of `0f` produces a full response.
    *
    * There are precedence rules to how this styling property is applied:
    *

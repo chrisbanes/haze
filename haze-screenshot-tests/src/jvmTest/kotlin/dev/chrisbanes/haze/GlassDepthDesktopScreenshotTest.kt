@@ -118,4 +118,9 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   fun glass_crossEdgeCornersMatchComposeClip() = runScreenshotTest {
     assertGlassCrossEdgeCornersInvariant()
   }
+
+  @Test
+  fun glass_zeroLightingExponentsProduceFullResponse() = runScreenshotTest {
+    assertGlassZeroExponentLightingInvariant()
+  }
 }

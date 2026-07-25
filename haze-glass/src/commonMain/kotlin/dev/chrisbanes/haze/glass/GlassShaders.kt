@@ -377,10 +377,8 @@ internal object GlassShaders {
         ${if (tiled) "sampleCoord, tileOrigin, sampleSize" else "coord"}
       );
       vec3 normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
-      float fresnel = pow(
-        1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0),
-        fresnelExponent
-      );
+      float fresnelBase = 1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
+      float fresnel = fresnelExponent == 0.0 ? 1.0 : pow(fresnelBase, fresnelExponent);
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
       vec3 opticalColor = refractedStraightColor;
       vec3 gradedColor = applyColorGrading(
@@ -624,7 +622,8 @@ internal object GlassShaders {
       vec3 normal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
       vec2 lightDirection2D = safeNormalize(lightPosition - localCoord, vec2(0.0, -1.0));
       vec3 lightDirection = normalize(vec3(lightDirection2D, 1.0));
-      float specular = pow(max(dot(normal, lightDirection), 0.0), specularExponent);
+      float specularBase = max(dot(normal, lightDirection), 0.0);
+      float specular = specularExponent == 0.0 ? 1.0 : pow(specularBase, specularExponent);
       float alpha = specular * specularIntensity * edge;
       return alpha > 0.0 ? vec4(vec3(alpha), alpha) : vec4(0.0);
     }

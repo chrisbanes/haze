@@ -1508,6 +1508,34 @@ internal fun ScreenshotUiTest.assertGlassCrossEdgeCornersInvariant() {
   )
 }
 
+internal fun ScreenshotUiTest.assertGlassZeroExponentLightingInvariant() {
+  val shape = RoundedCornerShape(28.dp)
+  val effect = GlassVisualEffect().apply {
+    tint = Color.White.copy(alpha = 0.12f)
+    optics = GlassOptics.Absolute(refractionStrength = 0.5f, depth = 0.5f, blurRadius = 16.dp)
+    specularIntensity = 0.6f
+    specularExponent = 0f
+    fresnelExponent = 0f
+    ambientResponse = 0.5f
+    edgeSoftness = 8.dp
+    this.shape = shape
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        inputScale = HazeInputScale.None,
+        shape = shape,
+      )
+    }
+  }
+
+  val snapshot = captureInvariantSnapshot()
+  val center = snapshot.invariantGeometry().surfaceBounds.center
+  assertThat(snapshot[center.x, center.y].alpha).isGreaterThan(0.9f)
+  captureRoot()
+}
+
 private fun ScreenshotUiTest.assertGlassCornersMatchComposeClipInvariant(
   surfaceSize: DpSize,
   shape: RoundedCornerShape,
