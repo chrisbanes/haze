@@ -12,6 +12,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 private const val DEFAULT_ITERATIONS = 16
+private const val HYPOTHESIS_ITERATIONS = 5
 private const val APP_PACKAGE = "dev.chrisbanes.haze.sample.android"
 
 @RunWith(AndroidJUnit4::class)
@@ -46,6 +47,23 @@ class BenchmarkTest {
       setupBlock = {
         startActivityAndWait()
         device.setBlurEnabled(true)
+        device.navigateToScaffold()
+      },
+    ) {
+      device.repeatedScrolls("lazy_grid")
+    }
+  }
+
+  @Test
+  fun scaffoldBlurDisabled() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = HYPOTHESIS_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.setBlurEnabled(false)
         device.navigateToScaffold()
       },
     ) {

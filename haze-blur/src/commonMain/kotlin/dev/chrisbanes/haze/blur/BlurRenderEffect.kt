@@ -47,7 +47,7 @@ internal fun createRenderEffect(
   val size = ceil(params.contentSize * params.scale)
   val offset = (params.contentOffset * params.scale).round()
 
-  val blurRadiusPx = with(density) { blurRadius.toPx() }
+  val blurRadiusPx = params.resolveBlurRadiusPx(density)
   val progressiveShader = params.progressive?.asBrush()?.toShader(size)
 
   val blur = if (progressiveShader != null && isRuntimeShaderRenderEffectSupported()) {
@@ -68,14 +68,27 @@ internal fun createRenderEffect(
     ) ?: createOffsetRenderEffect(0f, 0f)
   }
 
-  val noise = createNoiseEffect(context, params.noiseFactor, progressiveShader, params.scale)
+  val blurWithNoise = if (params.noiseFactor.hasVisibleNoise()) {
+    blur.blendForeground(
+      foreground = createNoiseEffect(
+        context = context,
+        noiseFactor = params.noiseFactor,
+        mask = progressiveShader,
+        scale = params.scale,
+      ),
+      blendMode = HazeBlendMode.Softlight,
+    )
+  } else {
+    blur
+  }
 
-  return blur
-    .blendForeground(foreground = noise, blendMode = HazeBlendMode.Softlight)
+  return blurWithNoise
     .withTints(params.colorEffects, size, offset, params.colorEffectsAlphaModulate, progressiveShader)
     .withMask(params.mask, size, offset)
     .asComposeRenderEffect()
 }
+
+internal fun Float.hasVisibleNoise(): Boolean = this > 0f
 
 /**
  * Creates the platform-specific noise effect.
