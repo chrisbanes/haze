@@ -24,10 +24,13 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runAndroidComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isLessThan
+import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeInputScale
@@ -37,10 +40,6 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
-import kotlin.test.assertContentEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertSame
-import kotlin.test.assertTrue
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -58,11 +57,11 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
 
       val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-      assertFalse(delegate.layers.hasDepthMixed)
-      assertTrue(delegate.layers.hasBlurPrefiltered)
-      assertTrue(delegate.layers.hasBlurHorizontal)
-      assertTrue(delegate.layers.hasBlurred)
-      assertTrue(delegate.layers.hasOptical)
+      assertThat(delegate.layers.hasDepthMixed).isFalse()
+      assertThat(delegate.layers.hasBlurPrefiltered).isTrue()
+      assertThat(delegate.layers.hasBlurHorizontal).isTrue()
+      assertThat(delegate.layers.hasBlurred).isTrue()
+      assertThat(delegate.layers.hasOptical).isTrue()
     }
 
   @Test
@@ -79,10 +78,10 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
 
       val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-      assertTrue(delegate.layers.hasDepthMixed)
-      assertTrue(delegate.layers.hasBlurHorizontal)
-      assertTrue(delegate.layers.hasBlurred)
-      assertTrue(delegate.layers.hasOptical)
+      assertThat(delegate.layers.hasDepthMixed).isTrue()
+      assertThat(delegate.layers.hasBlurHorizontal).isTrue()
+      assertThat(delegate.layers.hasBlurred).isTrue()
+      assertThat(delegate.layers.hasOptical).isTrue()
     }
 
   @Test
@@ -99,7 +98,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
 
       val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-      assertTrue(delegate.layers.hasDepthMixed)
+      assertThat(delegate.layers.hasDepthMixed).isTrue()
     }
 
   @Test
@@ -114,42 +113,45 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val delegates = effects.map { effect ->
         checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
       }
-      assertTrue(delegates.all(RuntimeShaderGlassDelegate::usesSharedBlurForTest))
-      assertTrue(delegates.all { !it.layers.hasBlurPrefiltered })
-      assertTrue(delegates.all { !it.layers.hasBlurHorizontal })
-      assertTrue(delegates.all { it.layers.hasBlurred })
+      delegates.forEach { delegate ->
+        assertThat(delegate.usesSharedBlurForTest).isTrue()
+        assertThat(delegate.layers.blurPrefiltered).isNull()
+        assertThat(delegate.layers.blurHorizontal).isNull()
+        assertThat(delegate.layers.blurred).isNotNull()
+      }
       val sharedBlurred = checkNotNull(delegates.first().sharedBlurredLayerForTest)
       delegates.drop(1).forEach { delegate ->
-        assertSame(sharedBlurred, delegate.sharedBlurredLayerForTest)
+        assertThat(delegate.sharedBlurredLayerForTest).isSameInstanceAs(sharedBlurred)
       }
       val sharedOptical = checkNotNull(delegates.first().sharedOpticalLayerForTest)
-      assertTrue(delegates.all { it.layers.optical?.renderEffect == null })
+      delegates.forEach { delegate ->
+        assertThat(delegate.layers.optical?.renderEffect).isNull()
+      }
       delegates.drop(1).forEach { delegate ->
-        assertSame(sharedOptical, delegate.sharedOpticalLayerForTest)
+        assertThat(delegate.sharedOpticalLayerForTest).isSameInstanceAs(sharedOptical)
       }
       val sharedRefractionDetail = checkNotNull(
         delegates.first().sharedRefractionDetailLayerForTest,
       ) {
         "Expected shared detail atlas; keys=${effects.map { it.preparedRender?.refractionDetailKey }}"
       }
-      assertTrue(delegates.all { it.layers.refractionDetail?.renderEffect == null })
+      delegates.forEach { delegate ->
+        assertThat(delegate.layers.refractionDetail?.renderEffect).isNull()
+      }
       delegates.drop(1).forEach { delegate ->
-        assertSame(sharedRefractionDetail, delegate.sharedRefractionDetailLayerForTest)
+        assertThat(delegate.sharedRefractionDetailLayerForTest)
+          .isSameInstanceAs(sharedRefractionDetail)
       }
 
       val blurRecordCounts = delegates.map { it.stageRecordCounts.blur }
       val detailRecordCounts = delegates.map { it.stageRecordCounts.detail }
       drawFrame()
-      assertTrue(
-        delegates.zip(blurRecordCounts).all { (delegate, count) ->
-          delegate.stageRecordCounts.blur == count
-        },
-      )
-      assertTrue(
-        delegates.zip(detailRecordCounts).all { (delegate, count) ->
-          delegate.stageRecordCounts.detail == count
-        },
-      )
+      delegates.zip(blurRecordCounts).forEach { (delegate, count) ->
+        assertThat(delegate.stageRecordCounts.blur).isEqualTo(count)
+      }
+      delegates.zip(detailRecordCounts).forEach { (delegate, count) ->
+        assertThat(delegate.stageRecordCounts.detail).isEqualTo(count)
+      }
     }
 
   @Test
@@ -167,11 +169,13 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val delegates = effects.map { effect ->
         checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
       }
-      assertTrue(delegates.all(RuntimeShaderGlassDelegate::usesSharedBlurForTest))
-      assertTrue(delegates.all { it.sharedOpticalLayerForTest == null })
-      assertTrue(delegates.all { it.layers.optical?.renderEffect != null })
-      assertTrue(delegates.all { it.sharedRefractionDetailLayerForTest == null })
-      assertTrue(delegates.all { it.layers.refractionDetail?.renderEffect != null })
+      delegates.forEach { delegate ->
+        assertThat(delegate.usesSharedBlurForTest).isTrue()
+        assertThat(delegate.sharedOpticalLayerForTest).isNull()
+        assertThat(delegate.layers.optical?.renderEffect).isNotNull()
+        assertThat(delegate.sharedRefractionDetailLayerForTest).isNull()
+        assertThat(delegate.layers.refractionDetail?.renderEffect).isNotNull()
+      }
     }
 
   @Test
@@ -199,9 +203,9 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
       drawFrame()
       val firstDelegate = checkNotNull(effects.first().delegate as? RuntimeShaderGlassDelegate)
-      assertTrue(firstDelegate.usesSharedBlurForTest)
-      assertTrue(firstDelegate.layers.optical?.renderEffect == null)
-      assertTrue(firstDelegate.layers.refractionDetail?.renderEffect == null)
+      assertThat(firstDelegate.usesSharedBlurForTest).isTrue()
+      assertThat(firstDelegate.layers.optical?.renderEffect).isNull()
+      assertThat(firstDelegate.layers.refractionDetail?.renderEffect).isNull()
       val sharedPixels = captureRegionPixels(
         left = 0,
         top = 0,
@@ -209,21 +213,21 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         height = 120,
       )
 
-      assertContentEquals(dedicatedPixels, sharedPixels)
+      assertThat(sharedPixels).containsExactly(*dedicatedPixels)
 
       attachSecond.value = false
       waitForIdle()
       drawFrame()
-      assertFalse(firstDelegate.usesSharedBlurForTest)
-      assertTrue(firstDelegate.layers.optical?.renderEffect != null)
-      assertTrue(firstDelegate.layers.refractionDetail?.renderEffect != null)
+      assertThat(firstDelegate.usesSharedBlurForTest).isFalse()
+      assertThat(firstDelegate.layers.optical?.renderEffect).isNotNull()
+      assertThat(firstDelegate.layers.refractionDetail?.renderEffect).isNotNull()
       val restoredDedicatedPixels = captureRegionPixels(
         left = 0,
         top = 0,
         width = 160,
         height = 120,
       )
-      assertContentEquals(dedicatedPixels, restoredDedicatedPixels)
+      assertThat(restoredDedicatedPixels).containsExactly(*dedicatedPixels)
     }
 
   @Test
@@ -243,18 +247,18 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
 
-      assertFalse(delegate.layers.hasSource)
-      assertSame(opticalShader, delegate.opticalShader)
-      assertSame(detailShader, delegate.refractionDetailShader)
-      assertSame(rimShader, delegate.rimShader)
+      assertThat(delegate.layers.hasSource).isFalse()
+      assertThat(delegate.opticalShader).isSameInstanceAs(opticalShader)
+      assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
+      assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
 
       attached.value = true
       waitForIdle()
       drawFrame()
 
-      assertSame(opticalShader, delegate.opticalShader)
-      assertSame(detailShader, delegate.refractionDetailShader)
-      assertSame(rimShader, delegate.rimShader)
+      assertThat(delegate.opticalShader).isSameInstanceAs(opticalShader)
+      assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
+      assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
     }
 
   @Test

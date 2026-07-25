@@ -3,16 +3,18 @@
 
 package dev.chrisbanes.haze.sample
 
+import assertk.assertFailure
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isTrue
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class GlassProfilingScenarioTest {
   @Test
   fun scenarioIds_areStableAndUnique() {
-    assertEquals(
+    assertThat(GlassProfilingScenario.entries.map(GlassProfilingScenario::id)).isEqualTo(
       listOf(
         "effect_attach",
         "effect_attach_3",
@@ -40,22 +42,21 @@ class GlassProfilingScenarioTest {
         "source_update",
         "source_update_no_glass",
       ),
-      GlassProfilingScenario.entries.map(GlassProfilingScenario::id),
     )
-    assertEquals(
-      GlassProfilingScenario.entries.size,
+    assertThat(
       GlassProfilingScenario.entries.map(GlassProfilingScenario::id).toSet().size,
-    )
+    ).isEqualTo(GlassProfilingScenario.entries.size)
   }
 
   @Test
   fun noGlassControl_isTheOnlyDisabledScenario() {
     GlassProfilingScenario.entries.forEach { scenario ->
-      assertEquals(
+      assertThat(
+        !scenario.glassEnabled,
+        name = scenario.id,
+      ).isEqualTo(
         scenario == GlassProfilingScenario.SourceUpdateNoGlass ||
           scenario == GlassProfilingScenario.SteadyNoGlass,
-        !scenario.glassEnabled,
-        scenario.id,
       )
     }
   }
@@ -93,7 +94,7 @@ class GlassProfilingScenarioTest {
     expected.forEach { (scenario, expectedChanges) ->
       val early = glassProfilingFrame(scenario, 0.25f)
       val late = glassProfilingFrame(scenario, 0.75f)
-      assertEquals(expectedChanges, changedFields(early, late), scenario.id)
+      assertThat(changedFields(early, late), name = scenario.id).isEqualTo(expectedChanges)
     }
   }
 
@@ -108,32 +109,32 @@ class GlassProfilingScenarioTest {
       val updatesSource = scenario == GlassProfilingScenario.SourceUpdate ||
         scenario == GlassProfilingScenario.SourceUpdateNoGlass
 
-      assertEquals(if (updatesSource) 1 else 0, readCount, scenario.id)
-      assertEquals(if (updatesSource) 0.75f else 0f, resolved, scenario.id)
+      assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)
+      assertThat(resolved, name = scenario.id).isEqualTo(if (updatesSource) 0.75f else 0f)
     }
   }
 
   @Test
   fun state_enforcesSelectingSettlingReadyRunningCompleteOrder() {
     val state = GlassProfilingState()
-    assertEquals(GlassProfilingPhase.Selecting, state.phase)
-    assertFalse(state.start())
+    assertThat(state.phase).isEqualTo(GlassProfilingPhase.Selecting)
+    assertThat(state.start()).isFalse()
 
     state.select(GlassProfilingScenario.SourceUpdate)
-    assertEquals(GlassProfilingPhase.Settling, state.phase)
-    assertFalse(state.start())
+    assertThat(state.phase).isEqualTo(GlassProfilingPhase.Settling)
+    assertThat(state.start()).isFalse()
 
     state.markReady()
-    assertEquals(GlassProfilingPhase.Ready, state.phase)
-    assertTrue(state.start())
-    assertEquals(GlassProfilingPhase.Running, state.phase)
+    assertThat(state.phase).isEqualTo(GlassProfilingPhase.Ready)
+    assertThat(state.start()).isTrue()
+    assertThat(state.phase).isEqualTo(GlassProfilingPhase.Running)
 
     state.updateProgress(0.4f)
-    assertEquals(0.4f, state.progress)
+    assertThat(state.progress).isEqualTo(0.4f)
     state.complete()
-    assertEquals(GlassProfilingPhase.Complete, state.phase)
-    assertEquals(1f, state.progress)
-    assertFalse(state.start())
+    assertThat(state.phase).isEqualTo(GlassProfilingPhase.Complete)
+    assertThat(state.progress).isEqualTo(1f)
+    assertThat(state.start()).isFalse()
   }
 
   @Test
@@ -141,13 +142,13 @@ class GlassProfilingScenarioTest {
     val state = GlassProfilingState()
     state.select(GlassProfilingScenario.BlurUpdate)
     state.markReady()
-    assertTrue(state.start())
+    assertThat(state.start()).isTrue()
 
-    assertFailsWith<IllegalArgumentException> { state.updateProgress(Float.NaN) }
-    assertFailsWith<IllegalArgumentException> { state.updateProgress(1.1f) }
-    assertFailsWith<IllegalStateException> {
+    assertFailure { state.updateProgress(Float.NaN) }.isInstanceOf<IllegalArgumentException>()
+    assertFailure { state.updateProgress(1.1f) }.isInstanceOf<IllegalArgumentException>()
+    assertFailure {
       state.select(GlassProfilingScenario.DepthUpdate)
-    }
+    }.isInstanceOf<IllegalStateException>()
   }
 
   @Test
@@ -156,26 +157,29 @@ class GlassProfilingScenarioTest {
       .filter { it.attachesDuringMeasurement && !it.prewarmsBeforeMeasurement }
       .forEach { scenario ->
         GlassProfilingPhase.entries.forEach { phase ->
-          assertEquals(
-            phase == GlassProfilingPhase.Running || phase == GlassProfilingPhase.Complete,
+          assertThat(
             shouldAttachProfilingGlass(scenario, phase),
-            "${scenario.id}/${phase.id}",
+            name = "${scenario.id}/${phase.id}",
+          ).isEqualTo(
+            phase == GlassProfilingPhase.Running || phase == GlassProfilingPhase.Complete,
           )
         }
       }
 
-    assertEquals(
-      listOf(1, 3, 9),
+    assertThat(
       GlassProfilingScenario.entries
         .filter { it.attachesDuringMeasurement && !it.prewarmsBeforeMeasurement }
         .map(GlassProfilingScenario::effectCount),
-    )
+    ).isEqualTo(listOf(1, 3, 9))
 
     GlassProfilingScenario.entries
       .filter { it.glassEnabled && !it.attachesDuringMeasurement }
       .forEach { scenario ->
         GlassProfilingPhase.entries.forEach { phase ->
-          assertTrue(shouldAttachProfilingGlass(scenario, phase), "${scenario.id}/${phase.id}")
+          assertThat(
+            shouldAttachProfilingGlass(scenario, phase),
+            name = "${scenario.id}/${phase.id}",
+          ).isTrue()
         }
       }
   }
@@ -184,11 +188,11 @@ class GlassProfilingScenarioTest {
   fun effectReattach_isPrewarmedDetachedAndReattachedAcrossMeasurementBoundary() {
     val scenario = GlassProfilingScenario.EffectReattach
 
-    assertFalse(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Selecting))
-    assertTrue(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Settling))
-    assertFalse(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Ready))
-    assertTrue(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Running))
-    assertTrue(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Complete))
+    assertThat(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Selecting)).isFalse()
+    assertThat(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Settling)).isTrue()
+    assertThat(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Ready)).isFalse()
+    assertThat(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Running)).isTrue()
+    assertThat(shouldAttachProfilingGlass(scenario, GlassProfilingPhase.Complete)).isTrue()
   }
 }
 

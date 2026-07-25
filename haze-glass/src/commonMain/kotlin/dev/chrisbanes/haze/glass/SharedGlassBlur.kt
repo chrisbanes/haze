@@ -179,17 +179,23 @@ internal class SharedGlassBlurGroup(
     detailKey: GlassRefractionDetailEffectKey?,
   ) {
     val topLeft = context.position - context.layerOffset
-    members[owner] = SharedGlassBlurMember(
+    val member = SharedGlassBlurMember(
       context = context,
       bounds = Rect(topLeft, context.layerSize),
       opticalKey = opticalKey,
       opticalDepth = opticalDepth,
       detailKey = detailKey,
     )
+    val previous = members.put(owner, member)
+    if (previous != member && memberCount > 1) {
+      invalidateMembers()
+    }
   }
 
   fun remove(owner: RuntimeShaderGlassDelegate) {
-    members.remove(owner)
+    if (members.remove(owner) != null) {
+      invalidateMembers()
+    }
   }
 
   fun invalidateMembers() {

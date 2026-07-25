@@ -10,9 +10,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
+import assertk.assertThat
+import assertk.assertions.contains
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
-import kotlin.test.assertTrue
 import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalTestApi::class)
@@ -20,7 +21,7 @@ import org.robolectric.annotation.Config
 class GlassProfilingSampleTest : ContextTest() {
   @Test
   fun androidSamples_registersTheProfilingDestination() {
-    assertTrue(Samples.any { it.title == "Glass — Profiling" })
+    assertThat(Samples.map { it.title }).contains("Glass — Profiling")
   }
 
   @Test

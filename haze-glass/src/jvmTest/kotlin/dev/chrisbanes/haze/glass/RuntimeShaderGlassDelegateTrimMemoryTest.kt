@@ -30,6 +30,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazePositionStrategy
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.TrimMemoryLevel
@@ -86,6 +87,49 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
 
     assertThat(owner.layer).isNull()
     assertThat(graphicsContext.events.filterIsInstance<LayerEvent.Create>()).isEqualTo(emptyList())
+  }
+
+  @Test
+  fun sharedBlurGroup_membershipChangesInvalidateAffectedMembers() {
+    val graphicsContext = TestGraphicsContext()
+    val group = SharedGlassBlurGroup(
+      SharedGlassBlurKey(
+        state = HazeState(),
+        areas = emptyList(),
+        positionStrategy = HazePositionStrategy.Local,
+        windowId = null,
+        rootBounds = Rect.Zero,
+        graphicsContext = graphicsContext,
+        captureScale = 1f,
+        effectiveRadiusPx = 20f,
+        sigmaPx = 10f,
+      ),
+    )
+    val owners = List(3) { RuntimeShaderGlassDelegate(GlassVisualEffect()) }
+    val contexts = List(3) {
+      RecordingVisualEffectContext(
+        size = Size(100f, 100f),
+        layerSize = Size(100f, 100f),
+        graphicsContext = graphicsContext,
+      )
+    }
+    owners.zip(contexts).forEach { (owner, context) ->
+      group.update(
+        owner = owner,
+        context = context,
+        opticalKey = null,
+        opticalDepth = 0.5f,
+        detailKey = null,
+      )
+    }
+
+    assertThat(contexts.map(RecordingVisualEffectContext::invalidateDrawCalls))
+      .containsExactly(2, 2, 1)
+
+    group.remove(owners[1])
+
+    assertThat(contexts.map(RecordingVisualEffectContext::invalidateDrawCalls))
+      .containsExactly(3, 2, 2)
   }
 
   @Test

@@ -22,8 +22,6 @@ import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
@@ -35,10 +33,10 @@ class GlassPlaygroundSampleTest : ContextTest() {
 
     state.reset()
 
-    assertEquals(0f, state.progress())
-    assertEquals(0, state.completedLoopCount)
-    assertEquals(initialGeneration + 1, state.autoplayGeneration)
-    assertTrue(state.isPlaying)
+    assertThat(state.progress()).isEqualTo(0f)
+    assertThat(state.completedLoopCount).isEqualTo(0)
+    assertThat(state.autoplayGeneration).isEqualTo(initialGeneration + 1)
+    assertThat(state.isPlaying).isTrue()
   }
 
   @Test
@@ -62,7 +60,7 @@ class GlassPlaygroundSampleTest : ContextTest() {
 
     onNodeWithContentDescription("Reset demo").performClick()
 
-    runOnIdle { assertEquals(1, resetCount) }
+    runOnIdle { assertThat(resetCount).isEqualTo(1) }
   }
 
   @Test

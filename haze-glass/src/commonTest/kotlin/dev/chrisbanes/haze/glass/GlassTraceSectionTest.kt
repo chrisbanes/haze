@@ -3,14 +3,15 @@
 
 package dev.chrisbanes.haze.glass
 
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isLessThanOrEqualTo
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class GlassTraceSectionTest {
   @Test
   fun names_areStableUniqueAndWithinAndroidLimit() {
-    assertEquals(
+    assertThat(GlassTraceSection.all).isEqualTo(
       listOf(
         "HazeGlass.prepare",
         "HazeGlass.prepareBudget",
@@ -32,9 +33,10 @@ class GlassTraceSectionTest {
         "HazeGlass.groupAlpha",
         "HazeGlass.compose",
       ),
-      GlassTraceSection.all,
     )
-    assertEquals(GlassTraceSection.all.size, GlassTraceSection.all.toSet().size)
-    assertTrue(GlassTraceSection.all.all { it.length <= 127 })
+    assertThat(GlassTraceSection.all.toSet().size).isEqualTo(GlassTraceSection.all.size)
+    GlassTraceSection.all.forEach { name ->
+      assertThat(name.length, name = name).isLessThanOrEqualTo(127)
+    }
   }
 }
