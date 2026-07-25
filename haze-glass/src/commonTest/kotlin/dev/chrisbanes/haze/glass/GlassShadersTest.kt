@@ -551,6 +551,15 @@ class GlassShadersTest {
   }
 
   @Test
+  fun lightingShaders_zeroExponentsUseFullResponseWithoutPowZeroToZero() {
+    val optical = GlassShaders.buildOptical()
+    val rim = GlassShaders.buildRim()
+
+    assertThat(optical).contains("fresnelExponent == 0.0 ? 1.0 : pow(")
+    assertThat(rim).contains("specularExponent == 0.0 ? 1.0 : pow(")
+  }
+
+  @Test
   fun shaders_shareComposeNormalizedRoundedRectSdfContract() {
     val shaders = listOf(
       GlassShaders.buildOptical(),

@@ -130,6 +130,11 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_zeroLightingExponentsProduceFullResponse() = runScreenshotTest {
+    assertGlassZeroExponentLightingInvariant()
+  }
+
+  @Test
   fun glass_depthZeroMasksShape() = runScreenshotTest {
     val shape = RoundedCornerShape(48.dp)
     val visualEffect = GlassVisualEffect().apply {
