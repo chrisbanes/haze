@@ -1546,7 +1546,7 @@ internal class RuntimeShaderGlassDelegate(
         nextBlurKey?.progressive == null &&
         render.params.depth > 0f &&
         render.params.depth < 1f &&
-        !render.interactionUniforms.hasOptics,
+        !render.interactionTopology.hasOptics,
       refractionDetail = nextRefractionDetailKey?.let { key ->
         GlassRefractionDetailRenderEffect(
           key = key,

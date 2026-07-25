@@ -86,6 +86,23 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
+  fun interactiveOptics_preservesDedicatedDepthLayerBeforeInteractionStarts() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = interactiveEffect().apply {
+        optics = (optics as GlassOptics.Absolute).copy(
+          depth = 0.5f,
+          blurRadius = 38.5.dp,
+        )
+      }
+      setContent { RuntimeGlassTestContent(effect) }
+      waitForIdle()
+      drawFrame()
+
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      assertTrue(delegate.layers.hasDepthMixed)
+    }
+
+  @Test
   fun compatibleSiblingEffects_shareSourceBlur() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effects = List(9) { retainedBlurEffect() }
