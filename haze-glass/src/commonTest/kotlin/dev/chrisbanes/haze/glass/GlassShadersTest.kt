@@ -189,6 +189,22 @@ class GlassShadersTest {
   }
 
   @Test
+  fun opticalShader_skipsInactiveLightingAndContentNormalWork() {
+    val main = GlassShaders.buildOptical().substringAfter("vec4 main(vec2 coord)")
+
+    assertThat(main).contains("if (ambientResponse > 0.0) {")
+    assertThat(main).contains("if (contentNormalBlend > 0.0) {")
+    assertThat(main).contains("vec3 normal = shapeNormal;")
+    assertThat(main).contains(
+      "normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));",
+    )
+    assertThat(main).contains("float ambient = 1.0;")
+    assertThat(main).contains(
+      "ambient = mix(1.0, 1.0 + fresnel, clampedAmbientResponse);",
+    )
+  }
+
+  @Test
   fun opticalShader_unpremultipliesSamplesAndRepremultipliesWithRefractedCenterAlpha() {
     val shader = GlassShaders.buildOptical()
 
@@ -555,7 +571,8 @@ class GlassShadersTest {
     val optical = GlassShaders.buildOptical()
     val rim = GlassShaders.buildRim()
 
-    assertThat(optical).contains("fresnelExponent == 0.0 ? 1.0 : pow(")
+    assertThat(optical).contains("if (fresnelExponent == 0.0) {")
+    assertThat(optical).contains("ambient = 1.0 + clampedAmbientResponse;")
     assertThat(rim).contains("specularExponent == 0.0 ? 1.0 : pow(")
   }
 
