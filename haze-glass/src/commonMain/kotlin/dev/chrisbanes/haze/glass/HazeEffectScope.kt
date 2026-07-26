@@ -8,6 +8,12 @@ import dev.chrisbanes.haze.HazeEffectScope
 
 /**
  * Configures a [GlassVisualEffect] for this effect scope.
+ *
+ * The outermost call for an effect owns its interaction-slot transaction. If its [block] throws,
+ * interaction-slot mutations, such as [GlassVisualEffect.hovered], are rolled back. Nested calls
+ * share that transaction, so catching a nested call's exception does not create a savepoint or
+ * roll back its mutations. Direct property writes, such as [GlassVisualEffect.tint] or
+ * [GlassVisualEffect.optics], remain applied even when the owning transaction rolls back.
  */
 @ExperimentalHazeApi
 public inline fun HazeEffectScope.glassEffect(
