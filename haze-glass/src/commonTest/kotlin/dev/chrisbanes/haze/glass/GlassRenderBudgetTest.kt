@@ -33,7 +33,9 @@ class GlassRenderBudgetTest {
 
     assertThat(
       plan.layers.filter { it.kind.name.startsWith("Interaction") }.map { it.size },
-    ).containsExactly(patchSize, patchSize, patchSize, patchSize, patchSize)
+    ).containsExactly(
+      *List(if (supportsFusedGlassRenderEffect) 0 else 5) { patchSize }.toTypedArray(),
+    )
   }
 
   @Test
@@ -169,7 +171,7 @@ class GlassRenderBudgetTest {
   }
 
   @Test
-  fun narrowBlurPrefilterIsland_selectsFirstSafeScaleAboveTopologyTransition() {
+  fun fusedPlan_doesNotBudgetRetainedBlurTopology() {
     val result = resolveGlassRenderBudget(1f) { scale ->
       val side = (2_191 * scale).roundToInt().coerceAtLeast(1)
       buildGlassBudgetLayerPlan(
@@ -185,10 +187,18 @@ class GlassRenderBudgetTest {
     }
     val runtime = result.assertRuntime()
 
-    assertThat(runtime.scaleFactor).isGreaterThanOrEqualTo(0.9993f)
-    assertThat(runtime.scaleFactor).isLessThanOrEqualTo(0.9994f)
-    assertThat(runtime.plan.layers.any { it.kind == GlassRetainedLayerKind.BlurPrefilter })
-      .isTrue()
+    if (supportsFusedGlassRenderEffect) {
+      assertThat(runtime.scaleFactor).isEqualTo(1f)
+      assertThat(runtime.plan.layers.map { it.kind }).containsExactly(
+        GlassRetainedLayerKind.Source,
+        GlassRetainedLayerKind.Optical,
+      )
+    } else {
+      assertThat(runtime.scaleFactor).isGreaterThanOrEqualTo(0.9993f)
+      assertThat(runtime.scaleFactor).isLessThanOrEqualTo(0.9994f)
+      assertThat(runtime.plan.layers.any { it.kind == GlassRetainedLayerKind.BlurPrefilter })
+        .isTrue()
+    }
     assertThat(runtime.plan.fitsGlassRenderBudget()).isTrue()
   }
 

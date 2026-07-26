@@ -44,6 +44,18 @@ class GlassProfilingBenchmark {
   fun steadyFull9() = measureScenario("steady_full_9")
 
   @Test
+  fun steadyProgressive() = measureScenario("steady_progressive")
+
+  @Test
+  fun steadyProgressive9() = measureScenario("steady_progressive_9")
+
+  @Test
+  fun steadyFullChroma() = measureScenario("steady_full_chroma")
+
+  @Test
+  fun steadyFullChroma9() = measureScenario("steady_full_chroma_9")
+
+  @Test
   fun steadyNoRim() = measureScenario("steady_no_rim")
 
   @Test
@@ -62,7 +74,7 @@ class GlassProfilingBenchmark {
   fun steadyNoBlur9() = measureScenario("steady_no_blur_9")
 
   @Test
-  fun steadyDepth1() = measureScenario("steady_depth_1")
+  fun steadyDepth50() = measureScenario("steady_depth_50")
 
   @Test
   fun steadyScale60() = measureScenario("steady_scale_60")
@@ -86,6 +98,9 @@ class GlassProfilingBenchmark {
   fun interactionUpdate() = measureScenario("interaction_update")
 
   @Test
+  fun interactionUpdate9() = measureScenario("interaction_update_9")
+
+  @Test
   fun opticalUpdate() = measureScenario("optical_update")
 
   @Test
@@ -96,6 +111,9 @@ class GlassProfilingBenchmark {
 
   @Test
   fun sourceUpdate() = measureScenario("source_update", includeMemory = true)
+
+  @Test
+  fun sourceUpdate9() = measureScenario("source_update_9", includeMemory = true)
 
   @Test
   fun sourceUpdateNoGlass() = measureScenario(

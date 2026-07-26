@@ -7,6 +7,7 @@ package dev.chrisbanes.haze.glass
 
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
+import dev.chrisbanes.haze.PlatformRenderEffect
 
 @InternalHazeApi
 internal actual fun createGlassBlurRenderEffect(
@@ -26,6 +27,13 @@ internal actual fun createRefractionDetailRenderEffect(): MutableRuntimeShaderRe
 internal actual fun createGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
   createSharedGlassRimRenderEffect()
 
+internal actual fun createGlassDepthInputRenderEffect(
+  blur: PlatformRenderEffect?,
+  depth: Float,
+): PlatformRenderEffect? = null
+
 internal actual val supportsMergedGlassDepthOpticalLayer: Boolean = false
 
 internal actual val supportsSharedGlassBlur: Boolean = false
+
+internal actual val supportsFusedGlassRenderEffect: Boolean = false

@@ -18,6 +18,17 @@ import kotlin.test.Test
 class GlassShadersTest {
 
   @Test
+  fun fusedInteractionOptics_expandDetailBoundForLocalizedRefraction() {
+    val interactive = GlassShaders.buildFused(interactionOptics = true)
+    val baseline = GlassShaders.buildFused()
+
+    assertThat(interactive).contains(
+      "abs(refractionScale * refractionStrength) * max(1.0, localizedRefractionMultiplier)",
+    )
+    assertThat(baseline).doesNotContain("max(1.0, localizedRefractionMultiplier)")
+  }
+
+  @Test
   fun blurShaders_shareSeparablePremultipliedClampContract() {
     val kernel = SemanticBlurKernel.create(38.5f)
     val horizontal = GlassShaders.buildBlur(horizontal = true)

@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   blur radius and expanded capture-layer area, with hysteresis and a `0.8` progressive-blur cap.
   Glass remains unscaled by default; explicit input-scale choices remain authoritative.
 - Changed Glass blur composition so blur participates in refracted content.
+- Use one Android Glass output renderer per surface, independent of sibling count, while preserving
+  semantic blur, progressive masks, Full chromatic aberration, and configured interactions.
 - Moved `HazeProgressive` to the core `dev.chrisbanes.haze` package with a deprecated blur-package typealias.
 
 ### Deprecated

@@ -698,6 +698,13 @@ internal fun buildGlassBudgetLayerPlan(
   interactionOpticsActive: Boolean,
   interactionLightingActive: Boolean,
 ): GlassRetainedLayerPlan {
+  if (supportsFusedGlassRenderEffect) {
+    return buildGlassFusedLayerPlan(
+      sampleSize = sampleSize,
+      rimActive = rimActive,
+      groupCompositeSize = groupCompositeSize,
+    )
+  }
   val interactionLayersActive =
     interactionPatchSize.width > 0 && interactionPatchSize.height > 0
   val blurActive = depth > 0f && blurRadiusPx > 0f
@@ -784,6 +791,21 @@ private fun buildGlassRetainedLayerPlan(
   },
 )
 
+private fun buildGlassFusedLayerPlan(
+  sampleSize: IntSize,
+  rimActive: Boolean,
+  groupCompositeSize: IntSize?,
+): GlassRetainedLayerPlan = GlassRetainedLayerPlan(
+  buildList {
+    add(GlassRetainedLayer(GlassRetainedLayerKind.Source, sampleSize))
+    add(GlassRetainedLayer(GlassRetainedLayerKind.Optical, sampleSize))
+    if (rimActive) add(GlassRetainedLayer(GlassRetainedLayerKind.Rim, sampleSize))
+    if (groupCompositeSize != null) {
+      add(GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, groupCompositeSize))
+    }
+  },
+)
+
 private fun GlassRenderParams.isRefractionDetailActive(): Boolean = isGlassRefractionDetailActive(
   refractionStrength = refractionStrength,
   refractionScalePx = refractionScalePx,
@@ -851,11 +873,15 @@ internal fun buildGlassPreparedRender(
   outputSize: IntSize,
   previous: GlassPreparedRender? = null,
 ): GlassPreparedRender {
-  val interactionPatchSize = calculateGlassInteractionPatchSize(
-    params = params,
-    radiusFraction = interactionRadiusFraction,
-    topology = interactionTopology,
-  )
+  val interactionPatchSize = if (supportsFusedGlassRenderEffect) {
+    IntSize.Zero
+  } else {
+    calculateGlassInteractionPatchSize(
+      params = params,
+      radiusFraction = interactionRadiusFraction,
+      topology = interactionTopology,
+    )
+  }
   val interactionLayersActive = interactionPatchSize.width > 0 && interactionPatchSize.height > 0
   val groupCompositeSize = resolveGlassGroupCompositeSize(
     outputSize = outputSize,
@@ -902,18 +928,26 @@ internal fun buildGlassPreparedRender(
   ) {
     previous.plan
   } else {
-    buildGlassRetainedLayerPlan(
-      sampleSize = params.coordinates.sampleSize.roundToIntSize(),
-      blurWorkingSize = blurKey?.plan?.workingSize,
-      blurRequiresPrefilter = blurKey?.plan?.requiresPrefilter == true,
-      depthMixActive = blurKey != null && params.depth < 1f,
-      refractionDetailActive = refractionDetailKey != null,
-      rimActive = rimKey != null,
-      interactionPatchSize = interactionPatchSize,
-      interactionOpticsActive = interactionLayersActive && interactionTopology.hasOptics,
-      interactionLightingActive = interactionLayersActive && interactionTopology.hasLighting,
-      groupCompositeSize = groupCompositeSize,
-    )
+    if (supportsFusedGlassRenderEffect) {
+      buildGlassFusedLayerPlan(
+        sampleSize = params.coordinates.sampleSize.roundToIntSize(),
+        rimActive = rimKey != null,
+        groupCompositeSize = groupCompositeSize,
+      )
+    } else {
+      buildGlassRetainedLayerPlan(
+        sampleSize = params.coordinates.sampleSize.roundToIntSize(),
+        blurWorkingSize = blurKey?.plan?.workingSize,
+        blurRequiresPrefilter = blurKey?.plan?.requiresPrefilter == true,
+        depthMixActive = blurKey != null && params.depth < 1f,
+        refractionDetailActive = refractionDetailKey != null,
+        rimActive = rimKey != null,
+        interactionPatchSize = interactionPatchSize,
+        interactionOpticsActive = interactionLayersActive && interactionTopology.hasOptics,
+        interactionLightingActive = interactionLayersActive && interactionTopology.hasLighting,
+        groupCompositeSize = groupCompositeSize,
+      )
+    }
   }
   return GlassPreparedRender(
     params = params,

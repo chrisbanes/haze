@@ -140,13 +140,18 @@ glassEffect {
 
 ## Fallbacks
 
-- Runtime shader path: deterministic semantic Gaussian blur, rounded SDF refraction, tint/specular/Fresnel, chromatic aberration, and edge softness.
+- Runtime shader path: rounded SDF refraction, tint/specular/Fresnel, chromatic aberration, and
+  edge softness. On Android API 33 and newer, one fused renderer handles single and multiple
+  effects, semantic and progressive blur, Full chromatic aberration, and configured interaction
+  lighting and optics through one composed output graph.
 - Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable. Interaction lighting and transforms work on this path, but interactive optics, white-point adjustment, and refraction are no-ops.
 
 ## Performance
 
-On the modern Android path, compatible sibling Glass effects share retained blur and tiled optical
-work. Effects that cannot safely share use their dedicated rendering path. See
+On the modern Android path, every Glass effect composes blur and depth directly into one fused
+refraction, color, and detail output per surface. Renderer selection does not depend on sibling
+count. Progressive blur and Full chromatic aberration remain in the same output graph, while live
+interaction values update locally weighted math in the stable fused shader. See
 [Glass performance](../glass/performance.md) for the physical-device benchmark setup, results, and
 Perfetto interpretation.
 

@@ -76,9 +76,14 @@ internal fun resolveGlassInteractionPatch(
   }
   val sampleSize = params.coordinates.sampleSize
   if (!sampleSize.isDrawable()) return null
-  val bounds = resolveInteractionBounds(
+  val patchSize = calculateGlassInteractionPatchSize(
+    params = params,
+    radiusFraction = uniforms.radiusPx / params.coordinates.materialSize.minDimension,
+    topology = topology,
+  )
+  val bounds = resolveFixedSizeInteractionBounds(
     position = uniforms.position,
-    extent = uniforms.radiusPx + calculateInteractionSamplingPadding(params, topology),
+    patchSize = patchSize,
     sampleSize = sampleSize,
   )
   val compositeBounds = resolveInteractionBounds(
@@ -110,6 +115,27 @@ internal fun resolveGlassInteractionPatch(
   )
 }
 
+private fun resolveFixedSizeInteractionBounds(
+  position: Offset,
+  patchSize: IntSize,
+  sampleSize: Size,
+): IntRect {
+  val sampleWidth = sampleSize.width.toInt()
+  val sampleHeight = sampleSize.height.toInt()
+  val left = floor(position.x - patchSize.width / 2f)
+    .toInt()
+    .coerceIn(0, sampleWidth - patchSize.width)
+  val top = floor(position.y - patchSize.height / 2f)
+    .toInt()
+    .coerceIn(0, sampleHeight - patchSize.height)
+  return IntRect(
+    left = left,
+    top = top,
+    right = left + patchSize.width,
+    bottom = top + patchSize.height,
+  )
+}
+
 private fun resolveInteractionBounds(
   position: Offset,
   extent: Float,
@@ -127,5 +153,6 @@ private fun calculateInteractionSamplingPadding(
 ): Float = (
   params.refractionScalePx * params.refractionStrength * topology.maxRefractionMultiplier *
     (1f + 0.5f * params.chromaticAberrationStrength) +
+    params.blurSigmaPx * 3f +
     maxOf(params.edgeSoftnessPx, params.sampleStepPx)
   ).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f

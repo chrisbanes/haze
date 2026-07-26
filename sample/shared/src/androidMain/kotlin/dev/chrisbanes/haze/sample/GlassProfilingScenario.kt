@@ -1,6 +1,8 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(ExperimentalHazeApi::class)
+
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.runtime.Immutable
@@ -13,6 +15,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.glass.GlassOptics
 
 internal const val GLASS_PROFILING_DURATION_MILLIS: Int = 3_000
 internal const val GLASS_PROFILING_SETTLING_FRAMES: Int = 8
@@ -29,6 +34,8 @@ internal enum class GlassProfilingScenario(
   val blurEnabled: Boolean = true,
   val fixedDepth: Float? = null,
   val fixedInputScale: Float? = null,
+  val progressiveBlur: Boolean = false,
+  val fullChroma: Boolean = false,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -63,6 +70,28 @@ internal enum class GlassProfilingScenario(
     effectCount = 9,
     steadyDraw = true,
   ),
+  SteadyProgressive(
+    id = "steady_progressive",
+    steadyDraw = true,
+    progressiveBlur = true,
+  ),
+  SteadyProgressive9(
+    id = "steady_progressive_9",
+    effectCount = 9,
+    steadyDraw = true,
+    progressiveBlur = true,
+  ),
+  SteadyFullChroma(
+    id = "steady_full_chroma",
+    steadyDraw = true,
+    fullChroma = true,
+  ),
+  SteadyFullChroma9(
+    id = "steady_full_chroma_9",
+    effectCount = 9,
+    steadyDraw = true,
+    fullChroma = true,
+  ),
   SteadyNoRim(
     id = "steady_no_rim",
     steadyDraw = true,
@@ -96,10 +125,10 @@ internal enum class GlassProfilingScenario(
     steadyDraw = true,
     blurEnabled = false,
   ),
-  SteadyDepth1(
-    id = "steady_depth_1",
+  SteadyDepth50(
+    id = "steady_depth_50",
     steadyDraw = true,
-    fixedDepth = 1f,
+    fixedDepth = 0.5f,
   ),
   SteadyScale60(
     id = "steady_scale_60",
@@ -124,10 +153,12 @@ internal enum class GlassProfilingScenario(
   ),
   RetainedReuse("retained_reuse"),
   InteractionUpdate("interaction_update"),
+  InteractionUpdate9("interaction_update_9", effectCount = 9),
   OpticalUpdate("optical_update"),
   DepthUpdate("depth_update"),
   BlurUpdate("blur_update"),
   SourceUpdate("source_update"),
+  SourceUpdate9("source_update_9", effectCount = 9),
   SourceUpdateNoGlass("source_update_no_glass", glassEnabled = false),
 }
 
@@ -144,10 +175,25 @@ internal data class GlassProfilingFrame(
   val sourceOffset: Float = 0f,
   val markerOffset: Float = 0f,
   val lightPosition: Offset = Offset(0.25f, 0.25f),
-  val depth: Float = 0.5f,
+  val depth: Float = 1f,
   val blurRadius: Dp = 14.dp,
   val pressed: Boolean = false,
 )
+
+internal fun GlassProfilingScenario.profilingOpticsOverride(): GlassOptics.Absolute? = when {
+  this == GlassProfilingScenario.DepthUpdate ||
+    this == GlassProfilingScenario.BlurUpdate -> GlassOptics.Absolute()
+  progressiveBlur -> GlassOptics.Absolute(
+    progressive = HazeProgressive.verticalGradient(
+      startIntensity = 0f,
+      endIntensity = 1f,
+    ),
+  )
+  !refractionEnabled -> GlassOptics.Absolute(refractionStrength = 0f)
+  !blurEnabled -> GlassOptics.Absolute(depth = 0f, blurRadius = 0.dp)
+  fixedDepth != null -> GlassOptics.Absolute(depth = fixedDepth)
+  else -> null
+}
 
 internal fun glassProfilingFrame(
   scenario: GlassProfilingScenario,
@@ -163,13 +209,17 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.SteadyFull,
     GlassProfilingScenario.SteadyFull3,
     GlassProfilingScenario.SteadyFull9,
+    GlassProfilingScenario.SteadyProgressive,
+    GlassProfilingScenario.SteadyProgressive9,
+    GlassProfilingScenario.SteadyFullChroma,
+    GlassProfilingScenario.SteadyFullChroma9,
     GlassProfilingScenario.SteadyNoRim,
     GlassProfilingScenario.SteadyNoRim9,
     GlassProfilingScenario.SteadyNoRefraction,
     GlassProfilingScenario.SteadyNoRefraction9,
     GlassProfilingScenario.SteadyNoBlur,
     GlassProfilingScenario.SteadyNoBlur9,
-    GlassProfilingScenario.SteadyDepth1,
+    GlassProfilingScenario.SteadyDepth50,
     GlassProfilingScenario.SteadyScale60,
     GlassProfilingScenario.SteadyScale50,
     GlassProfilingScenario.SteadyScale50Nine,
@@ -178,7 +228,9 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.RetainedReuse -> base.copy(
       markerOffset = lerp(-0.4f, 0.4f, progress),
     )
-    GlassProfilingScenario.InteractionUpdate -> base.copy(
+    GlassProfilingScenario.InteractionUpdate,
+    GlassProfilingScenario.InteractionUpdate9,
+    -> base.copy(
       pressed = progress < 0.5f,
     )
     GlassProfilingScenario.OpticalUpdate -> base.copy(
@@ -191,6 +243,7 @@ internal fun glassProfilingFrame(
       blurRadius = lerp(4f, 28f, progress).dp,
     )
     GlassProfilingScenario.SourceUpdate,
+    GlassProfilingScenario.SourceUpdate9,
     GlassProfilingScenario.SourceUpdateNoGlass,
     -> base.copy(sourceOffset = lerp(-0.08f, 0.08f, progress))
   }
@@ -201,6 +254,7 @@ internal inline fun glassProfilingSourceProgress(
   progress: () -> Float,
 ): Float = when (scenario) {
   GlassProfilingScenario.SourceUpdate,
+  GlassProfilingScenario.SourceUpdate9,
   GlassProfilingScenario.SourceUpdateNoGlass,
   -> progress()
   else -> 0f

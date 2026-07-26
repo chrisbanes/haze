@@ -107,9 +107,9 @@ class GlassVisualEffectLifecycleTest {
     ) as GlassRenderBudgetDecision.Runtime
 
     assertThat(decision.scaleFactor < 1f).isEqualTo(true)
-    assertThat(decision.plan.layers.last()).isEqualTo(
-      GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, IntSize(2_000, 2_000)),
-    )
+    assertThat(
+      decision.plan.layers.any { it.kind == GlassRetainedLayerKind.GroupComposite },
+    ).isEqualTo(!supportsFusedGlassRenderEffect)
     assertThat(decision.plan.fitsGlassRenderBudget()).isEqualTo(true)
     effect.detach(context)
   }
@@ -424,7 +424,11 @@ class GlassVisualEffectLifecycleTest {
     effect.prepareRenderBudget(context, runtimeShaderSupported = true)
     val second = checkNotNull(effect.preparedRender)
 
-    assertThat(second.plan).isNotSameInstanceAs(first.plan)
+    if (supportsFusedGlassRenderEffect) {
+      assertThat(second.plan).isSameInstanceAs(first.plan)
+    } else {
+      assertThat(second.plan).isNotSameInstanceAs(first.plan)
+    }
     assertThat(second.params).isSameInstanceAs(first.params)
     assertThat(second.blurKey).isSameInstanceAs(first.blurKey)
     assertThat(second.opticalKey).isSameInstanceAs(first.opticalKey)
@@ -517,7 +521,8 @@ class GlassVisualEffectLifecycleTest {
 
     assertThat(pressed.scaleFactor).isEqualTo(idle.scaleFactor)
     assertThat(pressedKinds).isEqualTo(idleKinds)
-    assertThat(pressedKinds.any { it.name.startsWith("Interaction") }).isEqualTo(true)
+    assertThat(pressedKinds.any { it.name.startsWith("Interaction") })
+      .isEqualTo(!supportsFusedGlassRenderEffect)
     effect.detach(context)
   }
 

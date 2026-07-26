@@ -130,18 +130,18 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
-  fun idleInteractiveEffect_doesNotAllocateInteractionStages() = runComposeUiTest {
+  fun configuredInteractiveEffect_allocatesStableInteractionStagesWhileIdle() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
 
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
     val delegate = effect.delegate as RuntimeShaderGlassDelegate
-    assertThat(delegate.layers.hasInteractionOptical).isFalse()
-    assertThat(delegate.layers.hasInteractionRefractionDetail).isFalse()
-    assertThat(delegate.layers.hasInteractionRefractionDetailCoverage).isFalse()
-    assertThat(delegate.layers.hasInteractionRefractionComposite).isFalse()
-    assertThat(delegate.layers.hasInteractionLighting).isFalse()
+    assertThat(delegate.layers.hasInteractionOptical).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionDetailCoverage).isTrue()
+    assertThat(delegate.layers.hasInteractionRefractionComposite).isTrue()
+    assertThat(delegate.layers.hasInteractionLighting).isTrue()
   }
 
   @Test

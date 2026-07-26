@@ -18,9 +18,11 @@ import assertk.assertions.containsExactly
 import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.sqrt
 import kotlin.test.Test
 
@@ -97,16 +99,23 @@ class GlassRenderParamsTest {
       refractionStrength = 0.5f,
       refractionScalePx = 20f,
     )
+    val topology = GlassInteractionTopology(true, true, 1.2f)
+    val expectedSize = calculateGlassInteractionPatchSize(
+      params = params,
+      radiusFraction = 30f / params.coordinates.materialSize.minDimension,
+      topology = topology,
+    )
     val patch = checkNotNull(
       resolveGlassInteractionPatch(
         params,
         GlassInteractionUniforms(Offset(0f, 0f), 30f, 1f, 1.2f, 0.04f),
-        GlassInteractionTopology(true, true, 1.2f),
+        topology,
       ),
     )
 
     assertThat(patch.bounds.left).isEqualTo(0)
     assertThat(patch.bounds.top).isEqualTo(0)
+    assertThat(patch.bounds.size).isEqualTo(expectedSize)
     assertThat(patch.uniforms.position).isEqualTo(Offset.Zero)
   }
 
@@ -126,6 +135,45 @@ class GlassRenderParamsTest {
 
     assertThat(size.width).isLessThan(2000)
     assertThat(size.height).isLessThan(1200)
+  }
+
+  @Test
+  fun interactionPatch_includesFusedBlurSamplingReach() {
+    val coordinates = GlassCoordinates(
+      Size(1000f, 600f),
+      Offset.Zero,
+      Size(1000f, 600f),
+      1f,
+    )
+    val topology = GlassInteractionTopology(true, true, 1.2f)
+    val uniforms = GlassInteractionUniforms(Offset(500f, 300f), 60f, 1f, 1.1f, 0.04f)
+    val sharp = checkNotNull(
+      resolveGlassInteractionPatch(
+        testRenderParams(coordinates = coordinates),
+        uniforms,
+        topology,
+      ),
+    )
+    val blurred = checkNotNull(
+      resolveGlassInteractionPatch(
+        testRenderParams(
+          coordinates = coordinates,
+          depth = 1f,
+          blurRadiusPx = 38.5f,
+        ),
+        uniforms,
+        topology,
+      ),
+    )
+
+    assertThat(blurred.compositeBounds).isEqualTo(sharp.compositeBounds)
+    assertThat(blurred.bounds.width).isGreaterThan(sharp.bounds.width)
+    assertThat(blurred.bounds.height).isGreaterThan(sharp.bounds.height)
+    val requiredBlurReach = ceil(SemanticBlurKernel.radiusToSigma(38.5f) * 3f).toInt()
+    assertThat(blurred.compositeBounds.left - blurred.bounds.left)
+      .isGreaterThanOrEqualTo(requiredBlurReach)
+    assertThat(blurred.bounds.right - blurred.compositeBounds.right)
+      .isGreaterThanOrEqualTo(requiredBlurReach)
   }
 
   @Test

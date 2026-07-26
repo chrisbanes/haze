@@ -10,6 +10,22 @@
 
 Record the device model, API level, and selected refresh rate with saved results.
 
+## Controlled scenario baseline
+
+Controlled Glass scenarios start from the unmodified `GlassDefaults.style`. The `steadyFull`,
+`steadyFull3`, and `steadyFull9` benchmarks therefore use adaptive optics, the default shape, and
+all default lighting, color, and rendering values.
+
+Scenarios named after an optical change install an explicit `GlassOptics.Absolute` override for
+that change. For example, `steadyNoBlur` disables depth and blur, while `steadyDepth50` fixes depth
+at `0.5`. `steadyProgressive` and `steadyProgressive9` use the default absolute optical values
+with a vertical progressive mask because adaptive optics does not expose a progressive property.
+`steadyFullChroma` and `steadyFullChroma9` retain adaptive optics and set Full chromatic aberration
+with a non-zero `0.3` strength. Other style groups remain at their defaults.
+
+The progressive, Full chroma, interaction-update, and source-update scenarios each have one- and
+nine-effect variants. The default steady scenario additionally has a three-effect variant.
+
 ## Validate automation
 
 Run all Glass benchmarks without meaningful measurements:
@@ -43,11 +59,13 @@ state between runs. Running all three in one instrumentation session is useful f
 validation, but later cases may be frequency-throttled.
 
 The reports include `HazeGlass.createRenderEffect` count and total duration, plus total
-`HazeGlass.prepareEffects` and `HazeGlass.prepareLayers` durations. Expect 6, 18, and 54 render
-effect creations. Linear duration growth points to per-effect shader/delegate construction; a
-mostly fixed cost points to shared process or renderer initialization. Also inspect RenderThread
-`DrawFrames`, `flush layers`, and `Vulkan finish frame` slices: independent Glass nodes can add
-render-graph submission work even when their combined visible area is constant.
+`HazeGlass.prepareEffects` and `HazeGlass.prepareLayers` durations. Compare creation counts across
+1, 3, and 9 effects rather than assuming a fixed count: blur-plan topology and optional interaction
+or rim stages affect the number of composed effects. Linear duration growth points to per-effect
+shader/delegate construction; a mostly fixed cost points to shared process or renderer
+initialization. Also inspect RenderThread `DrawFrames`, `flush layers`, and `Vulkan finish frame`
+slices: independent Glass nodes can add render-graph submission work even when their combined
+visible area is constant.
 
 Full tracing adds composable function slices to Perfetto traces and is intended for diagnostic
 profiling. Omit `androidx.benchmark.fullTracing.enable` from runs used for comparable benchmark

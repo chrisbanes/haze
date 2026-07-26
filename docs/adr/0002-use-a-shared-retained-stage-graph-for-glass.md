@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0003](0003-use-one-android-fused-glass-renderer.md)
 
 ## Date
 
