@@ -3,8 +3,12 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -50,6 +54,31 @@ class GlassVisualEffectLifecycleTest {
 
     assertThat(decision.plan.layers.last()).isEqualTo(
       GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, IntSize(100, 80)),
+    )
+  }
+
+  @Test
+  fun prepareBudget_materialSizeChangeUpdatesGroupComposite() {
+    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+    val layerSize = Size(160f, 140f)
+
+    effect.prepareRenderBudget(
+      context = TrackingVisualEffectContext(
+        effectSize = Size(100f, 80f),
+        layerSize = layerSize,
+      ),
+      runtimeShaderSupported = false,
+    )
+    val decision = effect.prepareRenderBudget(
+      context = TrackingVisualEffectContext(
+        effectSize = Size(120f, 90f),
+        layerSize = layerSize,
+      ),
+      runtimeShaderSupported = false,
+    ) as GlassRenderBudgetDecision.Runtime
+
+    assertThat(decision.plan.layers.last()).isEqualTo(
+      GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, IntSize(120, 90)),
     )
   }
 
@@ -228,6 +257,128 @@ class GlassVisualEffectLifecycleTest {
     assertThat(secondPrepared).isSameInstanceAs(firstPrepared)
     assertThat(secondPrepared.blurKey?.plan).isSameInstanceAs(firstPrepared.blurKey?.plan)
     assertThat(secondPrepared.plan).isSameInstanceAs(second.plan)
+  }
+
+  @Test
+  fun prepareBudget_chromaticAberrationChangeInvalidatesBudgetDecision() {
+    val effect = GlassVisualEffect()
+    val context = TrackingVisualEffectContext()
+
+    val first = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = true,
+    )
+    effect.chromaticAberrationStrength = 1f
+    val second = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = true,
+    )
+
+    assertThat(second).isNotSameInstanceAs(first)
+  }
+
+  @Test
+  fun stablePreparationAndClipping_doNotResolveCornerGeometryAgain() {
+    val corner = CountingCornerSize(12f)
+    val effect = GlassVisualEffect().apply {
+      shape = RoundedCornerShape(corner)
+    }
+    val context = TrackingVisualEffectContext()
+
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    val resolutionsAfterFirstPreparation = corner.resolutionCount
+
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+
+    assertThat(corner.resolutionCount).isEqualTo(resolutionsAfterFirstPreparation)
+
+    effect.shouldClipToNodeBounds()
+    val resolutionsAfterFirstClipDecision = corner.resolutionCount
+
+    effect.shouldClipToNodeBounds()
+
+    assertThat(corner.resolutionCount).isEqualTo(resolutionsAfterFirstClipDecision)
+  }
+
+  @Test
+  @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+  fun prepareBudget_stateBackedCornerSizeInvalidatesResolvedStyle() = runTest {
+    val cornerPx = mutableFloatStateOf(4f)
+    val effect = GlassVisualEffect().apply {
+      shape = RoundedCornerShape(StateBackedCornerSize { cornerPx.floatValue })
+    }
+    val context = TrackingVisualEffectContext(
+      coroutineScope = CoroutineScope(coroutineContext),
+    )
+    effect.attach(context)
+
+    effect.shouldClipToNodeBounds()
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+    assertThat(effect.preparedRender?.params?.cornerRadii?.topLeft).isEqualTo(4f)
+
+    cornerPx.floatValue = 20f
+    Snapshot.sendApplyNotifications()
+    advanceUntilIdle()
+    effect.prepareRenderBudget(context, runtimeShaderSupported = true)
+
+    assertThat(effect.preparedRender?.params?.cornerRadii?.topLeft).isEqualTo(20f)
+    assertThat(context.invalidateDrawCalls).isEqualTo(1)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
+    effect.detach(context)
+  }
+
+  @Test
+  @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+  fun stateBackedCornerInvalidation_doesNotCrossAttachments() = runTest {
+    val cornerPx = mutableFloatStateOf(0f)
+    val effect = GlassVisualEffect().apply {
+      shape = RoundedCornerShape(StateBackedCornerSize { cornerPx.floatValue })
+    }
+    val firstContext = TrackingVisualEffectContext(
+      coroutineScope = CoroutineScope(coroutineContext),
+    )
+    effect.attach(firstContext)
+    effect.shouldClipToNodeBounds()
+
+    cornerPx.floatValue = 20f
+    Snapshot.sendApplyNotifications()
+    effect.detach(firstContext)
+
+    val secondContext = TrackingVisualEffectContext(
+      coroutineScope = CoroutineScope(coroutineContext),
+    )
+    effect.attach(secondContext)
+    effect.shouldClipToNodeBounds()
+    advanceUntilIdle()
+
+    assertThat(secondContext.invalidateDrawCalls).isEqualTo(0)
+    assertThat(secondContext.invalidateLayerBoundsCalls).isEqualTo(0)
+    effect.detach(secondContext)
+  }
+
+  @Test
+  @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+  fun clipping_stateBackedCornerSizeInvalidatesDecisionBeforePreparation() = runTest {
+    val cornerPx = mutableFloatStateOf(0f)
+    val effect = GlassVisualEffect().apply {
+      edgeSoftness = 0.dp
+      shape = RoundedCornerShape(StateBackedCornerSize { cornerPx.floatValue })
+    }
+    val context = TrackingVisualEffectContext(
+      coroutineScope = CoroutineScope(coroutineContext),
+    )
+    effect.attach(context)
+
+    assertThat(effect.shouldClipToNodeBounds()).isEqualTo(false)
+
+    cornerPx.floatValue = 20f
+    Snapshot.sendApplyNotifications()
+    advanceUntilIdle()
+
+    assertThat(effect.shouldClipToNodeBounds()).isEqualTo(true)
+    assertThat(context.invalidateDrawCalls).isEqualTo(1)
+    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
+    effect.detach(context)
   }
 
   @Test
@@ -435,6 +586,77 @@ class GlassVisualEffectLifecycleTest {
   }
 
   @Test
+  fun resettingConsumedDirtyFlags_doesNotNotifyObserver_butNextChangeDoes() {
+    val effect = GlassVisualEffect().apply { resetDirtyTracker() }
+    val context = TrackingVisualEffectContext()
+    val observer = SnapshotStateObserver { command -> command() }
+    var observerNotifications = 0
+    val observationScope = Any()
+    val onChanged: (Any) -> Unit = { observerNotifications++ }
+
+    observer.start()
+    try {
+      observer.observeReads(observationScope, onChanged) {
+        effect.update(context)
+      }
+
+      effect.alpha = 0.5f
+      Snapshot.sendApplyNotifications()
+
+      assertThat(observerNotifications).isEqualTo(1)
+
+      observer.observeReads(observationScope, onChanged) {
+        effect.update(context)
+      }
+      effect.resetDirtyTracker()
+      Snapshot.sendApplyNotifications()
+
+      assertThat(observerNotifications).isEqualTo(1)
+
+      observer.observeReads(observationScope, onChanged) {
+        effect.update(context)
+      }
+      effect.alpha = 0.6f
+      Snapshot.sendApplyNotifications()
+
+      assertThat(observerNotifications).isEqualTo(2)
+    } finally {
+      observer.stop()
+    }
+  }
+
+  @Test
+  fun markingAlreadyDirtyField_doesNotNotifyObserverAgain() {
+    val effect = GlassVisualEffect().apply { resetDirtyTracker() }
+    val context = TrackingVisualEffectContext()
+    val observer = SnapshotStateObserver { command -> command() }
+    var observerNotifications = 0
+    val observationScope = Any()
+    val onChanged: (Any) -> Unit = { observerNotifications++ }
+
+    observer.start()
+    try {
+      observer.observeReads(observationScope, onChanged) {
+        effect.update(context)
+      }
+      effect.alpha = 0.5f
+      Snapshot.sendApplyNotifications()
+
+      assertThat(observerNotifications).isEqualTo(1)
+
+      observer.observeReads(observationScope, onChanged) {
+        effect.update(context)
+      }
+      effect.alpha = 0.6f
+      Snapshot.sendApplyNotifications()
+
+      assertThat(observerNotifications).isEqualTo(1)
+    } finally {
+      observer.stop()
+    }
+  }
+
+  @Test
   fun update_adaptiveToAbsoluteInvalidatesDrawAndLayerBounds() {
     val effect = GlassVisualEffect()
     val context = TrackingVisualEffectContext()
@@ -578,6 +800,8 @@ class GlassVisualEffectLifecycleTest {
 
     assertThat(controller.renderState.position).isEqualTo(Offset(24f, 36f))
     assertThat(controller.renderState.lightingIntensity).isEqualTo(1f)
+    val stableRenderState = controller.renderState
+    assertThat(controller.renderState).isSameInstanceAs(stableRenderState)
 
     context.invalidateDrawCalls = 0
     controller.updatePosition(Offset(48f, 72f))
@@ -650,3 +874,21 @@ private class TrackingVisualEffectContext(
 private class TestMotionDurationScale(
   override val scaleFactor: Float,
 ) : MotionDurationScale
+
+private class CountingCornerSize(
+  private val value: Float,
+) : CornerSize {
+  var resolutionCount: Int = 0
+    private set
+
+  override fun toPx(shapeSize: Size, density: Density): Float {
+    resolutionCount++
+    return value
+  }
+}
+
+private class StateBackedCornerSize(
+  private val value: () -> Float,
+) : CornerSize {
+  override fun toPx(shapeSize: Size, density: Density): Float = value()
+}

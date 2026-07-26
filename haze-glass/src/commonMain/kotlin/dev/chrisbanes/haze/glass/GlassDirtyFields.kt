@@ -54,6 +54,9 @@ internal object GlassDirtyFields {
   const val LayerBoundsFlags: Int =
     Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds
 
+  const val StyleResolutionFlags: Int = InvalidateFlags and Interaction.inv()
+  const val ClipDecisionFlags: Int = Shape or EdgeSoftness
+
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
       if (Optics in dirtyTracker) add("Optics")

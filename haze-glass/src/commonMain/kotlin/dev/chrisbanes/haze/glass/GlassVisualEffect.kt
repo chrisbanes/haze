@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -42,12 +43,24 @@ import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.VisualEffectTransform
 import dev.chrisbanes.haze.trace
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
-private data class GlassPreparedRenderCacheKey(
+private class GlassPreparedRenderCacheKey(
   val style: ResolvedGlassStyle,
   val coordinates: GlassCoordinates,
   val interaction: ResolvedGlassInteraction,
   val interactionTopology: GlassInteractionTopology,
+)
+
+private class GlassRenderBudgetCacheKey(
+  val style: ResolvedGlassStyle,
+  val requestedScale: Float,
+  val layerSize: Size,
+  val materialSize: Size,
+  val interactionTopology: GlassInteractionTopology,
+  val interactionRadiusFraction: Float,
 )
 
 private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): Boolean =
@@ -67,6 +80,21 @@ private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): B
     specularExponent == other.specularExponent &&
     fresnelExponent == other.fresnelExponent &&
     cornerRadii == other.cornerRadii
+
+private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): Boolean =
+  requiresGlassGroupAlpha(alpha) == requiresGlassGroupAlpha(other.alpha) &&
+    resolvedOptics.blurRadiusPx == other.resolvedOptics.blurRadiusPx &&
+    resolvedOptics.depth == other.resolvedOptics.depth &&
+    (resolvedOptics.progressive == null) == (other.resolvedOptics.progressive == null) &&
+    resolvedOptics.refractionStrength == other.resolvedOptics.refractionStrength &&
+    resolvedOptics.refractionScalePx == other.resolvedOptics.refractionScalePx &&
+    resolvedOptics.refractionHeightPx == other.resolvedOptics.refractionHeightPx &&
+    chromaticAberrationStrength == other.chromaticAberrationStrength &&
+    edgeSoftnessPx == other.edgeSoftnessPx &&
+    (specularIntensity > 0f) == (other.specularIntensity > 0f)
+
+private val IdleInteractionState = GlassInteractionRenderState(Offset.Zero)
+private val IdleInteractionSignals = GlassInteractionSignals()
 
 /**
  * A [VisualEffect] implementation that renders a translucent refractive glass material.
@@ -108,6 +136,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     interactionTransformPivot = other.interactionTransformPivot
     interactionPositionAnimationSpec = other.interactionPositionAnimationSpec
     interactionReducedMotionPolicy = other.interactionReducedMotionPolicy
+    refreshInteractionSnapshots()
   }
 
   private var isAttached: Boolean = false
@@ -123,10 +152,10 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     get() = attachedContext
 
   internal val currentInteractionState: GlassInteractionRenderState
-    get() = interactionController?.renderState ?: GlassInteractionRenderState(Offset.Zero)
+    get() = interactionController?.renderState ?: IdleInteractionState
 
   internal val currentInteractionSignals: GlassInteractionSignals
-    get() = interactionController?.currentSignals ?: GlassInteractionSignals()
+    get() = interactionController?.currentSignals ?: IdleInteractionSignals
 
   private var needsDelegateSelection: Boolean = true
 
@@ -140,11 +169,48 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   private var preparedRenderCacheKey: GlassPreparedRenderCacheKey? = null
   private var preparedRenderCache: GlassPreparedRender? = null
 
-  private var budgetCacheStamp: GlassRenderBudgetStamp? = null
+  private var budgetCacheKey: GlassRenderBudgetCacheKey? = null
   private var budgetCacheDecision: GlassRenderBudgetDecision? = null
 
-  internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
+  private var dirtyTrackerVersion: Int by mutableIntStateOf(0)
+  internal var dirtyTracker: Bitmask = Bitmask()
     private set
+
+  private var resolvedStyleCache: ResolvedGlassStyle? = null
+  private var resolvedStyleCacheSize: Size = Size.Unspecified
+  private var resolvedStyleCacheDensity: Density? = null
+  private var resolvedStyleCacheLayoutDirection: LayoutDirection? = null
+
+  private var geometrySnapshotObserver: SnapshotStateObserver? = null
+  private var geometryObserverGeneration: Int = 0
+  private var geometryInvalidationJob: Job? = null
+  private val styleObservationScope = Any()
+  private val clipObservationScope = Any()
+  private val onObservedStyleChanged: (Any) -> Unit = {
+    scheduleObservedStyleInvalidation()
+  }
+
+  private var coordinatesCache: GlassCoordinates? = null
+  private var coordinatesCacheLayerSize: Size = Size.Unspecified
+  private var coordinatesCacheLayerOffset: Offset = Offset.Unspecified
+  private var coordinatesCacheMaterialSize: Size = Size.Unspecified
+  private var coordinatesCacheScaleFactor: Float = Float.NaN
+
+  private var interactionRenderStateCache: GlassInteractionRenderState? = null
+  private var interactionRadiusFractionCache: Float = Float.NaN
+  private var resolvedInteractionCache: ResolvedGlassInteraction? = null
+  private var idleInteractionRenderStateSize: Size = Size.Unspecified
+  private var idleInteractionRenderState: GlassInteractionRenderState = IdleInteractionState
+
+  private var shouldClipToNodeBoundsCacheValid: Boolean = false
+  private var shouldClipToNodeBoundsCache: Boolean = false
+
+  private val renderPreparation = GlassRenderPreparation(
+    decision = GlassRenderBudgetDecision.Fallback(
+      GlassRenderBudgetFallbackReason.InvalidGeometry,
+    ),
+    prepared = null,
+  )
 
   private var nextInteractionRevision: Long = 0L
 
@@ -157,12 +223,12 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   internal var pressedSlot: GlassInteractionSlot? by mutableStateOf(null)
     private set
 
+  private var interactionSlotsSnapshot: GlassInteractionSlots = GlassInteractionSlots()
+  private var interactionTopologySnapshot: GlassInteractionTopology =
+    interactionSlotsSnapshot.resolveInteractionTopology()
+
   internal val interactionSlots: GlassInteractionSlots
-    get() = GlassInteractionSlots(
-      focused = focusedSlot,
-      hovered = hoveredSlot,
-      pressed = pressedSlot,
-    )
+    get() = interactionSlotsSnapshot
 
   private class InteractionSlotTransaction(effect: GlassVisualEffect) {
     var hovered: GlassInteractionResponse? = effect.hoveredSlot?.response
@@ -262,8 +328,6 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
         onInteractionConfigurationChanged()
       }
     }
-
-  private var interactionConfigurationVersion: Int by mutableIntStateOf(0)
 
   public fun hovered() {
     setHovered(defaultHoverResponse())
@@ -373,16 +437,28 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   private fun onInteractionConfigurationChanged(previousRefractionMultiplier: Float? = null) {
-    dirtyTracker += GlassDirtyFields.Interaction
+    refreshInteractionSnapshots()
+    markDirty(GlassDirtyFields.Interaction)
     if (
       previousRefractionMultiplier != null &&
       previousRefractionMultiplier != maximumInteractionRefractionMultiplier()
     ) {
-      dirtyTracker += GlassDirtyFields.InteractionLayerBounds
+      markDirty(GlassDirtyFields.InteractionLayerBounds)
     }
-    interactionConfigurationVersion++
     if (hoveredSlot == null && focusedSlot == null && pressedSlot == null) {
       attachedContext?.let(::syncInteractionController)
+    }
+  }
+
+  private fun refreshInteractionSnapshots() {
+    val slots = GlassInteractionSlots(
+      focused = focusedSlot,
+      hovered = hoveredSlot,
+      pressed = pressedSlot,
+    )
+    if (slots != interactionSlotsSnapshot) {
+      interactionSlotsSnapshot = slots
+      interactionTopologySnapshot = slots.resolveInteractionTopology()
     }
   }
 
@@ -444,6 +520,20 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     if (!isAttached) {
       isAttached = true
       attachedContext = context
+      val observerGeneration = ++geometryObserverGeneration
+      geometrySnapshotObserver = SnapshotStateObserver { command ->
+        context.coroutineScope.launch {
+          if (
+            isAttached &&
+            attachedContext === context &&
+            geometryObserverGeneration == observerGeneration
+          ) {
+            command()
+          }
+        }
+      }.also { it.start() }
+      resolvedStyleCache = null
+      shouldClipToNodeBoundsCacheValid = false
       syncInteractionController(context)
       delegate.attach()
     }
@@ -453,6 +543,11 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     if (isAttached) {
       interactionController?.dispose()
       interactionController = null
+      geometryObserverGeneration++
+      geometryInvalidationJob?.cancel()
+      geometryInvalidationJob = null
+      geometrySnapshotObserver?.stop()
+      geometrySnapshotObserver = null
       attachedContext = null
       isAttached = false
       delegate.detach()
@@ -461,8 +556,27 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     clearPreparedRenderCache()
   }
 
+  private fun scheduleObservedStyleInvalidation() {
+    if (geometryInvalidationJob?.isActive == true) return
+    val context = attachedContext ?: return
+    val observerGeneration = geometryObserverGeneration
+    geometryInvalidationJob = context.coroutineScope.launch {
+      yield()
+      if (
+        isAttached &&
+        attachedContext === context &&
+        geometryObserverGeneration == observerGeneration
+      ) {
+        resolvedStyleCache = null
+        shouldClipToNodeBoundsCacheValid = false
+        context.invalidateLayerBounds()
+        context.invalidateDraw()
+      }
+    }
+  }
+
   override fun update(context: VisualEffectContext) {
-    interactionConfigurationVersion
+    dirtyTrackerVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
     syncInteractionController(context)
 
@@ -551,9 +665,12 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   internal fun interactionRenderState(context: VisualEffectContext): GlassInteractionRenderState {
-    return interactionController?.renderState ?: GlassInteractionRenderState(
-      position = context.size.center,
-    )
+    interactionController?.let { return it.renderState }
+    if (idleInteractionRenderStateSize != context.size) {
+      idleInteractionRenderStateSize = context.size
+      idleInteractionRenderState = GlassInteractionRenderState(position = context.size.center)
+    }
+    return idleInteractionRenderState
   }
 
   private fun resolveTransform(
@@ -623,7 +740,20 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
   }
 
-  override fun shouldClipToNodeBounds(): Boolean = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
+  override fun shouldClipToNodeBounds(): Boolean {
+    if (!shouldClipToNodeBoundsCacheValid) {
+      val observer = geometrySnapshotObserver
+      if (observer != null) {
+        observer.observeReads(clipObservationScope, onObservedStyleChanged) {
+          shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
+        }
+      } else {
+        shouldClipToNodeBoundsCache = edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
+      }
+      shouldClipToNodeBoundsCacheValid = true
+    }
+    return shouldClipToNodeBoundsCache
+  }
 
   internal fun resolveInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
     is HazeInputScale.None -> 1f
@@ -633,6 +763,77 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
 
   internal fun resolveGlassRenderBudget(context: VisualEffectContext): GlassRenderBudgetDecision {
     return resolveGlassRenderPreparation(context, runtimeShaderSupported = true).decision
+  }
+
+  private fun resolvePreparedStyle(context: VisualEffectContext): ResolvedGlassStyle {
+    val density = context.requireDensity()
+    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
+    resolvedStyleCache?.takeIf {
+      resolvedStyleCacheSize == context.size &&
+        resolvedStyleCacheDensity == density &&
+        resolvedStyleCacheLayoutDirection == layoutDirection
+    }?.let { return it }
+
+    val resolvedStyle = geometrySnapshotObserver?.let { observer ->
+      lateinit var observedStyle: ResolvedGlassStyle
+      observer.observeReads(styleObservationScope, onObservedStyleChanged) {
+        observedStyle = resolveGlassStyle(this, context.size, density, layoutDirection)
+      }
+      observedStyle
+    } ?: resolveGlassStyle(this, context.size, density, layoutDirection)
+
+    return resolvedStyle.also {
+      resolvedStyleCache = it
+      resolvedStyleCacheSize = context.size
+      resolvedStyleCacheDensity = density
+      resolvedStyleCacheLayoutDirection = layoutDirection
+    }
+  }
+
+  private fun resolvePreparedInteraction(
+    context: VisualEffectContext,
+  ): ResolvedGlassInteraction {
+    val state = interactionRenderState(context)
+    resolvedInteractionCache?.takeIf {
+      interactionRenderStateCache === state &&
+        interactionRadiusFractionCache == interactionLightRadiusFraction
+    }?.let { return it }
+
+    return resolveGlassInteraction(
+      state = state,
+      radiusFraction = interactionLightRadiusFraction,
+    ).also {
+      interactionRenderStateCache = state
+      interactionRadiusFractionCache = interactionLightRadiusFraction
+      resolvedInteractionCache = it
+    }
+  }
+
+  private fun resolvePreparedCoordinates(
+    layerSize: Size,
+    layerOffset: Offset,
+    materialSize: Size,
+    scaleFactor: Float,
+  ): GlassCoordinates {
+    coordinatesCache?.takeIf {
+      coordinatesCacheLayerSize == layerSize &&
+        coordinatesCacheLayerOffset == layerOffset &&
+        coordinatesCacheMaterialSize == materialSize &&
+        coordinatesCacheScaleFactor == scaleFactor
+    }?.let { return it }
+
+    return resolveGlassCoordinates(
+      layerSize = layerSize,
+      layerOffset = layerOffset,
+      materialSize = materialSize,
+      scaleFactor = scaleFactor,
+    ).withRoundedSampleSize().also {
+      coordinatesCache = it
+      coordinatesCacheLayerSize = layerSize
+      coordinatesCacheLayerOffset = layerOffset
+      coordinatesCacheMaterialSize = materialSize
+      coordinatesCacheScaleFactor = scaleFactor
+    }
   }
 
   private fun resolveGlassRenderPreparation(
@@ -645,41 +846,28 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       !context.size.isDrawable() || !context.layerSize.isDrawable()
     ) {
       clearPreparedRenderCache()
-      return GlassRenderPreparation(
+      return updateRenderPreparation(
         GlassRenderBudgetDecision.Fallback(GlassRenderBudgetFallbackReason.InvalidGeometry),
         null,
       )
     }
-    val density = context.requireDensity()
-    val layoutDirection = context.currentValueOf(LocalLayoutDirection)
-    val style = resolveGlassStyle(this, context.size, density, layoutDirection)
-    val interaction = resolveGlassInteraction(
-      state = interactionRenderState(context),
-      radiusFraction = interactionLightRadiusFraction,
-    )
-    val interactionTopology = interactionSlots.resolveInteractionTopology()
+    val style = resolvePreparedStyle(context)
+    val interaction = resolvePreparedInteraction(context)
+    val interactionTopology = interactionTopologySnapshot
     val optics = style.resolvedOptics
-    val stamp = GlassRenderBudgetStamp(
-      requestedScale = requestedScale,
-      layerWidth = context.layerSize.width,
-      layerHeight = context.layerSize.height,
-      materialWidth = context.size.width,
-      materialHeight = context.size.height,
-      requiresGroupAlpha = requiresGlassGroupAlpha(style.alpha),
-      blurRadiusPx = optics.blurRadiusPx,
-      depth = optics.depth,
-      allowMultiscaleBlur = optics.progressive == null,
-      refractionStrength = optics.refractionStrength,
-      refractionScalePx = optics.refractionScalePx,
-      refractionHeightPx = optics.refractionHeightPx,
-      edgeSoftnessPx = style.edgeSoftnessPx,
-      rimActive = style.specularIntensity > 0f,
-      interactionTopology = interactionTopology,
-      interactionRadiusFraction = interaction.radiusFraction,
-    )
-    val decision = if (stamp == budgetCacheStamp) {
+    val budgetKey = budgetCacheKey
+    val decision = if (
+      budgetKey != null &&
+      budgetKey.style.hasSameBudgetParams(style) &&
+      budgetKey.requestedScale == requestedScale &&
+      budgetKey.layerSize == context.layerSize &&
+      budgetKey.materialSize == context.size &&
+      budgetKey.interactionTopology === interactionTopology &&
+      budgetKey.interactionRadiusFraction == interaction.radiusFraction
+    ) {
       checkNotNull(budgetCacheDecision)
     } else {
+      val allowMultiscaleBlur = optics.progressive == null
       resolveGlassRenderBudget(requestedScale) { scaleFactor ->
         val rawCoordinates = resolveGlassCoordinates(
           layerSize = context.layerSize,
@@ -712,7 +900,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
           ),
           blurRadiusPx = optics.blurRadiusPx * scaleFactor,
           depth = optics.depth,
-          allowMultiscaleBlur = optics.progressive == null,
+          allowMultiscaleBlur = allowMultiscaleBlur,
           refractionDetailActive = isGlassRefractionDetailActive(
             refractionStrength = optics.refractionStrength,
             refractionScalePx = optics.refractionScalePx * scaleFactor,
@@ -725,48 +913,58 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
           interactionOpticsActive = interactionTopology.hasOptics,
           interactionLightingActive = interactionTopology.hasLighting,
         )
-      }.also {
-        budgetCacheStamp = stamp
-        budgetCacheDecision = it
+      }.also { resolvedDecision ->
+        budgetCacheKey = GlassRenderBudgetCacheKey(
+          style = style,
+          requestedScale = requestedScale,
+          layerSize = context.layerSize,
+          materialSize = context.size,
+          interactionTopology = interactionTopology,
+          interactionRadiusFraction = interaction.radiusFraction,
+        )
+        budgetCacheDecision = resolvedDecision
       }
     }
     if (decision !is GlassRenderBudgetDecision.Runtime) {
       clearPreparedRenderCache()
-      return GlassRenderPreparation(decision, null)
+      return updateRenderPreparation(decision, null)
     }
     if (!runtimeShaderSupported) {
-      return GlassRenderPreparation(decision, null)
+      return updateRenderPreparation(decision, null)
     }
-    val coordinates = resolveGlassCoordinates(
+    val coordinates = resolvePreparedCoordinates(
       layerSize = context.layerSize,
       layerOffset = context.layerOffset,
       materialSize = context.size,
       scaleFactor = decision.scaleFactor,
-    ).withRoundedSampleSize()
-    val preparedRenderCacheKey = GlassPreparedRenderCacheKey(
-      style = style,
-      coordinates = coordinates,
-      interaction = interaction,
-      interactionTopology = interactionTopology,
     )
-    if (preparedRenderCacheKey == this.preparedRenderCacheKey) {
-      return GlassRenderPreparation(decision, checkNotNull(preparedRenderCache))
+    val preparedCacheKey = preparedRenderCacheKey
+    if (
+      preparedCacheKey != null &&
+      style === preparedCacheKey.style &&
+      coordinates === preparedCacheKey.coordinates &&
+      interaction === preparedCacheKey.interaction &&
+      interactionTopology === preparedCacheKey.interactionTopology
+    ) {
+      return updateRenderPreparation(decision, checkNotNull(preparedRenderCache))
     }
-    val previousCacheKey = this.preparedRenderCacheKey
+    val previousStyle = preparedCacheKey?.style
+    val previousCoordinates = preparedCacheKey?.coordinates
+    val previousInteraction = preparedCacheKey?.interaction
     val previousPrepared = preparedRenderCache
     val params = if (
-      previousCacheKey != null && previousPrepared != null &&
-      coordinates == previousCacheKey.coordinates &&
-      style.hasSameRenderParams(previousCacheKey.style)
+      previousStyle != null && previousCoordinates != null && previousPrepared != null &&
+      coordinates === previousCoordinates &&
+      style.hasSameRenderParams(previousStyle)
     ) {
       previousPrepared.params
     } else {
       buildGlassRenderParams(style, coordinates)
     }
     val interactionUniforms = if (
-      previousCacheKey != null && previousPrepared != null &&
-      coordinates == previousCacheKey.coordinates &&
-      interaction == previousCacheKey.interaction
+      previousCoordinates != null && previousInteraction != null && previousPrepared != null &&
+      coordinates === previousCoordinates &&
+      interaction === previousInteraction
     ) {
       previousPrepared.interactionUniforms
     } else {
@@ -787,7 +985,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       )
       budgetCacheDecision = fallback
       clearPreparedRenderCache()
-      return GlassRenderPreparation(fallback, null)
+      return updateRenderPreparation(fallback, null)
     }
     val validatedDecision = if (decision.plan == exactPrepared.plan) {
       decision
@@ -800,9 +998,23 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     } else {
       exactPrepared.copy(plan = validatedDecision.plan)
     }
-    this.preparedRenderCacheKey = preparedRenderCacheKey
+    preparedRenderCacheKey = GlassPreparedRenderCacheKey(
+      style = style,
+      coordinates = coordinates,
+      interaction = interaction,
+      interactionTopology = interactionTopology,
+    )
     preparedRenderCache = prepared
-    return GlassRenderPreparation(validatedDecision, prepared)
+    return updateRenderPreparation(validatedDecision, prepared)
+  }
+
+  private fun updateRenderPreparation(
+    decision: GlassRenderBudgetDecision,
+    prepared: GlassPreparedRender?,
+  ): GlassRenderPreparation {
+    renderPreparation.decision = decision
+    renderPreparation.prepared = prepared
+    return renderPreparation
   }
 
   private fun clearPreparedRenderCache() {
@@ -860,14 +1072,10 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     return rect.inflate(paddingPx)
   }
 
-  override fun shouldPreferClipToAreaBounds(): Boolean = edgeSoftness <= 0.dp && shape.hasZeroCornerRadii()
+  override fun shouldPreferClipToAreaBounds(): Boolean = !shouldClipToNodeBounds()
 
-  private fun maximumInteractionRefractionMultiplier(): Float = maxOf(
-    1f,
-    hoveredSlot?.response?.refractionMultiplier?.value ?: 1f,
-    focusedSlot?.response?.refractionMultiplier?.value ?: 1f,
-    pressedSlot?.response?.refractionMultiplier?.value ?: 1f,
-  )
+  private fun maximumInteractionRefractionMultiplier(): Float =
+    interactionTopologySnapshot.maxRefractionMultiplier
 
   private var _optics: GlassOptics? = null
 
@@ -883,7 +1091,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (value != _optics) {
         HazeLogger.d(TAG) { "optics changed. Current: $_optics. New: $value" }
         _optics = value
-        dirtyTracker += GlassDirtyFields.Optics
+        markDirty(GlassDirtyFields.Optics)
       }
     }
 
@@ -895,7 +1103,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     if (_optics != null) {
       HazeLogger.d(TAG) { "optics override cleared. Current: $_optics" }
       _optics = null
-      dirtyTracker += GlassDirtyFields.Optics
+      markDirty(GlassDirtyFields.Optics)
     }
   }
 
@@ -919,7 +1127,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (!_specularIntensity.hasSameOverrideValueAs(normalized)) {
         HazeLogger.d(TAG) { "specularIntensity changed. Current: $_specularIntensity. New: $value" }
         _specularIntensity = normalized
-        dirtyTracker += GlassDirtyFields.SpecularIntensity
+        markDirty(GlassDirtyFields.SpecularIntensity)
       }
     }
 
@@ -943,7 +1151,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (!_ambientResponse.hasSameOverrideValueAs(normalized)) {
         HazeLogger.d(TAG) { "ambientResponse changed. Current: $_ambientResponse. New: $value" }
         _ambientResponse = normalized
-        dirtyTracker += GlassDirtyFields.AmbientResponse
+        markDirty(GlassDirtyFields.AmbientResponse)
       }
     }
 
@@ -966,7 +1174,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (_tint != value) {
         HazeLogger.d(TAG) { "tint changed. Current: $_tint. New: $value" }
         _tint = value
-        dirtyTracker += GlassDirtyFields.Tint
+        markDirty(GlassDirtyFields.Tint)
       }
     }
 
@@ -989,7 +1197,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (_edgeSoftness != value) {
         HazeLogger.d(TAG) { "edgeSoftness changed. Current: $_edgeSoftness. New: $value" }
         _edgeSoftness = value
-        dirtyTracker += GlassDirtyFields.EdgeSoftness
+        markDirty(GlassDirtyFields.EdgeSoftness)
       }
     }
 
@@ -1014,7 +1222,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (_lightPosition != value) {
         HazeLogger.d(TAG) { "lightPosition changed. Current: $_lightPosition. New: $value" }
         _lightPosition = value
-        dirtyTracker += GlassDirtyFields.LightPosition
+        markDirty(GlassDirtyFields.LightPosition)
       }
     }
 
@@ -1040,7 +1248,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
           "chromaticAberrationStrength changed. Current: $_chromaticAberrationStrength. New: $value"
         }
         _chromaticAberrationStrength = normalized
-        dirtyTracker += GlassDirtyFields.ChromaticAberration
+        markDirty(GlassDirtyFields.ChromaticAberration)
       }
     }
 
@@ -1061,7 +1269,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (value != _surfaceProfile) {
         HazeLogger.d(TAG) { "surfaceProfile changed. Current: $_surfaceProfile. New: $value" }
         _surfaceProfile = value
-        dirtyTracker += GlassDirtyFields.SurfaceProfile
+        markDirty(GlassDirtyFields.SurfaceProfile)
       }
     }
 
@@ -1073,7 +1281,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     if (_surfaceProfile != null) {
       HazeLogger.d(TAG) { "surfaceProfile override cleared. Current: $_surfaceProfile" }
       _surfaceProfile = null
-      dirtyTracker += GlassDirtyFields.SurfaceProfile
+      markDirty(GlassDirtyFields.SurfaceProfile)
     }
   }
 
@@ -1094,7 +1302,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (value != _chromaticAberrationMode) {
         HazeLogger.d(TAG) { "chromaticAberrationMode changed. Current: $_chromaticAberrationMode. New: $value" }
         _chromaticAberrationMode = value
-        dirtyTracker += GlassDirtyFields.ChromaticAberrationMode
+        markDirty(GlassDirtyFields.ChromaticAberrationMode)
       }
     }
 
@@ -1106,7 +1314,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     if (_chromaticAberrationMode != null) {
       HazeLogger.d(TAG) { "chromaticAberrationMode override cleared. Current: $_chromaticAberrationMode" }
       _chromaticAberrationMode = null
-      dirtyTracker += GlassDirtyFields.ChromaticAberrationMode
+      markDirty(GlassDirtyFields.ChromaticAberrationMode)
     }
   }
 
@@ -1127,7 +1335,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (value != _shape) {
         HazeLogger.d(TAG) { "shape changed. Current: $_shape. New: $value" }
         _shape = value
-        dirtyTracker += GlassDirtyFields.Shape
+        markDirty(GlassDirtyFields.Shape)
       }
     }
 
@@ -1139,7 +1347,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     if (_shape != null) {
       HazeLogger.d(TAG) { "shape override cleared. Current: $_shape" }
       _shape = null
-      dirtyTracker += GlassDirtyFields.Shape
+      markDirty(GlassDirtyFields.Shape)
     }
   }
 
@@ -1163,7 +1371,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (!_alpha.hasSameOverrideValueAs(normalized)) {
         HazeLogger.d(TAG) { "alpha changed. Current: $_alpha. New: $value" }
         _alpha = normalized
-        dirtyTracker += GlassDirtyFields.Alpha
+        markDirty(GlassDirtyFields.Alpha)
       }
     }
 
@@ -1187,7 +1395,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (!_contrast.hasSameOverrideValueAs(normalized)) {
         HazeLogger.d(TAG) { "contrast changed. Current: $_contrast. New: $value" }
         _contrast = normalized
-        dirtyTracker += GlassDirtyFields.Contrast
+        markDirty(GlassDirtyFields.Contrast)
       }
     }
 
@@ -1211,7 +1419,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (!_whitePoint.hasSameOverrideValueAs(normalized)) {
         HazeLogger.d(TAG) { "whitePoint changed. Current: $_whitePoint. New: $value" }
         _whitePoint = normalized
-        dirtyTracker += GlassDirtyFields.WhitePoint
+        markDirty(GlassDirtyFields.WhitePoint)
       }
     }
 
@@ -1235,7 +1443,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (!_chromaMultiplier.hasSameOverrideValueAs(normalized)) {
         HazeLogger.d(TAG) { "chromaMultiplier changed. Current: $_chromaMultiplier. New: $value" }
         _chromaMultiplier = normalized
-        dirtyTracker += GlassDirtyFields.ChromaMultiplier
+        markDirty(GlassDirtyFields.ChromaMultiplier)
       }
     }
 
@@ -1259,7 +1467,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (!_contentNormalBlend.hasSameOverrideValueAs(normalized)) {
         HazeLogger.d(TAG) { "contentNormalBlend changed. Current: $_contentNormalBlend. New: $value" }
         _contentNormalBlend = normalized
-        dirtyTracker += GlassDirtyFields.ContentNormalBlend
+        markDirty(GlassDirtyFields.ContentNormalBlend)
       }
     }
 
@@ -1283,7 +1491,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (!_specularExponent.hasSameOverrideValueAs(normalized)) {
         HazeLogger.d(TAG) { "specularExponent changed. Current: $_specularExponent. New: $value" }
         _specularExponent = normalized
-        dirtyTracker += GlassDirtyFields.SpecularExponent
+        markDirty(GlassDirtyFields.SpecularExponent)
       }
     }
 
@@ -1307,7 +1515,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       if (!_fresnelExponent.hasSameOverrideValueAs(normalized)) {
         HazeLogger.d(TAG) { "fresnelExponent changed. Current: $_fresnelExponent. New: $value" }
         _fresnelExponent = normalized
-        dirtyTracker += GlassDirtyFields.FresnelExponent
+        markDirty(GlassDirtyFields.FresnelExponent)
       }
     }
 
@@ -1327,7 +1535,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
         HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
         onStyleChanged(old = field, new = value)
         field = value
-        dirtyTracker += GlassDirtyFields.Style
+        markDirty(GlassDirtyFields.Style)
       }
     }
 
@@ -1360,6 +1568,20 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     dirtyTracker = Bitmask()
   }
 
+  private fun markDirty(fields: Int) {
+    val updated = dirtyTracker + fields
+    if (updated != dirtyTracker) {
+      dirtyTracker = updated
+      dirtyTrackerVersion++
+    }
+    if (fields and GlassDirtyFields.StyleResolutionFlags != 0) {
+      resolvedStyleCache = null
+    }
+    if (fields and GlassDirtyFields.ClipDecisionFlags != 0) {
+      shouldClipToNodeBoundsCacheValid = false
+    }
+  }
+
   private fun DrawScope.selectDelegateForDraw(context: VisualEffectContext) {
     if (needsDelegateSelection) {
       delegate = updateDelegate(context, this)
@@ -1369,93 +1591,93 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
 
   private fun onStyleChanged(old: GlassStyle, new: GlassStyle) {
     if (old.optics != new.optics) {
-      dirtyTracker += GlassDirtyFields.Optics
+      markDirty(GlassDirtyFields.Optics)
     }
     if (
       !old.lighting.specularIntensity.hasSameNormalizedOverrideValueAs(
         new.lighting.specularIntensity,
       ) { it.coerceIn(0f, 1f) }
     ) {
-      dirtyTracker += GlassDirtyFields.SpecularIntensity
+      markDirty(GlassDirtyFields.SpecularIntensity)
     }
     if (
       !old.lighting.ambientResponse.hasSameNormalizedOverrideValueAs(
         new.lighting.ambientResponse,
       ) { it.coerceIn(0f, 1f) }
     ) {
-      dirtyTracker += GlassDirtyFields.AmbientResponse
+      markDirty(GlassDirtyFields.AmbientResponse)
     }
     if (old.lighting.lightPosition != new.lighting.lightPosition) {
-      dirtyTracker += GlassDirtyFields.LightPosition
+      markDirty(GlassDirtyFields.LightPosition)
     }
     if (
       !old.lighting.specularExponent.hasSameNormalizedOverrideValueAs(
         new.lighting.specularExponent,
       ) { it.coerceAtLeast(0f) }
     ) {
-      dirtyTracker += GlassDirtyFields.SpecularExponent
+      markDirty(GlassDirtyFields.SpecularExponent)
     }
     if (
       !old.lighting.fresnelExponent.hasSameNormalizedOverrideValueAs(
         new.lighting.fresnelExponent,
       ) { it.coerceAtLeast(0f) }
     ) {
-      dirtyTracker += GlassDirtyFields.FresnelExponent
+      markDirty(GlassDirtyFields.FresnelExponent)
     }
     if (old.tint != new.tint) {
-      dirtyTracker += GlassDirtyFields.Tint
+      markDirty(GlassDirtyFields.Tint)
     }
     if (old.shape != new.shape) {
-      dirtyTracker += GlassDirtyFields.Shape
+      markDirty(GlassDirtyFields.Shape)
     }
     if (
       !old.color.alpha.hasSameNormalizedOverrideValueAs(new.color.alpha) { it.coerceIn(0f, 1f) }
     ) {
-      dirtyTracker += GlassDirtyFields.Alpha
+      markDirty(GlassDirtyFields.Alpha)
     }
     if (
       !old.color.contrast.hasSameNormalizedOverrideValueAs(new.color.contrast) {
         it.coerceIn(-1f, 1f)
       }
     ) {
-      dirtyTracker += GlassDirtyFields.Contrast
+      markDirty(GlassDirtyFields.Contrast)
     }
     if (
       !old.color.whitePoint.hasSameNormalizedOverrideValueAs(new.color.whitePoint) {
         it.coerceIn(-1f, 1f)
       }
     ) {
-      dirtyTracker += GlassDirtyFields.WhitePoint
+      markDirty(GlassDirtyFields.WhitePoint)
     }
     if (
       !old.color.chromaMultiplier.hasSameNormalizedOverrideValueAs(new.color.chromaMultiplier) {
         it.coerceIn(0f, 2f)
       }
     ) {
-      dirtyTracker += GlassDirtyFields.ChromaMultiplier
+      markDirty(GlassDirtyFields.ChromaMultiplier)
     }
     if (old.rendering.edgeSoftness != new.rendering.edgeSoftness) {
-      dirtyTracker += GlassDirtyFields.EdgeSoftness
+      markDirty(GlassDirtyFields.EdgeSoftness)
     }
     if (
       !old.rendering.contentNormalBlend.hasSameNormalizedOverrideValueAs(
         new.rendering.contentNormalBlend,
       ) { it.coerceIn(0f, 1f) }
     ) {
-      dirtyTracker += GlassDirtyFields.ContentNormalBlend
+      markDirty(GlassDirtyFields.ContentNormalBlend)
     }
     if (old.rendering.surfaceProfile != new.rendering.surfaceProfile) {
-      dirtyTracker += GlassDirtyFields.SurfaceProfile
+      markDirty(GlassDirtyFields.SurfaceProfile)
     }
     if (
       !old.rendering.chromaticAberrationStrength.hasSameNormalizedOverrideValueAs(
         new.rendering.chromaticAberrationStrength,
       ) { it.coerceIn(0f, 1f) }
     ) {
-      dirtyTracker += GlassDirtyFields.ChromaticAberration
+      markDirty(GlassDirtyFields.ChromaticAberration)
     }
     if (old.rendering.chromaticAberrationMode != new.rendering.chromaticAberrationMode) {
-      dirtyTracker += GlassDirtyFields.ChromaticAberrationMode
+      markDirty(GlassDirtyFields.ChromaticAberrationMode)
     }
   }
 
@@ -1464,28 +1686,9 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 }
 
-private data class GlassRenderPreparation(
-  val decision: GlassRenderBudgetDecision,
-  val prepared: GlassPreparedRender?,
-)
-
-private data class GlassRenderBudgetStamp(
-  val requestedScale: Float,
-  val layerWidth: Float,
-  val layerHeight: Float,
-  val materialWidth: Float,
-  val materialHeight: Float,
-  val requiresGroupAlpha: Boolean,
-  val blurRadiusPx: Float,
-  val depth: Float,
-  val allowMultiscaleBlur: Boolean,
-  val refractionStrength: Float,
-  val refractionScalePx: Float,
-  val refractionHeightPx: Float,
-  val edgeSoftnessPx: Float,
-  val rimActive: Boolean,
-  val interactionTopology: GlassInteractionTopology,
-  val interactionRadiusFraction: Float,
+private class GlassRenderPreparation(
+  var decision: GlassRenderBudgetDecision,
+  var prepared: GlassPreparedRender?,
 )
 
 internal interface RetainedOutputDelegate {
