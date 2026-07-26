@@ -87,7 +87,7 @@ Options:
 
 #### drawContentBehind
 
-When `true`, the original source content is drawn before the effect is applied. When `false`, only the effect is drawn. Defaults to `true`.
+When `true`, the original source content is drawn before the effect is applied. When `false`, only the effect is drawn. Defaults to `false`.
 
 #### canDrawArea
 
