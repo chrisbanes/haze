@@ -122,4 +122,4 @@ into the fused shader recorded a 10.9 ms CPU P90 and a -1.2 ms frame-overrun P90
 
 - [ADR-0002: Use a shared retained stage graph for Glass](0002-use-a-shared-retained-stage-graph-for-glass.md)
 - [Glass performance](../glass/performance.md)
-- [Android benchmark runbook](../../internal/benchmark/README.md)
+- Android benchmark runbook: `internal/benchmark/README.md`

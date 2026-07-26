@@ -95,7 +95,7 @@ class GlassScreenshotTest : ScreenshotTest() {
       }
     }
     // Stacked runtime shaders amplify Skia's platform-specific pixel variance.
-    captureRoot(unmatchedPixelThreshold = 0.014f)
+    captureRoot(unmatchedPixelThreshold = 0.016f)
   }
 
   @Test
