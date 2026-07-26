@@ -69,114 +69,7 @@ internal object GlassShaders {
       return content.eval(clampSample(coord));
     }
 
-    vec2 surfaceGradient(vec2 localCoord) {
-      float left = surfaceHeight(clampMaterial(localCoord - vec2(sampleStep, 0.0)));
-      float right = surfaceHeight(clampMaterial(localCoord + vec2(sampleStep, 0.0)));
-      float up = surfaceHeight(clampMaterial(localCoord - vec2(0.0, sampleStep)));
-      float down = surfaceHeight(clampMaterial(localCoord + vec2(0.0, sampleStep)));
-      return vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
-    }
-
-    vec3 unpremultiply(vec4 color) {
-      return color.a > 0.0001 ? color.rgb / color.a : vec3(0.0);
-    }
-
-    vec4 premultiply(vec3 color, float alpha) {
-      return vec4(color * alpha, alpha);
-    }
-
-    float luma(vec3 color) {
-      return dot(color, vec3(0.299, 0.587, 0.114));
-    }
-
-    vec3 sampleChromaSimple(
-      vec2 coord,
-      vec2 chromaOffset,
-      vec4 centerSample
-    ) {
-      if (length(chromaOffset) < 0.0001) return unpremultiply(centerSample);
-      vec3 forward = unpremultiply(sampleDepth(coord + chromaOffset));
-      vec3 backward = unpremultiply(sampleDepth(coord - chromaOffset));
-      vec3 centerStraight = unpremultiply(centerSample);
-      return vec3(forward.r, centerStraight.g, backward.b);
-    }
-
-    vec3 sampleChromaFull(
-      vec2 coord,
-      vec2 chromaOffset,
-      vec4 centerSample
-    ) {
-      if (length(chromaOffset) < 0.0001) return unpremultiply(centerSample);
-      vec3 red = unpremultiply(sampleDepth(coord + chromaOffset));
-      vec3 orange =
-        unpremultiply(sampleDepth(coord + chromaOffset * (2.0 / 3.0)));
-      vec3 yellow =
-        unpremultiply(sampleDepth(coord + chromaOffset * (1.0 / 3.0)));
-      vec3 green = unpremultiply(centerSample);
-      vec3 cyan =
-        unpremultiply(sampleDepth(coord - chromaOffset * (1.0 / 3.0)));
-      vec3 blue =
-        unpremultiply(sampleDepth(coord - chromaOffset * (2.0 / 3.0)));
-      vec3 purple = unpremultiply(sampleDepth(coord - chromaOffset));
-      return vec3(
-        red.r / 3.5 + orange.r / 3.5 + yellow.r / 3.5 + purple.r / 7.0,
-        orange.g / 7.0 + yellow.g / 3.5 + green.g / 3.5 + cyan.g / 3.5,
-        cyan.b / 3.0 + blue.b / 3.0 + purple.b / 3.0
-      );
-    }
-
-    vec3 sampleChroma(
-      vec2 coord,
-      vec2 chromaOffset,
-      vec4 centerSample
-    ) {
-      if (chromaticAberrationMode == 1) {
-        return sampleChromaFull(coord, chromaOffset, centerSample);
-      }
-      return sampleChromaSimple(coord, chromaOffset, centerSample);
-    }
-
-    vec3 computeContentNormal(vec2 coord) {
-      float left =
-        luma(unpremultiply(sampleDepth(coord - vec2(sampleStep, 0.0))));
-      float right =
-        luma(unpremultiply(sampleDepth(coord + vec2(sampleStep, 0.0))));
-      float up =
-        luma(unpremultiply(sampleDepth(coord - vec2(0.0, sampleStep))));
-      float down =
-        luma(unpremultiply(sampleDepth(coord + vec2(0.0, sampleStep))));
-      vec2 gradient = vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
-      return normalize(vec3(gradient, 1.0));
-    }
-
-    vec3 srgbToLinear(vec3 color) {
-      return mix(color / 12.92, pow((color + 0.055) / 1.055, vec3(2.4)), step(0.04045, color));
-    }
-
-    vec3 linearToSrgb(vec3 color) {
-      vec3 nonNegative = max(color, vec3(0.0));
-      return mix(
-        nonNegative * 12.92,
-        1.055 * pow(nonNegative, vec3(1.0 / 2.4)) - 0.055,
-        step(0.0031308, nonNegative)
-      );
-    }
-
-    vec3 applyColorGrading(vec3 color, float appliedWhitePoint) {
-      if (chromaMultiplier != 1.0) {
-        vec3 linearColor = srgbToLinear(color);
-        float luminance = dot(linearColor, vec3(0.2126, 0.7152, 0.0722));
-        color = linearToSrgb(mix(vec3(luminance), linearColor, chromaMultiplier));
-      }
-      if (appliedWhitePoint != 0.0) {
-        vec3 target = appliedWhitePoint > 0.0 ? vec3(1.0) : vec3(0.0);
-        color = mix(color, target, abs(appliedWhitePoint));
-      }
-      if (contrast != 0.0) {
-        color = clamp((color - 0.5) * (1.0 + contrast) + 0.5, 0.0, 1.0);
-      }
-      return color;
-    }
+    ${opticalHelpers()}
 
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
@@ -421,136 +314,11 @@ internal object GlassShaders {
 
     ${if (interactive) interactionFalloffHelper() else ""}
 
-    vec2 surfaceGradient(vec2 localCoord) {
-      float left = surfaceHeight(clampMaterial(localCoord - vec2(sampleStep, 0.0)));
-      float right = surfaceHeight(clampMaterial(localCoord + vec2(sampleStep, 0.0)));
-      float up = surfaceHeight(clampMaterial(localCoord - vec2(0.0, sampleStep)));
-      float down = surfaceHeight(clampMaterial(localCoord + vec2(0.0, sampleStep)));
-      return vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
+    vec4 sampleDepth(vec2 coord) {
+      return content.eval(clampSample(coord));
     }
 
-    vec3 unpremultiply(vec4 color) {
-      return color.a > 0.0001 ? color.rgb / color.a : vec3(0.0);
-    }
-
-    vec4 premultiply(vec3 color, float alpha) {
-      return vec4(color * alpha, alpha);
-    }
-
-    float luma(vec3 color) {
-      return dot(color, vec3(0.299, 0.587, 0.114));
-    }
-
-    vec3 computeContentNormal(vec2 coord) {
-      float left =
-        luma(unpremultiply(content.eval(clampSample(coord - vec2(sampleStep, 0.0)))));
-      float right =
-        luma(unpremultiply(content.eval(clampSample(coord + vec2(sampleStep, 0.0)))));
-      float up =
-        luma(unpremultiply(content.eval(clampSample(coord - vec2(0.0, sampleStep)))));
-      float down =
-        luma(unpremultiply(content.eval(clampSample(coord + vec2(0.0, sampleStep)))));
-      vec2 gradient = vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
-      return normalize(vec3(gradient, 1.0));
-    }
-
-    vec3 sampleChromaSimple(
-      vec2 coord,
-      vec2 chromaOffset,
-      vec4 centerSample
-    ) {
-      if (length(chromaOffset) < 0.0001) {
-        return unpremultiply(centerSample);
-      }
-      vec3 forward = unpremultiply(content.eval(clampSample(coord + chromaOffset)));
-      vec3 backward = unpremultiply(content.eval(clampSample(coord - chromaOffset)));
-      vec3 centerStraight = unpremultiply(centerSample);
-      return vec3(forward.r, centerStraight.g, backward.b);
-    }
-
-    vec3 sampleChromaFull(
-      vec2 coord,
-      vec2 chromaOffset,
-      vec4 centerSample
-    ) {
-      if (length(chromaOffset) < 0.0001) {
-        return unpremultiply(centerSample);
-      }
-
-      vec3 red = unpremultiply(${opticalContentSample(
-    coordinate = "coord + chromaOffset",
-  )});
-      vec3 orange = unpremultiply(${opticalContentSample(
-    coordinate = "coord + chromaOffset * (2.0 / 3.0)",
-  )});
-      vec3 yellow = unpremultiply(${opticalContentSample(
-    coordinate = "coord + chromaOffset * (1.0 / 3.0)",
-  )});
-      vec3 green = unpremultiply(centerSample);
-      vec3 cyan = unpremultiply(${opticalContentSample(
-    coordinate = "coord - chromaOffset * (1.0 / 3.0)",
-  )});
-      vec3 blue = unpremultiply(${opticalContentSample(
-    coordinate = "coord - chromaOffset * (2.0 / 3.0)",
-  )});
-      vec3 purple = unpremultiply(${opticalContentSample(
-    coordinate = "coord - chromaOffset",
-  )});
-
-      return vec3(
-        red.r / 3.5 + orange.r / 3.5 + yellow.r / 3.5 + purple.r / 7.0,
-        orange.g / 7.0 + yellow.g / 3.5 + green.g / 3.5 + cyan.g / 3.5,
-        cyan.b / 3.0 + blue.b / 3.0 + purple.b / 3.0
-      );
-    }
-
-    vec3 sampleChroma(
-      vec2 coord,
-      vec2 chromaOffset,
-      vec4 centerSample
-    ) {
-      if (chromaticAberrationMode == 1) {
-        return sampleChromaFull(
-          coord,
-          chromaOffset,
-          centerSample
-        );
-      }
-      return sampleChromaSimple(
-        coord,
-        chromaOffset,
-        centerSample
-      );
-    }
-
-    vec3 srgbToLinear(vec3 color) {
-      return mix(color / 12.92, pow((color + 0.055) / 1.055, vec3(2.4)), step(0.04045, color));
-    }
-
-    vec3 linearToSrgb(vec3 color) {
-      vec3 nonNegative = max(color, vec3(0.0));
-      return mix(
-        nonNegative * 12.92,
-        1.055 * pow(nonNegative, vec3(1.0 / 2.4)) - 0.055,
-        step(0.0031308, nonNegative)
-      );
-    }
-
-    vec3 applyColorGrading(vec3 color, float appliedWhitePoint) {
-      if (chromaMultiplier != 1.0) {
-        vec3 linearColor = srgbToLinear(color);
-        float luminance = dot(linearColor, vec3(0.2126, 0.7152, 0.0722));
-        color = linearToSrgb(mix(vec3(luminance), linearColor, chromaMultiplier));
-      }
-      if (appliedWhitePoint != 0.0) {
-        vec3 target = appliedWhitePoint > 0.0 ? vec3(1.0) : vec3(0.0);
-        color = mix(color, target, abs(appliedWhitePoint));
-      }
-      if (contrast != 0.0) {
-        color = clamp((color - 0.5) * (1.0 + contrast) + 0.5, 0.0, 1.0);
-      }
-      return color;
-    }
+    ${opticalHelpers()}
 
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
@@ -717,10 +485,6 @@ internal object GlassShaders {
       return detailColor.a > 0.0 ? detailColor : vec4(0.0);
     }
   """
-
-  private fun opticalContentSample(
-    coordinate: String,
-  ): String = "content.eval(clampSample($coordinate))"
 
   fun buildInteractionLighting(): String = """
     uniform shader content;
@@ -986,6 +750,117 @@ internal object GlassShaders {
       float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
       vec2 refractionDir = opticalGradient / max(gradientLength, 0.0001);
       return -refractionDir * displacementMagnitude * centerFade;
+    }
+  """
+
+  private fun opticalHelpers(): String = """
+    vec2 surfaceGradient(vec2 localCoord) {
+      float left = surfaceHeight(clampMaterial(localCoord - vec2(sampleStep, 0.0)));
+      float right = surfaceHeight(clampMaterial(localCoord + vec2(sampleStep, 0.0)));
+      float up = surfaceHeight(clampMaterial(localCoord - vec2(0.0, sampleStep)));
+      float down = surfaceHeight(clampMaterial(localCoord + vec2(0.0, sampleStep)));
+      return vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
+    }
+
+    vec3 unpremultiply(vec4 color) {
+      return color.a > 0.0001 ? color.rgb / color.a : vec3(0.0);
+    }
+
+    vec4 premultiply(vec3 color, float alpha) {
+      return vec4(color * alpha, alpha);
+    }
+
+    float luma(vec3 color) {
+      return dot(color, vec3(0.299, 0.587, 0.114));
+    }
+
+    vec3 sampleChromaSimple(
+      vec2 coord,
+      vec2 chromaOffset,
+      vec4 centerSample
+    ) {
+      if (length(chromaOffset) < 0.0001) return unpremultiply(centerSample);
+      vec3 forward = unpremultiply(sampleDepth(coord + chromaOffset));
+      vec3 backward = unpremultiply(sampleDepth(coord - chromaOffset));
+      vec3 centerStraight = unpremultiply(centerSample);
+      return vec3(forward.r, centerStraight.g, backward.b);
+    }
+
+    vec3 sampleChromaFull(
+      vec2 coord,
+      vec2 chromaOffset,
+      vec4 centerSample
+    ) {
+      if (length(chromaOffset) < 0.0001) return unpremultiply(centerSample);
+      vec3 red = unpremultiply(sampleDepth(coord + chromaOffset));
+      vec3 orange =
+        unpremultiply(sampleDepth(coord + chromaOffset * (2.0 / 3.0)));
+      vec3 yellow =
+        unpremultiply(sampleDepth(coord + chromaOffset * (1.0 / 3.0)));
+      vec3 green = unpremultiply(centerSample);
+      vec3 cyan =
+        unpremultiply(sampleDepth(coord - chromaOffset * (1.0 / 3.0)));
+      vec3 blue =
+        unpremultiply(sampleDepth(coord - chromaOffset * (2.0 / 3.0)));
+      vec3 purple = unpremultiply(sampleDepth(coord - chromaOffset));
+      return vec3(
+        red.r / 3.5 + orange.r / 3.5 + yellow.r / 3.5 + purple.r / 7.0,
+        orange.g / 7.0 + yellow.g / 3.5 + green.g / 3.5 + cyan.g / 3.5,
+        cyan.b / 3.0 + blue.b / 3.0 + purple.b / 3.0
+      );
+    }
+
+    vec3 sampleChroma(
+      vec2 coord,
+      vec2 chromaOffset,
+      vec4 centerSample
+    ) {
+      if (chromaticAberrationMode == 1) {
+        return sampleChromaFull(coord, chromaOffset, centerSample);
+      }
+      return sampleChromaSimple(coord, chromaOffset, centerSample);
+    }
+
+    vec3 computeContentNormal(vec2 coord) {
+      float left =
+        luma(unpremultiply(sampleDepth(coord - vec2(sampleStep, 0.0))));
+      float right =
+        luma(unpremultiply(sampleDepth(coord + vec2(sampleStep, 0.0))));
+      float up =
+        luma(unpremultiply(sampleDepth(coord - vec2(0.0, sampleStep))));
+      float down =
+        luma(unpremultiply(sampleDepth(coord + vec2(0.0, sampleStep))));
+      vec2 gradient = vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
+      return normalize(vec3(gradient, 1.0));
+    }
+
+    vec3 srgbToLinear(vec3 color) {
+      return mix(color / 12.92, pow((color + 0.055) / 1.055, vec3(2.4)), step(0.04045, color));
+    }
+
+    vec3 linearToSrgb(vec3 color) {
+      vec3 nonNegative = max(color, vec3(0.0));
+      return mix(
+        nonNegative * 12.92,
+        1.055 * pow(nonNegative, vec3(1.0 / 2.4)) - 0.055,
+        step(0.0031308, nonNegative)
+      );
+    }
+
+    vec3 applyColorGrading(vec3 color, float appliedWhitePoint) {
+      if (chromaMultiplier != 1.0) {
+        vec3 linearColor = srgbToLinear(color);
+        float luminance = dot(linearColor, vec3(0.2126, 0.7152, 0.0722));
+        color = linearToSrgb(mix(vec3(luminance), linearColor, chromaMultiplier));
+      }
+      if (appliedWhitePoint != 0.0) {
+        vec3 target = appliedWhitePoint > 0.0 ? vec3(1.0) : vec3(0.0);
+        color = mix(color, target, abs(appliedWhitePoint));
+      }
+      if (contrast != 0.0) {
+        color = clamp((color - 0.5) * (1.0 + contrast) + 0.5, 0.0, 1.0);
+      }
+      return color;
     }
   """
 

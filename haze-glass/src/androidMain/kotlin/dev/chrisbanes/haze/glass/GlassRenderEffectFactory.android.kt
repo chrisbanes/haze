@@ -12,31 +12,7 @@ import android.graphics.RenderEffect
 import android.os.Build
 import androidx.annotation.RequiresApi
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.PlatformRenderEffect
-
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
-@InternalHazeApi
-internal actual fun createGlassBlurRenderEffect(
-  horizontal: Boolean,
-  progressive: Boolean,
-): MutableRuntimeShaderRenderEffect = createRetainedGlassBlurRenderEffect(horizontal, progressive)
-
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createRetainedGlassBlurPrefilterRenderEffect()
-
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createRetainedGlassOpticalRenderEffect()
-
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createRetainedRefractionDetailRenderEffect()
-
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
-internal actual fun createGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createRetainedGlassRimRenderEffect()
 
 @RequiresApi(Build.VERSION_CODES.S)
 internal actual fun createGlassDepthInputRenderEffect(

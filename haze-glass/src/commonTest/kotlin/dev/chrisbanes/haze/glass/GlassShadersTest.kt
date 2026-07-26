@@ -216,7 +216,7 @@ class GlassShadersTest {
 
     assertThat(shader).contains("vec3 unpremultiply(vec4 color)")
     assertThat(shader).contains("vec4 premultiply(vec3 color, float alpha)")
-    assertThat(shader).contains("unpremultiply(content.eval(")
+    assertThat(shader).contains("unpremultiply(sampleDepth(")
     assertThat(shader).contains("vec4 baseSample = content.eval(clampSample(coord));")
     assertThat(shader).contains(
       "vec4 refractedCenterSample = content.eval(clampSample(refractCoord));",
