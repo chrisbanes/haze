@@ -7,6 +7,7 @@ import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.uiautomator.UiDevice
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,36 +23,15 @@ class BenchmarkTest {
 
   @Test
   fun imagesList() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToImagesList()
-      },
-    ) {
-      device.repeatedScrolls("lazy_column")
-    }
+    measureSample(
+      navigate = { navigateToImagesList() },
+      measure = { repeatedScrolls("lazy_column") },
+    )
   }
 
   @Test
   fun scaffold() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToScaffold()
-      },
-    ) {
-      device.repeatedScrolls("lazy_grid")
-    }
+    measureScaffold { navigateToScaffold() }
   }
 
   @Test
@@ -90,70 +70,26 @@ class BenchmarkTest {
 
   @Test
   fun scaffoldBlurDisabled() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
+    measureScaffold(
       iterations = HYPOTHESIS_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(false)
-        device.navigateToScaffold()
-      },
-    ) {
-      device.repeatedScrolls("lazy_grid")
-    }
+      blurEnabled = false,
+      navigate = { navigateToScaffold() },
+    )
   }
 
   @Test
   fun scaffoldProgressive() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToScaffoldWithProgressive()
-      },
-    ) {
-      device.repeatedScrolls("lazy_grid")
-    }
+    measureScaffold { navigateToScaffoldWithProgressive() }
   }
 
   @Test
   fun scaffoldProgressiveUnscaled() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToScaffoldWithProgressiveUnscaled()
-      },
-    ) {
-      device.repeatedScrolls("lazy_grid")
-    }
+    measureScaffold { navigateToScaffoldWithProgressiveUnscaled() }
   }
 
   @Test
   fun scaffoldMask() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToScaffoldWithMask()
-      },
-    ) {
-      device.repeatedScrolls("lazy_grid")
-    }
+    measureScaffold { navigateToScaffoldWithMask() }
   }
 
   @Test
@@ -175,18 +111,43 @@ class BenchmarkTest {
 
   @Test
   fun creditCard() {
+    measureSample(
+      navigate = { navigateToCreditCard() },
+      measure = { repeatedDrags("credit_card_2") },
+    )
+  }
+
+  private fun measureScaffold(
+    iterations: Int = DEFAULT_ITERATIONS,
+    blurEnabled: Boolean = true,
+    navigate: UiDevice.() -> Unit,
+  ) {
+    measureSample(
+      iterations = iterations,
+      blurEnabled = blurEnabled,
+      navigate = navigate,
+      measure = { repeatedScrolls("lazy_grid") },
+    )
+  }
+
+  private fun measureSample(
+    iterations: Int = DEFAULT_ITERATIONS,
+    blurEnabled: Boolean = true,
+    navigate: UiDevice.() -> Unit,
+    measure: UiDevice.() -> Unit,
+  ) {
     benchmarkRule.measureRepeated(
       packageName = APP_PACKAGE,
       metrics = listOf(FrameTimingMetric()),
       startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
+      iterations = iterations,
       setupBlock = {
         startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToCreditCard()
+        device.setBlurEnabled(blurEnabled)
+        device.navigate()
       },
     ) {
-      device.repeatedDrags("credit_card_2")
+      device.measure()
     }
   }
 }

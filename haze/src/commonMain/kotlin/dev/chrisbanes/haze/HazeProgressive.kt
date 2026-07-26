@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.util.lerp
 import kotlin.jvm.JvmInline
 
 /**
@@ -195,7 +196,3 @@ private fun HazeProgressive.RadialGradient.asBrush(numStops: Int = 20): Brush =
     center = center,
     radius = radius,
   )
-
-private fun lerp(start: Float, stop: Float, fraction: Float): Float {
-  return start + fraction * (stop - start)
-}

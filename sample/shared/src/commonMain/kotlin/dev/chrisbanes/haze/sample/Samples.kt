@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze.sample
 
-import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,31 +27,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.ComposeNavigator
-import androidx.navigation.compose.ComposeNavigatorDestinationBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.get
-import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
-import coil3.compose.setSingletonImageLoaderFactory
-import coil3.disk.DiskCache
-import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
-import kotlin.reflect.KClass
-import kotlin.reflect.KType
-import kotlinx.serialization.Serializable
 
 expect val Samples: List<Sample>
+
+private const val SAMPLES_ROUTE = "samples"
 
 @OptIn(ExperimentalHazeApi::class)
 val CommonSamples: List<Sample> = listOf(
@@ -80,80 +68,53 @@ val CommonSamples: List<Sample> = listOf(
 )
 
 @OptIn(ExperimentalHazeApi::class)
-interface Sample { // We should seal this interface, but KMP doesn't support it yet.
-  val title: String
-
-  @Composable
-  fun Content(navController: NavHostController, blurEnabled: Boolean)
-
-  @Serializable
-  data object SamplesList : Sample {
-    override val title: String = "Samples"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
-      error("SamplesList should never be called")
-    }
-  }
-
-  @Serializable
-  data object Scaffold : Sample {
-    override val title: String = "Scaffold"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+class Sample(
+  val route: String,
+  val title: String,
+  val content: @Composable (NavHostController, Boolean) -> Unit,
+) {
+  companion object {
+    val Scaffold = Sample("scaffold", "Scaffold") { navController, blurEnabled ->
       ScaffoldSample(navController = navController, blurEnabled = blurEnabled)
     }
-  }
 
-  @Serializable
-  data object ScaffoldUnscaled : Sample {
-    override val title: String = "Scaffold (input unscaled)"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ScaffoldUnscaled = Sample(
+      route = "scaffold-unscaled",
+      title = "Scaffold (input unscaled)",
+    ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
         inputScale = HazeInputScale.None,
       )
     }
-  }
 
-  @Serializable
-  data object ScaffoldBalanced : Sample {
-    override val title: String = "Scaffold (input fixed 0.8)"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ScaffoldBalanced = Sample(
+      route = "scaffold-balanced",
+      title = "Scaffold (input fixed 0.8)",
+    ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
         inputScale = HazeInputScale.Fixed(0.8f),
       )
     }
-  }
 
-  @Serializable
-  data object ScaffoldProgressive : Sample {
-    override val title: String = "Scaffold (progressive blur)"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ScaffoldProgressive = Sample(
+      route = "scaffold-progressive",
+      title = "Scaffold (progressive blur)",
+    ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Progressive,
       )
     }
-  }
 
-  @Serializable
-  data object ScaffoldProgressiveUnscaled : Sample {
-    override val title: String = "Scaffold (progressive blur, input unscaled)"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ScaffoldProgressiveUnscaled = Sample(
+      route = "scaffold-progressive-unscaled",
+      title = "Scaffold (progressive blur, input unscaled)",
+    ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
@@ -161,28 +122,22 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
         inputScale = HazeInputScale.None,
       )
     }
-  }
 
-  @Serializable
-  data object ScaffoldMasked : Sample {
-    override val title: String = "Scaffold (masked)"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ScaffoldMasked = Sample(
+      route = "scaffold-masked",
+      title = "Scaffold (masked)",
+    ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Mask,
       )
     }
-  }
 
-  @Serializable
-  data object ScaffoldMaskedUnscaled : Sample {
-    override val title: String = "Scaffold (masked, input unscaled)"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ScaffoldMaskedUnscaled = Sample(
+      route = "scaffold-masked-unscaled",
+      title = "Scaffold (masked, input unscaled)",
+    ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
@@ -190,144 +145,72 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
         inputScale = HazeInputScale.None,
       )
     }
-  }
 
-  @Serializable
-  data object CreditCard : Sample {
-    override val title: String = "Credit Card"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val CreditCard = Sample("credit-card", "Credit Card") { navController, blurEnabled ->
       CreditCardSample(navController = navController, blurEnabled = blurEnabled)
     }
-  }
 
-  @Serializable
-  data object ImageList : Sample {
-    override val title: String = "Images List"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ImageList = Sample("images-list", "Images List") { navController, blurEnabled ->
       ImagesList(navController = navController, blurEnabled = blurEnabled)
     }
-  }
 
-  @Serializable
-  data object ListOverImage : Sample {
-    override val title: String = "List over Image"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ListOverImage = Sample("list-over-image", "List over Image") { navController, blurEnabled ->
       ListOverImage(navController, blurEnabled)
     }
-  }
 
-  @Serializable
-  data object Dialog : Sample {
-    override val title: String = "Dialog"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val Dialog = Sample("dialog", "Dialog") { navController, blurEnabled ->
       DialogSample(navController, blurEnabled)
     }
-  }
 
-  @Serializable
-  data object Popup : Sample {
-    override val title: String = "Popup"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val Popup = Sample("popup", "Popup") { navController, blurEnabled ->
       PopupSample(navController, blurEnabled)
     }
-  }
 
-  @Serializable
-  data object Materials : Sample {
-    override val title: String = "Materials"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val Materials = Sample("materials", "Materials") { navController, blurEnabled ->
       MaterialsSample(navController, blurEnabled)
     }
-  }
 
-  @Serializable
-  data object ListWithStickyHeaders : Sample {
-    override val title: String = "List with Sticky Headers"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ListWithStickyHeaders = Sample(
+      route = "list-with-sticky-headers",
+      title = "List with Sticky Headers",
+    ) { navController, blurEnabled ->
       ListWithStickyHeaders(navController, blurEnabled)
     }
-  }
 
-  @Serializable
-  data object BottomSheet : Sample {
-    override val title: String = "Bottom Sheet"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val BottomSheet = Sample("bottom-sheet", "Bottom Sheet") { navController, blurEnabled ->
       BottomSheet(navController, blurEnabled)
     }
-  }
 
-  @Serializable
-  data object ContentBlurring : Sample {
-    override val title: String = "Content Blurring"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val ContentBlurring = Sample(
+      route = "content-blurring",
+      title = "Content Blurring",
+    ) { navController, blurEnabled ->
       ContentBlurring(navController, blurEnabled)
     }
-  }
 
-  @Serializable
-  data object CustomVisualEffect : Sample {
-    override val title: String = "Custom VisualEffect"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val CustomVisualEffect = Sample(
+      route = "custom-visual-effect",
+      title = "Custom VisualEffect",
+    ) { navController, blurEnabled ->
       CustomVisualEffectSample(navController, blurEnabled)
     }
-  }
 
-  @Serializable
-  data object LayerTransformations : Sample {
-    override val title: String = "Layer Transformations"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val LayerTransformations = Sample(
+      route = "layer-transformations",
+      title = "Layer Transformations",
+    ) { _, blurEnabled ->
       LayerTransformations(blurEnabled = blurEnabled)
     }
-  }
 
-  @Serializable
-  data object GlassProduct : Sample {
-    override val title: String = "Glass — Product"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val GlassProduct = Sample("glass-product", "Glass — Product") { navController, _ ->
       GlassProductSample(navController = navController)
     }
-  }
 
-  @Serializable
-  data object GlassPlayground : Sample {
-    override val title: String = "Glass — Playground"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val GlassPlayground = Sample("glass-playground", "Glass — Playground") { navController, _ ->
       GlassPlaygroundSample(navController = navController)
     }
-  }
 
-  @Serializable
-  data object GlassLab : Sample {
-    override val title: String = "Glass — Lab"
-
-    @Composable
-    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+    val GlassLab = Sample("glass-lab", "Glass — Lab") { navController, _ ->
       GlassLabSample(navController = navController)
     }
   }
@@ -350,24 +233,6 @@ fun Samples(
   navController: NavHostController = rememberNavController(),
   samples: List<Sample> = Samples,
 ) {
-  setSingletonImageLoaderFactory { context ->
-    ImageLoader.Builder(context)
-      .memoryCache {
-        MemoryCache.Builder()
-          .maxSizePercent(context, 0.2)
-          .build()
-      }
-      .diskCache {
-        context.cacheDirPath()?.let { cacheDirPath ->
-          DiskCache.Builder()
-            .directory(cacheDirPath.resolve("image_cache"))
-            .maximumMaxSizeBytes(32 * 1024 * 1024)
-            .build()
-        }
-      }
-      .build()
-  }
-
   val coilPlatformContext = LocalPlatformContext.current
   LaunchedEffect(coilPlatformContext) {
     // Preload the first 20 precanned image urls
@@ -383,10 +248,10 @@ fun Samples(
   SamplesTheme {
     NavHost(
       navController = navController,
-      startDestination = Sample.SamplesList,
+      startDestination = SAMPLES_ROUTE,
       modifier = Modifier.testTagsAsResourceId(true),
     ) {
-      composable<Sample.SamplesList> {
+      composable(SAMPLES_ROUTE) {
         val sortedSamples = remember { samples.sortedBy(Sample::title) }
         SamplesList(
           appTitle = appTitle,
@@ -398,8 +263,8 @@ fun Samples(
       }
 
       samples.forEach { sample ->
-        composable(routeClazz = sample::class) {
-          sample.Content(navController, blurEnabled = blurEnabled)
+        composable(sample.route) {
+          sample.content(navController, blurEnabled)
         }
       }
     }
@@ -446,24 +311,9 @@ private fun SamplesList(
           modifier = Modifier
             .fillMaxWidth()
             .testTag(sample.title)
-            .clickable { navController.navigate(sample) },
+            .clickable { navController.navigate(sample.route) },
         )
       }
     }
   }
-}
-
-internal fun NavGraphBuilder.composable(
-  routeClazz: KClass<*>,
-  typeMap: Map<KType, NavType<*>> = emptyMap(),
-  content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit,
-) {
-  destination(
-    ComposeNavigatorDestinationBuilder(
-      provider[ComposeNavigator::class],
-      routeClazz,
-      typeMap,
-      content,
-    ),
-  )
 }

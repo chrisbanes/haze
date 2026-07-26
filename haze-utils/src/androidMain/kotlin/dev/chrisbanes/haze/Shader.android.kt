@@ -9,6 +9,7 @@ import android.graphics.BlendModeColorFilter
 import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Shader
 
 // Fractal noise SKSL for Android
@@ -77,5 +78,5 @@ public actual fun createFractalNoiseShader(
 @InternalHazeApi
 public actual fun createBlendColorFilter(
   color: Int,
-  blendMode: HazeBlendMode,
+  blendMode: BlendMode,
 ): PlatformColorFilter = BlendModeColorFilter(color, blendMode.toAndroidBlendMode())

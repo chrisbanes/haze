@@ -1588,7 +1588,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
 
   private fun DrawScope.selectDelegateForDraw(context: VisualEffectContext) {
     if (needsDelegateSelection) {
-      delegate = updateDelegate(context, this)
+      delegate = updateDelegate()
       needsDelegateSelection = false
     }
   }
@@ -1703,10 +1703,16 @@ internal interface RetainedOutputDelegate {
   fun clearRetainedOutput()
 }
 
-internal expect fun GlassVisualEffect.updateDelegate(
-  context: VisualEffectContext,
-  drawScope: DrawScope,
-): GlassVisualEffect.Delegate
+internal fun GlassVisualEffect.updateDelegate(): GlassVisualEffect.Delegate {
+  val wantsRuntime =
+    preparedRenderBudget is GlassRenderBudgetDecision.Runtime &&
+      preparedRender != null
+  return when {
+    wantsRuntime && delegate !is RuntimeShaderGlassDelegate -> RuntimeShaderGlassDelegate(this)
+    !wantsRuntime && delegate !is FallbackGlassDelegate -> FallbackGlassDelegate(this)
+    else -> delegate
+  }
+}
 
 internal expect fun isRuntimeShaderGlassSupported(): Boolean
 

@@ -31,7 +31,7 @@ public object CupertinoMaterials {
   @ReadOnlyComposable
   public fun ultraThin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
-  ): HazeBlurStyle = hazeMaterial(
+  ): HazeBlurStyle = cupertinoMaterialStyle(
     containerColor = containerColor,
     lightBackgroundColor = Color(0xFF0D0D0D),
     lightForegroundColor = Color(color = 0xBFBFBF, alpha = 0.44f),
@@ -47,7 +47,7 @@ public object CupertinoMaterials {
   @ReadOnlyComposable
   public fun thin(
     containerColor: Color = MaterialTheme.colorScheme.surface,
-  ): HazeBlurStyle = hazeMaterial(
+  ): HazeBlurStyle = cupertinoMaterialStyle(
     containerColor = containerColor,
     lightBackgroundColor = Color(0xFF333333),
     lightForegroundColor = Color(color = 0xA6A6A6, alpha = 0.7f),
@@ -63,7 +63,7 @@ public object CupertinoMaterials {
   @ReadOnlyComposable
   public fun regular(
     containerColor: Color = MaterialTheme.colorScheme.surface,
-  ): HazeBlurStyle = hazeMaterial(
+  ): HazeBlurStyle = cupertinoMaterialStyle(
     containerColor = containerColor,
     lightBackgroundColor = Color(0xFF383838),
     lightForegroundColor = Color(color = 0xB3B3B3, alpha = 0.82f),
@@ -78,26 +78,12 @@ public object CupertinoMaterials {
   @ReadOnlyComposable
   public fun thick(
     containerColor: Color = MaterialTheme.colorScheme.surface,
-  ): HazeBlurStyle = hazeMaterial(
+  ): HazeBlurStyle = cupertinoMaterialStyle(
     containerColor = containerColor,
     lightBackgroundColor = Color(0xFF5C5C5C),
     lightForegroundColor = Color(color = 0x999999, alpha = 0.97f),
     darkBackgroundColor = Color(0xFF7C7C7C),
     darkForegroundColor = Color(color = 0x252525, alpha = 0.9f),
-  )
-
-  private fun hazeMaterial(
-    containerColor: Color,
-    lightBackgroundColor: Color,
-    lightForegroundColor: Color,
-    darkBackgroundColor: Color,
-    darkForegroundColor: Color,
-  ): HazeBlurStyle = cupertinoMaterialStyle(
-    containerColor = containerColor,
-    lightBackgroundColor = lightBackgroundColor,
-    lightForegroundColor = lightForegroundColor,
-    darkBackgroundColor = darkBackgroundColor,
-    darkForegroundColor = darkForegroundColor,
   )
 }
 

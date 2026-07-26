@@ -9,7 +9,6 @@ plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
-  id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 kotlin {
@@ -22,7 +21,7 @@ kotlin {
     }
   }
 
-  addDefaultHazeTargets(project)
+  addDefaultHazeTargets(project, withSkikoMain = true)
 
   sourceSets {
     commonMain {
@@ -33,13 +32,11 @@ kotlin {
         api(projects.hazeMaterials)
 
         api(libs.androidx.navigation.compose)
-        api(libs.kotlinx.serialization.json)
 
         implementation("io.coil-kt.coil3:coil-compose:${libs.versions.coil.get()}") {
           exclude(group = "org.jetbrains.skiko", module = "skiko")
         }
         implementation(libs.coil.ktor)
-        implementation(libs.ktor.core)
 
         api(libs.compose.material3)
         api(libs.compose.material.icons)
@@ -73,14 +70,8 @@ kotlin {
       }
     }
 
-    val skikoMain by creating {
-      dependsOn(commonMain.get())
-    }
-
     if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
       iosMain {
-        dependsOn(skikoMain)
-
         dependencies {
           implementation(libs.ktor.darwin)
         }
@@ -88,8 +79,6 @@ kotlin {
     }
 
     jvmMain {
-      dependsOn(skikoMain)
-
       dependencies {
         implementation(libs.ktor.cio)
       }
@@ -103,16 +92,12 @@ kotlin {
     }
 
     named("wasmJsMain") {
-      dependsOn(skikoMain)
-
       dependencies {
         implementation(npm("ws", "8.18.3"))
       }
     }
 
     named("jsMain") {
-      dependsOn(skikoMain)
-
       dependencies {
         implementation(npm("ws", "8.18.3"))
       }
@@ -137,9 +122,4 @@ kotlin {
       baseName = "HazeSamplesKt"
     }
   }
-}
-
-// Disable JS tests; they currently fail due to missing browser-side runtime support.
-tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest> {
-  enabled = false
 }

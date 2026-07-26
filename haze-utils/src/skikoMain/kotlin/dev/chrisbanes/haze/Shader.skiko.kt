@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.asComposeShader
 import org.jetbrains.skia.ColorFilter
 import org.jetbrains.skia.Shader
@@ -25,7 +26,7 @@ public actual fun createFractalNoiseShader(
 @InternalHazeApi
 public actual fun createBlendColorFilter(
   color: Int,
-  blendMode: HazeBlendMode,
+  blendMode: BlendMode,
 ): PlatformColorFilter {
   return ColorFilter.makeBlend(color, blendMode.toSkiaBlendMode())
 }

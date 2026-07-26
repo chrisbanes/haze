@@ -15,6 +15,14 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class SamplesTest : ContextTest() {
   @Test
+  fun commonSamples_routesAndTitlesAreUnique() {
+    assertThat(CommonSamples.map(Sample::route).distinct().size)
+      .isEqualTo(CommonSamples.size)
+    assertThat(CommonSamples.map(Sample::title).distinct().size)
+      .isEqualTo(CommonSamples.size)
+  }
+
+  @Test
   fun commonSamples_containsOnlyThreeGlassGalleryDestinations() {
     assertThat(
       CommonSamples.map(Sample::title).filter { "Glass" in it },

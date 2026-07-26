@@ -12,7 +12,6 @@ compose-multiplatform = "1.11.1"
 compose-material3 = "1.9.0"
 compose-navigation3 = "1.1.1"
 kotlinx-coroutines-swing = "1.11.0"
-kotlinx-serialization = "1.11.0"
 ktlint = "1.0.1"
 kotlin = "2.4.10"
 ksp = "2.3.1"
@@ -36,7 +35,6 @@ cacheFixPlugin = { id = "org.gradle.android.cache-fix", version = "3.0.3" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 dokka = { id = "org.jetbrains.dokka", version = "2.2.0" }
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 metalava = { id = "me.tylerbwong.gradle.metalava", version.ref = "metalava" }
 poko = { id = "dev.drewhamilton.poko", version = "0.23.1" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
@@ -55,9 +53,7 @@ androidx-profileinstaller = "androidx.profileinstaller:profileinstaller:1.4.1"
 androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext-junit" }
 androidx-test-uiautomator = "androidx.test.uiautomator:uiautomator:2.4.0"
 
-androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "jetpack-compose" }
 androidx-compose-runtime-tracing = { module = "androidx.compose.runtime:runtime-tracing", version.ref = "jetpack-compose" }
-androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "jetpack-compose" }
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "jetpack-compose" }
 androidx-compose-ui-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "jetpack-compose" }
 androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "jetpack-compose" }
@@ -85,9 +81,6 @@ coil-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coi
 
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines-swing" }
 
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
-
-ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 

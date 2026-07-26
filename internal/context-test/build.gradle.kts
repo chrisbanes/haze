@@ -7,6 +7,7 @@ import dev.chrisbanes.gradle.addDefaultHazeTargets
 plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
+  id("dev.chrisbanes.compose")
 }
 
 kotlin {
@@ -17,6 +18,12 @@ kotlin {
   addDefaultHazeTargets(project)
 
   sourceSets {
+    commonMain {
+      dependencies {
+        implementation(libs.compose.runtime)
+      }
+    }
+
     androidMain {
       dependencies {
         implementation(libs.androidx.test.ext.junit)

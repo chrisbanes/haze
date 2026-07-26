@@ -5,9 +5,9 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
-import dev.chrisbanes.haze.HazeBlendMode
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -59,7 +59,7 @@ internal actual fun createNoiseEffect(
   return when {
     mask != null -> {
       createBlendRenderEffect(
-        blendMode = HazeBlendMode.SrcIn,
+        blendMode = BlendMode.SrcIn,
         background = createShaderRenderEffect(mask),
         foreground = noiseEffect,
       )

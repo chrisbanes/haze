@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi

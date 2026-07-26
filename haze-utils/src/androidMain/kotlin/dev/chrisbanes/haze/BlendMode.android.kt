@@ -3,43 +3,45 @@
 
 package dev.chrisbanes.haze
 
-import android.graphics.BlendMode
+import android.graphics.BlendMode as AndroidBlendMode
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.BlendMode
 
 /**
- * Converts a [HazeBlendMode] to Android's [BlendMode].
+ * Converts a Compose [BlendMode] to Android's [AndroidBlendMode].
  */
 @RequiresApi(Build.VERSION_CODES.Q)
 @InternalHazeApi
-public fun HazeBlendMode.toAndroidBlendMode(): BlendMode = when (this) {
-  HazeBlendMode.Clear -> BlendMode.CLEAR
-  HazeBlendMode.Src -> BlendMode.SRC
-  HazeBlendMode.Dst -> BlendMode.DST
-  HazeBlendMode.SrcOver -> BlendMode.SRC_OVER
-  HazeBlendMode.DstOver -> BlendMode.DST_OVER
-  HazeBlendMode.SrcIn -> BlendMode.SRC_IN
-  HazeBlendMode.DstIn -> BlendMode.DST_IN
-  HazeBlendMode.SrcOut -> BlendMode.SRC_OUT
-  HazeBlendMode.DstOut -> BlendMode.DST_OUT
-  HazeBlendMode.SrcAtop -> BlendMode.SRC_ATOP
-  HazeBlendMode.DstAtop -> BlendMode.DST_ATOP
-  HazeBlendMode.Xor -> BlendMode.XOR
-  HazeBlendMode.Plus -> BlendMode.PLUS
-  HazeBlendMode.Modulate -> BlendMode.MODULATE
-  HazeBlendMode.Screen -> BlendMode.SCREEN
-  HazeBlendMode.Overlay -> BlendMode.OVERLAY
-  HazeBlendMode.Darken -> BlendMode.DARKEN
-  HazeBlendMode.Lighten -> BlendMode.LIGHTEN
-  HazeBlendMode.ColorDodge -> BlendMode.COLOR_DODGE
-  HazeBlendMode.ColorBurn -> BlendMode.COLOR_BURN
-  HazeBlendMode.Hardlight -> BlendMode.HARD_LIGHT
-  HazeBlendMode.Softlight -> BlendMode.SOFT_LIGHT
-  HazeBlendMode.Difference -> BlendMode.DIFFERENCE
-  HazeBlendMode.Exclusion -> BlendMode.EXCLUSION
-  HazeBlendMode.Multiply -> BlendMode.MULTIPLY
-  HazeBlendMode.Hue -> BlendMode.HUE
-  HazeBlendMode.Saturation -> BlendMode.SATURATION
-  HazeBlendMode.Color -> BlendMode.COLOR
-  HazeBlendMode.Luminosity -> BlendMode.LUMINOSITY
+public fun BlendMode.toAndroidBlendMode(): AndroidBlendMode = when (this) {
+  BlendMode.Clear -> AndroidBlendMode.CLEAR
+  BlendMode.Src -> AndroidBlendMode.SRC
+  BlendMode.Dst -> AndroidBlendMode.DST
+  BlendMode.SrcOver -> AndroidBlendMode.SRC_OVER
+  BlendMode.DstOver -> AndroidBlendMode.DST_OVER
+  BlendMode.SrcIn -> AndroidBlendMode.SRC_IN
+  BlendMode.DstIn -> AndroidBlendMode.DST_IN
+  BlendMode.SrcOut -> AndroidBlendMode.SRC_OUT
+  BlendMode.DstOut -> AndroidBlendMode.DST_OUT
+  BlendMode.SrcAtop -> AndroidBlendMode.SRC_ATOP
+  BlendMode.DstAtop -> AndroidBlendMode.DST_ATOP
+  BlendMode.Xor -> AndroidBlendMode.XOR
+  BlendMode.Plus -> AndroidBlendMode.PLUS
+  BlendMode.Modulate -> AndroidBlendMode.MODULATE
+  BlendMode.Screen -> AndroidBlendMode.SCREEN
+  BlendMode.Overlay -> AndroidBlendMode.OVERLAY
+  BlendMode.Darken -> AndroidBlendMode.DARKEN
+  BlendMode.Lighten -> AndroidBlendMode.LIGHTEN
+  BlendMode.ColorDodge -> AndroidBlendMode.COLOR_DODGE
+  BlendMode.ColorBurn -> AndroidBlendMode.COLOR_BURN
+  BlendMode.Hardlight -> AndroidBlendMode.HARD_LIGHT
+  BlendMode.Softlight -> AndroidBlendMode.SOFT_LIGHT
+  BlendMode.Difference -> AndroidBlendMode.DIFFERENCE
+  BlendMode.Exclusion -> AndroidBlendMode.EXCLUSION
+  BlendMode.Multiply -> AndroidBlendMode.MULTIPLY
+  BlendMode.Hue -> AndroidBlendMode.HUE
+  BlendMode.Saturation -> AndroidBlendMode.SATURATION
+  BlendMode.Color -> AndroidBlendMode.COLOR
+  BlendMode.Luminosity -> AndroidBlendMode.LUMINOSITY
+  else -> AndroidBlendMode.SRC_OVER
 }

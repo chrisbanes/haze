@@ -32,7 +32,7 @@ kotlin {
     }
   }
 
-  addDefaultHazeTargets(project)
+  addDefaultHazeTargets(project, withSkikoMain = true)
   explicitApi()
 
   sourceSets {
@@ -48,30 +48,7 @@ kotlin {
     androidMain {
       dependencies {
         implementation(libs.androidx.activity)
-        implementation(libs.androidx.tracing)
       }
-    }
-
-    val skikoMain by creating {
-      dependsOn(commonMain.get())
-    }
-
-    if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
-      iosMain {
-        dependsOn(skikoMain)
-      }
-    }
-
-    jvmMain {
-      dependsOn(skikoMain)
-    }
-
-    wasmJsMain {
-      dependsOn(skikoMain)
-    }
-
-    jsMain {
-      dependsOn(skikoMain)
     }
 
     commonTest {
@@ -82,7 +59,6 @@ kotlin {
         implementation(libs.compose.ui.test)
 
         implementation(projects.internal.contextTest)
-        implementation(projects.internal.testUtils)
       }
     }
 
@@ -97,11 +73,6 @@ kotlin {
     optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
     optIn.add("dev.chrisbanes.haze.InternalHazeApi")
   }
-}
-
-// https://youtrack.jetbrains.com/issue/CMP-4906
-tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest> {
-  enabled = false
 }
 
 val enableAppleTests = providers.gradleProperty("haze.enableAppleTests").isPresent

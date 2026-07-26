@@ -67,12 +67,8 @@ private val renderEffectCache = lazy(mode = LazyThreadSafetyMode.NONE) {
 }
 
 internal fun clearRenderEffectCache() {
-  clearIfInitialized(renderEffectCache) { it.evictAll() }
-}
-
-internal inline fun <T> clearIfInitialized(lazyValue: Lazy<T>, clear: (T) -> Unit) {
-  if (lazyValue.isInitialized()) {
-    clear(lazyValue.value)
+  if (renderEffectCache.isInitialized()) {
+    renderEffectCache.value.evictAll()
   }
 }
 

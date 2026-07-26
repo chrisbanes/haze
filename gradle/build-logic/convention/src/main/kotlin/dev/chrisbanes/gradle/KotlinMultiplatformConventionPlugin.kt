@@ -58,7 +58,10 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   }
 }
 
-fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
+fun KotlinMultiplatformExtension.addDefaultHazeTargets(
+  project: Project,
+  withSkikoMain: Boolean = false,
+) {
   jvm()
 
   if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
@@ -73,6 +76,18 @@ fun KotlinMultiplatformExtension.addDefaultHazeTargets(project: Project) {
 
   js {
     browser()
+  }
+
+  if (withSkikoMain) {
+    val skikoMain = sourceSets.maybeCreate("skikoMain").apply {
+      dependsOn(sourceSets.getByName("commonMain"))
+    }
+    if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
+      sourceSets.getByName("iosMain").dependsOn(skikoMain)
+    }
+    sourceSets.getByName("jvmMain").dependsOn(skikoMain)
+    sourceSets.getByName("wasmJsMain").dependsOn(skikoMain)
+    sourceSets.getByName("jsMain").dependsOn(skikoMain)
   }
 }
 

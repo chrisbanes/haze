@@ -6,6 +6,7 @@ package dev.chrisbanes.haze
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.isUnspecified
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.TileMode
@@ -37,7 +38,7 @@ public expect fun createShaderRenderEffect(shader: Shader, crop: Rect? = null): 
  */
 @InternalHazeApi
 public expect fun createBlendRenderEffect(
-  blendMode: HazeBlendMode,
+  blendMode: BlendMode,
   background: PlatformRenderEffect,
   foreground: PlatformRenderEffect,
   crop: Rect? = null,
@@ -93,7 +94,7 @@ public expect fun PlatformRenderEffect.then(other: PlatformRenderEffect): Platfo
 @InternalHazeApi
 public fun PlatformRenderEffect.blendForeground(
   foreground: PlatformRenderEffect,
-  blendMode: HazeBlendMode,
+  blendMode: BlendMode,
   offset: Offset = Offset.Unspecified,
 ): PlatformRenderEffect = createBlendRenderEffect(
   blendMode = blendMode,
