@@ -590,6 +590,22 @@ internal object GlassShaders {
     }
   """
 
+  fun buildInteractionOutputComposite(): String = """
+    uniform shader content;
+    uniform float2 interactionPosition;
+    uniform float interactionRadius;
+    uniform float featherWidth;
+
+    vec4 main(vec2 coord) {
+      vec4 color = content.eval(coord);
+      if (color.a <= 0.0001) return vec4(0.0);
+
+      float distanceToEdge = interactionRadius - distance(coord, interactionPosition);
+      float mask = smoothstep(0.0, max(featherWidth, 0.0001), distanceToEdge);
+      return vec4((color.rgb / color.a) * mask, mask);
+    }
+  """
+
   fun buildRim(): String = """
     uniform shader content;
     uniform float2 sampleSize;

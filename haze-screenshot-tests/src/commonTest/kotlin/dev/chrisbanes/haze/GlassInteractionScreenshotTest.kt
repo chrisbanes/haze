@@ -140,6 +140,13 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
     )
 
     assertThat(idle.changedPixelRatioOutside(pressed, interactionBounds)).isEqualTo(0f)
+    assertThat(
+      idle.changedPixelRatioOutsideCircle(
+        other = pressed,
+        center = pointerInRoot,
+        radius = radiusPx + 1f,
+      ),
+    ).isEqualTo(0f)
 
     node.performTouchInput { up() }
     waitForIdle()

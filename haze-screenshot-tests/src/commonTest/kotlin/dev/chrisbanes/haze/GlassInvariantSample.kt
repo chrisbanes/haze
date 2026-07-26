@@ -1147,6 +1147,7 @@ internal fun ScreenshotUiTest.assertGlassTransparentOutputInvariant() {
 
 internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
   withInteraction: Boolean = false,
+  verifyInteractionRgb: Boolean = false,
 ) {
   val shape = RoundedCornerShape(28.dp)
   val effect = GlassVisualEffect().apply {
@@ -1172,6 +1173,7 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
     this.shape = shape
   }
   var showSource by mutableStateOf(true)
+  var sourceAlpha by mutableStateOf(0.5f)
   var matte by mutableStateOf(Color.Black)
   setContent {
     GlassInvariantSample(
@@ -1180,7 +1182,7 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
       shape = shape,
       transparentRoot = true,
       transparentRootBackground = matte,
-      sourceAlpha = 0.5f,
+      sourceAlpha = sourceAlpha,
       drawGridLines = false,
       showSource = showSource,
       effectTestTag = "glass".takeIf { withInteraction },
@@ -1244,6 +1246,26 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
       interactionDetailBand.maxOf { color -> abs(color.alpha - expectedAlpha) },
     ).isLessThanOrEqualTo(2f / 255f)
 
+    if (verifyInteractionRgb) {
+      sourceAlpha = 1f
+      waitForIdle()
+      val opaqueInteractive = captureTransparentSnapshot { matte = it }
+      val opaqueInteractionDetailBand = (
+        geometry.surfaceBounds.left + 2..geometry.surfaceBounds.left + 160
+        ).map { x -> opaqueInteractive[x, geometry.centerY] }
+      assertThat(
+        interactionDetailBand.zip(opaqueInteractionDetailBand).maxOf { (translucent, opaque) ->
+          maxOf(
+            abs(translucent.red - opaque.red * expectedAlpha),
+            abs(translucent.green - opaque.green * expectedAlpha),
+            abs(translucent.blue - opaque.blue * expectedAlpha),
+          )
+        },
+      ).isLessThanOrEqualTo(2f / 255f)
+
+      sourceAlpha = expectedAlpha
+      waitForIdle()
+    }
     glassNode.performTouchInput { up() }
     waitForIdle()
   }
