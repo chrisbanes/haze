@@ -320,7 +320,24 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
 
       assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
-      assertThat(delegate.layers.interactionLighting).isNull()
+      assertThat(delegate.layers.interactionLighting).isNotNull()
+    }
+
+  @Test
+  fun interactionLighting_usesForegroundLayerWithOpaqueContent() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = interactiveEffect()
+      setContent { RuntimeGlassTestContent(effect) }
+      waitForIdle()
+      drawFrame()
+
+      effect.setPressedForTest(Offset(60f, 60f))
+      waitForIdle()
+      drawFrame()
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      assertThat(effect.currentInteractionState.hasLighting).isTrue()
+      assertThat(delegate.layers.interactionLighting).isNotNull()
+      assertThat(delegate.layers.interactionLighting?.renderEffect).isNotNull()
     }
 
   @Test
@@ -341,7 +358,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.layers.interactionOptical).isNull()
       assertThat(delegate.layers.interactionRefractionDetail).isNull()
       assertThat(delegate.layers.interactionRefractionDetailCoverage).isNull()
-      assertThat(delegate.layers.interactionLighting).isNull()
+      assertThat(delegate.layers.interactionLighting).isNotNull()
 
       drawFrame()
 
@@ -350,7 +367,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.layers.interactionOptical).isNull()
       assertThat(delegate.layers.interactionRefractionDetail).isNull()
       assertThat(delegate.layers.interactionRefractionDetailCoverage).isNull()
-      assertThat(delegate.layers.interactionLighting).isNull()
+      assertThat(delegate.layers.interactionLighting).isNotNull()
     }
 
   @Test
@@ -376,7 +393,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       assertThat(delegate.layers.interactionOptical).isNull()
       assertThat(delegate.layers.interactionRefractionDetail).isNull()
-      assertThat(delegate.layers.interactionLighting).isNull()
+      assertThat(delegate.layers.interactionLighting).isNotNull()
       val fusedShader = checkNotNull(delegate.fusedShader)
 
       positions.forEach { position ->
@@ -389,7 +406,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         assertThat(delegate.layers.refractionDetail).isNull()
         assertThat(delegate.layers.interactionOptical).isNull()
         assertThat(delegate.layers.interactionRefractionDetail).isNull()
-        assertThat(delegate.layers.interactionLighting).isNull()
+        assertThat(delegate.layers.interactionLighting).isNotNull()
         assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
         assertThat(
           (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
@@ -410,7 +427,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         assertThat(delegate.layers.refractionDetail).isNull()
         assertThat(delegate.layers.interactionOptical).isNull()
         assertThat(delegate.layers.interactionRefractionDetail).isNull()
-        assertThat(delegate.layers.interactionLighting).isNull()
+        assertThat(delegate.layers.interactionLighting).isNotNull()
         assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
         assertThat(
           (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
@@ -426,7 +443,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         assertThat(delegate.layers.optical).isSameInstanceAs(optical)
         assertThat(delegate.layers.refractionDetail).isNull()
         assertThat(delegate.layers.interactionOptical).isNull()
-        assertThat(delegate.layers.interactionLighting).isNull()
+        assertThat(delegate.layers.interactionLighting).isNotNull()
         assertThat(
           (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
         ).isEqualTo(scaleFactor)
@@ -437,7 +454,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(effect.currentInteractionState.hasOptics).isFalse()
       assertThat(delegate.layers.interactionOptical).isNull()
       assertThat(delegate.layers.interactionRefractionDetail).isNull()
-      assertThat(delegate.layers.interactionLighting).isNull()
+      assertThat(delegate.layers.interactionLighting).isNotNull()
       assertThat(delegate.canDrawRetainedOutput()).isTrue()
       mainClock.autoAdvance = true
     }

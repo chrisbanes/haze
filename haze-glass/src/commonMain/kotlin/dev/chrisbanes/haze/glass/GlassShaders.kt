@@ -6,7 +6,6 @@ package dev.chrisbanes.haze.glass
 internal object GlassShaders {
   fun buildFused(
     interactionOptics: Boolean = false,
-    interactionLighting: Boolean = false,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -35,11 +34,11 @@ internal object GlassShaders {
     uniform float detailWidth;
     uniform float detailIntensity;
     uniform float detailVisibility;
-    ${if (interactionOptics || interactionLighting) {
+    ${if (interactionOptics) {
     interactionUniforms(
       includeRefraction = interactionOptics,
       includeWhitePoint = interactionOptics,
-      includeLighting = interactionLighting,
+      includeLighting = false,
     ) + if (interactionOptics) {
       "uniform float interactionOpticalActive;"
     } else {
@@ -63,7 +62,7 @@ internal object GlassShaders {
 
     ${surfaceAndDisplacementHelpers()}
 
-    ${if (interactionOptics || interactionLighting) interactionFalloffHelper() else ""}
+    ${if (interactionOptics) interactionFalloffHelper() else ""}
 
     vec4 sampleDepth(vec2 coord) {
       return content.eval(clampSample(coord));
@@ -121,10 +120,15 @@ internal object GlassShaders {
       vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
       vec3 contentNormal = computeContentNormal(coord);
       vec3 normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
-      float fresnel = pow(
-        1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0),
-        fresnelExponent
-      );
+      float fresnel;
+      if (fresnelExponent == 0.0) {
+        fresnel = 1.0;
+      } else {
+        fresnel = pow(
+          1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0),
+          fresnelExponent
+        );
+      }
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
       vec3 gradedColor = applyColorGrading(
         refractedStraightColor,
@@ -170,21 +174,6 @@ internal object GlassShaders {
       if (detailAlpha > 0.0) {
         opticalColor = mix(opticalColor, sampleDepth(refractCoord), detailAlpha);
       }
-      ${if (interactionLighting) {
-    """
-      if (interactionLightingIntensity > 0.0) {
-        float interactionLight =
-          interactionFalloff(coord) * interactionLightingIntensity * shapeMask;
-        float interactionLightAlpha = interactionLight * 0.32;
-        vec4 interactionLightColor =
-          vec4(vec3(interactionLightAlpha), interactionLightAlpha);
-        opticalColor =
-          interactionLightColor + opticalColor * (1.0 - interactionLightAlpha);
-      }
-      """
-  } else {
-    ""
-  }}
       return opticalColor.a > 0.0 ? opticalColor : vec4(0.0);
     }
   """

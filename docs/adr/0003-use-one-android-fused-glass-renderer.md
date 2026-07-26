@@ -46,11 +46,11 @@ half-resolution response without retaining a half-resolution surface. Progressiv
 same caller mask and semantic two-pass kernels as the retained renderer. Full chromatic aberration
 uses the same seven-position spectral reconstruction.
 
-Rim and group-alpha composition remain separate when required. Configured interaction optics and
-lighting are compiled into the fused base shader. The configured interaction topology is stable;
-live press, hover, and focus values update the retained shader provider without constructing or
-switching the base graph. Interaction-only changes re-record the fused output rather than retaining
-its previous pixels.
+Rim, interaction lighting, and group-alpha composition remain separate when required. Configured
+interaction optics are compiled into the fused base shader. Interaction lighting uses a localized
+foreground patch so that it remains visible above the effect's content. Live press, hover, and focus
+values update retained shader providers without switching the fused base graph. Interaction-only
+optical changes re-record the fused output rather than retaining its previous pixels.
 
 Sibling count, sibling compatibility, and live interaction values are not renderer-selection
 inputs. Android effects do not register with the shared retained-blur registry. A surface owns its

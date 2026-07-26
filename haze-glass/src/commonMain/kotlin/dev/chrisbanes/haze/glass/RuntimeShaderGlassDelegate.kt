@@ -159,7 +159,9 @@ internal class RuntimeShaderGlassDelegate(
     val currentRenderEffects = trace(GlassTraceSection.PrepareEffects) {
       getRenderEffects(currentPreparedRender)
     }
-    val interactionPatch = if (!supportsFusedGlassRenderEffect) {
+    val interactionPatch = if (
+      !supportsFusedGlassRenderEffect || currentPreparedRender.interactionTopology.hasLighting
+    ) {
       resolveGlassInteractionPatch(
         params = params,
         uniforms = interactionUniforms,
@@ -202,8 +204,7 @@ internal class RuntimeShaderGlassDelegate(
       val interactionOpticsRequired =
         !supportsFusedGlassRenderEffect && currentPreparedRender.interactionTopology.hasOptics
       val interactionDetailRequired = interactionOpticsRequired && refractionDetailRequired
-      val interactionLightingRequired = currentPreparedRender.interactionTopology.hasLighting &&
-        !supportsFusedGlassRenderEffect
+      val interactionLightingRequired = currentPreparedRender.interactionTopology.hasLighting
 
       // Drop stages which are no longer part of the graph before allocating their replacements.
       // This keeps topology transitions from temporarily retaining both complete graphs.
@@ -314,10 +315,7 @@ internal class RuntimeShaderGlassDelegate(
             render.blurKey?.takeIf { shouldBlur(params, effects) }
           },
           depth = params.depth,
-          optical = if (
-            supportsFusedGlassRenderEffect &&
-            render.interactionTopology.hasAnyLayer
-          ) {
+          optical = if (supportsFusedGlassRenderEffect && render.interactionTopology.hasOptics) {
             render.opticalKey to interactionUniforms
           } else {
             render.opticalKey
@@ -378,6 +376,21 @@ internal class RuntimeShaderGlassDelegate(
             },
             ::clearRetainedOutput,
           ) ?: return
+          if (interactionUniforms.hasLighting && interactionPatch != null) {
+            requireRetainedStage(
+              trace(GlassTraceSection.InteractionLighting) {
+                recordInteractionLighting(
+                  key = GlassInteractionLightingKey(
+                    coordinates = interactionPatch.coordinates,
+                    edgeSoftnessPx = params.edgeSoftnessPx,
+                    cornerRadii = params.cornerRadii,
+                  ),
+                  patch = interactionPatch,
+                )
+              },
+              ::clearRetainedOutput,
+            ) ?: return
+          }
           if (render.alpha >= 1f) {
             trace(GlassTraceSection.Compose) {
               drawCompletedLayer(completedOptical, context, params, alpha = 1f)
@@ -684,8 +697,7 @@ internal class RuntimeShaderGlassDelegate(
       interactionPatchAvailable &&
       interactionUniforms?.hasOptics == true
     val interactionDetailRequired = interactionOpticsRequired && detailRequired
-    val interactionLightingRequired = !fusedOutputAvailable &&
-      interactionPatchAvailable &&
+    val interactionLightingRequired = interactionPatchAvailable &&
       interactionUniforms?.hasLighting == true
     return retainedOutputAvailable && layers.hasOptical &&
       (
@@ -1522,9 +1534,7 @@ internal class RuntimeShaderGlassDelegate(
       depth = render.params.depth,
       optical = render.opticalKey,
       detail = render.refractionDetailKey,
-      interaction = render.interactionUniforms.takeIf {
-        render.interactionTopology.hasAnyLayer
-      },
+      interaction = render.interactionUniforms.takeIf { render.interactionTopology.hasOptics },
     )
     if (nextFusedEffectKey != fusedEffectKey || fusedEffect == null) {
       fusedEffect = nextFusedEffectKey.let { key ->
@@ -1532,7 +1542,6 @@ internal class RuntimeShaderGlassDelegate(
           blur = key.blur,
           depth = key.depth,
           interactionOptics = render.interactionTopology.hasOptics,
-          interactionLighting = render.interactionTopology.hasLighting,
         )
         if (fusedShader == null || fusedInputKey != nextInputKey) {
           fusedShader = createFusedGlassRenderEffect(
@@ -1542,7 +1551,6 @@ internal class RuntimeShaderGlassDelegate(
               sampleSize = key.optical.coordinates.sampleSize,
             ),
             interactionOptics = nextInputKey.interactionOptics,
-            interactionLighting = nextInputKey.interactionLighting,
           )
           fusedInputKey = nextInputKey
         }
@@ -1554,7 +1562,7 @@ internal class RuntimeShaderGlassDelegate(
             setFusedInteractionUniforms(
               uniforms = it,
               interactionOptics = nextInputKey.interactionOptics,
-              interactionLighting = nextInputKey.interactionLighting,
+              interactionLighting = false,
             )
           }
         }
@@ -1744,7 +1752,6 @@ private data class GlassDepthInputKey(
   val blur: GlassBlurEffectKey?,
   val depth: Float,
   val interactionOptics: Boolean = false,
-  val interactionLighting: Boolean = false,
 )
 
 // RuntimeShader child sampling does not reproduce the retained graph's raster downscale/upscale
@@ -1776,20 +1783,16 @@ internal expect fun createGlassDepthInputRenderEffect(
 internal fun createFusedGlassRenderEffect(
   input: PlatformRenderEffect? = null,
   interactionOptics: Boolean = false,
-  interactionLighting: Boolean = false,
 ): MutableRuntimeShaderRenderEffect = createMutableRuntimeShaderRenderEffect(
-  effect = fusedGlassRuntimeEffect(interactionOptics, interactionLighting),
+  effect = fusedGlassRuntimeEffect(interactionOptics),
   shaderNames = arrayOf("content"),
   inputs = arrayOf(input),
 )
 
 private fun fusedGlassRuntimeEffect(
   interactionOptics: Boolean,
-  interactionLighting: Boolean,
 ) = when {
-  interactionOptics && interactionLighting -> GLASS_INTERACTIVE_FUSED_EFFECT
   interactionOptics -> GLASS_INTERACTION_OPTICS_FUSED_EFFECT
-  interactionLighting -> GLASS_INTERACTION_LIGHTING_FUSED_EFFECT
   else -> GLASS_FUSED_EFFECT
 }
 
@@ -1897,17 +1900,6 @@ private val GLASS_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
 }
 private val GLASS_INTERACTION_OPTICS_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildFused(interactionOptics = true))
-}
-private val GLASS_INTERACTION_LIGHTING_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildFused(interactionLighting = true))
-}
-private val GLASS_INTERACTIVE_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(
-    GlassShaders.buildFused(
-      interactionOptics = true,
-      interactionLighting = true,
-    ),
-  )
 }
 private val GLASS_DOWNSAMPLE_PREFILTER_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildDownsamplePrefilter())

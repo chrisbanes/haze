@@ -56,8 +56,9 @@ measured.
 - **Changing content:** Moving or updating the captured source invalidates more retained work than
   redrawing an unchanged effect.
 - **Dynamic optics:** Progressive blur and Full chromatic aberration increase sampling within the
-  fused shader. Configured interaction lighting and optics are compiled into that same stable
-  renderer; live press, hover, and focus values update uniforms without replacing the graph.
+  fused shader. Configured interaction optics use that same stable renderer, while interaction
+  lighting uses a localized foreground patch to preserve content ordering. Live press, hover, and
+  focus values update uniforms without replacing the fused base graph.
 - **Device and display:** GPU capability, resolution, refresh rate, and thermal state all affect
   the result.
 

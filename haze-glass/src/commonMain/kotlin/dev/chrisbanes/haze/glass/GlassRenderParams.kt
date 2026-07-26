@@ -698,15 +698,17 @@ internal fun buildGlassBudgetLayerPlan(
   interactionOpticsActive: Boolean,
   interactionLightingActive: Boolean,
 ): GlassRetainedLayerPlan {
+  val interactionLayersActive =
+    interactionPatchSize.width > 0 && interactionPatchSize.height > 0
   if (supportsFusedGlassRenderEffect) {
     return buildGlassFusedLayerPlan(
       sampleSize = sampleSize,
       rimActive = rimActive,
+      interactionPatchSize = interactionPatchSize,
+      interactionLightingActive = interactionLayersActive && interactionLightingActive,
       groupCompositeSize = groupCompositeSize,
     )
   }
-  val interactionLayersActive =
-    interactionPatchSize.width > 0 && interactionPatchSize.height > 0
   val blurActive = depth > 0f && blurRadiusPx > 0f
   val blurScale = if (
     blurActive && allowMultiscaleBlur &&
@@ -794,12 +796,17 @@ private fun buildGlassRetainedLayerPlan(
 private fun buildGlassFusedLayerPlan(
   sampleSize: IntSize,
   rimActive: Boolean,
+  interactionPatchSize: IntSize = IntSize.Zero,
+  interactionLightingActive: Boolean = false,
   groupCompositeSize: IntSize?,
 ): GlassRetainedLayerPlan = GlassRetainedLayerPlan(
   buildList {
     add(GlassRetainedLayer(GlassRetainedLayerKind.Source, sampleSize))
     add(GlassRetainedLayer(GlassRetainedLayerKind.Optical, sampleSize))
     if (rimActive) add(GlassRetainedLayer(GlassRetainedLayerKind.Rim, sampleSize))
+    if (interactionLightingActive) {
+      add(GlassRetainedLayer(GlassRetainedLayerKind.InteractionLighting, interactionPatchSize))
+    }
     if (groupCompositeSize != null) {
       add(GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, groupCompositeSize))
     }
@@ -859,6 +866,18 @@ internal fun resolveGlassGroupCompositeSize(
     interactionLayersActive && interactionTopology.hasOptics
 }
 
+internal fun resolveGlassBudgetGroupCompositeSize(
+  outputSize: IntSize,
+  alpha: Float,
+  interactionLayersActive: Boolean,
+  interactionTopology: GlassInteractionTopology,
+): IntSize? = resolveGlassGroupCompositeSize(
+  outputSize = outputSize,
+  alpha = alpha,
+  interactionLayersActive = interactionLayersActive && !supportsFusedGlassRenderEffect,
+  interactionTopology = interactionTopology,
+)
+
 internal fun buildGlassPreparedRender(
   params: GlassRenderParams,
   interactionUniforms: GlassInteractionUniforms,
@@ -873,7 +892,9 @@ internal fun buildGlassPreparedRender(
   outputSize: IntSize,
   previous: GlassPreparedRender? = null,
 ): GlassPreparedRender {
-  val interactionPatchSize = if (supportsFusedGlassRenderEffect) {
+  val interactionPatchSize = if (
+    supportsFusedGlassRenderEffect && !interactionTopology.hasLighting
+  ) {
     IntSize.Zero
   } else {
     calculateGlassInteractionPatchSize(
@@ -883,7 +904,7 @@ internal fun buildGlassPreparedRender(
     )
   }
   val interactionLayersActive = interactionPatchSize.width > 0 && interactionPatchSize.height > 0
-  val groupCompositeSize = resolveGlassGroupCompositeSize(
+  val groupCompositeSize = resolveGlassBudgetGroupCompositeSize(
     outputSize = outputSize,
     alpha = alpha,
     interactionLayersActive = interactionLayersActive,
@@ -932,6 +953,8 @@ internal fun buildGlassPreparedRender(
       buildGlassFusedLayerPlan(
         sampleSize = params.coordinates.sampleSize.roundToIntSize(),
         rimActive = rimKey != null,
+        interactionPatchSize = interactionPatchSize,
+        interactionLightingActive = interactionLayersActive && interactionTopology.hasLighting,
         groupCompositeSize = groupCompositeSize,
       )
     } else {

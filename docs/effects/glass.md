@@ -143,7 +143,7 @@ glassEffect {
 - Runtime shader path: rounded SDF refraction, tint/specular/Fresnel, chromatic aberration, and
   edge softness. On Android API 33 and newer, one fused renderer handles single and multiple
   effects, semantic and progressive blur, Full chromatic aberration, and configured interaction
-  lighting and optics through one composed output graph.
+  optics. Interaction lighting uses a localized foreground patch so that it remains above content.
 - Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable. Interaction lighting and transforms work on this path, but interactive optics, white-point adjustment, and refraction are no-ops.
 
 ## Performance

@@ -10,6 +10,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import kotlin.math.roundToInt
 import kotlin.test.Test
@@ -34,8 +35,29 @@ class GlassRenderBudgetTest {
     assertThat(
       plan.layers.filter { it.kind.name.startsWith("Interaction") }.map { it.size },
     ).containsExactly(
-      *List(if (supportsFusedGlassRenderEffect) 0 else 5) { patchSize }.toTypedArray(),
+      *List(if (supportsFusedGlassRenderEffect) 1 else 5) { patchSize }.toTypedArray(),
     )
+  }
+
+  @Test
+  fun fusedInteractionOptics_doesNotAddGroupCompositeToBudget() {
+    val outputSize = IntSize(1000, 600)
+    val result = resolveGlassBudgetGroupCompositeSize(
+      outputSize = outputSize,
+      alpha = 1f,
+      interactionLayersActive = true,
+      interactionTopology = GlassInteractionTopology(
+        hasOptics = true,
+        hasLighting = false,
+        maxRefractionMultiplier = 1.1f,
+      ),
+    )
+
+    if (supportsFusedGlassRenderEffect) {
+      assertThat(result).isNull()
+    } else {
+      assertThat(result).isEqualTo(outputSize)
+    }
   }
 
   @Test

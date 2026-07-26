@@ -18,6 +18,14 @@ import kotlin.test.Test
 class GlassShadersTest {
 
   @Test
+  fun fusedShader_preservesZeroExponentFresnelResponse() {
+    val shader = GlassShaders.buildFused()
+
+    assertThat(shader).contains("if (fresnelExponent == 0.0)")
+    assertThat(shader).contains("fresnel = 1.0;")
+  }
+
+  @Test
   fun fusedInteractionOptics_expandDetailBoundForLocalizedRefraction() {
     val interactive = GlassShaders.buildFused(interactionOptics = true)
     val baseline = GlassShaders.buildFused()
