@@ -22,7 +22,6 @@ import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.sqrt
 import kotlin.test.Test
 
@@ -138,7 +137,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun interactionPatch_includesFusedBlurSamplingReach() {
+  fun interactionPatch_isIndependentOfPrecomputedBlur() {
     val coordinates = GlassCoordinates(
       Size(1000f, 600f),
       Offset.Zero,
@@ -167,13 +166,7 @@ class GlassRenderParamsTest {
     )
 
     assertThat(blurred.compositeBounds).isEqualTo(sharp.compositeBounds)
-    assertThat(blurred.bounds.width).isGreaterThan(sharp.bounds.width)
-    assertThat(blurred.bounds.height).isGreaterThan(sharp.bounds.height)
-    val requiredBlurReach = ceil(SemanticBlurKernel.radiusToSigma(38.5f) * 3f).toInt()
-    assertThat(blurred.compositeBounds.left - blurred.bounds.left)
-      .isGreaterThanOrEqualTo(requiredBlurReach)
-    assertThat(blurred.bounds.right - blurred.compositeBounds.right)
-      .isGreaterThanOrEqualTo(requiredBlurReach)
+    assertThat(blurred.bounds).isEqualTo(sharp.bounds)
   }
 
   @Test
@@ -193,8 +186,8 @@ class GlassRenderParamsTest {
       ),
     )
 
-    assertThat(reserved.width >= runtime.bounds.width).isEqualTo(true)
-    assertThat(reserved.height >= runtime.bounds.height).isEqualTo(true)
+    assertThat(reserved.width).isGreaterThanOrEqualTo(runtime.bounds.width)
+    assertThat(reserved.height).isGreaterThanOrEqualTo(runtime.bounds.height)
   }
 
   @Test

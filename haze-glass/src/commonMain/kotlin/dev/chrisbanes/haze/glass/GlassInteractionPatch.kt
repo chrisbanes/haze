@@ -150,9 +150,11 @@ private fun resolveInteractionBounds(
 private fun calculateInteractionSamplingPadding(
   params: GlassRenderParams,
   topology: GlassInteractionTopology,
-): Float = (
-  params.refractionScalePx * params.refractionStrength * topology.maxRefractionMultiplier *
-    (1f + 0.5f * params.chromaticAberrationStrength) +
-    params.blurSigmaPx * 3f +
-    maxOf(params.edgeSoftnessPx, params.sampleStepPx)
-  ).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f
+): Float {
+  if (!topology.hasOptics) return 0f
+  return (
+    params.refractionScalePx * params.refractionStrength * topology.maxRefractionMultiplier *
+      (1f + 0.5f * params.chromaticAberrationStrength) +
+      maxOf(params.edgeSoftnessPx, params.sampleStepPx)
+    ).takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f
+}

@@ -175,13 +175,17 @@ internal class RuntimeShaderGlassDelegate(
     }
     val params = currentPreparedRender.params
     val interactionUniforms = currentPreparedRender.interactionUniforms
-    val interactionPatch = resolveGlassInteractionPatch(
-      params = params,
-      uniforms = interactionUniforms,
-      topology = currentPreparedRender.interactionTopology,
-    )
     val currentRenderEffects = trace(GlassTraceSection.PrepareEffects) {
       getRenderEffects(currentPreparedRender)
+    }
+    val interactionPatch = if (currentRenderEffects.fused == null) {
+      resolveGlassInteractionPatch(
+        params = params,
+        uniforms = interactionUniforms,
+        topology = currentPreparedRender.interactionTopology,
+      )
+    } else {
+      null
     }
 
     trace(GlassTraceSection.PrepareLayers) {
@@ -425,14 +429,7 @@ internal class RuntimeShaderGlassDelegate(
           ) ?: return
           if (render.alpha >= 1f) {
             trace(GlassTraceSection.Compose) {
-              drawCompletedOutput(
-                optical = completedOptical,
-                interactionOutput = null,
-                interactionPatch = interactionPatch,
-                context = context,
-                params = params,
-                interactionBlendMode = BlendMode.SrcOver,
-              )
+              drawCompletedLayer(completedOptical, context, params, alpha = 1f)
             }
           } else {
             val groupAlpha = requireRetainedStage(
@@ -450,14 +447,7 @@ internal class RuntimeShaderGlassDelegate(
                 size = groupCompositeSize,
               ) {
                 trace(GlassTraceSection.Compose) {
-                  drawCompletedOutput(
-                    optical = completedOptical,
-                    interactionOutput = null,
-                    interactionPatch = interactionPatch,
-                    context = context,
-                    params = params,
-                    interactionBlendMode = BlendMode.SrcOver,
-                  )
+                  drawCompletedLayer(completedOptical, context, params, alpha = 1f)
                 }
               }
             }
@@ -794,9 +784,7 @@ internal class RuntimeShaderGlassDelegate(
     val interactionOpticsRequired = !fusedOutputAvailable &&
       interactionPatchAvailable &&
       interactionUniforms?.hasOptics == true
-    val interactionDetailRequired = interactionOpticsRequired &&
-      detailRequired &&
-      !fusedOutputAvailable
+    val interactionDetailRequired = interactionOpticsRequired && detailRequired
     val interactionLightingRequired = !fusedOutputAvailable &&
       interactionPatchAvailable &&
       interactionUniforms?.hasLighting == true
@@ -1730,7 +1718,6 @@ internal class RuntimeShaderGlassDelegate(
     interactionPatch: GlassInteractionPatch?,
     context: VisualEffectContext,
     params: GlassRenderParams,
-    interactionBlendMode: BlendMode = BlendMode.SrcAtop,
   ) {
     drawCompletedLayer(optical, context, params, alpha = 1f)
     if (interactionOutput != null && interactionPatch != null) {
@@ -1739,7 +1726,7 @@ internal class RuntimeShaderGlassDelegate(
         patch = interactionPatch,
         context = context,
         params = params,
-        blendMode = interactionBlendMode,
+        blendMode = BlendMode.SrcAtop,
         alpha = 1f,
       )
     }
