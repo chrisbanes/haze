@@ -762,6 +762,23 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun blurEffectKey_roundsUnroundedSampleSizeLikeRetainedLayers() {
+    val params = testRenderParams(
+      coordinates = GlassCoordinates(
+        sampleSize = Size(140.8f, 100.8f),
+        materialOrigin = Offset.Zero,
+        materialSize = Size(100f, 80f),
+        scaleFactor = 0.75f,
+      ),
+      blurRadiusPx = 12f,
+    )
+
+    assertThat(params.blurEffectKey().plan.sampleSize).isEqualTo(
+      params.coordinates.sampleSize.roundToIntSize(),
+    )
+  }
+
+  @Test
   fun samplePadding_addsSerialStageSupport() {
     assertThat(
       calculateGlassSamplePaddingPx(

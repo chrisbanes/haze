@@ -263,7 +263,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
-  fun liveUniformChanges_retainShadersAndReplaceOnlyAffectedRenderEffectWrappers() =
+  fun liveUniformChanges_retainShadersAndReplaceRetainedLayerRenderEffects() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = animatedStageEffect()
       setContent { RuntimeGlassTestContent(effect) }
@@ -278,21 +278,25 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       val opticalShader = delegate.opticalShader
       val opticalEffect = delegate.opticalEffect
+      val opticalLayerEffect = checkNotNull(delegate.layers.optical?.renderEffect)
       effect.ambientResponse = 0.6f
       waitForIdle()
       drawFrame()
 
       assertThat(delegate.opticalShader).isSameInstanceAs(opticalShader)
       assertThat(delegate.opticalEffect).isNotSameInstanceAs(opticalEffect)
+      assertThat(delegate.layers.optical?.renderEffect).isNotSameInstanceAs(opticalLayerEffect)
 
       val rimShader = delegate.rimShader
       val rimEffect = delegate.rimEffect
+      val rimLayerEffect = checkNotNull(delegate.layers.rim?.renderEffect)
       effect.lightPosition = Offset(10f, 20f)
       waitForIdle()
       drawFrame()
 
       assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
       assertThat(delegate.rimEffect).isNotSameInstanceAs(rimEffect)
+      assertThat(delegate.layers.rim?.renderEffect).isNotSameInstanceAs(rimLayerEffect)
     }
 
   @Test

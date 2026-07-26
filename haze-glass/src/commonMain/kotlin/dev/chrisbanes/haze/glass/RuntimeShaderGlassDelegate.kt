@@ -1638,6 +1638,9 @@ internal class RuntimeShaderGlassDelegate(
   ): Boolean = params.depth > 0f && params.depth < 1f && shouldBlur(params, effects)
 
   private fun getRenderEffects(render: GlassPreparedRender): GlassRenderEffects {
+    // Android mutations update a shared, live RuntimeShader, whereas Skiko snapshots uniforms
+    // into each ImageFilter. Every effect mutated here must be reassigned before its retained
+    // layer is recorded; never update uniforms on a path that presents retained output as-is.
     val nextBlurKey = render.blurKey
     if (nextBlurKey != blurKey) {
       blurEffects = nextBlurKey?.let(::updateBlurRenderEffects)
