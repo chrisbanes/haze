@@ -199,6 +199,7 @@ internal class GlassInteractionController(
   private val sourceFocuses = mutableSetOf<FocusInteraction.Focus>()
   private var sourcePosition: Offset? = null
   private var disposed = false
+  private var renderStateSnapshot = GlassInteractionRenderState(Offset.Zero)
 
   internal val configurationForTest: GlassInteractionControllerConfiguration
     get() = configuration
@@ -215,14 +216,29 @@ internal class GlassInteractionController(
     )
 
   val renderState: GlassInteractionRenderState
-    get() = GlassInteractionRenderState(
-      position = position.value,
-      lightingIntensity = lightingIntensity.currentValue,
-      refractionMultiplier = refractionMultiplier.currentValue,
-      whitePointDelta = whitePointDelta.currentValue,
-      scaleX = if (configuration.reducedMotion) 1f else scaleX.currentValue,
-      scaleY = if (configuration.reducedMotion) 1f else scaleY.currentValue,
-    )
+    get() {
+      val position = position.value
+      val lightingIntensity = lightingIntensity.currentValue
+      val refractionMultiplier = refractionMultiplier.currentValue
+      val whitePointDelta = whitePointDelta.currentValue
+      val scaleX = if (configuration.reducedMotion) 1f else scaleX.currentValue
+      val scaleY = if (configuration.reducedMotion) 1f else scaleY.currentValue
+      return renderStateSnapshot.takeIf {
+        it.position == position &&
+          it.lightingIntensity == lightingIntensity &&
+          it.refractionMultiplier == refractionMultiplier &&
+          it.whitePointDelta == whitePointDelta &&
+          it.scaleX == scaleX &&
+          it.scaleY == scaleY
+      } ?: GlassInteractionRenderState(
+        position = position,
+        lightingIntensity = lightingIntensity,
+        refractionMultiplier = refractionMultiplier,
+        whitePointDelta = whitePointDelta,
+        scaleX = scaleX,
+        scaleY = scaleY,
+      ).also { renderStateSnapshot = it }
+    }
 
   fun updateConfiguration(configuration: GlassInteractionControllerConfiguration) {
     if (disposed || configuration == this.configuration) return
