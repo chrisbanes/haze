@@ -1311,14 +1311,18 @@
 <li><strong>Removed APIs:</strong> <code>HazeState.blurEnabled</code> and the <code>rememberHazeState(blurEnabled)</code> parameter removed.</li>
 <li><strong>Position strategy:</strong> New <code>HazePositionStrategy</code> configuration on <code>HazeState</code></li>
 <li><strong>Geometry changes:</strong> <code>HazeArea.positionOnScreen</code> is replaced by <code>HazeArea.coordinates</code>; <code>VisualEffectContext</code> now exposes <code>position</code>, <code>rootBounds</code>, <code>positionOf(area)</code>, and <code>boundsOf(area)</code>.</li>
+<li><strong>Adaptive blur input scaling:</strong> <code>HazeInputScale.Default</code> now lets each visual effect choose its
+  policy. Blur uses a quality-gated adaptive ladder; Glass remains unscaled. Set
+  <code>HazeInputScale.None</code> to preserve explicit full-resolution blur input.
+  <code>HazeInputScale.EffectDefault</code> is the new sealed subtype backing <code>Default</code>; exhaustive <code>when</code>
+  expressions over <code>HazeInputScale</code> must handle it (or add an <code>else</code> branch).</li>
 </ul>
 <p><strong>What Hasn't Changed:</strong></p>
 <ul>
 <li><code>hazeSource</code> remains in the core module</li>
 <li><code>hazeEffect</code> remains in the core module, but blur-specific style parameters moved into <code>blurEffect {}</code>.</li>
 <li>Platform support unchanged</li>
-<li>Performance characteristics unchanged</li>
-<li><code>HazeEffectScope</code> properties like <code>inputScale</code>, <code>drawContentBehind</code>, <code>canDrawArea</code> unchanged</li>
+<li><code>HazeEffectScope</code> properties like <code>drawContentBehind</code> and <code>canDrawArea</code> unchanged</li>
 </ul>
 <h2 id="dependency-changes">Dependency Changes<a class="headerlink" href="#dependency-changes" title="Permanent link">¶</a></h2>
 <h3 id="add-the-haze-blur-module">Add the haze-blur Module<a class="headerlink" href="#add-the-haze-blur-module" title="Permanent link">¶</a></h3>

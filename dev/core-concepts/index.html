@@ -1445,9 +1445,11 @@
 <p>Controls the resolution at which the effect source content is rendered. This is a performance optimization that allows the effect to be applied at a lower resolution before being scaled back up.</p>
 <p>Options:</p>
 <ul>
-<li><code>HazeInputScale.None</code>: No scaling (default)</li>
-<li><code>HazeInputScale.Auto</code>: Automatic scaling with platform defaults</li>
-<li><code>HazeInputScale.Fixed(value)</code>: Fixed scaling factor (0.0 to 1.0)</li>
+<li><code>HazeInputScale.Default</code>: Let the visual effect choose its policy. Blur adapts to physical
+  workload; Glass remains unscaled.</li>
+<li><code>HazeInputScale.None</code>: Explicitly disable scaling.</li>
+<li><code>HazeInputScale.Auto</code>: Explicitly request the visual effect's automatic policy.</li>
+<li><code>HazeInputScale.Fixed(value)</code>: Use the exact fixed scale (greater than <code>0.0</code>, up to <code>1.0</code>).</li>
 </ul>
 <h4 id="drawcontentbehind">drawContentBehind<a class="headerlink" href="#drawcontentbehind" title="Permanent link">¶</a></h4>
 <p>When <code>true</code>, the original source content is drawn before the effect is applied. When <code>false</code>, only the effect is drawn. Defaults to <code>true</code>.</p>

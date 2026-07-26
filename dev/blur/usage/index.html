@@ -1566,11 +1566,13 @@ private content, disable retained output on the effect scope:</p>
 <p>Masks fade the effect through opacity only and may not feel as refined as progressive blur. However, masks are much faster with negligible performance cost.</p>
 </div>
 <h2 id="input-scale">Input Scale<a class="headerlink" href="#input-scale" title="Permanent link">¶</a></h2>
-<p>Optimize performance by rendering the effect at a lower resolution:</p>
+<p>Blur effects adapt their input resolution by default. The policy considers the resolved blur radius
+in physical pixels and the expanded capture-layer pixel area, then chooses <code>1.0</code>, <code>0.8</code>, or <code>0.5</code>.
+Both inputs must cross a tier boundary, and hysteresis avoids retained-layer reallocations when an
+animated radius or resizing surface hovers near a boundary.</p>
 <p><img alt="" src="../../media/inputscale.png"></p>
 <div class="highlight"><pre><span></span><code><span class="n">TopAppBar</span><span class="p">(</span>
 <span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">inputScale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInputScale</span><span class="p">.</span><span class="na">Auto</span>
 <span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="c1">// ...</span>
 <span class="w">    </span><span class="p">}</span>
@@ -1579,17 +1581,23 @@ private content, disable retained output on the effect scope:</p>
 </code></pre></div>
 <p><a href="../../api/haze/dev.chrisbanes.haze/-haze-input-scale/">HazeInputScale</a> options:</p>
 <ul>
-<li><code>HazeInputScale.None</code>: No scaling (default)</li>
-<li><code>HazeInputScale.Auto</code>: Automatic scaling with platform defaults</li>
-<li><code>HazeInputScale.Fixed(...)</code>: Custom scaling factor (0.0 to 1.0)</li>
+<li><code>HazeInputScale.Default</code>: Let the visual effect choose. Blur adapts; Glass stays at <code>1.0</code>.</li>
+<li><code>HazeInputScale.None</code>: Explicitly disable scaling.</li>
+<li><code>HazeInputScale.Auto</code>: Explicitly request the effect's automatic policy.</li>
+<li><code>HazeInputScale.Fixed(...)</code>: Use the exact custom scaling factor (greater than <code>0.0</code>, up to <code>1.0</code>).</li>
 </ul>
-<p>Values less than 1.0 improve performance at the cost of quality. Common values:
-- <code>0.66</code> - ~55% pixel reduction, imperceptible to most users
-- <code>0.5</code> - ~75% pixel reduction, noticeable but often acceptable
-- <code>0.33</code> - ~89% pixel reduction, likely visually different</p>
+<p>The ordinary blur ladder uses:</p>
+<ul>
+<li><code>0.8</code> — 36% fewer input pixels for medium workloads.</li>
+<li><code>0.5</code> — 75% fewer input pixels for large surfaces with strong blur.</li>
+</ul>
+<p>Progressive blur stays at <code>1.0</code> for smaller workloads and never goes below <code>0.8</code>. A non-progressive
+mask uses the ordinary ladder. Scrim fallback does not perform a blur and remains at <code>1.0</code>.</p>
 <div class="admonition info">
 <p class="admonition-title">Experimentation Recommended</p>
-<p>Always benchmark with your specific styling parameters to find the right balance for your use case.</p>
+<p>The default is quality-gated and intentionally conservative, but device backends and content
+vary. Use <code>None</code> or <code>Fixed</code> when your own visual review or benchmarks call for a different
+tradeoff.</p>
 </div>
 <h2 id="overlapping-blurred-layouts">Overlapping Blurred Layouts<a class="headerlink" href="#overlapping-blurred-layouts" title="Permanent link">¶</a></h2>
 <p>A layout can use both <code>hazeEffect</code> (drawing blur from other areas) and <code>hazeSource</code> (serving as a blur source for others):</p>

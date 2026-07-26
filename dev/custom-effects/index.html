@@ -1426,6 +1426,17 @@
 <li><code>state != null</code>: background mode (<code>hazeEffect(state = hazeState)</code>)</li>
 <li><code>state == null</code>: foreground/content mode (<code>hazeEffect { ... }</code>)</li>
 </ul>
+<p>Input-scale semantics:</p>
+<ul>
+<li><code>HazeInputScale.Default</code> is passed through unchanged so a custom effect can choose its normal
+  policy.</li>
+<li><code>HazeInputScale.None</code> explicitly requests <code>1.0</code>.</li>
+<li><code>HazeInputScale.Auto</code> asks the custom effect to apply its automatic policy; core does not impose
+  the built-in blur or Glass rules.</li>
+<li><code>HazeInputScale.Fixed</code> supplies the caller's exact scale.</li>
+</ul>
+<p>Custom effects should document how they interpret <code>Default</code> and <code>Auto</code>, and should preserve
+explicit <code>None</code> and <code>Fixed</code> choices.</p>
 <h2 id="hazeeffectscope">HazeEffectScope<a class="headerlink" href="#hazeeffectscope" title="Permanent link">¶</a></h2>
 <p>The <code>Modifier.hazeEffect { ... }</code> lambda uses <code>HazeEffectScope</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">HazeEffectScope</span><span class="w"> </span><span class="p">{</span>

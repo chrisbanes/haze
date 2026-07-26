@@ -704,6 +704,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#added" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -765,7 +776,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#breaking-changes" class="md-nav__link">
+  <a href="#breaking-changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking Changes
@@ -843,7 +854,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#breaking-changes_1" class="md-nav__link">
+  <a href="#breaking-changes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking Changes
@@ -976,7 +987,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#breaking-changes_2" class="md-nav__link">
+  <a href="#breaking-changes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking Changes
@@ -4246,6 +4257,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#breaking-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#added" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4307,7 +4329,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#breaking-changes" class="md-nav__link">
+  <a href="#breaking-changes_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking Changes
@@ -4385,7 +4407,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#breaking-changes_1" class="md-nav__link">
+  <a href="#breaking-changes_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking Changes
@@ -4518,7 +4540,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#breaking-changes_2" class="md-nav__link">
+  <a href="#breaking-changes_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Breaking Changes
@@ -7658,6 +7680,12 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
+<h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">¶</a></h3>
+<ul>
+<li><code>HazeInputScale.Default</code> is now backed by the new <code>HazeInputScale.EffectDefault</code> sealed subtype
+  so effects can distinguish an unspecified policy from explicit <code>None</code>. Exhaustive <code>when</code>
+  expressions over <code>HazeInputScale</code> must handle the new subtype or add an <code>else</code> branch.</li>
+</ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
 <li>Added opt-in hover, focus, and press responses to <code>GlassVisualEffect</code>, including localized lighting and optics, configurable transforms and motion, and an <code>interactable()</code> preset shortcut.</li>
@@ -7667,6 +7695,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Blur effects now adapt <code>HazeInputScale.Default</code> between <code>1.0</code>, <code>0.8</code>, and <code>0.5</code> using physical
+  blur radius and expanded capture-layer area, with hysteresis and a <code>0.8</code> progressive-blur cap.
+  Glass remains unscaled by default; explicit input-scale choices remain authoritative.</li>
 <li>Changed Glass blur composition so blur participates in refracted content.</li>
 <li>Moved <code>HazeProgressive</code> to the core <code>dev.chrisbanes.haze</code> package with a deprecated blur-package typealias.</li>
 </ul>
@@ -7682,7 +7713,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Fix sticky header haze scroll sync in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/994" title="GitHub Issue chrisbanes/haze #994">#994</a>. <code>HazeSourceNode</code> now refreshes local coordinates from every <code>onPlaced</code>, and observed area-position reads dirty <code>HazeEffectNode</code> area offsets so sticky headers blur the currently visible content while scrolling.</li>
 </ul>
 <h2 id="2.0.0-alpha03">2.0.0-alpha03 <small>2026-06-08</small><a class="headerlink" href="#2.0.0-alpha03" title="Permanent link">¶</a></h2>
-<h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">¶</a></h3>
+<h3 id="breaking-changes_1">Breaking Changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">¶</a></h3>
 <ul>
 <li><strong>Removed APIs:</strong> Delete all v1 migration aliases, including <code>HazeStyle</code>, <code>HazeTint</code>, <code>LocalHazeStyle</code>, and the <code>HazeTint(...)</code> factory function in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/963" title="GitHub Issue chrisbanes/haze #963">#963</a></li>
 <li><strong>Changed:</strong> <code>HazeBlurStyle</code> is now an immutable class rather than a data class. The constructor and <code>copy()</code> parameter for <code>colorEffects</code> is nullable (<code>null</code> = unspecified, <code>emptyList()</code> = explicitly empty); the public property remains non-null and returns an empty list when unspecified in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/963" title="GitHub Issue chrisbanes/haze #963">#963</a></li>
@@ -7736,7 +7767,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><strong><code>GlassStyle</code></strong> container with <code>LocalGlassStyle</code> composition local for scoped defaults</li>
 <li>All properties follow the standard three-tier precedence: direct → style → composition local → defaults</li>
 </ul>
-<h3 id="breaking-changes_1">Breaking Changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">¶</a></h3>
+<h3 id="breaking-changes_2">Breaking Changes<a class="headerlink" href="#breaking-changes_2" title="Permanent link">¶</a></h3>
 <ul>
 <li><strong>Removed APIs:</strong> <code>VisualEffectContext.visualEffect</code> property removed. Custom <code>VisualEffect</code> implementations should access their own state directly through class members or captured references. Inside <code>override fun DrawScope.draw(...)</code>, bare <code>this</code> refers to the <code>DrawScope</code>, not the <code>VisualEffect</code> instance.</li>
 <li><strong>Lifecycle signature:</strong> <code>VisualEffect.detach()</code> now receives the attached context as <code>detach(context: VisualEffectContext)</code>.</li>
@@ -7790,7 +7821,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </code></pre></div>
 <h4 id="configurable-hazepositionstrategy">Configurable <code>HazePositionStrategy</code><a class="headerlink" href="#configurable-hazepositionstrategy" title="Permanent link">¶</a></h4>
 <p>New <code>positionStrategy</code> parameter on <code>rememberHazeState()</code> to control how effect positions are calculated, fixing split-window blur misalignment scenarios.</p>
-<h3 id="breaking-changes_2">Breaking Changes<a class="headerlink" href="#breaking-changes_2" title="Permanent link">¶</a></h3>
+<h3 id="breaking-changes_3">Breaking Changes<a class="headerlink" href="#breaking-changes_3" title="Permanent link">¶</a></h3>
 <ul>
 <li><strong>New module dependency:</strong> Blur functionality now requires the <code>haze-blur</code> module</li>
 <li><strong>API nesting:</strong> Blur properties (<code>blurRadius</code>, <code>colorEffects</code>, <code>style</code>, <code>noiseFactor</code>, <code>progressive</code>, <code>mask</code>, etc.) now require <code>blurEffect {}</code> wrapper</li>
