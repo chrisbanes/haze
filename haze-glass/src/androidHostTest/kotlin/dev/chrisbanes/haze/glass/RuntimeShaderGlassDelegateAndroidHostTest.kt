@@ -50,19 +50,11 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
   @Test
   fun singleStandardBlur_usesFusedBaseRenderer() =
-    runAndroidComposeUiTest<ComponentActivity> {
-      val effect = retainedBlurEffect()
-      setContent { RuntimeGlassTestContent(effect) }
-      waitForIdle()
-      drawFrame()
-
-      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-      assertThat(delegate.usesFusedEffectForTest).isTrue()
+    assertFusedRenderer(retainedBlurEffect()) { delegate ->
       assertThat(delegate.layers.hasDepthMixed).isFalse()
       assertThat(delegate.layers.hasBlurPrefiltered).isFalse()
       assertThat(delegate.layers.hasBlurHorizontal).isFalse()
       assertThat(delegate.layers.hasBlurred).isFalse()
-      assertThat(delegate.layers.hasOptical).isTrue()
       assertThat(delegate.blurHorizontalShader).isNull()
       assertThat(delegate.blurVerticalShader).isNull()
       assertThat(delegate.opticalShader).isNull()
@@ -71,99 +63,68 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
   @Test
   fun singleProgressiveBlur_usesFusedBaseRenderer() =
-    runAndroidComposeUiTest<ComponentActivity> {
-      val effect = retainedBlurEffect(
+    assertFusedRenderer(
+      retainedBlurEffect(
         progressive = HazeProgressive.verticalGradient(
           startIntensity = 0f,
           endIntensity = 1f,
         ),
-      )
-      setContent { RuntimeGlassTestContent(effect) }
-      waitForIdle()
-      drawFrame()
-
-      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-      assertThat(delegate.usesFusedEffectForTest).isTrue()
+      ),
+    ) { delegate ->
       assertThat(delegate.layers.hasDepthMixed).isFalse()
       assertThat(delegate.layers.hasBlurHorizontal).isFalse()
       assertThat(delegate.layers.hasBlurred).isFalse()
-      assertThat(delegate.layers.hasOptical).isTrue()
     }
 
   @Test
   fun interactiveOptics_usesFusedBaseRendererBeforeInteractionStarts() =
-    runAndroidComposeUiTest<ComponentActivity> {
-      val effect = interactiveEffect().apply {
+    assertFusedRenderer(
+      interactiveEffect().apply {
         optics = (optics as GlassOptics.Absolute).copy(
           depth = 0.5f,
           blurRadius = 38.5.dp,
         )
-      }
-      setContent { RuntimeGlassTestContent(effect) }
-      waitForIdle()
-      drawFrame()
-
-      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-      assertThat(delegate.usesFusedEffectForTest).isTrue()
+      },
+    ) { delegate ->
       assertThat(delegate.layers.hasDepthMixed).isFalse()
       assertThat(delegate.layers.hasBlurred).isFalse()
     }
 
   @Test
   fun singleFullChroma_usesFusedBaseRenderer() =
-    runAndroidComposeUiTest<ComponentActivity> {
-      val effect = retainedBlurEffect().apply {
+    assertFusedRenderer(
+      retainedBlurEffect().apply {
         chromaticAberrationMode = ChromaticAberrationMode.Full
-      }
-      setContent { RuntimeGlassTestContent(effect) }
-      waitForIdle()
-      drawFrame()
-
-      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-      assertThat(delegate.usesFusedEffectForTest).isTrue()
+      },
+    ) { delegate ->
       assertThat(delegate.layers.hasDepthMixed).isFalse()
       assertThat(delegate.layers.hasBlurred).isFalse()
-      assertThat(delegate.layers.hasOptical).isTrue()
     }
 
   @Test
   fun singleNoRefraction_usesFusedBaseRenderer() =
-    runAndroidComposeUiTest<ComponentActivity> {
-      val effect = retainedBlurEffect(refractionStrength = 0f)
-      setContent { RuntimeGlassTestContent(effect) }
-      waitForIdle()
-      drawFrame()
-
-      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-      assertThat(delegate.usesFusedEffectForTest).isTrue()
+    assertFusedRenderer(retainedBlurEffect(refractionStrength = 0f)) { delegate ->
       assertThat(delegate.layers.refractionDetail).isNull()
-      assertThat(delegate.layers.hasOptical).isTrue()
     }
 
   @Test
   fun singleNoBlur_usesFusedBaseRenderer() =
-    runAndroidComposeUiTest<ComponentActivity> {
-      val effect = retainedBlurEffect().apply {
+    assertFusedRenderer(
+      retainedBlurEffect().apply {
         optics = (optics as GlassOptics.Absolute).copy(
           depth = 0f,
           blurRadius = 0.dp,
         )
-      }
-      setContent { RuntimeGlassTestContent(effect) }
-      waitForIdle()
-      drawFrame()
-
-      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
-      assertThat(delegate.usesFusedEffectForTest).isTrue()
+      },
+    ) { delegate ->
       assertThat(delegate.layers.hasBlurred).isFalse()
-      assertThat(delegate.layers.hasOptical).isTrue()
     }
 
   @Test
   fun compatibleSiblingEffects_collapseBaseStagesIntoOneRenderEffectLayer() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effects = List(9) { retainedBlurEffect() }
-      setContent { SharedRuntimeGlassGridTestContent(effects) }
+      setContent { SiblingRuntimeGlassGridTestContent(effects) }
       waitForIdle()
       drawFrame()
       drawFrame()
@@ -172,8 +133,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
       }
       delegates.forEach { delegate ->
-        assertThat(delegate.usesSharedBlurForTest).isFalse()
-        assertThat(delegate.usesFusedEffectForTest).isTrue()
+        assertThat(delegate.fusedShader).isNotNull()
         assertThat(delegate.layers.blurPrefiltered).isNull()
         assertThat(delegate.layers.blurHorizontal).isNull()
         assertThat(delegate.layers.blurred).isNull()
@@ -182,9 +142,6 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         assertThat(delegate.layers.refractionDetailCoverage).isNull()
         assertThat(delegate.layers.refractionComposite).isNull()
         assertThat(delegate.layers.optical?.renderEffect).isNotNull()
-        assertThat(delegate.sharedBlurredLayerForTest).isNull()
-        assertThat(delegate.sharedOpticalLayerForTest).isNull()
-        assertThat(delegate.sharedRefractionDetailLayerForTest).isNull()
       }
       val blurRecordCounts = delegates.map { it.stageRecordCounts.blur }
       val detailRecordCounts = delegates.map { it.stageRecordCounts.detail }
@@ -204,7 +161,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         retainedBlurEffect(refractionStrength = 0.4f),
         retainedBlurEffect(refractionStrength = 0.5f),
       )
-      setContent { SharedRuntimeGlassTestContent(effects) }
+      setContent { SiblingRuntimeGlassTestContent(effects) }
       waitForIdle()
       drawFrame()
       drawFrame()
@@ -213,22 +170,19 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
       }
       delegates.forEach { delegate ->
-        assertThat(delegate.usesSharedBlurForTest).isFalse()
-        assertThat(delegate.usesFusedEffectForTest).isTrue()
-        assertThat(delegate.sharedOpticalLayerForTest).isNull()
+        assertThat(delegate.fusedShader).isNotNull()
         assertThat(delegate.layers.optical?.renderEffect).isNotNull()
-        assertThat(delegate.sharedRefractionDetailLayerForTest).isNull()
         assertThat(delegate.layers.refractionDetail).isNull()
       }
     }
 
   @Test
-  fun sharedRefractionDetail_preservesDedicatedPassPixels() =
+  fun siblingAttachment_preservesFusedOutputPixels() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effects = List(2) { retainedBlurEffect() }
       val attachSecond = mutableStateOf(false)
       setContent {
-        SharedRuntimeGlassComparisonContent(
+        SiblingRuntimeGlassComparisonContent(
           effects = effects,
           attachSecond = attachSecond.value,
         )
@@ -248,25 +202,21 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
       drawFrame()
-      assertThat(firstDelegate.usesSharedBlurForTest).isFalse()
-      assertThat(firstDelegate.usesFusedEffectForTest).isTrue()
       assertThat(firstDelegate.layers.optical).isSameInstanceAs(fusedLayer)
       assertThat(firstDelegate.layers.optical?.renderEffect).isNotNull()
       assertThat(firstDelegate.layers.refractionDetail).isNull()
-      val sharedPixels = captureRegionPixels(
+      val siblingPixels = captureRegionPixels(
         left = 0,
         top = 0,
         width = 160,
         height = 120,
       )
 
-      assertThat(sharedPixels).containsExactly(*dedicatedPixels)
+      assertThat(siblingPixels).containsExactly(*dedicatedPixels)
 
       attachSecond.value = false
       waitForIdle()
       drawFrame()
-      assertThat(firstDelegate.usesSharedBlurForTest).isFalse()
-      assertThat(firstDelegate.usesFusedEffectForTest).isTrue()
       assertThat(firstDelegate.layers.optical).isSameInstanceAs(fusedLayer)
       assertThat(firstDelegate.layers.optical?.renderEffect).isNotNull()
       assertThat(firstDelegate.layers.refractionDetail).isNull()
@@ -415,7 +365,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
       val source = checkNotNull(delegate.layers.source)
       val optical = checkNotNull(delegate.layers.optical)
-      assertThat(delegate.usesFusedEffectForTest).isTrue()
+      assertThat(delegate.fusedShader).isNotNull()
       assertThat(delegate.layers.refractionDetail).isNull()
       val scaleFactor = (effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor
       val plannedKinds = checkNotNull(effect.preparedRender).plan.layers.map { it.kind }
@@ -668,7 +618,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   }
 
   @Composable
-  private fun SharedRuntimeGlassTestContent(effects: List<GlassVisualEffect>) {
+  private fun SiblingRuntimeGlassTestContent(effects: List<GlassVisualEffect>) {
     val hazeState = rememberHazeState()
     Box(Modifier.size(width = 360.dp, height = 120.dp)) {
       Box(
@@ -693,7 +643,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   }
 
   @Composable
-  private fun SharedRuntimeGlassGridTestContent(effects: List<GlassVisualEffect>) {
+  private fun SiblingRuntimeGlassGridTestContent(effects: List<GlassVisualEffect>) {
     require(effects.size == 9)
     val hazeState = rememberHazeState()
     Box(Modifier.size(300.dp)) {
@@ -724,7 +674,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   }
 
   @Composable
-  private fun SharedRuntimeGlassComparisonContent(
+  private fun SiblingRuntimeGlassComparisonContent(
     effects: List<GlassVisualEffect>,
     attachSecond: Boolean,
   ) {
@@ -771,6 +721,20 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
   private fun AndroidComposeUiTest<ComponentActivity>.drawFrame() {
     captureFrame().recycle()
+  }
+
+  private fun assertFusedRenderer(
+    effect: GlassVisualEffect,
+    assertions: (RuntimeShaderGlassDelegate) -> Unit,
+  ) = runAndroidComposeUiTest<ComponentActivity> {
+    setContent { RuntimeGlassTestContent(effect) }
+    waitForIdle()
+    drawFrame()
+
+    val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+    assertThat(delegate.fusedShader).isNotNull()
+    assertThat(delegate.layers.optical?.renderEffect).isNotNull()
+    assertions(delegate)
   }
 
   private fun AndroidComposeUiTest<ComponentActivity>.captureRegionPixels(

@@ -116,25 +116,7 @@ internal class RuntimeShaderGlassDelegate(
   private var preparedInteractionPatch: GlassInteractionPatch? = null
   private var preparedSourceAvailable: Boolean = false
   private var preparedStageAvailability: GlassStageAvailability? = null
-  private var preparedSharedBlurGroup: SharedGlassBlurGroup? = null
-  private var preparedFusedEffect: PlatformRenderEffect? = null
-  internal val usesSharedBlurForTest: Boolean get() = preparedSharedBlurGroup != null
-  internal val usesFusedEffectForTest: Boolean get() = preparedFusedEffect != null
-  internal val sharedBlurredLayerForTest: GraphicsLayer?
-    get() = preparedSharedBlurGroup?.blurred
-  internal val sharedOpticalLayerForTest: GraphicsLayer?
-    get() = preparedSharedBlurGroup?.opticalAtlas
-  internal val sharedRefractionDetailLayerForTest: GraphicsLayer?
-    get() = preparedSharedBlurGroup?.refractionDetailAtlas
   private var retainedOutputAvailable: Boolean = false
-  private var recordedSharedBlurLayer: GraphicsLayer? = null
-  private var recordedSharedBlurTargetLayer: GraphicsLayer? = null
-  private var recordedSharedBlurBounds: androidx.compose.ui.geometry.Rect? = null
-  private var recordedSharedBlurCaptureScale: Float = Float.NaN
-  private var recordedSharedBlurLocalTopLeft: Offset? = null
-  private var recordedSharedBlurSampleSize: androidx.compose.ui.unit.IntSize? = null
-  private var recordedSharedOpticalSlice: SharedGlassAtlasSlice? = null
-  private var recordedSharedRefractionDetailSlice: SharedGlassAtlasSlice? = null
   internal var lastSuccessfulSourceSnapshot: GlassSourceSnapshot? = null
     private set
   internal var lastSuccessfulStageInputs: GlassStageInputs? = null
@@ -169,7 +151,6 @@ internal class RuntimeShaderGlassDelegate(
       effect.preparedRenderBudget !is GlassRenderBudgetDecision.Runtime ||
       currentPreparedRender == null
     ) {
-      SharedGlassBlurRegistry.remove(this@RuntimeShaderGlassDelegate)
       releaseRetainedResources()
       return
     }
@@ -178,7 +159,7 @@ internal class RuntimeShaderGlassDelegate(
     val currentRenderEffects = trace(GlassTraceSection.PrepareEffects) {
       getRenderEffects(currentPreparedRender)
     }
-    val interactionPatch = if (currentRenderEffects.fused == null) {
+    val interactionPatch = if (!supportsFusedGlassRenderEffect) {
       resolveGlassInteractionPatch(
         params = params,
         uniforms = interactionUniforms,
@@ -192,23 +173,6 @@ internal class RuntimeShaderGlassDelegate(
       val scaledSize = params.coordinates.sampleSize.roundToIntSize()
       val currentGraphicsContext = context.requireGraphicsContext()
       graphicsContext = currentGraphicsContext
-      val currentFusedEffect = currentRenderEffects.fused
-      val sharedBlurGroup = if (currentFusedEffect != null) {
-        SharedGlassBlurRegistry.remove(this@RuntimeShaderGlassDelegate)
-        null
-      } else {
-        SharedGlassBlurRegistry.update(
-          owner = this@RuntimeShaderGlassDelegate,
-          context = context,
-          params = params,
-          opticalKey = currentPreparedRender.opticalKey
-            .takeIf { currentRenderEffects.mergeDepthIntoOptical },
-          detailKey = currentPreparedRender.refractionDetailKey,
-          graphicsContext = currentGraphicsContext,
-        )
-      }
-      preparedSharedBlurGroup = sharedBlurGroup
-      preparedFusedEffect = currentFusedEffect
       if (layers.scaledSize != scaledSize) {
         layers.release(currentGraphicsContext)
         layers.scaledSize = scaledSize
@@ -217,7 +181,7 @@ internal class RuntimeShaderGlassDelegate(
       }
 
       preparedSourceAvailable = layers.hasSource
-      preparedStageAvailability = if (currentFusedEffect != null) {
+      preparedStageAvailability = if (supportsFusedGlassRenderEffect) {
         GlassStageAvailability(
           blur = true,
           depth = true,
@@ -226,39 +190,27 @@ internal class RuntimeShaderGlassDelegate(
           rim = currentRenderEffects.rim == null || layers.hasRim,
         )
       } else {
-        stageAvailability(
-          params = params,
-          effects = currentRenderEffects,
-          sharedBlur = sharedBlurGroup != null,
-        )
+        stageAvailability(params = params, effects = currentRenderEffects)
       }
 
-      val blurRequired = currentFusedEffect == null && shouldBlur(params, currentRenderEffects)
-      val depthMixRequired = currentFusedEffect == null &&
-        shouldDepthMix(params, currentRenderEffects) &&
-        !currentRenderEffects.mergeDepthIntoOptical
-      val refractionDetailRequired = currentFusedEffect == null &&
+      val blurRequired = !supportsFusedGlassRenderEffect && shouldBlur(params, currentRenderEffects)
+      val depthMixRequired =
+        !supportsFusedGlassRenderEffect && shouldDepthMix(params, currentRenderEffects)
+      val refractionDetailRequired = !supportsFusedGlassRenderEffect &&
         currentRenderEffects.refractionDetail != null
       val rimRequired = currentRenderEffects.rim != null
       val interactionOpticsRequired =
-        currentFusedEffect == null && currentPreparedRender.interactionTopology.hasOptics
+        !supportsFusedGlassRenderEffect && currentPreparedRender.interactionTopology.hasOptics
       val interactionDetailRequired = interactionOpticsRequired && refractionDetailRequired
       val interactionLightingRequired = currentPreparedRender.interactionTopology.hasLighting &&
-        currentFusedEffect == null
+        !supportsFusedGlassRenderEffect
 
       // Drop stages which are no longer part of the graph before allocating their replacements.
       // This keeps topology transitions from temporarily retaining both complete graphs.
       if (blurRequired) {
         val blurEffects = checkNotNull(currentRenderEffects.blur)
-        val blurWorkingSize = if (sharedBlurGroup != null) {
-          blurEffects.key.plan.sampleSize
-        } else {
-          blurEffects.key.plan.workingSize
-        }
-        layers.updateBlurWorkingSize(blurWorkingSize, currentGraphicsContext)
-        if (sharedBlurGroup != null) {
-          layers.releaseBlurIntermediates(currentGraphicsContext)
-        } else if (!blurEffects.key.plan.requiresPrefilter) {
+        layers.updateBlurWorkingSize(blurEffects.key.plan.workingSize, currentGraphicsContext)
+        if (!blurEffects.key.plan.requiresPrefilter) {
           layers.releaseBlurPrefiltered(currentGraphicsContext)
         }
       } else {
@@ -287,12 +239,10 @@ internal class RuntimeShaderGlassDelegate(
       layers.ensureSource(currentGraphicsContext)
       if (blurRequired) {
         val blurPlan = checkNotNull(currentRenderEffects.blur).key.plan
-        if (sharedBlurGroup == null) {
-          if (blurPlan.requiresPrefilter) {
-            layers.ensureBlurPrefiltered(currentGraphicsContext)
-          }
-          layers.ensureBlurHorizontal(currentGraphicsContext)
+        if (blurPlan.requiresPrefilter) {
+          layers.ensureBlurPrefiltered(currentGraphicsContext)
         }
+        layers.ensureBlurHorizontal(currentGraphicsContext)
         layers.ensureBlurred(currentGraphicsContext)
       }
       if (depthMixRequired) {
@@ -357,22 +307,23 @@ internal class RuntimeShaderGlassDelegate(
       requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
       var completed = false
       try {
-        val currentFusedEffect = preparedFusedEffect
         val currentInputs = GlassStageInputs(
-          blur = if (currentFusedEffect != null) {
+          blur = if (supportsFusedGlassRenderEffect) {
             render.blurKey
           } else {
             render.blurKey?.takeIf { shouldBlur(params, effects) }
           },
           depth = params.depth,
-          optical = if (currentFusedEffect != null && render.interactionTopology.hasAnyLayer) {
+          optical = if (
+            supportsFusedGlassRenderEffect &&
+            render.interactionTopology.hasAnyLayer
+          ) {
             render.opticalKey to interactionUniforms
           } else {
             render.opticalKey
           },
           detail = render.refractionDetailKey,
           rim = render.rimKey,
-          mergeDepthIntoOptical = effects.mergeDepthIntoOptical,
         )
         val sourceState = context.resolveGlassSourceState(
           captureScale = params.coordinates.scaleFactor,
@@ -398,7 +349,7 @@ internal class RuntimeShaderGlassDelegate(
           sourceChanged = shouldRecordSource,
           availability = preparedStageAvailability ?: stageAvailability(params, effects),
         )
-        if (currentFusedEffect != null) {
+        if (supportsFusedGlassRenderEffect) {
           val previousBaseInputs = lastSuccessfulStageInputs?.copy(rim = currentInputs.rim)
           val baseInputsChanged = previousBaseInputs != currentInputs
           val completedOptical = requireRetainedStage(
@@ -411,7 +362,7 @@ internal class RuntimeShaderGlassDelegate(
                 recordFusedOutput(
                   source = source,
                   params = params,
-                  renderEffect = currentFusedEffect,
+                  renderEffect = effects.optical,
                 )
               }
             } else {
@@ -461,17 +412,7 @@ internal class RuntimeShaderGlassDelegate(
           return
         }
         val blurred = requireRetainedStage(
-          if (preparedSharedBlurGroup != null) {
-            trace(GlassTraceSection.Blur) {
-              recordSharedBlurred(
-                group = checkNotNull(preparedSharedBlurGroup),
-                context = context,
-                params = params,
-                source = source,
-                effects = effects,
-              )
-            }
-          } else if (invalidation.blur) {
+          if (invalidation.blur) {
             trace(GlassTraceSection.Blur) {
               recordBlurredIfNeeded(source, params, effects)
             }
@@ -480,40 +421,21 @@ internal class RuntimeShaderGlassDelegate(
           },
           ::clearRetainedOutput,
         ) ?: return
-        val depthInput = if (effects.mergeDepthIntoOptical) {
-          source
-        } else {
-          requireRetainedStage(
-            if (invalidation.depth) {
-              trace(GlassTraceSection.Depth) {
-                recordDepthInput(source, blurred, params.depth)
-              }
-            } else {
-              retainedDepthInput(source, blurred, params.depth)
-            },
-            ::clearRetainedOutput,
-          ) ?: return
-        }
-        val optical = requireRetainedStage(
-          if (preparedSharedBlurGroup != null && effects.mergeDepthIntoOptical) {
-            trace(GlassTraceSection.Optical) {
-              recordSharedOptical(
-                group = checkNotNull(preparedSharedBlurGroup),
-                source = source,
-                blurred = blurred,
-                params = params,
-                opticalKey = render.opticalKey,
-                effects = effects,
-                invalidated = invalidation.optical,
-              )
+        val depthInput = requireRetainedStage(
+          if (invalidation.depth) {
+            trace(GlassTraceSection.Depth) {
+              recordDepthInput(source, blurred, params.depth)
             }
-          } else if (invalidation.optical) {
+          } else {
+            retainedDepthInput(source, blurred, params.depth)
+          },
+          ::clearRetainedOutput,
+        ) ?: return
+        val optical = requireRetainedStage(
+          if (invalidation.optical) {
             trace(GlassTraceSection.Optical) {
-              clearSharedOpticalSliceMetadata()
               recordOptical(
                 input = depthInput,
-                source = source,
-                blurred = blurred,
                 params = params,
                 effects = effects,
               )
@@ -525,19 +447,8 @@ internal class RuntimeShaderGlassDelegate(
         ) ?: return
         val refractionDetail = effects.refractionDetail?.let { detail ->
           requireRetainedStage(
-            if (preparedSharedBlurGroup != null) {
+            if (invalidation.detail) {
               trace(GlassTraceSection.Detail) {
-                recordSharedRefractionDetail(
-                  group = checkNotNull(preparedSharedBlurGroup),
-                  source = source,
-                  params = params,
-                  detail = detail,
-                  invalidated = invalidation.detail,
-                )
-              }
-            } else if (invalidation.detail) {
-              trace(GlassTraceSection.Detail) {
-                clearSharedRefractionDetailSliceMetadata()
                 recordRefractionDetail(source, params, detail)
               }
             } else {
@@ -546,16 +457,9 @@ internal class RuntimeShaderGlassDelegate(
             ::clearRetainedOutput,
           ) ?: return
         }
-        val sharedDetailCompositionInvalidated = preparedSharedBlurGroup != null &&
-          lastSuccessfulStageInputs?.detail != currentInputs.detail
-        val detailCoverageInvalidated = if (preparedSharedBlurGroup != null) {
-          sharedDetailCompositionInvalidated || !layers.hasRefractionDetailCoverage
-        } else {
-          invalidation.detail
-        }
         val refractionDetailCoverage = effects.refractionDetail?.let {
           requireRetainedStage(
-            if (detailCoverageInvalidated) {
+            if (invalidation.detail) {
               trace(GlassTraceSection.Detail) {
                 recordRefractionDetailCoverage(source, params, it)
               }
@@ -568,13 +472,8 @@ internal class RuntimeShaderGlassDelegate(
         val completedOptical = if (
           refractionDetail != null && refractionDetailCoverage != null
         ) {
-          val detailCompositeInvalidated = if (preparedSharedBlurGroup != null) {
-            sharedDetailCompositionInvalidated || !layers.hasRefractionComposite
-          } else {
-            invalidation.optical || invalidation.detail
-          }
           requireRetainedStage(
-            if (detailCompositeInvalidated) {
+            if (invalidation.optical || invalidation.detail) {
               trace(GlassTraceSection.Optical) {
                 recordRefractionComposite(
                   optical = optical,
@@ -776,7 +675,7 @@ internal class RuntimeShaderGlassDelegate(
     }
 
   override fun canDrawRetainedOutput(): Boolean {
-    val fusedOutputAvailable = preparedFusedEffect != null
+    val fusedOutputAvailable = supportsFusedGlassRenderEffect
     val detailRequired = preparedRenderEffects?.refractionDetail != null ||
       preparedRenderEffects == null && lastSuccessfulStageInputs?.detail != null
     val interactionUniforms = preparedInteractionUniforms
@@ -811,9 +710,6 @@ internal class RuntimeShaderGlassDelegate(
     retainedOutputAvailable = false
     lastSuccessfulSourceSnapshot = null
     lastSuccessfulStageInputs = null
-    clearSharedBlurSliceMetadata()
-    clearSharedOpticalSliceMetadata()
-    clearSharedRefractionDetailSliceMetadata()
   }
 
   private fun clearInteractionLayerMetadata() {
@@ -868,31 +764,12 @@ internal class RuntimeShaderGlassDelegate(
     interactionLightingEffectLayer = null
   }
 
-  private fun clearSharedBlurSliceMetadata() {
-    recordedSharedBlurLayer = null
-    recordedSharedBlurTargetLayer = null
-    recordedSharedBlurBounds = null
-    recordedSharedBlurCaptureScale = Float.NaN
-    recordedSharedBlurLocalTopLeft = null
-    recordedSharedBlurSampleSize = null
-  }
-
-  private fun clearSharedOpticalSliceMetadata() {
-    recordedSharedOpticalSlice = null
-  }
-
-  private fun clearSharedRefractionDetailSliceMetadata() {
-    recordedSharedRefractionDetailSlice = null
-  }
-
   override fun detach() {
-    SharedGlassBlurRegistry.remove(this)
     releaseRetainedResources(releaseShaderHandles = false)
   }
 
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
     if (shouldReleaseRetainedGlass(level)) {
-      SharedGlassBlurRegistry.releaseFor(this)
       releaseRetainedResources(graphicsContext ?: context.requireGraphicsContext())
       context.invalidateDraw()
     }
@@ -941,8 +818,6 @@ internal class RuntimeShaderGlassDelegate(
     preparedInteractionPatch = null
     preparedSourceAvailable = false
     preparedStageAvailability = null
-    preparedSharedBlurGroup = null
-    preparedFusedEffect = null
     clearRetainedMetadata()
   }
 
@@ -979,18 +854,13 @@ internal class RuntimeShaderGlassDelegate(
   private fun stageAvailability(
     params: GlassRenderParams,
     effects: GlassRenderEffects,
-    sharedBlur: Boolean = false,
   ): GlassStageAvailability {
     val blur = effects.blur?.takeIf { shouldBlur(params, effects) }
     return GlassStageAvailability(
-      blur = blur == null || if (sharedBlur) {
-        layers.hasBlurred
-      } else {
+      blur = blur == null ||
         layers.hasBlurred && layers.hasBlurHorizontal &&
-          (!blur.key.plan.requiresPrefilter || layers.hasBlurPrefiltered)
-      },
-      depth = effects.mergeDepthIntoOptical ||
-        !shouldDepthMix(params, effects) ||
+        (!blur.key.plan.requiresPrefilter || layers.hasBlurPrefiltered),
+      depth = !shouldDepthMix(params, effects) ||
         layers.hasDepthMixed,
       optical = layers.hasOptical,
       detail = effects.refractionDetail == null ||
@@ -1071,59 +941,6 @@ internal class RuntimeShaderGlassDelegate(
     }
   }
 
-  private fun DrawScope.recordSharedBlurred(
-    group: SharedGlassBlurGroup,
-    context: VisualEffectContext,
-    params: GlassRenderParams,
-    source: GraphicsLayer,
-    effects: GlassRenderEffects,
-  ): GraphicsLayer? {
-    val shared = with(group) { obtain(context) }
-    if (shared == null) {
-      val graphicsContext = context.requireGraphicsContext()
-      val plan = effects.blur?.key?.plan ?: return source
-      layers.updateBlurWorkingSize(plan.workingSize, graphicsContext)
-      if (plan.requiresPrefilter) layers.ensureBlurPrefiltered(graphicsContext)
-      layers.ensureBlurHorizontal(graphicsContext)
-      layers.ensureBlurred(graphicsContext)
-      clearSharedBlurSliceMetadata()
-      return recordBlurredIfNeeded(source, params, effects)
-    }
-
-    val blurred = layers.blurred?.takeUnless { it.isReleased } ?: return null
-    val localTopLeft = context.position - context.layerOffset
-    val sampleSize = params.coordinates.sampleSize.roundToIntSize()
-    if (
-      recordedSharedBlurLayer !== shared.layer ||
-      recordedSharedBlurTargetLayer !== blurred ||
-      recordedSharedBlurBounds != shared.bounds ||
-      recordedSharedBlurCaptureScale != shared.captureScale ||
-      recordedSharedBlurLocalTopLeft != localTopLeft ||
-      recordedSharedBlurSampleSize != sampleSize
-    ) {
-      val sampleOffset = (localTopLeft - shared.bounds.topLeft) * shared.captureScale
-      blurred.alpha = 1f
-      blurred.blendMode = BlendMode.SrcOver
-      blurred.scaleX = 1f
-      blurred.scaleY = 1f
-      blurred.pivotOffset = Offset.Zero
-      blurred.renderEffect = null
-      blurred.record(sampleSize) {
-        translate(-sampleOffset) {
-          drawLayer(shared.layer)
-        }
-      }
-      recordedSharedBlurLayer = shared.layer
-      recordedSharedBlurTargetLayer = blurred
-      recordedSharedBlurBounds = shared.bounds
-      recordedSharedBlurCaptureScale = shared.captureScale
-      recordedSharedBlurLocalTopLeft = localTopLeft
-      recordedSharedBlurSampleSize = sampleSize
-      blurRecordCount++
-    }
-    return blurred
-  }
-
   private fun DrawScope.recordDepthInput(
     source: GraphicsLayer,
     blurred: GraphicsLayer,
@@ -1156,8 +973,6 @@ internal class RuntimeShaderGlassDelegate(
     params: GlassRenderParams,
     renderEffect: PlatformRenderEffect,
   ): GraphicsLayer? = layers.optical?.takeUnless { it.isReleased }?.also { layer ->
-    clearSharedOpticalSliceMetadata()
-    clearSharedRefractionDetailSliceMetadata()
     source.alpha = 1f
     source.blendMode = BlendMode.SrcOver
     layer.alpha = 1f
@@ -1172,8 +987,6 @@ internal class RuntimeShaderGlassDelegate(
 
   private fun DrawScope.recordOptical(
     input: GraphicsLayer,
-    source: GraphicsLayer,
-    blurred: GraphicsLayer,
     params: GlassRenderParams,
     effects: GlassRenderEffects,
   ): GraphicsLayer? = layers.optical?.takeUnless { it.isReleased }?.also { layer ->
@@ -1181,74 +994,11 @@ internal class RuntimeShaderGlassDelegate(
     input.blendMode = BlendMode.SrcOver
     layer.alpha = 1f
     layer.renderEffect = effects.optical.asComposeRenderEffect()
-    val size = params.coordinates.sampleSize.roundToIntSize()
-    if (effects.mergeDepthIntoOptical) {
-      trace(GlassTraceSection.Depth) {
-        recordDepthMix(
-          layer = layer,
-          size = size,
-          source = source,
-          blurred = blurred,
-          depth = params.depth,
-        )
-        depthRecordCount++
-      }
-    } else {
-      layer.compositingStrategy = CompositingStrategy.Auto
-      layer.record(size) {
-        drawLayer(input)
-      }
+    layer.compositingStrategy = CompositingStrategy.Auto
+    layer.record(params.coordinates.sampleSize.roundToIntSize()) {
+      drawLayer(input)
     }
     opticalRecordCount++
-  }
-
-  private fun DrawScope.recordSharedOptical(
-    group: SharedGlassBlurGroup,
-    source: GraphicsLayer,
-    blurred: GraphicsLayer,
-    params: GlassRenderParams,
-    opticalKey: GlassOpticalEffectKey,
-    effects: GlassRenderEffects,
-    invalidated: Boolean,
-  ): GraphicsLayer? {
-    val wasShared = recordedSharedOpticalSlice != null
-    val shared = with(group) {
-      obtainOptical(
-        owner = this@RuntimeShaderGlassDelegate,
-        opticalKey = opticalKey,
-        depth = params.depth,
-      )
-    }
-    val target = layers.optical?.takeUnless { it.isReleased } ?: return null
-    val expectedSize = params.coordinates.sampleSize.roundToIntSize()
-    if (shared == null || shared.tileSize != expectedSize) {
-      clearSharedOpticalSliceMetadata()
-      return if (invalidated || wasShared) {
-        recordOptical(
-          input = source,
-          source = source,
-          blurred = blurred,
-          params = params,
-          effects = effects,
-        )
-      } else {
-        target
-      }
-    }
-
-    val previousSlice = recordedSharedOpticalSlice
-    recordedSharedOpticalSlice = recordSharedAtlasSlice(
-      previous = previousSlice,
-      source = shared.layer,
-      target = target,
-      tileOrigin = shared.tileOrigin,
-      tileSize = shared.tileSize,
-      resetCompositingStrategy = true,
-    )
-    if (recordedSharedOpticalSlice !== previousSlice) {
-      opticalRecordCount++
-    }
-    return target
   }
 
   private fun DrawScope.recordRefractionDetail(
@@ -1307,78 +1057,6 @@ internal class RuntimeShaderGlassDelegate(
       }
       detailRecordCount++
     }
-
-  private fun DrawScope.recordSharedRefractionDetail(
-    group: SharedGlassBlurGroup,
-    source: GraphicsLayer,
-    params: GlassRenderParams,
-    detail: GlassRefractionDetailRenderEffect,
-    invalidated: Boolean,
-  ): GraphicsLayer? {
-    val wasShared = recordedSharedRefractionDetailSlice != null
-    val shared = with(group) {
-      obtainRefractionDetail(
-        owner = this@RuntimeShaderGlassDelegate,
-        detailKey = detail.key,
-      )
-    }
-    val target = layers.refractionDetail?.takeUnless { it.isReleased } ?: return null
-    val expectedSize = params.coordinates.sampleSize.roundToIntSize()
-    if (shared == null || shared.tileSize != expectedSize) {
-      clearSharedRefractionDetailSliceMetadata()
-      return if (invalidated || wasShared) {
-        recordRefractionDetail(source, params, detail)
-      } else {
-        target
-      }
-    }
-
-    val previousSlice = recordedSharedRefractionDetailSlice
-    recordedSharedRefractionDetailSlice = recordSharedAtlasSlice(
-      previous = previousSlice,
-      source = shared.layer,
-      target = target,
-      tileOrigin = shared.tileOrigin,
-      tileSize = shared.tileSize,
-      resetCompositingStrategy = false,
-    )
-    if (recordedSharedRefractionDetailSlice !== previousSlice) {
-      detailRecordCount++
-    }
-    return target
-  }
-
-  private fun DrawScope.recordSharedAtlasSlice(
-    previous: SharedGlassAtlasSlice?,
-    source: GraphicsLayer,
-    target: GraphicsLayer,
-    tileOrigin: Offset,
-    tileSize: androidx.compose.ui.unit.IntSize,
-    resetCompositingStrategy: Boolean,
-  ): SharedGlassAtlasSlice {
-    if (previous?.matches(source, target, tileOrigin, tileSize) == true) return previous
-
-    target.alpha = 1f
-    target.blendMode = BlendMode.SrcOver
-    target.scaleX = 1f
-    target.scaleY = 1f
-    target.pivotOffset = Offset.Zero
-    if (resetCompositingStrategy) {
-      target.compositingStrategy = CompositingStrategy.Auto
-    }
-    target.renderEffect = null
-    target.record(tileSize) {
-      translate(-tileOrigin) {
-        drawLayer(source)
-      }
-    }
-    return SharedGlassAtlasSlice(
-      source = source,
-      target = target,
-      tileOrigin = tileOrigin,
-      tileSize = tileSize,
-    )
-  }
 
   private fun DrawScope.recordRimIfNeeded(
     params: GlassRenderParams,
@@ -1813,7 +1491,7 @@ internal class RuntimeShaderGlassDelegate(
       }
       refractionDetailCoverageEffect = nextRefractionDetailKey?.let { key ->
         val shader = refractionDetailCoverageShader
-          ?: createSharedRefractionDetailCoverageRenderEffect().also {
+          ?: createRetainedRefractionDetailCoverageRenderEffect().also {
             refractionDetailCoverageShader = it
           }
         shader.updateUniforms { setRefractionDetailUniforms(key) }
@@ -1832,15 +1510,8 @@ internal class RuntimeShaderGlassDelegate(
     return GlassRenderEffects(
       blur = blurEffects,
       optical = currentOpticalEffect,
-      mergeDepthIntoOptical = supportsMergedGlassDepthOpticalLayer &&
-        blurEffects != null &&
-        nextBlurKey?.progressive == null &&
-        render.params.depth > 0f &&
-        render.params.depth < 1f &&
-        !render.interactionTopology.hasOptics,
       refractionDetail = currentRefractionDetail,
       rim = rimEffect,
-      fused = null,
     )
   }
 
@@ -1897,10 +1568,8 @@ internal class RuntimeShaderGlassDelegate(
     return GlassRenderEffects(
       blur = null,
       optical = currentFusedEffect,
-      mergeDepthIntoOptical = false,
       refractionDetail = null,
       rim = rimEffect,
-      fused = currentFusedEffect,
     )
   }
 
@@ -1953,20 +1622,20 @@ internal class RuntimeShaderGlassDelegate(
     } else {
       null
     }
-    val horizontal = createFusedGlassBlurRenderEffect(
+    val horizontal = createGlassBlurRenderEffectWithInput(
       horizontal = true,
       progressive = blur.progressive != null,
       input = prefilter,
     ).updateUniforms {
-      setFusedGlassBlurUniforms(blur, horizontalKernel, sampleSize)
+      setGlassBlurUniforms(blur, horizontalKernel, sampleSize.width, sampleSize.height)
       blur.progressive?.toShader(blur.maskSize)?.let { setChildShader("mask", it) }
     }
-    val vertical = createFusedGlassBlurRenderEffect(
+    val vertical = createGlassBlurRenderEffectWithInput(
       horizontal = false,
       progressive = blur.progressive != null,
       input = horizontal,
     ).updateUniforms {
-      setFusedGlassBlurUniforms(blur, verticalKernel, sampleSize)
+      setGlassBlurUniforms(blur, verticalKernel, sampleSize.width, sampleSize.height)
       blur.progressive?.toShader(blur.maskSize)?.let { setChildShader("mask", it) }
     }
     return createGlassDepthInputRenderEffect(vertical, depth)
@@ -2010,8 +1679,8 @@ internal class RuntimeShaderGlassDelegate(
       setGlassBlurUniforms(
         key = key,
         kernel = key.plan.horizontalKernel,
-        sampleWidth = key.plan.workingSize.width,
-        sampleHeight = key.plan.workingSize.height,
+        sampleWidth = key.plan.workingSize.width.toFloat(),
+        sampleHeight = key.plan.workingSize.height.toFloat(),
       )
       progressiveMask?.let { setChildShader("mask", it) }
     }
@@ -2019,8 +1688,8 @@ internal class RuntimeShaderGlassDelegate(
       setGlassBlurUniforms(
         key = key,
         kernel = key.plan.verticalKernel,
-        sampleWidth = key.plan.workingSize.width,
-        sampleHeight = key.plan.workingSize.height,
+        sampleWidth = key.plan.workingSize.width.toFloat(),
+        sampleHeight = key.plan.workingSize.height.toFloat(),
       )
       progressiveMask?.let { setChildShader("mask", it) }
     }
@@ -2050,23 +1719,6 @@ internal class RuntimeShaderGlassDelegate(
     trace(GlassTraceSection.CreateRenderEffect, block)
 }
 
-private class SharedGlassAtlasSlice(
-  val source: GraphicsLayer,
-  val target: GraphicsLayer,
-  val tileOrigin: Offset,
-  val tileSize: androidx.compose.ui.unit.IntSize,
-) {
-  fun matches(
-    source: GraphicsLayer,
-    target: GraphicsLayer,
-    tileOrigin: Offset,
-    tileSize: androidx.compose.ui.unit.IntSize,
-  ): Boolean = this.source === source &&
-    this.target === target &&
-    this.tileOrigin == tileOrigin &&
-    this.tileSize == tileSize
-}
-
 internal data class GlassStageRecordCounts(
   val source: Int,
   val blur: Int,
@@ -2080,10 +1732,8 @@ internal data class GlassStageRecordCounts(
 internal data class GlassRenderEffects(
   val blur: GlassBlurRenderEffects?,
   val optical: PlatformRenderEffect,
-  val mergeDepthIntoOptical: Boolean,
   val refractionDetail: GlassRefractionDetailRenderEffect?,
   val rim: PlatformRenderEffect?,
-  val fused: PlatformRenderEffect?,
 )
 
 private data class GlassFusedEffectKey(
@@ -2162,7 +1812,7 @@ private fun fusedGlassRuntimeEffect(
   else -> GLASS_FUSED_EFFECT
 }
 
-internal fun createFusedGlassBlurRenderEffect(
+internal fun createGlassBlurRenderEffectWithInput(
   horizontal: Boolean,
   progressive: Boolean,
   input: PlatformRenderEffect?,
@@ -2191,71 +1841,44 @@ internal fun createFusedGlassBlurPrefilterRenderEffect(
 
 internal expect val supportsFusedGlassRenderEffect: Boolean
 
-/**
- * Whether depth blending can be recorded directly into the optical layer without changing output.
- */
-internal expect val supportsMergedGlassDepthOpticalLayer: Boolean
-
-internal fun createSharedGlassBlurRenderEffect(
+internal fun createRetainedGlassBlurRenderEffect(
   horizontal: Boolean,
   progressive: Boolean,
-): MutableRuntimeShaderRenderEffect = createMutableRuntimeShaderRenderEffect(
-  effect = if (!progressive) {
-    if (horizontal) GLASS_HORIZONTAL_BLUR_EFFECT else GLASS_VERTICAL_BLUR_EFFECT
-  } else {
-    if (horizontal) {
-      GLASS_PROGRESSIVE_HORIZONTAL_BLUR_EFFECT
-    } else {
-      GLASS_PROGRESSIVE_VERTICAL_BLUR_EFFECT
-    }
-  },
-  shaderNames = arrayOf("content"),
-  inputs = arrayOf(null),
+): MutableRuntimeShaderRenderEffect = createGlassBlurRenderEffectWithInput(
+  horizontal = horizontal,
+  progressive = progressive,
+  input = null,
 )
 
-internal fun createSharedGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect =
+internal fun createRetainedGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
     effect = GLASS_DOWNSAMPLE_PREFILTER_EFFECT,
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
 
-internal fun createSharedGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
+internal fun createRetainedGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
     effect = GLASS_OPTICAL_EFFECT,
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
 
-internal fun createSharedGlassOpticalAtlasRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createMutableRuntimeShaderRenderEffect(
-    effect = GLASS_OPTICAL_ATLAS_EFFECT,
-    shaderNames = arrayOf("content"),
-    inputs = arrayOf(null),
-  )
-
-internal fun createSharedRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
+internal fun createRetainedRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
     effect = GLASS_REFRACTION_DETAIL_EFFECT,
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
 
-internal fun createSharedRefractionDetailCoverageRenderEffect(): MutableRuntimeShaderRenderEffect =
+internal fun createRetainedRefractionDetailCoverageRenderEffect(): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
     effect = GLASS_REFRACTION_DETAIL_COVERAGE_EFFECT,
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
 
-internal fun createSharedRefractionDetailAtlasRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createMutableRuntimeShaderRenderEffect(
-    effect = GLASS_REFRACTION_DETAIL_ATLAS_EFFECT,
-    shaderNames = arrayOf("content"),
-    inputs = arrayOf(null),
-  )
-
-internal fun createSharedGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
+internal fun createRetainedGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
     effect = GLASS_RIM_EFFECT,
     shaderNames = arrayOf("content"),
@@ -2265,33 +1888,15 @@ internal fun createSharedGlassRimRenderEffect(): MutableRuntimeShaderRenderEffec
 internal fun RuntimeShaderUniformProvider.setGlassBlurUniforms(
   key: GlassBlurEffectKey,
   kernel: SemanticBlurKernel,
-  sampleWidth: Int,
-  sampleHeight: Int,
+  sampleWidth: Float,
+  sampleHeight: Float,
 ) {
-  setFloatUniform("sampleSize", sampleWidth.toFloat(), sampleHeight.toFloat())
+  setFloatUniform("sampleSize", sampleWidth, sampleHeight)
   setFloatUniform(
     "materialOrigin",
     key.maskOrigin.x,
     key.maskOrigin.y,
   )
-  if (key.progressive != null) {
-    setFloatUniform("maskCoordinateScale", key.maskCoordinateScale)
-  }
-  setFloatUniform("centerWeight", kernel.centerWeight)
-  repeat(SemanticBlurKernel.MAX_TAP_PAIRS) { index ->
-    val tap = kernel.taps.getOrNull(index)
-    setFloatUniform("offset$index", tap?.offsetPx ?: 0f)
-    setFloatUniform("weight$index", tap?.weight ?: 0f)
-  }
-}
-
-private fun RuntimeShaderUniformProvider.setFusedGlassBlurUniforms(
-  key: GlassBlurEffectKey,
-  kernel: SemanticBlurKernel,
-  sampleSize: Size,
-) {
-  setFloatUniform("sampleSize", sampleSize.width, sampleSize.height)
-  setFloatUniform("materialOrigin", key.maskOrigin.x, key.maskOrigin.y)
   if (key.progressive != null) {
     setFloatUniform("maskCoordinateScale", key.maskCoordinateScale)
   }
@@ -2341,9 +1946,6 @@ private val GLASS_PROGRESSIVE_VERTICAL_BLUR_EFFECT by lazy(LazyThreadSafetyMode.
 private val GLASS_OPTICAL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildOptical())
 }
-private val GLASS_OPTICAL_ATLAS_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildOptical(tiled = true))
-}
 private val GLASS_INTERACTION_OPTICAL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildOptical(interactive = true))
 }
@@ -2352,9 +1954,6 @@ private val GLASS_REFRACTION_DETAIL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
 }
 private val GLASS_REFRACTION_DETAIL_COVERAGE_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildRefractionDetail(coverageOnly = true))
-}
-private val GLASS_REFRACTION_DETAIL_ATLAS_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
-  createRuntimeEffect(GlassShaders.buildRefractionDetail(tiled = true))
 }
 private val GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildRefractionDetail(interactive = true))
@@ -2387,34 +1986,6 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
     key.coordinates.materialOrigin.x,
     key.coordinates.materialOrigin.y,
   )
-  setOpticalStyleUniforms(key)
-}
-
-internal fun RuntimeShaderUniformProvider.setOpticalAtlasUniforms(
-  key: GlassOpticalEffectKey,
-  tileSize: IntSize,
-  columns: Int,
-  tileKeys: List<GlassOpticalEffectKey>,
-) {
-  require(tileKeys.size <= GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY)
-  setFloatUniform("tileSize", tileSize.width.toFloat(), tileSize.height.toFloat())
-  setFloatUniform("atlasColumns", columns.toFloat())
-  repeat(GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY) { index ->
-    val coordinates = tileKeys.getOrNull(index)?.coordinates
-    setFloatUniform(
-      "tileGeometry$index",
-      coordinates?.sampleSize?.width ?: 0f,
-      coordinates?.sampleSize?.height ?: 0f,
-      coordinates?.materialOrigin?.x ?: 0f,
-      coordinates?.materialOrigin?.y ?: 0f,
-    )
-  }
-  setOpticalStyleUniforms(key)
-}
-
-private fun RuntimeShaderUniformProvider.setOpticalStyleUniforms(
-  key: GlassOpticalEffectKey,
-) {
   setFloatUniform(
     "materialSize",
     key.coordinates.materialSize.width,
@@ -2457,46 +2028,6 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
 ) {
   setFloatUniform("sampleSize", key.sampleSize.width, key.sampleSize.height)
   setFloatUniform("materialOrigin", key.materialOrigin.x, key.materialOrigin.y)
-  setRefractionDetailStyleUniforms(key)
-}
-
-private fun RuntimeShaderUniformProvider.setFusedDetailUniforms(
-  key: GlassRefractionDetailEffectKey?,
-) {
-  if (key != null) {
-    setRefractionDetailUniforms(key)
-  } else {
-    setFloatUniform("detailWidth", 0f)
-    setFloatUniform("detailIntensity", 0f)
-    setFloatUniform("detailVisibility", 0f)
-  }
-}
-
-internal fun RuntimeShaderUniformProvider.setRefractionDetailAtlasUniforms(
-  key: GlassRefractionDetailEffectKey,
-  tileSize: IntSize,
-  columns: Int,
-  tileKeys: List<GlassRefractionDetailEffectKey>,
-) {
-  require(tileKeys.size <= GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY)
-  setFloatUniform("tileSize", tileSize.width.toFloat(), tileSize.height.toFloat())
-  setFloatUniform("atlasColumns", columns.toFloat())
-  repeat(GlassShaders.SHARED_GLASS_ATLAS_TILE_CAPACITY) { index ->
-    val tileKey = tileKeys.getOrNull(index)
-    setFloatUniform(
-      "tileGeometry$index",
-      tileKey?.sampleSize?.width ?: 0f,
-      tileKey?.sampleSize?.height ?: 0f,
-      tileKey?.materialOrigin?.x ?: 0f,
-      tileKey?.materialOrigin?.y ?: 0f,
-    )
-  }
-  setRefractionDetailStyleUniforms(key)
-}
-
-private fun RuntimeShaderUniformProvider.setRefractionDetailStyleUniforms(
-  key: GlassRefractionDetailEffectKey,
-) {
   setFloatUniform("materialSize", key.materialSize.width, key.materialSize.height)
   setFloatUniform("edgeSoftness", key.edgeSoftnessPx)
   setFloatUniform(
@@ -2513,6 +2044,18 @@ private fun RuntimeShaderUniformProvider.setRefractionDetailStyleUniforms(
   setFloatUniform("detailWidth", key.detailWidthPx)
   setFloatUniform("detailIntensity", key.detailIntensity)
   setFloatUniform("detailVisibility", key.detailVisibility)
+}
+
+private fun RuntimeShaderUniformProvider.setFusedDetailUniforms(
+  key: GlassRefractionDetailEffectKey?,
+) {
+  if (key != null) {
+    setRefractionDetailUniforms(key)
+  } else {
+    setFloatUniform("detailWidth", 0f)
+    setFloatUniform("detailIntensity", 0f)
+    setFloatUniform("detailVisibility", 0f)
+  }
 }
 
 internal fun RuntimeShaderUniformProvider.setRimUniforms(

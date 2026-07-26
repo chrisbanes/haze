@@ -4,8 +4,6 @@
 package dev.chrisbanes.haze.glass
 
 internal object GlassShaders {
-  const val SHARED_GLASS_ATLAS_TILE_CAPACITY: Int = 9
-
   fun buildFused(
     interactionOptics: Boolean = false,
     interactionLighting: Boolean = false,
@@ -67,12 +65,8 @@ internal object GlassShaders {
 
     ${if (interactionOptics || interactionLighting) interactionFalloffHelper() else ""}
 
-    vec4 sampleSource(vec2 coord) {
-      return content.eval(clampSample(coord));
-    }
-
     vec4 sampleDepth(vec2 coord) {
-      return sampleSource(coord);
+      return content.eval(clampSample(coord));
     }
 
     vec2 surfaceGradient(vec2 localCoord) {
@@ -281,7 +275,7 @@ internal object GlassShaders {
           sourceShapeMask * innerEnvelope * outerEnvelope * detailIntensity * detailVisibility;
       }
       if (detailAlpha > 0.0) {
-        opticalColor = mix(opticalColor, sampleSource(refractCoord), detailAlpha);
+        opticalColor = mix(opticalColor, sampleDepth(refractCoord), detailAlpha);
       }
       ${if (interactionLighting) {
     """
@@ -384,17 +378,10 @@ internal object GlassShaders {
 
   fun buildOptical(
     interactive: Boolean = false,
-    tiled: Boolean = false,
   ): String = """
     uniform shader content;
-    ${if (tiled) {
-    glassAtlasUniforms()
-  } else {
-    """
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
-    """
-  }}
     uniform float2 materialSize;
     uniform float sampleStep;
     uniform float refractionStrength;
@@ -418,25 +405,11 @@ internal object GlassShaders {
     uniform float geometryNeutralLift;
     ${if (interactive) interactionUniforms(includeRefraction = true, includeWhitePoint = true, includeLighting = false) else ""}
 
-    ${if (tiled) {
-    """
-    vec2 clampSample(vec2 coord, vec2 localSampleSize) {
-      return clamp(coord, vec2(0.5), localSampleSize - vec2(0.5));
-    }
-
-    vec4 sampleContent(vec2 coord, vec2 tileOrigin, vec2 sampleSize) {
-      return content.eval(tileOrigin + clampSample(coord, sampleSize));
-    }
-    """
-  } else {
-    """
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
       return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
     }
-    """
-  }}
 
     vec2 clampMaterial(vec2 coord) {
       return clamp(coord, vec2(0.0), materialSize);
@@ -468,29 +441,15 @@ internal object GlassShaders {
       return dot(color, vec3(0.299, 0.587, 0.114));
     }
 
-    vec3 computeContentNormal(
-      vec2 coord${if (tiled) ", vec2 tileOrigin, vec2 sampleSize" else ""}
-    ) {
-      float left = luma(unpremultiply(${if (tiled) {
-    "sampleContent(coord - vec2(sampleStep, 0.0), tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample(coord - vec2(sampleStep, 0.0)))"
-  }}));
-      float right = luma(unpremultiply(${if (tiled) {
-    "sampleContent(coord + vec2(sampleStep, 0.0), tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample(coord + vec2(sampleStep, 0.0)))"
-  }}));
-      float up = luma(unpremultiply(${if (tiled) {
-    "sampleContent(coord - vec2(0.0, sampleStep), tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample(coord - vec2(0.0, sampleStep)))"
-  }}));
-      float down = luma(unpremultiply(${if (tiled) {
-    "sampleContent(coord + vec2(0.0, sampleStep), tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample(coord + vec2(0.0, sampleStep)))"
-  }}));
+    vec3 computeContentNormal(vec2 coord) {
+      float left =
+        luma(unpremultiply(content.eval(clampSample(coord - vec2(sampleStep, 0.0)))));
+      float right =
+        luma(unpremultiply(content.eval(clampSample(coord + vec2(sampleStep, 0.0)))));
+      float up =
+        luma(unpremultiply(content.eval(clampSample(coord - vec2(0.0, sampleStep)))));
+      float down =
+        luma(unpremultiply(content.eval(clampSample(coord + vec2(0.0, sampleStep)))));
       vec2 gradient = vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
       return normalize(vec3(gradient, 1.0));
     }
@@ -498,21 +457,13 @@ internal object GlassShaders {
     vec3 sampleChromaSimple(
       vec2 coord,
       vec2 chromaOffset,
-      vec4 centerSample${if (tiled) ", vec2 tileOrigin, vec2 sampleSize" else ""}
+      vec4 centerSample
     ) {
       if (length(chromaOffset) < 0.0001) {
         return unpremultiply(centerSample);
       }
-      vec3 forward = unpremultiply(${if (tiled) {
-    "sampleContent(coord + chromaOffset, tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample(coord + chromaOffset))"
-  }});
-      vec3 backward = unpremultiply(${if (tiled) {
-    "sampleContent(coord - chromaOffset, tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample(coord - chromaOffset))"
-  }});
+      vec3 forward = unpremultiply(content.eval(clampSample(coord + chromaOffset)));
+      vec3 backward = unpremultiply(content.eval(clampSample(coord - chromaOffset)));
       vec3 centerStraight = unpremultiply(centerSample);
       return vec3(forward.r, centerStraight.g, backward.b);
     }
@@ -520,35 +471,29 @@ internal object GlassShaders {
     vec3 sampleChromaFull(
       vec2 coord,
       vec2 chromaOffset,
-      vec4 centerSample${if (tiled) ", vec2 tileOrigin, vec2 sampleSize" else ""}
+      vec4 centerSample
     ) {
       if (length(chromaOffset) < 0.0001) {
         return unpremultiply(centerSample);
       }
 
       vec3 red = unpremultiply(${opticalContentSample(
-    tiled = tiled,
     coordinate = "coord + chromaOffset",
   )});
       vec3 orange = unpremultiply(${opticalContentSample(
-    tiled = tiled,
     coordinate = "coord + chromaOffset * (2.0 / 3.0)",
   )});
       vec3 yellow = unpremultiply(${opticalContentSample(
-    tiled = tiled,
     coordinate = "coord + chromaOffset * (1.0 / 3.0)",
   )});
       vec3 green = unpremultiply(centerSample);
       vec3 cyan = unpremultiply(${opticalContentSample(
-    tiled = tiled,
     coordinate = "coord - chromaOffset * (1.0 / 3.0)",
   )});
       vec3 blue = unpremultiply(${opticalContentSample(
-    tiled = tiled,
     coordinate = "coord - chromaOffset * (2.0 / 3.0)",
   )});
       vec3 purple = unpremultiply(${opticalContentSample(
-    tiled = tiled,
     coordinate = "coord - chromaOffset",
   )});
 
@@ -562,19 +507,19 @@ internal object GlassShaders {
     vec3 sampleChroma(
       vec2 coord,
       vec2 chromaOffset,
-      vec4 centerSample${if (tiled) ", vec2 tileOrigin, vec2 sampleSize" else ""}
+      vec4 centerSample
     ) {
       if (chromaticAberrationMode == 1) {
         return sampleChromaFull(
           coord,
           chromaOffset,
-          centerSample${if (tiled) ", tileOrigin, sampleSize" else ""}
+          centerSample
         );
       }
       return sampleChromaSimple(
         coord,
         chromaOffset,
-        centerSample${if (tiled) ", tileOrigin, sampleSize" else ""}
+        centerSample
       );
     }
 
@@ -608,25 +553,7 @@ internal object GlassShaders {
     }
 
     vec4 main(vec2 coord) {
-      ${if (tiled) {
-    """
-      vec2 tileIndex = floor(coord / tileSize);
-      vec2 tileOrigin = tileIndex * tileSize;
-      vec4 geometry = tileGeometry(tileIndex.y * atlasColumns + tileIndex.x);
-      vec2 sampleSize = geometry.xy;
-      vec2 materialOrigin = geometry.zw;
-      vec2 sampleCoord = coord - tileOrigin;
-      if (
-        sampleSize.x <= 0.0 ||
-        sampleSize.y <= 0.0 ||
-        sampleCoord.x >= sampleSize.x ||
-        sampleCoord.y >= sampleSize.y
-      ) return vec4(0.0);
-      vec2 localCoord = sampleCoord - materialOrigin;
-    """
-  } else {
-    "vec2 localCoord = materialCoord(coord);"
-  }}
+      vec2 localCoord = materialCoord(coord);
       vec2 halfSize = materialSize * 0.5;
       vec2 centeredCoord = localCoord - halfSize;
       float sd = sdRoundedRect(localCoord, materialSize, cornerRadii);
@@ -638,7 +565,7 @@ internal object GlassShaders {
         : smootherstep(clamp(distToEdge / max(edgeSoftness, 0.0001), 0.0, 1.0));
       ${if (interactive) {
     """
-      float interactionWeight = interactionFalloff(${if (tiled) "sampleCoord" else "coord"});
+      float interactionWeight = interactionFalloff(coord);
       float localizedRefractionMultiplier =
         mix(1.0, interactionRefractionMultiplier, interactionWeight);
       float localizedWhitePoint = clamp(
@@ -657,34 +584,15 @@ internal object GlassShaders {
         heightNorm,
         ${if (interactive) "localizedRefractionMultiplier" else "1.0"}
       );
-      vec2 refractCoord = ${if (tiled) {
-    "clampSample(sampleCoord + displacement, sampleSize)"
-  } else {
-    "clampSample(coord + displacement)"
-  }};
+      vec2 refractCoord = clampSample(coord + displacement);
 
       float cornerWeight = abs(
         (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)
       );
       vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
-      vec4 refractedCenterSample = ${if (tiled) {
-    "sampleContent(refractCoord, tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample(refractCoord))"
-  }};
-      vec3 refractedStraightColor = ${if (tiled) {
-    """
-      sampleChroma(
-        refractCoord,
-        chromaOffset,
-        refractedCenterSample,
-        tileOrigin,
-        sampleSize
-      )
-    """.trimIndent()
-  } else {
-    "sampleChroma(refractCoord, chromaOffset, refractedCenterSample)"
-  }};
+      vec4 refractedCenterSample = content.eval(clampSample(refractCoord));
+      vec3 refractedStraightColor =
+        sampleChroma(refractCoord, chromaOffset, refractedCenterSample);
 
       float ambient = 1.0;
       if (ambientResponse > 0.0) {
@@ -696,9 +604,7 @@ internal object GlassShaders {
           vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
           vec3 normal = shapeNormal;
           if (contentNormalBlend > 0.0) {
-            vec3 contentNormal = computeContentNormal(
-              ${if (tiled) "sampleCoord, tileOrigin, sampleSize" else "coord"}
-            );
+            vec3 contentNormal = computeContentNormal(coord);
             normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
           }
           float fresnelBase = 1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
@@ -722,11 +628,7 @@ internal object GlassShaders {
       if (shapeMask >= 1.0) {
         return processedColor.a > 0.0 ? processedColor : vec4(0.0);
       }
-      vec4 baseSample = ${if (tiled) {
-    "sampleContent(sampleCoord, tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample(coord))"
-  }};
+      vec4 baseSample = content.eval(clampSample(coord));
       vec4 composedColor = mix(baseSample, processedColor, shapeMask);
       return composedColor.a > 0.0 ? composedColor : vec4(0.0);
     }
@@ -735,17 +637,10 @@ internal object GlassShaders {
   fun buildRefractionDetail(
     interactive: Boolean = false,
     coverageOnly: Boolean = false,
-    tiled: Boolean = false,
   ): String = """
     uniform shader content;
-    ${if (tiled) {
-    glassAtlasUniforms()
-  } else {
-    """
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
-    """
-  }}
     uniform float2 materialSize;
     uniform float refractionStrength;
     uniform float edgeSoftness;
@@ -759,21 +654,11 @@ internal object GlassShaders {
     uniform float detailVisibility;
     ${if (interactive) interactionUniforms(includeRefraction = true, includeWhitePoint = false, includeLighting = false) else ""}
 
-    ${if (tiled) {
-    """
-    vec2 clampSample(vec2 coord, vec2 localSampleSize) {
-      return clamp(coord, vec2(0.5), localSampleSize - vec2(0.5));
-    }
-    """
-  } else {
-    """
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
     vec2 clampSample(vec2 coord) {
       return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
     }
-    """
-  }}
 
     ${sdfHelpers()}
 
@@ -782,32 +667,14 @@ internal object GlassShaders {
     ${if (interactive) interactionFalloffHelper() else ""}
 
     vec4 main(vec2 coord) {
-      ${if (tiled) {
-    """
-      vec2 tileIndex = floor(coord / tileSize);
-      vec2 tileOrigin = tileIndex * tileSize;
-      vec4 geometry = tileGeometry(tileIndex.y * atlasColumns + tileIndex.x);
-      vec2 sampleSize = geometry.xy;
-      vec2 materialOrigin = geometry.zw;
-      vec2 sampleCoord = coord - tileOrigin;
-      if (
-        sampleSize.x <= 0.0 ||
-        sampleSize.y <= 0.0 ||
-        sampleCoord.x >= sampleSize.x ||
-        sampleCoord.y >= sampleSize.y
-      ) return vec4(0.0);
-      vec2 localCoord = sampleCoord - materialOrigin;
-    """
-  } else {
-    "vec2 localCoord = materialCoord(coord);"
-  }}
+      vec2 localCoord = materialCoord(coord);
       float outputSd = sdRoundedRect(localCoord, materialSize, cornerRadii);
       if (outputSd > 0.0) return vec4(0.0);
 
       float outputDistToEdge = max(-outputSd, 0.0);
       ${if (interactive) {
     """
-      float interactionWeight = interactionFalloff(${if (tiled) "sampleCoord" else "coord"});
+      float interactionWeight = interactionFalloff(coord);
       float localizedRefractionMultiplier =
         mix(1.0, interactionRefractionMultiplier, interactionWeight);
       """
@@ -827,11 +694,7 @@ internal object GlassShaders {
         heightNorm,
         ${if (interactive) "localizedRefractionMultiplier" else "1.0"}
       );
-      vec2 refractCoord = ${if (tiled) {
-    "clampSample(sampleCoord + displacement, sampleSize)"
-  } else {
-    "clampSample(coord + displacement)"
-  }};
+      vec2 refractCoord = clampSample(coord + displacement);
       vec2 refractedLocalCoord = localCoord + displacement;
       float refractedSd = sdRoundedRect(refractedLocalCoord, materialSize, cornerRadii);
       float sourceDistToEdge = max(-refractedSd, 0.0);
@@ -849,35 +712,15 @@ internal object GlassShaders {
       if (detailAlpha <= 0.0) return vec4(0.0);
 
       ${if (coverageOnly) "return vec4(vec3(detailAlpha), detailAlpha);" else ""}
-      vec4 sharpSample = content.eval(${if (tiled) "tileOrigin + " else ""}refractCoord);
+      vec4 sharpSample = content.eval(refractCoord);
       vec4 detailColor = sharpSample * detailAlpha;
       return detailColor.a > 0.0 ? detailColor : vec4(0.0);
     }
   """
 
-  private fun glassAtlasUniforms(): String = buildString {
-    appendLine("uniform float2 tileSize;")
-    appendLine("uniform float atlasColumns;")
-    repeat(SHARED_GLASS_ATLAS_TILE_CAPACITY) { index ->
-      appendLine("uniform float4 tileGeometry$index;")
-    }
-    appendLine()
-    appendLine("vec4 tileGeometry(float index) {")
-    repeat(SHARED_GLASS_ATLAS_TILE_CAPACITY) { index ->
-      appendLine("  if (index < ${index + 0.5}) return tileGeometry$index;")
-    }
-    appendLine("  return vec4(0.0);")
-    appendLine("}")
-  }
-
   private fun opticalContentSample(
-    tiled: Boolean,
     coordinate: String,
-  ): String = if (tiled) {
-    "sampleContent($coordinate, tileOrigin, sampleSize)"
-  } else {
-    "content.eval(clampSample($coordinate))"
-  }
+  ): String = "content.eval(clampSample($coordinate))"
 
   fun buildInteractionLighting(): String = """
     uniform shader content;

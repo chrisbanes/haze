@@ -13,27 +13,23 @@ import dev.chrisbanes.haze.PlatformRenderEffect
 internal actual fun createGlassBlurRenderEffect(
   horizontal: Boolean,
   progressive: Boolean,
-): MutableRuntimeShaderRenderEffect = createSharedGlassBlurRenderEffect(horizontal, progressive)
+): MutableRuntimeShaderRenderEffect = createRetainedGlassBlurRenderEffect(horizontal, progressive)
 
 internal actual fun createGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createSharedGlassBlurPrefilterRenderEffect()
+  createRetainedGlassBlurPrefilterRenderEffect()
 
 internal actual fun createGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createSharedGlassOpticalRenderEffect()
+  createRetainedGlassOpticalRenderEffect()
 
 internal actual fun createRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createSharedRefractionDetailRenderEffect()
+  createRetainedRefractionDetailRenderEffect()
 
 internal actual fun createGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createSharedGlassRimRenderEffect()
+  createRetainedGlassRimRenderEffect()
 
 internal actual fun createGlassDepthInputRenderEffect(
   blur: PlatformRenderEffect?,
   depth: Float,
 ): PlatformRenderEffect? = null
-
-internal actual val supportsMergedGlassDepthOpticalLayer: Boolean = false
-
-internal actual val supportsSharedGlassBlur: Boolean = false
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = false

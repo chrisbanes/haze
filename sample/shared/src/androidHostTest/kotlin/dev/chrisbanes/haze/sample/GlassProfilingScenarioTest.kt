@@ -79,41 +79,18 @@ class GlassProfilingScenarioTest {
 
   @Test
   fun frames_changeOnlyTheInputNamedByTheScenario() {
-    val expected = mapOf(
-      GlassProfilingScenario.EffectAttach to emptySet(),
-      GlassProfilingScenario.EffectAttach3 to emptySet(),
-      GlassProfilingScenario.EffectAttach9 to emptySet(),
-      GlassProfilingScenario.EffectReattach to emptySet(),
-      GlassProfilingScenario.SteadyFull to emptySet(),
-      GlassProfilingScenario.SteadyFull3 to emptySet(),
-      GlassProfilingScenario.SteadyFull9 to emptySet(),
-      GlassProfilingScenario.SteadyProgressive to emptySet(),
-      GlassProfilingScenario.SteadyProgressive9 to emptySet(),
-      GlassProfilingScenario.SteadyFullChroma to emptySet(),
-      GlassProfilingScenario.SteadyFullChroma9 to emptySet(),
-      GlassProfilingScenario.SteadyNoRim to emptySet(),
-      GlassProfilingScenario.SteadyNoRim9 to emptySet(),
-      GlassProfilingScenario.SteadyNoRefraction to emptySet(),
-      GlassProfilingScenario.SteadyNoRefraction9 to emptySet(),
-      GlassProfilingScenario.SteadyNoBlur to emptySet(),
-      GlassProfilingScenario.SteadyNoBlur9 to emptySet(),
-      GlassProfilingScenario.SteadyDepth50 to emptySet(),
-      GlassProfilingScenario.SteadyScale60 to emptySet(),
-      GlassProfilingScenario.SteadyScale50 to emptySet(),
-      GlassProfilingScenario.SteadyScale50Nine to emptySet(),
-      GlassProfilingScenario.SteadyNoGlass to emptySet(),
-      GlassProfilingScenario.RetainedReuse to setOf("markerOffset"),
-      GlassProfilingScenario.InteractionUpdate to setOf("pressed"),
-      GlassProfilingScenario.InteractionUpdate9 to setOf("pressed"),
-      GlassProfilingScenario.OpticalUpdate to setOf("lightPosition"),
-      GlassProfilingScenario.DepthUpdate to setOf("depth"),
-      GlassProfilingScenario.BlurUpdate to setOf("blurRadius"),
-      GlassProfilingScenario.SourceUpdate to setOf("sourceOffset"),
-      GlassProfilingScenario.SourceUpdate9 to setOf("sourceOffset"),
-      GlassProfilingScenario.SourceUpdateNoGlass to setOf("sourceOffset"),
-    )
-
-    expected.forEach { (scenario, expectedChanges) ->
+    GlassProfilingScenario.entries.forEach { scenario ->
+      val expectedChanges = when (scenario) {
+        GlassProfilingScenario.RetainedReuse -> setOf("markerOffset")
+        GlassProfilingScenario.OpticalUpdate -> setOf("lightPosition")
+        GlassProfilingScenario.DepthUpdate -> setOf("depth")
+        GlassProfilingScenario.BlurUpdate -> setOf("blurRadius")
+        GlassProfilingScenario.SourceUpdate,
+        GlassProfilingScenario.SourceUpdate9,
+        GlassProfilingScenario.SourceUpdateNoGlass,
+        -> setOf("sourceOffset")
+        else -> emptySet()
+      }
       val early = glassProfilingFrame(scenario, 0.25f)
       val late = glassProfilingFrame(scenario, 0.75f)
       assertThat(changedFields(early, late), name = scenario.id).isEqualTo(expectedChanges)
@@ -134,19 +111,19 @@ class GlassProfilingScenarioTest {
       assertThat(effect.style, name = scenario.id).isEqualTo(GlassDefaults.style)
       assertThat(effect.optics, name = scenario.id).isEqualTo(GlassDefaults.optics)
       assertThat(effect.shape, name = scenario.id).isEqualTo(GlassDefaults.shape)
-      assertThat(scenario.profilingOpticsOverride(), name = scenario.id).isNull()
+      assertThat(scenario.opticsOverride, name = scenario.id).isNull()
     }
   }
 
   @Test
   fun ablationScenarios_useExplicitAbsoluteOptics() {
-    assertThat(GlassProfilingScenario.SteadyNoRefraction.profilingOpticsOverride()).isEqualTo(
+    assertThat(GlassProfilingScenario.SteadyNoRefraction.opticsOverride).isEqualTo(
       GlassOptics.Absolute(refractionStrength = 0f),
     )
-    assertThat(GlassProfilingScenario.SteadyNoBlur.profilingOpticsOverride()).isEqualTo(
+    assertThat(GlassProfilingScenario.SteadyNoBlur.opticsOverride).isEqualTo(
       GlassOptics.Absolute(depth = 0f, blurRadius = 0.dp),
     )
-    assertThat(GlassProfilingScenario.SteadyDepth50.profilingOpticsOverride()).isEqualTo(
+    assertThat(GlassProfilingScenario.SteadyDepth50.opticsOverride).isEqualTo(
       GlassOptics.Absolute(depth = 0.5f),
     )
   }
@@ -160,7 +137,7 @@ class GlassProfilingScenarioTest {
       val effect = GlassVisualEffect().apply { applyProfilingScenarioBase(scenario) }
       assertThat(effect.style, name = scenario.id).isEqualTo(GlassDefaults.style)
       assertThat(effect.optics, name = scenario.id).isEqualTo(
-        scenario.profilingOpticsOverride(),
+        scenario.opticsOverride,
       )
     }
     listOf(
@@ -307,5 +284,4 @@ private fun changedFields(
   if (first.lightPosition != second.lightPosition) add("lightPosition")
   if (first.depth != second.depth) add("depth")
   if (first.blurRadius != second.blurRadius) add("blurRadius")
-  if (first.pressed != second.pressed) add("pressed")
 }

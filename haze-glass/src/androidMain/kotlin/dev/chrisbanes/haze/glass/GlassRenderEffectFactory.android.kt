@@ -20,23 +20,23 @@ import dev.chrisbanes.haze.PlatformRenderEffect
 internal actual fun createGlassBlurRenderEffect(
   horizontal: Boolean,
   progressive: Boolean,
-): MutableRuntimeShaderRenderEffect = createSharedGlassBlurRenderEffect(horizontal, progressive)
+): MutableRuntimeShaderRenderEffect = createRetainedGlassBlurRenderEffect(horizontal, progressive)
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal actual fun createGlassBlurPrefilterRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createSharedGlassBlurPrefilterRenderEffect()
+  createRetainedGlassBlurPrefilterRenderEffect()
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal actual fun createGlassOpticalRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createSharedGlassOpticalRenderEffect()
+  createRetainedGlassOpticalRenderEffect()
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal actual fun createRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createSharedRefractionDetailRenderEffect()
+  createRetainedRefractionDetailRenderEffect()
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 internal actual fun createGlassRimRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createSharedGlassRimRenderEffect()
+  createRetainedGlassRimRenderEffect()
 
 @RequiresApi(Build.VERSION_CODES.S)
 internal actual fun createGlassDepthInputRenderEffect(
@@ -67,9 +67,5 @@ internal actual fun createGlassDepthInputRenderEffect(
     BlendMode.PLUS,
   )
 }
-
-internal actual val supportsMergedGlassDepthOpticalLayer: Boolean = true
-
-internal actual val supportsSharedGlassBlur: Boolean = true
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = true

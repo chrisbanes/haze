@@ -136,10 +136,9 @@ private fun GlassProfilingScene(
       }
     }
   }
-  val effect = effects.first()
   val effectSurfaceSizePx = profilingEffectSize(surfaceSizePx, scenario.effectCount)
 
-  LaunchedEffect(state.phase, scenario, effect, interactionSource, surfaceSizePx) {
+  LaunchedEffect(state.phase, scenario, effects, interactionSource, surfaceSizePx) {
     if (state.phase == GlassProfilingPhase.Settling) {
       repeat(GLASS_PROFILING_SETTLING_FRAMES) {
         androidx.compose.runtime.withFrameNanos {}
@@ -327,7 +326,7 @@ private fun GlassProfilingEffectGrid(
 
 internal fun GlassVisualEffect.applyProfilingScenarioBase(scenario: GlassProfilingScenario) {
   style = GlassDefaults.style
-  scenario.profilingOpticsOverride()?.let { optics = it }
+  scenario.opticsOverride?.let { optics = it }
   if (scenario.fullChroma) {
     chromaticAberrationMode = ChromaticAberrationMode.Full
     chromaticAberrationStrength = 0.3f

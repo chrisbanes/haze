@@ -17,7 +17,6 @@ internal data class GlassStageInputs(
   val optical: Any,
   val detail: Any?,
   val rim: Any?,
-  val mergeDepthIntoOptical: Boolean = false,
 )
 
 /** Retained stages that need to be re-recorded. */
@@ -58,8 +57,7 @@ internal fun calculateStageInvalidation(
   val depth = sourceChanged || blurInputChanged || previous?.depth != current.depth
   val optical = previous == null ||
     depth ||
-    previous.optical != current.optical ||
-    previous.mergeDepthIntoOptical != current.mergeDepthIntoOptical
+    previous.optical != current.optical
   val detail = current.detail != null && (sourceChanged || previous?.detail != current.detail)
   val rim = current.rim != null && previous?.rim != current.rim
   return GlassStageInvalidation(blur, depth, optical, detail, rim)
