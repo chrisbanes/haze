@@ -64,7 +64,9 @@ kotlin {
         implementation(libs.assertk)
         implementation(libs.androidx.compose.ui.test.junit4)
         implementation(libs.androidx.compose.ui.test.manifest)
-        implementation(projects.internal.contextTest)
+        implementation(projects.internal.contextTest) {
+          exclude(group = "org.robolectric", module = "robolectric")
+        }
       }
     }
 
