@@ -81,7 +81,10 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
 
   @Test
   fun glass_interactionPreservesTranslucentPremultipliedRgba() = runScreenshotTest {
-    assertGlassTranslucentSourceInvariant(withInteraction = true)
+    assertGlassTranslucentSourceInvariant(
+      withInteraction = true,
+      verifyInteractionRgb = true,
+    )
   }
 
   @Test

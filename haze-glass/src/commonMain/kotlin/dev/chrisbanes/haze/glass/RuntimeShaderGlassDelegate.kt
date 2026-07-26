@@ -67,8 +67,13 @@ internal class RuntimeShaderGlassDelegate(
   private var interactionLightingEffect: MutableRuntimeShaderRenderEffect? = null
   private var interactionOpticalEffectKey: GlassOpticalEffectKey? = null
   private var interactionOpticalEffectUniforms: GlassInteractionUniforms? = null
+  private var interactionOpticalPlatformEffect: PlatformRenderEffect? = null
   private var interactionOpticalComposeEffect: RenderEffect? = null
-  private var interactionOpticalEffectLayer: GraphicsLayer? = null
+  private var interactionOutputEffect: MutableRuntimeShaderRenderEffect? = null
+  private var interactionOutputInput: PlatformRenderEffect? = null
+  private var interactionOutputUniforms: GlassInteractionUniforms? = null
+  private var interactionOutputFeatherWidth: Float = Float.NaN
+  private var interactionOutputComposeEffect: RenderEffect? = null
   private var interactionDetailEffectKey: GlassRefractionDetailEffectKey? = null
   private var interactionDetailEffectUniforms: GlassInteractionUniforms? = null
   private var interactionDetailComposeEffect: RenderEffect? = null
@@ -563,6 +568,18 @@ internal class RuntimeShaderGlassDelegate(
         } else {
           interactionOptical
         }
+        if (completedInteractionOutput != null && interactionPatch != null) {
+          updateInteractionOutputEffect(
+            layer = completedInteractionOutput,
+            input = if (completedInteractionOutput === interactionOptical) {
+              checkNotNull(interactionOpticalPlatformEffect)
+            } else {
+              null
+            },
+            patch = interactionPatch,
+            featherWidth = maxOf(params.sampleStepPx, 1f),
+          )
+        }
         if (interactionUniforms.hasLighting && interactionPatch != null) {
           requireRetainedStage(
             trace(GlassTraceSection.InteractionLighting) {
@@ -694,7 +711,13 @@ internal class RuntimeShaderGlassDelegate(
     clearInteractionLightingLayerMetadata()
     interactionOpticalEffectKey = null
     interactionOpticalEffectUniforms = null
+    interactionOpticalPlatformEffect = null
     interactionOpticalComposeEffect = null
+    interactionOutputEffect = null
+    interactionOutputInput = null
+    interactionOutputUniforms = null
+    interactionOutputFeatherWidth = Float.NaN
+    interactionOutputComposeEffect = null
     interactionDetailEffectKey = null
     interactionDetailEffectUniforms = null
     interactionDetailComposeEffect = null
@@ -710,7 +733,6 @@ internal class RuntimeShaderGlassDelegate(
     recordedInteractionOpticalLayer = null
     recordedInteractionOpticalInput = null
     recordedInteractionOpticalKey = null
-    interactionOpticalEffectLayer = null
   }
 
   private fun clearInteractionRefractionLayerMetadata() {
@@ -794,6 +816,7 @@ internal class RuntimeShaderGlassDelegate(
       interactionDetailEffect = null
       interactionDetailCoverageEffect = null
       interactionLightingEffect = null
+      interactionOutputEffect = null
     }
     clearInteractionLayerMetadata()
     preparedParams = null
@@ -1402,17 +1425,16 @@ internal class RuntimeShaderGlassDelegate(
       }
     }
     if (needsUpdate) {
-      interactionOpticalComposeEffect = checkNotNull(interactionOpticalEffect).updateUniforms {
+      interactionOpticalPlatformEffect = checkNotNull(interactionOpticalEffect).updateUniforms {
         setOpticalUniforms(key)
         setInteractionOpticalUniforms(uniforms)
-      }.asComposeRenderEffect()
+      }
+      interactionOpticalComposeEffect =
+        checkNotNull(interactionOpticalPlatformEffect).asComposeRenderEffect()
       interactionOpticalEffectKey = key
       interactionOpticalEffectUniforms = uniforms
     }
-    if (needsUpdate || layer !== interactionOpticalEffectLayer) {
-      layer.renderEffect = checkNotNull(interactionOpticalComposeEffect)
-      interactionOpticalEffectLayer = layer
-    }
+    layer.renderEffect = checkNotNull(interactionOpticalComposeEffect)
   }
 
   private fun updateInteractionDetailEffect(
@@ -1504,6 +1526,37 @@ internal class RuntimeShaderGlassDelegate(
     }
   }
 
+  private fun updateInteractionOutputEffect(
+    layer: GraphicsLayer,
+    input: PlatformRenderEffect?,
+    patch: GlassInteractionPatch,
+    featherWidth: Float,
+  ) {
+    if (interactionOutputEffect == null || input != interactionOutputInput) {
+      interactionOutputEffect = createMutableRuntimeShaderRenderEffect(
+        effect = GLASS_INTERACTION_OUTPUT_EFFECT,
+        shaderNames = arrayOf("content"),
+        inputs = arrayOf(input),
+      )
+      interactionOutputInput = input
+      interactionOutputUniforms = null
+      interactionOutputFeatherWidth = Float.NaN
+      interactionOutputComposeEffect = null
+    }
+    if (
+      patch.uniforms != interactionOutputUniforms ||
+      featherWidth != interactionOutputFeatherWidth ||
+      interactionOutputComposeEffect == null
+    ) {
+      interactionOutputComposeEffect = checkNotNull(interactionOutputEffect).updateUniforms {
+        setInteractionOutputUniforms(patch.uniforms, featherWidth)
+      }.asComposeRenderEffect()
+      interactionOutputUniforms = patch.uniforms
+      interactionOutputFeatherWidth = featherWidth
+    }
+    layer.renderEffect = checkNotNull(interactionOutputComposeEffect)
+  }
+
   private fun DrawScope.drawCompletedLayer(
     layer: GraphicsLayer,
     context: VisualEffectContext,
@@ -1535,7 +1588,7 @@ internal class RuntimeShaderGlassDelegate(
         patch = interactionPatch,
         context = context,
         params = params,
-        blendMode = BlendMode.Src,
+        blendMode = BlendMode.SrcAtop,
         alpha = 1f,
       )
     }
@@ -1932,6 +1985,9 @@ private val GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT by lazy(
 private val GLASS_INTERACTION_LIGHTING_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildInteractionLighting())
 }
+private val GLASS_INTERACTION_OUTPUT_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildInteractionOutputComposite())
+}
 private val GLASS_RIM_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildRim())
 }
@@ -2109,6 +2165,14 @@ internal fun RuntimeShaderUniformProvider.setInteractionLightingUniforms(
   )
   setInteractionPositionUniforms(uniforms)
   setFloatUniform("interactionLightingIntensity", uniforms.lightingIntensity)
+}
+
+private fun RuntimeShaderUniformProvider.setInteractionOutputUniforms(
+  uniforms: GlassInteractionUniforms,
+  featherWidth: Float,
+) {
+  setInteractionPositionUniforms(uniforms)
+  setFloatUniform("featherWidth", featherWidth)
 }
 
 private fun RuntimeShaderUniformProvider.setInteractionPositionUniforms(

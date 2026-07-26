@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.luminance
@@ -217,6 +218,30 @@ internal fun PixelSnapshot.changedPixelRatioOutside(
       }
     }
   }
+  return changedPixels.toFloat() / comparedPixels
+}
+
+internal fun PixelSnapshot.changedPixelRatioOutsideCircle(
+  other: PixelSnapshot,
+  center: Offset,
+  radius: Float,
+): Float {
+  requireComparableSnapshot(other)
+  require(radius >= 0f && radius.isFinite()) { "Radius must be finite and non-negative" }
+  val radiusSquared = radius * radius
+  var comparedPixels = 0
+  var changedPixels = 0
+  for (y in 0 until height) {
+    for (x in 0 until width) {
+      val dx = x + 0.5f - center.x
+      val dy = y + 0.5f - center.y
+      if (dx * dx + dy * dy >= radiusSquared) {
+        comparedPixels++
+        if (this[x, y].differsFrom(other[x, y])) changedPixels++
+      }
+    }
+  }
+  require(comparedPixels > 0) { "Circle must leave pixels to compare" }
   return changedPixels.toFloat() / comparedPixels
 }
 
