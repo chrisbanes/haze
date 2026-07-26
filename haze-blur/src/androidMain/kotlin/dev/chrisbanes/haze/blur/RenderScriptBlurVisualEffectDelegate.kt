@@ -80,7 +80,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   override fun DrawScope.draw(context: VisualEffectContext) {
     val density = context.requireDensity()
     val offset = context.layerOffset
-    var scaleFactor = blurVisualEffect.resolveInputScaleFactor(context.inputScale)
+    var scaleFactor = blurVisualEffect.resolveInputScaleFactor(context)
 
     var blurRadiusPx = scaleFactor * with(density) {
       blurVisualEffect.blurRadius.takeOrElse { 0.dp }.toPx()

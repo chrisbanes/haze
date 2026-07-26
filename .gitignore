@@ -113,3 +113,6 @@ Preview.html
 test_output
 
 *.env*
+
+# Local Perfetto tooling
+trace_processor

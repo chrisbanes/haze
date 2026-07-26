@@ -34,7 +34,7 @@ internal fun BlurVisualEffect.calculateBlurTileMode(): TileMode = when (blurredE
 @OptIn(ExperimentalHazeApi::class)
 internal fun BlurVisualEffect.getOrCreateRenderEffect(
   context: VisualEffectContext,
-  inputScale: Float = resolveInputScaleFactor(context.inputScale),
+  inputScale: Float = resolveInputScaleFactor(context),
   blurRadius: Dp = this.blurRadius.takeOrElse { 0.dp },
   noiseFactor: Float = this.noiseFactor,
   colorEffects: List<HazeColorEffect> = this.colorEffects.orEmpty(),

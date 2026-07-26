@@ -119,6 +119,10 @@ package dev.chrisbanes.haze {
     property public dev.chrisbanes.haze.HazeInputScale Default;
   }
 
+  public static final class HazeInputScale.EffectDefault implements dev.chrisbanes.haze.HazeInputScale {
+    field public static final dev.chrisbanes.haze.HazeInputScale.EffectDefault INSTANCE;
+  }
+
   @kotlin.jvm.JvmInline public static final value class HazeInputScale.Fixed implements dev.chrisbanes.haze.HazeInputScale {
     ctor @KotlinOnly public HazeInputScale.Fixed(float scale);
     method @InaccessibleFromKotlin public float getScale();
@@ -334,4 +338,5 @@ package dev.chrisbanes.haze {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.VisualEffectTransform getIdentity();
     property public dev.chrisbanes.haze.VisualEffectTransform Identity;
   }
+
 }

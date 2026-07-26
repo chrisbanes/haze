@@ -238,14 +238,16 @@ TopAppBar(
 
 ## Input Scale
 
-Optimize performance by rendering the effect at a lower resolution:
+Blur effects adapt their input resolution by default. The policy considers the resolved blur radius
+in physical pixels and the expanded capture-layer pixel area, then chooses `1.0`, `0.8`, or `0.5`.
+Both inputs must cross a tier boundary, and hysteresis avoids retained-layer reallocations when an
+animated radius or resizing surface hovers near a boundary.
 
 ![](../media/inputscale.png)
 
 ```kotlin
 TopAppBar(
   modifier = Modifier.hazeEffect(state = hazeState) {
-    inputScale = HazeInputScale.Auto
     blurEffect {
       // ...
     }
@@ -255,18 +257,24 @@ TopAppBar(
 
 [HazeInputScale](../api/haze/dev.chrisbanes.haze/-haze-input-scale/index.html) options:
 
-- `HazeInputScale.None`: No scaling (default)
-- `HazeInputScale.Auto`: Automatic scaling with platform defaults
-- `HazeInputScale.Fixed(...)`: Custom scaling factor (0.0 to 1.0)
+- `HazeInputScale.Default`: Let the visual effect choose. Blur adapts; Glass stays at `1.0`.
+- `HazeInputScale.None`: Explicitly disable scaling.
+- `HazeInputScale.Auto`: Explicitly request the effect's automatic policy.
+- `HazeInputScale.Fixed(...)`: Use the exact custom scaling factor (greater than `0.0`, up to `1.0`).
 
-Values less than 1.0 improve performance at the cost of quality. Common values:
-- `0.66` - ~55% pixel reduction, imperceptible to most users
-- `0.5` - ~75% pixel reduction, noticeable but often acceptable
-- `0.33` - ~89% pixel reduction, likely visually different
+The ordinary blur ladder uses:
+
+- `0.8` — 36% fewer input pixels for medium workloads.
+- `0.5` — 75% fewer input pixels for large surfaces with strong blur.
+
+Progressive blur stays at `1.0` for smaller workloads and never goes below `0.8`. A non-progressive
+mask uses the ordinary ladder. Scrim fallback does not perform a blur and remains at `1.0`.
 
 !!! info "Experimentation Recommended"
 
-    Always benchmark with your specific styling parameters to find the right balance for your use case.
+    The default is quality-gated and intentionally conservative, but device backends and content
+    vary. Use `None` or `Fixed` when your own visual review or benchmarks call for a different
+    tradeoff.
 
 ## Overlapping Blurred Layouts
 

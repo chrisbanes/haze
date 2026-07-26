@@ -18,14 +18,18 @@ The primary change in v2 is the extraction of blur functionality from the core `
 - **Removed APIs:** `HazeState.blurEnabled` and the `rememberHazeState(blurEnabled)` parameter removed.
 - **Position strategy:** New `HazePositionStrategy` configuration on `HazeState`
 - **Geometry changes:** `HazeArea.positionOnScreen` is replaced by `HazeArea.coordinates`; `VisualEffectContext` now exposes `position`, `rootBounds`, `positionOf(area)`, and `boundsOf(area)`.
+- **Adaptive blur input scaling:** `HazeInputScale.Default` now lets each visual effect choose its
+  policy. Blur uses a quality-gated adaptive ladder; Glass remains unscaled. Set
+  `HazeInputScale.None` to preserve explicit full-resolution blur input.
+  `HazeInputScale.EffectDefault` is the new sealed subtype backing `Default`; exhaustive `when`
+  expressions over `HazeInputScale` must handle it (or add an `else` branch).
 
 **What Hasn't Changed:**
 
 - `hazeSource` remains in the core module
 - `hazeEffect` remains in the core module, but blur-specific style parameters moved into `blurEffect {}`.
 - Platform support unchanged
-- Performance characteristics unchanged
-- `HazeEffectScope` properties like `inputScale`, `drawContentBehind`, `canDrawArea` unchanged
+- `HazeEffectScope` properties like `drawContentBehind` and `canDrawArea` unchanged
 
 ## Dependency Changes
 

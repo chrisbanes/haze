@@ -35,7 +35,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
 
   override fun DrawScope.draw(context: VisualEffectContext) {
     // Calculate scaled layer size to detect size changes (needs re-allocation)
-    val scaleFactor = blurVisualEffect.resolveInputScaleFactor(context.inputScale)
+    val scaleFactor = blurVisualEffect.resolveInputScaleFactor(context)
     val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {
       Size(it.width.toFloat(), it.height.toFloat())
     }
@@ -103,7 +103,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
           context = context,
         )
       } else {
-        updateRenderEffectIfDirty(context)
+        updateRenderEffectIfDirty(context, scaleFactor)
         layer.renderEffect = renderEffect
         layer.alpha = blurVisualEffect.alpha
         drawLayer(layer)
@@ -141,12 +141,15 @@ internal class RenderEffectBlurVisualEffectDelegate(
     retainedOutputAvailable = false
   }
 
-  private fun updateRenderEffectIfDirty(context: VisualEffectContext) {
+  private fun updateRenderEffectIfDirty(
+    context: VisualEffectContext,
+    scaleFactor: Float,
+  ) {
     // Always resolve the current RenderEffect using the memoized cache keyed by params.
     // This ensures that changes coming from either the effect itself OR the hosting node
     // (e.g., size, layer offset, input scale, etc.) will be reflected without relying on
     // the effect's local dirty flags only.
-    renderEffect = blurVisualEffect.getOrCreateRenderEffect(context)
+    renderEffect = blurVisualEffect.getOrCreateRenderEffect(context, inputScale = scaleFactor)
   }
 
   companion object {

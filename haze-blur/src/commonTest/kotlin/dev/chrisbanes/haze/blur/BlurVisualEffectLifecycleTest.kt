@@ -21,6 +21,7 @@ import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.PlatformContext
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -75,20 +76,38 @@ class BlurVisualEffectLifecycleTest {
   }
 
   @Test
+  fun changingDelegate_resetsAutomaticHysteresisHistory() {
+    val effect = BlurVisualEffect().apply {
+      blurRadius = BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX.dp
+      delegate = TrackingDelegate()
+    }
+
+    assertThat(
+      effect.resolveInputScaleFactor(
+        ScalingVisualEffectContext(
+          layerSize = Size(BlurInputScalePolicy.AGGRESSIVE_AREA_PX, 1f),
+        ),
+      ),
+    ).isEqualTo(0.5f)
+
+    effect.delegate = TrackingDelegate()
+    effect.blurRadius = (BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX - 1f).dp
+
+    assertThat(
+      effect.resolveInputScaleFactor(
+        ScalingVisualEffectContext(
+          layerSize = Size(BlurInputScalePolicy.AGGRESSIVE_AREA_PX - 1f, 1f),
+        ),
+      ),
+    ).isEqualTo(0.8f)
+  }
+
+  @Test
   fun shouldDrawContentBehind_reflectsCurrentDelegateWithoutMutatingIt() {
     val effect = BlurVisualEffect()
     effect.delegate = ScrimBlurVisualEffectDelegate(effect)
 
     assertThat(effect.shouldDrawContentBehind(FakeVisualEffectContext)).isTrue()
-  }
-
-  @Test
-  fun resolveInputScaleFactor_autoUsesBlurSpecificRules() {
-    val effect = BlurVisualEffect().apply {
-      blurRadius = 20.dp
-    }
-
-    assertThat(effect.resolveInputScaleFactor(HazeInputScale.Auto)).isEqualTo(0.3334f)
   }
 
   @Test
@@ -172,6 +191,12 @@ private data object FakeVisualEffectContext : VisualEffectContext {
   override fun requireGraphicsContext(): GraphicsContext = error("Unused in lifecycle tests")
   override fun invalidateDraw() = Unit
 }
+
+@Poko
+private class ScalingVisualEffectContext(
+  override val layerSize: Size,
+  override val inputScale: HazeInputScale = HazeInputScale.Auto,
+) : VisualEffectContext by FakeVisualEffectContext
 
 private class TrackingDelegate : BlurVisualEffect.Delegate {
   var attachCount: Int = 0

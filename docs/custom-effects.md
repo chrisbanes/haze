@@ -180,6 +180,18 @@ Mode semantics:
 - `state != null`: background mode (`hazeEffect(state = hazeState)`)
 - `state == null`: foreground/content mode (`hazeEffect { ... }`)
 
+Input-scale semantics:
+
+- `HazeInputScale.Default` is passed through unchanged so a custom effect can choose its normal
+  policy.
+- `HazeInputScale.None` explicitly requests `1.0`.
+- `HazeInputScale.Auto` asks the custom effect to apply its automatic policy; core does not impose
+  the built-in blur or Glass rules.
+- `HazeInputScale.Fixed` supplies the caller's exact scale.
+
+Custom effects should document how they interpret `Default` and `Auto`, and should preserve
+explicit `None` and `Fixed` choices.
+
 ## HazeEffectScope
 
 The `Modifier.hazeEffect { ... }` lambda uses `HazeEffectScope`:

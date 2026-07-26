@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.Bitmask
-import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
@@ -69,6 +68,7 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   private var isAttached: Boolean = false
 
   private var needsDelegateSelection: Boolean = true
+  private val inputScalePolicy = BlurInputScalePolicy()
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
@@ -84,6 +84,7 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
           field.detach()
         }
         field = value
+        inputScalePolicy.reset()
       }
     }
 
@@ -98,6 +99,7 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     if (isAttached) {
       isAttached = false
       delegate.detach()
+      inputScalePolicy.reset()
     }
   }
 
@@ -367,18 +369,17 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
       }
     }
 
-  internal fun resolveInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
-    is HazeInputScale.None -> 1f
-    is HazeInputScale.Fixed -> scale.scale
-    HazeInputScale.Auto -> {
-      val blurRadius = blurRadius.takeOrElse { 0.dp }
-      when {
-        blurRadius < 7.dp -> 1f
-        progressive != null -> 0.5f
-        mask != null -> 0.5f
-        else -> 0.3334f
-      }
+  internal fun resolveInputScaleFactor(context: VisualEffectContext): Float {
+    val density = context.requireDensity()
+    val blurRadiusPx = with(density) {
+      blurRadius.takeOrElse { 0.dp }.toPx()
     }
+    return inputScalePolicy.resolve(
+      requestedScale = context.inputScale,
+      blurRadiusPx = blurRadiusPx,
+      layerSize = context.layerSize,
+      progressive = progressive != null,
+    )
   }
 
   internal var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle.Unspecified

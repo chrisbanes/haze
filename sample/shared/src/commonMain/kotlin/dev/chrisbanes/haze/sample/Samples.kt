@@ -57,11 +57,12 @@ expect val Samples: List<Sample>
 @OptIn(ExperimentalHazeApi::class)
 val CommonSamples: List<Sample> = listOf(
   Sample.Scaffold,
-  Sample.ScaffoldScaled,
+  Sample.ScaffoldUnscaled,
+  Sample.ScaffoldBalanced,
   Sample.ScaffoldProgressive,
-  Sample.ScaffoldProgressiveScaled,
+  Sample.ScaffoldProgressiveUnscaled,
   Sample.ScaffoldMasked,
-  Sample.ScaffoldMaskedScaled,
+  Sample.ScaffoldMaskedUnscaled,
   Sample.CreditCard,
   Sample.ImageList,
   Sample.ListOverImage,
@@ -106,15 +107,29 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   }
 
   @Serializable
-  data object ScaffoldScaled : Sample {
-    override val title: String = "Scaffold (input scaled)"
+  data object ScaffoldUnscaled : Sample {
+    override val title: String = "Scaffold (input unscaled)"
 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
-        inputScale = HazeInputScale.Auto,
+        inputScale = HazeInputScale.None,
+      )
+    }
+  }
+
+  @Serializable
+  data object ScaffoldBalanced : Sample {
+    override val title: String = "Scaffold (input fixed 0.8)"
+
+    @Composable
+    override fun Content(navController: NavHostController, blurEnabled: Boolean) {
+      ScaffoldSample(
+        navController = navController,
+        blurEnabled = blurEnabled,
+        inputScale = HazeInputScale.Fixed(0.8f),
       )
     }
   }
@@ -134,8 +149,8 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   }
 
   @Serializable
-  data object ScaffoldProgressiveScaled : Sample {
-    override val title: String = "Scaffold (progressive blur, input scaled)"
+  data object ScaffoldProgressiveUnscaled : Sample {
+    override val title: String = "Scaffold (progressive blur, input unscaled)"
 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
@@ -143,7 +158,7 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
         navController = navController,
         blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Progressive,
-        inputScale = HazeInputScale.Auto,
+        inputScale = HazeInputScale.None,
       )
     }
   }
@@ -163,8 +178,8 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
   }
 
   @Serializable
-  data object ScaffoldMaskedScaled : Sample {
-    override val title: String = "Scaffold (masked, input scaled)"
+  data object ScaffoldMaskedUnscaled : Sample {
+    override val title: String = "Scaffold (masked, input unscaled)"
 
     @Composable
     override fun Content(navController: NavHostController, blurEnabled: Boolean) {
@@ -172,7 +187,7 @@ interface Sample { // We should seal this interface, but KMP doesn't support it 
         navController = navController,
         blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Mask,
-        inputScale = HazeInputScale.Auto,
+        inputScale = HazeInputScale.None,
       )
     }
   }

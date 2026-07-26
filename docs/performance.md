@@ -4,7 +4,12 @@ Haze tries to use the most performant mechanism possible on each platform, which
 
 ## Input Scale
 
-You can provide an input scale value which determines how much the content is scaled in both the x and y dimensions, allowing the blur effect to be potentially applied over scaled-down content (and thus less pixels), before being scaled back up and drawn at the original size. You can find more information on how to use this [here](blur/usage.md#input-scale).
+Blur effects use adaptive input scaling by default. The common cross-platform policy uses the
+resolved blur radius in physical pixels and expanded capture-layer pixel area to choose `1.0`,
+`0.8`, or `0.5`. Stronger blur can hide more downsampling, while the area gate avoids reallocating
+small layers for negligible savings. Progressive blur is capped at `0.8`; Glass remains unscaled by
+default. Explicit `None`, `Auto`, and `Fixed` values always win. You can find configuration details
+[here](blur/usage.md#input-scale).
 
 In terms of the performance benefit which scaling provides, it's fairly small. In our Android benchmark tests, using an `inputScale` set to `0.5` reduced the _cost of Haze_ by **5-20%**. You can read more about this below.
 
@@ -28,6 +33,18 @@ We currently have 4 benchmark scenarios, each of them is one of the samples in t
     All of the tests were ran with 16 iterations on a Pixel 6, running the latest version of Android available.
 
 As with all benchmark tests, the results are only true for the exact things being tested. Using Haze in your own applications may result in different performance characteristics, so it is wise to write your own performance tests to validate the impact to your apps. Benchmark tests will always have variability in them too, so don't take the numbers listed below as exact values. Look at them more as a guide.
+
+### Adaptive default validation
+
+The adaptive blur default was validated with three interleaved 16-iteration Scaffold pairs on a
+Pixel 6 at 90Hz. Each pair compared explicit unscaled input with the adaptive default. Median P90
+CPU duration improved from 9.817ms to 9.746ms, while Perfetto actual-frame duration improved from
+11.889ms to 11.388ms (4.21%). CPU duration, actual-frame duration, and frame-overrun headroom
+improved in every pair.
+
+Representative progressive and masked pairs also improved actual-frame P90 by 5.76% and 6.53%
+respectively. Runs with a different or mismatched refresh rate, or with invalid app navigation
+state, were discarded and repeated before comparison.
 
 The numbers listed below the P90 frame durations in milliseconds, which tend to be a good indicator of frames where a user interaction is happening (scrolling, etc). However, as these are the P90 values, these indicate the longest 10% frame durations, and thus are (probably) not indicitive of the performance which users see most of the time. It all depends on the distribution of the frame durations, but we're quickly getting into entry-level statistics, which is beyond what we're trying to document here.
 

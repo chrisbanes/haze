@@ -22,8 +22,8 @@ public interface HazeEffectScope {
   public var visualEffect: VisualEffect
 
   /**
-   * The input scale factor, which needs to be in the range 0 < x <= 1.
-   * Defaults to `1.0`, resulting in no scaling.
+   * The input scale policy used to render the effect source.
+   * Defaults to [HazeInputScale.Default], allowing each [VisualEffect] to choose its own policy.
    *
    * The content will be scaled by this value in both the x and y dimensions, allowing the blur
    * effect to be potentially applied over scaled-down content, before being scaled back up
@@ -118,22 +118,35 @@ public interface HazeEffectScope {
 }
 
 /**
- * Value classes used for [HazeEffectScope.inputScale].
+ * Input-scale policies used for [HazeEffectScope.inputScale].
  */
 public sealed interface HazeInputScale {
   /**
-   * No input scaling. This is functionally the same as `Fixed(1.0f)`
+   * Lets the configured [VisualEffect] choose its input scale.
+   *
+   * This object backs the binary-compatible [Companion.Default] property.
+   */
+  public data object EffectDefault : HazeInputScale
+
+  /**
+   * No input scaling. This is functionally the same as `Fixed(1.0f)` and always overrides an
+   * effect's default or automatic policy.
    */
   public data object None : HazeInputScale
 
   /**
-   * Automatic input scaling. Haze will attempt to use an appropriate input scale depending on
-   * the other settings which have been set. The values used underneath may change in the future.
+   * Requests the configured effect's automatic input-scaling policy.
+   *
+   * Built-in blur effects choose between `1.0`, `0.8`, and `0.5` using the physical blur radius
+   * and expanded capture-layer area. Built-in Glass effects use their separate Glass-specific
+   * automatic policy. Custom effects receive this value unchanged and define its meaning.
+   * Automatic values and thresholds may change in future releases.
    */
   public data object Auto : HazeInputScale
 
   /**
    * An input scale which uses a fixed scale factor.
+   * This value always overrides an effect's default or automatic policy.
    *
    * @param scale The scale factor, in the range 0 < x <= 1.
    */
@@ -148,9 +161,13 @@ public sealed interface HazeInputScale {
 
   public companion object {
     /**
-     * The default [HazeInputScale] value. Resolves to [HazeInputScale.None].
+     * Lets the configured [VisualEffect] choose its input scale.
+     *
+     * Built-in blur effects use an adaptive policy, while built-in Glass effects remain unscaled.
+     * Custom effects receive this value unchanged and may define their own policy. Use [None] when
+     * scaling must be disabled explicitly.
      */
-    public val Default: HazeInputScale get() = None
+    public val Default: HazeInputScale get() = EffectDefault
   }
 }
 
