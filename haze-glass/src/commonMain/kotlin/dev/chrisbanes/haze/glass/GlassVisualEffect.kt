@@ -759,10 +759,10 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     return shouldClipToNodeBoundsCache
   }
 
-  internal fun resolveInputScaleFactor(scale: HazeInputScale): Float = when (scale) {
-    is HazeInputScale.None -> 1f
-    is HazeInputScale.Fixed -> scale.scale
-    HazeInputScale.Auto -> 0.75f
+  internal fun resolveInputScaleFactor(scale: HazeInputScale): Float = when {
+    scale === HazeInputScale.Auto -> 0.75f
+    scale is HazeInputScale.Fixed -> scale.scale
+    else -> 1f
   }
 
   internal fun resolveGlassRenderBudget(context: VisualEffectContext): GlassRenderBudgetDecision {

@@ -55,6 +55,40 @@ class BenchmarkTest {
   }
 
   @Test
+  fun scaffoldUnscaled() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.setBlurEnabled(true)
+        device.navigateToScaffoldUnscaled()
+      },
+    ) {
+      device.repeatedScrolls("lazy_grid")
+    }
+  }
+
+  @Test
+  fun scaffoldBalanced() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.setBlurEnabled(true)
+        device.navigateToScaffoldBalanced()
+      },
+    ) {
+      device.repeatedScrolls("lazy_grid")
+    }
+  }
+
+  @Test
   fun scaffoldBlurDisabled() {
     benchmarkRule.measureRepeated(
       packageName = APP_PACKAGE,
@@ -65,23 +99,6 @@ class BenchmarkTest {
         startActivityAndWait()
         device.setBlurEnabled(false)
         device.navigateToScaffold()
-      },
-    ) {
-      device.repeatedScrolls("lazy_grid")
-    }
-  }
-
-  @Test
-  fun scaffoldScaled() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToScaffoldScaled()
       },
     ) {
       device.repeatedScrolls("lazy_grid")
@@ -106,7 +123,7 @@ class BenchmarkTest {
   }
 
   @Test
-  fun scaffoldProgressiveScaled() {
+  fun scaffoldProgressiveUnscaled() {
     benchmarkRule.measureRepeated(
       packageName = APP_PACKAGE,
       metrics = listOf(FrameTimingMetric()),
@@ -115,7 +132,7 @@ class BenchmarkTest {
       setupBlock = {
         startActivityAndWait()
         device.setBlurEnabled(true)
-        device.navigateToScaffoldWithProgressiveScaled()
+        device.navigateToScaffoldWithProgressiveUnscaled()
       },
     ) {
       device.repeatedScrolls("lazy_grid")
@@ -133,6 +150,23 @@ class BenchmarkTest {
         startActivityAndWait()
         device.setBlurEnabled(true)
         device.navigateToScaffoldWithMask()
+      },
+    ) {
+      device.repeatedScrolls("lazy_grid")
+    }
+  }
+
+  @Test
+  fun scaffoldMaskUnscaled() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.setBlurEnabled(true)
+        device.navigateToScaffoldWithMaskUnscaled()
       },
     ) {
       device.repeatedScrolls("lazy_grid")

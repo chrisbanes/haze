@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEqualTo
+import dev.chrisbanes.haze.HazeInputScale
 import kotlin.test.Test
 
 class GlassVisualEffectOverrideTest {
@@ -27,6 +28,16 @@ class GlassVisualEffectOverrideTest {
   private val localShape = RoundedCornerShape(8.dp)
   private val styleShape = RoundedCornerShape(16.dp)
   private val directShape = RoundedCornerShape(24.dp)
+
+  @Test
+  fun inputScale_defaultRemainsUnscaledAndExplicitAutoRemainsGlassSpecific() {
+    val effect = GlassVisualEffect()
+
+    assertThat(effect.resolveInputScaleFactor(HazeInputScale.Default)).isEqualTo(1f)
+    assertThat(effect.resolveInputScaleFactor(HazeInputScale.None)).isEqualTo(1f)
+    assertThat(effect.resolveInputScaleFactor(HazeInputScale.Auto)).isEqualTo(0.75f)
+    assertThat(effect.resolveInputScaleFactor(HazeInputScale.Fixed(0.6f))).isEqualTo(0.6f)
+  }
 
   @Test
   fun objectOverrides_clearDirectValuesRestoreInheritedValues() {

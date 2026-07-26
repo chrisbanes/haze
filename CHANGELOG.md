@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Breaking Changes
+
+- `HazeInputScale.Default` is now backed by the new `HazeInputScale.EffectDefault` sealed subtype
+  so effects can distinguish an unspecified policy from explicit `None`. Exhaustive `when`
+  expressions over `HazeInputScale` must handle the new subtype or add an `else` branch.
+
 ### Added
 
 - Added opt-in hover, focus, and press responses to `GlassVisualEffect`, including localized lighting and optics, configurable transforms and motion, and an `interactable()` preset shortcut.
@@ -16,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Blur effects now adapt `HazeInputScale.Default` between `1.0`, `0.8`, and `0.5` using physical
+  blur radius and expanded capture-layer area, with hysteresis and a `0.8` progressive-blur cap.
+  Glass remains unscaled by default; explicit input-scale choices remain authoritative.
 - Changed Glass blur composition so blur participates in refracted content.
 - Moved `HazeProgressive` to the core `dev.chrisbanes.haze` package with a deprecated blur-package typealias.
 

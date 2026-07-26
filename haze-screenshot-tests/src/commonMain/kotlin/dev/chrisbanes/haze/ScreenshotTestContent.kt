@@ -92,6 +92,7 @@ internal fun CreditCardContentBlurring(
   visualEffect: VisualEffect,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   drawContentBehind: Boolean = false,
+  inputScale: HazeInputScale = HazeInputScale.Default,
 ) {
   Box(Modifier.background(backgroundColors.first())) {
     // Background content
@@ -101,6 +102,7 @@ internal fun CreditCardContentBlurring(
         .fillMaxSize()
         .hazeEffect {
           this.drawContentBehind = drawContentBehind
+          this.inputScale = inputScale
           this.visualEffect = visualEffect
         },
     )

@@ -54,8 +54,13 @@ internal fun UiDevice.navigateToScaffold() {
   waitForIdle()
 }
 
-internal fun UiDevice.navigateToScaffoldScaled() {
-  findSampleListItem(By.res("Scaffold (input scaled)")).click()
+internal fun UiDevice.navigateToScaffoldUnscaled() {
+  findSampleListItem(By.res("Scaffold (input unscaled)")).click()
+  waitForIdle()
+}
+
+internal fun UiDevice.navigateToScaffoldBalanced() {
+  findSampleListItem(By.res("Scaffold (input fixed 0.8)")).click()
   waitForIdle()
 }
 
@@ -64,13 +69,18 @@ internal fun UiDevice.navigateToScaffoldWithProgressive() {
   waitForIdle()
 }
 
-internal fun UiDevice.navigateToScaffoldWithProgressiveScaled() {
-  findSampleListItem(By.res("Scaffold (progressive blur, input scaled)")).click()
+internal fun UiDevice.navigateToScaffoldWithProgressiveUnscaled() {
+  findSampleListItem(By.res("Scaffold (progressive blur, input unscaled)")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldWithMask() {
   findSampleListItem(By.res("Scaffold (masked)")).click()
+  waitForIdle()
+}
+
+internal fun UiDevice.navigateToScaffoldWithMaskUnscaled() {
+  findSampleListItem(By.res("Scaffold (masked, input unscaled)")).click()
   waitForIdle()
 }
 

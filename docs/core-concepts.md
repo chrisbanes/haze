@@ -81,9 +81,11 @@ Controls the resolution at which the effect source content is rendered. This is 
 
 Options:
 
-- `HazeInputScale.None`: No scaling (default)
-- `HazeInputScale.Auto`: Automatic scaling with platform defaults
-- `HazeInputScale.Fixed(value)`: Fixed scaling factor (0.0 to 1.0)
+- `HazeInputScale.Default`: Let the visual effect choose its policy. Blur adapts to physical
+  workload; Glass remains unscaled.
+- `HazeInputScale.None`: Explicitly disable scaling.
+- `HazeInputScale.Auto`: Explicitly request the visual effect's automatic policy.
+- `HazeInputScale.Fixed(value)`: Use the exact fixed scale (greater than `0.0`, up to `1.0`).
 
 #### drawContentBehind
 
