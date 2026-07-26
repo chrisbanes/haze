@@ -66,6 +66,8 @@ private class AndroidMutableRuntimeShaderRenderEffect(
   override fun updateUniforms(
     uniforms: RuntimeShaderUniformProvider.() -> Unit,
   ): PlatformRenderEffect {
+    // RuntimeShader is live: every RenderEffect created from this shared shader observes these
+    // mutations. Callers retaining an earlier effect must replace or re-record that layer first.
     uniforms(provider)
     return createAndroidRuntimeShaderRenderEffect(shader, shaderNames, inputs)
   }

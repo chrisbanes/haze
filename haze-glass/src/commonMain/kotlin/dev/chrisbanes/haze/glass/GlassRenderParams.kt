@@ -339,10 +339,10 @@ internal data class GlassBlurEffectKey(
 )
 
 internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
-  val sampleSize = coordinates.sampleSize
+  val sampleSize = coordinates.sampleSize.roundToIntSize()
   val plan = SemanticBlurPlan.createForSigma(
-    sampleWidth = sampleSize.width.toInt().coerceAtLeast(1),
-    sampleHeight = sampleSize.height.toInt().coerceAtLeast(1),
+    sampleWidth = sampleSize.width.coerceAtLeast(1),
+    sampleHeight = sampleSize.height.coerceAtLeast(1),
     effectiveRadiusPx = blurRadiusPx,
     sigmaPx = blurSigmaPx,
     allowMultiscale = progressive == null,
