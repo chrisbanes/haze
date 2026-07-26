@@ -97,8 +97,12 @@ private val IdleInteractionState = GlassInteractionRenderState(Offset.Zero)
 private val IdleInteractionSignals = GlassInteractionSignals()
 
 /**
- * A [VisualEffect] implementation that renders a translucent refractive glass material.
- * refraction, depth layering, specular highlights, and soft tinted glass.
+ * A [VisualEffect] implementation that renders a translucent refractive glass material with
+ * refraction, depth layering, specular highlights, and a soft tint.
+ *
+ * Use one instance per `hazeEffect` node. A Glass effect retains node-specific layers and
+ * interaction state, so sharing an instance between nodes is unsupported. Use the
+ * `GlassVisualEffect(other)` copy constructor to duplicate configuration for another node.
  */
 @ExperimentalHazeApi
 @Stable

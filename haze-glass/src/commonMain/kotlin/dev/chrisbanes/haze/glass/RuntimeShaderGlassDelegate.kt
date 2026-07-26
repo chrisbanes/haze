@@ -651,6 +651,9 @@ internal class RuntimeShaderGlassDelegate(
       val params = preparedParams ?: return
       requireDrawableMaterialSize(params.coordinates.materialSize, ::clearRetainedOutput) ?: return
       if (!retainedOutputAvailable) return
+      // Rim and interaction lighting must draw above this node's content. With group alpha, their
+      // independent alpha is an approximation of full-group composition and can slightly
+      // double-lighten where they overlap the glass.
       preparedInteractionUniforms?.takeIf { it.hasLighting }?.let {
         val patch = preparedInteractionPatch ?: return@let
         layers.interactionLighting?.takeUnless { layer -> layer.isReleased }?.let { layer ->

@@ -21,6 +21,8 @@ public sealed interface GlassOptics {
    * The built-in Haze glass material.
    *
    * Its optical response adapts to the material's size, aspect ratio, and roundness.
+   * Its adaptive blur scaling is applied after the [Absolute] blur-radius cap, so its effective
+   * blur radius can exceed that cap.
    */
   public data object Adaptive : GlassOptics
 
