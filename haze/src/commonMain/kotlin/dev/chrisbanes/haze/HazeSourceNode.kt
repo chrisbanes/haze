@@ -223,6 +223,9 @@ public class HazeSourceNode(
         HazeLogger.d(TAG) { "Drawn layer to canvas: $contentLayer" }
       } else {
         HazeLogger.d(TAG) { "Not using graphics layer, so drawing content direct to canvas" }
+        // A previously recorded layer must not remain available to effects after this source
+        // becomes too small to capture. Effects may retain their own output separately.
+        area.releaseLayer()
         // If we're not using graphics layers, just call drawContent and return early
         drawContentSafely()
       }
