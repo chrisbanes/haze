@@ -24,6 +24,8 @@ internal object GlassTraceSection {
   const val InteractionLighting = "HazeGlass.interactionLighting"
   const val GroupAlpha = "HazeGlass.groupAlpha"
   const val Compose = "HazeGlass.compose"
+  const val FallbackDraw = "HazeGlass.fallbackDraw"
+  const val FallbackForeground = "HazeGlass.fallbackForeground"
 
   val all = listOf(
     Prepare,
@@ -45,5 +47,7 @@ internal object GlassTraceSection {
     InteractionLighting,
     GroupAlpha,
     Compose,
+    FallbackDraw,
+    FallbackForeground,
   )
 }

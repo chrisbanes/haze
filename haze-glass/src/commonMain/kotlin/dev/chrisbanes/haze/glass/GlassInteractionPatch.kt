@@ -107,6 +107,7 @@ internal fun resolveGlassInteractionPatch(
     ),
     uniforms = uniforms.copy(
       position = uniforms.position - origin,
+      // Keep spring overshoot inside the fixed patch's safely sampled refraction range.
       refractionMultiplier = uniforms.refractionMultiplier.coerceIn(
         minimumValue = 0f,
         maximumValue = topology.maxRefractionMultiplier.coerceAtLeast(0f),

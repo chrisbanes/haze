@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.trace
 import kotlin.math.max
 
 @OptIn(ExperimentalHazeApi::class)
@@ -152,40 +153,42 @@ internal class FallbackGlassDelegate(
     val tint = style.tint
     if (!tint.isSpecified) return
     if (style.alpha <= 0f) return
-    val shapePath = prepared.shapePath
+    trace(GlassTraceSection.FallbackDraw) {
+      val shapePath = prepared.shapePath
 
-    fun DrawScope.drawFallback(alphaMultiplier: Float) {
-      if (shapePath != null) {
-        clipPath(shapePath) {
+      fun DrawScope.drawFallback(alphaMultiplier: Float) {
+        if (shapePath != null) {
+          clipPath(shapePath) {
+            drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
+          }
+        } else {
           drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
         }
-      } else {
-        drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
+
+        // The edge falloff is part of the base material and remains behind child content.
+        val edgeBrush = if (alphaMultiplier >= 1f) {
+          prepared.edgeBrush
+        } else {
+          prepared.edgeDirectBrush
+        }
+        edgeBrush?.let {
+          drawFallbackEdge(
+            brush = it,
+            stroke = checkNotNull(prepared.edgeStroke),
+            shapePath = shapePath,
+          )
+        }
       }
 
-      // The edge falloff is part of the base material and remains behind child content.
-      val edgeBrush = if (alphaMultiplier >= 1f) {
-        prepared.edgeBrush
-      } else {
-        prepared.edgeDirectBrush
+      when {
+        style.alpha >= 1f -> drawFallback(alphaMultiplier = 1f)
+        groupAlpha.isAvailable -> recordAndDrawGlassGroupAlpha(
+          layer = checkNotNull(groupAlpha.layer),
+          alpha = style.alpha,
+          size = size.roundToIntSize(),
+        ) { drawFallback(alphaMultiplier = 1f) }
+        else -> drawFallback(alphaMultiplier = style.alpha)
       }
-      edgeBrush?.let {
-        drawFallbackEdge(
-          brush = it,
-          stroke = checkNotNull(prepared.edgeStroke),
-          shapePath = shapePath,
-        )
-      }
-    }
-
-    when {
-      style.alpha >= 1f -> drawFallback(alphaMultiplier = 1f)
-      groupAlpha.isAvailable -> recordAndDrawGlassGroupAlpha(
-        layer = checkNotNull(groupAlpha.layer),
-        alpha = style.alpha,
-        size = size.roundToIntSize(),
-      ) { drawFallback(alphaMultiplier = 1f) }
-      else -> drawFallback(alphaMultiplier = style.alpha)
     }
   }
 
@@ -196,30 +199,32 @@ internal class FallbackGlassDelegate(
     if (!tint.isSpecified) return
     if (style.alpha <= 0f) return
 
-    val shapePath = prepared.shapePath
+    trace(GlassTraceSection.FallbackForeground) {
+      val shapePath = prepared.shapePath
 
-    drawInteractionLighting(
-      interaction = prepared.interaction,
-      brush = prepared.interactionBrush,
-      shapePath = shapePath,
-    )
+      drawInteractionLighting(
+        interaction = prepared.interaction,
+        brush = prepared.interactionBrush,
+        shapePath = shapePath,
+      )
 
-    // Draw the fallback rim approximation above child content, matching the runtime path.
-    prepared.highlightBrush?.let { highlightBrush ->
-      if (shapePath != null) {
-        clipPath(shapePath) {
+      // Draw the fallback rim approximation above child content, matching the runtime path.
+      prepared.highlightBrush?.let { highlightBrush ->
+        if (shapePath != null) {
+          clipPath(shapePath) {
+            drawCircle(
+              brush = highlightBrush,
+              radius = prepared.highlightRadius,
+              center = style.lightPosition,
+            )
+          }
+        } else {
           drawCircle(
             brush = highlightBrush,
             radius = prepared.highlightRadius,
             center = style.lightPosition,
           )
         }
-      } else {
-        drawCircle(
-          brush = highlightBrush,
-          center = style.lightPosition,
-          radius = prepared.highlightRadius,
-        )
       }
     }
   }

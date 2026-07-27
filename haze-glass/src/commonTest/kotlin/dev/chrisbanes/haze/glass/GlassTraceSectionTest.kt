@@ -32,6 +32,8 @@ class GlassTraceSectionTest {
         "HazeGlass.interactionLighting",
         "HazeGlass.groupAlpha",
         "HazeGlass.compose",
+        "HazeGlass.fallbackDraw",
+        "HazeGlass.fallbackForeground",
       ),
     )
     assertThat(GlassTraceSection.all.toSet().size).isEqualTo(GlassTraceSection.all.size)
