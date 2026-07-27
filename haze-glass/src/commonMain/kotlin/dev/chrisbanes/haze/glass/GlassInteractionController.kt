@@ -431,11 +431,13 @@ internal class GlassInteractionController(
 
   private fun updatePositionForCurrentInputs(size: Size) {
     if (!size.isDrawable()) return
-    val target = rawPosition.takeIf { rawPressed }
-      ?: hoverPosition
-      ?: sourcePosition
-      ?: rawPosition
-      ?: size.center
+    val target = when {
+      rawPressed -> rawPosition ?: sourcePosition ?: size.center
+      sourcePresses.isNotEmpty() -> sourcePosition ?: rawPosition ?: size.center
+      rawHovered -> hoverPosition ?: size.center
+      sourceHovers.isNotEmpty() || sourceFocuses.isNotEmpty() -> size.center
+      else -> hoverPosition ?: rawPosition ?: size.center
+    }
     updatePosition(target.clampTo(size))
   }
 
