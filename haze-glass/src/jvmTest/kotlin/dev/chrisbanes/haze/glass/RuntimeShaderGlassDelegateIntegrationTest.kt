@@ -199,6 +199,36 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun interactionOpticalEffect_reusesStableLayerEffectAndUpdatesNewTargets() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect()
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    effect.setPressedForTest(Offset(60f, 60f))
+    waitForIdle()
+
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val layer = checkNotNull(delegate.layers.interactionOptical)
+    val stableEffect = checkNotNull(layer.renderEffect)
+
+    effect.setPressedForTest(Offset(60f, 60f))
+    waitForIdle()
+
+    assertThat(layer.renderEffect).isSameInstanceAs(stableEffect)
+
+    effect.ambientResponse = 0.6f
+    waitForIdle()
+
+    assertThat(layer.renderEffect).isNotSameInstanceAs(stableEffect)
+
+    delegate.layers.interactionOptical = null
+    effect.ambientResponse = 0.5f
+    waitForIdle()
+
+    assertThat(checkNotNull(delegate.layers.interactionOptical).renderEffect).isNotNull()
+  }
+
+  @Test
   fun largePanel_interactionPatchRetainsBaseLayersAcrossFrames() = runComposeUiTest {
     val effect = activeDetailEffect().apply {
       pressed {

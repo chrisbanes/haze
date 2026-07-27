@@ -119,21 +119,27 @@ internal object GlassShaders {
       vec3 refractedStraightColor =
         sampleChroma(refractCoord, chromaOffset, refractedCenter);
 
-      vec2 gradient = surfaceGradient(localCoord);
-      vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
-      vec3 contentNormal = computeContentNormal(refractCoord, refractedCenter);
-      vec3 normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
-      float fresnel;
-      if (fresnelExponent == 0.0) {
-        fresnel = 1.0;
-      } else {
-        float fresnelBase =
-          1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
-        fresnel = fresnelExponent == 3.0
-          ? fresnelBase * fresnelBase * fresnelBase
-          : pow(fresnelBase, fresnelExponent);
+      float ambient = 1.0;
+      if (ambientResponse > 0.0) {
+        float clampedAmbientResponse = clamp(ambientResponse, 0.0, 1.0);
+        if (fresnelExponent == 0.0) {
+          ambient = 1.0 + clampedAmbientResponse;
+        } else {
+          vec2 gradient = surfaceGradient(localCoord);
+          vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
+          vec3 normal = shapeNormal;
+          if (contentNormalBlend > 0.0) {
+            vec3 contentNormal = computeContentNormal(refractCoord, refractedCenter);
+            normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
+          }
+          float fresnelBase =
+            1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
+          float fresnel = fresnelExponent == 3.0
+            ? fresnelBase * fresnelBase * fresnelBase
+            : pow(fresnelBase, fresnelExponent);
+          ambient = mix(1.0, 1.0 + fresnel, clampedAmbientResponse);
+        }
       }
-      float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
       vec3 gradedColor = applyColorGrading(
         refractedStraightColor,
         ${if (interactionOptics) "localizedWhitePoint" else "whitePoint"}
