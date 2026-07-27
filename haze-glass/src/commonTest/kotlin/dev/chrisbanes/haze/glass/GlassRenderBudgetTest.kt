@@ -10,6 +10,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import kotlin.math.roundToInt
 import kotlin.test.Test
@@ -33,7 +34,30 @@ class GlassRenderBudgetTest {
 
     assertThat(
       plan.layers.filter { it.kind.name.startsWith("Interaction") }.map { it.size },
-    ).containsExactly(patchSize, patchSize, patchSize, patchSize, patchSize)
+    ).containsExactly(
+      *List(if (supportsFusedGlassRenderEffect) 1 else 5) { patchSize }.toTypedArray(),
+    )
+  }
+
+  @Test
+  fun fusedInteractionOptics_doesNotAddGroupCompositeToBudget() {
+    val outputSize = IntSize(1000, 600)
+    val result = resolveGlassGroupCompositeSize(
+      outputSize = outputSize,
+      alpha = 1f,
+      interactionLayersActive = true,
+      interactionTopology = GlassInteractionTopology(
+        hasOptics = true,
+        hasLighting = false,
+        maxRefractionMultiplier = 1.1f,
+      ),
+    )
+
+    if (supportsFusedGlassRenderEffect) {
+      assertThat(result).isNull()
+    } else {
+      assertThat(result).isEqualTo(outputSize)
+    }
   }
 
   @Test
@@ -169,7 +193,7 @@ class GlassRenderBudgetTest {
   }
 
   @Test
-  fun narrowBlurPrefilterIsland_selectsFirstSafeScaleAboveTopologyTransition() {
+  fun fusedPlan_doesNotBudgetRetainedBlurTopology() {
     val result = resolveGlassRenderBudget(1f) { scale ->
       val side = (2_191 * scale).roundToInt().coerceAtLeast(1)
       buildGlassBudgetLayerPlan(
@@ -185,10 +209,18 @@ class GlassRenderBudgetTest {
     }
     val runtime = result.assertRuntime()
 
-    assertThat(runtime.scaleFactor).isGreaterThanOrEqualTo(0.9993f)
-    assertThat(runtime.scaleFactor).isLessThanOrEqualTo(0.9994f)
-    assertThat(runtime.plan.layers.any { it.kind == GlassRetainedLayerKind.BlurPrefilter })
-      .isTrue()
+    if (supportsFusedGlassRenderEffect) {
+      assertThat(runtime.scaleFactor).isEqualTo(1f)
+      assertThat(runtime.plan.layers.map { it.kind }).containsExactly(
+        GlassRetainedLayerKind.Source,
+        GlassRetainedLayerKind.Optical,
+      )
+    } else {
+      assertThat(runtime.scaleFactor).isGreaterThanOrEqualTo(0.9993f)
+      assertThat(runtime.scaleFactor).isLessThanOrEqualTo(0.9994f)
+      assertThat(runtime.plan.layers.any { it.kind == GlassRetainedLayerKind.BlurPrefilter })
+        .isTrue()
+    }
     assertThat(runtime.plan.fitsGlassRenderBudget()).isTrue()
   }
 

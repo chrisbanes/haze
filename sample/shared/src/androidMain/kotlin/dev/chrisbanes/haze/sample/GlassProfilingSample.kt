@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
@@ -51,13 +51,6 @@ import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
 
 private val ProfilingSurfaceSize = DpSize(280.dp, 180.dp)
-private val ProfilingOptics = GlassOptics.Absolute(
-  refractionStrength = 0.7f,
-  refractionHeight = 0.25f,
-  refractionScale = 15f,
-  depth = 0.5f,
-  blurRadius = 14.dp,
-)
 
 @Composable
 internal fun GlassProfilingSampleContent(
@@ -127,23 +120,7 @@ private fun GlassProfilingScene(
   val effects = remember(scenario, interactionSource, coldAttachGeneration) {
     List(scenario.effectCount) {
       GlassVisualEffect().apply {
-        optics = ProfilingOptics.copy(
-          refractionStrength = if (scenario.refractionEnabled) {
-            ProfilingOptics.refractionStrength
-          } else {
-            0f
-          },
-          depth = if (scenario.blurEnabled) {
-            scenario.fixedDepth ?: ProfilingOptics.depth
-          } else {
-            0f
-          },
-          blurRadius = if (scenario.blurEnabled) ProfilingOptics.blurRadius else 0.dp,
-        )
-        if (!scenario.rimEnabled) {
-          specularIntensity = 0f
-        }
-        shape = RoundedCornerShape(32.dp)
+        applyProfilingScenarioBase(scenario)
         this.interactionSource = interactionSource
         interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
         pressed {
@@ -159,9 +136,9 @@ private fun GlassProfilingScene(
       }
     }
   }
-  val effect = effects.first()
+  val effectSurfaceSizePx = profilingEffectSize(surfaceSizePx, scenario.effectCount)
 
-  LaunchedEffect(state.phase, scenario, effect, interactionSource, surfaceSizePx) {
+  LaunchedEffect(state.phase, scenario, effects, interactionSource, surfaceSizePx) {
     if (state.phase == GlassProfilingPhase.Settling) {
       repeat(GLASS_PROFILING_SETTLING_FRAMES) {
         androidx.compose.runtime.withFrameNanos {}
@@ -183,9 +160,11 @@ private fun GlassProfilingScene(
           ) / 1_000_000
         delay((GLASS_PROFILING_DURATION_MILLIS - elapsedMillis).coerceAtLeast(0))
       }
-      GlassProfilingScenario.InteractionUpdate -> {
+      GlassProfilingScenario.InteractionUpdate,
+      GlassProfilingScenario.InteractionUpdate9,
+      -> {
         val press = PressInteraction.Press(
-          Offset(surfaceSizePx.width * 0.5f, surfaceSizePx.height * 0.5f),
+          Offset(effectSurfaceSizePx.width * 0.5f, effectSurfaceSizePx.height * 0.5f),
         )
         state.updateProgress(0.25f)
         interactionSource.emit(press)
@@ -203,11 +182,13 @@ private fun GlassProfilingScene(
           ),
         ) {
           state.updateProgress(value)
-          effect.applyProfilingFrame(
-            scenario = scenario,
-            frame = glassProfilingFrame(scenario, value),
-            surfaceSize = surfaceSizePx,
-          )
+          effects.forEach { currentEffect ->
+            currentEffect.applyProfilingFrame(
+              scenario = scenario,
+              frame = glassProfilingFrame(scenario, value),
+              surfaceSize = effectSurfaceSizePx,
+            )
+          }
         }
       }
     }
@@ -343,7 +324,19 @@ private fun GlassProfilingEffectGrid(
   }
 }
 
-private fun GlassVisualEffect.applyProfilingFrame(
+internal fun GlassVisualEffect.applyProfilingScenarioBase(scenario: GlassProfilingScenario) {
+  style = GlassDefaults.style
+  scenario.opticsOverride?.let { optics = it }
+  if (scenario.fullChroma) {
+    chromaticAberrationMode = ChromaticAberrationMode.Full
+    chromaticAberrationStrength = 0.3f
+  }
+  if (!scenario.rimEnabled) {
+    specularIntensity = 0f
+  }
+}
+
+internal fun GlassVisualEffect.applyProfilingFrame(
   scenario: GlassProfilingScenario,
   frame: GlassProfilingFrame,
   surfaceSize: Size,
@@ -358,7 +351,7 @@ private fun GlassVisualEffect.applyProfilingFrame(
     GlassProfilingScenario.DepthUpdate,
     GlassProfilingScenario.BlurUpdate,
     -> {
-      optics = ProfilingOptics.copy(
+      optics = (optics as GlassOptics.Absolute).copy(
         depth = frame.depth,
         blurRadius = frame.blurRadius,
       )
@@ -370,21 +363,36 @@ private fun GlassVisualEffect.applyProfilingFrame(
     GlassProfilingScenario.SteadyFull,
     GlassProfilingScenario.SteadyFull3,
     GlassProfilingScenario.SteadyFull9,
+    GlassProfilingScenario.SteadyProgressive,
+    GlassProfilingScenario.SteadyProgressive9,
+    GlassProfilingScenario.SteadyFullChroma,
+    GlassProfilingScenario.SteadyFullChroma9,
     GlassProfilingScenario.SteadyNoRim,
     GlassProfilingScenario.SteadyNoRim9,
     GlassProfilingScenario.SteadyNoRefraction,
     GlassProfilingScenario.SteadyNoRefraction9,
     GlassProfilingScenario.SteadyNoBlur,
     GlassProfilingScenario.SteadyNoBlur9,
-    GlassProfilingScenario.SteadyDepth1,
+    GlassProfilingScenario.SteadyDepth50,
     GlassProfilingScenario.SteadyScale60,
     GlassProfilingScenario.SteadyScale50,
     GlassProfilingScenario.SteadyScale50Nine,
     GlassProfilingScenario.SteadyNoGlass,
     GlassProfilingScenario.RetainedReuse,
     GlassProfilingScenario.InteractionUpdate,
+    GlassProfilingScenario.InteractionUpdate9,
     GlassProfilingScenario.SourceUpdate,
+    GlassProfilingScenario.SourceUpdate9,
     GlassProfilingScenario.SourceUpdateNoGlass,
     -> Unit
   }
+}
+
+private fun profilingEffectSize(surfaceSize: Size, effectCount: Int): Size {
+  val rowCount = if (effectCount <= 3) 1 else 3
+  val columnCount = effectCount / rowCount
+  return Size(
+    width = surfaceSize.width / columnCount,
+    height = surfaceSize.height / rowCount,
+  )
 }

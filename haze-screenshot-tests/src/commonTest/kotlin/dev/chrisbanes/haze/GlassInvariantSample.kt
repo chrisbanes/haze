@@ -515,6 +515,88 @@ internal fun ScreenshotUiTest.assertGlassBlurInvariant() {
   assertBlurReducesHighFrequencyEnergy(sharp, blurred, sharp.invariantGeometry().interiorBounds)
 }
 
+internal fun ScreenshotUiTest.assertGlassRefractionDetailPreservesSharpSourceInvariant(
+  withInteraction: Boolean = false,
+) {
+  val shape = RoundedCornerShape(0.dp)
+  val effect = invariantEffect(shape).apply {
+    optics = GlassOptics.Absolute(
+      refractionStrength = 1f,
+      depth = 1f,
+      blurRadius = 24.dp,
+    )
+    tint = Color.Transparent
+    specularIntensity = 0f
+    ambientResponse = 0f
+    edgeSoftness = 0.dp
+    if (withInteraction) {
+      pressed {
+        animate(toSpec = snap(), fromSpec = snap()) {
+          refractionMultiplier(1.8f)
+          whitePointDelta(0.2f)
+        }
+      }
+      interactionPositionAnimationSpec = snap()
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    }
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        inputScale = HazeInputScale.None,
+        shape = shape,
+        drawGridLines = false,
+        adversarialStripePeriodPx = 2,
+        effectTestTag = "glass".takeIf { withInteraction },
+      )
+    }
+  }
+  waitForIdle()
+  val idle = captureInvariantSnapshot()
+  val blurred = if (withInteraction) {
+    onNodeWithTag("glass").performTouchInput {
+      down(Offset(50f, InvariantSurfaceHeightPx / 2f))
+    }
+    waitForIdle()
+    captureInvariantSnapshot().also { interactive ->
+      assertThat(
+        idle.crop(idle.invariantGeometry().surfaceBounds)
+          .meanAbsoluteDifference(interactive.crop(interactive.invariantGeometry().surfaceBounds)),
+      ).isGreaterThan(1f / 255f)
+    }
+  } else {
+    idle
+  }
+  val geometry = blurred.invariantGeometry()
+  val verticalInset = 48
+  val edgeSearch = (geometry.surfaceBounds.left + 1)..(geometry.surfaceBounds.left + 120)
+  val edgePeak = edgeSearch.maxOf { x ->
+    blurred.highFrequencyEnergy(
+      IntRect(
+        left = x,
+        top = geometry.surfaceBounds.top + verticalInset,
+        right = x + 6,
+        bottom = geometry.surfaceBounds.bottom - verticalInset,
+      ),
+    )
+  }
+  val blurredInteriorEnergy = blurred.highFrequencyEnergy(geometry.interiorBounds)
+
+  effect.updateAbsoluteOptics { copy(blurRadius = 0.dp) }
+  waitForIdle()
+  val sharpInteriorEnergy =
+    captureInvariantSnapshot().highFrequencyEnergy(geometry.interiorBounds)
+
+  assertThat(blurredInteriorEnergy).isLessThan(sharpInteriorEnergy * 0.1f)
+  assertThat(edgePeak).isGreaterThan(sharpInteriorEnergy * 0.04f)
+
+  if (withInteraction) {
+    onNodeWithTag("glass").performTouchInput { up() }
+    waitForIdle()
+  }
+}
+
 internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
   data class Case(
     val name: String,

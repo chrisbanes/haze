@@ -18,6 +18,40 @@ import kotlin.test.Test
 class GlassShadersTest {
 
   @Test
+  fun fusedShader_preservesZeroExponentFresnelResponse() {
+    val shader = GlassShaders.buildFused()
+
+    assertThat(shader).contains("if (fresnelExponent == 0.0)")
+    assertThat(shader).contains("fresnel = 1.0;")
+  }
+
+  @Test
+  fun fusedShaders_reserveSharpSourceDetailCoverageWithoutSamplingDetail() {
+    val interactive = GlassShaders.buildFused(interactionOptics = true)
+    val baseline = GlassShaders.buildFused()
+
+    listOf(interactive, baseline).forEach { shader ->
+      assertThat(shader).contains("uniform float detailWidth;")
+      assertThat(shader).contains("opticalColor *= 1.0 - detailAlpha;")
+      assertThat(shader).doesNotContain(
+        "mix(opticalColor, sampleDepth(refractCoord), detailAlpha)",
+      )
+    }
+    assertThat(interactive).contains(
+      "abs(refractionScale * refractionStrength) * max(1.0, localizedRefractionMultiplier)",
+    )
+    assertThat(baseline).doesNotContain("max(1.0, localizedRefractionMultiplier)")
+  }
+
+  @Test
+  fun fusedShaderWithoutSharpDetail_omitsCoverageMath() {
+    val shader = GlassShaders.buildFused(sharpDetail = false)
+
+    assertThat(shader).doesNotContain("uniform float detailWidth;")
+    assertThat(shader).doesNotContain("detailAlpha")
+  }
+
+  @Test
   fun blurShaders_shareSeparablePremultipliedClampContract() {
     val kernel = SemanticBlurKernel.create(38.5f)
     val horizontal = GlassShaders.buildBlur(horizontal = true)
@@ -124,18 +158,13 @@ class GlassShadersTest {
 
   @Test
   fun opticalShaders_sampleBaseContentOnlyAcrossTheSoftEdge() {
-    listOf(
-      GlassShaders.buildOptical(),
-      GlassShaders.buildOptical(tiled = true),
-    ).forEach { shader ->
-      val main = shader.substringAfter("vec4 main(vec2 coord)")
-      val processedColor = main.indexOf("vec4 processedColor =")
-      val interiorReturn = main.indexOf("if (shapeMask >= 1.0)")
-      val baseSample = main.indexOf("vec4 baseSample =")
+    val main = GlassShaders.buildOptical().substringAfter("vec4 main(vec2 coord)")
+    val processedColor = main.indexOf("vec4 processedColor =")
+    val interiorReturn = main.indexOf("if (shapeMask >= 1.0)")
+    val baseSample = main.indexOf("vec4 baseSample =")
 
-      assertThat(processedColor).isLessThan(interiorReturn)
-      assertThat(interiorReturn).isLessThan(baseSample)
-    }
+    assertThat(processedColor).isLessThan(interiorReturn)
+    assertThat(interiorReturn).isLessThan(baseSample)
   }
 
   @Test
@@ -171,8 +200,9 @@ class GlassShadersTest {
     assertThat(shader).contains("uniform float sampleStep;")
     assertThat(shader).contains("localCoord - vec2(sampleStep, 0.0)")
     assertThat(shader).contains("localCoord + vec2(0.0, sampleStep)")
-    assertThat(shader).contains("coord - vec2(sampleStep, 0.0)")
-    assertThat(shader).contains("coord + vec2(0.0, sampleStep)")
+    assertThat(shader).contains("computeContentNormal(refractCoord, refractedCenterSample)")
+    assertThat(shader).contains("sampleDepth(coord + vec2(sampleStep, 0.0))")
+    assertThat(shader).contains("sampleDepth(coord + vec2(0.0, sampleStep))")
     assertThat(shader).contains("* (0.5 / max(sampleStep, 0.0001))")
     assertThat(shader).doesNotContain("float sampleStep = 2.0;")
   }
@@ -210,7 +240,7 @@ class GlassShadersTest {
 
     assertThat(shader).contains("vec3 unpremultiply(vec4 color)")
     assertThat(shader).contains("vec4 premultiply(vec3 color, float alpha)")
-    assertThat(shader).contains("unpremultiply(content.eval(")
+    assertThat(shader).contains("unpremultiply(sampleDepth(")
     assertThat(shader).contains("vec4 baseSample = content.eval(clampSample(coord));")
     assertThat(shader).contains(
       "vec4 refractedCenterSample = content.eval(clampSample(refractCoord));",
@@ -380,30 +410,6 @@ class GlassShadersTest {
   }
 
   @Test
-  fun tiledOpticalShader_samplesEachAtlasTileInLocalCoordinates() {
-    val shader = GlassShaders.buildOptical(tiled = true)
-
-    assertThat(shader).contains("uniform float2 tileSize;")
-    assertThat(shader).contains("uniform float atlasColumns;")
-    assertThat(shader).contains("uniform float4 tileGeometry0;")
-    assertThat(shader).contains("vec2 tileIndex = floor(coord / tileSize);")
-    assertThat(shader).contains("vec2 tileOrigin = tileIndex * tileSize;")
-    assertThat(shader).contains("vec2 sampleCoord = coord - tileOrigin;")
-    assertThat(shader).contains(
-      "vec4 sampleContent(vec2 coord, vec2 tileOrigin, vec2 sampleSize)",
-    )
-    assertThat(shader).contains(
-      "return content.eval(tileOrigin + clampSample(coord, sampleSize));",
-    )
-    assertThat(shader).contains(
-      "vec4 baseSample = sampleContent(sampleCoord, tileOrigin, sampleSize);",
-    )
-    assertThat(shader).contains(
-      "vec4 refractedCenterSample = sampleContent(refractCoord, tileOrigin, sampleSize);",
-    )
-  }
-
-  @Test
   fun refractionDetailShader_isSharpPremultipliedShapeMaskedEdgeDetail() {
     val shader = GlassShaders.buildRefractionDetail()
 
@@ -484,26 +490,6 @@ class GlassShadersTest {
       .isLessThan(shader.indexOf(preciseRejection))
     assertThat(shader.indexOf(preciseRejection))
       .isLessThan(shader.indexOf("vec4 sharpSample = content.eval(refractCoord);"))
-  }
-
-  @Test
-  fun tiledRefractionDetailShader_evaluatesEachAtlasTileInLocalCoordinates() {
-    val shader = GlassShaders.buildRefractionDetail(tiled = true)
-
-    assertThat(shader).contains("uniform float2 tileSize;")
-    assertThat(shader).contains("uniform float atlasColumns;")
-    assertThat(shader).contains("uniform float4 tileGeometry0;")
-    assertThat(shader).contains("vec2 tileIndex = floor(coord / tileSize);")
-    assertThat(shader).contains("vec2 tileOrigin = tileIndex * tileSize;")
-    assertThat(shader).contains("vec4 geometry = tileGeometry(")
-    assertThat(shader).contains("vec2 sampleSize = geometry.xy;")
-    assertThat(shader).contains("vec2 materialOrigin = geometry.zw;")
-    assertThat(shader).contains("vec2 sampleCoord = coord - tileOrigin;")
-    assertThat(shader).contains("vec2 localCoord = sampleCoord - materialOrigin;")
-    assertThat(shader).contains(
-      "vec2 refractCoord = clampSample(sampleCoord + displacement, sampleSize);",
-    )
-    assertThat(shader).contains("vec4 sharpSample = content.eval(tileOrigin + refractCoord);")
   }
 
   @Test

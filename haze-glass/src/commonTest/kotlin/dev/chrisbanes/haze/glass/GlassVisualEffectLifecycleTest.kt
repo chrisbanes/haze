@@ -20,13 +20,17 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.contains
+import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
@@ -106,11 +110,15 @@ class GlassVisualEffectLifecycleTest {
       runtimeShaderSupported = true,
     ) as GlassRenderBudgetDecision.Runtime
 
-    assertThat(decision.scaleFactor < 1f).isEqualTo(true)
-    assertThat(decision.plan.layers.last()).isEqualTo(
-      GlassRetainedLayer(GlassRetainedLayerKind.GroupComposite, IntSize(2_000, 2_000)),
-    )
-    assertThat(decision.plan.fitsGlassRenderBudget()).isEqualTo(true)
+    val layerKinds = decision.plan.layers.map { it.kind }
+    if (supportsFusedGlassRenderEffect) {
+      assertThat(decision.scaleFactor).isEqualTo(1f)
+      assertThat(layerKinds).doesNotContain(GlassRetainedLayerKind.GroupComposite)
+    } else {
+      assertThat(decision.scaleFactor).isLessThan(1f)
+      assertThat(layerKinds).contains(GlassRetainedLayerKind.GroupComposite)
+    }
+    assertThat(decision.plan.fitsGlassRenderBudget()).isTrue()
     effect.detach(context)
   }
 
@@ -195,11 +203,11 @@ class GlassVisualEffectLifecycleTest {
     assertThat(decision.plan).isEqualTo(prepared.plan)
     assertThat(prepared.plan.fitsGlassRenderBudget()).isEqualTo(true)
     assertThat(prepared.plan.layers.map { it.kind }).isEqualTo(
-      listOf(
-        GlassRetainedLayerKind.Source,
-        GlassRetainedLayerKind.Optical,
-        GlassRetainedLayerKind.Rim,
-      ),
+      buildList {
+        add(GlassRetainedLayerKind.Source)
+        add(GlassRetainedLayerKind.Optical)
+        add(GlassRetainedLayerKind.Rim)
+      },
     )
   }
 
@@ -517,7 +525,8 @@ class GlassVisualEffectLifecycleTest {
 
     assertThat(pressed.scaleFactor).isEqualTo(idle.scaleFactor)
     assertThat(pressedKinds).isEqualTo(idleKinds)
-    assertThat(pressedKinds.any { it.name.startsWith("Interaction") }).isEqualTo(true)
+    assertThat(pressedKinds.any { it.name.startsWith("Interaction") })
+      .isEqualTo(true)
     effect.detach(context)
   }
 

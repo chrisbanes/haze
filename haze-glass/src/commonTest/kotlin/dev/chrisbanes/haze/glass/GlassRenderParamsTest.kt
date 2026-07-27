@@ -18,6 +18,7 @@ import assertk.assertions.containsExactly
 import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import kotlin.math.abs
@@ -97,16 +98,23 @@ class GlassRenderParamsTest {
       refractionStrength = 0.5f,
       refractionScalePx = 20f,
     )
+    val topology = GlassInteractionTopology(true, true, 1.2f)
+    val expectedSize = calculateGlassInteractionPatchSize(
+      params = params,
+      radiusFraction = 30f / params.coordinates.materialSize.minDimension,
+      topology = topology,
+    )
     val patch = checkNotNull(
       resolveGlassInteractionPatch(
         params,
         GlassInteractionUniforms(Offset(0f, 0f), 30f, 1f, 1.2f, 0.04f),
-        GlassInteractionTopology(true, true, 1.2f),
+        topology,
       ),
     )
 
     assertThat(patch.bounds.left).isEqualTo(0)
     assertThat(patch.bounds.top).isEqualTo(0)
+    assertThat(patch.bounds.size).isEqualTo(expectedSize)
     assertThat(patch.uniforms.position).isEqualTo(Offset.Zero)
   }
 
@@ -129,6 +137,39 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun interactionPatch_isIndependentOfPrecomputedBlur() {
+    val coordinates = GlassCoordinates(
+      Size(1000f, 600f),
+      Offset.Zero,
+      Size(1000f, 600f),
+      1f,
+    )
+    val topology = GlassInteractionTopology(true, true, 1.2f)
+    val uniforms = GlassInteractionUniforms(Offset(500f, 300f), 60f, 1f, 1.1f, 0.04f)
+    val sharp = checkNotNull(
+      resolveGlassInteractionPatch(
+        testRenderParams(coordinates = coordinates),
+        uniforms,
+        topology,
+      ),
+    )
+    val blurred = checkNotNull(
+      resolveGlassInteractionPatch(
+        testRenderParams(
+          coordinates = coordinates,
+          depth = 1f,
+          blurRadiusPx = 38.5f,
+        ),
+        uniforms,
+        topology,
+      ),
+    )
+
+    assertThat(blurred.compositeBounds).isEqualTo(sharp.compositeBounds)
+    assertThat(blurred.bounds).isEqualTo(sharp.bounds)
+  }
+
+  @Test
   fun interactionPatchSize_coversFractionallyPositionedRuntimePatch() {
     val params = testRenderParams(
       coordinates = GlassCoordinates(Size(1000f, 600f), Offset.Zero, Size(1000f, 600f), 1f),
@@ -145,8 +186,8 @@ class GlassRenderParamsTest {
       ),
     )
 
-    assertThat(reserved.width >= runtime.bounds.width).isEqualTo(true)
-    assertThat(reserved.height >= runtime.bounds.height).isEqualTo(true)
+    assertThat(reserved.width).isGreaterThanOrEqualTo(runtime.bounds.width)
+    assertThat(reserved.height).isGreaterThanOrEqualTo(runtime.bounds.height)
   }
 
   @Test
@@ -489,7 +530,20 @@ class GlassRenderParamsTest {
       assertThat(resolved.progressive).isEqualTo(progressive)
       assertThat(resolved.toneGain).isEqualTo(1f)
       assertThat(resolved.neutralLiftWeight).isEqualTo(0f)
+      assertThat(resolved.refractionDetailIntensity).isGreaterThan(0f)
     }
+  }
+
+  @Test
+  fun adaptiveOptics_omitOptionalSharpRefractionDetail() {
+    val resolved = resolveGlassOptics(
+      optics = GlassOptics.Adaptive,
+      materialSizePx = Size(240f, 120f),
+      density = Density(2f),
+      cornerRadiiPx = CornerRadii(24f, 24f, 24f, 24f),
+    )
+
+    assertThat(resolved.refractionDetailIntensity).isEqualTo(0f)
   }
 
   @Test
