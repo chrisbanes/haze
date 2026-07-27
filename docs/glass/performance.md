@@ -7,8 +7,8 @@ For API and usage guidance, see the [Glass overview](../effects/glass.md).
 
 !!! abstract "At a glance"
     On a Pixel 6 at 60 Hz, a focused scene containing nine Glass effects recorded P90 CPU frame
-    durations of **9.1–9.5 ms** using the default Glass style. At P90, frames finished
-    **2.2–2.5 ms before** their deadline.
+    durations of **9.16 ms and 9.24 ms** across two passes using the default Glass style. In the
+    later confirmation pass, frames finished **2.74 ms before** their deadline at P90.
 
     This is a whole-frame measurement, including UI-thread and RenderThread work. It is not the
     isolated GPU cost added by Glass.
@@ -18,18 +18,19 @@ For API and usage guidance, see the [Glass overview](../effects/glass.md).
 | Scenario | P50 | P90 | P95 | P99 | P90 deadline margin |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | One Glass effect (`steadyFull`) | 4.5 ms | 6.9 ms | 7.6 ms | 8.6 ms | -6.2 ms |
-| Nine Glass effects (`steadyFull9`) | 7.9–8.2 ms | 9.1–9.5 ms | 9.7–10.0 ms | 11.1–11.4 ms | -2.5 to -2.2 ms |
+| Nine Glass effects (`steadyFull9`) | 7.88–7.93 ms | 9.16–9.24 ms | 9.66 ms | 10.81–10.85 ms | -2.74 ms |
 
 A negative deadline margin means the frame completed before its deadline. A positive value means
-it missed the deadline by that amount. The P99 deadline margin ranged from -0.9 to -0.3 ms for the
-nine-effect runs and was -4.6 ms for the one-effect run, so every reported percentile remained
-before the deadline.
+it missed the deadline by that amount. The later nine-effect confirmation pass recorded a
+-1.01 ms P99 deadline margin, while the one-effect run recorded -4.6 ms, so every reported
+percentile remained before the deadline.
 
 The one-effect scenario is a whole-frame control, not the isolated or incremental cost of one Glass
-effect. The nine-effect values span two clean benchmark passes; the one-effect values come from one
-clean pass. These results describe two specific scenes on one device. Treat them as a guide, not a
-performance guarantee or CI threshold. Applications should measure their own layouts and
-interactions.
+effect. The nine-effect CPU-duration values span two clean benchmark passes; its deadline margins
+come from the later confirmation pass. The one-effect values come from one clean pass. Measurements
+were collected on 2026-07-27. These results describe two specific scenes on one device. Treat them
+as a guide, not a performance guarantee or CI threshold. Applications should measure their own
+layouts and interactions.
 
 ## What was tested
 
