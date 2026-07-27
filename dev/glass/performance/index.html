@@ -852,9 +852,9 @@ of Glass surfaces, and how often their source content or optical properties chan
 <p>For API and usage guidance, see the <a href="../../effects/glass/">Glass overview</a>.</p>
 <div class="admonition abstract">
 <p class="admonition-title">At a glance</p>
-<p>On a Pixel 6 at 60 Hz, a focused scene containing nine compatible Glass effects recorded a P90
-CPU frame duration of <strong>13.23–13.85 ms</strong> across three confirmation runs. At P90, frames finished
-between <strong>0.65 ms before</strong> and <strong>0.03 ms after</strong> their deadline.</p>
+<p>On a Pixel 6 at 60 Hz, a focused scene containing nine Glass effects recorded P90 CPU frame
+durations of <strong>9.16 ms and 9.24 ms</strong> across two passes using the default Glass style. In the
+later confirmation pass, frames finished <strong>2.74 ms before</strong> their deadline at P90.</p>
 <p>This is a whole-frame measurement, including UI-thread and RenderThread work. It is not the
 isolated GPU cost added by Glass.</p>
 </div>
@@ -862,43 +862,52 @@ isolated GPU cost added by Glass.</p>
 <table>
 <thead>
 <tr>
-<th>Frame metric</th>
-<th style="text-align: right;">Observed range</th>
+<th>Scenario</th>
+<th style="text-align: right;">P50</th>
+<th style="text-align: right;">P90</th>
+<th style="text-align: right;">P95</th>
+<th style="text-align: right;">P99</th>
+<th style="text-align: right;">P90 deadline margin</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Typical frame (P50)</td>
-<td style="text-align: right;">11.52–11.78 ms</td>
+<td>One Glass effect (<code>steadyFull</code>)</td>
+<td style="text-align: right;">4.5 ms</td>
+<td style="text-align: right;">6.9 ms</td>
+<td style="text-align: right;">7.6 ms</td>
+<td style="text-align: right;">8.6 ms</td>
+<td style="text-align: right;">-6.2 ms</td>
 </tr>
 <tr>
-<td>Slower frame (P90)</td>
-<td style="text-align: right;">13.23–13.85 ms</td>
-</tr>
-<tr>
-<td>Slow-tail frame (P95)</td>
-<td style="text-align: right;">13.82–14.58 ms</td>
-</tr>
-<tr>
-<td>Slowest tail (P99)</td>
-<td style="text-align: right;">15.07–15.74 ms</td>
-</tr>
-<tr>
-<td>Deadline margin (P90)</td>
-<td style="text-align: right;">-0.65 to +0.03 ms</td>
+<td>Nine Glass effects (<code>steadyFull9</code>)</td>
+<td style="text-align: right;">7.88–7.93 ms</td>
+<td style="text-align: right;">9.16–9.24 ms</td>
+<td style="text-align: right;">9.66 ms</td>
+<td style="text-align: right;">10.81–10.85 ms</td>
+<td style="text-align: right;">-2.74 ms</td>
 </tr>
 </tbody>
 </table>
 <p>A negative deadline margin means the frame completed before its deadline. A positive value means
-it missed the deadline by that amount. The P99 deadline margin was 1.07–1.70 ms, so the slowest
-frames still included occasional deadline misses.</p>
-<p>These results describe one specific scene and device. Treat them as a guide, not a performance
-guarantee or CI threshold. Applications should measure their own layouts and interactions.</p>
+it missed the deadline by that amount. The later nine-effect confirmation pass recorded a
+-1.01 ms P99 deadline margin, while the one-effect run recorded -4.6 ms, so every reported
+percentile remained before the deadline.</p>
+<p>The one-effect scenario is a whole-frame control, not the isolated or incremental cost of one Glass
+effect. The nine-effect CPU-duration values span two clean benchmark passes; its deadline margins
+come from the later confirmation pass. The one-effect values come from one clean pass. Measurements
+were collected on 2026-07-27. These results describe two specific scenes on one device. Treat them
+as a guide, not a performance guarantee or CI threshold. Applications should measure their own
+layouts and interactions.</p>
 <h2 id="what-was-tested">What was tested<a class="headerlink" href="#what-was-tested" title="Permanent link">¶</a></h2>
-<p>The <code>steadyFull9</code> benchmark renders nine compatible Glass effects for three seconds. It uses:</p>
+<p>The <code>steadyFull</code> benchmark renders one compatible Glass effect, while <code>steadyFull9</code> renders nine.
+Each scenario runs for three seconds and uses:</p>
 <ul>
 <li>A Pixel 6 running API 37 at 1080 × 2400 and a fixed 60 Hz refresh rate.</li>
+<li>Android fixed-performance mode, which stabilizes CPU and GPU clocks for development benchmarks.</li>
 <li>The modern Android <code>RuntimeShader</code> renderer available on API 33 and newer.</li>
+<li>The unmodified <code>GlassDefaults.style</code>, including adaptive optics, default 16 dp corners, simple
+  chromatic aberration, and default lighting, color, and rendering values.</li>
 <li>A release-like, non-debuggable build with <code>CompilationMode.Full</code>.</li>
 <li>Warm startup and eight measured iterations per run.</li>
 <li>Navigation, initial composition, and settling outside the measured block.</li>
@@ -909,25 +918,41 @@ measured.</p>
 <ul>
 <li><strong>Surface area:</strong> Larger Glass surfaces process more pixels.</li>
 <li><strong>Number of effects:</strong> More independent surfaces can add rendering and submission work.</li>
-<li><strong>Compatible siblings:</strong> Effects with compatible optics can share captured source, blur, and
-  tiled optical work.</li>
+<li><strong>Effect count:</strong> Android RuntimeShader effects use the same single-output renderer for one or
+  many surfaces; sibling attachment does not switch topology.</li>
 <li><strong>Changing content:</strong> Moving or updating the captured source invalidates more retained work than
   redrawing an unchanged effect.</li>
-<li><strong>Dynamic optics:</strong> Progressive blur, incompatible styles, and interaction-driven optics may use
-  dedicated rendering paths instead of shared work.</li>
+<li><strong>Dynamic optics:</strong> Progressive blur and Full chromatic aberration increase sampling within the
+  output effect graph. Configured interaction optics use that same stable renderer, while
+  interaction lighting uses a localized foreground patch to preserve content ordering. Live press,
+  hover, and focus values update retained shader providers and re-record the output without
+  allocating retained optical or detail layers.</li>
 <li><strong>Device and display:</strong> GPU capability, resolution, refresh rate, and thermal state all affect
   the result.</li>
 </ul>
 <h2 id="reproducing-the-measurement">Reproducing the measurement<a class="headerlink" href="#reproducing-the-measurement" title="Permanent link">¶</a></h2>
 <p>Run the benchmark locally on an unlocked physical device at API 33 or newer. Pin the display to one
 supported refresh rate, let the device cool, and run:</p>
-<div class="highlight"><pre><span></span><code>./gradlew<span class="w"> </span>:internal:benchmark:connectedCheck<span class="w"> </span><span class="se">\</span>
+<div class="highlight"><pre><span></span><code>adb<span class="w"> </span>shell<span class="w"> </span>cmd<span class="w"> </span>power<span class="w"> </span>set-fixed-performance-mode-enabled<span class="w"> </span><span class="nb">true</span>
+./gradlew<span class="w"> </span>:internal:benchmark:connectedCheck<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-Pandroid.testInstrumentationRunnerArguments.class<span class="o">=</span>dev.chrisbanes.haze.GlassProfilingBenchmark#steadyFull9
+adb<span class="w"> </span>shell<span class="w"> </span>cmd<span class="w"> </span>power<span class="w"> </span>set-fixed-performance-mode-enabled<span class="w"> </span><span class="nb">false</span>
 </code></pre></div>
+<p>Replace <code>steadyFull9</code> with <code>steadyFull</code> to reproduce the one-effect control.
+Always disable fixed-performance mode after profiling, including after a failed run.</p>
 <p>Results and Perfetto traces are copied to
 <code>internal/benchmark/build/outputs/connected_android_test_additional_output/</code>. Run the scenario
 without full composition tracing when collecting comparable metrics; opt in to full tracing only
-for diagnostic attribution. The complete local runbook is in <code>internal/benchmark/README.md</code>.</p></div>
+for diagnostic attribution. The complete local runbook is in <code>internal/benchmark/README.md</code>.</p>
+<p>A representative trace for the nine-effect results contains exactly nine effect-layer traversals
+and two Vulkan submissions per frame. <code>HazeGlass.prepare</code> and <code>HazeGlass.runtimeDraw</code> average less
+than 0.08 ms per effect; the remaining cost is primarily RenderThread drawing and Vulkan
+submission.</p>
+<p>The nine-effect interaction-update scenario recorded a 10.9 ms CPU P90 and a -1.2 ms
+frame-overrun P90. Its live lighting and optics updates therefore remained inside the frame
+deadline without changing retained-layer topology. Interaction-only updates retain the shader
+providers, source capture, and layer allocation, but re-record the fused output; separate local
+overlays measured slower because they restored layer replay and submission cost.</p></div>
 
 
 
