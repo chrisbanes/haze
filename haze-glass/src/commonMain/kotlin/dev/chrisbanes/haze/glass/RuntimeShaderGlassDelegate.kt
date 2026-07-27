@@ -21,6 +21,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.PlatformRenderEffect
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffectContext
@@ -1562,13 +1563,7 @@ internal class RuntimeShaderGlassDelegate(
         val optical = shader.updateUniforms {
           setOpticalUniforms(key.optical)
           key.detail?.let(::setFusedDetailUniforms)
-          key.interaction?.let {
-            setFusedInteractionUniforms(
-              uniforms = it,
-              interactionOptics = nextInputKey.interactionOptics,
-              interactionLighting = false,
-            )
-          }
+          key.interaction?.let(::setFusedInteractionOpticalUniforms)
         }
         val detailKey = key.detail ?: return@let optical
         val detailShader = refractionDetailShader ?: traceCreateRenderEffect {
@@ -1763,7 +1758,8 @@ internal data class GlassRenderEffects(
   val rim: PlatformRenderEffect?,
 )
 
-private data class GlassFusedEffectKey(
+@Poko
+private class GlassFusedEffectKey(
   val blur: GlassBlurEffectKey?,
   val depth: Float,
   val optical: GlassOpticalEffectKey,
@@ -1771,7 +1767,8 @@ private data class GlassFusedEffectKey(
   val interaction: GlassInteractionUniforms?,
 )
 
-private data class GlassDepthInputKey(
+@Poko
+private class GlassDepthInputKey(
   val blur: GlassBlurEffectKey?,
   val depth: Float,
   val interactionOptics: Boolean = false,
@@ -2085,20 +2082,13 @@ internal fun RuntimeShaderUniformProvider.setInteractionOpticalUniforms(
   setFloatUniform("interactionWhitePointDelta", uniforms.whitePointDelta)
 }
 
-private fun RuntimeShaderUniformProvider.setFusedInteractionUniforms(
+private fun RuntimeShaderUniformProvider.setFusedInteractionOpticalUniforms(
   uniforms: GlassInteractionUniforms,
-  interactionOptics: Boolean,
-  interactionLighting: Boolean,
 ) {
   setInteractionPositionUniforms(uniforms)
-  if (interactionOptics) {
-    setFloatUniform("interactionOpticalActive", if (uniforms.hasOptics) 1f else 0f)
-    setFloatUniform("interactionRefractionMultiplier", uniforms.refractionMultiplier)
-    setFloatUniform("interactionWhitePointDelta", uniforms.whitePointDelta)
-  }
-  if (interactionLighting) {
-    setFloatUniform("interactionLightingIntensity", uniforms.lightingIntensity)
-  }
+  setFloatUniform("interactionOpticalActive", if (uniforms.hasOptics) 1f else 0f)
+  setFloatUniform("interactionRefractionMultiplier", uniforms.refractionMultiplier)
+  setFloatUniform("interactionWhitePointDelta", uniforms.whitePointDelta)
 }
 
 internal fun RuntimeShaderUniformProvider.setInteractionDetailUniforms(

@@ -11,6 +11,7 @@ plugins {
   id("org.jetbrains.dokka")
   // Publishing is disabled until API and visual quality are finalized.
   id("dev.chrisbanes.metalava")
+  id("dev.drewhamilton.poko")
 }
 
 kotlin {
@@ -60,4 +61,8 @@ kotlin {
 
 dependencies {
   add("androidHostTestImplementation", libs.androidx.activity)
+}
+
+poko {
+  pokoAnnotation.set("dev/chrisbanes/haze/Poko")
 }

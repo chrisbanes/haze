@@ -20,13 +20,17 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.contains
+import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThan
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
@@ -106,11 +110,15 @@ class GlassVisualEffectLifecycleTest {
       runtimeShaderSupported = true,
     ) as GlassRenderBudgetDecision.Runtime
 
-    assertThat(decision.scaleFactor < 1f).isEqualTo(!supportsFusedGlassRenderEffect)
-    assertThat(
-      decision.plan.layers.any { it.kind == GlassRetainedLayerKind.GroupComposite },
-    ).isEqualTo(!supportsFusedGlassRenderEffect)
-    assertThat(decision.plan.fitsGlassRenderBudget()).isEqualTo(true)
+    val layerKinds = decision.plan.layers.map { it.kind }
+    if (supportsFusedGlassRenderEffect) {
+      assertThat(decision.scaleFactor).isEqualTo(1f)
+      assertThat(layerKinds).doesNotContain(GlassRetainedLayerKind.GroupComposite)
+    } else {
+      assertThat(decision.scaleFactor).isLessThan(1f)
+      assertThat(layerKinds).contains(GlassRetainedLayerKind.GroupComposite)
+    }
+    assertThat(decision.plan.fitsGlassRenderBudget()).isTrue()
     effect.detach(context)
   }
 
