@@ -3,11 +3,9 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
@@ -140,11 +138,10 @@ internal fun DrawScope.createScaledContentLayer(
     }
 
     scale(scale = scaleFactor, pivot = Offset.Zero) {
-      translate(layerOffset - context.position) {
+      val effectPosition = context.position
+      translate(layerOffset) {
         for (area in context.areas) {
-          val position = Snapshot.withoutReadObservation { context.positionOf(area) }
-          val resolvedPosition = if (position.isSpecified) position else Offset.Zero
-          translate(resolvedPosition) {
+          translate(context.glassSourcePositionOf(area, effectPosition)) {
             val areaLayer = area.contentLayer
               ?.takeUnless { it.isReleased }
               ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }

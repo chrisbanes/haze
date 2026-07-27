@@ -8,11 +8,14 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -25,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
@@ -346,6 +350,62 @@ class GlassScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun creditCard_movedCaptureMatchesFreshReconstruction() = runScreenshotTest {
+    // Android <33 uses the fallback delegate, which intentionally has no semantic refraction.
+    if (!isRuntimeShaderRenderEffectSupported()) return@runScreenshotTest
+
+    val shape = RoundedCornerShape(0.dp)
+    var effectOffset by mutableStateOf(IntOffset.Zero)
+    var effectGeneration by mutableIntStateOf(0)
+
+    setContent {
+      ScreenshotTheme {
+        key(effectGeneration) {
+          val visualEffect = remember {
+            GlassVisualEffect().apply {
+              tint = Color.Transparent
+              optics = GlassOptics.Absolute(
+                refractionStrength = 0.6f,
+                depth = 0.5f,
+                blurRadius = 0.dp,
+              )
+              specularIntensity = 0f
+              ambientResponse = 0f
+              edgeSoftness = 0.dp
+              this.shape = shape
+            }
+          }
+          GlassBlurRadiusSample(
+            visualEffect = visualEffect,
+            shape = shape,
+            effectOffset = effectOffset,
+            cardWidth = 320.dp,
+            cardHeight = 240.dp,
+          )
+        }
+      }
+    }
+
+    val initialPixels = captureRootPixels().snapshot()
+    effectOffset = IntOffset(140, 80)
+    waitForIdle()
+    val movedPixels = captureRootPixels().snapshot()
+
+    effectGeneration++
+    waitForIdle()
+    val reconstructedPixels = captureRootPixels().snapshot()
+
+    assertThat(
+      initialPixels.changedPixelRatio(movedPixels),
+      "moving the effect changed captured pixels",
+    ).isGreaterThan(0.01f)
+    assertThat(
+      movedPixels.meanAbsoluteDifference(reconstructedPixels),
+      "moved retained capture matches fresh reconstruction",
+    ).isLessThanOrEqualTo(0.001f)
+  }
+
+  @Test
   fun creditCard_conditional_enabled() = runScreenshotTest {
     val visualEffect = GlassVisualEffect().apply {
       tint = DefaultTint
@@ -493,6 +553,7 @@ internal fun GlassBlurRadiusSample(
   clipShape: Boolean = true,
   cardWidth: Dp = 520.dp,
   cardHeight: Dp = 320.dp,
+  effectOffset: IntOffset = IntOffset.Zero,
   patternScale: Float = 1f,
 ) {
   val hazeState = remember { HazeState() }
@@ -535,6 +596,7 @@ internal fun GlassBlurRadiusSample(
     Box(
       modifier = Modifier
         .align(Alignment.Center)
+        .offset { effectOffset }
         .size(width = cardWidth, height = cardHeight)
         .then(if (clipShape) Modifier.clip(shape) else Modifier)
         .hazeEffect(state = hazeState) {
