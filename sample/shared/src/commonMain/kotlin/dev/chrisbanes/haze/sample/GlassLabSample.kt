@@ -8,33 +8,28 @@ package dev.chrisbanes.haze.sample
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SingleChoiceSegmentedButtonRowScope
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,11 +38,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -204,33 +197,29 @@ internal fun LabControls(
       .padding(16.dp),
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
-    Text("Material", style = MaterialTheme.typography.titleMedium)
-    LabPresetSelector(state = state, onStateChanged = onStateChanged)
-    Text("Backdrop", style = MaterialTheme.typography.titleMedium)
-    LabBackdropSelector(state = state, onStateChanged = onStateChanged)
-    Text("Interaction", style = MaterialTheme.typography.titleMedium)
-    LabSegmentedButtonRow(
-      selectedIndex = state.interaction.ordinal,
-      itemCount = GlassLabInteractionMode.entries.size,
-    ) { buttonWidth ->
-      GlassLabInteractionMode.entries.forEachIndexed { index, interaction ->
-        SegmentedButton(
-          selected = state.interaction == interaction,
-          onClick = { onStateChanged(state.copy(interaction = interaction)) },
-          shape = SegmentedButtonDefaults.itemShape(index, GlassLabInteractionMode.entries.size),
-          modifier = Modifier.width(buttonWidth),
-          icon = {},
-          contentPadding = PaddingValues(horizontal = 8.dp),
-        ) {
-          Text(interaction.name, maxLines = 1)
-        }
-      }
-    }
-    TextButton(onClick = { onStateChanged(state.copy(advancedExpanded = !state.advancedExpanded)) }) {
-      Text("Advanced")
-    }
     AnimatedVisibility(visible = !recordingMode) {
       Text("Choose a material preset", style = MaterialTheme.typography.bodyMedium)
+    }
+    LabChipGroup(
+      title = "Material",
+      options = SelectableGlassLabPresets,
+      selected = state.preset,
+      onSelected = { onStateChanged(state.selectPreset(it)) },
+    )
+    LabChipGroup(
+      title = "Backdrop",
+      options = GlassGalleryBackdropId.entries,
+      selected = state.backdrop,
+      onSelected = { onStateChanged(state.copy(backdrop = it)) },
+    )
+    LabChipGroup(
+      title = "Interaction",
+      options = GlassLabInteractionMode.entries,
+      selected = state.interaction,
+      onSelected = { onStateChanged(state.copy(interaction = it)) },
+    )
+    TextButton(onClick = { onStateChanged(state.copy(advancedExpanded = !state.advancedExpanded)) }) {
+      Text("Advanced")
     }
     AnimatedVisibility(visible = state.advancedExpanded) {
       LabAdvancedControls(state = state, onStateChanged = onStateChanged)
@@ -238,84 +227,31 @@ internal fun LabControls(
   }
 }
 
+/**
+ * A labelled group of single-choice chips. Chips size themselves to their label and wrap onto as
+ * many lines as they need, so the group always fits the available width.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LabPresetSelector(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
-  LabSegmentedButtonRow(
-    selectedIndex = SelectableGlassLabPresets.indexOf(state.preset),
-    itemCount = SelectableGlassLabPresets.size,
-  ) { buttonWidth ->
-    SelectableGlassLabPresets.forEachIndexed { index, preset ->
-      SegmentedButton(
-        selected = state.preset == preset,
-        onClick = { onStateChanged(state.selectPreset(preset)) },
-        shape = SegmentedButtonDefaults.itemShape(index, SelectableGlassLabPresets.size),
-        modifier = Modifier.width(buttonWidth),
-        icon = {},
-        contentPadding = PaddingValues(horizontal = 8.dp),
-      ) { Text(preset.name, maxLines = 1) }
-    }
-  }
-}
-
-@Composable
-private fun LabBackdropSelector(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
-  LabSegmentedButtonRow(
-    selectedIndex = state.backdrop.ordinal,
-    itemCount = GlassGalleryBackdropId.entries.size,
-  ) { buttonWidth ->
-    GlassGalleryBackdropId.entries.forEachIndexed { index, backdrop ->
-      SegmentedButton(
-        selected = state.backdrop == backdrop,
-        onClick = { onStateChanged(state.copy(backdrop = backdrop)) },
-        shape = SegmentedButtonDefaults.itemShape(index, GlassGalleryBackdropId.entries.size),
-        modifier = Modifier.width(buttonWidth),
-        icon = {},
-        contentPadding = PaddingValues(horizontal = 8.dp),
-      ) { Text(backdrop.name, maxLines = 1) }
-    }
-  }
-}
-
-private val LabSegmentedButtonMinWidth = 160.dp
-
-internal fun labSegmentedButtonWidth(availableWidth: Dp, itemCount: Int): Dp {
-  require(itemCount > 0)
-  val visibleItemCount =
-    (availableWidth.value / LabSegmentedButtonMinWidth.value).toInt().coerceIn(1, itemCount)
-  return availableWidth / visibleItemCount.toFloat()
-}
-
-@Composable
-private fun LabSegmentedButtonRow(
-  selectedIndex: Int,
-  itemCount: Int,
-  content: @Composable SingleChoiceSegmentedButtonRowScope.(buttonWidth: Dp) -> Unit,
+private fun <T : Enum<T>> LabChipGroup(
+  title: String,
+  options: List<T>,
+  selected: T,
+  onSelected: (T) -> Unit,
 ) {
-  BoxWithConstraints(Modifier.fillMaxWidth()) {
-    val buttonWidth = labSegmentedButtonWidth(maxWidth, itemCount)
-    val rowWidth = buttonWidth * itemCount.toFloat()
-    val scrollState = rememberScrollState()
-    val buttonWidthPx = with(LocalDensity.current) { buttonWidth.roundToPx() }
-    val viewportWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
-
-    LaunchedEffect(selectedIndex, scrollState.maxValue) {
-      if (selectedIndex >= 0) {
-        val selectedStart = selectedIndex * buttonWidthPx
-        val selectedEnd = selectedStart + buttonWidthPx
-        scrollState.scrollTo(
-          when {
-            selectedStart < scrollState.value -> selectedStart
-            selectedEnd > scrollState.value + viewportWidthPx -> selectedEnd - viewportWidthPx
-            else -> scrollState.value
-          },
+  Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Text(title, style = MaterialTheme.typography.titleMedium)
+    FlowRow(
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      for (option in options) {
+        FilterChip(
+          selected = option == selected,
+          onClick = { onSelected(option) },
+          label = { Text(option.name, maxLines = 1) },
         )
       }
-    }
-
-    Box(Modifier.fillMaxWidth().horizontalScroll(scrollState)) {
-      SingleChoiceSegmentedButtonRow(
-        modifier = Modifier.width(rowWidth),
-      ) { content(buttonWidth) }
     }
   }
 }

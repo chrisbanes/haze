@@ -34,22 +34,19 @@ import kotlin.test.Test
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassLabSampleTest : ContextTest() {
   @Test
-  fun narrowLabRevealsSelectedTrailingPreset() = runComposeUiTest {
-    var state by mutableStateOf(GlassLabState())
+  fun narrowLabShowsEveryPresetWithoutHorizontalScrolling() = runComposeUiTest {
     setContent {
-      GlassLabSampleContent(
-        state = state,
+      LabControls(
+        state = GlassLabState(),
         recordingMode = false,
-        onStateChanged = { state = it },
-        onRecordingModeChanged = {},
-        onBack = {},
-        modifier = Modifier.width(320.dp),
+        onStateChanged = {},
+        modifier = Modifier.width(320.dp).fillMaxSize(),
       )
     }
 
-    state = state.selectPreset(GlassLabPresetId.Prism)
-
-    onNode(hasText("Prism") and hasClickAction()).assertIsDisplayed()
+    SelectableGlassLabPresets.forEach { preset ->
+      onNode(hasText(preset.name) and hasClickAction()).performScrollTo().assertIsDisplayed()
+    }
   }
 
   @Test
@@ -84,13 +81,6 @@ class GlassLabSampleTest : ContextTest() {
           textLayout.multiParagraph.intrinsics.maxIntrinsicWidth,
       ).isTrue()
     }
-  }
-
-  @Test
-  fun narrowLabSizesSelectorsToWholeVisibleItems() {
-    assertThat(labSegmentedButtonWidth(288.dp, itemCount = 5)).isEqualTo(288.dp)
-    assertThat(labSegmentedButtonWidth(348.dp, itemCount = 5)).isEqualTo(174.dp)
-    assertThat(labSegmentedButtonWidth(800.dp, itemCount = 5)).isEqualTo(160.dp)
   }
 
   @Test
