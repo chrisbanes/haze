@@ -352,6 +352,23 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
+  fun fractionalAlpha_isAppliedToBaseGroupAndForegroundLighting() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = interactiveEffect().apply { alpha = 0.5f }
+      setContent { RuntimeGlassTestContent(effect) }
+      waitForIdle()
+      drawFrame()
+
+      effect.setPressedForTest(Offset(60f, 60f))
+      waitForIdle()
+      drawFrame()
+
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      assertThat(checkNotNull(delegate.layers.groupAlpha.layer).alpha).isEqualTo(0.5f)
+      assertThat(checkNotNull(delegate.layers.interactionLighting).alpha).isEqualTo(0.5f)
+    }
+
+  @Test
   fun activeInteractionFrames_retainFusedShaderAndBaseLayer() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = interactiveEffect()

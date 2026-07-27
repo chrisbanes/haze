@@ -126,6 +126,10 @@ into the fused shader recorded a 10.9 ms CPU P90 and a -1.2 ms frame-overrun P90
 - Interaction-only updates retain the shader provider, native effect topology, source capture, and
   graphics-layer allocation, but re-record fused output pixels. This evidence-driven exception
   supersedes the original issue preference for retaining the previous fused base pixels.
+- Effect alpha groups the base material stages. Rim and interaction lighting receive the same
+  alpha in a separate foreground pass because child content is drawn between the base and
+  foreground passes. This preserves the established `VisualEffect` ordering and partial-alpha
+  behavior rather than moving foreground lighting behind opaque child content.
 - CPU trace markers identify renderer preparation, source capture, fused output recording, rim,
   group alpha, and composition. Blur, depth, detail, and interaction execute inside one composed
   native effect DAG and therefore cannot emit truthful per-stage CPU slices; scenario-specific

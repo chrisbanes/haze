@@ -1408,7 +1408,10 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   }
 
   /**
-   * Overall opacity for the effect, in the range `0f..1f`.
+   * Opacity for the effect, in the range `0f..1f`.
+   *
+   * The base material is composited as one group. Rim and interaction lighting use the same
+   * opacity in a separate foreground pass so that they remain above this node's content.
    *
    * There are precedence rules to how this styling property is applied:
    *
