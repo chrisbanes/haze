@@ -371,6 +371,75 @@ class GlassStageInvalidationTest {
   }
 
   @Test
+  fun glassSourcePosition_tracksSourcePlacementRelativeToEffect() {
+    val sourcePosition = Offset(20f, 12f)
+
+    assertThat(relativeGlassSourcePosition(sourcePosition, Offset.Zero))
+      .isEqualTo(Offset(20f, 12f))
+    assertThat(relativeGlassSourcePosition(sourcePosition, Offset(10f, 4f)))
+      .isEqualTo(Offset(10f, 8f))
+    assertThat(relativeGlassSourcePosition(Offset(30f, 16f), Offset(10f, 4f)))
+      .isEqualTo(Offset(20f, 12f))
+  }
+
+  @Test
+  fun resolveGlassSourceState_relativeSourcePositionControlsCacheAndStageReuse() {
+    val initialSourcePosition = Offset(20f, 12f)
+    val initialEffectPosition = Offset.Zero
+    val movedEffectPosition = Offset(10f, 4f)
+    val captured = stateOf(
+      sourceArea(
+        position = relativeGlassSourcePosition(initialSourcePosition, initialEffectPosition),
+      ),
+    ).snapshot!!
+    val movedTogether = resolveGlassSourceState(
+      captureScale = 1f,
+      layerSize = Size(100f, 80f),
+      layerOffset = Offset.Zero,
+      areas = listOf(
+        sourceArea(
+          position = relativeGlassSourcePosition(
+            sourcePosition = initialSourcePosition + movedEffectPosition,
+            effectPosition = movedEffectPosition,
+          ),
+        ),
+      ),
+      previousSnapshot = captured,
+    ).snapshot!!
+    val movedEffectOnly = stateOf(
+      sourceArea(
+        position = relativeGlassSourcePosition(initialSourcePosition, movedEffectPosition),
+      ),
+    ).snapshot!!
+    val inputs = inputs()
+
+    assertThat(movedTogether).isSameInstanceAs(captured)
+    assertThat(movedEffectOnly).isNotEqualTo(captured)
+    assertThat(
+      calculateStageInvalidation(
+        previous = inputs,
+        current = inputs,
+        sourceChanged = movedTogether != captured,
+      ),
+    ).isEqualTo(GlassStageInvalidation.None)
+    assertThat(
+      calculateStageInvalidation(
+        previous = inputs,
+        current = inputs,
+        sourceChanged = movedEffectOnly != captured,
+      ),
+    ).isEqualTo(
+      GlassStageInvalidation(
+        blur = true,
+        depth = true,
+        optical = true,
+        detail = true,
+        rim = false,
+      ),
+    )
+  }
+
+  @Test
   fun resolveGlassSourceState_valueEqualAreaIdentitiesProduceUnequalSnapshots() {
     val contentLayerIdentity = Any()
     val first = stateOf(

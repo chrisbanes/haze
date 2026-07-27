@@ -3,8 +3,10 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.InternalHazeApi
@@ -104,6 +106,23 @@ internal class GlassSourceArea(
     result = 31 * result + position.hashCode()
     return 31 * result + size.hashCode()
   }
+}
+
+internal fun relativeGlassSourcePosition(
+  sourcePosition: Offset,
+  effectPosition: Offset,
+): Offset = sourcePosition - effectPosition
+
+@OptIn(InternalHazeApi::class)
+internal fun VisualEffectContext.glassSourcePositionOf(
+  area: HazeArea,
+  effectPosition: Offset,
+): Offset {
+  val sourcePosition = Snapshot.withoutReadObservation { positionOf(area) }
+  return relativeGlassSourcePosition(
+    sourcePosition = sourcePosition.takeIf(Offset::isSpecified) ?: Offset.Zero,
+    effectPosition = effectPosition,
+  )
 }
 
 /** A known, immutable description of a source capture. */
@@ -213,7 +232,8 @@ internal fun VisualEffectContext.resolveGlassSourceState(
   layerOffset: Offset,
   previousSnapshot: GlassSourceSnapshot? = null,
 ): GlassSourceState {
-  val sourceAreas = areas.map { area -> area.toGlassSourceArea(this) }
+  val effectPosition = position
+  val sourceAreas = areas.map { area -> area.toGlassSourceArea(this, effectPosition) }
   if (previousSnapshot?.matches(captureScale, layerSize, layerOffset, sourceAreas) == true) {
     return GlassSourceState(hasDrawableSource = true, snapshot = previousSnapshot)
   }
@@ -237,6 +257,7 @@ private fun GlassSourceSnapshot.matches(
   ) {
     return false
   }
+  val effectPosition = context.position
   var drawableIndex = 0
   for (area in context.areas) {
     val layer = area.contentLayer?.takeUnless { it.isReleased || !it.isDrawable } ?: continue
@@ -246,7 +267,7 @@ private fun GlassSourceSnapshot.matches(
       previous.areaIdentity !== area ||
       previous.contentLayerIdentity !== layer ||
       previous.contentVersion != contentVersion ||
-      previous.position != context.positionOf(area) ||
+      previous.position != context.glassSourcePositionOf(area, effectPosition) ||
       previous.size != area.size
     ) {
       return false
@@ -256,13 +277,16 @@ private fun GlassSourceSnapshot.matches(
 }
 
 @OptIn(InternalHazeApi::class)
-private fun HazeArea.toGlassSourceArea(context: VisualEffectContext): GlassSourceArea {
+private fun HazeArea.toGlassSourceArea(
+  context: VisualEffectContext,
+  effectPosition: Offset,
+): GlassSourceArea {
   val layer = contentLayer?.takeUnless { it.isReleased || !it.isDrawable }
   return GlassSourceArea(
     areaIdentity = this,
     contentLayerIdentity = layer,
     contentVersion = context.contentVersionOf(this),
-    position = context.positionOf(this),
+    position = context.glassSourcePositionOf(this, effectPosition),
     size = size,
   )
 }
