@@ -32,30 +32,38 @@ Glass siblings happen to be attached.
 
 ## Decision
 
-On API 33 and newer, every supported Android Glass effect uses one retained output layer backed by
-a composed `RenderEffect` graph. The graph performs:
+On API 33 and newer, every supported Android Glass effect captures its source in one layer and
+feeds that capture into one retained output layer backed by a composed `RenderEffect` graph.
+“Fused” describes that single output renderer, not one monolithic shader or a single retained
+layer. The graph performs:
 
 1. The existing semantic horizontal and vertical blur kernels.
 2. Sharp-to-blurred depth mixing.
-3. A fused RuntimeShader for refraction, Simple or Full chromatic aberration, tint, tone, Fresnel
-   response, refraction detail, and shape masking.
+3. A RuntimeShader for refraction, Simple or Full chromatic aberration, tint, tone, Fresnel
+   response, and shape masking.
+4. A refraction-detail shader that samples the original sharp source. The optical shader reserves
+   the detail branch's geometric coverage, then the sharp detail is combined with premultiplied
+   `Plus`.
 
 The blur shaders are chained directly into the output effect instead of rasterizing intermediate
 graphics layers. Large blur plans include bounded low-pass prefilters that reproduce the retained
 half-resolution response without retaining a half-resolution surface. Progressive blur uses the
 same caller mask and semantic two-pass kernels as the retained renderer. Full chromatic aberration
-uses the same seven-position spectral reconstruction.
+uses the same seven-position spectral reconstruction. The optical and detail branches are
+driver-managed nodes in one native effect DAG; they do not allocate additional retained
+intermediate graphics layers.
 
 Rim, interaction lighting, and group-alpha composition remain separate when required. Configured
-interaction optics are compiled into the fused base shader. Interaction lighting uses a localized
-foreground patch so that it remains visible above the effect's content. Live press, hover, and focus
-values update retained shader providers without switching the fused base graph. Interaction-only
-optical changes re-record the fused output rather than retaining its previous pixels.
+interaction optics are compiled into the optical and sharp-detail shaders. Interaction lighting
+uses a localized foreground patch so that it remains visible above the effect's content. Live
+press, hover, and focus values update retained shader providers without changing the retained-layer
+topology. Interaction-only optical changes re-record the fused output rather than retaining its
+previous pixels.
 
 Sibling count, sibling compatibility, and live interaction values are not renderer-selection
 inputs. Android effects do not register with the shared retained-blur registry. A surface owns its
-source, final base output, and only the optional rim or group-alpha stages required by its stable
-configuration.
+source capture, fused output, and only the optional rim or group-alpha stages required by its
+stable configuration.
 
 Skiko and Android environments without RuntimeShader support continue to use their existing
 adapters. The public Glass API is unchanged.
@@ -73,6 +81,13 @@ not meet the nine-effect frame budget.
 This reduced some frame CPU time, but an updating source invalidated the raster every frame and
 caused repeated image allocation and snapshot work. It did not remove the downstream multi-pass
 graph.
+
+### Apply the fused effect directly to the source capture
+
+This removes the separate output layer and its recorded source draw. It was rejected after the
+otherwise identical nine-effect Pixel 6 benchmark regressed: retaining the source and fused output
+layers produced the lower frame-time distribution. The extra retained layer is therefore an
+intentional Android rendering boundary, not an unfused optical stage.
 
 ### Use Android's native blur and blend effects
 
@@ -97,24 +112,25 @@ into the fused shader recorded a 10.9 ms CPU P90 and a -1.2 ms frame-overrun P90
 
 ## Consequences
 
-- Android has one retained Glass output renderer; common code still owns its lifetime,
-  retained-output behavior, and fallbacks.
+- Android retains a source capture and one fused Glass output renderer; common code still owns
+  their lifetime, retained-output behavior, and fallbacks.
 - Non-progressive and progressive blur retain the semantic two-pass kernel response. Large
   non-progressive plans reproduce downsample low-pass energy inside the composed graph.
 - Progressive blur and Full chromatic aberration increase graph or shader sampling cost. Their one-
   and nine-effect scenarios must be profiled on physical devices as the implementation evolves.
 - New Android RuntimeShader features must be implemented through this renderer. Silent partial
   support or sibling-dependent selection is not acceptable.
-- Topology tests verify sibling-independent selection, stable interaction topology,
-  intermediate-layer absence, retained output, and resource release. Pixel and physical-device
-  checks cover visual and performance behavior.
+- Topology tests verify sibling-independent selection, stable interaction topology, retained
+  source and output layers, intermediate optical-layer absence, and resource release. Pixel and
+  physical-device checks cover visual and performance behavior.
 - Interaction-only updates retain the shader provider, native effect topology, source capture, and
   graphics-layer allocation, but re-record fused output pixels. This evidence-driven exception
   supersedes the original issue preference for retaining the previous fused base pixels.
-- CPU trace markers identify renderer preparation, source capture, fused optical recording, rim,
+- CPU trace markers identify renderer preparation, source capture, fused output recording, rim,
   group alpha, and composition. Blur, depth, detail, and interaction execute inside one composed
-  native effect and therefore cannot emit truthful per-stage CPU slices; scenario-specific traces,
-  render-plan assertions, layer traversal, and Vulkan submissions provide their observability.
+  native effect DAG and therefore cannot emit truthful per-stage CPU slices; scenario-specific
+  traces, render-plan assertions, layer traversal, and Vulkan submissions provide their
+  observability.
 - Performance claims require release-like physical-device benchmarks and representative Perfetto
   traces; host rendering alone cannot validate driver cost.
 

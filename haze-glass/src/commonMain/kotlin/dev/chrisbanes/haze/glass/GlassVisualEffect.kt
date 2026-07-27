@@ -63,6 +63,19 @@ private class GlassRenderBudgetCacheKey(
   val interactionRadiusFraction: Float,
 )
 
+private class GlassPreparedDrawCacheKey(
+  val dirtyTrackerVersion: Int,
+  val size: Size,
+  val layerSize: Size,
+  val layerOffset: Offset,
+  val inputScale: HazeInputScale,
+  val density: Density,
+  val layoutDirection: LayoutDirection,
+  val style: ResolvedGlassStyle?,
+  val interactionState: GlassInteractionRenderState,
+  val interactionTopology: GlassInteractionTopology,
+)
+
 private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): Boolean =
   resolvedOptics == other.resolvedOptics &&
     specularIntensity == other.specularIntensity &&
@@ -89,6 +102,7 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
     resolvedOptics.refractionStrength == other.resolvedOptics.refractionStrength &&
     resolvedOptics.refractionScalePx == other.resolvedOptics.refractionScalePx &&
     resolvedOptics.refractionHeightPx == other.resolvedOptics.refractionHeightPx &&
+    resolvedOptics.refractionDetailIntensity == other.resolvedOptics.refractionDetailIntensity &&
     chromaticAberrationStrength == other.chromaticAberrationStrength &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     (specularIntensity > 0f) == (other.specularIntensity > 0f)
@@ -175,6 +189,8 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
 
   private var budgetCacheKey: GlassRenderBudgetCacheKey? = null
   private var budgetCacheDecision: GlassRenderBudgetDecision? = null
+
+  private var preparedDrawCacheKey: GlassPreparedDrawCacheKey? = null
 
   private var dirtyTrackerVersion: Int by mutableIntStateOf(0)
   internal var dirtyTracker: Bitmask = Bitmask()
@@ -608,6 +624,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
 
   override fun DrawScope.prepareDraw(context: VisualEffectContext) {
     trace(GlassTraceSection.Prepare) {
+      if (canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
         prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
@@ -621,7 +638,41 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       trace(GlassTraceSection.DelegatePrepare) {
         with(delegate) { prepareDraw(context) }
       }
+      cachePreparedDrawInputs(context)
     }
+  }
+
+  private fun canReusePreparedDraw(context: VisualEffectContext): Boolean {
+    val key = preparedDrawCacheKey ?: return false
+    val style = resolvedStyleCache ?: return false
+    val interactionState = interactionRenderState(context)
+    return preparedRender != null &&
+      (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true &&
+      key.dirtyTrackerVersion == dirtyTrackerVersion &&
+      key.size == context.size &&
+      key.layerSize == context.layerSize &&
+      key.layerOffset == context.layerOffset &&
+      key.inputScale == context.inputScale &&
+      key.density == context.requireDensity() &&
+      key.layoutDirection == context.currentValueOf(LocalLayoutDirection) &&
+      key.style === style &&
+      key.interactionState === interactionState &&
+      key.interactionTopology === interactionTopologySnapshot
+  }
+
+  private fun cachePreparedDrawInputs(context: VisualEffectContext) {
+    preparedDrawCacheKey = GlassPreparedDrawCacheKey(
+      dirtyTrackerVersion = dirtyTrackerVersion,
+      size = context.size,
+      layerSize = context.layerSize,
+      layerOffset = context.layerOffset,
+      inputScale = context.inputScale,
+      density = context.requireDensity(),
+      layoutDirection = context.currentValueOf(LocalLayoutDirection),
+      style = resolvedStyleCache,
+      interactionState = interactionRenderState(context),
+      interactionTopology = interactionTopologySnapshot,
+    )
   }
 
   override fun DrawScope.draw(context: VisualEffectContext) {
@@ -911,6 +962,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
             refractionHeightPx = optics.refractionHeightPx * scaleFactor,
             edgeSoftnessPx = style.edgeSoftnessPx * scaleFactor,
             sampleStepPx = 2f * scaleFactor,
+            detailIntensity = optics.refractionDetailIntensity,
           ),
           rimActive = style.specularIntensity > 0f,
           interactionPatchSize = interactionPatchSize,

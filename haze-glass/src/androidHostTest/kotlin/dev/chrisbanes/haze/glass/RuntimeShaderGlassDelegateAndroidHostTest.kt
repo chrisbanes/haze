@@ -58,7 +58,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.blurHorizontalShader).isNull()
       assertThat(delegate.blurVerticalShader).isNull()
       assertThat(delegate.opticalShader).isNull()
-      assertThat(delegate.refractionDetailShader).isNull()
+      assertThat(delegate.refractionDetailShader).isNotNull()
     }
 
   @Test
@@ -121,7 +121,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
-  fun compatibleSiblingEffects_collapseBaseStagesIntoOneRenderEffectLayer() =
+  fun compatibleSiblingEffects_useIndependentFusedOutputsWithoutIntermediateStages() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effects = List(9) { retainedBlurEffect() }
       setContent { SiblingRuntimeGlassGridTestContent(effects) }
@@ -141,6 +141,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         assertThat(delegate.layers.refractionDetail).isNull()
         assertThat(delegate.layers.refractionDetailCoverage).isNull()
         assertThat(delegate.layers.refractionComposite).isNull()
+        assertThat(delegate.layers.source?.renderEffect).isNull()
         assertThat(delegate.layers.optical?.renderEffect).isNotNull()
       }
       val blurRecordCounts = delegates.map { it.stageRecordCounts.blur }
@@ -171,6 +172,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       }
       delegates.forEach { delegate ->
         assertThat(delegate.fusedShader).isNotNull()
+        assertThat(delegate.layers.source?.renderEffect).isNull()
         assertThat(delegate.layers.optical?.renderEffect).isNotNull()
         assertThat(delegate.layers.refractionDetail).isNull()
       }
@@ -190,6 +192,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
       val firstDelegate = checkNotNull(effects.first().delegate as? RuntimeShaderGlassDelegate)
+      val sourceLayer = checkNotNull(firstDelegate.layers.source)
       val fusedLayer = checkNotNull(firstDelegate.layers.optical)
       val dedicatedPixels = captureRegionPixels(
         left = 0,
@@ -202,7 +205,9 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
       drawFrame()
+      assertThat(firstDelegate.layers.source).isSameInstanceAs(sourceLayer)
       assertThat(firstDelegate.layers.optical).isSameInstanceAs(fusedLayer)
+      assertThat(firstDelegate.layers.source?.renderEffect).isNull()
       assertThat(firstDelegate.layers.optical?.renderEffect).isNotNull()
       assertThat(firstDelegate.layers.refractionDetail).isNull()
       val siblingPixels = captureRegionPixels(
@@ -217,7 +222,9 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       attachSecond.value = false
       waitForIdle()
       drawFrame()
+      assertThat(firstDelegate.layers.source).isSameInstanceAs(sourceLayer)
       assertThat(firstDelegate.layers.optical).isSameInstanceAs(fusedLayer)
+      assertThat(firstDelegate.layers.source?.renderEffect).isNull()
       assertThat(firstDelegate.layers.optical?.renderEffect).isNotNull()
       assertThat(firstDelegate.layers.refractionDetail).isNull()
       val restoredDedicatedPixels = captureRegionPixels(
@@ -239,6 +246,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
       val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
       val fusedShader = checkNotNull(delegate.fusedShader)
+      val detailShader = checkNotNull(delegate.refractionDetailShader)
       val rimShader = checkNotNull(delegate.rimShader)
 
       attached.value = false
@@ -248,7 +256,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.layers.hasSource).isFalse()
       assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
       assertThat(delegate.opticalShader).isNull()
-      assertThat(delegate.refractionDetailShader).isNull()
+      assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
       assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
 
       attached.value = true
@@ -257,7 +265,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
       assertThat(delegate.opticalShader).isNull()
-      assertThat(delegate.refractionDetailShader).isNull()
+      assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
       assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
     }
 
@@ -282,6 +290,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
 
       assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
+      assertThat(delegate.layers.source?.renderEffect).isNull()
       assertThat(delegate.layers.optical?.renderEffect).isNotSameInstanceAs(fusedEffect)
       assertThat(delegate.opticalShader).isNull()
 
@@ -307,6 +316,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
       val fusedShader = checkNotNull(delegate.fusedShader)
+      val detailShader = checkNotNull(delegate.refractionDetailShader)
 
       effect.setPressedForTest(Offset(20f, 20f))
       waitForIdle()
@@ -320,6 +330,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
 
       assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
+      assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
       assertThat(delegate.layers.interactionLighting).isNotNull()
     }
 
@@ -353,6 +364,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
 
       val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      val source = checkNotNull(delegate.layers.source)
       val optical = checkNotNull(delegate.layers.optical)
       val fusedShader = checkNotNull(delegate.fusedShader)
       assertThat(delegate.layers.interactionOptical).isNull()
@@ -362,6 +374,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       drawFrame()
 
+      assertThat(delegate.layers.source).isSameInstanceAs(source)
       assertThat(delegate.layers.optical).isSameInstanceAs(optical)
       assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
       assertThat(delegate.layers.interactionOptical).isNull()
@@ -478,6 +491,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
 
       assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
+      assertThat(delegate.layers.source?.renderEffect).isNull()
       assertThat(delegate.layers.optical?.renderEffect).isNotSameInstanceAs(fusedEffect)
       assertThat(delegate.layers.blurHorizontal).isNull()
       assertThat(delegate.layers.blurred).isNull()
@@ -532,6 +546,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       drawFrame()
 
       assertThat(delegate.fusedShader).isNotSameInstanceAs(fusedShader)
+      assertThat(delegate.layers.source?.renderEffect).isNull()
       assertThat(delegate.layers.optical?.renderEffect).isNotSameInstanceAs(fusedEffect)
       assertThat(delegate.layers.blurHorizontal).isNull()
       assertThat(delegate.layers.blurred).isNull()
@@ -750,6 +765,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
     val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
     assertThat(delegate.fusedShader).isNotNull()
+    assertThat(delegate.layers.source?.renderEffect).isNull()
     assertThat(delegate.layers.optical?.renderEffect).isNotNull()
     assertions(delegate)
   }

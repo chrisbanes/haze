@@ -260,6 +260,7 @@ internal data class ResolvedGlassOptics(
   val progressive: HazeProgressive?,
   val toneGain: Float,
   val neutralLiftWeight: Float,
+  val refractionDetailIntensity: Float,
 )
 
 internal fun resolveGlassOptics(
@@ -298,6 +299,10 @@ internal fun resolveGlassOptics(
     progressive = absolute.progressive,
     toneGain = resolved.toneGain,
     neutralLiftWeight = resolved.neutralLiftWeight,
+    refractionDetailIntensity = when (optics) {
+      GlassOptics.Adaptive -> 0f
+      is GlassOptics.Absolute -> GLASS_REFRACTION_DETAIL_INTENSITY
+    },
   )
 }
 
@@ -328,6 +333,7 @@ internal data class GlassRenderParams(
   val cornerRadii: CornerRadii,
   val lightPosition: Offset,
   val sampleStepPx: Float,
+  val refractionDetailIntensity: Float = GLASS_REFRACTION_DETAIL_INTENSITY,
 )
 
 internal data class GlassBlurEffectKey(
@@ -651,6 +657,7 @@ internal fun buildGlassRenderParams(
     cornerRadii = style.cornerRadii * scaleFactor,
     lightPosition = style.lightPosition * scaleFactor,
     sampleStepPx = 2f * scaleFactor,
+    refractionDetailIntensity = resolvedOptics.refractionDetailIntensity,
   )
 }
 
@@ -819,6 +826,7 @@ private fun GlassRenderParams.isRefractionDetailActive(): Boolean = isGlassRefra
   refractionHeightPx = refractionHeightPx,
   edgeSoftnessPx = edgeSoftnessPx,
   sampleStepPx = sampleStepPx,
+  detailIntensity = refractionDetailIntensity,
 )
 
 internal fun isGlassRefractionDetailActive(
@@ -827,6 +835,7 @@ internal fun isGlassRefractionDetailActive(
   refractionHeightPx: Float,
   edgeSoftnessPx: Float,
   sampleStepPx: Float,
+  detailIntensity: Float = GLASS_REFRACTION_DETAIL_INTENSITY,
 ): Boolean {
   if (refractionStrength <= 0f || refractionScalePx <= 0f) return false
   val detailWidthPx = calculateRefractionDetailWidthPx(
@@ -839,7 +848,7 @@ internal fun isGlassRefractionDetailActive(
     refractionScalePx = refractionScalePx,
     sampleStepPx = sampleStepPx,
   )
-  return detailWidthPx > 0f && GLASS_REFRACTION_DETAIL_INTENSITY * detailVisibility > 1f / 255f
+  return detailWidthPx > 0f && detailIntensity * detailVisibility > 1f / 255f
 }
 
 internal data class GlassPreparedRender(
@@ -929,7 +938,7 @@ internal fun buildGlassPreparedRender(
   ) {
     previous.refractionDetailKey
   } else {
-    params.activeRefractionDetailEffectKey()
+    params.activeRefractionDetailEffectKey(params.refractionDetailIntensity)
   }
   val rimKey = if (previous != null && previous.params.hasSameRimEffectInputs(params)) {
     previous.rimKey
@@ -1024,7 +1033,8 @@ private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
     surfaceProfile == other.surfaceProfile &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&
-    sampleStepPx == other.sampleStepPx
+    sampleStepPx == other.sampleStepPx &&
+    refractionDetailIntensity == other.refractionDetailIntensity
 
 private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): Boolean =
   coordinates == other.coordinates &&

@@ -26,14 +26,29 @@ class GlassShadersTest {
   }
 
   @Test
-  fun fusedInteractionOptics_expandDetailBoundForLocalizedRefraction() {
+  fun fusedShaders_reserveSharpSourceDetailCoverageWithoutSamplingDetail() {
     val interactive = GlassShaders.buildFused(interactionOptics = true)
     val baseline = GlassShaders.buildFused()
 
+    listOf(interactive, baseline).forEach { shader ->
+      assertThat(shader).contains("uniform float detailWidth;")
+      assertThat(shader).contains("opticalColor *= 1.0 - detailAlpha;")
+      assertThat(shader).doesNotContain(
+        "mix(opticalColor, sampleDepth(refractCoord), detailAlpha)",
+      )
+    }
     assertThat(interactive).contains(
       "abs(refractionScale * refractionStrength) * max(1.0, localizedRefractionMultiplier)",
     )
     assertThat(baseline).doesNotContain("max(1.0, localizedRefractionMultiplier)")
+  }
+
+  @Test
+  fun fusedShaderWithoutSharpDetail_omitsCoverageMath() {
+    val shader = GlassShaders.buildFused(sharpDetail = false)
+
+    assertThat(shader).doesNotContain("uniform float detailWidth;")
+    assertThat(shader).doesNotContain("detailAlpha")
   }
 
   @Test
@@ -185,8 +200,9 @@ class GlassShadersTest {
     assertThat(shader).contains("uniform float sampleStep;")
     assertThat(shader).contains("localCoord - vec2(sampleStep, 0.0)")
     assertThat(shader).contains("localCoord + vec2(0.0, sampleStep)")
-    assertThat(shader).contains("coord - vec2(sampleStep, 0.0)")
-    assertThat(shader).contains("coord + vec2(0.0, sampleStep)")
+    assertThat(shader).contains("computeContentNormal(refractCoord, refractedCenterSample)")
+    assertThat(shader).contains("sampleDepth(coord + vec2(sampleStep, 0.0))")
+    assertThat(shader).contains("sampleDepth(coord + vec2(0.0, sampleStep))")
     assertThat(shader).contains("* (0.5 / max(sampleStep, 0.0001))")
     assertThat(shader).doesNotContain("float sampleStep = 2.0;")
   }

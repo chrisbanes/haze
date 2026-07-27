@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 internal object GlassShaders {
   fun buildFused(
     interactionOptics: Boolean = false,
+    sharpDetail: Boolean = true,
   ): String = """
     uniform shader content;
     uniform float2 sampleSize;
@@ -31,9 +32,15 @@ internal object GlassShaders {
     uniform float fresnelExponent;
     uniform float geometryToneGain;
     uniform float geometryNeutralLift;
+    ${if (sharpDetail) {
+    """
     uniform float detailWidth;
     uniform float detailIntensity;
     uniform float detailVisibility;
+    """
+  } else {
+    ""
+  }}
     ${if (interactionOptics) {
     interactionUniforms(
       includeRefraction = interactionOptics,
@@ -118,16 +125,17 @@ internal object GlassShaders {
 
       vec2 gradient = surfaceGradient(localCoord);
       vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
-      vec3 contentNormal = computeContentNormal(coord);
+      vec3 contentNormal = computeContentNormal(refractCoord, refractedCenter);
       vec3 normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
       float fresnel;
       if (fresnelExponent == 0.0) {
         fresnel = 1.0;
       } else {
-        fresnel = pow(
-          1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0),
-          fresnelExponent
-        );
+        float fresnelBase =
+          1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
+        fresnel = fresnelExponent == 3.0
+          ? fresnelBase * fresnelBase * fresnelBase
+          : pow(fresnelBase, fresnelExponent);
       }
       float ambient = mix(1.0, 1.0 + fresnel, clamp(ambientResponse, 0.0, 1.0));
       vec3 gradedColor = applyColorGrading(
@@ -145,13 +153,15 @@ internal object GlassShaders {
         opticalColor = mix(sampleDepth(coord), opticalColor, shapeMask);
       }
 
+      ${if (sharpDetail) {
+    """
       float detailAlpha = 0.0;
       float maxPossibleDisplacement = min(
         ${if (interactionOptics) {
-    "abs(refractionScale * refractionStrength) * max(1.0, localizedRefractionMultiplier)"
-  } else {
-    "abs(refractionScale * refractionStrength)"
-  }},
+      "abs(refractionScale * refractionStrength) * max(1.0, localizedRefractionMultiplier)"
+    } else {
+      "abs(refractionScale * refractionStrength)"
+    }},
         length(sampleSize)
       );
       if (outputDistToEdge <= detailWidth + maxPossibleDisplacement) {
@@ -171,9 +181,11 @@ internal object GlassShaders {
         detailAlpha =
           sourceShapeMask * innerEnvelope * outerEnvelope * detailIntensity * detailVisibility;
       }
-      if (detailAlpha > 0.0) {
-        opticalColor = mix(opticalColor, sampleDepth(refractCoord), detailAlpha);
-      }
+      opticalColor *= 1.0 - detailAlpha;
+      """
+  } else {
+    ""
+  }}
       return opticalColor.a > 0.0 ? opticalColor : vec4(0.0);
     }
   """
@@ -361,11 +373,13 @@ internal object GlassShaders {
           vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
           vec3 normal = shapeNormal;
           if (contentNormalBlend > 0.0) {
-            vec3 contentNormal = computeContentNormal(coord);
+            vec3 contentNormal = computeContentNormal(refractCoord, refractedCenterSample);
             normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));
           }
           float fresnelBase = 1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0);
-          float fresnel = pow(fresnelBase, fresnelExponent);
+          float fresnel = fresnelExponent == 3.0
+            ? fresnelBase * fresnelBase * fresnelBase
+            : pow(fresnelBase, fresnelExponent);
           ambient = mix(1.0, 1.0 + fresnel, clampedAmbientResponse);
         }
       }
@@ -556,6 +570,7 @@ internal object GlassShaders {
 
       float edgeWidth = max(edgeSoftness, sampleStep);
       float edge = 1.0 - smootherstep(clamp(-sd / max(edgeWidth, 0.0001), 0.0, 1.0));
+      if (edge <= 0.0) return vec4(0.0);
       vec2 gradient = sdfGradient(localCoord);
       vec3 normal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
       vec2 lightDirection2D = safeNormalize(lightPosition - localCoord, vec2(0.0, -1.0));
@@ -810,16 +825,16 @@ internal object GlassShaders {
       return sampleChromaSimple(coord, chromaOffset, centerSample);
     }
 
-    vec3 computeContentNormal(vec2 coord) {
-      float left =
-        luma(unpremultiply(sampleDepth(coord - vec2(sampleStep, 0.0))));
-      float right =
-        luma(unpremultiply(sampleDepth(coord + vec2(sampleStep, 0.0))));
-      float up =
-        luma(unpremultiply(sampleDepth(coord - vec2(0.0, sampleStep))));
-      float down =
-        luma(unpremultiply(sampleDepth(coord + vec2(0.0, sampleStep))));
-      vec2 gradient = vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
+    vec3 computeContentNormal(vec2 coord, vec4 centerSample) {
+      float center = luma(unpremultiply(centerSample));
+      float right = luma(
+        unpremultiply(sampleDepth(coord + vec2(sampleStep, 0.0)))
+      );
+      float down = luma(
+        unpremultiply(sampleDepth(coord + vec2(0.0, sampleStep)))
+      );
+      vec2 gradient =
+        vec2(right - center, down - center) / max(sampleStep, 0.0001);
       return normalize(vec3(gradient, 1.0));
     }
 

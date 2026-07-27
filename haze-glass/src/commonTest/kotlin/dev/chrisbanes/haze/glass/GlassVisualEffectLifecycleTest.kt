@@ -195,11 +195,11 @@ class GlassVisualEffectLifecycleTest {
     assertThat(decision.plan).isEqualTo(prepared.plan)
     assertThat(prepared.plan.fitsGlassRenderBudget()).isEqualTo(true)
     assertThat(prepared.plan.layers.map { it.kind }).isEqualTo(
-      listOf(
-        GlassRetainedLayerKind.Source,
-        GlassRetainedLayerKind.Optical,
-        GlassRetainedLayerKind.Rim,
-      ),
+      buildList {
+        add(GlassRetainedLayerKind.Source)
+        add(GlassRetainedLayerKind.Optical)
+        add(GlassRetainedLayerKind.Rim)
+      },
     )
   }
 

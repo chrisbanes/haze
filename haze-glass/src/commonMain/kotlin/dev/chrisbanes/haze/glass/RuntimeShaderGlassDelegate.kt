@@ -25,6 +25,7 @@ import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asComposeRenderEffect
+import dev.chrisbanes.haze.createBlendRenderEffect
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
 import dev.chrisbanes.haze.trace
@@ -354,7 +355,7 @@ internal class RuntimeShaderGlassDelegate(
             if (
               shouldRecordSource ||
               baseInputsChanged ||
-              !layers.hasOptical
+              !retainedOutputAvailable
             ) {
               trace(GlassTraceSection.Optical) {
                 recordFusedOutput(
@@ -1542,6 +1543,7 @@ internal class RuntimeShaderGlassDelegate(
           blur = key.blur,
           depth = key.depth,
           interactionOptics = render.interactionTopology.hasOptics,
+          sharpDetail = key.detail != null,
         )
         if (fusedShader == null || fusedInputKey != nextInputKey) {
           fusedShader = createFusedGlassRenderEffect(
@@ -1551,13 +1553,15 @@ internal class RuntimeShaderGlassDelegate(
               sampleSize = key.optical.coordinates.sampleSize,
             ),
             interactionOptics = nextInputKey.interactionOptics,
+            sharpDetail = nextInputKey.sharpDetail,
           )
+          refractionDetailShader = null
           fusedInputKey = nextInputKey
         }
         val shader = checkNotNull(fusedShader)
-        shader.updateUniforms {
+        val optical = shader.updateUniforms {
           setOpticalUniforms(key.optical)
-          setFusedDetailUniforms(key.detail)
+          key.detail?.let(::setFusedDetailUniforms)
           key.interaction?.let {
             setFusedInteractionUniforms(
               uniforms = it,
@@ -1566,6 +1570,24 @@ internal class RuntimeShaderGlassDelegate(
             )
           }
         }
+        val detailKey = key.detail ?: return@let optical
+        val detailShader = refractionDetailShader ?: traceCreateRenderEffect {
+          createRefractionDetailRenderEffect(
+            interactive = nextInputKey.interactionOptics,
+            coverageOnly = false,
+          )
+        }.also {
+          refractionDetailShader = it
+        }
+        val detail = detailShader.updateUniforms {
+          setRefractionDetailUniforms(detailKey)
+          key.interaction?.let(::setInteractionDetailUniforms)
+        }
+        createBlendRenderEffect(
+          blendMode = BlendMode.Plus,
+          background = optical,
+          foreground = detail,
+        )
       }
       fusedEffectKey = nextFusedEffectKey
     }
@@ -1626,9 +1648,10 @@ internal class RuntimeShaderGlassDelegate(
     } else {
       null
     }
+    val progressive = blur.progressive != null
     val horizontal = createGlassBlurRenderEffectWithInput(
       horizontal = true,
-      progressive = blur.progressive != null,
+      progressive = progressive,
       input = prefilter,
     ).updateUniforms {
       setGlassBlurUniforms(blur, horizontalKernel, sampleSize.width, sampleSize.height)
@@ -1636,7 +1659,7 @@ internal class RuntimeShaderGlassDelegate(
     }
     val vertical = createGlassBlurRenderEffectWithInput(
       horizontal = false,
-      progressive = blur.progressive != null,
+      progressive = progressive,
       input = horizontal,
     ).updateUniforms {
       setGlassBlurUniforms(blur, verticalKernel, sampleSize.width, sampleSize.height)
@@ -1752,6 +1775,7 @@ private data class GlassDepthInputKey(
   val blur: GlassBlurEffectKey?,
   val depth: Float,
   val interactionOptics: Boolean = false,
+  val sharpDetail: Boolean = false,
 )
 
 // RuntimeShader child sampling does not reproduce the retained graph's raster downscale/upscale
@@ -1783,17 +1807,21 @@ internal expect fun createGlassDepthInputRenderEffect(
 internal fun createFusedGlassRenderEffect(
   input: PlatformRenderEffect? = null,
   interactionOptics: Boolean = false,
+  sharpDetail: Boolean = true,
 ): MutableRuntimeShaderRenderEffect = createMutableRuntimeShaderRenderEffect(
-  effect = fusedGlassRuntimeEffect(interactionOptics),
+  effect = fusedGlassRuntimeEffect(interactionOptics, sharpDetail),
   shaderNames = arrayOf("content"),
   inputs = arrayOf(input),
 )
 
 private fun fusedGlassRuntimeEffect(
   interactionOptics: Boolean,
+  sharpDetail: Boolean,
 ) = when {
-  interactionOptics -> GLASS_INTERACTION_OPTICS_FUSED_EFFECT
-  else -> GLASS_FUSED_EFFECT
+  interactionOptics && sharpDetail -> GLASS_INTERACTION_OPTICS_FUSED_EFFECT
+  interactionOptics -> GLASS_INTERACTION_OPTICS_NO_DETAIL_FUSED_EFFECT
+  sharpDetail -> GLASS_FUSED_EFFECT
+  else -> GLASS_NO_DETAIL_FUSED_EFFECT
 }
 
 internal fun createGlassBlurRenderEffectWithInput(
@@ -1849,15 +1877,22 @@ internal fun createRetainedGlassOpticalRenderEffect(): MutableRuntimeShaderRende
   )
 
 internal fun createRetainedRefractionDetailRenderEffect(): MutableRuntimeShaderRenderEffect =
-  createMutableRuntimeShaderRenderEffect(
-    effect = GLASS_REFRACTION_DETAIL_EFFECT,
-    shaderNames = arrayOf("content"),
-    inputs = arrayOf(null),
-  )
+  createRefractionDetailRenderEffect(interactive = false, coverageOnly = false)
 
 internal fun createRetainedRefractionDetailCoverageRenderEffect(): MutableRuntimeShaderRenderEffect =
+  createRefractionDetailRenderEffect(interactive = false, coverageOnly = true)
+
+private fun createRefractionDetailRenderEffect(
+  interactive: Boolean,
+  coverageOnly: Boolean,
+): MutableRuntimeShaderRenderEffect =
   createMutableRuntimeShaderRenderEffect(
-    effect = GLASS_REFRACTION_DETAIL_COVERAGE_EFFECT,
+    effect = when {
+      interactive && coverageOnly -> GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT
+      interactive -> GLASS_INTERACTION_REFRACTION_DETAIL_EFFECT
+      coverageOnly -> GLASS_REFRACTION_DETAIL_COVERAGE_EFFECT
+      else -> GLASS_REFRACTION_DETAIL_EFFECT
+    },
     shaderNames = arrayOf("content"),
     inputs = arrayOf(null),
   )
@@ -1900,6 +1935,12 @@ private val GLASS_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
 }
 private val GLASS_INTERACTION_OPTICS_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildFused(interactionOptics = true))
+}
+private val GLASS_NO_DETAIL_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildFused(sharpDetail = false))
+}
+private val GLASS_INTERACTION_OPTICS_NO_DETAIL_FUSED_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
+  createRuntimeEffect(GlassShaders.buildFused(interactionOptics = true, sharpDetail = false))
 }
 private val GLASS_DOWNSAMPLE_PREFILTER_EFFECT by lazy(LazyThreadSafetyMode.NONE) {
   createRuntimeEffect(GlassShaders.buildDownsamplePrefilter())
@@ -2020,16 +2061,8 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
 }
 
 private fun RuntimeShaderUniformProvider.setFusedDetailUniforms(
-  key: GlassRefractionDetailEffectKey?,
-) {
-  if (key != null) {
-    setRefractionDetailUniforms(key)
-  } else {
-    setFloatUniform("detailWidth", 0f)
-    setFloatUniform("detailIntensity", 0f)
-    setFloatUniform("detailVisibility", 0f)
-  }
-}
+  key: GlassRefractionDetailEffectKey,
+) = setRefractionDetailUniforms(key)
 
 internal fun RuntimeShaderUniformProvider.setRimUniforms(
   key: GlassRimEffectKey,

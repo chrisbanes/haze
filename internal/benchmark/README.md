@@ -6,6 +6,7 @@
 - Release-like, non-debuggable target build.
 - Device sufficiently charged and cool before measurement.
 - Display fixed at 60 Hz when supported; otherwise use one fixed supported rate.
+- Android fixed-performance mode enabled for stable CPU and GPU clocks.
 - Debugger detached and unrelated background work minimized.
 
 Record the device model, API level, and selected refresh rate with saved results.
@@ -41,10 +42,14 @@ Run all Glass benchmarks without meaningful measurements:
 Run one controlled scenario:
 
 ```shell
+adb shell cmd power set-fixed-performance-mode-enabled true
 ./gradlew :internal:benchmark:connectedCheck \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.fullTracing.enable=true \
   -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdate
+adb shell cmd power set-fixed-performance-mode-enabled false
 ```
+
+Always disable fixed-performance mode after profiling, including after a failed run.
 
 The cold-initialization scenarios attach 1, 3, or 9 independent Glass effects while keeping their
 combined surface area constant. Run each method separately from the same initial thermal state:

@@ -35,6 +35,16 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_refractionDetailPreservesSharpSource() = runScreenshotTest {
+    assertGlassRefractionDetailPreservesSharpSourceInvariant()
+  }
+
+  @Test
+  fun glass_interactionRefractionDetailPreservesSharpSource() = runScreenshotTest {
+    assertGlassRefractionDetailPreservesSharpSourceInvariant(withInteraction = true)
+  }
+
+  @Test
   fun glass_semanticBlurHasCommonHighFrequencyResponse() = runScreenshotTest {
     assertGlassSemanticBlurHfInvariant()
   }

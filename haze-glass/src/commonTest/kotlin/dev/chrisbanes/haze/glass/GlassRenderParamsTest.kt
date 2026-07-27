@@ -530,7 +530,20 @@ class GlassRenderParamsTest {
       assertThat(resolved.progressive).isEqualTo(progressive)
       assertThat(resolved.toneGain).isEqualTo(1f)
       assertThat(resolved.neutralLiftWeight).isEqualTo(0f)
+      assertThat(resolved.refractionDetailIntensity).isGreaterThan(0f)
     }
+  }
+
+  @Test
+  fun adaptiveOptics_omitOptionalSharpRefractionDetail() {
+    val resolved = resolveGlassOptics(
+      optics = GlassOptics.Adaptive,
+      materialSizePx = Size(240f, 120f),
+      density = Density(2f),
+      cornerRadiiPx = CornerRadii(24f, 24f, 24f, 24f),
+    )
+
+    assertThat(resolved.refractionDetailIntensity).isEqualTo(0f)
   }
 
   @Test

@@ -37,6 +37,7 @@ The `steadyFull` benchmark renders one compatible Glass effect, while `steadyFul
 Each scenario runs for three seconds and uses:
 
 - A Pixel 6 running API 37 at 1080 × 2400 and a fixed 60 Hz refresh rate.
+- Android fixed-performance mode, which stabilizes CPU and GPU clocks for development benchmarks.
 - The modern Android `RuntimeShader` renderer available on API 33 and newer.
 - The unmodified `GlassDefaults.style`, including adaptive optics, default 16 dp corners, simple
   chromatic aberration, and default lighting, color, and rendering values.
@@ -51,14 +52,15 @@ measured.
 
 - **Surface area:** Larger Glass surfaces process more pixels.
 - **Number of effects:** More independent surfaces can add rendering and submission work.
-- **Effect count:** Android RuntimeShader effects use the same fused base renderer for one or many
-  surfaces; sibling attachment does not switch topology.
+- **Effect count:** Android RuntimeShader effects use the same single-output renderer for one or
+  many surfaces; sibling attachment does not switch topology.
 - **Changing content:** Moving or updating the captured source invalidates more retained work than
   redrawing an unchanged effect.
 - **Dynamic optics:** Progressive blur and Full chromatic aberration increase sampling within the
-  fused shader. Configured interaction optics use that same stable renderer, while interaction
-  lighting uses a localized foreground patch to preserve content ordering. Live press, hover, and
-  focus values update uniforms without replacing the fused base graph.
+  output effect graph. Configured interaction optics use that same stable renderer, while
+  interaction lighting uses a localized foreground patch to preserve content ordering. Live press,
+  hover, and focus values update retained shader providers and re-record the output without
+  allocating retained optical or detail layers.
 - **Device and display:** GPU capability, resolution, refresh rate, and thermal state all affect
   the result.
 
@@ -68,11 +70,14 @@ Run the benchmark locally on an unlocked physical device at API 33 or newer. Pin
 supported refresh rate, let the device cool, and run:
 
 ```shell
+adb shell cmd power set-fixed-performance-mode-enabled true
 ./gradlew :internal:benchmark:connectedCheck \
   -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#steadyFull9
+adb shell cmd power set-fixed-performance-mode-enabled false
 ```
 
 Replace `steadyFull9` with `steadyFull` to reproduce the one-effect control.
+Always disable fixed-performance mode after profiling, including after a failed run.
 
 Results and Perfetto traces are copied to
 `internal/benchmark/build/outputs/connected_android_test_additional_output/`. Run the scenario
@@ -86,7 +91,6 @@ submission.
 
 The nine-effect interaction-update scenario recorded a 10.9 ms CPU P90 and a -1.2 ms
 frame-overrun P90. Its live lighting and optics updates therefore remained inside the frame
-deadline without constructing or switching render graphs. Interaction-only updates retain the
-shader provider, source capture, effect topology, and layer allocation, but re-record the fused
-output; separate local overlays measured slower because they restored layer replay and submission
-cost.
+deadline without changing retained-layer topology. Interaction-only updates retain the shader
+providers, source capture, and layer allocation, but re-record the fused output; separate local
+overlays measured slower because they restored layer replay and submission cost.
