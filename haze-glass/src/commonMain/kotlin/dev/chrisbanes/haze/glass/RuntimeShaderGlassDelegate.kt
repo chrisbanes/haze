@@ -107,6 +107,8 @@ internal class RuntimeShaderGlassDelegate(
   private var recordedInteractionCompositeDetail: GraphicsLayer? = null
   private var recordedInteractionCompositeCoverage: GraphicsLayer? = null
   private var recordedInteractionCompositeSize: IntSize? = null
+  private var recordedInteractionCompositeOpticalRecordCount: Int = -1
+  private var recordedInteractionCompositeDetailRecordCount: Int = -1
   private var recordedInteractionLightingLayer: GraphicsLayer? = null
   private var recordedInteractionLightingSize: IntSize? = null
   internal val layers = GlassLayers()
@@ -136,6 +138,12 @@ internal class RuntimeShaderGlassDelegate(
   internal var rimRecordCount: Int = 0
     private set
   internal var interactionLightingRecordCount: Int = 0
+    private set
+  internal var interactionOpticalRecordCount: Int = 0
+    private set
+  internal var interactionDetailRecordCount: Int = 0
+    private set
+  internal var interactionCompositeRecordCount: Int = 0
     private set
   internal val stageRecordCounts: GlassStageRecordCounts
     get() = GlassStageRecordCounts(
@@ -522,6 +530,7 @@ internal class RuntimeShaderGlassDelegate(
                 input = depthInput,
                 key = render.opticalKey,
                 patch = interactionPatch,
+                inputContentChanged = invalidation.depth,
               )
             },
             ::clearRetainedOutput,
@@ -540,6 +549,7 @@ internal class RuntimeShaderGlassDelegate(
                 input = source,
                 key = effects.refractionDetail.key,
                 patch = interactionPatch,
+                inputContentChanged = shouldRecordSource,
               )
             },
             ::clearRetainedOutput,
@@ -558,6 +568,7 @@ internal class RuntimeShaderGlassDelegate(
                 input = source,
                 key = effects.refractionDetail.key,
                 patch = interactionPatch,
+                inputContentChanged = shouldRecordSource,
               )
             },
             ::clearRetainedOutput,
@@ -768,6 +779,8 @@ internal class RuntimeShaderGlassDelegate(
     recordedInteractionCompositeDetail = null
     recordedInteractionCompositeCoverage = null
     recordedInteractionCompositeSize = null
+    recordedInteractionCompositeOpticalRecordCount = -1
+    recordedInteractionCompositeDetailRecordCount = -1
     interactionDetailEffectLayer = null
     interactionDetailCoverageEffectLayer = null
   }
@@ -1091,6 +1104,7 @@ internal class RuntimeShaderGlassDelegate(
     input: GraphicsLayer,
     key: GlassOpticalEffectKey,
     patch: GlassInteractionPatch,
+    inputContentChanged: Boolean,
   ): GraphicsLayer? = layers.interactionOptical?.takeUnless { it.isReleased }?.also { layer ->
     val localKey = key.copy(coordinates = patch.coordinates)
     input.alpha = 1f
@@ -1100,7 +1114,8 @@ internal class RuntimeShaderGlassDelegate(
     if (
       layer !== recordedInteractionOpticalLayer ||
       input !== recordedInteractionOpticalInput ||
-      localKey != recordedInteractionOpticalKey
+      localKey != recordedInteractionOpticalKey ||
+      inputContentChanged
     ) {
       val origin = patch.bounds.topLeft
       layer.record(patch.bounds.size) {
@@ -1109,6 +1124,7 @@ internal class RuntimeShaderGlassDelegate(
       recordedInteractionOpticalLayer = layer
       recordedInteractionOpticalInput = input
       recordedInteractionOpticalKey = localKey
+      interactionOpticalRecordCount++
     }
   }
 
@@ -1116,6 +1132,7 @@ internal class RuntimeShaderGlassDelegate(
     input: GraphicsLayer,
     key: GlassRefractionDetailEffectKey,
     patch: GlassInteractionPatch,
+    inputContentChanged: Boolean,
   ): GraphicsLayer? = layers.interactionRefractionDetail
     ?.takeUnless { it.isReleased }
     ?.also { layer ->
@@ -1132,7 +1149,8 @@ internal class RuntimeShaderGlassDelegate(
       if (
         layer !== recordedInteractionDetailLayer ||
         input !== recordedInteractionDetailInput ||
-        localKey != recordedInteractionDetailKey
+        localKey != recordedInteractionDetailKey ||
+        inputContentChanged
       ) {
         val origin = patch.bounds.topLeft
         layer.record(patch.bounds.size) {
@@ -1141,6 +1159,7 @@ internal class RuntimeShaderGlassDelegate(
         recordedInteractionDetailLayer = layer
         recordedInteractionDetailInput = input
         recordedInteractionDetailKey = localKey
+        interactionDetailRecordCount++
       }
     }
 
@@ -1148,6 +1167,7 @@ internal class RuntimeShaderGlassDelegate(
     input: GraphicsLayer,
     key: GlassRefractionDetailEffectKey,
     patch: GlassInteractionPatch,
+    inputContentChanged: Boolean,
   ): GraphicsLayer? = layers.interactionRefractionDetailCoverage
     ?.takeUnless { it.isReleased }
     ?.also { layer ->
@@ -1168,7 +1188,8 @@ internal class RuntimeShaderGlassDelegate(
       if (
         layer !== recordedInteractionDetailCoverageLayer ||
         input !== recordedInteractionDetailCoverageInput ||
-        localKey != recordedInteractionDetailCoverageKey
+        localKey != recordedInteractionDetailCoverageKey ||
+        inputContentChanged
       ) {
         val origin = patch.bounds.topLeft
         layer.record(patch.bounds.size) {
@@ -1177,6 +1198,7 @@ internal class RuntimeShaderGlassDelegate(
         recordedInteractionDetailCoverageLayer = layer
         recordedInteractionDetailCoverageInput = input
         recordedInteractionDetailCoverageKey = localKey
+        interactionDetailRecordCount++
       }
     }
 
@@ -1200,7 +1222,9 @@ internal class RuntimeShaderGlassDelegate(
         optical !== recordedInteractionCompositeOptical ||
         detail !== recordedInteractionCompositeDetail ||
         coverage !== recordedInteractionCompositeCoverage ||
-        patch.bounds.size != recordedInteractionCompositeSize
+        patch.bounds.size != recordedInteractionCompositeSize ||
+        interactionOpticalRecordCount != recordedInteractionCompositeOpticalRecordCount ||
+        interactionDetailRecordCount != recordedInteractionCompositeDetailRecordCount
       ) {
         layer.record(patch.bounds.size) {
           drawLayer(optical)
@@ -1212,6 +1236,9 @@ internal class RuntimeShaderGlassDelegate(
         recordedInteractionCompositeDetail = detail
         recordedInteractionCompositeCoverage = coverage
         recordedInteractionCompositeSize = patch.bounds.size
+        recordedInteractionCompositeOpticalRecordCount = interactionOpticalRecordCount
+        recordedInteractionCompositeDetailRecordCount = interactionDetailRecordCount
+        interactionCompositeRecordCount++
       }
     }
 

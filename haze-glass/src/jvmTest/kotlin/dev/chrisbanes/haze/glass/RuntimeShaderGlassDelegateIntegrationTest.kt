@@ -279,6 +279,36 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun movingInteractionWithinSamePatchSize_rerecordsLocalizedContent() = runComposeUiTest {
+    val effect = runtimeInteractiveEffect().apply {
+      interactionLightRadiusFraction = 0.25f
+      interactionPositionAnimationSpec = tween(1)
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    }
+    setContent { RuntimeLargeGlassTestContent(effect) }
+    waitForIdle()
+
+    effect.setPressedForTest(Offset(300f, 240f))
+    waitForIdle()
+
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val source = checkNotNull(delegate.layers.source)
+    val optical = checkNotNull(delegate.layers.optical)
+    val interactionOpticalRecords = delegate.interactionOpticalRecordCount
+    val interactionDetailRecords = delegate.interactionDetailRecordCount
+    val interactionCompositeRecords = delegate.interactionCompositeRecordCount
+
+    effect.setPressedForTest(Offset(500f, 320f))
+    waitForIdle()
+
+    assertThat(delegate.layers.source).isSameInstanceAs(source)
+    assertThat(delegate.layers.optical).isSameInstanceAs(optical)
+    assertThat(delegate.interactionOpticalRecordCount).isGreaterThan(interactionOpticalRecords)
+    assertThat(delegate.interactionDetailRecordCount).isGreaterThan(interactionDetailRecords)
+    assertThat(delegate.interactionCompositeRecordCount).isGreaterThan(interactionCompositeRecords)
+  }
+
+  @Test
   fun activeInteractionWithoutPatch_retainsBaseOutput() = runComposeUiTest {
     val effect = runtimeInteractiveEffect()
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
@@ -370,6 +400,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     waitForIdle()
     val delegate = effect.delegate as RuntimeShaderGlassDelegate
     val sourceRecordsBeforeMutation = delegate.sourceRecordCount
+    val interactionOpticalRecordsBeforeMutation = delegate.interactionOpticalRecordCount
+    val interactionDetailRecordsBeforeMutation = delegate.interactionDetailRecordCount
+    val interactionCompositeRecordsBeforeMutation = delegate.interactionCompositeRecordCount
     val acceptedSnapshotBeforeMutation = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
 
     sourceColor.value = Color.Blue
@@ -377,6 +410,12 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     assertThat(effect.currentInteractionSignals.pressed).isTrue()
     assertThat(delegate.sourceRecordCount).isGreaterThan(sourceRecordsBeforeMutation)
+    assertThat(delegate.interactionOpticalRecordCount)
+      .isGreaterThan(interactionOpticalRecordsBeforeMutation)
+    assertThat(delegate.interactionDetailRecordCount)
+      .isGreaterThan(interactionDetailRecordsBeforeMutation)
+    assertThat(delegate.interactionCompositeRecordCount)
+      .isGreaterThan(interactionCompositeRecordsBeforeMutation)
     assertThat(checkNotNull(delegate.lastSuccessfulSourceSnapshot))
       .isNotEqualTo(acceptedSnapshotBeforeMutation)
   }
