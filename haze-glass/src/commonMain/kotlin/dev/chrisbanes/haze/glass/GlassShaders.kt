@@ -43,14 +43,10 @@ internal object GlassShaders {
   }}
     ${if (interactionOptics) {
     interactionUniforms(
-      includeRefraction = interactionOptics,
-      includeWhitePoint = interactionOptics,
+      includeRefraction = true,
+      includeWhitePoint = true,
       includeLighting = false,
-    ) + if (interactionOptics) {
-      "uniform float interactionOpticalActive;"
-    } else {
-      ""
-    }
+    ) + "uniform float interactionOpticalActive;"
   } else {
     ""
   }}

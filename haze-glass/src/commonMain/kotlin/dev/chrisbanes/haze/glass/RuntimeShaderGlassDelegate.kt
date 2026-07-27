@@ -1562,7 +1562,7 @@ internal class RuntimeShaderGlassDelegate(
         val shader = checkNotNull(fusedShader)
         val optical = shader.updateUniforms {
           setOpticalUniforms(key.optical)
-          key.detail?.let(::setFusedDetailUniforms)
+          key.detail?.let(::setRefractionDetailUniforms)
           key.interaction?.let(::setFusedInteractionOpticalUniforms)
         }
         val detailKey = key.detail ?: return@let optical
@@ -2057,10 +2057,6 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
   setFloatUniform("detailVisibility", key.detailVisibility)
 }
 
-private fun RuntimeShaderUniformProvider.setFusedDetailUniforms(
-  key: GlassRefractionDetailEffectKey,
-) = setRefractionDetailUniforms(key)
-
 internal fun RuntimeShaderUniformProvider.setRimUniforms(
   key: GlassRimEffectKey,
 ) {
@@ -2085,10 +2081,8 @@ internal fun RuntimeShaderUniformProvider.setInteractionOpticalUniforms(
 private fun RuntimeShaderUniformProvider.setFusedInteractionOpticalUniforms(
   uniforms: GlassInteractionUniforms,
 ) {
-  setInteractionPositionUniforms(uniforms)
+  setInteractionOpticalUniforms(uniforms)
   setFloatUniform("interactionOpticalActive", if (uniforms.hasOptics) 1f else 0f)
-  setFloatUniform("interactionRefractionMultiplier", uniforms.refractionMultiplier)
-  setFloatUniform("interactionWhitePointDelta", uniforms.whitePointDelta)
 }
 
 internal fun RuntimeShaderUniformProvider.setInteractionDetailUniforms(

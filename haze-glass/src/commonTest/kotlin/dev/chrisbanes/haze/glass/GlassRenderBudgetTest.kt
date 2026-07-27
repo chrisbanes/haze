@@ -42,7 +42,7 @@ class GlassRenderBudgetTest {
   @Test
   fun fusedInteractionOptics_doesNotAddGroupCompositeToBudget() {
     val outputSize = IntSize(1000, 600)
-    val result = resolveGlassBudgetGroupCompositeSize(
+    val result = resolveGlassGroupCompositeSize(
       outputSize = outputSize,
       alpha = 1f,
       interactionLayersActive = true,

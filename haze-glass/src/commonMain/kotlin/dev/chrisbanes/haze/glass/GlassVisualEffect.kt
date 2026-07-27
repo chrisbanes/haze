@@ -947,7 +947,7 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
           interactionPatchSize.width > 0 && interactionPatchSize.height > 0
         buildGlassBudgetLayerPlan(
           sampleSize = coordinates.sampleSize.roundToIntSize(),
-          groupCompositeSize = resolveGlassBudgetGroupCompositeSize(
+          groupCompositeSize = resolveGlassGroupCompositeSize(
             outputSize = outputSize,
             alpha = style.alpha,
             interactionLayersActive = interactionLayersActive,

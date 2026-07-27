@@ -872,20 +872,10 @@ internal fun resolveGlassGroupCompositeSize(
   interactionTopology: GlassInteractionTopology,
 ): IntSize? = outputSize.takeIf {
   requiresGlassGroupAlpha(alpha) ||
-    interactionLayersActive && interactionTopology.hasOptics
+    !supportsFusedGlassRenderEffect &&
+    interactionLayersActive &&
+    interactionTopology.hasOptics
 }
-
-internal fun resolveGlassBudgetGroupCompositeSize(
-  outputSize: IntSize,
-  alpha: Float,
-  interactionLayersActive: Boolean,
-  interactionTopology: GlassInteractionTopology,
-): IntSize? = resolveGlassGroupCompositeSize(
-  outputSize = outputSize,
-  alpha = alpha,
-  interactionLayersActive = interactionLayersActive && !supportsFusedGlassRenderEffect,
-  interactionTopology = interactionTopology,
-)
 
 internal fun buildGlassPreparedRender(
   params: GlassRenderParams,
@@ -913,7 +903,7 @@ internal fun buildGlassPreparedRender(
     )
   }
   val interactionLayersActive = interactionPatchSize.width > 0 && interactionPatchSize.height > 0
-  val groupCompositeSize = resolveGlassBudgetGroupCompositeSize(
+  val groupCompositeSize = resolveGlassGroupCompositeSize(
     outputSize = outputSize,
     alpha = alpha,
     interactionLayersActive = interactionLayersActive,
