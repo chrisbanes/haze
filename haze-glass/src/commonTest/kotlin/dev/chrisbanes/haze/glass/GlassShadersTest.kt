@@ -22,7 +22,7 @@ class GlassShadersTest {
     val shader = GlassShaders.buildFused()
 
     assertThat(shader).contains("if (fresnelExponent == 0.0)")
-    assertThat(shader).contains("fresnel = 1.0;")
+    assertThat(shader).contains("ambient = 1.0 + clampedAmbientResponse;")
   }
 
   @Test
@@ -221,6 +221,22 @@ class GlassShadersTest {
   @Test
   fun opticalShader_skipsInactiveLightingAndContentNormalWork() {
     val main = GlassShaders.buildOptical().substringAfter("vec4 main(vec2 coord)")
+
+    assertThat(main).contains("if (ambientResponse > 0.0) {")
+    assertThat(main).contains("if (contentNormalBlend > 0.0) {")
+    assertThat(main).contains("vec3 normal = shapeNormal;")
+    assertThat(main).contains(
+      "normal = normalize(mix(shapeNormal, contentNormal, contentNormalBlend));",
+    )
+    assertThat(main).contains("float ambient = 1.0;")
+    assertThat(main).contains(
+      "ambient = mix(1.0, 1.0 + fresnel, clampedAmbientResponse);",
+    )
+  }
+
+  @Test
+  fun fusedShader_skipsInactiveLightingAndContentNormalWork() {
+    val main = GlassShaders.buildFused().substringAfter("vec4 main(vec2 coord)")
 
     assertThat(main).contains("if (ambientResponse > 0.0) {")
     assertThat(main).contains("if (contentNormalBlend > 0.0) {")

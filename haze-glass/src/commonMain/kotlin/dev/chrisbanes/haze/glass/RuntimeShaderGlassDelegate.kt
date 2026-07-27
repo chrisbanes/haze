@@ -76,6 +76,7 @@ internal class RuntimeShaderGlassDelegate(
   private var interactionOpticalEffectUniforms: GlassInteractionUniforms? = null
   private var interactionOpticalPlatformEffect: PlatformRenderEffect? = null
   private var interactionOpticalComposeEffect: RenderEffect? = null
+  private var interactionOpticalEffectLayer: GraphicsLayer? = null
   private var interactionOutputEffect: MutableRuntimeShaderRenderEffect? = null
   private var interactionOutputInput: PlatformRenderEffect? = null
   private var interactionOutputUniforms: GlassInteractionUniforms? = null
@@ -765,6 +766,7 @@ internal class RuntimeShaderGlassDelegate(
     recordedInteractionOpticalLayer = null
     recordedInteractionOpticalInput = null
     recordedInteractionOpticalKey = null
+    interactionOpticalEffectLayer = null
   }
 
   private fun clearInteractionRefractionLayerMetadata() {
@@ -1288,7 +1290,10 @@ internal class RuntimeShaderGlassDelegate(
       interactionOpticalEffectKey = key
       interactionOpticalEffectUniforms = uniforms
     }
-    layer.renderEffect = checkNotNull(interactionOpticalComposeEffect)
+    if (needsUpdate || layer !== interactionOpticalEffectLayer) {
+      layer.renderEffect = checkNotNull(interactionOpticalComposeEffect)
+      interactionOpticalEffectLayer = layer
+    }
   }
 
   private fun updateInteractionDetailEffect(
