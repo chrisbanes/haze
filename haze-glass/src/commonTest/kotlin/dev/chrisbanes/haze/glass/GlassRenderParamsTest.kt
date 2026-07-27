@@ -804,6 +804,62 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun renderParams_deriveBlurSigmaFromScaledRadius() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(blurRadius = 20.dp)
+    }
+    val style = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(100f, 80f),
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    listOf(1f, 0.75f, 0.25f).forEach { scaleFactor ->
+      val params = buildGlassRenderParams(
+        style = style,
+        coordinates = resolveGlassCoordinates(
+          layerSize = Size(100f, 80f),
+          layerOffset = Offset.Zero,
+          materialSize = Size(100f, 80f),
+          scaleFactor = scaleFactor,
+        ),
+      )
+
+      assertThat(params.blurRadiusPx).isEqualTo(20f * scaleFactor)
+      assertThat(params.blurSigmaPx).isEqualTo(
+        SemanticBlurKernel.radiusToSigma(params.blurRadiusPx),
+      )
+    }
+  }
+
+  @Test
+  fun renderParams_zeroBlurHasZeroRadiusAndSigma() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(blurRadius = 0.dp)
+    }
+    val style = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(100f, 80f),
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    val params = buildGlassRenderParams(
+      style = style,
+      coordinates = resolveGlassCoordinates(
+        layerSize = Size(100f, 80f),
+        layerOffset = Offset.Zero,
+        materialSize = Size(100f, 80f),
+        scaleFactor = 0.25f,
+      ),
+    )
+
+    assertThat(params.blurRadiusPx).isEqualTo(0f)
+    assertThat(params.blurSigmaPx).isEqualTo(0f)
+  }
+
+  @Test
   fun roundedSampleSize_matchesRetainedLayerDimensions() {
     val coordinates = resolveGlassCoordinates(
       layerSize = Size(140.8f, 100.8f),

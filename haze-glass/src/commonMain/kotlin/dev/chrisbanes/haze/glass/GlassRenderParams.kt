@@ -630,6 +630,7 @@ internal fun buildGlassRenderParams(
 ): GlassRenderParams {
   val scaleFactor = coordinates.scaleFactor
   val resolvedOptics = style.resolvedOptics
+  val blurRadiusPx = resolvedOptics.blurRadiusPx.finiteOr(0f).coerceAtLeast(0f) * scaleFactor
   return GlassRenderParams(
     coordinates = coordinates,
     refractionStrength = resolvedOptics.refractionStrength.finiteOr(0f).coerceIn(0f, 1f),
@@ -638,8 +639,8 @@ internal fun buildGlassRenderParams(
     ambientResponse = style.ambientResponse,
     tint = style.tint,
     edgeSoftnessPx = style.edgeSoftnessPx * scaleFactor,
-    blurRadiusPx = resolvedOptics.blurRadiusPx.finiteOr(0f).coerceAtLeast(0f) * scaleFactor,
-    blurSigmaPx = resolvedOptics.blurSigmaPx.finiteOr(0f).coerceAtLeast(0f) * scaleFactor,
+    blurRadiusPx = blurRadiusPx,
+    blurSigmaPx = SemanticBlurKernel.radiusToSigma(blurRadiusPx),
     progressive = resolvedOptics.progressive,
     refractionHeightPx = resolvedOptics.refractionHeightPx.finiteOr(0f).coerceAtLeast(0f) * scaleFactor,
     chromaticAberrationStrength = style.chromaticAberrationStrength,
