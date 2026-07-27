@@ -8,7 +8,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.GraphicsContext
-import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
@@ -41,7 +40,7 @@ class GlassVisualEffectAndroidCapabilityTest {
       context,
       runtimeShaderSupported = isRuntimeShaderGlassSupported(),
     )
-    effect.delegate = effect.updateDelegate(context, CanvasDrawScope())
+    effect.delegate = effect.updateDelegate()
 
     assertThat(effect.preparedRenderBudget is GlassRenderBudgetDecision.Runtime).isTrue()
     assertThat(effect.preparedRender).isNull()
@@ -58,7 +57,7 @@ class GlassVisualEffectAndroidCapabilityTest {
       context,
       runtimeShaderSupported = isRuntimeShaderGlassSupported(),
     )
-    effect.delegate = effect.updateDelegate(context, CanvasDrawScope())
+    effect.delegate = effect.updateDelegate()
 
     assertThat(effect.preparedRender).isNotNull()
     assertThat(effect.delegate is RuntimeShaderGlassDelegate).isTrue()

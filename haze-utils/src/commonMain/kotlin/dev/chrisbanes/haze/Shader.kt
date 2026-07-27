@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Shader
 
 /**
@@ -22,5 +23,5 @@ public expect fun createFractalNoiseShader(
 @InternalHazeApi
 public expect fun createBlendColorFilter(
   color: Int,
-  blendMode: HazeBlendMode,
+  blendMode: BlendMode,
 ): PlatformColorFilter

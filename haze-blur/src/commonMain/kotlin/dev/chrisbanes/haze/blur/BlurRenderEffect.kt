@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFold
-import dev.chrisbanes.haze.HazeBlendMode
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -33,7 +32,6 @@ import dev.chrisbanes.haze.createOffsetRenderEffect
 import dev.chrisbanes.haze.createProgressiveBlurRenderEffect
 import dev.chrisbanes.haze.createShaderRenderEffect
 import dev.chrisbanes.haze.isRuntimeShaderRenderEffectSupported
-import dev.chrisbanes.haze.toHazeBlendMode
 import dev.chrisbanes.haze.toPlatformColorFilter
 
 @RequiresApi(31)
@@ -87,7 +85,7 @@ internal fun createRenderEffect(
           mask = progressiveShader,
           scale = params.scale,
         ),
-        blendMode = HazeBlendMode.Softlight,
+        blendMode = BlendMode.Softlight,
       )
     } else {
       blur
@@ -185,7 +183,7 @@ private fun PlatformRenderEffect.withBrushTint(
     createColorFilterRenderEffect(
       colorFilter = createBlendColorFilter(
         color = Color.Black.copy(alpha = alphaModulate).toArgb(),
-        blendMode = HazeBlendMode.SrcIn,
+        blendMode = BlendMode.SrcIn,
       ),
       input = createShaderRenderEffect(tintBrush),
     )
@@ -212,11 +210,11 @@ private fun PlatformRenderEffect.withColorTint(
 ): PlatformRenderEffect {
   val tintColor = effect.resolveColor(alphaModulate) ?: return this
 
-  val colorEffect = createBlendColorFilter(tintColor.toArgb(), effect.blendMode.toHazeBlendMode())
+  val colorEffect = createBlendColorFilter(tintColor.toArgb(), effect.blendMode)
 
   val effectWithMask = if (mask != null) {
     createColorFilterRenderEffect(
-      colorFilter = createBlendColorFilter(tintColor.toArgb(), HazeBlendMode.SrcIn),
+      colorFilter = createBlendColorFilter(tintColor.toArgb(), BlendMode.SrcIn),
       input = createShaderRenderEffect(mask),
     )
   } else {
@@ -229,7 +227,7 @@ private fun PlatformRenderEffect.withColorTint(
   return if (mask != null) {
     blendForeground(
       foreground = effectWithMask,
-      blendMode = effect.blendMode.toHazeBlendMode(),
+      blendMode = effect.blendMode,
       offset = offset,
     )
   } else {
@@ -280,7 +278,7 @@ private fun PlatformRenderEffect.applyMaskAndBlend(
 ): PlatformRenderEffect {
   val effectWithMask = if (mask != null) {
     createBlendRenderEffect(
-      blendMode = HazeBlendMode.SrcIn,
+      blendMode = BlendMode.SrcIn,
       background = createShaderRenderEffect(mask),
       foreground = baseEffect,
     )
@@ -290,7 +288,7 @@ private fun PlatformRenderEffect.applyMaskAndBlend(
 
   return blendForeground(
     foreground = effectWithMask,
-    blendMode = blendMode.toHazeBlendMode(),
+    blendMode = blendMode,
     offset = offset,
   )
 }
@@ -299,7 +297,7 @@ private fun PlatformRenderEffect.withMask(
   brush: Brush?,
   size: Size,
   offset: Offset,
-  blendMode: HazeBlendMode = HazeBlendMode.DstIn,
+  blendMode: BlendMode = BlendMode.DstIn,
 ): PlatformRenderEffect {
   val shader = brush?.toShader(size) ?: return this
   return blendForeground(

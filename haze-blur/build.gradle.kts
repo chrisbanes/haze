@@ -39,7 +39,7 @@ kotlin {
     }
   }
 
-  addDefaultHazeTargets(project)
+  addDefaultHazeTargets(project, withSkikoMain = true)
   explicitApi()
 
   sourceSets {
@@ -56,7 +56,6 @@ kotlin {
     androidMain {
       dependencies {
         implementation(libs.androidx.activity)
-        implementation(libs.androidx.tracing)
       }
     }
 
@@ -65,30 +64,10 @@ kotlin {
         implementation(libs.assertk)
         implementation(libs.androidx.compose.ui.test.junit4)
         implementation(libs.androidx.compose.ui.test.manifest)
-        implementation(projects.internal.testUtils)
+        implementation(projects.internal.contextTest) {
+          exclude(group = "org.robolectric", module = "robolectric")
+        }
       }
-    }
-
-    val skikoMain by creating {
-      dependsOn(commonMain.get())
-    }
-
-    if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
-      iosMain {
-        dependsOn(skikoMain)
-      }
-    }
-
-    jvmMain {
-      dependsOn(skikoMain)
-    }
-
-    wasmJsMain {
-      dependsOn(skikoMain)
-    }
-
-    jsMain {
-      dependsOn(skikoMain)
     }
 
     commonTest {
@@ -99,7 +78,6 @@ kotlin {
         implementation(libs.compose.ui.test)
 
         implementation(projects.internal.contextTest)
-        implementation(projects.internal.testUtils)
       }
     }
 
@@ -114,11 +92,6 @@ kotlin {
     optIn.add("dev.chrisbanes.haze.ExperimentalHazeApi")
     optIn.add("dev.chrisbanes.haze.InternalHazeApi")
   }
-}
-
-// Disable JS tests; they currently fail due to missing browser-side runtime support.
-tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest> {
-  enabled = false
 }
 
 poko {

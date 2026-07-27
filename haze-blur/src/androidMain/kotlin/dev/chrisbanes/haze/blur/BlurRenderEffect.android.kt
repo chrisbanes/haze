@@ -18,10 +18,10 @@ import android.graphics.RuntimeShader
 import android.graphics.Shader.TileMode.REPEAT
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.toArgb
-import dev.chrisbanes.haze.HazeBlendMode
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -155,7 +155,7 @@ internal actual fun createNoiseEffect(
     mask != null -> {
       // If we have a mask, we need to apply it to the noise bitmap shader via a blend mode
       createBlendRenderEffect(
-        blendMode = HazeBlendMode.SrcIn,
+        blendMode = BlendMode.SrcIn,
         background = createShaderRenderEffect(mask),
         foreground = noiseEffect,
       )

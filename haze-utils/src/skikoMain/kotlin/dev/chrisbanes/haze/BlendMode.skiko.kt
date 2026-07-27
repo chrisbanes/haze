@@ -3,40 +3,42 @@
 
 package dev.chrisbanes.haze
 
-import org.jetbrains.skia.BlendMode
+import androidx.compose.ui.graphics.BlendMode
+import org.jetbrains.skia.BlendMode as SkiaBlendMode
 
 /**
- * Converts a [HazeBlendMode] to Skia's [BlendMode].
+ * Converts a Compose [BlendMode] to Skia's [SkiaBlendMode].
  */
 @InternalHazeApi
-public fun HazeBlendMode.toSkiaBlendMode(): BlendMode = when (this) {
-  HazeBlendMode.Clear -> BlendMode.CLEAR
-  HazeBlendMode.Src -> BlendMode.SRC
-  HazeBlendMode.Dst -> BlendMode.DST
-  HazeBlendMode.SrcOver -> BlendMode.SRC_OVER
-  HazeBlendMode.DstOver -> BlendMode.DST_OVER
-  HazeBlendMode.SrcIn -> BlendMode.SRC_IN
-  HazeBlendMode.DstIn -> BlendMode.DST_IN
-  HazeBlendMode.SrcOut -> BlendMode.SRC_OUT
-  HazeBlendMode.DstOut -> BlendMode.DST_OUT
-  HazeBlendMode.SrcAtop -> BlendMode.SRC_ATOP
-  HazeBlendMode.DstAtop -> BlendMode.DST_ATOP
-  HazeBlendMode.Xor -> BlendMode.XOR
-  HazeBlendMode.Plus -> BlendMode.PLUS
-  HazeBlendMode.Modulate -> BlendMode.MODULATE
-  HazeBlendMode.Screen -> BlendMode.SCREEN
-  HazeBlendMode.Overlay -> BlendMode.OVERLAY
-  HazeBlendMode.Darken -> BlendMode.DARKEN
-  HazeBlendMode.Lighten -> BlendMode.LIGHTEN
-  HazeBlendMode.ColorDodge -> BlendMode.COLOR_DODGE
-  HazeBlendMode.ColorBurn -> BlendMode.COLOR_BURN
-  HazeBlendMode.Hardlight -> BlendMode.HARD_LIGHT
-  HazeBlendMode.Softlight -> BlendMode.SOFT_LIGHT
-  HazeBlendMode.Difference -> BlendMode.DIFFERENCE
-  HazeBlendMode.Exclusion -> BlendMode.EXCLUSION
-  HazeBlendMode.Multiply -> BlendMode.MULTIPLY
-  HazeBlendMode.Hue -> BlendMode.HUE
-  HazeBlendMode.Saturation -> BlendMode.SATURATION
-  HazeBlendMode.Color -> BlendMode.COLOR
-  HazeBlendMode.Luminosity -> BlendMode.LUMINOSITY
+public fun BlendMode.toSkiaBlendMode(): SkiaBlendMode = when (this) {
+  BlendMode.Clear -> SkiaBlendMode.CLEAR
+  BlendMode.Src -> SkiaBlendMode.SRC
+  BlendMode.Dst -> SkiaBlendMode.DST
+  BlendMode.SrcOver -> SkiaBlendMode.SRC_OVER
+  BlendMode.DstOver -> SkiaBlendMode.DST_OVER
+  BlendMode.SrcIn -> SkiaBlendMode.SRC_IN
+  BlendMode.DstIn -> SkiaBlendMode.DST_IN
+  BlendMode.SrcOut -> SkiaBlendMode.SRC_OUT
+  BlendMode.DstOut -> SkiaBlendMode.DST_OUT
+  BlendMode.SrcAtop -> SkiaBlendMode.SRC_ATOP
+  BlendMode.DstAtop -> SkiaBlendMode.DST_ATOP
+  BlendMode.Xor -> SkiaBlendMode.XOR
+  BlendMode.Plus -> SkiaBlendMode.PLUS
+  BlendMode.Modulate -> SkiaBlendMode.MODULATE
+  BlendMode.Screen -> SkiaBlendMode.SCREEN
+  BlendMode.Overlay -> SkiaBlendMode.OVERLAY
+  BlendMode.Darken -> SkiaBlendMode.DARKEN
+  BlendMode.Lighten -> SkiaBlendMode.LIGHTEN
+  BlendMode.ColorDodge -> SkiaBlendMode.COLOR_DODGE
+  BlendMode.ColorBurn -> SkiaBlendMode.COLOR_BURN
+  BlendMode.Hardlight -> SkiaBlendMode.HARD_LIGHT
+  BlendMode.Softlight -> SkiaBlendMode.SOFT_LIGHT
+  BlendMode.Difference -> SkiaBlendMode.DIFFERENCE
+  BlendMode.Exclusion -> SkiaBlendMode.EXCLUSION
+  BlendMode.Multiply -> SkiaBlendMode.MULTIPLY
+  BlendMode.Hue -> SkiaBlendMode.HUE
+  BlendMode.Saturation -> SkiaBlendMode.SATURATION
+  BlendMode.Color -> SkiaBlendMode.COLOR
+  BlendMode.Luminosity -> SkiaBlendMode.LUMINOSITY
+  else -> SkiaBlendMode.SRC_OVER
 }

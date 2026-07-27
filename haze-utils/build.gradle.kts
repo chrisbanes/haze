@@ -18,7 +18,7 @@ kotlin {
     namespace = "dev.chrisbanes.haze.utils"
   }
 
-  addDefaultHazeTargets(project)
+  addDefaultHazeTargets(project, withSkikoMain = true)
   explicitApi()
 
   sourceSets {
@@ -32,28 +32,6 @@ kotlin {
       dependencies {
         implementation(libs.androidx.tracing)
       }
-    }
-
-    val skikoMain by creating {
-      dependsOn(commonMain.get())
-    }
-
-    if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
-      iosMain {
-        dependsOn(skikoMain)
-      }
-    }
-
-    jvmMain {
-      dependsOn(skikoMain)
-    }
-
-    wasmJsMain {
-      dependsOn(skikoMain)
-    }
-
-    jsMain {
-      dependsOn(skikoMain)
     }
   }
 }

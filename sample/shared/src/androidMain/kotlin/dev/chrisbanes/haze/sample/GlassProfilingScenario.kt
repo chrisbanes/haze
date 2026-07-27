@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 
 internal const val GLASS_PROFILING_DURATION_MILLIS: Int = 3_000
 internal const val GLASS_PROFILING_SETTLING_FRAMES: Int = 8
@@ -257,6 +258,3 @@ internal class GlassProfilingState {
     phase = GlassProfilingPhase.Complete
   }
 }
-
-private fun lerp(start: Float, end: Float, fraction: Float): Float =
-  start + (end - start) * fraction

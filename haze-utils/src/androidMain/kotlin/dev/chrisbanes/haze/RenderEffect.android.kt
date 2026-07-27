@@ -11,6 +11,7 @@ import android.graphics.RenderEffect
 import android.graphics.Shader as AndroidShader
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -34,7 +35,7 @@ public actual fun createShaderRenderEffect(
 @RequiresApi(31)
 @InternalHazeApi
 public actual fun createBlendRenderEffect(
-  blendMode: HazeBlendMode,
+  blendMode: BlendMode,
   background: PlatformRenderEffect,
   foreground: PlatformRenderEffect,
   crop: Rect?,
