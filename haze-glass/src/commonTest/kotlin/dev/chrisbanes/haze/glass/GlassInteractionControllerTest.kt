@@ -346,6 +346,105 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun hoverExit_retainsLatestHoverPositionAfterAnEarlierPress() = runComposeUiTest {
+    val effect = GlassVisualEffect().apply {
+      hovered()
+      pressed()
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    }
+    setTaggedEffectContent(effect)
+
+    onNodeWithTag("glass").performTouchInput { click(Offset(10f, 20f)) }
+    onNodeWithTag("glass").performMouseInput {
+      enter(Offset(30f, 40f))
+      moveTo(Offset(70f, 60f))
+      exit()
+    }
+    waitForIdle()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(70f, 60f))
+  }
+
+  @Test
+  fun inactiveHoverPosition_doesNotOverrideSubsequentFocus() = runComposeUiTest {
+    val source = MutableInteractionSource()
+    val focus = FocusInteraction.Focus()
+    val effect = GlassVisualEffect().apply {
+      hovered()
+      focused()
+      interactionSource = source
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    }
+    setTaggedEffectContent(effect)
+
+    onNodeWithTag("glass").performMouseInput {
+      enter(Offset(10f, 10f))
+      moveTo(Offset(20f, 30f))
+      exit()
+    }
+    waitForIdle()
+    assertThat(renderState(effect).position).isEqualTo(Offset(20f, 30f))
+
+    source.tryEmit(focus)
+    waitForIdle()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(50f, 50f))
+  }
+
+  @Test
+  fun activePointerInteractions_overrideFocusPosition() = runComposeUiTest {
+    val source = MutableInteractionSource()
+    val focus = FocusInteraction.Focus()
+    val press = PressInteraction.Press(Offset(20f, 10f))
+    val effect = GlassVisualEffect().apply {
+      hovered()
+      focused()
+      pressed()
+      interactionSource = source
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    }
+    setTaggedEffectContent(effect)
+    source.tryEmit(focus)
+    waitForIdle()
+
+    onNodeWithTag("glass").performMouseInput { enter(Offset(30f, 40f)) }
+    waitForIdle()
+    assertThat(renderState(effect).position).isEqualTo(Offset(30f, 40f))
+
+    source.tryEmit(press)
+    waitForIdle()
+    assertThat(renderState(effect).position).isEqualTo(Offset(20f, 10f))
+
+    onNodeWithTag("glass").performTouchInput { down(Offset(15f, 25f)) }
+    waitForIdle()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(15f, 25f))
+  }
+
+  @Test
+  fun pointerCancellation_doesNotAllowRetainedHoverToOverrideLaterFocus() = runComposeUiTest {
+    val source = MutableInteractionSource()
+    val focus = FocusInteraction.Focus()
+    val effect = GlassVisualEffect().apply {
+      hovered()
+      focused()
+      interactionSource = source
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    }
+    setTaggedEffectContent(effect)
+
+    onNodeWithTag("glass").performMouseInput { enter(Offset(20f, 30f)) }
+    interactive(effect).onCancelPointerInput(context(effect))
+    waitForIdle()
+    assertThat(renderState(effect).position).isEqualTo(Offset(20f, 30f))
+
+    source.tryEmit(focus)
+    waitForIdle()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(50f, 50f))
+  }
+
+  @Test
   fun rawAndSourceHover_releaseIndependently() = runComposeUiTest {
     val source = MutableInteractionSource()
     val sourceHover = HoverInteraction.Enter()
