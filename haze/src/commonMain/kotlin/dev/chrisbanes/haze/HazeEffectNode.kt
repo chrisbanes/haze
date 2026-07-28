@@ -446,6 +446,9 @@ public class HazeEffectNode(
               }
             }
           }
+        } else if (visualEffect === EmptyVisualEffect) {
+          contentDrawArea.releaseLayer()
+          drawContentSafely()
         } else {
           // Else we're doing content (foreground) blurring, so we need to use our
           // contentDrawArea
