@@ -71,6 +71,7 @@ public class HazeSourceNode(
 
   public var state: HazeState = state
     set(value) {
+      if (value === field) return
       val attachedToState = area in field.areas
       if (attachedToState) {
         // Detach ourselves from the old HazeState

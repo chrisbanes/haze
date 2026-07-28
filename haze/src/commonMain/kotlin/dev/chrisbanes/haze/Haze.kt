@@ -115,7 +115,7 @@ public class HazeArea internal constructor() {
   public var zIndex: Float by mutableFloatStateOf(0f)
     internal set
 
-  public var key: Any? = null
+  public var key: Any? by mutableStateOf(null)
     internal set
 
   public var windowId: Any? = null
