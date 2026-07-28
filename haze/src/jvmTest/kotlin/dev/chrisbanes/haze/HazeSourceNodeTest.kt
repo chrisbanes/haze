@@ -18,6 +18,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -70,7 +71,7 @@ class HazeSourceNodeTest : ContextTest() {
     sourceSize = 0.1.dp
     waitForIdle()
 
-    assertThat(node.area.contentLayer).isEqualTo(null)
+    assertThat(node.area.contentLayer).isNull()
 
     sourceSize = 100.dp
     waitForIdle()
