@@ -123,6 +123,7 @@ public class HazeEffectNode(
 
   private val areaOffsets = MutableObjectLongMap<HazeArea>()
   private val areaZIndexes = MutableObjectLongMap<HazeArea>()
+  private val areaKeys = mutableMapOf<HazeArea, Any?>()
 
   private var _size: Size = Size.Unspecified
     set(value) {
@@ -324,6 +325,7 @@ public class HazeEffectNode(
     resetPendingInvalidations()
     _areas = emptyList()
     areaZIndexes.clear()
+    areaKeys.clear()
     contentDrawArea.releaseLayer()
     clearRetainedOutput()
     pointerInputDelegate?.let { delegate ->
@@ -521,7 +523,11 @@ public class HazeEffectNode(
       // We copy toList() because stateAreas is a SnapshotStateList reference
       // and would otherwise mutate lastSeenStateAreas in place.
       val currentStateAreas = stateAreas.toList()
-      if (currentStateAreas != lastSeenStateAreas || haveAreaZIndexesChanged(currentStateAreas)) {
+      if (
+        currentStateAreas != lastSeenStateAreas ||
+        haveAreaZIndexesChanged(currentStateAreas) ||
+        haveAreaKeysChanged(currentStateAreas)
+      ) {
         lastSeenStateAreas = currentStateAreas
         dirtyTracker += DirtyFields.Areas
       }
@@ -562,9 +568,11 @@ public class HazeEffectNode(
           clearRetainedOutput()
         }
         updateAreaZIndexes(currentStateAreas)
+        updateAreaKeys(currentStateAreas)
       }
     } else {
       areaZIndexes.clear()
+      areaKeys.clear()
       // Foreground (content) blur: always update contentDrawArea since its size,
       // position, and windowId may change every frame with no dirty flag.
       contentDrawArea.size = size
@@ -740,6 +748,20 @@ public class HazeEffectNode(
     areaZIndexes.clear()
     stateAreas.forEach { area ->
       areaZIndexes[area] = area.zIndex.toRawBits().toLong()
+    }
+  }
+
+  private fun haveAreaKeysChanged(stateAreas: List<HazeArea>): Boolean {
+    if (areaKeys.size != stateAreas.size) return true
+    return stateAreas.any { area ->
+      !areaKeys.containsKey(area) || areaKeys[area] != area.key
+    }
+  }
+
+  private fun updateAreaKeys(stateAreas: List<HazeArea>) {
+    areaKeys.clear()
+    stateAreas.forEach { area ->
+      areaKeys[area] = area.key
     }
   }
 
