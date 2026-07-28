@@ -26,6 +26,7 @@ import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
@@ -264,6 +265,81 @@ class VisualEffectLifecycleTest : ContextTest() {
     assertFailure {
       HazeEffectNode().attachVisualEffect(sharedEffect)
     }.isInstanceOf<IllegalStateException>()
+  }
+
+  @Test
+  fun visualEffect_ownedReplacementFailureKeepsOldEffectAttached() = runComposeUiTest {
+    val oldEffect = RecordingVisualEffect()
+    val ownedEffect = RecordingVisualEffect()
+    var effectNode: HazeEffectNode? = null
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeEffect {
+            effectNode = this as HazeEffectNode
+            visualEffect = oldEffect
+          },
+      )
+    }
+    waitForIdle()
+
+    val owner = HazeEffectNode()
+    owner.attachVisualEffect(ownedEffect)
+    try {
+      assertFailure {
+        runOnIdle {
+          checkNotNull(effectNode).visualEffect = ownedEffect
+        }
+      }.isInstanceOf<IllegalStateException>()
+
+      assertThat(checkNotNull(effectNode).visualEffect).isSameInstanceAs(oldEffect)
+      assertThat(oldEffect.detachCalls).isEqualTo(0)
+      assertThat(ownedEffect.attachCalls).isEqualTo(1)
+    } finally {
+      owner.detachVisualEffect(ownedEffect)
+    }
+  }
+
+  @Test
+  fun visualEffect_retainedOutputClearFailureRollsBackReplacementOwnership() = runComposeUiTest {
+    val oldEffect = ThrowingClearVisualEffect()
+    val replacement = RecordingVisualEffect()
+    var effectNode: HazeEffectNode? = null
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeEffect {
+            effectNode = this as HazeEffectNode
+            visualEffect = oldEffect
+          },
+      )
+    }
+    waitForIdle()
+
+    val clearCallsBeforeReplacement = oldEffect.clearCalls
+    oldEffect.throwOnClear = true
+    assertFailure {
+      runOnIdle {
+        checkNotNull(effectNode).visualEffect = replacement
+      }
+    }.isInstanceOf<IllegalStateException>()
+    oldEffect.throwOnClear = false
+
+    assertThat(checkNotNull(effectNode).visualEffect).isSameInstanceAs(oldEffect)
+    assertThat(oldEffect.detachCalls).isEqualTo(0)
+    assertThat(oldEffect.clearCalls).isEqualTo(clearCallsBeforeReplacement + 1)
+    assertThat(replacement.attachCalls).isEqualTo(1)
+    assertThat(replacement.detachCalls).isEqualTo(1)
+
+    val nextOwner = HazeEffectNode()
+    nextOwner.attachVisualEffect(replacement)
+    nextOwner.detachVisualEffect(replacement)
+    assertThat(replacement.attachCalls).isEqualTo(2)
+    assertThat(replacement.detachCalls).isEqualTo(2)
   }
 
   @Test
@@ -622,4 +698,25 @@ internal class RetainedOutputRecordingVisualEffect : VisualEffect, RetainedOutpu
       retainedOutputAvailable = true
     }
   }
+}
+
+internal class ThrowingClearVisualEffect : VisualEffect, RetainedOutputVisualEffect {
+  var detachCalls = 0
+  var clearCalls = 0
+  var throwOnClear = false
+
+  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean = false
+
+  override fun clearRetainedOutput() {
+    clearCalls++
+    if (throwOnClear) {
+      error("clear failed")
+    }
+  }
+
+  override fun detach(context: VisualEffectContext) {
+    detachCalls++
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
 }

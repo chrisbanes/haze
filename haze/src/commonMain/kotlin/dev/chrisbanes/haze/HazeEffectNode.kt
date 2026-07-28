@@ -221,10 +221,24 @@ public class HazeEffectNode(
         pointerInputDelegate?.cancel(oldEffect as? InteractiveVisualEffect)
         if (isAttached) {
           attachVisualEffect(value)
+          try {
+            clearRetainedOutput()
+          } catch (throwable: Throwable) {
+            runCatching { detachVisualEffect(value) }
+              .exceptionOrNull()
+              ?.let(throwable::addSuppressed)
+            throw throwable
+          }
           runCatching { detachVisualEffect(oldEffect) }
+        } else {
+          clearRetainedOutput()
         }
         field = value
+        dirtyTracker += DirtyFields.VisualEffectLayerBounds
         syncPointerInputDelegate()
+        if (isAttached) {
+          invalidateVisualEffectDraw()
+        }
       }
     }
 
