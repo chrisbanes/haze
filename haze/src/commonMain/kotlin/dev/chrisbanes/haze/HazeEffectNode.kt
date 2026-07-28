@@ -90,6 +90,7 @@ public class HazeEffectNode(
   private var needsVisualEffectInvalidation = false
   private var needsContentInvalidation = false
   private var isDrawing = false
+  private var lastKnownCoordinates: LayoutCoordinates? = null
 
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
@@ -316,6 +317,7 @@ public class HazeEffectNode(
       undelegate(delegate)
     }
     pointerInputDelegate = null
+    lastKnownCoordinates = null
     detachVisualEffect(visualEffect)
   }
 
@@ -334,6 +336,7 @@ public class HazeEffectNode(
 
   override fun onPlaced(coordinates: LayoutCoordinates) {
     Snapshot.withoutReadObservation {
+      lastKnownCoordinates = coordinates
       // onPlaced is needed before first draw because onGloballyPositioned can arrive
       // after screenshot tests capture the first frame (#433).
       //
@@ -358,6 +361,12 @@ public class HazeEffectNode(
       return
     }
 
+    lastKnownCoordinates = coordinates
+    updatePositionGeometry(coordinates, source)
+    updateEffect()
+  }
+
+  private fun updatePositionGeometry(coordinates: LayoutCoordinates, source: String) {
     // Use node-local resolvedPositionStrategy instead of shared state
     _position = coordinates.positionForHaze(resolvedPositionStrategy)
     _size = coordinates.size.toSize()
@@ -372,8 +381,6 @@ public class HazeEffectNode(
     HazeLogger.d(TAG) {
       "$source: position=$position, size=$size"
     }
-
-    updateEffect()
   }
 
   override fun ContentDrawScope.draw() {
@@ -560,14 +567,13 @@ public class HazeEffectNode(
       )
       if (resolvedPositionStrategy != newResolved) {
         resolvedPositionStrategy = newResolved
-        // Allow the current VisualEffect to update before we return so it
-        // sees the freshly-computed areas on this pass.
-        visualEffect.update(visualEffectContext)
-        syncPointerInputDelegate()
-        // Strategy changes require recomputing positions. Exit now to avoid
-        // mixing coordinate systems in this frame.
-        invalidateIfNeeded()
-        return@trace
+        val coordinates = lastKnownCoordinates
+        if (coordinates == null || !coordinates.isAttached) {
+          // Without attached coordinates we cannot atomically enter the new coordinate space.
+          invalidateIfNeeded()
+          return@trace
+        }
+        updatePositionGeometry(coordinates, "positionStrategyChanged")
       }
     }
 
