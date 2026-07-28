@@ -35,6 +35,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
@@ -48,6 +49,7 @@ import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
@@ -399,6 +401,43 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       assertThat(delegate.interactionShaderHandleOrNull("interactionDetailEffect")).isNull()
       assertThat(delegate.interactionShaderHandleOrNull("interactionLightingEffect")).isNull()
     }
+
+  @Test
+  fun interactionRuntimeConstructionFailure_drawsAndUpdatesFallback() = runComposeUiTest {
+    var failConstruction = false
+    var creationAttempts = 0
+    val effect = runtimeInteractiveEffect().apply {
+      runtimeEffectFactory = GlassRuntimeEffectFactory { create ->
+        creationAttempts++
+        if (failConstruction) {
+          throw RuntimeShaderRenderEffectException(
+            IllegalArgumentException("broken interaction runtime effect"),
+          )
+        }
+        create()
+      }
+    }
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+    val baseCreationAttempts = creationAttempts
+
+    failConstruction = true
+    effect.setPressedForTest(Offset(60f, 60f))
+    mainClock.advanceTimeBy(500)
+    waitForIdle()
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(creationAttempts).isGreaterThan(baseCreationAttempts)
+    onNodeWithTag("glass").captureToImage()
+    val attemptsAfterDowngrade = creationAttempts
+
+    effect.tint = Color.Blue.copy(alpha = 0.5f)
+    waitForIdle()
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(creationAttempts).isEqualTo(attemptsAfterDowngrade)
+    onNodeWithTag("glass").captureToImage()
+  }
 
   @Test
   fun heldInteraction_sourceContentChangeRecordsSource() = runComposeUiTest {

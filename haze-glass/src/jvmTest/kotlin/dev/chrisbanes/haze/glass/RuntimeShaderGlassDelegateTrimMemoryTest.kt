@@ -18,12 +18,14 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
@@ -32,8 +34,11 @@ import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.PlatformContext
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
+import dev.chrisbanes.haze.createRuntimeEffect
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
@@ -42,6 +47,32 @@ import sun.misc.Unsafe
 
 @OptIn(ExperimentalHazeApi::class, InternalComposeUiApi::class)
 class RuntimeShaderGlassDelegateTrimMemoryTest {
+
+  @Test
+  fun invalidSkikoSksl_isReportedAsRuntimeShaderConstructionFailure() {
+    assertFailure {
+      createRuntimeEffect("not valid SKSL")
+    }.isInstanceOf<RuntimeShaderRenderEffectException>()
+  }
+
+  @Test
+  fun runtimeShaderUniformFailure_isNotReportedAsConstructionFailure() {
+    val effect = createRuntimeEffect(
+      "half4 main(float2 coord) { return half4(1); }",
+    )
+    val mutableEffect = createMutableRuntimeShaderRenderEffect(
+      effect = effect,
+      shaderNames = arrayOf("content"),
+      inputs = arrayOf(null),
+    )
+    val unrelatedFailure = IllegalStateException("unrelated uniform failure")
+
+    assertFailure {
+      mutableEffect.updateUniforms {
+        throw unrelatedFailure
+      }
+    }.isSameInstanceAs(unrelatedFailure)
+  }
 
   @Test
   fun fractionalAlpha_reusesGroupLayerAndZeroReleasesIt() {
@@ -227,6 +258,82 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(secondRuntime.layers.hasSource).isTrue()
     assertThat(secondRuntime.layers.hasOptical).isTrue()
     effect.detach(safeContext)
+  }
+
+  @Test
+  fun prepareDraw_runtimeConstructionFailureReleasesAndUsesFallbackUntilReattach() {
+    var creationAttempts = 0
+    val failingFactory = GlassRuntimeEffectFactory { create ->
+      creationAttempts++
+      if (creationAttempts % 2 == 0) {
+        throw RuntimeShaderRenderEffectException(IllegalArgumentException("broken runtime effect"))
+      }
+      create()
+    }
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(
+        refractionStrength = 0.5f,
+        refractionScale = 20f,
+        depth = 0f,
+        blurRadius = 0.dp,
+      )
+      specularIntensity = 0f
+      runtimeEffectFactory = failingFactory
+    }
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+    )
+    val runtimeDelegate = RuntimeShaderGlassDelegate(effect, failingFactory)
+    effect.delegate = runtimeDelegate
+    runtimeDelegate.layers.populate(context.graphicsContext)
+    val partialLayers = runtimeDelegate.layers.allLayers()
+    runtimeDelegate.setGraphicsContextForTest(context.graphicsContext)
+
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(context.graphicsContext.releasedLayers).containsExactly(*partialLayers.toTypedArray())
+    assertThat(runtimeDelegate.layers.isEmpty).isTrue()
+    assertThat(runtimeDelegate.opticalShader).isNull()
+    assertThat(runtimeDelegate.refractionDetailShader).isNull()
+    assertThat(creationAttempts).isEqualTo(2)
+    assertThat(context.invalidateDrawCalls).isEqualTo(1)
+
+    effect.prepareDrawForTest(context)
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(creationAttempts).isEqualTo(2)
+
+    effect.detach(context)
+    effect.attach(context)
+    effect.prepareDrawForTest(context)
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(creationAttempts).isEqualTo(4)
+    effect.detach(context)
+  }
+
+  @Test
+  fun prepareDraw_unrelatedRuntimeDelegateExceptionPropagates() {
+    val unrelatedFailure = IllegalStateException("unrelated")
+    val failingFactory = GlassRuntimeEffectFactory {
+      throw unrelatedFailure
+    }
+    val effect = GlassVisualEffect()
+    val context = RecordingVisualEffectContext(
+      size = Size(100f, 100f),
+      layerSize = Size(100f, 100f),
+    )
+    effect.delegate = RuntimeShaderGlassDelegate(effect, failingFactory)
+    effect.attach(context)
+
+    assertFailure {
+      effect.prepareDrawForTest(context)
+    }.isInstanceOf<IllegalStateException>()
+    assertThat(effect.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+    effect.detach(context)
   }
 
   @Test

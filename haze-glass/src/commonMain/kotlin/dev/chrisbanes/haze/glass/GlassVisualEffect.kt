@@ -38,6 +38,7 @@ import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InteractiveVisualEffect
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
@@ -176,6 +177,11 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
     get() = interactionController?.currentSignals ?: IdleInteractionSignals
 
   private var needsDelegateSelection: Boolean = true
+
+  internal var runtimeEffectFactory: GlassRuntimeEffectFactory = PlatformGlassRuntimeEffectFactory
+
+  internal var runtimeShaderIncompatible: Boolean = false
+    private set
 
   internal var preparedRenderBudget: GlassRenderBudgetDecision =
     GlassRenderBudgetDecision.Fallback(GlassRenderBudgetFallbackReason.InvalidGeometry)
@@ -572,6 +578,8 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       isAttached = false
       delegate.detach()
     }
+    runtimeShaderIncompatible = false
+    needsDelegateSelection = true
     preparedRender = null
     clearPreparedRenderCache()
   }
@@ -636,7 +644,13 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
         selectDelegateForDraw(context)
       }
       trace(GlassTraceSection.DelegatePrepare) {
-        with(delegate) { prepareDraw(context) }
+        val selectedDelegate = delegate
+        try {
+          with(selectedDelegate) { prepareDraw(context) }
+        } catch (failure: RuntimeShaderRenderEffectException) {
+          if (selectedDelegate !is RuntimeShaderGlassDelegate) throw failure
+          downgradeRuntimeDelegate(selectedDelegate, context, failure)
+        }
       }
       cachePreparedDrawInputs(context)
     }
@@ -678,12 +692,36 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
   override fun DrawScope.draw(context: VisualEffectContext) {
     try {
       selectDelegateForDraw(context)
-      withMaterialTransform(context) {
-        with(delegate) { draw(context) }
+      val selectedDelegate = delegate
+      try {
+        withMaterialTransform(context) {
+          with(selectedDelegate) { draw(context) }
+        }
+      } catch (failure: RuntimeShaderRenderEffectException) {
+        if (selectedDelegate !is RuntimeShaderGlassDelegate) throw failure
+        downgradeRuntimeDelegate(selectedDelegate, context, failure)
+        withMaterialTransform(context) {
+          with(delegate) { draw(context) }
+        }
       }
     } finally {
       resetDirtyTracker()
     }
+  }
+
+  private fun DrawScope.downgradeRuntimeDelegate(
+    runtimeDelegate: RuntimeShaderGlassDelegate,
+    context: VisualEffectContext,
+    failure: RuntimeShaderRenderEffectException,
+  ) {
+    runtimeDelegate.releaseAfterConstructionFailure()
+    runtimeShaderIncompatible = true
+    HazeLogger.d(TAG) {
+      "Runtime shader construction failed; using fallback until reattachment: $failure"
+    }
+    delegate = FallbackGlassDelegate(this@GlassVisualEffect)
+    with(delegate) { prepareDraw(context) }
+    context.invalidateDraw()
   }
 
   override fun DrawScope.drawForeground(context: VisualEffectContext) {
@@ -1761,9 +1799,11 @@ internal interface RetainedOutputDelegate {
 internal fun GlassVisualEffect.updateDelegate(): GlassVisualEffect.Delegate {
   val wantsRuntime =
     preparedRenderBudget is GlassRenderBudgetDecision.Runtime &&
-      preparedRender != null
+      preparedRender != null &&
+      !runtimeShaderIncompatible
   return when {
-    wantsRuntime && delegate !is RuntimeShaderGlassDelegate -> RuntimeShaderGlassDelegate(this)
+    wantsRuntime && delegate !is RuntimeShaderGlassDelegate ->
+      RuntimeShaderGlassDelegate(this, runtimeEffectFactory)
     !wantsRuntime && delegate !is FallbackGlassDelegate -> FallbackGlassDelegate(this)
     else -> delegate
   }

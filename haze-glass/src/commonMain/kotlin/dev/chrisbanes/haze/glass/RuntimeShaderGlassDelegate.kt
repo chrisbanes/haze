@@ -22,6 +22,7 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.Poko
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffectContext
@@ -34,6 +35,7 @@ import dev.chrisbanes.haze.trace
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderGlassDelegate(
   private val effect: GlassVisualEffect,
+  private val runtimeEffectFactory: GlassRuntimeEffectFactory = PlatformGlassRuntimeEffectFactory,
 ) : GlassVisualEffect.Delegate, RetainedOutputDelegate {
   private var blurKey: GlassBlurEffectKey? = null
   private var blurEffects: GlassBlurRenderEffects? = null
@@ -797,6 +799,10 @@ internal class RuntimeShaderGlassDelegate(
     releaseRetainedResources(releaseShaderHandles = false)
   }
 
+  internal fun releaseAfterConstructionFailure() {
+    releaseRetainedResources(releaseShaderHandles = true)
+  }
+
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
     if (shouldReleaseRetainedGlass(level)) {
       releaseRetainedResources(graphicsContext ?: context.requireGraphicsContext())
@@ -1335,11 +1341,13 @@ internal class RuntimeShaderGlassDelegate(
       uniforms != interactionDetailCoverageEffectUniforms ||
       interactionDetailCoverageComposeEffect == null
     if (interactionDetailCoverageEffect == null) {
-      interactionDetailCoverageEffect = createMutableRuntimeShaderRenderEffect(
-        effect = GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT,
-        shaderNames = arrayOf("content"),
-        inputs = arrayOf(null),
-      )
+      interactionDetailCoverageEffect = traceCreateRenderEffect {
+        createMutableRuntimeShaderRenderEffect(
+          effect = GLASS_INTERACTION_REFRACTION_DETAIL_COVERAGE_EFFECT,
+          shaderNames = arrayOf("content"),
+          inputs = arrayOf(null),
+        )
+      }
     }
     if (needsUpdate) {
       interactionDetailCoverageComposeEffect = checkNotNull(interactionDetailCoverageEffect)
@@ -1384,11 +1392,13 @@ internal class RuntimeShaderGlassDelegate(
     featherWidth: Float,
   ) {
     if (interactionOutputEffect == null || input != interactionOutputInput) {
-      interactionOutputEffect = createMutableRuntimeShaderRenderEffect(
-        effect = GLASS_INTERACTION_OUTPUT_EFFECT,
-        shaderNames = arrayOf("content"),
-        inputs = arrayOf(input),
-      )
+      interactionOutputEffect = traceCreateRenderEffect {
+        createMutableRuntimeShaderRenderEffect(
+          effect = GLASS_INTERACTION_OUTPUT_EFFECT,
+          shaderNames = arrayOf("content"),
+          inputs = arrayOf(input),
+        )
+      }
       interactionOutputInput = input
       interactionOutputUniforms = null
       interactionOutputFeatherWidth = Float.NaN
@@ -1537,7 +1547,9 @@ internal class RuntimeShaderGlassDelegate(
       }
       refractionDetailCoverageEffect = nextRefractionDetailKey?.let { key ->
         val shader = refractionDetailCoverageShader
-          ?: createRetainedRefractionDetailCoverageRenderEffect().also {
+          ?: traceCreateRenderEffect {
+            createRetainedRefractionDetailCoverageRenderEffect()
+          }.also {
             refractionDetailCoverageShader = it
           }
         shader.updateUniforms { setRefractionDetailUniforms(key) }
@@ -1579,15 +1591,17 @@ internal class RuntimeShaderGlassDelegate(
           sharpDetail = key.detail != null,
         )
         if (fusedShader == null || fusedInputKey != nextInputKey) {
-          fusedShader = createFusedGlassRenderEffect(
-            input = createFusedDepthInputRenderEffect(
-              blur = key.blur,
-              depth = key.depth,
-              sampleSize = key.optical.coordinates.sampleSize,
-            ),
-            interactionOptics = nextInputKey.interactionOptics,
-            sharpDetail = nextInputKey.sharpDetail,
-          )
+          fusedShader = traceCreateRenderEffect {
+            createFusedGlassRenderEffect(
+              input = createFusedDepthInputRenderEffect(
+                blur = key.blur,
+                depth = key.depth,
+                sampleSize = key.optical.coordinates.sampleSize,
+              ),
+              interactionOptics = nextInputKey.interactionOptics,
+              sharpDetail = nextInputKey.sharpDetail,
+            )
+          }
           refractionDetailShader = null
           fusedInputKey = nextInputKey
         }
@@ -1610,11 +1624,13 @@ internal class RuntimeShaderGlassDelegate(
           setRefractionDetailUniforms(detailKey)
           key.interaction?.let(::setInteractionDetailUniforms)
         }
-        createBlendRenderEffect(
-          blendMode = BlendMode.Plus,
-          background = optical,
-          foreground = detail,
-        )
+        wrapGlassRuntimeEffectConstruction {
+          createBlendRenderEffect(
+            blendMode = BlendMode.Plus,
+            background = optical,
+            foreground = detail,
+          )
+        }
       }
       fusedEffectKey = nextFusedEffectKey
     }
@@ -1769,8 +1785,33 @@ internal class RuntimeShaderGlassDelegate(
     )
   }
 
-  private inline fun <T> traceCreateRenderEffect(block: () -> T): T =
-    trace(GlassTraceSection.CreateRenderEffect, block)
+  private fun traceCreateRenderEffect(
+    block: () -> MutableRuntimeShaderRenderEffect,
+  ): MutableRuntimeShaderRenderEffect =
+    trace(GlassTraceSection.CreateRenderEffect) {
+      runtimeEffectFactory.create(block)
+    }
+}
+
+@OptIn(InternalHazeApi::class)
+internal inline fun <T> wrapGlassRuntimeEffectConstruction(block: () -> T): T = try {
+  block()
+} catch (failure: RuntimeShaderRenderEffectException) {
+  throw failure
+} catch (failure: RuntimeException) {
+  throw RuntimeShaderRenderEffectException(failure)
+}
+
+internal fun interface GlassRuntimeEffectFactory {
+  fun create(
+    block: () -> MutableRuntimeShaderRenderEffect,
+  ): MutableRuntimeShaderRenderEffect
+}
+
+internal object PlatformGlassRuntimeEffectFactory : GlassRuntimeEffectFactory {
+  override fun create(
+    block: () -> MutableRuntimeShaderRenderEffect,
+  ): MutableRuntimeShaderRenderEffect = block()
 }
 
 internal data class GlassStageRecordCounts(

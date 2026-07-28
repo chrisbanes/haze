@@ -28,6 +28,7 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
@@ -35,6 +36,7 @@ import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -47,6 +49,31 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35])
 class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
+
+  @Test
+  fun runtimeConstructionFailure_usesFallbackWithoutRetryingEveryFrame() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      var creationAttempts = 0
+      val effect = retainedBlurEffect().apply {
+        runtimeEffectFactory = GlassRuntimeEffectFactory {
+          creationAttempts++
+          throw RuntimeShaderRenderEffectException(
+            IllegalArgumentException("broken Android runtime effect"),
+          )
+        }
+      }
+      setContent { RuntimeGlassTestContent(effect) }
+      waitForIdle()
+      drawFrame()
+
+      assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+      assertThat(creationAttempts).isEqualTo(1)
+
+      drawFrame()
+
+      assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+      assertThat(creationAttempts).isEqualTo(1)
+    }
 
   @Test
   fun singleStandardBlur_usesFusedBaseRenderer() =
