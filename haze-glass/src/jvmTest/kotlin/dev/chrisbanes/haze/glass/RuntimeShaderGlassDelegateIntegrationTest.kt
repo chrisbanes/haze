@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
@@ -35,6 +36,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
@@ -48,6 +50,7 @@ import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
@@ -399,6 +402,56 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       assertThat(delegate.interactionShaderHandleOrNull("interactionDetailEffect")).isNull()
       assertThat(delegate.interactionShaderHandleOrNull("interactionLightingEffect")).isNull()
     }
+
+  @Test
+  fun runtimeConstructionFailure_preparesFallbackBeforeContentBehindDecision() = runComposeUiTest {
+    var creationAttempts = 0
+    val effect = activeDetailEffect().apply {
+      runtimeEffectFactory = GlassRuntimeEffectFactory {
+        creationAttempts++
+        throw RuntimeShaderRenderEffectException(
+          IllegalArgumentException("broken runtime effect"),
+        )
+      }
+    }
+    setContent { RuntimeForegroundGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(creationAttempts).isEqualTo(1)
+    val failureFrameCenter = onNodeWithTag("glass").captureToImage().toPixelMap()[60, 60]
+    assertThat(failureFrameCenter.alpha).isGreaterThan(0.9f)
+    assertThat(failureFrameCenter.red).isGreaterThan(0.9f)
+    val attemptsAfterDowngrade = creationAttempts
+
+    effect.tint = Color.Blue.copy(alpha = 0.5f)
+    waitForIdle()
+
+    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(creationAttempts).isEqualTo(attemptsAfterDowngrade)
+    onNodeWithTag("glass").captureToImage()
+  }
+
+  @Test
+  fun interactionRuntimeEffects_constructBeforeDraw() = runComposeUiTest {
+    var creationAttempts = 0
+    val effect = runtimeInteractiveEffect().apply {
+      runtimeEffectFactory = GlassRuntimeEffectFactory { create ->
+        creationAttempts++
+        create()
+      }
+    }
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+    val attemptsAfterPreparation = creationAttempts
+
+    effect.setPressedForTest(Offset(60f, 60f))
+    mainClock.advanceTimeBy(500)
+    waitForIdle()
+
+    assertThat(effect.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+    assertThat(creationAttempts).isEqualTo(attemptsAfterPreparation)
+  }
 
   @Test
   fun heldInteraction_sourceContentChangeRecordsSource() = runComposeUiTest {
@@ -934,10 +987,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Composable
-  private fun RuntimeForegroundGlassTestContent(effect: GlassVisualEffect) {
+  private fun RuntimeForegroundGlassTestContent(
+    effect: GlassVisualEffect,
+    tag: String? = null,
+  ) {
     Box(
       Modifier
         .size(120.dp)
+        .then(if (tag != null) Modifier.testTag(tag) else Modifier)
         .hazeEffect {
           inputScale = HazeInputScale.None
           visualEffect = effect

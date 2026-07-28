@@ -14,6 +14,26 @@ import androidx.compose.ui.graphics.Shader
 public expect class PlatformRuntimeEffect
 
 /**
+ * A platform runtime shader or its native render-effect graph could not be constructed.
+ *
+ * This exception is limited to native construction calls so callers can recover without hiding
+ * failures from uniform configuration or content drawing.
+ */
+@InternalHazeApi
+public class RuntimeShaderRenderEffectException(
+  cause: Throwable,
+) : RuntimeException("Unable to construct a runtime shader render effect", cause)
+
+@OptIn(InternalHazeApi::class)
+internal inline fun <T> wrapRuntimeShaderConstruction(block: () -> T): T = try {
+  block()
+} catch (failure: RuntimeShaderRenderEffectException) {
+  throw failure
+} catch (failure: RuntimeException) {
+  throw RuntimeShaderRenderEffectException(failure)
+}
+
+/**
  * Creates a [PlatformRuntimeEffect] from SKSL shader code.
  */
 @InternalHazeApi

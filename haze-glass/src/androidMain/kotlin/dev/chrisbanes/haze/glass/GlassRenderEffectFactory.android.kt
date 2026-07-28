@@ -22,26 +22,28 @@ internal actual fun createGlassDepthInputRenderEffect(
   if (blur == null || depth <= 0.0001f) return null
   if (depth >= 0.9999f) return blur
 
-  fun scaledInput(scale: Float, input: RenderEffect? = null): RenderEffect {
-    val matrix = ColorMatrix().apply {
-      // Color filters operate on straight RGB and premultiply the result. Scaling both RGB and
-      // alpha would therefore apply the factor twice to premultiplied color. Scale alpha only to
-      // match Canvas layer alpha, which scales premultiplied RGBA once.
-      setScale(1f, 1f, 1f, scale)
+  return wrapGlassRuntimeEffectConstruction {
+    fun scaledInput(scale: Float, input: RenderEffect? = null): RenderEffect {
+      val matrix = ColorMatrix().apply {
+        // Color filters operate on straight RGB and premultiply the result. Scaling both RGB and
+        // alpha would therefore apply the factor twice to premultiplied color. Scale alpha only to
+        // match Canvas layer alpha, which scales premultiplied RGBA once.
+        setScale(1f, 1f, 1f, scale)
+      }
+      val filter = ColorMatrixColorFilter(matrix)
+      return if (input != null) {
+        RenderEffect.createColorFilterEffect(filter, input)
+      } else {
+        RenderEffect.createColorFilterEffect(filter)
+      }
     }
-    val filter = ColorMatrixColorFilter(matrix)
-    return if (input != null) {
-      RenderEffect.createColorFilterEffect(filter, input)
-    } else {
-      RenderEffect.createColorFilterEffect(filter)
-    }
-  }
 
-  return RenderEffect.createBlendModeEffect(
-    scaledInput(1f - depth),
-    scaledInput(depth, blur),
-    BlendMode.PLUS,
-  )
+    RenderEffect.createBlendModeEffect(
+      scaledInput(1f - depth),
+      scaledInput(depth, blur),
+      BlendMode.PLUS,
+    )
+  }
 }
 
 internal actual val supportsFusedGlassRenderEffect: Boolean = true

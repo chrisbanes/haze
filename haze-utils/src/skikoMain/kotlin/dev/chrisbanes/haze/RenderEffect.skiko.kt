@@ -31,7 +31,9 @@ public actual typealias PlatformColorFilter = ColorFilter
 
 @InternalHazeApi
 public actual fun createRuntimeEffect(sksl: String): PlatformRuntimeEffect {
-  return RuntimeEffect.makeForShader(sksl)
+  return wrapRuntimeShaderConstruction {
+    RuntimeEffect.makeForShader(sksl)
+  }
 }
 
 @InternalHazeApi
@@ -137,14 +139,18 @@ public actual fun createRuntimeShaderRenderEffect(
   inputs: Array<PlatformRenderEffect?>,
   uniforms: RuntimeShaderUniformProvider.() -> Unit,
 ): PlatformRenderEffect {
-  val builder = RuntimeShaderBuilder(effect)
+  val builder = wrapRuntimeShaderConstruction {
+    RuntimeShaderBuilder(effect)
+  }
   SkikoRuntimeShaderUniformProvider(builder).also(uniforms)
 
-  return ImageFilter.makeRuntimeShader(
-    runtimeShaderBuilder = builder,
-    shaderNames = shaderNames,
-    inputs = inputs,
-  )
+  return wrapRuntimeShaderConstruction {
+    ImageFilter.makeRuntimeShader(
+      runtimeShaderBuilder = builder,
+      shaderNames = shaderNames,
+      inputs = inputs,
+    )
+  }
 }
 
 @InternalHazeApi
@@ -152,11 +158,13 @@ public actual fun createMutableRuntimeShaderRenderEffect(
   effect: PlatformRuntimeEffect,
   shaderNames: Array<String>,
   inputs: Array<PlatformRenderEffect?>,
-): MutableRuntimeShaderRenderEffect = SkikoMutableRuntimeShaderRenderEffect(
-  effect = effect,
-  shaderNames = shaderNames,
-  inputs = inputs,
-)
+): MutableRuntimeShaderRenderEffect = wrapRuntimeShaderConstruction {
+  SkikoMutableRuntimeShaderRenderEffect(
+    effect = effect,
+    shaderNames = shaderNames,
+    inputs = inputs,
+  )
+}
 
 private class SkikoMutableRuntimeShaderRenderEffect(
   private val effect: RuntimeEffect,
@@ -171,7 +179,9 @@ private class SkikoMutableRuntimeShaderRenderEffect(
   ): PlatformRenderEffect {
     uniforms(provider)
     // ImageFilter snapshots the builder's current uniforms, unlike Android's live RuntimeShader.
-    return ImageFilter.makeRuntimeShader(builder, shaderNames, inputs)
+    return wrapRuntimeShaderConstruction {
+      ImageFilter.makeRuntimeShader(builder, shaderNames, inputs)
+    }
   }
 }
 

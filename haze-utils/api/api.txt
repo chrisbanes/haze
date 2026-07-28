@@ -81,6 +81,10 @@ package dev.chrisbanes.haze {
     method @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRenderEffect then(dev.chrisbanes.haze.PlatformRenderEffect, dev.chrisbanes.haze.PlatformRenderEffect other);
   }
 
+  @dev.chrisbanes.haze.InternalHazeApi public final class RuntimeShaderRenderEffectException extends java.lang.RuntimeException {
+    ctor public RuntimeShaderRenderEffectException(Throwable cause);
+  }
+
   @dev.chrisbanes.haze.InternalHazeApi public interface RuntimeShaderUniformProvider {
     method public void setChildShader(String name, androidx.compose.ui.graphics.Shader shader);
     method public void setFloatUniform(String name, float value);

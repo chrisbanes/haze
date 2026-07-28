@@ -36,7 +36,9 @@ public actual fun createRuntimeShaderRenderEffect(
   inputs: Array<PlatformRenderEffect?>,
   uniforms: RuntimeShaderUniformProvider.() -> Unit,
 ): PlatformRenderEffect {
-  val shader = RuntimeShader(effect.sksl)
+  val shader = wrapRuntimeShaderConstruction {
+    RuntimeShader(effect.sksl)
+  }
   val provider = AndroidRuntimeShaderUniformProvider(shader)
   uniforms(provider)
 
@@ -49,11 +51,13 @@ public actual fun createMutableRuntimeShaderRenderEffect(
   effect: PlatformRuntimeEffect,
   shaderNames: Array<String>,
   inputs: Array<PlatformRenderEffect?>,
-): MutableRuntimeShaderRenderEffect = AndroidMutableRuntimeShaderRenderEffect(
-  effect = effect,
-  shaderNames = shaderNames,
-  inputs = inputs,
-)
+): MutableRuntimeShaderRenderEffect = wrapRuntimeShaderConstruction {
+  AndroidMutableRuntimeShaderRenderEffect(
+    effect = effect,
+    shaderNames = shaderNames,
+    inputs = inputs,
+  )
+}
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 private class AndroidMutableRuntimeShaderRenderEffect(
@@ -94,13 +98,14 @@ private fun createAndroidRuntimeShaderRenderEffect(
     else -> shaderNames.first()
   }
 
-  // Chain any non-null input RenderEffects
-  val chainedInput = inputs.filterNotNull().reduceOrNull { acc, input ->
-    acc.then(input)
-  }
-
-  return RenderEffect.createRuntimeShaderEffect(shader, contentShaderName).let { content ->
-    chainedInput?.then(content) ?: content
+  return wrapRuntimeShaderConstruction {
+    // Chain any non-null input RenderEffects.
+    val chainedInput = inputs.filterNotNull().reduceOrNull { acc, input ->
+      acc.then(input)
+    }
+    RenderEffect.createRuntimeShaderEffect(shader, contentShaderName).let { content ->
+      chainedInput?.then(content) ?: content
+    }
   }
 }
 
