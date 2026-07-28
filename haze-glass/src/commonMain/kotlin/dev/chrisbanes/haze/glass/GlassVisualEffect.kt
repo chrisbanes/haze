@@ -700,9 +700,6 @@ public class GlassVisualEffect() : VisualEffect, RetainedOutputVisualEffect, Int
       } catch (failure: RuntimeShaderRenderEffectException) {
         if (selectedDelegate !is RuntimeShaderGlassDelegate) throw failure
         downgradeRuntimeDelegate(selectedDelegate, context, failure)
-        withMaterialTransform(context) {
-          with(delegate) { draw(context) }
-        }
       }
     } finally {
       resetDirtyTracker()

@@ -278,11 +278,72 @@ internal class RuntimeShaderGlassDelegate(
         graphicsContext = currentGraphicsContext,
       )
     }
+    prepareInteractionRenderEffects(
+      render = currentPreparedRender,
+      effects = currentRenderEffects,
+      patch = interactionPatch,
+      params = params,
+    )
     preparedRender = currentPreparedRender
     preparedParams = params
     preparedRenderEffects = currentRenderEffects
     preparedInteractionUniforms = interactionUniforms
     preparedInteractionPatch = interactionPatch
+  }
+
+  private fun prepareInteractionRenderEffects(
+    render: GlassPreparedRender,
+    effects: GlassRenderEffects,
+    patch: GlassInteractionPatch?,
+    params: GlassRenderParams,
+  ) {
+    if (patch == null) return
+    if (!supportsFusedGlassRenderEffect && render.interactionTopology.hasOptics) {
+      val opticalLayer = checkNotNull(layers.interactionOptical)
+      updateInteractionOpticalEffect(
+        opticalLayer,
+        render.opticalKey.copy(coordinates = patch.coordinates),
+        patch.uniforms,
+      )
+      val detail = effects.refractionDetail
+      val outputLayer = if (detail != null) {
+        val localDetailKey = detail.key.copy(
+          sampleSize = patch.coordinates.sampleSize,
+          materialOrigin = patch.coordinates.materialOrigin,
+          materialSize = patch.coordinates.materialSize,
+        )
+        updateInteractionDetailEffect(
+          checkNotNull(layers.interactionRefractionDetail),
+          localDetailKey,
+          patch.uniforms,
+        )
+        updateInteractionDetailCoverageEffect(
+          checkNotNull(layers.interactionRefractionDetailCoverage),
+          localDetailKey,
+          patch.uniforms,
+        )
+        checkNotNull(layers.interactionRefractionComposite)
+      } else {
+        opticalLayer
+      }
+      updateInteractionOutputEffect(
+        layer = outputLayer,
+        input = if (detail == null) checkNotNull(interactionOpticalPlatformEffect) else null,
+        patch = patch,
+        featherWidth = maxOf(params.sampleStepPx, 1f),
+      )
+    }
+    if (render.interactionTopology.hasLighting) {
+      updateInteractionLightingEffect(
+        layer = checkNotNull(layers.interactionLighting),
+        key = GlassInteractionLightingKey(
+          coordinates = patch.coordinates,
+          edgeSoftnessPx = params.edgeSoftnessPx,
+          cornerRadii = params.cornerRadii,
+        ),
+        uniforms = patch.uniforms,
+      )
+    }
   }
 
   private fun releaseObsoleteInteractionLayers(
