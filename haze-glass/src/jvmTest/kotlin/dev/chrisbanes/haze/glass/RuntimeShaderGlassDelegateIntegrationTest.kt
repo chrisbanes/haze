@@ -28,6 +28,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
@@ -41,9 +42,11 @@ import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.VisualEffect
@@ -448,6 +451,123 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       .isGreaterThan(interactionCompositeRecordsBeforeMutation)
     assertThat(checkNotNull(delegate.lastSuccessfulSourceSnapshot))
       .isNotEqualTo(acceptedSnapshotBeforeMutation)
+  }
+
+  @Test
+  fun unchangedSourceSnapshot_matchesContextBeforeMaterializingAreas() = runComposeUiTest {
+    val effect = activeDetailEffect()
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val previousSnapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    val context = checkNotNull(effect.attachedContextForTest)
+    val trackedAreas = SizeReadTrackingList(context.areas)
+    val trackingContext = object : VisualEffectContext by context {
+      override val areas = trackedAreas
+    }
+
+    val sourceState = trackingContext.resolveGlassSourceState(
+      captureScale = previousSnapshot.captureScale,
+      previousSnapshot = previousSnapshot,
+    )
+
+    assertThat(sourceState.snapshot).isSameInstanceAs(previousSnapshot)
+    assertThat(trackedAreas.sizeReadCount).isEqualTo(0)
+  }
+
+  @Test
+  @OptIn(InternalHazeApi::class)
+  fun changedSourceSnapshot_materializesReplacementInOneContextPass() = runComposeUiTest {
+    val effect = activeDetailEffect()
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val previousSnapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+    val context = checkNotNull(effect.attachedContextForTest)
+    val changedArea = context.areas.first()
+    val trackedAreas = SizeReadTrackingList(context.areas)
+    val trackingContext = object : VisualEffectContext by context {
+      override val areas = trackedAreas
+
+      override fun contentVersionOf(area: HazeArea): Long? {
+        val version = context.contentVersionOf(area)
+        return if (area === changedArea) version?.plus(1) else version
+      }
+    }
+
+    val sourceState = trackingContext.resolveGlassSourceState(
+      captureScale = previousSnapshot.captureScale,
+      previousSnapshot = previousSnapshot,
+    )
+
+    assertThat(sourceState.snapshot).isNotSameInstanceAs(previousSnapshot)
+    assertThat(trackedAreas.sizeReadCount).isEqualTo(0)
+    assertThat(trackedAreas.iteratorCount).isEqualTo(1)
+  }
+
+  @Test
+  @OptIn(InternalHazeApi::class)
+  fun zeroSizedSource_withRetainedLayerIsNotDrawable() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sourceSize = mutableStateOf(120.dp)
+    val effect = activeDetailEffect()
+    setContent {
+      Box(Modifier.size(120.dp)) {
+        Box(
+          Modifier
+            .size(sourceSize.value)
+            .background(Color.Red)
+            .hazeSource(hazeState),
+        )
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeEffect(hazeState) {
+              inputScale = HazeInputScale.None
+              visualEffect = effect
+            },
+        )
+      }
+    }
+    waitForIdle()
+
+    val context = checkNotNull(effect.attachedContextForTest)
+    val area = context.areas.single()
+    val graphicsContext = context.requireGraphicsContext()
+
+    sourceSize.value = 0.dp
+    waitForIdle()
+
+    assertThat(area.size).isEqualTo(Size.Zero)
+    val contentLayerSetter = area.javaClass.declaredMethods
+      .single { it.name.startsWith("setContentLayer") }
+    val retainedLayer = graphicsContext.createGraphicsLayer().apply {
+      record(
+        density = context.requireDensity(),
+        layoutDirection = LayoutDirection.Ltr,
+        size = Size(120f, 120f).roundToIntSize(),
+      ) {}
+    }
+    try {
+      contentLayerSetter.invoke(area, retainedLayer)
+      assertThat(area.contentLayer).isSameInstanceAs(retainedLayer)
+      assertThat(retainedLayer.size.width).isGreaterThan(0)
+      assertThat(context.resolveGlassSourceState(captureScale = 1f).hasDrawableSource).isFalse()
+
+      val sizeSetter = area.javaClass.declaredMethods
+        .single { it.name.startsWith("setSize") }
+      val unspecifiedSize = Size::class.java.declaredMethods
+        .single { it.name == "unbox-impl" }
+        .invoke(Size.Unspecified)
+      sizeSetter.invoke(area, unspecifiedSize)
+      assertThat(area.size).isEqualTo(Size.Unspecified)
+      assertThat(context.resolveGlassSourceState(captureScale = 1f).hasDrawableSource).isFalse()
+    } finally {
+      contentLayerSetter.invoke(area, null)
+      graphicsContext.releaseGraphicsLayer(retainedLayer)
+    }
   }
 
   @Test
@@ -917,6 +1037,26 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     override fun clearRetainedOutput() {
       delegate.clearRetainedOutput()
+    }
+  }
+
+  private class SizeReadTrackingList<T>(
+    private val delegate: List<T>,
+  ) : List<T> by delegate {
+    var sizeReadCount: Int = 0
+      private set
+    var iteratorCount: Int = 0
+      private set
+
+    override val size: Int
+      get() {
+        sizeReadCount++
+        return delegate.size
+      }
+
+    override fun iterator(): Iterator<T> {
+      iteratorCount++
+      return delegate.iterator()
     }
   }
 
