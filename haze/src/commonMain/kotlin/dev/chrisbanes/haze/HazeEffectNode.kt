@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlinx.coroutines.DisposableHandle
 
 /**
@@ -769,9 +770,9 @@ public class HazeEffectNode(
 
   private fun hasDrawableSourceLayers(): Boolean {
     return areas.any { area ->
-      area.contentLayer
-        ?.takeUnless { it.isReleased }
-        ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 } != null
+      area.size.isSpecified &&
+        area.size.minDimension.roundToInt() >= 1 &&
+        area.contentLayer?.isReleased == false
     }
   }
 

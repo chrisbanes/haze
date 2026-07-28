@@ -6,7 +6,9 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -143,6 +145,71 @@ class VisualEffectRetainedOutputTest : ContextTest() {
     assertThat(effect.clearCalls).isGreaterThan(0)
     assertThat(effect.drawCalls).isEqualTo(beforeRemovalDraws)
     assertThat(effect.retainedOutputAvailable).isEqualTo(false)
+  }
+
+  @Test
+  fun visualEffect_zeroSizedSourceClearsRetainedOutputWhenDisabled() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+    var sourceSize by mutableStateOf(100.dp)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Spacer(Modifier.size(sourceSize).hazeSource(hazeState))
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+              retainOutputWhenSourceUnavailable = false
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.retainedOutputAvailable).isEqualTo(true)
+    val beforeCollapseDraws = effect.drawCalls
+    val beforeCollapseClears = effect.clearCalls
+
+    sourceSize = 0.1.dp
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isGreaterThan(beforeCollapseClears)
+    assertThat(effect.drawCalls).isEqualTo(beforeCollapseDraws)
+    assertThat(effect.retainedOutputAvailable).isEqualTo(false)
+  }
+
+  @Test
+  fun visualEffect_zeroSizedSourceRetainsOutputWhenEnabled() = runComposeUiTest {
+    val hazeState = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+    var sourceSize by mutableStateOf(100.dp)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Spacer(Modifier.size(sourceSize).hazeSource(hazeState))
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(hazeState) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+
+    waitForIdle()
+    assertThat(effect.retainedOutputAvailable).isEqualTo(true)
+    val beforeCollapseDraws = effect.drawCalls
+    val beforeCollapseClears = effect.clearCalls
+
+    sourceSize = 0.1.dp
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isEqualTo(beforeCollapseClears)
+    assertThat(effect.drawCalls).isGreaterThan(beforeCollapseDraws)
+    assertThat(effect.retainedOutputAvailable).isEqualTo(true)
   }
 
   @Test
