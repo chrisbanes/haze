@@ -25,7 +25,11 @@ import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
 
-private const val ROUNDED_EDGE_ANTIALIASING_TOLERANCE = 64f / 255f
+// Android and Skiko both differ by 102/255 at the independently-rasterized effect clip.
+// Keep a two-code-value margin so the clip may antialias differently without allowing a
+// visible rounded-boundary discontinuity.
+private const val EFFECT_CLIP_ANTIALIASING_TOLERANCE = 104f / 255f
+private const val CONTENT_CLIP_ANTIALIASING_TOLERANCE = 64f / 255f
 
 private enum class RoundedEdgeClipPlacement {
   InternalMaskOnly,
@@ -101,6 +105,18 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
   waitForIdle()
   val contentClip = captureRootPixels().snapshot()
 
+  assertRoundedEdgeContinuity(
+    internalMaskOnly = internalMaskOnly,
+    effectClip = effectClip,
+    contentClip = contentClip,
+  )
+}
+
+internal fun assertRoundedEdgeContinuity(
+  internalMaskOnly: PixelSnapshot,
+  effectClip: PixelSnapshot,
+  contentClip: PixelSnapshot,
+) {
   val effectClipEdgeDifference = internalMaskOnly.maximumChannelDifference(effectClip)
   val contentClipEdgeDifference = internalMaskOnly.maximumChannelDifference(contentClip)
   println(
@@ -109,12 +125,13 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
       "contentClip=$contentClipEdgeDifference",
   )
 
-  // Keep the independently-rasterized clip measurement above to isolate boundary behavior,
-  // without requiring current Compose/Skia antialiasing differences to persist. The effect's
-  // SDF should own material coverage; a later Compose clip may constrain foreground content.
-  // Allow up to one quarter of an 8-bit channel for cross-backend antialiasing.
-  assertThat(contentClipEdgeDifference)
-    .isLessThanOrEqualTo(ROUNDED_EDGE_ANTIALIASING_TOLERANCE)
+  // The effect's SDF owns material coverage, so an independently-rasterized clip around the
+  // effect may only contribute its calibrated antialiasing difference. A later content clip is
+  // measured and asserted independently because it constrains foreground content instead.
+  assertThat(effectClipEdgeDifference, name = "effect clip edge difference")
+    .isLessThanOrEqualTo(EFFECT_CLIP_ANTIALIASING_TOLERANCE)
+  assertThat(contentClipEdgeDifference, name = "content clip edge difference")
+    .isLessThanOrEqualTo(CONTENT_CLIP_ANTIALIASING_TOLERANCE)
 }
 
 private fun PixelSnapshot.maximumChannelDifference(
