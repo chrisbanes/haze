@@ -3,16 +3,19 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -560,8 +563,30 @@ internal data class ResolvedGlassStyle(
   val cornerRadii: CornerRadii,
 )
 
+@InternalHazeApi
+public interface GlassStyleConfiguration {
+  public var shape: RoundedCornerShape
+  public var optics: GlassOptics
+  public var specularIntensity: Float
+  public var ambientResponse: Float
+  public var tint: Color
+  public var edgeSoftness: Dp
+  public var lightPosition: Offset
+  public var chromaticAberrationStrength: Float
+  public var surfaceProfile: SurfaceProfile
+  public var chromaticAberrationMode: ChromaticAberrationMode
+  public var alpha: Float
+  public var contrast: Float
+  public var whitePoint: Float
+  public var chromaMultiplier: Float
+  public var contentNormalBlend: Float
+  public var specularExponent: Float
+  public var fresnelExponent: Float
+  public var style: GlassStyle
+}
+
 internal fun resolveGlassStyle(
-  effect: GlassVisualEffect,
+  effect: GlassStyleConfiguration,
   materialSizePx: Size,
   density: Density,
   layoutDirection: LayoutDirection,

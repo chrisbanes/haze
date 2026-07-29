@@ -56,7 +56,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun boundedFractionalAlpha_preparesAndReusesGroupLayer() {
-    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(100f, 100f))
 
@@ -70,7 +70,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun alphaZero_releasesAndOwnsNoFallbackGroupLayer() {
-    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(100f, 100f))
     delegate.prepare(context)
@@ -85,7 +85,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun fallbackGroup_exceedingDimension_usesDirectAlphaWithoutAllocation() {
-    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(4097f, 1f))
 
@@ -97,7 +97,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun fallbackGroup_atExactPixelBoundary_isAllowed() {
-    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(4096f, 4096f))
 
@@ -108,7 +108,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun fallbackGroup_exceedingDimensionAndPixelLimit_usesDirectAlphaWithoutAllocation() {
-    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(4096f, 4097f))
 
@@ -121,7 +121,7 @@ class FallbackGlassDelegateTest {
   @Test
   fun directAlphaDegradation_scalesEveryFallbackContribution() = runComposeUiTest {
     fun assertDirectAlphaHalvesContribution(
-      effect: GlassVisualEffect,
+      effect: GlassRuntimeEffect,
       sample: Offset,
       activateInteraction: Boolean = false,
     ) {
@@ -152,7 +152,7 @@ class FallbackGlassDelegateTest {
     }
 
     assertDirectAlphaHalvesContribution(
-      effect = GlassVisualEffect().apply {
+      effect = GlassRuntimeEffect().apply {
         tint = Color.Red
         specularIntensity = 0f
         edgeSoftness = 0.dp
@@ -160,7 +160,7 @@ class FallbackGlassDelegateTest {
       sample = Offset(60f, 60f),
     )
     assertDirectAlphaHalvesContribution(
-      effect = GlassVisualEffect().apply {
+      effect = GlassRuntimeEffect().apply {
         tint = Color.Transparent
         specularIntensity = 1f
         edgeSoftness = 0.dp
@@ -169,7 +169,7 @@ class FallbackGlassDelegateTest {
       sample = Offset(60f, 60f),
     )
     assertDirectAlphaHalvesContribution(
-      effect = GlassVisualEffect().apply {
+      effect = GlassRuntimeEffect().apply {
         tint = Color.Transparent
         specularIntensity = 0f
         ambientResponse = 1f
@@ -178,7 +178,7 @@ class FallbackGlassDelegateTest {
       sample = Offset(2f, 60f),
     )
     assertDirectAlphaHalvesContribution(
-      effect = GlassVisualEffect().apply {
+      effect = GlassRuntimeEffect().apply {
         tint = Color.Transparent
         specularIntensity = 0f
         edgeSoftness = 0.dp
@@ -191,7 +191,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun foregroundLighting_drawsOverOpaqueContent() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       tint = Color.Transparent
       specularIntensity = 1f
       ambientResponse = 0f
@@ -220,7 +220,7 @@ class FallbackGlassDelegateTest {
 
   @Test
   fun stablePrepare_reusesResourcesUntilTheirSemanticInputsChange() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       tint = Color.Red
       specularIntensity = 1f
       ambientResponse = 1f
@@ -340,7 +340,7 @@ private data class PreparedResourcesForTest(
 private const val FALLBACK_TAG = "fallback"
 
 private class FallbackOnlyVisualEffect(
-  private val glass: GlassVisualEffect,
+  private val glass: GlassRuntimeEffect,
   private val fallback: FallbackGlassDelegate,
 ) : VisualEffect {
   private var prepareGroup = true

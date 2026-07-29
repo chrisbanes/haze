@@ -37,7 +37,7 @@ class GlassRenderParamsTest {
       }
     }
 
-    assertThat(effect.interactionSlots.resolveInteractionTopology()).isEqualTo(
+    assertThat(GlassRuntimeEffect(effect).interactionSlots.resolveInteractionTopology()).isEqualTo(
       GlassInteractionTopology(
         hasOptics = true,
         hasLighting = true,
@@ -56,7 +56,7 @@ class GlassRenderParamsTest {
       }
     }
 
-    assertThat(effect.interactionSlots.resolveInteractionTopology()).isEqualTo(
+    assertThat(GlassRuntimeEffect(effect).interactionSlots.resolveInteractionTopology()).isEqualTo(
       GlassInteractionTopology(false, false, 1f),
     )
   }

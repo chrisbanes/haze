@@ -3,20 +3,102 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
+import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
+import dev.chrisbanes.haze.HazeEffectNode
 import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.VisualEffect
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
-class GlassInteractionDslTest {
+@OptIn(
+  ExperimentalTestApi::class,
+  ExperimentalHazeApi::class,
+  InternalHazeApi::class,
+)
+class GlassInteractionDslTest : ContextTest() {
+
+  @Test
+  fun glassEffect_reusesConfigurationWhileNodeKeepsRenderer() = runComposeUiTest {
+    val alpha = mutableStateOf(0.5f)
+    var initialConfiguration: GlassVisualEffect? = null
+    var currentConfiguration: GlassVisualEffect? = null
+    var initialRenderer: GlassRenderer? = null
+    var currentRenderer: GlassRenderer? = null
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeEffect {
+            glassEffect { this.alpha = alpha.value }
+            val node = this as HazeEffectNode
+            currentConfiguration = visualEffect as GlassVisualEffect
+            currentRenderer = node.activeVisualEffect as GlassRenderer
+            if (initialConfiguration == null) {
+              initialConfiguration = currentConfiguration
+              initialRenderer = currentRenderer
+            }
+          },
+      )
+    }
+    waitForIdle()
+
+    alpha.value = 0.6f
+    waitForIdle()
+
+    assertThat(currentConfiguration).isSameInstanceAs(initialConfiguration)
+    assertThat(currentRenderer).isSameInstanceAs(initialRenderer)
+    assertThat(checkNotNull(currentRenderer).runtimeForTest.alpha).isEqualTo(0.6f)
+  }
+
+  @Test
+  fun replacingConfiguredGlassEffect_replacesNodeRenderer() = runComposeUiTest {
+    val replacement = mutableStateOf<GlassVisualEffect?>(null)
+    var initialRenderer: GlassRenderer? = null
+    var currentRenderer: GlassRenderer? = null
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeEffect {
+            replacement.value?.let { visualEffect = it } ?: glassEffect()
+            currentRenderer = (this as HazeEffectNode).activeVisualEffect as GlassRenderer
+            if (initialRenderer == null) {
+              initialRenderer = currentRenderer
+            }
+          },
+      )
+    }
+    waitForIdle()
+
+    replacement.value = GlassVisualEffect().apply { alpha = 0.3f }
+    waitForIdle()
+
+    assertThat(currentRenderer).isNotSameInstanceAs(initialRenderer)
+    assertThat(checkNotNull(initialRenderer).runtimeForTest.attachedContextForTest).isEqualTo(null)
+    assertThat(checkNotNull(currentRenderer).runtimeForTest.alpha).isEqualTo(0.3f)
+  }
 
   @Test
   fun glassEffect_replayingInteractableWithCustomPress_retainsFinalSlotsAndConfiguration() {

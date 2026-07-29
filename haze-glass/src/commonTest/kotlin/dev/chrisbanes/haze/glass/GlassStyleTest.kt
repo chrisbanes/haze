@@ -172,7 +172,7 @@ class GlassStyleTest {
 
   @Test
   fun retainedOutputAvailabilityReflectsDelegate() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val delegate = RetainedTrackingGlassDelegate()
     effect.delegate = delegate
 
@@ -227,7 +227,7 @@ private data object FakeGlassContext : VisualEffectContext {
 }
 
 private class RetainedTrackingGlassDelegate :
-  GlassVisualEffect.Delegate,
+  GlassRuntimeEffect.Delegate,
   RetainedOutputDelegate {
 
   var retainedOutputAvailable = false

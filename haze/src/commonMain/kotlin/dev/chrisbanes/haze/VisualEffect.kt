@@ -16,8 +16,9 @@ import androidx.compose.ui.unit.Density
  * access to geometry, configuration, and platform capabilities without direct coupling
  * to the underlying node implementation.
  *
- * VisualEffect instances are single-owner and must not be attached to multiple
- * `Modifier.hazeEffect` nodes at the same time. Reusing the same effect instance
+ * VisualEffect runtime instances are single-owner and must not be attached to multiple
+ * `Modifier.hazeEffect` nodes at the same time. A [VisualEffectRendererFactory] descriptor may be
+ * shared, but each runtime it creates remains single-owner. Reusing any other effect instance
  * across concurrently active nodes will throw an [IllegalStateException].
  *
  * The built-in [Empty] singleton is exempt from this restriction and may be shared
@@ -137,6 +138,15 @@ public interface VisualEffect {
 
 internal object EmptyVisualEffect : VisualEffect {
   override fun DrawScope.draw(context: VisualEffectContext) = Unit
+}
+
+/**
+ * Internal bridge for compatibility effects whose configuration can be shared while each
+ * `hazeEffect` node owns a distinct runtime [VisualEffect].
+ */
+@InternalHazeApi
+public interface VisualEffectRendererFactory : VisualEffect {
+  public fun createRenderer(): VisualEffect
 }
 
 @InternalHazeApi
