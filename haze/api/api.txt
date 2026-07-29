@@ -28,15 +28,36 @@ package dev.chrisbanes.haze {
     property public androidx.compose.ui.geometry.Offset screenPosition;
   }
 
+  public interface HazeEffectDrawScope extends androidx.compose.ui.graphics.drawscope.DrawScope {
+    method public <T> T currentValueOf(androidx.compose.runtime.CompositionLocal<T> local);
+    method public void drawInput();
+    method @InaccessibleFromKotlin public androidx.compose.ui.geometry.Rect getModifierBounds();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeSampling getSampling();
+    property public abstract androidx.compose.ui.geometry.Rect modifierBounds;
+    property public abstract dev.chrisbanes.haze.HazeSampling sampling;
+  }
+
+  public fun interface HazeEffectFactory<Style> {
+    method public dev.chrisbanes.haze.HazeEffectRenderer<Style> createRenderer();
+  }
+
   public final class HazeEffectKt {
+    method @androidx.compose.runtime.Stable public static <Style> androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeEffectFactory<Style> factory, dev.chrisbanes.haze.HazeInput input, Style style, optional dev.chrisbanes.haze.HazeSampling sampling, optional boolean expandLayerBounds);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.HazeSampling sampling, optional boolean expandLayerBounds, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState? state, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
   }
 
+  public interface HazeEffectLayoutScope extends androidx.compose.ui.unit.Density {
+    method public <T> T currentValueOf(androidx.compose.runtime.CompositionLocal<T> local);
+    method @InaccessibleFromKotlin public androidx.compose.ui.geometry.Rect getModifierBounds();
+    property public abstract androidx.compose.ui.geometry.Rect modifierBounds;
+  }
+
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeEffectNode extends androidx.compose.ui.node.DelegatingNode implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeEffectScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {
     ctor public HazeEffectNode(optional dev.chrisbanes.haze.HazeState? state, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.VisualEffect getActiveVisualEffect();
     method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
     method @InaccessibleFromKotlin public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? getBlock();
     method @InaccessibleFromKotlin public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? getCanDrawArea();
@@ -61,6 +82,7 @@ package dev.chrisbanes.haze {
     method @InaccessibleFromKotlin public void setRetainOutputWhenSourceUnavailable(boolean);
     method @InaccessibleFromKotlin public void setState(dev.chrisbanes.haze.HazeState?);
     method @InaccessibleFromKotlin public void setVisualEffect(dev.chrisbanes.haze.VisualEffect);
+    property @dev.chrisbanes.haze.InternalHazeApi public dev.chrisbanes.haze.VisualEffect activeVisualEffect;
     property public java.util.List<dev.chrisbanes.haze.HazeArea> areas;
     property public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block;
     property public kotlin.jvm.functions.Function1<dev.chrisbanes.haze.HazeArea,java.lang.Boolean>? canDrawArea;
@@ -78,6 +100,13 @@ package dev.chrisbanes.haze {
     property public dev.chrisbanes.haze.HazeState? state;
     property public Object traverseKey;
     property public dev.chrisbanes.haze.VisualEffect visualEffect;
+  }
+
+  public interface HazeEffectRenderer<Style> {
+    method public default androidx.compose.ui.geometry.Rect calculateLayerBounds(dev.chrisbanes.haze.HazeEffectLayoutScope, Style style);
+    method public default void dispose();
+    method public void draw(dev.chrisbanes.haze.HazeEffectDrawScope, Style style);
+    method public default void onTrimMemory(dev.chrisbanes.haze.TrimMemoryLevel level);
   }
 
   public interface HazeEffectScope {
@@ -395,6 +424,10 @@ package dev.chrisbanes.haze {
 
   public final class VisualEffectContextKt {
     method @dev.chrisbanes.haze.ExperimentalHazeApi public static inline <R> R withGraphicsLayer(dev.chrisbanes.haze.VisualEffectContext, kotlin.jvm.functions.Function1<? super androidx.compose.ui.graphics.layer.GraphicsLayer,? extends R> block);
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public interface VisualEffectRendererFactory extends dev.chrisbanes.haze.VisualEffect {
+    method public dev.chrisbanes.haze.VisualEffect createRenderer();
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public final class VisualEffectTransform {

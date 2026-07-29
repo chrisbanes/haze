@@ -272,6 +272,41 @@ public fun Modifier.hazeEffect(
   block = block,
 )
 
+/**
+ * Draws a typed custom effect using an explicit [input].
+ *
+ * [factory] is a stateless descriptor that may be shared by concurrent modifiers. Haze creates
+ * one renderer for each modifier node and passes the complete current [style] to its draw and
+ * layer-layout evaluations.
+ *
+ * @param factory The shareable descriptor that creates node-owned renderers.
+ * @param input The source-backed or own-content input consumed by the renderer.
+ * @param style The complete effect configuration accepted by [factory].
+ * @param sampling The input-sampling policy visible to the renderer.
+ * @param expandLayerBounds Whether renderer-requested layer-bound expansion is enabled.
+ */
+@Stable
+public fun <Style> Modifier.hazeEffect(
+  factory: HazeEffectFactory<Style>,
+  input: HazeInput,
+  style: Style,
+  sampling: HazeSampling = HazeSampling.Default,
+  expandLayerBounds: Boolean = true,
+): Modifier {
+  val effect = this then TypedHazeEffectNodeElement(
+    factory = factory,
+    input = input,
+    style = style,
+    sampling = sampling,
+    expandLayerBounds = expandLayerBounds,
+  )
+  return if (input === HazeInput.Content) {
+    effect.graphicsLayer() then ForegroundContentInvalidationElement
+  } else {
+    effect
+  }
+}
+
 private fun Modifier.thenHazeEffect(
   state: HazeState?,
   explicitInput: HazeInput? = null,
@@ -290,6 +325,60 @@ private fun Modifier.thenHazeEffect(
     effect.graphicsLayer() then ForegroundContentInvalidationElement
   } else {
     effect
+  }
+}
+
+private class TypedHazeEffectNodeElement<Style>(
+  val factory: HazeEffectFactory<Style>,
+  val input: HazeInput,
+  val style: Style,
+  val sampling: HazeSampling,
+  val expandLayerBounds: Boolean,
+) : ModifierNodeElement<HazeEffectNode>() {
+
+  override fun create(): HazeEffectNode = HazeEffectNode(
+    state = (input as? HazeInput.Sources)?.state,
+  ).also { node ->
+    node.explicitInput = input
+    node.explicitSampling = sampling
+    node.explicitExpandLayerBounds = expandLayerBounds
+    node.updateTypedEffect(factory, style, sampling)
+  }
+
+  override fun update(node: HazeEffectNode) {
+    node.explicitInput = input
+    node.explicitSampling = sampling
+    node.explicitExpandLayerBounds = expandLayerBounds
+    node.state = (input as? HazeInput.Sources)?.state
+    node.updateTypedEffect(factory, style, sampling)
+    node.update()
+  }
+
+  override fun InspectorInfo.inspectableProperties() {
+    name = "HazeEffect"
+    properties["factory"] = factory
+    properties["input"] = input
+    properties["style"] = style
+    properties["sampling"] = sampling
+    properties["expandLayerBounds"] = expandLayerBounds
+  }
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is TypedHazeEffectNodeElement<*>) return false
+    return factory === other.factory &&
+      input == other.input &&
+      style == other.style &&
+      sampling == other.sampling &&
+      expandLayerBounds == other.expandLayerBounds
+  }
+
+  override fun hashCode(): Int {
+    var result = 0
+    result = 31 * result + input.hashCode()
+    result = 31 * result + (style?.hashCode() ?: 0)
+    result = 31 * result + sampling.hashCode()
+    return 31 * result + expandLayerBounds.hashCode()
   }
 }
 

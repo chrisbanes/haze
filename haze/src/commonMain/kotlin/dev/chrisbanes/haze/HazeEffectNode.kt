@@ -284,6 +284,11 @@ public class HazeEffectNode(
   public var activeVisualEffect: VisualEffect = EmptyVisualEffect
     private set
 
+  private var typedEffectFactory: Any? = null
+  private var typedEffectStyle: Any? = null
+  private var typedEffectSampling: HazeSampling? = null
+  private var createTypedRuntime: (() -> VisualEffect)? = null
+
   override var canDrawArea: ((HazeArea) -> Boolean)? = null
     set(value) {
       if (value != field) {
@@ -302,17 +307,7 @@ public class HazeEffectNode(
         pointerInputDelegate?.cancel(oldRuntime as? InteractiveVisualEffect)
         if (isAttached) {
           val newRuntime = value.createRenderer()
-          attachVisualEffect(newRuntime)
-          try {
-            clearRetainedOutput(oldRuntime)
-          } catch (throwable: Throwable) {
-            runCatching { detachVisualEffect(newRuntime) }
-              .exceptionOrNull()
-              ?.let(throwable::addSuppressed)
-            throw throwable
-          }
-          runCatching { detachVisualEffect(oldRuntime) }
-          activeVisualEffect = newRuntime
+          replaceActiveVisualEffect(newRuntime)
         } else {
           clearRetainedOutput(
             activeVisualEffect.takeUnless { it === EmptyVisualEffect } ?: oldConfiguredEffect,
@@ -327,6 +322,56 @@ public class HazeEffectNode(
         }
       }
     }
+
+  internal fun <Style> updateTypedEffect(
+    factory: HazeEffectFactory<Style>,
+    style: Style,
+    sampling: HazeSampling,
+  ) {
+    val createRuntime = {
+      TypedHazeEffectVisualEffectImpl(
+        renderer = factory.createRenderer(),
+        style = style,
+        sampling = sampling,
+      )
+    }
+    if (typedEffectFactory !== factory) {
+      if (isAttached) {
+        replaceActiveVisualEffect(createRuntime())
+      }
+      typedEffectFactory = factory
+      typedEffectStyle = style
+      typedEffectSampling = sampling
+      createTypedRuntime = createRuntime
+      dirtyTracker += DirtyFields.VisualEffectLayerBounds
+      if (isAttached) {
+        invalidateVisualEffectDraw()
+      }
+    } else if (typedEffectStyle != style || typedEffectSampling != sampling) {
+      typedEffectStyle = style
+      typedEffectSampling = sampling
+      createTypedRuntime = createRuntime
+      (activeVisualEffect as? TypedHazeEffectVisualEffect)?.update(style, sampling)
+      invalidateVisualEffectLayerBounds()
+    } else {
+      createTypedRuntime = createRuntime
+    }
+  }
+
+  private fun replaceActiveVisualEffect(newRuntime: VisualEffect) {
+    val oldRuntime = activeVisualEffect
+    attachVisualEffect(newRuntime)
+    try {
+      clearRetainedOutput(oldRuntime)
+    } catch (throwable: Throwable) {
+      runCatching { detachVisualEffect(newRuntime) }
+        .exceptionOrNull()
+        ?.let(throwable::addSuppressed)
+      throw throwable
+    }
+    runCatching { detachVisualEffect(oldRuntime) }
+    activeVisualEffect = newRuntime
+  }
 
   private var pointerInputDelegate: HazeEffectPointerInputNode? = null
 
@@ -415,12 +460,20 @@ public class HazeEffectNode(
 
   override fun onAttach() {
     val runtime = activeVisualEffect.takeUnless { it === EmptyVisualEffect }
+      ?: createTypedRuntime?.invoke()
       ?: visualEffect.createRenderer()
     attachVisualEffect(runtime)
     activeVisualEffect = runtime
     trimMemoryCallbackDisposable = registerTrimMemoryCallback(
       requirePlatformContext(),
-    ) { level -> activeVisualEffect.onTrimMemory(visualEffectContext, level) }
+    ) { level ->
+      val activeEffect = activeVisualEffect
+      if (activeEffect is TypedHazeEffectVisualEffect) {
+        activeEffect.onTrimMemory(level)
+      } else {
+        activeEffect.onTrimMemory(visualEffectContext, level)
+      }
+    }
     update()
   }
 
@@ -1165,6 +1218,7 @@ internal val AreaOffsetsDirtyFields: Int =
 internal val LayerBoundsDirtyFields: Int =
   DirtyFields.Position or
     DirtyFields.AreaOffsets or
+    DirtyFields.AreaPositionReads or
     DirtyFields.Size or
     DirtyFields.Areas or
     DirtyFields.ExpandLayer or
