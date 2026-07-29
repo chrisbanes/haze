@@ -8,16 +8,20 @@ import android.graphics.Canvas
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.test.AndroidComposeUiTest
@@ -291,9 +295,21 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   @Test
   fun detachAndReattach_releasesLayersAndRetainsShaderHandles() =
     runAndroidComposeUiTest<ComponentActivity> {
-      val effect = animatedStageEffect()
+      val callerInteractionSource = MutableInteractionSource()
+      val callerShape = RoundedCornerShape(17.dp)
+      val callerPositionAnimationSpec = tween<Offset>(37)
+      val callerCompositionLocalStyle = GlassStyle(tint = Color.Red)
+      val effect = animatedStageEffect().apply {
+        interactionSource = callerInteractionSource
+        shape = callerShape
+        interactionPositionAnimationSpec = callerPositionAnimationSpec
+      }
       val attached = mutableStateOf(true)
-      setContent { RuntimeGlassTestContent(effect, attachEffect = attached.value) }
+      setContent {
+        CompositionLocalProvider(LocalGlassStyle provides callerCompositionLocalStyle) {
+          RuntimeGlassTestContent(effect, attachEffect = attached.value)
+        }
+      }
       waitForIdle()
       drawFrame()
       val initialRuntime = runtime(effect)
@@ -311,6 +327,16 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.opticalShader).isNull()
       assertThat(delegate.refractionDetailShader).isSameInstanceAs(detailShader)
       assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
+      assertThat(initialRuntime.interactionSource).isNull()
+      assertThat(initialRuntime.shape).isNotSameInstanceAs(callerShape)
+      assertThat(initialRuntime.interactionPositionAnimationSpec)
+        .isNotSameInstanceAs(callerPositionAnimationSpec)
+      assertThat(initialRuntime.compositionLocalStyle)
+        .isNotSameInstanceAs(callerCompositionLocalStyle)
+      assertThat(initialRuntime.runtimeEffectFactory)
+        .isSameInstanceAs(PlatformGlassRuntimeEffectFactory)
+      assertThat(delegate.runtimeEffectFactoryForTest)
+        .isSameInstanceAs(PlatformGlassRuntimeEffectFactory)
 
       attached.value = true
       waitForIdle()
@@ -325,6 +351,88 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(reattachedDelegate.opticalShader).isNull()
       assertThat(reattachedDelegate.refractionDetailShader).isSameInstanceAs(detailShader)
       assertThat(reattachedDelegate.rimShader).isSameInstanceAs(rimShader)
+      assertThat(reattachedRuntime.interactionSource).isSameInstanceAs(callerInteractionSource)
+      assertThat(reattachedRuntime.shape).isSameInstanceAs(callerShape)
+      assertThat(reattachedRuntime.interactionPositionAnimationSpec)
+        .isSameInstanceAs(callerPositionAnimationSpec)
+      assertThat(reattachedRuntime.compositionLocalStyle)
+        .isSameInstanceAs(callerCompositionLocalStyle)
+      assertThat(reattachedDelegate.runtimeEffectFactoryForTest)
+        .isSameInstanceAs(PlatformGlassRuntimeEffectFactory)
+    }
+
+  @Test
+  fun progressiveConfiguration_detachReleasesOnlyConfigurationDerivedShaderHandles() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val callerBrush = Brush.linearGradient(listOf(Color.Transparent, Color.Black))
+      val effect = animatedStageEffect().apply {
+        optics = (optics as GlassOptics.Absolute).copy(
+          progressive = HazeProgressive.Brush(callerBrush),
+        )
+      }
+      val attached = mutableStateOf(true)
+      setContent { RuntimeGlassTestContent(effect, attachEffect = attached.value) }
+      waitForIdle()
+      drawFrame()
+
+      val initialDelegate =
+        checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
+      val fusedShader = checkNotNull(initialDelegate.fusedShader)
+      val detailShader = checkNotNull(initialDelegate.refractionDetailShader)
+      val rimShader = checkNotNull(initialDelegate.rimShader)
+
+      attached.value = false
+      waitForIdle()
+
+      assertThat(initialDelegate.fusedShader).isNull()
+      assertThat(initialDelegate.refractionDetailShader).isSameInstanceAs(detailShader)
+      assertThat(initialDelegate.rimShader).isSameInstanceAs(rimShader)
+
+      attached.value = true
+      waitForIdle()
+      drawFrame()
+
+      val reattachedDelegate =
+        checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
+      assertThat(reattachedDelegate).isSameInstanceAs(initialDelegate)
+      assertThat(reattachedDelegate.fusedShader).isNotSameInstanceAs(fusedShader)
+      assertThat(reattachedDelegate.refractionDetailShader).isNotSameInstanceAs(detailShader)
+      assertThat(reattachedDelegate.rimShader).isSameInstanceAs(rimShader)
+    }
+
+  @Test
+  fun runtimeEffectFactoryChangeWhileDetached_releasesRetainedShaderHandles() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = animatedStageEffect().apply {
+        runtimeEffectFactory = GlassRuntimeEffectFactory { create -> create() }
+      }
+      val attached = mutableStateOf(true)
+      setContent { RuntimeGlassTestContent(effect, attachEffect = attached.value) }
+      waitForIdle()
+      drawFrame()
+
+      val initialDelegate =
+        checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
+      val initialFusedShader = checkNotNull(initialDelegate.fusedShader)
+
+      attached.value = false
+      waitForIdle()
+      assertThat(initialDelegate.fusedShader).isNull()
+      assertThat(initialDelegate.runtimeEffectFactoryForTest)
+        .isSameInstanceAs(PlatformGlassRuntimeEffectFactory)
+      val replacementFactory = GlassRuntimeEffectFactory { create -> create() }
+      effect.runtimeEffectFactory = replacementFactory
+      attached.value = true
+      waitForIdle()
+      drawFrame()
+
+      val reattachedDelegate =
+        checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
+      assertThat(reattachedDelegate).isNotSameInstanceAs(initialDelegate)
+      assertThat(initialDelegate.fusedShader).isNull()
+      assertThat(reattachedDelegate.fusedShader).isNotSameInstanceAs(initialFusedShader)
+      assertThat(reattachedDelegate.runtimeEffectFactoryForTest)
+        .isSameInstanceAs(replacementFactory)
     }
 
   @Test

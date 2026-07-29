@@ -56,6 +56,8 @@ internal object GlassDirtyFields {
   const val LayerBoundsFlags: Int =
     Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds
 
+  const val All: Int = InvalidateFlags or LayerBoundsFlags
+
   const val StyleResolutionFlags: Int = InvalidateFlags and Interaction.inv()
   const val ClipDecisionFlags: Int = Shape or EdgeSoftness
 

@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
@@ -168,6 +169,41 @@ class GlassVisualEffectLifecycleTest {
 
     assertThat(delegates.first().finalReleaseCalls).isEqualTo(1)
     assertThat(delegates.last().finalReleaseCalls).isEqualTo(0)
+  }
+
+  @Test
+  fun fallbackRendererCache_releasesAndReseedsCallerReferences() {
+    val initialSource = MutableInteractionSource()
+    val initialShape = RoundedCornerShape(11.dp)
+    val configuration = GlassVisualEffect().apply {
+      interactionSource = initialSource
+      shape = initialShape
+    }
+    val renderer = configuration.createRenderer() as GlassRenderer
+    val runtime = renderer.runtimeForTest
+    val context = TrackingVisualEffectContext()
+    renderer.attach(context)
+    renderer.update(context)
+    runtime.prepareRenderBudget(context, runtimeShaderSupported = false)
+
+    renderer.detach(context)
+
+    assertThat(runtime.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(runtime.interactionSource).isNull()
+    assertThat(runtime.shape).isNotSameInstanceAs(initialShape)
+    assertThat(runtime.resolvedStyleCacheDensityForTest).isNull()
+
+    val replacementSource = MutableInteractionSource()
+    val replacementShape = RoundedCornerShape(23.dp)
+    configuration.interactionSource = replacementSource
+    configuration.shape = replacementShape
+    val reacquired = configuration.createRenderer() as GlassRenderer
+
+    assertThat(reacquired).isSameInstanceAs(renderer)
+    assertThat(runtime.interactionSource).isSameInstanceAs(replacementSource)
+    assertThat(runtime.shape).isSameInstanceAs(replacementShape)
+    reacquired.attach(context)
+    reacquired.detach(context)
   }
 
   @Test

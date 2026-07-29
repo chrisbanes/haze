@@ -62,6 +62,7 @@ internal class GlassRenderer(
 
   override fun detach(context: VisualEffectContext) {
     runtimeForTest.detach(context)
+    runtimeForTest.clearConfigurationReferences()
     configuration = null
     GlassRendererCache.recycle(configurationKey, this)
   }
@@ -71,7 +72,15 @@ internal class GlassRenderer(
     check(configuration.rendererCacheKey === configurationKey) {
       "Glass renderer cache key does not match its configuration."
     }
+    val fieldVersions = configuration.configurationFieldVersions()
+    val runtimeEffectFactoryIndex = GlassDirtyFields.RuntimeEffectFactory.countTrailingZeroBits()
+    val runtimeEffectFactoryChanged =
+      fieldVersions[runtimeEffectFactoryIndex] !=
+        observedConfigurationFieldVersions[runtimeEffectFactoryIndex]
+    runtimeForTest.reseedConfiguration(configuration, runtimeEffectFactoryChanged)
     this.configuration = configuration
+    observedConfigurationRevision = configuration.configurationRevision
+    observedConfigurationFieldVersions = fieldVersions
   }
 
   override fun DrawScope.prepareDraw(context: VisualEffectContext) {

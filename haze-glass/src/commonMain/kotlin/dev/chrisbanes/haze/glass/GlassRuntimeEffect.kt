@@ -103,6 +103,7 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
 
 private val IdleInteractionState = GlassInteractionRenderState(Offset.Zero)
 private val IdleInteractionSignals = GlassInteractionSignals()
+private val EmptyGlassConfiguration = GlassVisualEffect()
 
 private class ResolvedGlassConfiguration(source: GlassVisualEffect) {
   val value = GlassVisualEffect(source)
@@ -137,6 +138,62 @@ internal class GlassRuntimeEffect private constructor(
   internal fun synchronizeConfigurationFrom(other: GlassVisualEffect, changedFields: Int) {
     resolvedConfiguration.synchronizeConfigurationFrom(other, changedFields)
     markDirty(changedFields)
+  }
+
+  internal fun clearConfigurationReferences() {
+    val retainedRuntimeDelegate = delegate as? RuntimeShaderGlassDelegate
+    retainedRuntimeDelegate?.sanitizeConfigurationReferencesForCache(
+      releaseShaderHandles = runtimeEffectFactory !== PlatformGlassRuntimeEffectFactory,
+    )
+    replaceConfigurationFrom(EmptyGlassConfiguration)
+    retainedRuntimeDelegate?.updateRuntimeEffectFactory(
+      PlatformGlassRuntimeEffectFactory,
+    )
+    clearConfigurationCaches()
+    resetDirtyTracker()
+  }
+
+  internal fun reseedConfiguration(
+    other: GlassVisualEffect,
+    runtimeEffectFactoryChanged: Boolean,
+  ) {
+    replaceConfigurationFrom(other)
+    val retainedRuntimeDelegate = (delegate as? RuntimeShaderGlassDelegate)?.takeUnless {
+      runtimeEffectFactoryChanged
+    }
+    if (runtimeEffectFactoryChanged && delegate is RuntimeShaderGlassDelegate) {
+      delegate.release()
+      delegate = FallbackGlassDelegate(this)
+    }
+    retainedRuntimeDelegate?.updateRuntimeEffectFactory(runtimeEffectFactory)
+    resetDirtyTracker()
+    markDirty(
+      if (retainedRuntimeDelegate != null) {
+        GlassDirtyFields.All and GlassDirtyFields.RuntimeEffectFactory.inv()
+      } else {
+        GlassDirtyFields.All
+      },
+    )
+  }
+
+  private fun replaceConfigurationFrom(other: GlassVisualEffect) {
+    resolvedConfiguration.onConfigurationChanged = null
+    try {
+      resolvedConfiguration.copyConfigurationFrom(other)
+    } finally {
+      resolvedConfiguration.onConfigurationChanged = ::markDirty
+    }
+  }
+
+  private fun clearConfigurationCaches() {
+    preparedRender = null
+    renderPreparation.prepared = null
+    clearPreparedRenderCache()
+    budgetCacheKey = null
+    budgetCacheDecision = null
+    preparedDrawCacheKey = null
+    resolvedStyleCache = null
+    resolvedStyleCacheDensity = null
   }
 
   private var isAttached: Boolean = false
@@ -184,6 +241,10 @@ internal class GlassRuntimeEffect private constructor(
   private var resolvedStyleCache: ResolvedGlassStyle? = null
   private var resolvedStyleCacheSize: Size = Size.Unspecified
   private var resolvedStyleCacheDensity: Density? = null
+
+  internal val resolvedStyleCacheDensityForTest: Density?
+    get() = resolvedStyleCacheDensity
+
   private var resolvedStyleCacheLayoutDirection: LayoutDirection? = null
 
   private var geometrySnapshotObserver: SnapshotStateObserver? = null

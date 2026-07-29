@@ -57,7 +57,7 @@ public class GlassVisualEffect() :
     copyConfigurationFrom(other)
   }
 
-  private fun copyConfigurationFrom(other: GlassVisualEffect) {
+  internal fun copyConfigurationFrom(other: GlassVisualEffect) {
     _optics = other._optics
     _specularIntensity = other._specularIntensity
     _ambientResponse = other._ambientResponse
