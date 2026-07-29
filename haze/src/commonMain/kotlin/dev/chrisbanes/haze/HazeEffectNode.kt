@@ -7,6 +7,7 @@ package dev.chrisbanes.haze
 
 import androidx.collection.MutableObjectLongMap
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -41,6 +42,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlinx.coroutines.DisposableHandle
+import kotlinx.coroutines.launch
 
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeEffect].
@@ -85,19 +87,91 @@ public class HazeEffectNode(
       }
     }
 
+  internal var explicitInput: HazeInput? = null
+    set(value) {
+      if (value != field) {
+        HazeLogger.d(TAG) { "explicitInput changed. Current: $field. New: $value" }
+        val previous = field
+        val changesRetainedContent = previous !is HazeInput.Sources ||
+          value !is HazeInput.Sources ||
+          previous.state !== value.state
+        if (changesRetainedContent) {
+          clearRetainedOutput()
+        }
+        sourceSelectionSnapshotObserver?.clear(sourceSelectionObservationScope)
+        if ((value as? HazeInput.Sources)?.selection?.hasRefinements() != true) {
+          stopSourceSelectionSnapshotObserver()
+        }
+        dirtyTracker += DirtyFields.Areas
+        field = value
+        when {
+          value is HazeInput.Sources -> {
+            retainOutputWhenSourceUnavailable = value.retention.keepsLastFrame()
+          }
+          previous is HazeInput.Sources -> retainOutputWhenSourceUnavailable = true
+        }
+      }
+    }
+
   private var needsPreDrawInvalidation = false
   private var needsDirtyFieldsInvalidation = false
   private var needsVisualEffectInvalidation = false
   private var needsContentInvalidation = false
   private var isDrawing = false
+  private var isInvokingBlock = false
   private var lastKnownCoordinates: LayoutCoordinates? = null
+  private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
+  private var sourceSelectionObserverGeneration: Int = 0
+  private val sourceSelectionObservationScope = Any()
+  private val onObservedSourceSelectionChanged: (Any) -> Unit = {
+    dirtyTracker += DirtyFields.Areas
+    updateEffect()
+  }
+
+  private fun getOrCreateSourceSelectionSnapshotObserver(): SnapshotStateObserver {
+    sourceSelectionSnapshotObserver?.let { return it }
+    val observerGeneration = ++sourceSelectionObserverGeneration
+    return SnapshotStateObserver { command ->
+      coroutineScope.launch {
+        if (isAttached && sourceSelectionObserverGeneration == observerGeneration) {
+          command()
+        }
+      }
+    }.also {
+      it.start()
+      sourceSelectionSnapshotObserver = it
+    }
+  }
+
+  private fun stopSourceSelectionSnapshotObserver() {
+    sourceSelectionObserverGeneration++
+    sourceSelectionSnapshotObserver?.stop()
+    sourceSelectionSnapshotObserver = null
+  }
 
   override var inputScale: HazeInputScale = HazeInputScale.Default
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "inputScale changed. Current: $field. New: $value" }
-        field = value
+      val resolvedValue = if (isInvokingBlock) {
+        explicitSampling?.toInputScale() ?: value
+      } else {
+        value
+      }
+      if (resolvedValue != field) {
+        HazeLogger.d(TAG) { "inputScale changed. Current: $field. New: $resolvedValue" }
+        field = resolvedValue
         dirtyTracker += DirtyFields.InputScale
+      }
+    }
+
+  internal var explicitSampling: HazeSampling? = null
+    set(value) {
+      if (value != field) {
+        val previous = field
+        field = value
+        when {
+          value != null -> inputScale = value.toInputScale()
+          previous != null -> inputScale = HazeInputScale.Default
+        }
       }
     }
 
@@ -276,24 +350,41 @@ public class HazeEffectNode(
 
   override var expandLayerBounds: Boolean? = null
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "expandLayer changed. Current $field. New: $value" }
+      val resolvedValue = if (isInvokingBlock) explicitExpandLayerBounds ?: value else value
+      if (resolvedValue != field) {
+        HazeLogger.d(TAG) { "expandLayer changed. Current $field. New: $resolvedValue" }
         dirtyTracker += DirtyFields.ExpandLayer
+        field = resolvedValue
+      }
+    }
+
+  internal var explicitExpandLayerBounds: Boolean? = null
+    set(value) {
+      if (value != field) {
         field = value
+        expandLayerBounds = value
       }
     }
 
   override var retainOutputWhenSourceUnavailable: Boolean = true
     set(value) {
-      if (value != field) {
+      val resolvedValue = if (isInvokingBlock) {
+        (explicitInput as? HazeInput.Sources)
+          ?.retention
+          ?.keepsLastFrame()
+          ?: value
+      } else {
+        value
+      }
+      if (resolvedValue != field) {
         HazeLogger.d(TAG) {
-          "retainOutputWhenSourceUnavailable changed. Current $field. New: $value"
+          "retainOutputWhenSourceUnavailable changed. Current $field. New: $resolvedValue"
         }
-        if (!value) {
+        if (!resolvedValue) {
           clearRetainedOutput()
         }
         dirtyTracker += DirtyFields.RetainOutput
-        field = value
+        field = resolvedValue
       }
     }
 
@@ -334,6 +425,7 @@ public class HazeEffectNode(
   }
 
   override fun onDetach() {
+    stopSourceSelectionSnapshotObserver()
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
     resetPendingInvalidations()
@@ -528,7 +620,12 @@ public class HazeEffectNode(
 
     // Invalidate if any of the effects triggered an invalidation, or we now have zero
     // effects but were previously showing some
-    block?.invoke(this)
+    isInvokingBlock = true
+    try {
+      block?.invoke(this)
+    } finally {
+      isInvokingBlock = false
+    }
 
     val state = this.state
     if (state != null) {
@@ -564,28 +661,70 @@ public class HazeEffectNode(
             ?.takeIf { it.state == this.state }
 
         val unfilteredAreas = stateAreas.orEmpty()
-        val filteredAreas = unfilteredAreas
-          .also {
-            HazeLogger.d(TAG) { "Background Areas observing: $it" }
+        val selection = (explicitInput as? HazeInput.Sources)?.selection
+        HazeLogger.d(TAG) { "Background Areas observing: $unfilteredAreas" }
+        val filteredAreas = when (val sourceSelection = selection) {
+          null -> {
+            unfilteredAreas
+              .asSequence()
+              .filter { area ->
+                val filter = canDrawArea
+                when {
+                  filter != null -> filter(area)
+                  ancestorSourceNode != null -> area.zIndex < ancestorSourceNode.zIndex
+                  else -> true
+                }.also { included ->
+                  HazeLogger.d(TAG) { "Background Area: $area. Included=$included" }
+                }
+              }
+              .toMutableList()
+              .apply { sortBy(HazeArea::zIndex) }
           }
-          .asSequence()
-          .filter { area ->
-            val filter = canDrawArea
-            when {
-              filter != null -> filter(area)
-              ancestorSourceNode != null -> area.zIndex < ancestorSourceNode.zIndex
-              else -> true
-            }.also { included ->
-              HazeLogger.d(TAG) { "Background Area: $area. Included=$included" }
+          else -> {
+            val relatedSources = unfilteredAreas.mapNotNull { area ->
+              val info = HazeSourceInfo(key = area.key, zIndex = area.zIndex)
+              val relationshipMatches = when (sourceSelection.baseSelection()) {
+                HazeSourceSelection.All -> true
+                HazeSourceSelection.Behind -> {
+                  ancestorSourceNode == null || info.zIndex < ancestorSourceNode.zIndex
+                }
+                else -> error("Unexpected base HazeSourceSelection")
+              }
+              if (relationshipMatches) area to info else null
             }
+            val selectedSources = if (sourceSelection.hasRefinements()) {
+              Snapshot.withoutReadObservation {
+                lateinit var result: List<Pair<HazeArea, HazeSourceInfo>>
+                getOrCreateSourceSelectionSnapshotObserver().observeReads(
+                  sourceSelectionObservationScope,
+                  onObservedSourceSelectionChanged,
+                ) {
+                  result = relatedSources.filter { (_, info) ->
+                    sourceSelection.matches(info)
+                  }
+                }
+                result
+              }
+            } else {
+              relatedSources
+            }
+            selectedSources
+              .sortedBy { (_, info) -> info.zIndex }
+              .map { (area) ->
+                HazeLogger.d(TAG) { "Background Area: $area. Included=true" }
+                area
+              }
           }
-          .toMutableList()
-          .apply { sortBy(HazeArea::zIndex) }
+        }
         _areas = filteredAreas
 
         if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers()) {
           clearRetainedOutput()
-        } else if (unfilteredAreas.isNotEmpty() && filteredAreas.isEmpty()) {
+        } else if (
+          explicitInput == null &&
+          unfilteredAreas.isNotEmpty() &&
+          filteredAreas.isEmpty()
+        ) {
           clearRetainedOutput()
         }
         updateAreaZIndexes(currentStateAreas)

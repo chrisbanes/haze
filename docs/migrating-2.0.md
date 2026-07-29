@@ -23,6 +23,9 @@ The primary change in v2 is the extraction of blur functionality from the core `
   `HazeInputScale.None` to preserve explicit full-resolution blur input.
   `HazeInputScale.EffectDefault` is the new sealed subtype backing `Default`; exhaustive `when`
   expressions over `HazeInputScale` must handle it (or add an `else` branch).
+- **Explicit input and rendering policies:** The new `hazeEffect(input = ...)` overload uses
+  `HazeInput.Sources` or `HazeInput.Content`, metadata-only source selection,
+  `HazeSourceRetention`, `HazeSampling`, and a non-null `expandLayerBounds` argument.
 
 **What Hasn't Changed:**
 
@@ -257,6 +260,57 @@ GlassStyle(
     }
     ```
 
+### Adopt Explicit Inputs and Rendering Policies
+
+The nullable-state overloads remain available during the staged Haze 2 migration. New code can
+make foreground versus source-backed input explicit without waiting for the later effect-specific
+modifier APIs:
+
+```kotlin
+// Source-backed input
+Modifier.hazeEffect(
+    input = HazeInput.Sources(hazeState),
+) {
+    blurEffect { /* ... */ }
+}
+
+// The modifier's own content
+Modifier.hazeEffect(input = HazeInput.Content) {
+    blurEffect { /* ... */ }
+}
+```
+
+Map legacy scope policies to structural values as follows:
+
+```kotlin
+Modifier.hazeEffect(
+    input = HazeInput.Sources(
+        state = hazeState,
+        selection = HazeSourceSelection.Behind
+            .where { source -> source.key != "excluded" },
+        retention = HazeSourceRetention.ClearWhenUnavailable,
+    ),
+    sampling = HazeSampling.FullResolution,
+    expandLayerBounds = false,
+) {
+    blurEffect { /* ... */ }
+}
+```
+
+- Nullable `state` mode selection becomes `HazeInput.Sources(state)` or `HazeInput.Content`.
+- `canDrawArea` becomes `HazeSourceSelection.Behind.where { ... }` or
+  `HazeSourceSelection.All.where { ... }`. Predicates receive only `key` and `zIndex`, and
+  repeated `where` calls combine with logical AND.
+- `retainOutputWhenSourceUnavailable = true` maps to `KeepLastFrame`; `false` maps to
+  `ClearWhenUnavailable`. Prefer the clearing policy for privacy-sensitive surfaces.
+- `HazeInputScale.Default`, `None`, `Auto`, and `Fixed(scale)` map to `HazeSampling.Default`,
+  `FullResolution`, `Adaptive`, and `Fixed(scale)` respectively.
+- Nullable scope `expandLayerBounds` becomes a non-null modifier argument that defaults to `true`.
+
+The structural `input`, `sampling`, and `expandLayerBounds` arguments are authoritative on this
+overload. Existing nullable `hazeEffect` overloads and `HazeEffectScope` properties are not
+deprecated by this migration step.
+
 ## Complete API Mapping
 
 | V1 Location | V2 Location | Notes |
@@ -275,12 +329,13 @@ GlassStyle(
 | `HazeEffectScope.fallbackTint` | `BlurVisualEffect.fallbackTint` | Inside `blurEffect {}` |
 | `HazeEffectScope.alpha` | `BlurVisualEffect.alpha` | Inside `blurEffect {}` |
 | `HazeEffectScope.blurEnabled` | `BlurVisualEffect.blurEnabled` | Inside `blurEffect {}` |
-| `HazeEffectScope.inputScale` | `HazeEffectScope.inputScale` | **Unchanged** - still on scope |
+| `HazeEffectScope.inputScale` | `HazeSampling` | Structural on the explicit-input overload; the scope property remains on legacy overloads |
 | `HazeEffectScope.drawContentBehind` | `HazeEffectScope.drawContentBehind` | **Unchanged** - still on scope |
 | `HazeEffectScope.clipToAreasBounds` | `HazeEffectScope.clipToAreasBounds` | **Unchanged** - still on scope |
-| `HazeEffectScope.expandLayerBounds` | `HazeEffectScope.expandLayerBounds` | **Unchanged** - still on scope |
+| `HazeEffectScope.expandLayerBounds` | `Modifier.hazeEffect(expandLayerBounds = ...)` | Non-null and defaults to `true` on the explicit-input overload |
 | `HazeEffectScope.forceInvalidateOnPreDraw` | `HazeEffectScope.forceInvalidateOnPreDraw` | **Unchanged** - still on scope |
-| `HazeEffectScope.canDrawArea` | `HazeEffectScope.canDrawArea` | **Unchanged** - still on scope |
+| `HazeEffectScope.canDrawArea` | `HazeSourceSelection.where { ... }` | Metadata-only (`key`, `zIndex`) on the explicit-input overload; the scope property remains on legacy overloads |
+| `HazeEffectScope.retainOutputWhenSourceUnavailable` | `HazeSourceRetention` | `KeepLastFrame` or privacy-sensitive `ClearWhenUnavailable` on source-backed explicit input |
 | `rememberHazeState(blurEnabled)` | *Removed* | Use `blurEffect { blurEnabled = ... }` |
 | `HazeState.blurEnabled` | *Removed* | Use `blurEffect { blurEnabled = ... }` on each effect |
 | `HazeState.contentLayer` | *Removed* | Internal implementation detail from old single-source model |

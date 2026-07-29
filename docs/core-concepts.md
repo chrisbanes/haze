@@ -44,7 +44,9 @@ Applies a visual effect to a composable, drawing blurred content from areas mark
 val style = HazeMaterials.thin()
 
 TopAppBar(
-    modifier = Modifier.hazeEffect(state = hazeState) {
+    modifier = Modifier.hazeEffect(
+        input = HazeInput.Sources(hazeState),
+    ) {
         blurEffect {
             this.style = style
         }
@@ -52,11 +54,70 @@ TopAppBar(
 )
 ```
 
-The effect is configured inside the lambda block using effect-specific builders.
+The required `input` makes the source mode explicit:
+
+- `HazeInput.Sources(hazeState)` consumes content captured by matching `hazeSource` modifiers.
+- `HazeInput.Content` captures the modifier's own content.
+
+The effect is configured inside the lambda block using effect-specific builders. The older
+nullable-state overloads remain available during the Haze 2 migration.
+
+#### Selecting sources
+
+`HazeInput.Sources` defaults to `HazeSourceSelection.Behind`. With a nearest ancestor
+`hazeSource` using the same state, this selects lower-z sources. Without one, it selects every
+source. Use `All` to bypass the ancestor relationship:
+
+```kotlin
+HazeInput.Sources(
+    state = hazeState,
+    selection = HazeSourceSelection.All,
+)
+```
+
+Refine either relationship with `where`. Predicates receive only an immutable snapshot of the
+source `key` and `zIndex`; renderer-owned geometry, content, and platform resources stay private.
+Repeated refinements combine with logical AND:
+
+```kotlin
+val selection = HazeSourceSelection.Behind
+    .where { source -> source.zIndex >= 1f }
+    .where { source -> source.key != "sensitive" }
+```
+
+#### Rendering policies
+
+The explicit-input overload also makes sampling and layer expansion structural:
+
+```kotlin
+Modifier.hazeEffect(
+    input = HazeInput.Sources(
+        state = hazeState,
+        retention = HazeSourceRetention.ClearWhenUnavailable,
+    ),
+    sampling = HazeSampling.Adaptive,
+    expandLayerBounds = false,
+) {
+    blurEffect { /* ... */ }
+}
+```
+
+- `HazeSourceRetention.KeepLastFrame` is the default and preserves smooth source transitions.
+  Use `ClearWhenUnavailable` for privacy-sensitive surfaces that must not display stale pixels.
+- `HazeSampling.Default` lets the effect choose, `FullResolution` disables scaling,
+  `Adaptive` requests the effect's adaptive policy, and `Fixed(scale)` uses a validated
+  `0 < scale <= 1` value.
+- `expandLayerBounds` is non-null and defaults to `true`. Set it to `false` to constrain the
+  effect layer to the composable's ordinary bounds.
+
+These structural arguments are authoritative on the explicit-input overload.
 
 ## HazeEffectScope
 
-The lambda block parameter of `Modifier.hazeEffect` receives a `HazeEffectScope`, which provides common properties applicable to all effects:
+The lambda block parameter of `Modifier.hazeEffect` receives a `HazeEffectScope`, which provides
+common properties applicable to all effects. `inputScale`, `canDrawArea`,
+`retainOutputWhenSourceUnavailable`, and nullable `expandLayerBounds` remain available for the
+legacy modifier overloads; prefer the structural contracts above on the explicit-input path.
 
 ### Common Properties
 
@@ -135,7 +196,9 @@ Box {
     }
     
     TopAppBar(
-        modifier = Modifier.hazeEffect(state = hazeState) {
+        modifier = Modifier.hazeEffect(
+            input = HazeInput.Sources(hazeState),
+        ) {
             blurEffect { /* ... */ }
         }
     )
@@ -148,7 +211,7 @@ The effect blurs the content within the composable itself. Only requires `hazeEf
 
 ```kotlin
 Box(
-    modifier = Modifier.hazeEffect {
+    modifier = Modifier.hazeEffect(input = HazeInput.Content) {
         blurEffect { /* ... */ }
     }
 ) {

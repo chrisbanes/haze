@@ -118,6 +118,51 @@ public interface HazeEffectScope {
 }
 
 /**
+ * Input-sampling policies used by the explicit-input [hazeEffect] overload.
+ *
+ * These values adapt to the existing effect-facing [HazeInputScale] semantics so built-in
+ * effects keep their current default and adaptive behavior.
+ */
+public sealed interface HazeSampling {
+
+  /**
+   * Lets the configured [VisualEffect] choose its input-sampling policy.
+   */
+  public data object Default : HazeSampling
+
+  /**
+   * Samples the effect input at full resolution.
+   */
+  public data object FullResolution : HazeSampling
+
+  /**
+   * Requests the configured effect's adaptive input-sampling policy.
+   */
+  public data object Adaptive : HazeSampling
+
+  /**
+   * An input scale which uses a fixed scale factor.
+   *
+   * @param scale The scale factor, in the range 0 < x <= 1.
+   */
+  @JvmInline
+  public value class Fixed(public val scale: Float) : HazeSampling {
+    init {
+      require(scale > 0f && scale <= 1f) {
+        "scale needs to be in the range 0 < x <= 1f"
+      }
+    }
+  }
+}
+
+internal fun HazeSampling.toInputScale(): HazeInputScale = when (this) {
+  HazeSampling.Default -> HazeInputScale.Default
+  HazeSampling.FullResolution -> HazeInputScale.None
+  HazeSampling.Adaptive -> HazeInputScale.Auto
+  is HazeSampling.Fixed -> HazeInputScale.Fixed(scale)
+}
+
+/**
  * Input-scale policies used for [HazeEffectScope.inputScale].
  */
 public sealed interface HazeInputScale {
@@ -202,11 +247,45 @@ public fun Modifier.hazeEffect(
   block: (HazeEffectScope.() -> Unit)? = null,
 ): Modifier = thenHazeEffect(state = null, block = block)
 
+/**
+ * Draw the 'haze' effect using an explicit [input].
+ *
+ * @param input The content consumed by the configured effect.
+ * @param sampling The input-sampling policy. Defaults to the configured effect's policy.
+ * @param expandLayerBounds Whether effect-requested layer-bound expansion is enabled.
+ * @param block Optional configuration block for the existing visual-effect surface.
+ *
+ * The structural [input], [sampling], and [expandLayerBounds] values are authoritative over their
+ * legacy [HazeEffectScope] equivalents in [block].
+ */
+@Stable
+public fun Modifier.hazeEffect(
+  input: HazeInput,
+  sampling: HazeSampling = HazeSampling.Default,
+  expandLayerBounds: Boolean = true,
+  block: (HazeEffectScope.() -> Unit)? = null,
+): Modifier = thenHazeEffect(
+  state = (input as? HazeInput.Sources)?.state,
+  explicitInput = input,
+  explicitSampling = sampling,
+  explicitExpandLayerBounds = expandLayerBounds,
+  block = block,
+)
+
 private fun Modifier.thenHazeEffect(
   state: HazeState?,
+  explicitInput: HazeInput? = null,
+  explicitSampling: HazeSampling? = null,
+  explicitExpandLayerBounds: Boolean? = null,
   block: (HazeEffectScope.() -> Unit)?,
 ): Modifier {
-  val effect = this then HazeEffectNodeElement(state = state, block = block)
+  val effect = this then HazeEffectNodeElement(
+    state = state,
+    explicitInput = explicitInput,
+    explicitSampling = explicitSampling,
+    explicitExpandLayerBounds = explicitExpandLayerBounds,
+    block = block,
+  )
   return if (state == null) {
     effect.graphicsLayer() then ForegroundContentInvalidationElement
   } else {
@@ -216,15 +295,25 @@ private fun Modifier.thenHazeEffect(
 
 private data class HazeEffectNodeElement(
   val state: HazeState?,
+  val explicitInput: HazeInput? = null,
+  val explicitSampling: HazeSampling? = null,
+  val explicitExpandLayerBounds: Boolean? = null,
   val block: (HazeEffectScope.() -> Unit)? = null,
 ) : ModifierNodeElement<HazeEffectNode>() {
 
   override fun create(): HazeEffectNode = HazeEffectNode(
     state = state,
     block = block,
-  )
+  ).also { node ->
+    node.explicitInput = explicitInput
+    node.explicitSampling = explicitSampling
+    node.explicitExpandLayerBounds = explicitExpandLayerBounds
+  }
 
   override fun update(node: HazeEffectNode) {
+    node.explicitInput = explicitInput
+    node.explicitSampling = explicitSampling
+    node.explicitExpandLayerBounds = explicitExpandLayerBounds
     node.state = state
     node.block = block
     node.update()

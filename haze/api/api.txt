@@ -29,6 +29,7 @@ package dev.chrisbanes.haze {
   }
 
   public final class HazeEffectKt {
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.HazeSampling sampling, optional boolean expandLayerBounds, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeState? state, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
   }
@@ -104,6 +105,31 @@ package dev.chrisbanes.haze {
     property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
     property public abstract boolean retainOutputWhenSourceUnavailable;
     property public abstract dev.chrisbanes.haze.VisualEffect visualEffect;
+  }
+
+  public sealed exhaustive interface HazeInput {
+  }
+
+  public static final class HazeInput.Content implements dev.chrisbanes.haze.HazeInput {
+    field public static final dev.chrisbanes.haze.HazeInput.Content INSTANCE;
+  }
+
+  @androidx.compose.runtime.Stable public static final class HazeInput.Sources implements dev.chrisbanes.haze.HazeInput {
+    ctor public HazeInput.Sources(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeSourceSelection selection, optional dev.chrisbanes.haze.HazeSourceRetention retention);
+    method public dev.chrisbanes.haze.HazeState component1();
+    method public dev.chrisbanes.haze.HazeSourceSelection component2();
+    method public dev.chrisbanes.haze.HazeSourceRetention component3();
+    method public dev.chrisbanes.haze.HazeInput.Sources copy(optional dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeSourceSelection selection, optional dev.chrisbanes.haze.HazeSourceRetention retention);
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeSourceRetention getRetention();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeSourceSelection getSelection();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeState getState();
+    property public dev.chrisbanes.haze.HazeSourceRetention retention;
+    property public dev.chrisbanes.haze.HazeSourceSelection selection;
+    property public dev.chrisbanes.haze.HazeState state;
+  }
+
+  public final class HazeInputKt {
+    method public static dev.chrisbanes.haze.HazeSourceSelection where(dev.chrisbanes.haze.HazeSourceSelection, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeSourceInfo,java.lang.Boolean> predicate);
   }
 
   public sealed exhaustive interface HazeInputScale {
@@ -211,6 +237,35 @@ package dev.chrisbanes.haze {
     method @dev.chrisbanes.haze.InternalHazeApi public static androidx.compose.ui.graphics.Brush asBrush(dev.chrisbanes.haze.HazeProgressive, optional int numStops);
   }
 
+  public sealed exhaustive interface HazeSampling {
+  }
+
+  public static final class HazeSampling.Adaptive implements dev.chrisbanes.haze.HazeSampling {
+    field public static final dev.chrisbanes.haze.HazeSampling.Adaptive INSTANCE;
+  }
+
+  public static final class HazeSampling.Default implements dev.chrisbanes.haze.HazeSampling {
+    field public static final dev.chrisbanes.haze.HazeSampling.Default INSTANCE;
+  }
+
+  @kotlin.jvm.JvmInline public static final value class HazeSampling.Fixed implements dev.chrisbanes.haze.HazeSampling {
+    ctor @KotlinOnly public HazeSampling.Fixed(float scale);
+    method @InaccessibleFromKotlin public float getScale();
+    property public float scale;
+  }
+
+  public static final class HazeSampling.FullResolution implements dev.chrisbanes.haze.HazeSampling {
+    field public static final dev.chrisbanes.haze.HazeSampling.FullResolution INSTANCE;
+  }
+
+  public final class HazeSourceInfo {
+    ctor public HazeSourceInfo(Object? key, float zIndex);
+    method @InaccessibleFromKotlin public Object? getKey();
+    method @InaccessibleFromKotlin public float getZIndex();
+    property public Object? key;
+    property public float zIndex;
+  }
+
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeSourceNode extends androidx.compose.ui.Modifier.Node implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {
     ctor public HazeSourceNode(dev.chrisbanes.haze.HazeState state, optional float zIndex, optional Object? key);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
@@ -229,6 +284,28 @@ package dev.chrisbanes.haze {
     property public Object traverseKey;
     property public float zIndex;
     field public static final String TAG = "HazeSource";
+  }
+
+  public sealed exhaustive interface HazeSourceRetention {
+  }
+
+  public static final class HazeSourceRetention.ClearWhenUnavailable implements dev.chrisbanes.haze.HazeSourceRetention {
+    field public static final dev.chrisbanes.haze.HazeSourceRetention.ClearWhenUnavailable INSTANCE;
+  }
+
+  public static final class HazeSourceRetention.KeepLastFrame implements dev.chrisbanes.haze.HazeSourceRetention {
+    field public static final dev.chrisbanes.haze.HazeSourceRetention.KeepLastFrame INSTANCE;
+  }
+
+  public sealed nonexhaustive interface HazeSourceSelection {
+  }
+
+  public static final class HazeSourceSelection.All implements dev.chrisbanes.haze.HazeSourceSelection {
+    field public static final dev.chrisbanes.haze.HazeSourceSelection.All INSTANCE;
+  }
+
+  public static final class HazeSourceSelection.Behind implements dev.chrisbanes.haze.HazeSourceSelection {
+    field public static final dev.chrisbanes.haze.HazeSourceSelection.Behind INSTANCE;
   }
 
   @androidx.compose.runtime.Stable public final class HazeState {
