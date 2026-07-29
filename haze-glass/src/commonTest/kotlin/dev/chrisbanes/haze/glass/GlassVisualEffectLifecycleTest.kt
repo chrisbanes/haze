@@ -250,7 +250,7 @@ class GlassVisualEffectLifecycleTest {
     val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         refractionStrength = 0f,
-        refractionScale = 0f,
+        refractionDisplacement = 0.dp,
         blurRadius = 0.dp,
       )
       specularIntensity = 0f
@@ -295,7 +295,7 @@ class GlassVisualEffectLifecycleTest {
     val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         refractionStrength = 1f,
-        refractionScale = 16_384f,
+        refractionDisplacement = 16_384.dp,
         blurRadius = 0.dp,
       )
     }
@@ -343,7 +343,7 @@ class GlassVisualEffectLifecycleTest {
     val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         refractionStrength = 1f,
-        refractionScale = 0.18f,
+        refractionDisplacement = 0.18.dp,
         depth = 0f,
         blurRadius = 0.dp,
       )

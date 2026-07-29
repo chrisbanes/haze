@@ -289,8 +289,8 @@ internal fun resolveGlassOptics(
     refractionStrength = absolute.refractionStrength,
     shortestSidePx = materialSizePx.minDimension,
     blurRadiusPx = effectiveSemanticBlurRadiusPx(with(density) { absolute.blurRadius.toPx() }),
-    refractionScalePx = absolute.refractionScale,
-    refractionHeight = absolute.refractionHeight,
+    refractionScalePx = absolute.refractionDisplacement.value,
+    refractionHeight = absolute.refractionHeightFraction,
   )
   return ResolvedGlassOptics(
     refractionStrength = absolute.refractionStrength,

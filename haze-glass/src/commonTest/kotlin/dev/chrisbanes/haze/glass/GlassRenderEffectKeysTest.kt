@@ -305,7 +305,7 @@ class GlassRenderEffectKeysTest {
     assertThat(
       calculateRefractionDetailVisibility(
         refractionStrength = regularBaseline.refractionStrength,
-        refractionScalePx = regularBaseline.refractionScale,
+        refractionScalePx = regularBaseline.refractionDisplacement.value,
         sampleStepPx = 2f,
       ),
     ).isEqualTo(1f)

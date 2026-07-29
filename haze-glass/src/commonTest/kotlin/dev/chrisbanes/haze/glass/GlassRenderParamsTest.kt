@@ -507,8 +507,8 @@ class GlassRenderParamsTest {
     )
     val optics = GlassOptics.Absolute(
       refractionStrength = 0.4f,
-      refractionHeight = 0.25f,
-      refractionScale = 15f,
+      refractionHeightFraction = 0.25f,
+      refractionDisplacement = 15.dp,
       depth = 0.6f,
       blurRadius = 10.dp,
       progressive = progressive,
@@ -523,8 +523,8 @@ class GlassRenderParamsTest {
 
       assertThat(resolved.refractionStrength).isEqualTo(optics.refractionStrength)
       assertThat(resolved.refractionHeightPx / size.minDimension)
-        .isEqualTo(optics.refractionHeight)
-      assertThat(resolved.refractionScalePx).isEqualTo(optics.refractionScale)
+        .isEqualTo(optics.refractionHeightFraction)
+      assertThat(resolved.refractionScalePx).isEqualTo(optics.refractionDisplacement.value)
       assertThat(resolved.depth).isEqualTo(optics.depth)
       assertThat(resolved.blurRadiusPx / density.density).isEqualTo(optics.blurRadius.value)
       assertThat(resolved.progressive).isEqualTo(progressive)
@@ -763,7 +763,7 @@ class GlassRenderParamsTest {
   fun absoluteLayerPadding_usesLiteralValues() {
     val absolute = GlassOptics.Absolute(
       blurRadius = 32.dp,
-      refractionScale = 15f,
+      refractionDisplacement = 15.dp,
     )
     val effect = GlassVisualEffect().apply {
       optics = absolute
@@ -959,14 +959,15 @@ class GlassRenderParamsTest {
     val profileX = 1f - outputDistancePx / 100f
     val heightNorm = 1f - sqrt(1f - profileX * profileX)
     val sourceDistancePx = outputDistancePx +
-      heightNorm * regularBaseline.refractionStrength * regularBaseline.refractionScale
+      heightNorm * regularBaseline.refractionStrength * regularBaseline.refractionDisplacement.value
 
     assertThat(detailWidthPx).isEqualTo(40f)
     assertThat(sourceDistancePx).isGreaterThan(outputDistancePx)
     assertThat(sourceDistancePx).isGreaterThan(detailWidthPx * .5f)
     assertThat(sourceDistancePx).isLessThan(detailWidthPx)
     assertThat(outputDistancePx).isLessThan(
-      detailWidthPx + regularBaseline.refractionStrength * regularBaseline.refractionScale,
+      detailWidthPx +
+        regularBaseline.refractionStrength * regularBaseline.refractionDisplacement.value,
     )
   }
 
@@ -1019,7 +1020,7 @@ class GlassRenderParamsTest {
       optics = GlassOptics.Absolute(
         blurRadius = 32.dp,
         refractionStrength = 0f,
-        refractionScale = 0f,
+        refractionDisplacement = 0.dp,
       )
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(0.dp)
@@ -1095,7 +1096,7 @@ class GlassRenderParamsTest {
       optics = GlassOptics.Absolute(
         blurRadius = 32.dp,
         refractionStrength = 1f,
-        refractionScale = 0f,
+        refractionDisplacement = 0.dp,
       )
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(0.dp)

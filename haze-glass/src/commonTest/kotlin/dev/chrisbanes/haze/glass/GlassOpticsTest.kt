@@ -20,19 +20,27 @@ class GlassOpticsTest {
   }
 
   @Test
-  fun absolute_rejectsInvalidValues() {
+  fun absolute_rejectsInvalidSemanticValues() {
     listOf<() -> Unit>(
       { GlassOptics.Absolute(refractionStrength = Float.NaN) },
       { GlassOptics.Absolute(refractionStrength = -0.1f) },
-      { GlassOptics.Absolute(refractionHeight = 1.1f) },
-      { GlassOptics.Absolute(refractionScale = Float.POSITIVE_INFINITY) },
-      { GlassOptics.Absolute(refractionScale = Float.MAX_VALUE) },
-      { GlassOptics.Absolute(refractionScale = -1f) },
+      { GlassOptics.Absolute(refractionHeightFraction = 1.1f) },
+      { GlassOptics.Absolute(refractionDisplacement = Dp.Unspecified) },
+      { GlassOptics.Absolute(refractionDisplacement = Float.POSITIVE_INFINITY.dp) },
+      { GlassOptics.Absolute(refractionDisplacement = (-1).dp) },
       { GlassOptics.Absolute(depth = Float.NaN) },
       { GlassOptics.Absolute(blurRadius = Dp.Unspecified) },
       { GlassOptics.Absolute(blurRadius = (-1).dp) },
     ).forEach { create ->
       assertFailure { create() }.isInstanceOf<IllegalArgumentException>()
     }
+  }
+
+  @Test
+  fun absolute_acceptsFiniteDisplacementBeyondRendererLimit() {
+    val displacement = Float.MAX_VALUE.dp
+
+    assertThat(GlassOptics.Absolute(refractionDisplacement = displacement).refractionDisplacement)
+      .isEqualTo(displacement)
   }
 }
