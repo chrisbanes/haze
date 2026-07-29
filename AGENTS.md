@@ -98,3 +98,8 @@ Use the default canonical triage labels. See `docs/agents/triage-labels.md`.
 
 Use a single-context layout with a root `CONTEXT.md` and `docs/adr/`. See
 `docs/agents/domain.md`.
+
+### GitHub Project execution
+
+The repository Project binding and execution policy are defined in
+`docs/agents/run-github-project.md`.
