@@ -510,7 +510,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
       effect.ambientResponse = 0.6f
-      effect.optics = (effect.optics as GlassOptics.Absolute).copy(refractionScale = 18f)
+      effect.optics = (effect.optics as GlassOptics.Absolute).copy(refractionDisplacement = 18.dp)
       waitForIdle()
       drawFrame()
 
@@ -687,7 +687,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
 
       effect.optics = (effect.optics as GlassOptics.Absolute).copy(
-        refractionScale = 18f,
+        refractionDisplacement = 18.dp,
       )
       waitForIdle()
       drawFrame()
@@ -757,7 +757,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   private fun animatedStageEffect() = GlassVisualEffect().apply {
     optics = GlassOptics.Absolute(
       refractionStrength = 0.5f,
-      refractionScale = 20f,
+      refractionDisplacement = 20.dp,
       depth = 0.5f,
       blurRadius = 14.dp,
     )
@@ -769,7 +769,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   private fun interactiveEffect() = GlassVisualEffect().apply {
     optics = GlassOptics.Absolute(
       refractionStrength = 0.5f,
-      refractionScale = 20f,
+      refractionDisplacement = 20.dp,
       blurRadius = 0.dp,
     )
     specularIntensity = 0f
@@ -784,7 +784,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   private fun largePanelInteractiveEffect() = GlassVisualEffect().apply {
     optics = GlassOptics.Absolute(
       refractionStrength = 0.5f,
-      refractionScale = 20f,
+      refractionDisplacement = 20.dp,
       blurRadius = 0.dp,
     )
     specularIntensity = 0f
@@ -806,7 +806,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   ) = GlassVisualEffect().apply {
     optics = GlassOptics.Absolute(
       refractionStrength = refractionStrength,
-      refractionScale = 20f,
+      refractionDisplacement = 20.dp,
       depth = 0.5f,
       blurRadius = 38.5.dp,
       progressive = progressive,

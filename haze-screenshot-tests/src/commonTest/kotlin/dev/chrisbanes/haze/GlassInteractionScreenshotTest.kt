@@ -97,7 +97,7 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
     val effect = GlassVisualEffect().apply {
       optics = GlassOptics.Absolute(
         refractionStrength = 0.7f,
-        refractionScale = 28f,
+        refractionDisplacement = 28.dp,
         depth = 0.5f,
         blurRadius = 14.dp,
       )

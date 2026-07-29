@@ -20,6 +20,8 @@ import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
+
 internal data class GlassCoordinates(
   val sampleSize: Size,
   val materialOrigin: Offset,
@@ -289,13 +291,15 @@ internal fun resolveGlassOptics(
     refractionStrength = absolute.refractionStrength,
     shortestSidePx = materialSizePx.minDimension,
     blurRadiusPx = effectiveSemanticBlurRadiusPx(with(density) { absolute.blurRadius.toPx() }),
-    refractionScalePx = absolute.refractionDisplacement.value,
+    refractionScalePx = with(density) { absolute.refractionDisplacement.toPx() },
     refractionHeight = absolute.refractionHeightFraction,
   )
   return ResolvedGlassOptics(
     refractionStrength = absolute.refractionStrength,
     refractionHeightPx = resolved.refractionHeightPx,
-    refractionScalePx = resolved.refractionScalePx,
+    refractionScalePx = resolved.refractionScalePx
+      .coerceIn(0f, MAX_REFRACTION_DISPLACEMENT_PX)
+      .finiteOrZero(),
     depth = absolute.depth,
     blurRadiusPx = resolved.blurRadiusPx,
     blurSigmaPx = resolved.blurSigmaPx,

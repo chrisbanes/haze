@@ -500,7 +500,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun absoluteOptics_useLiteralValuesRegardlessOfGeometry() {
+  fun absoluteOptics_resolveSemanticValuesAcrossDensities() {
     val progressive = dev.chrisbanes.haze.HazeProgressive.verticalGradient(
       startIntensity = 0f,
       endIntensity = 1f,
@@ -524,7 +524,8 @@ class GlassRenderParamsTest {
       assertThat(resolved.refractionStrength).isEqualTo(optics.refractionStrength)
       assertThat(resolved.refractionHeightPx / size.minDimension)
         .isEqualTo(optics.refractionHeightFraction)
-      assertThat(resolved.refractionScalePx).isEqualTo(optics.refractionDisplacement.value)
+      assertThat(resolved.refractionScalePx)
+        .isEqualTo(with(density) { optics.refractionDisplacement.toPx() })
       assertThat(resolved.depth).isEqualTo(optics.depth)
       assertThat(resolved.blurRadiusPx / density.density).isEqualTo(optics.blurRadius.value)
       assertThat(resolved.progressive).isEqualTo(progressive)
@@ -565,6 +566,18 @@ class GlassRenderParamsTest {
 
       assertThat(resolved.blurRadiusPx).isEqualTo(expectedRadiusPx)
     }
+  }
+
+  @Test
+  fun adaptiveOptics_clampResolvedDisplacementToInternalRendererLimit() {
+    val resolved = resolveGlassOptics(
+      optics = GlassOptics.Adaptive,
+      materialSizePx = Size(200f, 100f),
+      density = Density(1_000f),
+      cornerRadiiPx = CornerRadii.zero,
+    )
+
+    assertThat(resolved.refractionScalePx).isEqualTo(16_384f)
   }
 
   @Test
@@ -831,6 +844,65 @@ class GlassRenderParamsTest {
         SemanticBlurKernel.radiusToSigma(params.blurRadiusPx),
       )
     }
+  }
+
+  @Test
+  fun renderParams_scaleResolvedOpticalDistancesExactlyOnce() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(
+        refractionHeightFraction = 0.25f,
+        refractionDisplacement = 12.dp,
+        blurRadius = 10.dp,
+      )
+    }
+    val style = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(200f, 100f),
+      density = Density(2f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    val params = buildGlassRenderParams(
+      style = style,
+      coordinates = resolveGlassCoordinates(
+        layerSize = Size(200f, 100f),
+        layerOffset = Offset.Zero,
+        materialSize = Size(200f, 100f),
+        scaleFactor = 0.5f,
+      ),
+    )
+
+    assertThat(params.refractionScalePx).isEqualTo(12f)
+    assertThat(params.refractionHeightPx).isEqualTo(12.5f)
+    assertThat(params.blurRadiusPx).isEqualTo(10f)
+    assertThat(params.opticalEffectKey().refractionScalePx).isEqualTo(12f)
+    assertThat(params.opticalEffectKey().refractionHeightPx).isEqualTo(12.5f)
+  }
+
+  @Test
+  fun renderParams_applyInputScaleAfterInternalOpticalClamping() {
+    val effect = GlassVisualEffect().apply {
+      optics = GlassOptics.Absolute(refractionDisplacement = Float.MAX_VALUE.dp)
+    }
+    val style = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(200f, 100f),
+      density = Density(2f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    val params = buildGlassRenderParams(
+      style = style,
+      coordinates = resolveGlassCoordinates(
+        layerSize = Size(200f, 100f),
+        layerOffset = Offset.Zero,
+        materialSize = Size(200f, 100f),
+        scaleFactor = 0.5f,
+      ),
+    )
+
+    assertThat(style.resolvedOptics.refractionScalePx).isEqualTo(16_384f)
+    assertThat(params.refractionScalePx).isEqualTo(8_192f)
   }
 
   @Test
