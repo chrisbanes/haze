@@ -97,7 +97,7 @@ class GlassStyleTest {
       shape = RoundedCornerShape(12.dp),
       optics = GlassOptics.Absolute(
         refractionStrength = 0.2f,
-        refractionScale = 8f,
+        refractionDisplacement = 8.dp,
         depth = 0.3f,
       ),
       lighting = GlassLighting(

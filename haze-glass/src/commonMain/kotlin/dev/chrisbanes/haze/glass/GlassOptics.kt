@@ -10,8 +10,6 @@ import androidx.compose.ui.unit.isSpecified
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeProgressive
 
-private const val MAX_ABSOLUTE_REFRACTION_SCALE_PX: Float = 16_384f
-
 /** Selects how Glass optical values are produced. */
 @ExperimentalHazeApi
 @Immutable
@@ -29,25 +27,22 @@ public sealed interface GlassOptics {
   /**
    * A complete optical configuration with no geometry-dependent adjustment.
    *
-   * Accepted values are resolved without geometry-dependent adjustment. [blurRadius] uses
-   * density-independent [Dp]. The current semantic blur renderer limits its effective radius to
-   * 38.5 full-resolution physical pixels, so the effective radius is the lesser of the requested
-   * `Dp` converted through the current density and 38.5 pixels. This is a renderer quality bound,
-   * not an input-validation limit; larger finite, non-negative values remain accepted.
-   * [refractionHeight] is a fraction of the material's shortest side.
-   * [refractionScale] is a raw displacement in full-resolution effect pixels; it is not converted
-   * through density and is scaled only when [dev.chrisbanes.haze.HazeInputScale] renders the
-   * effect at reduced resolution.
+   * Accepted values are resolved without geometry-dependent adjustment. [refractionDisplacement]
+   * and [blurRadius] use density-independent [Dp]. [refractionHeightFraction] is a unitless
+   * fraction of the material's shortest side. After density conversion, the effective [blurRadius]
+   * is capped at 38.5 physical pixels; this renderer quality bound does not limit accepted input
+   * values.
    *
-   * @param refractionScale Full-resolution displacement in effect pixels, in the range
-   * `0f..16384f`.
+   * @param refractionDisplacement Maximum distance that refraction displaces content.
+   * @param refractionHeightFraction Fraction of the material's shortest side used by the
+   * refraction profile, in the range `0f..1f`.
    * @param depth Depth perception factor. Values greater than `0f` require drawing an additional
    * blurred sample for the glass content, which has a rendering cost.
    */
   public data class Absolute(
     val refractionStrength: Float = 0.7f,
-    val refractionHeight: Float = 0.25f,
-    val refractionScale: Float = 15f,
+    val refractionHeightFraction: Float = 0.25f,
+    val refractionDisplacement: Dp = 15.dp,
     val depth: Float = 1f,
     val blurRadius: Dp = 14.dp,
     val progressive: HazeProgressive? = null,
@@ -56,13 +51,17 @@ public sealed interface GlassOptics {
       require(refractionStrength.isFinite() && refractionStrength in 0f..1f) {
         "refractionStrength must be finite and in 0f..1f"
       }
-      require(refractionHeight.isFinite() && refractionHeight in 0f..1f) {
-        "refractionHeight must be finite and in 0f..1f"
+      require(
+        refractionHeightFraction.isFinite() && refractionHeightFraction in 0f..1f,
+      ) {
+        "refractionHeightFraction must be finite and in 0f..1f"
       }
       require(
-        refractionScale.isFinite() && refractionScale in 0f..MAX_ABSOLUTE_REFRACTION_SCALE_PX,
+        refractionDisplacement.isSpecified &&
+          refractionDisplacement.value.isFinite() &&
+          refractionDisplacement >= 0.dp,
       ) {
-        "refractionScale must be finite and in 0f..$MAX_ABSOLUTE_REFRACTION_SCALE_PX"
+        "refractionDisplacement must be specified, finite, and non-negative"
       }
       require(depth.isFinite() && depth in 0f..1f) {
         "depth must be finite and in 0f..1f"

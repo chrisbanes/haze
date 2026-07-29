@@ -21,11 +21,11 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 - **optics**: Optical material configuration. `GlassOptics.Adaptive` (the default) is the
   built-in Haze material; it responds to the material's size, aspect ratio, and
   rounded geometry. Use `GlassOptics.Absolute(...)` when you need a complete literal optical
-  configuration. Its `refractionStrength`, `refractionHeight`, `refractionScale`, `depth`,
-  `blurRadius`, and optional `progressive` values are used without geometry-dependent adjustment.
-  `blurRadius` is density-independent `Dp`; `refractionHeight` is a fraction of the shortest side;
-  and `refractionScale` is a raw full-resolution effect-pixel displacement, without density
-  conversion. `progressive` accepts
+  configuration. Its `refractionStrength`, `refractionHeightFraction`,
+  `refractionDisplacement`, `depth`, `blurRadius`, and optional `progressive` values are used
+  without geometry-dependent adjustment. `refractionDisplacement` and `blurRadius` are
+  density-independent `Dp`, while `refractionHeightFraction` is a unitless fraction of the
+  material's shortest side. `progressive` accepts
   `HazeProgressive.verticalGradient`, `horizontalGradient`, `HazeProgressive.RadialGradient`,
   or `forShader` to vary blur radius across the glass surface.
 - **specularIntensity**: Highlight strength `0..1` (default 0.4).
@@ -92,17 +92,17 @@ glassEffect {
   optics = GlassOptics.Absolute(
     blurRadius = 20.dp,
     refractionStrength = 0.8f,
-    refractionHeight = 0.3f,
-    refractionScale = 18f,
+    refractionHeightFraction = 0.3f,
+    refractionDisplacement = 18.dp,
     depth = 0.5f,
   )
 }
 ```
 
-Absolute values are not geometry-adjusted. `blurRadius` is converted from `Dp`, while
-`refractionScale` remains a density-unscaled full-resolution pixel displacement and is scaled only
-by `HazeInputScale`. Backend kernel construction remains a rendering detail. `shape` and `tint`
-stay independent of the selected optics. The `shape`
+Absolute values are not geometry-adjusted. `refractionDisplacement` and `blurRadius` describe
+logical distances, while `refractionHeightFraction` remains relative to the material's shortest
+side. Backend sampling and kernel construction remain rendering details. `shape` and `tint` stay
+independent of the selected optics. The `shape`
 supplied to Glass is the authoritative material boundary. An outer `Modifier.clip()` is not visible
 to Glass and does not define its optical boundary; add one with the same shape only when child
 content also needs clipping.
@@ -223,7 +223,7 @@ Box(
         tint = Color.White.copy(alpha = 0.16f)
         optics = GlassOptics.Absolute(
           refractionStrength = 0.8f,
-          refractionHeight = 0.32f,
+          refractionHeightFraction = 0.32f,
           depth = 0.5f,
         )
         specularIntensity = 0.7f

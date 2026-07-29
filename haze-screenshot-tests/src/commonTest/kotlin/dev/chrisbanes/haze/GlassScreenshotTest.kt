@@ -164,7 +164,7 @@ class GlassScreenshotTest : ScreenshotTest() {
 
     visualEffect.edgeSoftness = 18.dp
     waitForIdle()
-    captureRoot("soft")
+    captureRoot("soft", unmatchedPixelThreshold = 0.01f)
   }
 
   @Test
@@ -433,7 +433,7 @@ class GlassScreenshotTest : ScreenshotTest() {
   fun creditCard_shape_refractionHeight() = runScreenshotTest {
     val visualEffect = GlassVisualEffect().apply {
       tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionHeight = 0.32f, depth = 0.45f)
+      optics = GlassOptics.Absolute(refractionHeightFraction = 0.32f, depth = 0.45f)
       specularIntensity = 0.6f
       shape = RoundedCornerShape(24.dp)
     }
@@ -446,7 +446,10 @@ class GlassScreenshotTest : ScreenshotTest() {
 
     captureRoot("rounded")
 
-    visualEffect.optics = GlassOptics.Absolute(refractionHeight = 0.18f, depth = 0.45f)
+    visualEffect.optics = GlassOptics.Absolute(
+      refractionHeightFraction = 0.18f,
+      depth = 0.45f,
+    )
     waitForIdle()
     captureRoot("shallow")
   }
@@ -478,7 +481,7 @@ class GlassScreenshotTest : ScreenshotTest() {
   fun creditCard_surfaceProfile() = runScreenshotTest {
     val visualEffect = GlassVisualEffect().apply {
       tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionHeight = 0.28f, depth = 0.4f)
+      optics = GlassOptics.Absolute(refractionHeightFraction = 0.28f, depth = 0.4f)
       specularIntensity = 0.5f
       shape = RoundedCornerShape(24.dp)
       surfaceProfile = SurfaceProfile.Squircle

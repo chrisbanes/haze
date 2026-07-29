@@ -292,8 +292,8 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
     GlassOptics.Adaptive,
     GlassOptics.Absolute(
       refractionStrength = 1f,
-      refractionHeight = 0.75f,
-      refractionScale = 48f,
+      refractionHeightFraction = 0.75f,
+      refractionDisplacement = 48.dp,
       depth = 0f,
       blurRadius = 0.dp,
     ),
@@ -374,8 +374,8 @@ internal fun ScreenshotUiTest.assertGlassAsymmetricCornerNormalsContinuous() {
     tint = Color.Transparent
     optics = GlassOptics.Absolute(
       refractionStrength = 1f,
-      refractionHeight = 0.5f,
-      refractionScale = 48f,
+      refractionHeightFraction = 0.5f,
+      refractionDisplacement = 48.dp,
       depth = 0f,
       blurRadius = 0.dp,
     )
@@ -433,8 +433,8 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
     tint = Color.Transparent
     optics = GlassOptics.Absolute(
       refractionStrength = 1f,
-      refractionHeight = 0.25f,
-      refractionScale = 48f,
+      refractionHeightFraction = 0.25f,
+      refractionDisplacement = 48.dp,
       depth = 0f,
       blurRadius = 0.dp,
     )
@@ -522,6 +522,7 @@ internal fun ScreenshotUiTest.assertGlassRefractionDetailPreservesSharpSourceInv
   val effect = invariantEffect(shape).apply {
     optics = GlassOptics.Absolute(
       refractionStrength = 1f,
+      refractionDisplacement = 6.dp,
       depth = 1f,
       blurRadius = 24.dp,
     )
@@ -1099,7 +1100,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
   val effect = invariantEffect(shape).apply {
     optics = GlassOptics.Absolute(
       refractionStrength = 1f,
-      refractionScale = 0f,
+      refractionDisplacement = 0.dp,
       depth = 1f,
       blurRadius = 0.dp,
     )
@@ -1131,7 +1132,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
     overBlack = smallOverBlack,
     overWhite = captureInvariantSnapshot(),
   )
-  effect.updateAbsoluteOptics { copy(refractionScale = 96f) }
+  effect.updateAbsoluteOptics { copy(refractionDisplacement = 96.dp) }
   matte = Color.Black
   waitForIdle()
   val largeOverBlack = captureInvariantSnapshot()
@@ -1396,7 +1397,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
     // Preserve the previous effective values while making the literal contract explicit.
     optics = GlassOptics.Absolute(
       refractionStrength = 0.2f,
-      refractionScale = 24f,
+      refractionDisplacement = 24.dp,
       depth = 0.5f,
       blurRadius = 0.dp,
     )
@@ -1419,7 +1420,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
   effect.updateAbsoluteOptics {
     copy(
       refractionStrength = 0.85f,
-      refractionScale = 53.25f,
+      refractionDisplacement = 53.25.dp,
       blurRadius = 35.2.dp,
     )
   }

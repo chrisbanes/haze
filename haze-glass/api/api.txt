@@ -116,24 +116,23 @@ package dev.chrisbanes.haze.glass {
 
   public static final class GlassOptics.Absolute implements dev.chrisbanes.haze.glass.GlassOptics {
     ctor public GlassOptics.Absolute();
-    ctor @KotlinOnly public GlassOptics.Absolute(optional float refractionStrength, optional float refractionHeight, optional float refractionScale, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
+    ctor @KotlinOnly public GlassOptics.Absolute(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
     method public float component1();
     method public float component2();
-    method public float component3();
+    method @KotlinOnly public operator androidx.compose.ui.unit.Dp component3();
     method public float component4();
     method @KotlinOnly public operator androidx.compose.ui.unit.Dp component5();
     method public dev.chrisbanes.haze.HazeProgressive? component6();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics.Absolute copy(optional float refractionStrength, optional float refractionHeight, optional float refractionScale, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
+    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics.Absolute copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
     method @InaccessibleFromKotlin public float getDepth();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeProgressive? getProgressive();
-    method @InaccessibleFromKotlin public float getRefractionHeight();
-    method @InaccessibleFromKotlin public float getRefractionScale();
+    method @InaccessibleFromKotlin public float getRefractionHeightFraction();
     method @InaccessibleFromKotlin public float getRefractionStrength();
     property public androidx.compose.ui.unit.Dp blurRadius;
     property public float depth;
     property public dev.chrisbanes.haze.HazeProgressive? progressive;
-    property public float refractionHeight;
-    property public float refractionScale;
+    property public androidx.compose.ui.unit.Dp refractionDisplacement;
+    property public float refractionHeightFraction;
     property public float refractionStrength;
   }
 
@@ -202,6 +201,57 @@ package dev.chrisbanes.haze.glass {
     property public dev.chrisbanes.haze.glass.GlassStyle Unspecified;
   }
 
+  @dev.chrisbanes.haze.InternalHazeApi public interface GlassStyleConfiguration {
+    method @InaccessibleFromKotlin public float getAlpha();
+    method @InaccessibleFromKotlin public float getAmbientResponse();
+    method @InaccessibleFromKotlin public float getChromaMultiplier();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.ChromaticAberrationMode getChromaticAberrationMode();
+    method @InaccessibleFromKotlin public float getChromaticAberrationStrength();
+    method @InaccessibleFromKotlin public float getContentNormalBlend();
+    method @InaccessibleFromKotlin public float getContrast();
+    method @InaccessibleFromKotlin public float getFresnelExponent();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getOptics();
+    method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
+    method @InaccessibleFromKotlin public float getSpecularExponent();
+    method @InaccessibleFromKotlin public float getSpecularIntensity();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassStyle getStyle();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SurfaceProfile getSurfaceProfile();
+    method @InaccessibleFromKotlin public float getWhitePoint();
+    method @InaccessibleFromKotlin public void setAlpha(float);
+    method @InaccessibleFromKotlin public void setAmbientResponse(float);
+    method @InaccessibleFromKotlin public void setChromaMultiplier(float);
+    method @InaccessibleFromKotlin public void setChromaticAberrationMode(dev.chrisbanes.haze.glass.ChromaticAberrationMode);
+    method @InaccessibleFromKotlin public void setChromaticAberrationStrength(float);
+    method @InaccessibleFromKotlin public void setContentNormalBlend(float);
+    method @InaccessibleFromKotlin public void setContrast(float);
+    method @InaccessibleFromKotlin public void setFresnelExponent(float);
+    method @InaccessibleFromKotlin public void setOptics(dev.chrisbanes.haze.glass.GlassOptics);
+    method @InaccessibleFromKotlin public void setShape(androidx.compose.foundation.shape.RoundedCornerShape);
+    method @InaccessibleFromKotlin public void setSpecularExponent(float);
+    method @InaccessibleFromKotlin public void setSpecularIntensity(float);
+    method @InaccessibleFromKotlin public void setStyle(dev.chrisbanes.haze.glass.GlassStyle);
+    method @InaccessibleFromKotlin public void setSurfaceProfile(dev.chrisbanes.haze.glass.SurfaceProfile);
+    method @InaccessibleFromKotlin public void setWhitePoint(float);
+    property public abstract float alpha;
+    property public abstract float ambientResponse;
+    property public abstract float chromaMultiplier;
+    property public abstract dev.chrisbanes.haze.glass.ChromaticAberrationMode chromaticAberrationMode;
+    property public abstract float chromaticAberrationStrength;
+    property public abstract float contentNormalBlend;
+    property public abstract float contrast;
+    property public abstract androidx.compose.ui.unit.Dp edgeSoftness;
+    property public abstract float fresnelExponent;
+    property public abstract androidx.compose.ui.geometry.Offset lightPosition;
+    property public abstract dev.chrisbanes.haze.glass.GlassOptics optics;
+    property public abstract androidx.compose.foundation.shape.RoundedCornerShape shape;
+    property public abstract float specularExponent;
+    property public abstract float specularIntensity;
+    property public abstract dev.chrisbanes.haze.glass.GlassStyle style;
+    property public abstract dev.chrisbanes.haze.glass.SurfaceProfile surfaceProfile;
+    property public abstract androidx.compose.ui.graphics.Color tint;
+    property public abstract float whitePoint;
+  }
+
   public final class GlassStyleKt {
     method @InaccessibleFromKotlin public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassStyle> getLocalGlassStyle();
     property @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassStyle> LocalGlassStyle;
@@ -217,7 +267,7 @@ package dev.chrisbanes.haze.glass {
     enum_constant public static final dev.chrisbanes.haze.glass.GlassTransformTarget MaterialOnly;
   }
 
-  @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassVisualEffect implements dev.chrisbanes.haze.InteractiveVisualEffect dev.chrisbanes.haze.RetainedOutputVisualEffect dev.chrisbanes.haze.VisualEffect {
+  @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassVisualEffect implements dev.chrisbanes.haze.glass.GlassStyleConfiguration dev.chrisbanes.haze.InteractiveVisualEffect dev.chrisbanes.haze.RetainedOutputVisualEffect dev.chrisbanes.haze.VisualEffect dev.chrisbanes.haze.VisualEffectRendererFactory {
     ctor public GlassVisualEffect();
     ctor public GlassVisualEffect(dev.chrisbanes.haze.glass.GlassVisualEffect other);
     method public boolean canDrawRetainedOutput(dev.chrisbanes.haze.VisualEffectContext context);
@@ -230,6 +280,7 @@ package dev.chrisbanes.haze.glass {
     method public void clearRetainedOutput();
     method public void clearShapeOverride();
     method public void clearSurfaceProfileOverride();
+    method public dev.chrisbanes.haze.VisualEffect createRenderer();
     method public void draw(androidx.compose.ui.graphics.drawscope.DrawScope, dev.chrisbanes.haze.VisualEffectContext context);
     method public void focused();
     method public void focused(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> block);

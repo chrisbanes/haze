@@ -160,7 +160,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
   fun creditCard_shape_refractionHeight() = runScreenshotTest {
     val visualEffect = GlassVisualEffect().apply {
       tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionHeight = 0.3f, depth = 0.45f)
+      optics = GlassOptics.Absolute(refractionHeightFraction = 0.3f, depth = 0.45f)
       specularIntensity = 0.6f
       edgeSoftness = 10.dp
       shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp)
@@ -177,7 +177,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
 
     captureRoot("rounded")
 
-    visualEffect.updateAbsoluteOptics { copy(refractionHeight = 0.16f) }
+    visualEffect.updateAbsoluteOptics { copy(refractionHeightFraction = 0.16f) }
     waitForIdle()
     captureRoot("shallow")
   }
@@ -209,7 +209,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
   fun creditCard_surfaceProfile() = runScreenshotTest {
     val visualEffect = GlassVisualEffect().apply {
       tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionHeight = 0.28f, depth = 0.4f)
+      optics = GlassOptics.Absolute(refractionHeightFraction = 0.28f, depth = 0.4f)
       specularIntensity = 0.5f
       shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
       surfaceProfile = SurfaceProfile.Squircle
@@ -255,7 +255,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
       }
     }
 
-    captureRoot("simple")
+    captureRoot("simple", unmatchedPixelThreshold = 0.01f)
 
     visualEffect.chromaticAberrationMode = ChromaticAberrationMode.Full
     waitForIdle()

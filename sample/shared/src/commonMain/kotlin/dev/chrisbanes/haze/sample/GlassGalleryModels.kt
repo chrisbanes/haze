@@ -86,8 +86,8 @@ public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
     tint = Color.White.copy(alpha = 0.06f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.85f,
-      refractionHeight = 0.22f,
-      refractionScale = 18f,
+      refractionHeightFraction = 0.22f,
+      refractionDisplacement = 18.dp,
       depth = 0.1f,
       blurRadius = 2.dp,
     ),
@@ -113,8 +113,8 @@ public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
     tint = Color.White.copy(alpha = 0.18f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.45f,
-      refractionHeight = 0.18f,
-      refractionScale = 10f,
+      refractionHeightFraction = 0.18f,
+      refractionDisplacement = 10.dp,
       depth = 0.9f,
       blurRadius = 24.dp,
     ),
@@ -140,8 +140,8 @@ public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
     tint = Color.White.copy(alpha = 0.1f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.9f,
-      refractionHeight = 0.32f,
-      refractionScale = 20f,
+      refractionHeightFraction = 0.32f,
+      refractionDisplacement = 20.dp,
       depth = 0.78f,
       blurRadius = 16.dp,
     ),
@@ -167,8 +167,8 @@ public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
     tint = Color.White.copy(alpha = 0.08f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.82f,
-      refractionHeight = 0.28f,
-      refractionScale = 18f,
+      refractionHeightFraction = 0.28f,
+      refractionDisplacement = 18.dp,
       depth = 0.35f,
       blurRadius = 8.dp,
     ),
