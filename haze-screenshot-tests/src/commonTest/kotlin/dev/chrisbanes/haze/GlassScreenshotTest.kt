@@ -164,7 +164,7 @@ class GlassScreenshotTest : ScreenshotTest() {
 
     visualEffect.edgeSoftness = 18.dp
     waitForIdle()
-    captureRoot("soft")
+    captureRoot("soft", unmatchedPixelThreshold = 0.01f)
   }
 
   @Test

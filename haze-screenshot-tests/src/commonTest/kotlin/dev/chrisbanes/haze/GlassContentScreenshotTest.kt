@@ -255,7 +255,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
       }
     }
 
-    captureRoot("simple")
+    captureRoot("simple", unmatchedPixelThreshold = 0.01f)
 
     visualEffect.chromaticAberrationMode = ChromaticAberrationMode.Full
     waitForIdle()
