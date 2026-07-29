@@ -60,6 +60,97 @@ class HazeEffectFactoryDrawTest {
   }
 
   @Test
+  fun sourceDisappears_keepLastFrameDrawsRetainedTypedOutput() = runComposeUiTest {
+    val state = HazeState()
+    val factory = RecordingDrawFactory()
+    val showSource = mutableStateOf(true)
+
+    setContent {
+      Box(
+        Modifier
+          .size(100.dp)
+          .background(Color.White),
+      ) {
+        if (showSource.value) {
+          Box(
+            Modifier
+              .fillMaxSize()
+              .hazeSource(state),
+          )
+        }
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testTag("effect")
+            .hazeEffect(
+              factory = factory,
+              input = HazeInput.Sources(state),
+              style = DrawStyle(overlay = Color.Blue),
+            ),
+        )
+      }
+    }
+
+    assertThat(onNodeWithTag("effect").captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Blue)
+    val drawsBeforeRemoval = factory.renderer.drawCalls
+
+    showSource.value = false
+    waitForIdle()
+
+    assertThat(factory.renderer.drawCalls).isGreaterThan(drawsBeforeRemoval)
+    assertThat(onNodeWithTag("effect").captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Blue)
+  }
+
+  @Test
+  fun sourceDisappears_clearWhenUnavailableSkipsRetainedTypedOutput() = runComposeUiTest {
+    val state = HazeState()
+    val factory = RecordingDrawFactory()
+    val showSource = mutableStateOf(true)
+
+    setContent {
+      Box(
+        Modifier
+          .size(100.dp)
+          .background(Color.White),
+      ) {
+        if (showSource.value) {
+          Box(
+            Modifier
+              .fillMaxSize()
+              .hazeSource(state),
+          )
+        }
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testTag("effect")
+            .hazeEffect(
+              factory = factory,
+              input = HazeInput.Sources(
+                state = state,
+                retention = HazeSourceRetention.ClearWhenUnavailable,
+              ),
+              style = DrawStyle(overlay = Color.Blue),
+            ),
+        )
+      }
+    }
+
+    assertThat(onNodeWithTag("effect").captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Blue)
+    val drawsBeforeRemoval = factory.renderer.drawCalls
+
+    showSource.value = false
+    waitForIdle()
+
+    assertThat(factory.renderer.drawCalls).isEqualTo(drawsBeforeRemoval)
+    assertThat(onNodeWithTag("effect").captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.White)
+  }
+
+  @Test
   fun drawInput_drawsModifierOwnContent() = runComposeUiTest {
     setContent {
       Box(

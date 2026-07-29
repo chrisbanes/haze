@@ -89,9 +89,12 @@ public interface HazeEffectLayoutScope : Density {
   public fun <T> currentValueOf(local: CompositionLocal<T>): T
 }
 
-internal interface TypedHazeEffectVisualEffect {
+internal interface TypedHazeEffectVisualEffect : RetainedOutputVisualEffect {
   fun update(style: Any?, sampling: HazeSampling)
   fun onTrimMemory(level: TrimMemoryLevel)
+
+  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean = true
+  override fun clearRetainedOutput() = Unit
 }
 
 @OptIn(ExperimentalHazeApi::class)

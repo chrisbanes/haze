@@ -117,6 +117,7 @@ public class HazeEffectNode(
   private var needsDirtyFieldsInvalidation = false
   private var needsVisualEffectInvalidation = false
   private var needsContentInvalidation = false
+  private var hasRenderedTypedSourceOutput = false
   private var isDrawing = false
   private var isInvokingBlock = false
   private var lastKnownCoordinates: LayoutCoordinates? = null
@@ -603,6 +604,12 @@ public class HazeEffectNode(
               with(activeVisualEffect) {
                 draw(visualEffectContext)
               }
+              if (
+                activeVisualEffect is TypedHazeEffectVisualEffect &&
+                hasDrawableSourceLayers
+              ) {
+                hasRenderedTypedSourceOutput = true
+              }
             }
             drawContentSafely()
             if (shouldDrawEffect) {
@@ -986,6 +993,9 @@ public class HazeEffectNode(
   }
 
   private fun clearRetainedOutput(effect: VisualEffect = activeVisualEffect) {
+    if (effect === activeVisualEffect) {
+      hasRenderedTypedSourceOutput = false
+    }
     (effect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
   }
 
@@ -1030,6 +1040,10 @@ public class HazeEffectNode(
 
   private fun shouldDrawRetainedOutput(): Boolean {
     return retainOutputWhenSourceUnavailable &&
+      (
+        activeVisualEffect !is TypedHazeEffectVisualEffect ||
+          hasRenderedTypedSourceOutput
+        ) &&
       (activeVisualEffect as? RetainedOutputVisualEffect)
         ?.shouldDrawRetainedOutput(visualEffectContext) == true
   }
