@@ -29,7 +29,9 @@ public sealed interface GlassOptics {
    *
    * Accepted values are resolved without geometry-dependent adjustment. [refractionDisplacement]
    * and [blurRadius] use density-independent [Dp]. [refractionHeightFraction] is a unitless
-   * fraction of the material's shortest side.
+   * fraction of the material's shortest side. After density conversion, the effective [blurRadius]
+   * is capped at 38.5 physical pixels; this renderer quality bound does not limit accepted input
+   * values.
    *
    * @param refractionDisplacement Maximum distance that refraction displaces content.
    * @param refractionHeightFraction Fraction of the material's shortest side used by the
