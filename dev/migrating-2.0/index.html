@@ -825,6 +825,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#adopt-explicit-inputs-and-rendering-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adopt Explicit Inputs and Rendering Policies
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1215,6 +1226,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#adopt-explicit-inputs-and-rendering-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adopt Explicit Inputs and Rendering Policies
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1316,6 +1338,9 @@
   <code>HazeInputScale.None</code> to preserve explicit full-resolution blur input.
   <code>HazeInputScale.EffectDefault</code> is the new sealed subtype backing <code>Default</code>; exhaustive <code>when</code>
   expressions over <code>HazeInputScale</code> must handle it (or add an <code>else</code> branch).</li>
+<li><strong>Explicit input and rendering policies:</strong> The new <code>hazeEffect(input = ...)</code> overload uses
+  <code>HazeInput.Sources</code> or <code>HazeInput.Content</code>, metadata-only source selection,
+  <code>HazeSourceRetention</code>, <code>HazeSampling</code>, and a non-null <code>expandLayerBounds</code> argument.</li>
 </ul>
 <p><strong>What Hasn't Changed:</strong></p>
 <ul>
@@ -1519,6 +1544,50 @@
 </div>
 </div>
 </div>
+<h3 id="adopt-explicit-inputs-and-rendering-policies">Adopt Explicit Inputs and Rendering Policies<a class="headerlink" href="#adopt-explicit-inputs-and-rendering-policies" title="Permanent link">¶</a></h3>
+<p>The nullable-state overloads remain available during the staged Haze 2 migration. New code can
+make foreground versus source-backed input explicit without waiting for the later effect-specific
+modifier APIs:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Source-backed input</span>
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
+<span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// The modifier's own content</span>
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Content</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Map legacy scope policies to structural values as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
+<span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
+<span class="w">        </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+<span class="w">        </span><span class="n">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">Behind</span>
+<span class="w">            </span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">"excluded"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
+<span class="w">    </span><span class="p">),</span>
+<span class="w">    </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">FullResolution</span><span class="p">,</span>
+<span class="w">    </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>Nullable <code>state</code> mode selection becomes <code>HazeInput.Sources(state)</code> or <code>HazeInput.Content</code>.</li>
+<li><code>canDrawArea</code> becomes <code>HazeSourceSelection.Behind.where { ... }</code> or
+  <code>HazeSourceSelection.All.where { ... }</code>. Predicates receive only <code>key</code> and <code>zIndex</code>, and
+  repeated <code>where</code> calls combine with logical AND.</li>
+<li><code>retainOutputWhenSourceUnavailable = true</code> maps to <code>KeepLastFrame</code>; <code>false</code> maps to
+  <code>ClearWhenUnavailable</code>. Prefer the clearing policy for privacy-sensitive surfaces.</li>
+<li><code>HazeInputScale.Default</code>, <code>None</code>, <code>Auto</code>, and <code>Fixed(scale)</code> map to <code>HazeSampling.Default</code>,
+  <code>FullResolution</code>, <code>Adaptive</code>, and <code>Fixed(scale)</code> respectively.</li>
+<li>Nullable scope <code>expandLayerBounds</code> becomes a non-null modifier argument that defaults to <code>true</code>.</li>
+</ul>
+<p>The structural <code>input</code>, <code>sampling</code>, and <code>expandLayerBounds</code> arguments are authoritative on this
+overload. Existing nullable <code>hazeEffect</code> overloads and <code>HazeEffectScope</code> properties are not
+deprecated by this migration step.</p>
 <h2 id="complete-api-mapping">Complete API Mapping<a class="headerlink" href="#complete-api-mapping" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -1601,8 +1670,8 @@
 </tr>
 <tr>
 <td><code>HazeEffectScope.inputScale</code></td>
-<td><code>HazeEffectScope.inputScale</code></td>
-<td><strong>Unchanged</strong> - still on scope</td>
+<td><code>HazeSampling</code></td>
+<td>Structural on the explicit-input overload; the scope property remains on legacy overloads</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.drawContentBehind</code></td>
@@ -1616,8 +1685,8 @@
 </tr>
 <tr>
 <td><code>HazeEffectScope.expandLayerBounds</code></td>
-<td><code>HazeEffectScope.expandLayerBounds</code></td>
-<td><strong>Unchanged</strong> - still on scope</td>
+<td><code>Modifier.hazeEffect(expandLayerBounds = ...)</code></td>
+<td>Non-null and defaults to <code>true</code> on the explicit-input overload</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.forceInvalidateOnPreDraw</code></td>
@@ -1626,8 +1695,13 @@
 </tr>
 <tr>
 <td><code>HazeEffectScope.canDrawArea</code></td>
-<td><code>HazeEffectScope.canDrawArea</code></td>
-<td><strong>Unchanged</strong> - still on scope</td>
+<td><code>HazeSourceSelection.where { ... }</code></td>
+<td>Metadata-only (<code>key</code>, <code>zIndex</code>) on the explicit-input overload; the scope property remains on legacy overloads</td>
+</tr>
+<tr>
+<td><code>HazeEffectScope.retainOutputWhenSourceUnavailable</code></td>
+<td><code>HazeSourceRetention</code></td>
+<td><code>KeepLastFrame</code> or privacy-sensitive <code>ClearWhenUnavailable</code> on source-backed explicit input</td>
 </tr>
 <tr>
 <td><code>rememberHazeState(blurEnabled)</code></td>

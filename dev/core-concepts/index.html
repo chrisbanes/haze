@@ -405,6 +405,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Modifier.hazeEffect">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#selecting-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selecting sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rendering-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rendering policies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1143,6 +1171,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Modifier.hazeEffect">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#selecting-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selecting sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rendering-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rendering policies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1417,16 +1473,66 @@
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
 
 <span class="n">TopAppBar</span><span class="p">(</span>
-<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
+<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>The effect is configured inside the lambda block using effect-specific builders.</p>
+<p>The required <code>input</code> makes the source mode explicit:</p>
+<ul>
+<li><code>HazeInput.Sources(hazeState)</code> consumes content captured by matching <code>hazeSource</code> modifiers.</li>
+<li><code>HazeInput.Content</code> captures the modifier's own content.</li>
+</ul>
+<p>The effect is configured inside the lambda block using effect-specific builders. The older
+nullable-state overloads remain available during the Haze 2 migration.</p>
+<h4 id="selecting-sources">Selecting sources<a class="headerlink" href="#selecting-sources" title="Permanent link">¶</a></h4>
+<p><code>HazeInput.Sources</code> defaults to <code>HazeSourceSelection.Behind</code>. With a nearest ancestor
+<code>hazeSource</code> using the same state, this selects lower-z sources. Without one, it selects every
+source. Use <code>All</code> to bypass the ancestor relationship:</p>
+<div class="highlight"><pre><span></span><code><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
+<span class="w">    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+<span class="w">    </span><span class="n">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">All</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Refine either relationship with <code>where</code>. Predicates receive only an immutable snapshot of the
+source <code>key</code> and <code>zIndex</code>; renderer-owned geometry, content, and platform resources stay private.
+Repeated refinements combine with logical AND:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">Behind</span>
+<span class="w">    </span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="na">zIndex</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="m">1f</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">"sensitive"</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<h4 id="rendering-policies">Rendering policies<a class="headerlink" href="#rendering-policies" title="Permanent link">¶</a></h4>
+<p>The explicit-input overload also makes sampling and layer expansion structural:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
+<span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
+<span class="w">        </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+<span class="w">        </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
+<span class="w">    </span><span class="p">),</span>
+<span class="w">    </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
+<span class="w">    </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><code>HazeSourceRetention.KeepLastFrame</code> is the default and preserves smooth source transitions.
+  Use <code>ClearWhenUnavailable</code> for privacy-sensitive surfaces that must not display stale pixels.</li>
+<li><code>HazeSampling.Default</code> lets the effect choose, <code>FullResolution</code> disables scaling,
+  <code>Adaptive</code> requests the effect's adaptive policy, and <code>Fixed(scale)</code> uses a validated
+  <code>0 &lt; scale &lt;= 1</code> value.</li>
+<li><code>expandLayerBounds</code> is non-null and defaults to <code>true</code>. Set it to <code>false</code> to constrain the
+  effect layer to the composable's ordinary bounds.</li>
+</ul>
+<p>These structural arguments are authoritative on the explicit-input overload.</p>
 <h2 id="hazeeffectscope">HazeEffectScope<a class="headerlink" href="#hazeeffectscope" title="Permanent link">¶</a></h2>
-<p>The lambda block parameter of <code>Modifier.hazeEffect</code> receives a <code>HazeEffectScope</code>, which provides common properties applicable to all effects:</p>
+<p>The lambda block parameter of <code>Modifier.hazeEffect</code> receives a <code>HazeEffectScope</code>, which provides
+common properties applicable to all effects. <code>inputScale</code>, <code>canDrawArea</code>,
+<code>retainOutputWhenSourceUnavailable</code>, and nullable <code>expandLayerBounds</code> remain available for the
+legacy modifier overloads; prefer the structural contracts above on the explicit-input path.</p>
 <h3 id="common-properties">Common Properties<a class="headerlink" href="#common-properties" title="Permanent link">¶</a></h3>
 <div class="highlight"><pre><span></span><code><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// Common properties</span>
@@ -1483,7 +1589,9 @@ cleared as soon as there is no source content to draw:</p>
 <span class="w">    </span><span class="p">}</span>
 
 <span class="w">    </span><span class="n">TopAppBar</span><span class="p">(</span>
-<span class="w">        </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
+<span class="w">            </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">)</span>
@@ -1492,7 +1600,7 @@ cleared as soon as there is no source content to draw:</p>
 <h3 id="foreground-effect">Foreground Effect<a class="headerlink" href="#foreground-effect" title="Permanent link">¶</a></h3>
 <p>The effect blurs the content within the composable itself. Only requires <code>hazeEffect</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
-<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Content</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">)</span><span class="w"> </span><span class="p">{</span>
