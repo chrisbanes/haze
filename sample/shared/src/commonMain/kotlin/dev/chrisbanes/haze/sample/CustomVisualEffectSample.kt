@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -46,7 +47,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -54,10 +54,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeEffectScope
-import dev.chrisbanes.haze.VisualEffect
-import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.HazeEffectDrawScope
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -75,13 +76,9 @@ private val SparkOptions = listOf(
   SparkOption(label = "Mint", color = Color(0xFF00A887)),
 )
 
-private val LocalSparkColor = compositionLocalOf { SparkOptions.first().color }
-private val LocalSparkAlpha = compositionLocalOf { 0.3f }
-private val LocalSparkEnabled = compositionLocalOf { true }
-private val LocalSparkleEnabled = compositionLocalOf { true }
 private val LocalSparklePhase = compositionLocalOf { 0f }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomVisualEffectSample(
   navController: NavHostController,
@@ -89,7 +86,6 @@ fun CustomVisualEffectSample(
 ) {
   val hazeState = rememberHazeState()
   var selectedSparkIndex by remember { mutableIntStateOf(0) }
-  var drawContentBehind by remember { mutableStateOf(false) }
   var sparkAlpha by remember { mutableFloatStateOf(0.30f) }
   var animateBackgroundLayers by remember { mutableStateOf(true) }
   var showSecondarySource by remember { mutableStateOf(true) }
@@ -181,10 +177,6 @@ fun CustomVisualEffectSample(
       }
 
       CompositionLocalProvider(
-        LocalSparkColor provides SparkOptions[selectedSparkIndex].color,
-        LocalSparkAlpha provides sparkAlpha,
-        LocalSparkEnabled provides blurEnabled,
-        LocalSparkleEnabled provides sparkleEnabled,
         LocalSparklePhase provides animatedPhase,
       ) {
         Box(
@@ -192,10 +184,16 @@ fun CustomVisualEffectSample(
             .align(Alignment.Center)
             .size(width = 300.dp, height = 180.dp)
             .clip(RoundedCornerShape(24.dp))
-            .hazeEffect(state = hazeState) {
-              this.drawContentBehind = drawContentBehind
-              sparkEffect()
-            },
+            .hazeEffect(
+              factory = SparkEffectFactory,
+              input = HazeInput.Sources(hazeState),
+              style = SparkStyle(
+                color = SparkOptions[selectedSparkIndex].color,
+                alpha = sparkAlpha,
+                enabled = blurEnabled,
+                sparkleEnabled = sparkleEnabled,
+              ),
+            ),
         ) {
           Text(
             text = "Custom effect node",
@@ -257,16 +255,6 @@ fun CustomVisualEffectSample(
           Switch(checked = sparkleEnabled, onCheckedChange = { sparkleEnabled = it })
         }
 
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-          // Note: drawContentBehind only applies to foreground mode (hazeEffect without state).
-          // This sample uses background mode, so this toggle has no visual effect.
-          Text("Draw content behind")
-          Switch(checked = drawContentBehind, onCheckedChange = { drawContentBehind = it })
-        }
-
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
           OutlinedButton(onClick = { sparkAlpha = (sparkAlpha - 0.1f).coerceAtLeast(0.1f) }) {
             Text("- alpha")
@@ -281,51 +269,37 @@ fun CustomVisualEffectSample(
   }
 }
 
-@OptIn(ExperimentalHazeApi::class)
-private class SparkVisualEffect : VisualEffect {
-  private var sparkColor: Color = Color.Transparent
-  private var sparkAlpha: Float = 0.3f
-  private var sparkEnabled: Boolean = true
-  private var sparkleEnabled: Boolean = true
-  private var sparklePhase: Float = 0f
+@Immutable
+@Poko
+private class SparkStyle(
+  val color: Color,
+  val alpha: Float,
+  val enabled: Boolean,
+  val sparkleEnabled: Boolean,
+)
 
-  override fun update(context: VisualEffectContext) {
-    val currentColor = context.currentValueOf(LocalSparkColor)
-    val currentAlpha = context.currentValueOf(LocalSparkAlpha)
-    val currentEnabled = context.currentValueOf(LocalSparkEnabled)
-    val currentSparkleEnabled = context.currentValueOf(LocalSparkleEnabled)
-    val currentSparklePhase = context.currentValueOf(LocalSparklePhase)
-    if (
-      currentColor != sparkColor ||
-      currentAlpha != sparkAlpha ||
-      currentEnabled != sparkEnabled ||
-      currentSparkleEnabled != sparkleEnabled ||
-      currentSparklePhase != sparklePhase
-    ) {
-      sparkColor = currentColor
-      sparkAlpha = currentAlpha
-      sparkEnabled = currentEnabled
-      sparkleEnabled = currentSparkleEnabled
-      sparklePhase = currentSparklePhase
-      context.invalidateDraw()
-    }
-  }
+private data object SparkEffectFactory : HazeEffectFactory<SparkStyle> {
+  override fun createRenderer(): HazeEffectRenderer<SparkStyle> = SparkEffectRenderer()
+}
 
-  override fun DrawScope.draw(context: VisualEffectContext) {
-    if (!sparkEnabled) return
+private class SparkEffectRenderer : HazeEffectRenderer<SparkStyle> {
+  override fun HazeEffectDrawScope.draw(style: SparkStyle) {
+    if (!style.enabled) return
 
-    val tintAlpha = sparkAlpha.coerceIn(0f, 1f)
-    drawRect(color = sparkColor.copy(alpha = tintAlpha), size = size)
+    drawInput()
+    val tintAlpha = style.alpha.coerceIn(0f, 1f)
+    drawRect(color = style.color.copy(alpha = tintAlpha), size = size)
 
-    if (!sparkleEnabled || tintAlpha <= 0f) return
+    if (!style.sparkleEnabled || tintAlpha <= 0f) return
 
+    val sparklePhase = currentValueOf(LocalSparklePhase)
     val bandCenterX = (-size.width * 0.4f) + ((size.width * 1.8f) * sparklePhase)
     val shimmer = Brush.linearGradient(
       colors = listOf(
         Color.Transparent,
-        sparkColor.copy(alpha = tintAlpha * 0.16f),
+        style.color.copy(alpha = tintAlpha * 0.16f),
         Color.White.copy(alpha = tintAlpha * 0.38f),
-        sparkColor.copy(alpha = tintAlpha * 0.16f),
+        style.color.copy(alpha = tintAlpha * 0.16f),
         Color.Transparent,
       ),
       start = androidx.compose.ui.geometry.Offset(x = bandCenterX - (size.width * 0.3f), y = 0f),
@@ -342,11 +316,4 @@ private class SparkVisualEffect : VisualEffect {
       style = Stroke(width = strokeWidth),
     )
   }
-}
-
-@OptIn(ExperimentalHazeApi::class)
-private fun HazeEffectScope.sparkEffect(block: SparkVisualEffect.() -> Unit = {}) {
-  val effect = visualEffect as? SparkVisualEffect ?: SparkVisualEffect()
-  visualEffect = effect
-  effect.block()
 }

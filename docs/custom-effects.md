@@ -1,312 +1,150 @@
-# Custom Effects
+# Custom effects
 
-This guide shows how to build and ship custom `VisualEffect` implementations for Haze.
+Build custom effects with a shareable `HazeEffectFactory<Style>` and a renderer owned by each
+`hazeEffect` modifier node.
 
-If you want a complete production implementation, see the [haze-blur](https://github.com/chrisbanes/haze/tree/main/haze-blur) module.
+## Define a complete Style
 
-## Overview
+Keep effect configuration immutable and free of renderer or platform resources:
 
-Haze is extensible by design. `Modifier.hazeEffect { ... }` is driven by a `VisualEffect` instance, and you can provide your own implementation.
+```kotlin
+@Immutable
+data class SparkStyle(
+    val color: Color,
+    val alpha: Float,
+)
+```
 
-For most real-world usage, start with **background mode** (`hazeSource` + `hazeEffect(state = hazeState)`), since that is where Haze shines: applying effects to transformed background graphics layers.
+Haze passes the complete current Style to every draw and bounds evaluation. Replacing the Style
+updates the existing renderer, so values from an earlier evaluation cannot stick accidentally.
 
-Typical workflow:
+## Create a shareable factory
 
-1. Implement `VisualEffect`
-2. Provide a `HazeEffectScope` builder extension for ergonomic configuration
-3. Use your builder from `Modifier.hazeEffect { ... }`
+A factory is a stateless descriptor. The same instance can be used by concurrent modifiers, but it
+must create an independent renderer for each one:
 
-## Background source layers (primary pattern)
+```kotlin
+data object SparkEffect : HazeEffectFactory<SparkStyle> {
+    override fun createRenderer(): HazeEffectRenderer<SparkStyle> = SparkRenderer()
+}
 
-Use one `HazeState` shared by transformed source layers and your effect target:
+private class SparkRenderer : HazeEffectRenderer<SparkStyle> {
+    override fun HazeEffectDrawScope.draw(style: SparkStyle) {
+        drawInput()
+        drawRect(style.color.copy(alpha = style.alpha))
+    }
+
+    override fun HazeEffectLayoutScope.calculateLayerBounds(style: SparkStyle): Rect {
+        val extra = 12.dp.toPx()
+        return modifierBounds.inflate(extra)
+    }
+
+    override fun onTrimMemory(level: TrimMemoryLevel) {
+        // Release caches that can be rebuilt on the next draw.
+    }
+
+    override fun dispose() {
+        // Release all renderer-owned resources.
+    }
+}
+```
+
+Mutable caches, shaders, and other disposable resources belong in the renderer. Haze creates one
+renderer per modifier node, reuses it for Style and input-policy updates, and disposes it when the
+factory is replaced or the node detaches.
+
+## Draw source-backed input
+
+Use an explicit `HazeInput.Sources` when the effect consumes content captured by `hazeSource`:
 
 ```kotlin
 val hazeState = rememberHazeState()
 
-Box(Modifier.fillMaxSize()) {
-    AsyncImage(
-        model = rememberRandomSampleImageUrl(),
+Box {
+    Image(
+        painter = painter,
         contentDescription = null,
         modifier = Modifier
             .fillMaxSize()
-            .graphicsLayer {
-                scaleX = 1.06f
-                translationX = 24f
-            }
-            .hazeSource(state = hazeState),
+            .hazeSource(hazeState),
     )
 
     Box(
-        modifier = Modifier
-            .size(260.dp, 180.dp)
-            .graphicsLayer { rotationZ = 10f }
-            .hazeSource(state = hazeState, zIndex = 1f),
-    )
-
-    Box(
-        modifier = Modifier
-            .align(Alignment.Center)
-            .hazeEffect(state = hazeState) {
-                sparkEffect { }
-            },
+        Modifier.hazeEffect(
+            factory = SparkEffect,
+            input = HazeInput.Sources(hazeState),
+            style = SparkStyle(color = Color.Blue, alpha = 0.3f),
+            sampling = HazeSampling.FullResolution,
+        ),
     )
 }
 ```
 
-The key point is that Haze samples the transformed `hazeSource` layers behind the target node. Your custom `VisualEffect` then controls how that sampled content is rendered.
-
-## Implementing VisualEffect
-
-Create a class implementing `VisualEffect`:
+Source selection and retention remain explicit:
 
 ```kotlin
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.VisualEffect
-import dev.chrisbanes.haze.VisualEffectContext
+input = HazeInput.Sources(
+    state = hazeState,
+    selection = HazeSourceSelection.All.where { it.key == "hero" },
+    retention = HazeSourceRetention.ClearWhenUnavailable,
+)
+```
 
-@OptIn(ExperimentalHazeApi::class)
-class SparkVisualEffect : VisualEffect {
-    var color: Color = Color.Black
-    var alpha: Float = 0.2f
+`drawInput()` draws the already-selected source content. It does not expose source areas,
+coordinates, captured layers, windows, or renderer ownership internals.
 
-    override fun attach(context: VisualEffectContext) {
-        // Allocate expensive resources if needed.
-    }
+## Draw the modifier's own content
 
-    override fun update(context: VisualEffectContext) {
-        // Read composition locals or snapshot state.
-        // Call context.invalidateDraw() if output changes.
-    }
+Use `HazeInput.Content` when the effect consumes the composable carrying the modifier:
 
-    override fun detach(context: VisualEffectContext) {
-        // Release resources from attach().
-    }
-
-    override fun DrawScope.draw(context: VisualEffectContext) {
-        drawRect(
-            color = color.copy(alpha = alpha),
-            size = context.size,
+```kotlin
+Box(
+    Modifier
+        .hazeEffect(
+            factory = SparkEffect,
+            input = HazeInput.Content,
+            style = SparkStyle(color = Color.Blue, alpha = 0.3f),
         )
-    }
-}
+        .background(Color.White),
+)
 ```
 
-### Lifecycle methods
+The renderer uses the same `drawInput()` operation for both input modes.
 
-#### `attach(context: VisualEffectContext)`
+## Semantic scopes
 
-Called when the effect is attached to a node.
+`HazeEffectDrawScope` is a `DrawScope` with:
 
-- Allocate long-lived resources here (shaders, caches, delegates)
-- Geometry may not be resolved yet, so treat `position`, `size`, `layerSize`, and `layerOffset` as potentially unspecified/zero during attach
+- `modifierBounds`, expressed in the current effect layer
+- the structural `HazeSampling` value
+- `drawInput()` for the selected input
+- tracked composition-local access through `currentValueOf`
 
-#### `update(context: VisualEffectContext)`
+`HazeEffectLayoutScope` is a `Density` with the modifier bounds and tracked composition-local
+access. Return the bounds required by the effect in the same coordinate space. Setting
+`expandLayerBounds = false` on the modifier skips renderer-requested expansion.
 
-Called when the effect should refresh state from composition locals or snapshot-backed data.
+Snapshot state and composition locals read while drawing invalidate drawing. Values read while
+calculating bounds recalculate the bounds and then redraw.
 
-- Snapshot reads are tracked
-- When read state changes, `update` is invoked again
-- Call `context.invalidateDraw()` when visual output should be re-drawn
+## Ownership and lifecycle
 
-```kotlin
-override fun update(context: VisualEffectContext) {
-    val newColor = context.currentValueOf(LocalSparkColor)
-    if (newColor != color) {
-        color = newColor
-        context.invalidateDraw()
-    }
-}
-```
+- Share the immutable Style and factory freely.
+- Never return the same mutable renderer from more than one `createRenderer()` call.
+- Release rebuildable caches in `onTrimMemory`.
+- Release all renderer-owned resources in `dispose`.
+- Keep pointer interaction and retained-output behavior inside your effect module until those
+  capabilities have dedicated public contracts.
 
-#### `detach(context: VisualEffectContext)`
+Platform-specific renderer internals can use `expect`/`actual` declarations in the effect module.
+The public renderer contract intentionally does not expose platform delegates or captured layers.
 
-Called when the effect is detached.
+## Temporary legacy path
 
-- Release resources acquired in `attach`
-- Cancel work tied to effect internals
+`VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, and the lambda-based `hazeEffect`
+overloads remain available while built-in and existing third-party effects migrate. They are a
+temporary compatibility path, not the recommended extension seam for new effects.
 
-```kotlin
-override fun detach(context: VisualEffectContext) {
-    shader?.release()
-    shader = null
-}
-```
-
-#### `onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel)`
-
-Called on memory pressure/background transitions.
-
-- Free heavy caches and temporary buffers
-- Keep this fast and safe to call repeatedly
-- Optionally call `context.invalidateDraw()` after release
-
-#### `draw(context: VisualEffectContext)`
-
-Called during rendering.
-
-- Keep this path hot and allocation-light
-- Use `context.size`/`context.layerSize` to align your output to the requested bounds
-
-## VisualEffectContext
-
-`VisualEffectContext` provides geometry, environment, and lifecycle helpers:
-
-```kotlin
-interface VisualEffectContext {
-    val position: Offset
-    val size: Size
-    val layerSize: Size
-    val layerOffset: Offset
-    val rootBounds: Rect
-
-    val inputScale: HazeInputScale
-    val windowId: Any?
-    val areas: List<HazeArea>
-    val state: HazeState?
-
-    val coroutineScope: CoroutineScope
-
-    fun requireDensity(): Density
-    fun <T> currentValueOf(local: CompositionLocal<T>): T
-    fun requireGraphicsContext(): GraphicsContext
-    fun invalidateDraw()
-}
-```
-
-Mode semantics:
-
-- `state != null`: background mode (`hazeEffect(state = hazeState)`)
-- `state == null`: foreground/content mode (`hazeEffect { ... }`)
-
-Input-scale semantics:
-
-- `HazeInputScale.Default` is passed through unchanged so a custom effect can choose its normal
-  policy.
-- `HazeInputScale.None` explicitly requests `1.0`.
-- `HazeInputScale.Auto` asks the custom effect to apply its automatic policy; core does not impose
-  the built-in blur or Glass rules.
-- `HazeInputScale.Fixed` supplies the caller's exact scale.
-
-Custom effects should document how they interpret `Default` and `Auto`, and should preserve
-explicit `None` and `Fixed` choices.
-
-## HazeEffectScope
-
-The `Modifier.hazeEffect { ... }` lambda uses `HazeEffectScope`:
-
-```kotlin
-interface HazeEffectScope {
-    var visualEffect: VisualEffect
-    var inputScale: HazeInputScale
-    var drawContentBehind: Boolean
-    var clipToAreasBounds: Boolean?
-    var expandLayerBounds: Boolean?
-    var forceInvalidateOnPreDraw: Boolean
-    var canDrawArea: ((HazeArea) -> Boolean)?
-}
-```
-
-## Builder extension pattern
-
-Expose your effect through a `HazeEffectScope` extension:
-
-```kotlin
-@OptIn(ExperimentalHazeApi::class)
-fun HazeEffectScope.sparkEffect(
-    block: SparkVisualEffect.() -> Unit,
-) {
-    val effect = visualEffect as? SparkVisualEffect ?: SparkVisualEffect()
-    visualEffect = effect
-    effect.block()
-}
-```
-
-Usage:
-
-```kotlin
-Modifier.hazeEffect(state = hazeState) {
-    sparkEffect {
-        color = Color.Blue
-        alpha = 0.3f
-    }
-}
-```
-
-## Ownership model
-
-`VisualEffect` instances are single-owner.
-
-- One effect instance can only be attached to one active `hazeEffect` node at a time
-- Do not share the same effect instance across multiple active nodes
-- Prefer creating/reusing instances per node via your builder pattern
-
-## Layer bounds behavior
-
-Override `calculateLayerBounds(rect, density)` if your effect needs extra sampling space:
-
-```kotlin
-override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    val extra = with(density) { 24.dp.toPx() }
-    return rect.inflate(extra)
-}
-```
-
-Coordinate-space contract:
-
-- Return bounds in the same coordinate space as `rect`
-- In background mode (`context.state != null`), Haze passes a root/screen-aligned rect
-- In foreground mode (`context.state == null`), Haze passes a local node rect
-
-## Platform-specific implementations
-
-Use `expect`/`actual` for platform-specific rendering internals:
-
-```kotlin
-// commonMain
-expect fun createPlatformShader(size: Size): Shader
-
-@OptIn(ExperimentalHazeApi::class)
-class ShaderEffect : VisualEffect {
-    private lateinit var shader: Shader
-
-    override fun attach(context: VisualEffectContext) {
-        shader = createPlatformShader(context.size)
-    }
-}
-```
-
-```kotlin
-// androidMain
-actual fun createPlatformShader(size: Size): Shader {
-    // Android implementation
-}
-```
-
-```kotlin
-// desktopMain / skikoMain
-actual fun createPlatformShader(size: Size): Shader {
-    // Desktop implementation
-}
-```
-
-## Sample
-
-See the dedicated custom effect sample:
-
-- [CustomVisualEffectSample.kt](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/CustomVisualEffectSample.kt)
-
-## Best practices
-
-1. Allocate in `attach`, release in `detach`
-2. Keep `draw` allocation-free where possible
-3. Use `update` for tracked state reads and controlled invalidation
-4. Respect `inputScale` and bounds contracts for performance and correctness
-5. Validate behavior with screenshot tests for visual regressions
-
-## Next steps
-
-- Read [Architecture](architecture.md) for internals
-- Review [haze-blur](https://github.com/chrisbanes/haze/tree/main/haze-blur) for a full production effect
-- Browse the [sample app](https://github.com/chrisbanes/haze/tree/main/sample)
+See
+[`CustomVisualEffectSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/CustomVisualEffectSample.kt)
+for a complete typed example.

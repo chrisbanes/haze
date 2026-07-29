@@ -1,164 +1,95 @@
 # Architecture
 
-Haze v2 is built around a flexible architecture that supports multiple visual effects beyond just blur. This document explains the core concepts and how to extend Haze with custom effects.
+Haze separates shareable effect configuration from modifier-node rendering state.
 
-## Visual Effects Framework
+## Core model
 
-At the heart of Haze is the `VisualEffect` interface, which defines a common contract for all visual effects. This allows Haze to be extensible and support different types of effects on different platforms.
-
-### VisualEffect Interface
-
-The `VisualEffect` interface is the base contract for all visual effects. Implementations provide platform-specific rendering logic for creating the desired visual effect.
+The preferred custom-effect path has three parts:
 
 ```kotlin
-interface VisualEffect {
-    fun attach(context: VisualEffectContext)
-    fun update(context: VisualEffectContext)
-    fun detach(context: VisualEffectContext)
-    fun DrawScope.draw(context: VisualEffectContext)
+interface HazeEffectFactory<Style> {
+    fun createRenderer(): HazeEffectRenderer<Style>
+}
+
+interface HazeEffectRenderer<Style> {
+    fun HazeEffectDrawScope.draw(style: Style)
+    fun HazeEffectLayoutScope.calculateLayerBounds(style: Style): Rect = modifierBounds
+    fun onTrimMemory(level: TrimMemoryLevel) = Unit
+    fun dispose() = Unit
 }
 ```
 
-- **attach**: Called when the effect is first attached to a composable. Implementations can initialize platform-specific resources.
-- **update**: Called whenever the effect should update its state from composition locals or other sources.
-- **detach**: Called when the effect is removed. Implementations should clean up resources using the last attached context.
-- **draw**: Renders the effect using the `DrawScope` receiver.
+- A Style is the complete immutable effect configuration.
+- A factory is a stateless descriptor that can be shared by concurrent modifiers.
+- A renderer owns mutable rendering state and resources for exactly one modifier node.
 
-### HazeEffectScope
+Factory identity controls renderer ownership. Style, input, sampling, and layer-expansion updates
+reuse the current renderer. Replacing the factory or detaching the node disposes that renderer.
 
-The `HazeEffectScope` is a receiver scope passed to the lambda block of `Modifier.hazeEffect`. It provides common properties that apply across all effects:
+## Explicit input and policies
+
+The typed modifier makes structural behavior explicit:
 
 ```kotlin
-modifier = Modifier.hazeEffect(state) {
-    inputScale = HazeInputScale.Auto
-    drawContentBehind = true
-    // Effect-specific configuration
-}
+Modifier.hazeEffect(
+    factory = customEffect,
+    input = HazeInput.Sources(hazeState),
+    style = style,
+    sampling = HazeSampling.Adaptive,
+    expandLayerBounds = true,
+)
 ```
 
-Common properties include:
-- **inputScale**: Controls the resolution at which the effect is rendered (performance optimization)
-- **drawContentBehind**: Whether to draw the source content before applying the effect
-- **canDrawArea**: Optional filter to control which layers are included in the effect
+`HazeInput.Sources` selects content captured by `hazeSource`; `HazeInput.Content` selects the
+modifier's own content. Source selection, retained-output privacy, sampling, and layer expansion
+remain core policies rather than effect-specific mutable configuration.
 
-## Modular Effect Architecture
+## Semantic renderer scopes
 
-Each effect is provided in a separate module, allowing you to include only the effects you need:
+The draw scope exposes ordinary `DrawScope` operations, the modifier bounds in the effect layer,
+the selected sampling policy, tracked composition-local access, and one `drawInput()` operation for
+both input modes.
 
-- **haze** - Core infrastructure (`VisualEffect`, `HazeState`, modifiers)
-- **haze-blur** - Blur effect implementation
-- **haze-blur-materials** - Pre-built blur styles (Material, Cupertino, Fluent)
-- **haze-utils** - Shared utilities for platform-specific rendering
+The layout scope exposes density, modifier bounds, and tracked composition-local access. A renderer
+can request larger bounds without seeing the modifier node, source geometry, coordinates, windows,
+or captured layers.
 
-### Module Dependencies
+Reads are observed in the phase where they occur:
 
-```
-haze (core)
-├── haze-blur (blur effect)
-│   └── haze-blur-materials (blur styles)
-└── haze-utils (platform utilities)
-```
+- snapshot or composition-local reads in draw invalidate drawing;
+- reads while calculating layer bounds recalculate bounds and then redraw;
+- Style replacement invalidates both phases without replacing the renderer.
 
-Future effects will follow the same pattern:
-- **haze-glass** (source-only, not yet published) - Refraction-based Glass effect with rounded-shape SDF and optional chromatic aberration
-- Custom third-party effect modules
+## Internal node responsibilities
 
-## Effect Registration Pattern
+`HazeEffectNode` remains responsible for:
 
-Effect implementations provide builder extension functions on `HazeEffectScope` for convenient configuration:
+- source selection and z-ordering;
+- own-content capture;
+- coordinate-space and cross-window handling;
+- graphics-layer allocation and release;
+- trim-memory forwarding;
+- renderer replacement and disposal;
+- draw and bounds invalidation.
 
-```kotlin
-// Blur effect example
-val style = HazeMaterials.thin()
+Those details are intentionally absent from the public typed renderer scopes.
 
-modifier = Modifier.hazeEffect(state) {
-    blurEffect {
-        this.style = style
-        progressive = HazeProgressive.verticalGradient(...)
-    }
-}
-```
+## Modules
 
-Future effects will follow the same pattern:
-```kotlin
-modifier = Modifier.hazeEffect(state) {
-    glassEffect {
-        // Glass-specific properties
-    }
-}
-```
+- **haze** — core state, source capture, typed custom-effect orchestration, and the temporary legacy
+  path
+- **haze-blur** — blur effect implementation
+- **haze-blur-materials** — reusable blur presets
+- **haze-glass** — Glass effect implementation
+- **haze-utils** — shared platform rendering utilities
 
-## Platform Support
+Effect modules can keep platform-specific renderer internals behind their own `expect`/`actual`
+boundaries.
 
-Haze provides a `VisualEffectContext` that gives effects access to geometry, configuration, and platform capabilities:
+## Legacy compatibility
 
-```kotlin
-interface VisualEffectContext {
-    val position: Offset               // Position of the effect node
-    val size: Size                     // Size of the effect area
-    val layerSize: Size                // Size of the graphics layer (may differ from size)
-    val layerOffset: Offset            // Graphics layer offset relative to node position
-    val rootBounds: Rect               // Bounds of the root layout coordinates on screen
-    val inputScale: HazeInputScale     // Input scale factor configuration
-    val windowId: Any?                 // Identifier for the containing window
-    val areas: List<HazeArea>          // Source areas this effect should process
-    val state: HazeState?              // Associated HazeState (null for foreground blur)
-    val coroutineScope: CoroutineScope // CoroutineScope tied to the node lifecycle
+`VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, and the lambda-based modifier overloads
+remain temporarily available for Blur, Glass, and third-party migration. They expose more lifecycle
+and rendering internals and are no longer the recommended contract for new custom effects.
 
-    fun requireDensity(): Density
-    fun <T> currentValueOf(local: CompositionLocal<T>): T
-    fun requireGraphicsContext(): GraphicsContext
-    fun invalidateDraw()
-}
-```
-
-Effects can detect platform capabilities and provide the best implementation available. For example:
-
-- **Android 13+**: Uses `RenderEffect.createBlurEffect()`
-- **Android 12**: Uses `RenderNode` with shader-based blur
-- **Android 11 and below**: Uses Renderscript blur
-- **Desktop/iOS**: Uses Skia shaders
-- **Web**: Uses canvas filters
-- **WASM**: Uses custom shader implementations
-
-## Implementing Custom Effects
-
-To create a custom effect, implement the `VisualEffect` interface and provide a builder extension:
-
-```kotlin
-class CustomVisualEffect : VisualEffect {
-    override fun attach(context: VisualEffectContext) {
-        // Initialize resources
-    }
-
-    override fun update(context: VisualEffectContext) {
-        // Update state from composition locals or snapshot state
-    }
-
-    override fun detach(context: VisualEffectContext) {
-        // Clean up resources
-    }
-
-    override fun DrawScope.draw(context: VisualEffectContext) {
-        // Render the effect using the DrawScope receiver
-    }
-}
-
-// Provide a builder extension
-fun HazeEffectScope.customEffect(block: CustomVisualEffect.() -> Unit = {}) {
-    visualEffect = CustomVisualEffect().apply(block)
-}
-```
-
-See the [haze-blur](https://github.com/chrisbanes/haze/tree/main/haze-blur) module for a complete reference implementation.
-
-## Styling Resolution
-
-When multiple sources of styling are provided, Haze resolves values using the following precedence:
-
-1. Value set directly in the effect builder (e.g., `blurEffect { }`)
-2. Value set via the `style` property
-3. Value set via `LocalHazeBlurStyle` composition local
-4. Default value
-
-This allows flexible composition of styles from different sources while maintaining predictable behavior.
+See [Custom effects](custom-effects.md) for the preferred API.

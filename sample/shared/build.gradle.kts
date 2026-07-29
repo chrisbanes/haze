@@ -9,6 +9,7 @@ plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
+  id("dev.drewhamilton.poko")
 }
 
 kotlin {
@@ -122,4 +123,8 @@ kotlin {
       baseName = "HazeSamplesKt"
     }
   }
+}
+
+poko {
+  pokoAnnotation.set("dev/chrisbanes/haze/Poko")
 }
