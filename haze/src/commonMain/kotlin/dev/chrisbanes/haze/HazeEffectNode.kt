@@ -92,7 +92,12 @@ public class HazeEffectNode(
       if (value != field) {
         HazeLogger.d(TAG) { "explicitInput changed. Current: $field. New: $value" }
         val previous = field
-        clearRetainedOutput()
+        val changesRetainedContent = previous !is HazeInput.Sources ||
+          value !is HazeInput.Sources ||
+          previous.state !== value.state
+        if (changesRetainedContent) {
+          clearRetainedOutput()
+        }
         sourceSelectionSnapshotObserver?.clear(sourceSelectionObservationScope)
         if ((value as? HazeInput.Sources)?.selection?.hasRefinements() != true) {
           stopSourceSelectionSnapshotObserver()

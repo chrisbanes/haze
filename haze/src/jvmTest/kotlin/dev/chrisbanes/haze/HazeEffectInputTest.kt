@@ -418,6 +418,103 @@ class HazeEffectInputTest {
   }
 
   @Test
+  fun sourcesKeepLastFrame_preservesOutputWhenEquivalentSelectionIsRebuilt() = runComposeUiTest {
+    val state = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+    val recomposition = mutableStateOf(0)
+
+    setContent {
+      Box(
+        Modifier
+          .size(100.dp)
+          .testTag("root-${recomposition.value}"),
+      ) {
+        Spacer(Modifier.size(100.dp).hazeSource(state, key = "source"))
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(
+              input = HazeInput.Sources(
+                state = state,
+                selection = HazeSourceSelection.All.where { info -> info.key == "source" },
+                retention = HazeSourceRetention.KeepLastFrame,
+              ),
+            ) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+    waitForIdle()
+
+    val clearsBeforeRecomposition = effect.clearCalls
+    recomposition.value++
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isEqualTo(clearsBeforeRecomposition)
+  }
+
+  @Test
+  fun sourcesStateChange_clearsRetainedOutput() = runComposeUiTest {
+    val inputState = mutableStateOf(HazeState())
+    val effect = RetainedOutputRecordingVisualEffect()
+
+    setContent {
+      val currentState = inputState.value
+      Box(Modifier.size(100.dp)) {
+        Spacer(Modifier.size(100.dp).hazeSource(currentState))
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(input = HazeInput.Sources(currentState)) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+    waitForIdle()
+
+    val clearsBeforeStateChange = effect.clearCalls
+    inputState.value = HazeState()
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isGreaterThan(clearsBeforeStateChange)
+  }
+
+  @Test
+  fun inputModeChange_clearsRetainedOutput() = runComposeUiTest {
+    val state = HazeState()
+    val effect = RetainedOutputRecordingVisualEffect()
+    val useContentInput = mutableStateOf(false)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        Spacer(Modifier.size(100.dp).hazeSource(state))
+        Spacer(
+          Modifier
+            .size(100.dp)
+            .hazeEffect(
+              input = if (useContentInput.value) {
+                HazeInput.Content
+              } else {
+                HazeInput.Sources(state)
+              },
+            ) {
+              visualEffect = effect
+            },
+        )
+      }
+    }
+    waitForIdle()
+
+    val clearsBeforeModeChange = effect.clearCalls
+    useContentInput.value = true
+    waitForIdle()
+
+    assertThat(effect.clearCalls).isGreaterThan(clearsBeforeModeChange)
+  }
+
+  @Test
   fun sourcesKeepLastFrame_preservesOutputWhenSelectionBecomesEmpty() = runComposeUiTest {
     val state = HazeState()
     val effect = RetainedOutputRecordingVisualEffect()
