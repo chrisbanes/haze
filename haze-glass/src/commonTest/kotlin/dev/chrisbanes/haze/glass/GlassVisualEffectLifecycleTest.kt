@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
@@ -37,7 +38,9 @@ import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
+import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.VisualEffectRendererFactory
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
@@ -48,8 +51,128 @@ import kotlinx.coroutines.test.runTest
 class GlassVisualEffectLifecycleTest {
 
   @Test
+  fun sharedConfiguration_createsDistinctRenderersAndControllers() {
+    val configuration = GlassVisualEffect().apply { pressed() }
+    val configuredEffect: VisualEffect = configuration
+    val factory = configuredEffect as VisualEffectRendererFactory
+    val first = factory.createRenderer()
+    val second = factory.createRenderer()
+    val firstContext = TrackingVisualEffectContext()
+    val secondContext = TrackingVisualEffectContext()
+
+    first.attach(firstContext)
+    second.attach(secondContext)
+    first.update(firstContext)
+    second.update(secondContext)
+    val firstRenderer = first as GlassRenderer
+    val secondRenderer = second as GlassRenderer
+
+    assertThat(first).isNotSameInstanceAs(second)
+    assertThat(first).isNotSameInstanceAs(configuration)
+    assertThat(second).isNotSameInstanceAs(configuration)
+    assertThat(firstRenderer.runtimeForTest.delegate)
+      .isNotSameInstanceAs(secondRenderer.runtimeForTest.delegate)
+    assertThat(firstRenderer.runtimeForTest.interactionControllerForTest)
+      .isNotSameInstanceAs(secondRenderer.runtimeForTest.interactionControllerForTest)
+    assertThat(firstRenderer.runtimeForTest.attachedContextForTest).isSameInstanceAs(firstContext)
+    assertThat(secondRenderer.runtimeForTest.attachedContextForTest).isSameInstanceAs(secondContext)
+    first.detach(firstContext)
+    second.detach(secondContext)
+  }
+
+  @Test
+  fun configurationChange_invalidatesEveryRenderer() {
+    val configuration = GlassVisualEffect()
+    val factory = configuration as VisualEffectRendererFactory
+    val first = factory.createRenderer() as GlassRenderer
+    val second = factory.createRenderer() as GlassRenderer
+    val firstContext = TrackingVisualEffectContext()
+    val secondContext = TrackingVisualEffectContext()
+    first.attach(firstContext)
+    second.attach(secondContext)
+    first.update(firstContext)
+    second.update(secondContext)
+    first.runtimeForTest.resetDirtyTracker()
+    second.runtimeForTest.resetDirtyTracker()
+    firstContext.invalidateDrawCalls = 0
+    secondContext.invalidateDrawCalls = 0
+
+    configuration.alpha = 0.5f
+    first.update(firstContext)
+    second.update(secondContext)
+
+    assertThat(first.runtimeForTest.alpha).isEqualTo(0.5f)
+    assertThat(second.runtimeForTest.alpha).isEqualTo(0.5f)
+    assertThat(firstContext.invalidateDrawCalls).isEqualTo(1)
+    assertThat(secondContext.invalidateDrawCalls).isEqualTo(1)
+    first.detach(firstContext)
+    second.detach(secondContext)
+  }
+
+  @Test
+  fun runtimeEffectFactoryChange_synchronizesWithAttachedRenderer() {
+    val configuration = GlassVisualEffect()
+    val renderer = configuration.createRenderer() as GlassRenderer
+    val context = TrackingVisualEffectContext()
+    val replacement = GlassRuntimeEffectFactory { create -> create() }
+    renderer.attach(context)
+    renderer.update(context)
+
+    configuration.runtimeEffectFactory = replacement
+    renderer.update(context)
+
+    assertThat(renderer.runtimeForTest.runtimeEffectFactory).isSameInstanceAs(replacement)
+    renderer.detach(context)
+  }
+
+  @Test
+  fun rendererResourceRelease_isExactAndDoesNotAffectSibling() {
+    val configuration = GlassVisualEffect()
+    val first = configuration.createRenderer() as GlassRenderer
+    val second = configuration.createRenderer() as GlassRenderer
+    val firstDelegate = CountingGlassDelegate()
+    val secondDelegate = CountingGlassDelegate()
+    val firstContext = TrackingVisualEffectContext()
+    val secondContext = TrackingVisualEffectContext()
+    first.runtimeForTest.delegate = firstDelegate
+    second.runtimeForTest.delegate = secondDelegate
+    first.attach(firstContext)
+    second.attach(secondContext)
+
+    first.clearRetainedOutput()
+    first.detach(firstContext)
+
+    assertThat(firstDelegate.releaseCalls).isEqualTo(1)
+    assertThat(firstDelegate.detachCalls).isEqualTo(1)
+    assertThat(secondDelegate.releaseCalls).isEqualTo(0)
+    assertThat(secondDelegate.detachCalls).isEqualTo(0)
+
+    second.onTrimMemory(secondContext, dev.chrisbanes.haze.TrimMemoryLevel.UI_HIDDEN)
+    second.detach(secondContext)
+
+    assertThat(secondDelegate.releaseCalls).isEqualTo(1)
+    assertThat(secondDelegate.detachCalls).isEqualTo(1)
+  }
+
+  @Test
+  fun rendererCacheEviction_releasesRetainedShaderHandles() {
+    val delegates = List(9) {
+      val renderer = GlassVisualEffect().createRenderer() as GlassRenderer
+      val delegate = CountingGlassDelegate()
+      val context = TrackingVisualEffectContext()
+      renderer.runtimeForTest.delegate = delegate
+      renderer.attach(context)
+      renderer.detach(context)
+      delegate
+    }
+
+    assertThat(delegates.first().finalReleaseCalls).isEqualTo(1)
+    assertThat(delegates.last().finalReleaseCalls).isEqualTo(0)
+  }
+
+  @Test
   fun prepareBudget_fractionalAlphaIncludesMaterialSizedGroupComposite() {
-    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
 
     val decision = effect.prepareRenderBudget(
       context = TrackingVisualEffectContext(effectSize = Size(100f, 80f), layerSize = Size(120f, 100f)),
@@ -63,7 +186,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_materialSizeChangeUpdatesGroupComposite() {
-    val effect = GlassVisualEffect().apply { alpha = 0.5f }
+    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
     val layerSize = Size(160f, 140f)
 
     effect.prepareRenderBudget(
@@ -88,7 +211,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_interactionGroupCompositeContributesToScaleSelection() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         refractionStrength = 0f,
         refractionScale = 0f,
@@ -124,7 +247,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_safeGraphPreservesRequestedScale() {
-    val decision = GlassVisualEffect().resolveGlassRenderBudget(
+    val decision = GlassRuntimeEffect().resolveGlassRenderBudget(
       TrackingVisualEffectContext(effectSize = Size(100f, 100f), layerSize = Size(120f, 120f)),
     )
 
@@ -133,7 +256,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_maxRefractionUsesFallbackBeforeRuntimePreparation() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         refractionStrength = 1f,
         refractionScale = 16_384f,
@@ -152,7 +275,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_retainsSelectedRenderBundleWithoutInactiveBlurKey() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(depth = 0f, blurRadius = 38.5.dp)
     }
 
@@ -168,7 +291,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_runtimeUnavailableSkipsExactRenderBundle() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
 
     val decision = effect.prepareRenderBudget(
       TrackingVisualEffectContext(),
@@ -181,7 +304,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_scaleDependentDetailUsesExactSelectedPlan() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         refractionStrength = 1f,
         refractionScale = 0.18f,
@@ -213,7 +336,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_runtimeToFallbackClearsPreparedRenderBundle() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
 
     assertThat(
       effect.prepareRenderBudget(
@@ -234,7 +357,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun detach_clearsPreparedRenderBundle() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
 
     effect.prepareRenderBudget(context, runtimeShaderSupported = true)
@@ -247,7 +370,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_unchangedBudgetInputsReuseDecisionAndSelectedPlan() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
 
     val first = effect.prepareRenderBudget(
@@ -269,7 +392,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_chromaticAberrationChangeInvalidatesBudgetDecision() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
 
     val first = effect.prepareRenderBudget(
@@ -288,7 +411,7 @@ class GlassVisualEffectLifecycleTest {
   @Test
   fun stablePreparationAndClipping_doNotResolveCornerGeometryAgain() {
     val corner = CountingCornerSize(12f)
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       shape = RoundedCornerShape(corner)
     }
     val context = TrackingVisualEffectContext()
@@ -312,7 +435,7 @@ class GlassVisualEffectLifecycleTest {
   @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
   fun prepareBudget_stateBackedCornerSizeInvalidatesResolvedStyle() = runTest {
     val cornerPx = mutableFloatStateOf(4f)
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       shape = RoundedCornerShape(StateBackedCornerSize { cornerPx.floatValue })
     }
     val context = TrackingVisualEffectContext(
@@ -339,7 +462,7 @@ class GlassVisualEffectLifecycleTest {
   @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
   fun stateBackedCornerInvalidation_doesNotCrossAttachments() = runTest {
     val cornerPx = mutableFloatStateOf(0f)
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       shape = RoundedCornerShape(StateBackedCornerSize { cornerPx.floatValue })
     }
     val firstContext = TrackingVisualEffectContext(
@@ -368,7 +491,7 @@ class GlassVisualEffectLifecycleTest {
   @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
   fun clipping_stateBackedCornerSizeInvalidatesDecisionBeforePreparation() = runTest {
     val cornerPx = mutableFloatStateOf(0f)
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(StateBackedCornerSize { cornerPx.floatValue })
     }
@@ -391,7 +514,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_alphaOnlyChangeReusesUnderlyingPreparedData() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
 
     effect.prepareRenderBudget(context, runtimeShaderSupported = true)
@@ -416,7 +539,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_interactionRadiusChangeRebuildsPlanButReusesBaseEffectKeys() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       pressed {
         lightingIntensity(1f)
         refractionMultiplier(1.1f)
@@ -442,7 +565,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_zeroInteractionRadiusMatchesNoInteractionResponses() {
-    val configured = GlassVisualEffect().apply {
+    val configured = GlassRuntimeEffect().apply {
       pressed {
         lightingIntensity(1f)
         refractionMultiplier(1.1f)
@@ -454,7 +577,7 @@ class GlassVisualEffectLifecycleTest {
     configured.prepareRenderBudget(context, runtimeShaderSupported = true)
     val configuredPlan = checkNotNull(configured.preparedRender).plan
 
-    val baseline = GlassVisualEffect()
+    val baseline = GlassRuntimeEffect()
     baseline.prepareRenderBudget(context, runtimeShaderSupported = true)
 
     assertThat(configuredPlan).isEqualTo(checkNotNull(baseline.preparedRender).plan)
@@ -462,7 +585,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_lightingOnlyChangeReusesUnchangedPreparedData() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
 
     effect.prepareRenderBudget(context, runtimeShaderSupported = true)
@@ -482,7 +605,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_interactionOnlyChangeReusesBasePreparedData() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
 
     effect.prepareRenderBudget(context, runtimeShaderSupported = true)
@@ -503,7 +626,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun prepareBudget_configuredInteractionTopologyIsStableAcrossAnimatedValues() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       pressed {
         lightingIntensity(1f)
         refractionMultiplier(1.2f)
@@ -532,7 +655,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun update_readsInjectedMotionScaleAndFullOverridesIt() {
-    val effect = GlassVisualEffect().apply { pressed() }
+    val effect = GlassRuntimeEffect().apply { pressed() }
     val context = TrackingVisualEffectContext(
       motionScale = 0f,
       effectSize = Size.Zero,
@@ -555,7 +678,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun attachAndUpdate_withoutInteractionsDoesNotAllocateController() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
 
     effect.attach(context)
@@ -567,7 +690,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun detach_disposesInteractionController() {
-    val effect = GlassVisualEffect().apply { pressed() }
+    val effect = GlassRuntimeEffect().apply { pressed() }
     val context = TrackingVisualEffectContext()
 
     effect.attach(context)
@@ -582,7 +705,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun update_directShapeChangeInvalidatesLayerBounds() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
 
     effect.update(context)
@@ -596,7 +719,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun resettingConsumedDirtyFlags_doesNotNotifyObserver_butNextChangeDoes() {
-    val effect = GlassVisualEffect().apply { resetDirtyTracker() }
+    val effect = GlassRuntimeEffect().apply { resetDirtyTracker() }
     val context = TrackingVisualEffectContext()
     val observer = SnapshotStateObserver { command -> command() }
     var observerNotifications = 0
@@ -636,7 +759,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun markingAlreadyDirtyField_doesNotNotifyObserverAgain() {
-    val effect = GlassVisualEffect().apply { resetDirtyTracker() }
+    val effect = GlassRuntimeEffect().apply { resetDirtyTracker() }
     val context = TrackingVisualEffectContext()
     val observer = SnapshotStateObserver { command -> command() }
     var observerNotifications = 0
@@ -667,7 +790,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun update_adaptiveToAbsoluteInvalidatesDrawAndLayerBounds() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
 
     effect.optics = GlassOptics.Absolute(refractionStrength = 0.4f)
@@ -679,7 +802,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun update_replacingAbsoluteInvalidatesDrawAndLayerBounds() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(refractionStrength = 0.4f)
       resetDirtyTracker()
     }
@@ -694,14 +817,14 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun update_interactionRenderingConfigurationChangesInvalidateDraw() {
-    val changes = listOf<(GlassVisualEffect) -> Unit>(
+    val changes = listOf<(GlassRuntimeEffect) -> Unit>(
       { it.interactionLightRadiusFraction = 1.2f },
       { it.interactionTransformTarget = GlassTransformTarget.MaterialAndContent },
       { it.interactionTransformPivot = GlassTransformPivot.Center },
     )
 
     changes.forEach { change ->
-      val effect = GlassVisualEffect()
+      val effect = GlassRuntimeEffect()
       val context = TrackingVisualEffectContext()
 
       change(effect)
@@ -713,7 +836,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun update_clearingAbsoluteOverrideInvalidatesDrawAndLayerBounds() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(refractionStrength = 0.4f)
       resetDirtyTracker()
     }
@@ -728,12 +851,12 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun calculateLayerBounds_usesMaximumConfiguredInteractionRefractionStrength() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(refractionStrength = 0.6f)
       pressed { refractionMultiplier(2f) }
     }
     val rect = Rect(0f, 0f, 100f, 100f)
-    val baseBounds = GlassVisualEffect().apply {
+    val baseBounds = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(refractionStrength = 0.6f)
     }.calculateLayerBounds(rect, Density(1f))
 
@@ -745,7 +868,7 @@ class GlassVisualEffectLifecycleTest {
   @Test
   fun calculateLayerBounds_depthZeroDoesNotReserveBlurPadding() {
     val rect = Rect(0f, 0f, 100f, 100f)
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(depth = 0f, blurRadius = 40.dp, refractionStrength = 0f)
       edgeSoftness = 0.dp
       specularIntensity = 0f
@@ -756,7 +879,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun changingInteractionRefractionMaximum_invalidatesLayerBounds_butEquivalentDeclarationDoesNot() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = TrackingVisualEffectContext()
     effect.update(context)
     context.invalidateLayerBoundsCalls = 0
@@ -900,4 +1023,48 @@ private class StateBackedCornerSize(
   private val value: () -> Float,
 ) : CornerSize {
   override fun toPx(shapeSize: Size, density: Density): Float = value()
+}
+
+private class CountingGlassDelegate : GlassRuntimeEffect.Delegate, RetainedOutputDelegate {
+  private var ownsResource = true
+  var detachCalls = 0
+    private set
+  var releaseCalls = 0
+    private set
+  var finalReleaseCalls = 0
+    private set
+
+  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+
+  override fun detach() {
+    detachCalls++
+    releaseResource()
+  }
+
+  override fun release() {
+    finalReleaseCalls++
+    detach()
+  }
+
+  override fun onTrimMemory(
+    context: VisualEffectContext,
+    level: dev.chrisbanes.haze.TrimMemoryLevel,
+  ) {
+    if (shouldReleaseRetainedGlass(level)) {
+      releaseResource()
+    }
+  }
+
+  override fun canDrawRetainedOutput(): Boolean = ownsResource
+
+  override fun clearRetainedOutput() {
+    releaseResource()
+  }
+
+  private fun releaseResource() {
+    if (ownsResource) {
+      ownsResource = false
+      releaseCalls++
+    }
+  }
 }

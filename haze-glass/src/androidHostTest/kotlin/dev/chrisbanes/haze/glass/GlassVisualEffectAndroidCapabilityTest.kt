@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
 import assertk.assertions.isNotNull
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -33,7 +34,7 @@ class GlassVisualEffectAndroidCapabilityTest {
   @Test
   @Config(sdk = [32])
   fun unsupportedRuntimeShader_skipsExactRuntimePreparation() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = AndroidCapabilityContext()
 
     effect.prepareRenderBudget(
@@ -50,7 +51,7 @@ class GlassVisualEffectAndroidCapabilityTest {
   @Test
   @Config(sdk = [35])
   fun supportedRuntimeShader_buildsExactRuntimePreparation() {
-    val effect = GlassVisualEffect()
+    val effect = GlassRuntimeEffect()
     val context = AndroidCapabilityContext()
 
     effect.prepareRenderBudget(
@@ -61,6 +62,24 @@ class GlassVisualEffectAndroidCapabilityTest {
 
     assertThat(effect.preparedRender).isNotNull()
     assertThat(effect.delegate is RuntimeShaderGlassDelegate).isTrue()
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun runtimeEffectFactoryChange_replacesRuntimeDelegate() {
+    val effect = GlassRuntimeEffect()
+    val context = AndroidCapabilityContext()
+    effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = isRuntimeShaderGlassSupported(),
+    )
+    effect.delegate = effect.updateDelegate()
+    val original = effect.delegate
+
+    effect.runtimeEffectFactory = GlassRuntimeEffectFactory { create -> create() }
+    effect.delegate = effect.updateDelegate()
+
+    assertThat(effect.delegate).isNotSameInstanceAs(original)
   }
 }
 

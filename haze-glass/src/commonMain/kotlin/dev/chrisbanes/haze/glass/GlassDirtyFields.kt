@@ -29,6 +29,7 @@ internal object GlassDirtyFields {
   const val Style: Int = FresnelExponent shl 1
   const val InteractionLayerBounds: Int = Style shl 1
   const val Interaction: Int = InteractionLayerBounds shl 1
+  const val RuntimeEffectFactory: Int = Interaction shl 1
 
   const val InvalidateFlags: Int =
     Optics or
@@ -49,7 +50,8 @@ internal object GlassDirtyFields {
       SpecularExponent or
       FresnelExponent or
       Style or
-      Interaction
+      Interaction or
+      RuntimeEffectFactory
 
   const val LayerBoundsFlags: Int =
     Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds
@@ -79,6 +81,7 @@ internal object GlassDirtyFields {
       if (Style in dirtyTracker) add("Style")
       if (InteractionLayerBounds in dirtyTracker) add("InteractionLayerBounds")
       if (Interaction in dirtyTracker) add("Interaction")
+      if (RuntimeEffectFactory in dirtyTracker) add("RuntimeEffectFactory")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }

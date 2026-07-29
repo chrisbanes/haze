@@ -26,6 +26,7 @@ import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
@@ -268,6 +269,63 @@ class VisualEffectLifecycleTest : ContextTest() {
   }
 
   @Test
+  fun visualEffect_rendererFactoryCreatesDistinctRuntimesForConcurrentNodes() = runComposeUiTest {
+    val descriptor = RecordingVisualEffectRendererFactory()
+    val showContent = mutableStateOf(true)
+
+    setContent {
+      if (showContent.value) {
+        Box(Modifier.size(200.dp)) {
+          Spacer(Modifier.size(100.dp).hazeEffect { visualEffect = descriptor })
+          Spacer(Modifier.size(100.dp).hazeEffect { visualEffect = descriptor })
+        }
+      }
+    }
+
+    waitForIdle()
+    assertThat(descriptor.runtimes.size).isEqualTo(2)
+    assertThat(descriptor.runtimes[0]).isNotSameInstanceAs(descriptor.runtimes[1])
+    assertThat(descriptor.attachCalls).isEqualTo(0)
+    assertThat(descriptor.runtimes.map { it.attachCalls }).isEqualTo(listOf(1, 1))
+
+    showContent.value = false
+    waitForIdle()
+
+    assertThat(descriptor.runtimes.map { it.detachCalls }).isEqualTo(listOf(1, 1))
+  }
+
+  @Test
+  fun visualEffect_rendererAttachmentFailureKeepsOldRuntimeAttached() = runComposeUiTest {
+    val oldEffect = RecordingVisualEffect()
+    val descriptor = ThrowingVisualEffectRendererFactory()
+    var effectNode: HazeEffectNode? = null
+
+    setContent {
+      Spacer(
+        Modifier
+          .size(100.dp)
+          .hazeEffect {
+            effectNode = this as HazeEffectNode
+            visualEffect = oldEffect
+          },
+      )
+    }
+    waitForIdle()
+
+    assertFailure {
+      runOnIdle {
+        checkNotNull(effectNode).visualEffect = descriptor
+      }
+    }.isInstanceOf<IllegalStateException>()
+
+    assertThat(checkNotNull(effectNode).visualEffect).isSameInstanceAs(oldEffect)
+    assertThat(checkNotNull(effectNode).activeVisualEffect).isSameInstanceAs(oldEffect)
+    assertThat(oldEffect.detachCalls).isEqualTo(0)
+    assertThat(descriptor.runtime.attachCalls).isEqualTo(1)
+    assertThat(descriptor.runtime.detachCalls).isEqualTo(1)
+  }
+
+  @Test
   fun visualEffect_ownedReplacementFailureKeepsOldEffectAttached() = runComposeUiTest {
     val oldEffect = RecordingVisualEffect()
     val ownedEffect = RecordingVisualEffect()
@@ -500,7 +558,7 @@ class VisualEffectLifecycleTest : ContextTest() {
   }
 }
 
-internal class RecordingVisualEffect : VisualEffect {
+internal open class RecordingVisualEffect : VisualEffect {
   var attachCalls = 0
   var detachCalls = 0
   var updateCalls = 0
@@ -530,6 +588,27 @@ internal class RecordingVisualEffect : VisualEffect {
   override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
     trimMemoryCalls++
   }
+}
+
+internal class RecordingVisualEffectRendererFactory :
+  RecordingVisualEffect(),
+  VisualEffectRendererFactory {
+  val runtimes = mutableListOf<RecordingVisualEffect>()
+
+  override fun createRenderer(): VisualEffect = RecordingVisualEffect().also(runtimes::add)
+}
+
+private class ThrowingVisualEffectRendererFactory :
+  RecordingVisualEffect(),
+  VisualEffectRendererFactory {
+  val runtime = object : RecordingVisualEffect() {
+    override fun attach(context: VisualEffectContext) {
+      super.attach(context)
+      error("attach failed")
+    }
+  }
+
+  override fun createRenderer(): VisualEffect = runtime
 }
 
 internal class DrawBehindProbeVisualEffect(

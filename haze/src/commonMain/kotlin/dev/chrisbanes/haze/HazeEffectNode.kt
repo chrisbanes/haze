@@ -205,6 +205,11 @@ public class HazeEffectNode(
 
   private val contentDrawArea by lazy { HazeArea() }
 
+  /** The node-owned runtime currently serving [visualEffect]. */
+  @InternalHazeApi
+  public var activeVisualEffect: VisualEffect = EmptyVisualEffect
+    private set
+
   override var canDrawArea: ((HazeArea) -> Boolean)? = null
     set(value) {
       if (value != field) {
@@ -218,21 +223,27 @@ public class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
-        val oldEffect = field
-        pointerInputDelegate?.cancel(oldEffect as? InteractiveVisualEffect)
+        val oldConfiguredEffect = field
+        val oldRuntime = activeVisualEffect
+        pointerInputDelegate?.cancel(oldRuntime as? InteractiveVisualEffect)
         if (isAttached) {
-          attachVisualEffect(value)
+          val newRuntime = value.createRenderer()
+          attachVisualEffect(newRuntime)
           try {
-            clearRetainedOutput()
+            clearRetainedOutput(oldRuntime)
           } catch (throwable: Throwable) {
-            runCatching { detachVisualEffect(value) }
+            runCatching { detachVisualEffect(newRuntime) }
               .exceptionOrNull()
               ?.let(throwable::addSuppressed)
             throw throwable
           }
-          runCatching { detachVisualEffect(oldEffect) }
+          runCatching { detachVisualEffect(oldRuntime) }
+          activeVisualEffect = newRuntime
         } else {
-          clearRetainedOutput()
+          clearRetainedOutput(
+            activeVisualEffect.takeUnless { it === EmptyVisualEffect } ?: oldConfiguredEffect,
+          )
+          activeVisualEffect = EmptyVisualEffect
         }
         field = value
         dirtyTracker += DirtyFields.VisualEffectLayerBounds
@@ -312,10 +323,13 @@ public class HazeEffectNode(
   private var trimMemoryCallbackDisposable: DisposableHandle? = null
 
   override fun onAttach() {
-    attachVisualEffect(visualEffect)
+    val runtime = activeVisualEffect.takeUnless { it === EmptyVisualEffect }
+      ?: visualEffect.createRenderer()
+    attachVisualEffect(runtime)
+    activeVisualEffect = runtime
     trimMemoryCallbackDisposable = registerTrimMemoryCallback(
       requirePlatformContext(),
-    ) { level -> visualEffect.onTrimMemory(visualEffectContext, level) }
+    ) { level -> activeVisualEffect.onTrimMemory(visualEffectContext, level) }
     update()
   }
 
@@ -329,12 +343,16 @@ public class HazeEffectNode(
     contentDrawArea.releaseLayer()
     clearRetainedOutput()
     pointerInputDelegate?.let { delegate ->
-      delegate.cancel(visualEffect as? InteractiveVisualEffect)
+      delegate.cancel(activeVisualEffect as? InteractiveVisualEffect)
       undelegate(delegate)
     }
     pointerInputDelegate = null
     lastKnownCoordinates = null
-    detachVisualEffect(visualEffect)
+    try {
+      detachVisualEffect(activeVisualEffect)
+    } finally {
+      activeVisualEffect = EmptyVisualEffect
+    }
   }
 
   private fun HazeArea.releaseLayer() {
@@ -431,24 +449,24 @@ public class HazeEffectNode(
             hasDrawableSourceLayers
           }
           if (shouldDrawEffect) {
-            with(visualEffect) {
+            with(activeVisualEffect) {
               prepareDraw(visualEffectContext)
             }
           }
           withVisualEffectTransform {
             if (shouldDrawEffect) {
-              with(visualEffect) {
+              with(activeVisualEffect) {
                 draw(visualEffectContext)
               }
             }
             drawContentSafely()
             if (shouldDrawEffect) {
-              with(visualEffect) {
+              with(activeVisualEffect) {
                 drawForeground(visualEffectContext)
               }
             }
           }
-        } else if (visualEffect === EmptyVisualEffect) {
+        } else if (activeVisualEffect === EmptyVisualEffect) {
           contentDrawArea.releaseLayer()
           drawContentSafely()
         } else {
@@ -471,14 +489,17 @@ public class HazeEffectNode(
           if (!effectOnlyDraw) {
             contentDrawArea.contentVersion++
           }
-          with(visualEffect) {
+          with(activeVisualEffect) {
             prepareDraw(visualEffectContext)
           }
           withVisualEffectTransform {
-            if (drawContentBehind || visualEffect.shouldDrawContentBehind(visualEffectContext)) {
+            if (
+              drawContentBehind ||
+              activeVisualEffect.shouldDrawContentBehind(visualEffectContext)
+            ) {
               drawLayer(contentLayer)
             }
-            with(visualEffect) {
+            with(activeVisualEffect) {
               draw(visualEffectContext)
               drawForeground(visualEffectContext)
             }
@@ -620,13 +641,15 @@ public class HazeEffectNode(
 
     // Allow the current VisualEffect to update from CompositionLocals/state before calculating
     // bounds, so it can request a bounds refresh for values observed during this update.
-    visualEffect.update(visualEffectContext)
+    activeVisualEffect.update(visualEffectContext)
     syncPointerInputDelegate()
 
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
         val clippedLayerBounds = Rect(position, size)
-          .letIf(shouldExpandLayer()) { visualEffect.calculateLayerBounds(it, requireDensity()) }
+          .letIf(shouldExpandLayer()) {
+            activeVisualEffect.calculateLayerBounds(it, requireDensity())
+          }
           .letIf(shouldClipToAreaBounds()) { rect ->
             var left = Float.POSITIVE_INFINITY
             var top = Float.POSITIVE_INFINITY
@@ -651,9 +674,14 @@ public class HazeEffectNode(
       } else if (shouldDrawRetainedOutput()) {
         // Keep the previous layer bounds for source transition gaps. Recomputing
         // bounds with no areas collapses to the node size and clears the retained layer.
-      } else if (state == null && size.isSpecified && !visualEffect.shouldClipToNodeBounds() && shouldExpandLayer()) {
+      } else if (
+        state == null &&
+        size.isSpecified &&
+        !activeVisualEffect.shouldClipToNodeBounds() &&
+        shouldExpandLayer()
+      ) {
         val rect = size.toRect()
-        val expanded = visualEffect.calculateLayerBounds(rect, requireDensity())
+        val expanded = activeVisualEffect.calculateLayerBounds(rect, requireDensity())
         _layerSize = expanded.size
         _layerOffset = rect.topLeft - expanded.topLeft
       } else {
@@ -765,18 +793,18 @@ public class HazeEffectNode(
     }
   }
 
-  private fun clearRetainedOutput() {
-    (visualEffect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
+  private fun clearRetainedOutput(effect: VisualEffect = activeVisualEffect) {
+    (effect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
   }
 
   private fun syncPointerInputDelegate() {
-    val interactive = visualEffect as? InteractiveVisualEffect
+    val interactive = activeVisualEffect as? InteractiveVisualEffect
     val required = interactive?.observesPointerEvents == true
     when {
       required && pointerInputDelegate == null -> {
         pointerInputDelegate = delegate(
           HazeEffectPointerInputNode(
-            interactiveEffect = { visualEffect as? InteractiveVisualEffect },
+            interactiveEffect = { activeVisualEffect as? InteractiveVisualEffect },
             context = { visualEffectContext },
           ),
         )
@@ -793,7 +821,7 @@ public class HazeEffectNode(
   private inline fun ContentDrawScope.withVisualEffectTransform(
     block: ContentDrawScope.() -> Unit,
   ) {
-    val transform = (visualEffect as? InteractiveVisualEffect)
+    val transform = (activeVisualEffect as? InteractiveVisualEffect)
       ?.currentContentTransform(visualEffectContext)
       ?: VisualEffectTransform.Identity
     if (transform == VisualEffectTransform.Identity) {
@@ -810,7 +838,8 @@ public class HazeEffectNode(
 
   private fun shouldDrawRetainedOutput(): Boolean {
     return retainOutputWhenSourceUnavailable &&
-      (visualEffect as? RetainedOutputVisualEffect)?.shouldDrawRetainedOutput(visualEffectContext) == true
+      (activeVisualEffect as? RetainedOutputVisualEffect)
+        ?.shouldDrawRetainedOutput(visualEffectContext) == true
   }
 
   private fun hasDrawableSourceLayers(): Boolean {
@@ -859,8 +888,11 @@ internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 
 internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
   clipToAreasBounds?.let { return it }
-  return visualEffect.shouldPreferClipToAreaBounds()
+  return activeVisualEffect.shouldPreferClipToAreaBounds()
 }
+
+private fun VisualEffect.createRenderer(): VisualEffect =
+  (this as? VisualEffectRendererFactory)?.createRenderer() ?: this
 
 // Tracks currently attached effect instances across all nodes.
 // Multiple entries are expected (different effect instances on different nodes),
@@ -885,13 +917,17 @@ internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
 
   attachedEffectOwners += effect to this
 
-  runCatching {
+  try {
     effect.attach(visualEffectContext)
-  }.onFailure {
+  } catch (throwable: Throwable) {
+    runCatching { effect.detach(visualEffectContext) }
+      .exceptionOrNull()
+      ?.let(throwable::addSuppressed)
     attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
       attachedEffect === effect && attachedNode === this
     }
-  }.getOrThrow()
+    throw throwable
+  }
 }
 
 internal fun HazeEffectNode.detachVisualEffect(effect: VisualEffect) {

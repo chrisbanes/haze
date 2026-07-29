@@ -44,7 +44,10 @@ import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
+import dev.chrisbanes.haze.HazeEffectNode
+import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
@@ -59,8 +62,13 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(
+  ExperimentalTestApi::class,
+  ExperimentalHazeApi::class,
+  InternalHazeApi::class,
+)
 class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
+  private val attachedRuntimes = mutableMapOf<GlassVisualEffect, GlassRuntimeEffect>()
 
   @Test
   fun alphaZero_clearsRetainedOutputUntilVisibleFrameRefreshesIt() = runComposeUiTest {
@@ -68,7 +76,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val sourceRecordsBeforeZero = delegate.sourceRecordCount
 
     effect.alpha = 0f
@@ -96,7 +104,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           .testTag("glass")
           .hazeEffect {
             inputScale = HazeInputScale.None
-            visualEffect = effect
+            trackRenderer(effect)
           },
       ) {
         Box(Modifier.fillMaxSize().background(Color.Red))
@@ -104,8 +112,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     }
     waitForIdle()
 
-    assertThat(effect.delegate is RuntimeShaderGlassDelegate).isTrue()
-    val radii = checkNotNull(effect.preparedRender).params.cornerRadii
+    assertThat(runtime(effect).delegate is RuntimeShaderGlassDelegate).isTrue()
+    val radii = checkNotNull(runtime(effect).preparedRender).params.cornerRadii
     assertThat(radii.values().all { it.isFinite() && it >= 0f }).isTrue()
   }
 
@@ -122,16 +130,16 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           .testTag("glass")
           .hazeEffect {
             inputScale = HazeInputScale.None
-            visualEffect = effect
+            trackRenderer(effect)
           },
       ) {
         Box(Modifier.fillMaxSize().background(Color.Red))
       }
     }
     waitForIdle()
-    effect.delegate = FallbackGlassDelegate(effect)
+    runtime(effect).delegate = FallbackGlassDelegate(runtime(effect))
 
-    assertThat(effect.delegate is FallbackGlassDelegate).isTrue()
+    assertThat(runtime(effect).delegate is FallbackGlassDelegate).isTrue()
     onNodeWithTag("glass").captureToImage()
   }
 
@@ -142,7 +150,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     assertThat(delegate.layers.hasInteractionOptical).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetail).isTrue()
     assertThat(delegate.layers.hasInteractionRefractionDetailCoverage).isTrue()
@@ -169,7 +177,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           .testTag("glass")
           .hazeEffect {
             inputScale = HazeInputScale.None
-            visualEffect = effect
+            trackRenderer(effect)
           },
       ) {
         Box(Modifier.fillMaxSize().background(Color.Red))
@@ -177,8 +185,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     }
     waitForIdle()
 
-    assertThat(effect.delegate is FallbackGlassDelegate).isTrue()
-    assertThat(effect.preparedRender).isNull()
+    assertThat(runtime(effect).delegate is FallbackGlassDelegate).isTrue()
+    assertThat(runtime(effect).preparedRender).isNull()
   }
 
   @Test
@@ -186,7 +194,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val effect = runtimeInteractiveEffect()
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val opticalEffect = checkNotNull(delegate.opticalEffect)
 
     onNodeWithTag("glass").performTouchInput {
@@ -210,14 +218,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
-    effect.setPressedForTest(Offset(60f, 60f))
+    runtime(effect).setPressedForTest(Offset(60f, 60f))
     waitForIdle()
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val layer = checkNotNull(delegate.layers.interactionOptical)
     val stableEffect = checkNotNull(layer.renderEffect)
 
-    effect.setPressedForTest(Offset(60f, 60f))
+    runtime(effect).setPressedForTest(Offset(60f, 60f))
     waitForIdle()
 
     assertThat(layer.renderEffect).isSameInstanceAs(stableEffect)
@@ -252,40 +260,40 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     waitForIdle()
     mainClock.autoAdvance = false
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val source = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
     val detail = checkNotNull(delegate.layers.refractionDetail)
-    val decision = effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime
-    val plannedKinds = checkNotNull(effect.preparedRender).plan.layers.map { it.kind }
+    val decision = runtime(effect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime
+    val plannedKinds = checkNotNull(runtime(effect).preparedRender).plan.layers.map { it.kind }
     val positions = listOf(Offset(200f, 150f), Offset(500f, 300f), Offset(800f, 450f))
 
     positions.forEach { position ->
-      effect.setPressedForTest(position)
+      runtime(effect).setPressedForTest(position)
       mainClock.advanceTimeByFrame()
       mainClock.advanceTimeByFrame()
 
-      assertThat(effect.delegate).isSameInstanceAs(delegate)
+      assertThat(runtime(effect).delegate).isSameInstanceAs(delegate)
       assertThat(delegate.layers.source).isSameInstanceAs(source)
       assertThat(delegate.layers.optical).isSameInstanceAs(optical)
       assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
-      assertThat((effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      assertThat((runtime(effect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
         .isEqualTo(decision.scaleFactor)
       assertThat(checkNotNull(delegate.layers.interactionOptical).size.width).isLessThan(source.size.width)
       assertThat(checkNotNull(delegate.layers.interactionOptical).size.height).isLessThan(source.size.height)
-      assertThat(checkNotNull(effect.preparedRender).plan.layers.map { it.kind }).isEqualTo(plannedKinds)
+      assertThat(checkNotNull(runtime(effect).preparedRender).plan.layers.map { it.kind }).isEqualTo(plannedKinds)
     }
 
-    effect.setPressedForTest(positions.last(), pressed = false)
+    runtime(effect).setPressedForTest(positions.last(), pressed = false)
     repeat(12) {
       mainClock.advanceTimeByFrame()
-      assertThat(effect.delegate).isSameInstanceAs(delegate)
+      assertThat(runtime(effect).delegate).isSameInstanceAs(delegate)
       assertThat(delegate.layers.source).isSameInstanceAs(source)
       assertThat(delegate.layers.optical).isSameInstanceAs(optical)
       assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detail)
-      assertThat((effect.preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
+      assertThat((runtime(effect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor)
         .isEqualTo(decision.scaleFactor)
-      assertThat(checkNotNull(effect.preparedRender).plan.layers.map { it.kind }).isEqualTo(plannedKinds)
+      assertThat(checkNotNull(runtime(effect).preparedRender).plan.layers.map { it.kind }).isEqualTo(plannedKinds)
     }
     mainClock.autoAdvance = true
     setContent {}
@@ -302,13 +310,13 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeLargeGlassTestContent(effect) }
     waitForIdle()
 
-    effect.setPressedForTest(Offset(300f, 240f))
+    runtime(effect).setPressedForTest(Offset(300f, 240f))
     waitForIdle()
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val recordsAfterPress = delegate.interactionLightingRecordCount
 
-    effect.setPressedForTest(Offset(500f, 320f))
+    runtime(effect).setPressedForTest(Offset(500f, 320f))
     waitForIdle()
 
     assertThat(delegate.interactionLightingRecordCount).isEqualTo(recordsAfterPress)
@@ -324,17 +332,17 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeLargeGlassTestContent(effect) }
     waitForIdle()
 
-    effect.setPressedForTest(Offset(300f, 240f))
+    runtime(effect).setPressedForTest(Offset(300f, 240f))
     waitForIdle()
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val source = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
     val interactionOpticalRecords = delegate.interactionOpticalRecordCount
     val interactionDetailRecords = delegate.interactionDetailRecordCount
     val interactionCompositeRecords = delegate.interactionCompositeRecordCount
 
-    effect.setPressedForTest(Offset(500f, 320f))
+    runtime(effect).setPressedForTest(Offset(500f, 320f))
     waitForIdle()
 
     assertThat(delegate.layers.source).isSameInstanceAs(source)
@@ -350,11 +358,11 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
-    effect.setPressedForTest(Offset(60f, 60f))
+    runtime(effect).setPressedForTest(Offset(60f, 60f))
     mainClock.advanceTimeBy(500)
     waitForIdle()
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     RuntimeShaderGlassDelegate::class.java.getDeclaredField("preparedInteractionPatch").apply {
       isAccessible = true
       set(delegate, null)
@@ -363,7 +371,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     delegate.layers.interactionRefractionDetail = null
     delegate.layers.interactionLighting = null
 
-    assertThat(effect.currentInteractionSignals.pressed).isTrue()
+    assertThat(runtime(effect).currentInteractionSignals.pressed).isTrue()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
   }
 
@@ -378,12 +386,12 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       mainClock.advanceTimeBy(500)
       waitForIdle()
 
-      val delegate = effect.delegate as RuntimeShaderGlassDelegate
+      val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
       val opticalEffect = delegate.interactionShaderHandle("interactionOpticalEffect")
       val detailEffect = delegate.interactionShaderHandle("interactionDetailEffect")
       val lightingEffect = delegate.interactionShaderHandle("interactionLightingEffect")
 
-      effect.setPressedForTest(Offset(80f, 60f))
+      runtime(effect).setPressedForTest(Offset(80f, 60f))
       mainClock.advanceTimeBy(16)
       waitForIdle()
       effect.ambientResponse = 0.6f
@@ -397,7 +405,10 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       assertThat(delegate.interactionShaderHandle("interactionLightingEffect"))
         .isSameInstanceAs(lightingEffect)
 
-      effect.onTrimMemory(checkNotNull(effect.attachedContextForTest), TrimMemoryLevel.UI_HIDDEN)
+      runtime(effect).onTrimMemory(
+        checkNotNull(runtime(effect).attachedContextForTest),
+        TrimMemoryLevel.UI_HIDDEN,
+      )
       assertThat(delegate.interactionShaderHandleOrNull("interactionOpticalEffect")).isNull()
       assertThat(delegate.interactionShaderHandleOrNull("interactionDetailEffect")).isNull()
       assertThat(delegate.interactionShaderHandleOrNull("interactionLightingEffect")).isNull()
@@ -417,7 +428,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeForegroundGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
-    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(runtime(effect).delegate).isInstanceOf<FallbackGlassDelegate>()
     assertThat(creationAttempts).isEqualTo(1)
     val failureFrameCenter = onNodeWithTag("glass").captureToImage().toPixelMap()[60, 60]
     assertThat(failureFrameCenter.alpha).isGreaterThan(0.9f)
@@ -427,7 +438,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     effect.tint = Color.Blue.copy(alpha = 0.5f)
     waitForIdle()
 
-    assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(runtime(effect).delegate).isInstanceOf<FallbackGlassDelegate>()
     assertThat(creationAttempts).isEqualTo(attemptsAfterDowngrade)
     onNodeWithTag("glass").captureToImage()
   }
@@ -445,11 +456,11 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     waitForIdle()
     val attemptsAfterPreparation = creationAttempts
 
-    effect.setPressedForTest(Offset(60f, 60f))
+    runtime(effect).setPressedForTest(Offset(60f, 60f))
     mainClock.advanceTimeBy(500)
     waitForIdle()
 
-    assertThat(effect.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+    assertThat(runtime(effect).delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
     assertThat(creationAttempts).isEqualTo(attemptsAfterPreparation)
   }
 
@@ -472,7 +483,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
             .testTag("glass")
             .hazeEffect(hazeState) {
               inputScale = HazeInputScale.None
-              visualEffect = effect
+              trackRenderer(effect)
             },
         )
       }
@@ -484,7 +495,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     }
     mainClock.advanceTimeBy(500)
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val sourceRecordsBeforeMutation = delegate.sourceRecordCount
     val interactionOpticalRecordsBeforeMutation = delegate.interactionOpticalRecordCount
     val interactionDetailRecordsBeforeMutation = delegate.interactionDetailRecordCount
@@ -494,7 +505,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     sourceColor.value = Color.Blue
     waitForIdle()
 
-    assertThat(effect.currentInteractionSignals.pressed).isTrue()
+    assertThat(runtime(effect).currentInteractionSignals.pressed).isTrue()
     assertThat(delegate.sourceRecordCount).isGreaterThan(sourceRecordsBeforeMutation)
     assertThat(delegate.interactionOpticalRecordCount)
       .isGreaterThan(interactionOpticalRecordsBeforeMutation)
@@ -512,9 +523,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val previousSnapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
-    val context = checkNotNull(effect.attachedContextForTest)
+    val context = checkNotNull(runtime(effect).attachedContextForTest)
     val trackedAreas = SizeReadTrackingList(context.areas)
     val trackingContext = object : VisualEffectContext by context {
       override val areas = trackedAreas
@@ -536,9 +547,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val previousSnapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
-    val context = checkNotNull(effect.attachedContextForTest)
+    val context = checkNotNull(runtime(effect).attachedContextForTest)
     val changedArea = context.areas.first()
     val trackedAreas = SizeReadTrackingList(context.areas)
     val trackingContext = object : VisualEffectContext by context {
@@ -579,14 +590,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
             .fillMaxSize()
             .hazeEffect(hazeState) {
               inputScale = HazeInputScale.None
-              visualEffect = effect
+              trackRenderer(effect)
             },
         )
       }
     }
     waitForIdle()
 
-    val context = checkNotNull(effect.attachedContextForTest)
+    val context = checkNotNull(runtime(effect).attachedContextForTest)
     val area = context.areas.single()
     val graphicsContext = context.requireGraphicsContext()
 
@@ -644,14 +655,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
             .fillMaxSize()
             .hazeEffect(hazeState) {
               inputScale = HazeInputScale.None
-              visualEffect = effect
+              trackRenderer(effect)
             },
         )
       }
     }
 
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val detailLayer = checkNotNull(delegate.layers.refractionDetail)
     val detailKey = checkNotNull(delegate.lastSuccessfulStageInputs?.detail)
     val sourceSnapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
@@ -662,7 +673,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     waitForIdle()
 
     assertThat(delegate.layers.refractionDetail).isSameInstanceAs(detailLayer)
-    assertThat(effect.delegate).isSameInstanceAs(delegate)
+    assertThat(runtime(effect).delegate).isSameInstanceAs(delegate)
     assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(sourceSnapshot)
     assertThat(delegate.lastSuccessfulStageInputs?.detail).isNotNull().isEqualTo(detailKey)
     assertThat(delegate.layers.hasRefractionDetail).isTrue()
@@ -676,7 +687,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val beforeDetail = delegate.detailRecordCount
 
     effect.optics = (effect.optics as GlassOptics.Absolute).copy(refractionScale = 18f)
@@ -705,14 +716,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
             .fillMaxSize()
             .hazeEffect(hazeState) {
               inputScale = HazeInputScale.None
-              visualEffect = effect
+              trackRenderer(effect)
             },
         )
       }
     }
 
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     assertThat(delegate.lastSuccessfulStageInputs?.detail).isNull()
     assertThat(delegate.layers.hasRefractionDetail).isFalse()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
@@ -731,14 +742,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Box(
           Modifier.fillMaxSize().hazeEffect(hazeState) {
             inputScale = HazeInputScale.None
-            visualEffect = effect
+            trackRenderer(effect)
           },
         )
       }
     }
 
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     assertThat(delegate.lastSuccessfulStageInputs?.detail).isNull()
     assertThat(delegate.layers.hasRefractionDetail).isFalse()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
@@ -757,14 +768,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Box(
           Modifier.fillMaxSize().hazeEffect(hazeState) {
             inputScale = HazeInputScale.None
-            visualEffect = effect
+            trackRenderer(effect)
           },
         )
       }
     }
 
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     assertThat(delegate.lastSuccessfulStageInputs?.detail).isNotNull()
     assertThat(delegate.layers.hasRefractionDetail).isTrue()
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
@@ -788,14 +799,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
             .fillMaxSize()
             .hazeEffect(hazeState) {
               inputScale = HazeInputScale.None
-              visualEffect = effect
+              trackRenderer(effect)
             },
         )
       }
     }
 
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     assertThat(checkNotNull(delegate.layers.optical).alpha).isEqualTo(1f)
     assertThat(checkNotNull(delegate.layers.refractionDetail).alpha).isEqualTo(1f)
   }
@@ -813,9 +824,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     }
     waitForIdle()
 
-    val outputSize = checkNotNull(effect.attachedContextForTest).size.roundToIntSize()
-    val groupLayer = checkNotNull((effect.delegate as RuntimeShaderGlassDelegate).layers.groupAlpha.layer)
-    val groupPlan = checkNotNull(effect.preparedRender).plan.layers.single {
+    val outputSize = checkNotNull(runtime(effect).attachedContextForTest).size.roundToIntSize()
+    val groupLayer = checkNotNull((runtime(effect).delegate as RuntimeShaderGlassDelegate).layers.groupAlpha.layer)
+    val groupPlan = checkNotNull(runtime(effect).preparedRender).plan.layers.single {
       it.kind == GlassRetainedLayerKind.GroupComposite
     }
 
@@ -825,7 +836,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
   @Test
   fun initialBlurWorkingSizeSetup_doesNotInvalidateDraw() = runComposeUiTest {
-    val glassEffect = animatedStageEffect().apply { resetDirtyTracker() }
+    val glassEffect = GlassRuntimeEffect(animatedStageEffect()).apply { resetDirtyTracker() }
     val effect = InvalidationTrackingVisualEffect(glassEffect)
 
     setContent {
@@ -852,7 +863,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val effect = animatedStageEffect()
     setContent { RuntimeForegroundGlassTestContent(effect) }
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
 
     val beforeAlpha = delegate.stageRecordCounts
     effect.alpha = 0.5f
@@ -883,7 +894,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val effect = retainedBlurEffect()
     setContent { RuntimeForegroundGlassTestContent(effect) }
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
 
     val horizontalShader = checkNotNull(delegate.blurHorizontalShader)
     val verticalShader = checkNotNull(delegate.blurVerticalShader)
@@ -920,7 +931,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     )
     setContent { RuntimeForegroundGlassTestContent(effect) }
     waitForIdle()
-    val delegate = effect.delegate as RuntimeShaderGlassDelegate
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
 
     val horizontalShader = checkNotNull(delegate.progressiveBlurHorizontalShader)
     val verticalShader = checkNotNull(delegate.progressiveBlurVerticalShader)
@@ -986,6 +997,15 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     specularIntensity = 0f
   }
 
+  private fun HazeEffectScope.trackRenderer(effect: GlassVisualEffect) {
+    visualEffect = effect
+    attachedRuntimes[effect] =
+      ((this as HazeEffectNode).activeVisualEffect as GlassRenderer).runtimeForTest
+  }
+
+  private fun runtime(effect: GlassVisualEffect): GlassRuntimeEffect =
+    checkNotNull(attachedRuntimes[effect])
+
   @Composable
   private fun RuntimeForegroundGlassTestContent(
     effect: GlassVisualEffect,
@@ -997,7 +1017,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         .then(if (tag != null) Modifier.testTag(tag) else Modifier)
         .hazeEffect {
           inputScale = HazeInputScale.None
-          visualEffect = effect
+          trackRenderer(effect)
         },
     ) {
       Box(Modifier.fillMaxSize().background(Color.Red))
@@ -1028,7 +1048,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   private class InvalidationTrackingVisualEffect(
-    private val delegate: GlassVisualEffect,
+    private val delegate: GlassRuntimeEffect,
   ) : VisualEffect, RetainedOutputVisualEffect {
     var invalidateDrawCalls = 0
       private set
@@ -1132,7 +1152,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           .testTag(tag)
           .hazeEffect(hazeState) {
             this.inputScale = inputScale
-            visualEffect = effect
+            trackRenderer(effect)
           },
       )
     }
@@ -1148,7 +1168,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           .fillMaxSize()
           .hazeEffect(hazeState) {
             inputScale = HazeInputScale.None
-            visualEffect = effect
+            trackRenderer(effect)
           },
       )
     }

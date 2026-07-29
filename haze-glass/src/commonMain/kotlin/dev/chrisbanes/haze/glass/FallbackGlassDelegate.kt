@@ -23,8 +23,8 @@ import kotlin.math.max
 
 @OptIn(ExperimentalHazeApi::class)
 internal class FallbackGlassDelegate(
-  private val effect: GlassVisualEffect,
-) : GlassVisualEffect.Delegate {
+  private val effect: GlassRuntimeEffect,
+) : GlassRuntimeEffect.Delegate {
 
   private var preparedDraw: FallbackGlassPreparedDraw? = null
   private val groupAlpha = RetainedGlassGroupAlphaLayer()

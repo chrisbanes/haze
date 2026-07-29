@@ -33,14 +33,23 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectNode
+import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(
+  ExperimentalTestApi::class,
+  ExperimentalHazeApi::class,
+  InternalHazeApi::class,
+)
 class GlassInteractionIntegrationTest : ContextTest() {
+  private val attachedRuntimes = mutableMapOf<GlassVisualEffect, GlassRuntimeEffect>()
 
   @Test
   fun interactiveGlass_doesNotBlockClick() = runComposeUiTest {
@@ -56,7 +65,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
           Modifier
             .fillMaxSize()
             .testTag("glass")
-            .hazeEffect(hazeState) { visualEffect = effect }
+            .hazeEffect(hazeState) { trackRenderer(effect) }
             .clickable(interactionSource = source, indication = null, onClick = { clicks++ }),
         )
       }
@@ -80,7 +89,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
           Modifier
             .fillMaxSize()
             .testTag("glass")
-            .hazeEffect(hazeState) { visualEffect = effect }
+            .hazeEffect(hazeState) { trackRenderer(effect) }
             .verticalScroll(scroll),
         ) { Spacer(Modifier.height(400.dp)) }
       }
@@ -94,7 +103,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
     waitForIdle()
 
     assertThat(scroll.value).isGreaterThan(0)
-    assertThat(effect.currentInteractionSignals.rawPressed).isEqualTo(false)
+    assertThat(runtime(effect).currentInteractionSignals.rawPressed).isEqualTo(false)
   }
 
   @Test
@@ -105,7 +114,12 @@ class GlassInteractionIntegrationTest : ContextTest() {
     }
     setContent {
       GlassTestFixture { hazeState ->
-        Box(Modifier.fillMaxSize().testTag("glass").hazeEffect(hazeState) { visualEffect = effect })
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testTag("glass")
+            .hazeEffect(hazeState) { trackRenderer(effect) },
+        )
       }
     }
 
@@ -114,13 +128,13 @@ class GlassInteractionIntegrationTest : ContextTest() {
       moveTo(Offset(70f, 60f))
     }
     waitForIdle()
-    assertThat(effect.currentInteractionState.position).isEqualTo(Offset(70f, 60f))
-    assertThat(effect.currentInteractionSignals.rawHovered).isEqualTo(true)
+    assertThat(runtime(effect).currentInteractionState.position).isEqualTo(Offset(70f, 60f))
+    assertThat(runtime(effect).currentInteractionSignals.rawHovered).isEqualTo(true)
 
     onNodeWithTag("glass").performMouseInput { exit() }
     waitForIdle()
 
-    assertThat(effect.currentInteractionSignals.rawHovered).isEqualTo(false)
+    assertThat(runtime(effect).currentInteractionSignals.rawHovered).isEqualTo(false)
   }
 
   @Test
@@ -130,7 +144,12 @@ class GlassInteractionIntegrationTest : ContextTest() {
     setContent {
       SideEffect { compositions++ }
       GlassTestFixture { hazeState ->
-        Box(Modifier.fillMaxSize().testTag("glass").hazeEffect(hazeState) { visualEffect = effect })
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testTag("glass")
+            .hazeEffect(hazeState) { trackRenderer(effect) },
+        )
       }
     }
     waitForIdle()
@@ -159,7 +178,12 @@ class GlassInteractionIntegrationTest : ContextTest() {
     }
     setContent {
       GlassTestFixture { hazeState ->
-        Box(Modifier.fillMaxSize().testTag("glass").hazeEffect(hazeState) { visualEffect = effect })
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testTag("glass")
+            .hazeEffect(hazeState) { trackRenderer(effect) },
+        )
       }
     }
     waitForIdle()
@@ -168,17 +192,26 @@ class GlassInteractionIntegrationTest : ContextTest() {
     source.tryEmit(press)
     waitForIdle()
 
-    assertThat(effect.currentInteractionState.position).isEqualTo(Offset(50f, 50f))
-    assertThat(effect.currentInteractionState.lightingIntensity).isEqualTo(1f)
+    assertThat(runtime(effect).currentInteractionState.position).isEqualTo(Offset(50f, 50f))
+    assertThat(runtime(effect).currentInteractionState.lightingIntensity).isEqualTo(1f)
 
     source.tryEmit(PressInteraction.Release(press))
     source.tryEmit(FocusInteraction.Unfocus(focus))
     waitForIdle()
 
-    assertThat(effect.currentInteractionState).isEqualTo(
+    assertThat(runtime(effect).currentInteractionState).isEqualTo(
       GlassInteractionRenderState(position = Offset(50f, 50f)),
     )
   }
+
+  private fun HazeEffectScope.trackRenderer(effect: GlassVisualEffect) {
+    visualEffect = effect
+    attachedRuntimes[effect] =
+      ((this as HazeEffectNode).activeVisualEffect as GlassRenderer).runtimeForTest
+  }
+
+  private fun runtime(effect: GlassVisualEffect): GlassRuntimeEffect =
+    checkNotNull(attachedRuntimes[effect])
 }
 
 @Composable

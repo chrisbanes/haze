@@ -20,11 +20,14 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectNode
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class, InternalHazeApi::class)
 class FallbackGlassInteractionTest : ContextTest() {
 
   @Test
@@ -38,17 +41,21 @@ class FallbackGlassInteractionTest : ContextTest() {
       ambientResponse = 0f
       lightPosition = Offset(80f, 80f)
     }
+    lateinit var runtime: GlassRuntimeEffect
     setContent {
       Box(
         Modifier
           .size(100.dp)
           .testTag("glass")
-          .hazeEffect { visualEffect = effect }
+          .hazeEffect {
+            visualEffect = effect
+            runtime = ((this as HazeEffectNode).activeVisualEffect as GlassRenderer).runtimeForTest
+          }
           .background(Color.Black),
       )
     }
     waitForIdle()
-    effect.delegate = FallbackGlassDelegate(effect)
+    runtime.delegate = FallbackGlassDelegate(runtime)
 
     onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
     waitForIdle()

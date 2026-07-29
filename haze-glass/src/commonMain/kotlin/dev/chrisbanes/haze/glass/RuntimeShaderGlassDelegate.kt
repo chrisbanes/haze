@@ -34,9 +34,9 @@ import dev.chrisbanes.haze.trace
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RuntimeShaderGlassDelegate(
-  private val effect: GlassVisualEffect,
+  private val effect: GlassRuntimeEffect,
   private val runtimeEffectFactory: GlassRuntimeEffectFactory = PlatformGlassRuntimeEffectFactory,
-) : GlassVisualEffect.Delegate, RetainedOutputDelegate {
+) : GlassRuntimeEffect.Delegate, RetainedOutputDelegate {
   private var blurKey: GlassBlurEffectKey? = null
   private var blurEffects: GlassBlurRenderEffects? = null
   internal var blurHorizontalShader: MutableRuntimeShaderRenderEffect? = null
@@ -860,7 +860,7 @@ internal class RuntimeShaderGlassDelegate(
     releaseRetainedResources(releaseShaderHandles = false)
   }
 
-  internal fun releaseAfterConstructionFailure() {
+  override fun release() {
     releaseRetainedResources(releaseShaderHandles = true)
   }
 
