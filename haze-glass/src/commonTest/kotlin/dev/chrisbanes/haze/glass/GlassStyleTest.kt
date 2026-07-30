@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.geometry.Offset
@@ -31,6 +32,41 @@ import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalHazeApi::class)
 class GlassStyleTest {
+
+  @Test
+  fun directInteractionOverride_canClearInheritedStyleResponse() {
+    val effect = GlassVisualEffect().apply {
+      style = GlassStyle { pressed { lightingIntensity(0.8f) } }
+      updateStyleInteractionSlots()
+    }
+    assertThat(effect.resolvedInteractionSlots.pressed?.response?.lightingIntensity?.value)
+      .isEqualTo(0.8f)
+
+    effect.clearPressed()
+
+    assertThat(effect.resolvedInteractionSlots.pressed).isEqualTo(null)
+  }
+
+  @Test
+  fun interactionBlocks_chainAndReplacePerState() {
+    val style = GlassStyle {
+      hovered { lightingIntensity(0.2f) }
+      pressed {
+        animate(tween(100), tween(200)) {
+          refractionMultiplier(1.1f)
+        }
+      }
+    }.then {
+      hovered { lightingIntensity(0.6f) }
+    }
+
+    val slots = resolveGlassStyleInteractionSlots(GlassStyle, style)
+
+    assertThat(slots.hovered?.response?.lightingIntensity?.value).isEqualTo(0.6f)
+    assertThat(slots.pressed?.response?.refractionMultiplier?.value).isEqualTo(1.1f)
+    assertThat(slots.pressed?.response?.refractionMultiplier?.toSpec).isEqualTo(tween(100))
+    assertThat(slots.focused).isEqualTo(null)
+  }
 
   @Test
   fun styleChain_appliesWritesInOrder() {

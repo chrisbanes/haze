@@ -286,6 +286,42 @@ class HazeGlassModifierTest : ContextTest() {
     assertThat(firstRuntime.alpha).isEqualTo(0.8f)
     assertThat(secondRuntime.alpha).isEqualTo(0.8f)
   }
+
+  @Test
+  fun typedStyle_responseReplacement_updatesPointerTopologyWithoutReplacingRenderer() = runComposeUiTest {
+    val style = mutableStateOf(GlassStyle { focused { lightingIntensity(0.2f) } })
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      Spacer(
+        Modifier.size(10.dp).hazeGlass(
+          factory = factory,
+          input = HazeInput.Content,
+          style = style.value,
+          sampling = HazeSampling.Default,
+          expandLayerBounds = true,
+          interactionSource = null,
+        ),
+      )
+    }
+    waitForIdle()
+
+    val effect = factory.effects.single()
+    val renderer = effect.delegate.renderer
+    assertThat(effect.delegate.observesPointerEvents).isEqualTo(false)
+
+    style.value = GlassStyle { pressed { lightingIntensity(0.8f) } }
+    waitForIdle()
+
+    assertThat(effect.delegate.renderer).isSameInstanceAs(renderer)
+    assertThat(effect.delegate.observesPointerEvents).isEqualTo(true)
+
+    style.value = GlassStyle
+    waitForIdle()
+
+    assertThat(effect.delegate.renderer).isSameInstanceAs(renderer)
+    assertThat(effect.delegate.observesPointerEvents).isEqualTo(false)
+  }
 }
 
 private class StructuralCase(
