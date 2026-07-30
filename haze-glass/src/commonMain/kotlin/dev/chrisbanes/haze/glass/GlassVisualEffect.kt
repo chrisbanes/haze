@@ -239,6 +239,9 @@ public class GlassVisualEffect() :
 
   internal var pressedSlot: GlassInteractionSlot? by mutableStateOf(null)
     private set
+  private var hoveredOverride = false
+  private var focusedOverride = false
+  private var pressedOverride = false
 
   // A Style contains only declarations. Each attached effect owns these evaluated slots.
   private var styleHoveredSlot: GlassInteractionSlot? by mutableStateOf(null)
@@ -395,6 +398,7 @@ public class GlassVisualEffect() :
       return
     }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    hoveredOverride = true
     hoveredSlot = null
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
@@ -405,6 +409,7 @@ public class GlassVisualEffect() :
       return
     }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    focusedOverride = true
     focusedSlot = null
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
@@ -415,6 +420,7 @@ public class GlassVisualEffect() :
       return
     }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    pressedOverride = true
     pressedSlot = null
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
@@ -427,6 +433,9 @@ public class GlassVisualEffect() :
       return
     }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    hoveredOverride = true
+    focusedOverride = true
+    pressedOverride = true
     hoveredSlot = null
     focusedSlot = null
     pressedSlot = null
@@ -438,8 +447,9 @@ public class GlassVisualEffect() :
       it.hovered = response
       return
     }
-    if (hoveredSlot?.response == response) return
+    if (hoveredOverride && hoveredSlot?.response == response) return
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    hoveredOverride = true
     hoveredSlot = GlassInteractionSlot(++nextInteractionRevision, response)
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
@@ -449,8 +459,9 @@ public class GlassVisualEffect() :
       it.focused = response
       return
     }
-    if (focusedSlot?.response == response) return
+    if (focusedOverride && focusedSlot?.response == response) return
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    focusedOverride = true
     focusedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
@@ -460,8 +471,9 @@ public class GlassVisualEffect() :
       it.pressed = response
       return
     }
-    if (pressedSlot?.response == response) return
+    if (pressedOverride && pressedSlot?.response == response) return
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    pressedOverride = true
     pressedSlot = GlassInteractionSlot(++nextInteractionRevision, response)
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
@@ -479,9 +491,9 @@ public class GlassVisualEffect() :
 
   private fun refreshInteractionSnapshots() {
     val slots = GlassInteractionSlots(
-      focused = focusedSlot ?: styleFocusedSlot,
-      hovered = hoveredSlot ?: styleHoveredSlot,
-      pressed = pressedSlot ?: stylePressedSlot,
+      focused = if (focusedOverride) focusedSlot else styleFocusedSlot,
+      hovered = if (hoveredOverride) hoveredSlot else styleHoveredSlot,
+      pressed = if (pressedOverride) pressedSlot else stylePressedSlot,
     )
     if (slots != interactionSlotsSnapshot) {
       interactionSlotsSnapshot = slots
