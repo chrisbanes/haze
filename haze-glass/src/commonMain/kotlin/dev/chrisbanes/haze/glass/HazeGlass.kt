@@ -72,6 +72,32 @@ public fun Modifier.hazeGlass(
   interactionReducedMotionPolicy = interactionReducedMotionPolicy,
 )
 
+/** Binary-compatible bridge for callers compiled against the original typed Glass modifier. */
+@Deprecated(
+  message = "Use the overload with interaction configuration to opt into explicit motion policy.",
+  level = DeprecationLevel.HIDDEN,
+)
+@Stable
+@ExperimentalHazeApi
+public fun Modifier.hazeGlass(
+  input: HazeInput,
+  style: GlassStyle = GlassStyle,
+  sampling: HazeSampling = HazeSampling.Default,
+  expandLayerBounds: Boolean = true,
+  interactionSource: InteractionSource? = null,
+): Modifier = hazeGlass(
+  input = input,
+  style = style,
+  sampling = sampling,
+  expandLayerBounds = expandLayerBounds,
+  interactionSource = interactionSource,
+  interactionLightRadiusFraction = GlassDefaults.interactionLightRadiusFraction,
+  interactionTransformTarget = GlassTransformTarget.MaterialOnly,
+  interactionTransformPivot = GlassTransformPivot.Pointer,
+  interactionPositionAnimationSpec = GlassDefaults.positionAnimationSpec,
+  interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
+)
+
 internal fun Modifier.hazeGlass(
   factory: HazeEffectFactory<GlassNodeConfiguration>,
   input: HazeInput,
