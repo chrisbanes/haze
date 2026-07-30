@@ -145,7 +145,7 @@ public class BlurVisualEffect private constructor(
     (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
   }
 
-  override fun shouldClipToNodeBounds(): Boolean = blurredEdgeTreatment.shape != null
+  override fun shouldClipToNodeBounds(): Boolean = blurredEdgeTreatment.isBounded()
 
   private fun resetDirtyTracker() {
     dirtyTracker = Bitmask()
@@ -317,7 +317,9 @@ public class BlurVisualEffect private constructor(
         blurredEdgeTreatmentOverride = value
         if (old != blurredEdgeTreatment) {
           dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
-          needsLayerBoundsInvalidation = true
+          if (old.isBounded() != blurredEdgeTreatment.isBounded()) {
+            needsLayerBoundsInvalidation = true
+          }
         }
       }
     }
@@ -403,7 +405,9 @@ public class BlurVisualEffect private constructor(
     val newEdgeTreatment = blurredEdgeTreatmentOverride ?: new.blurredEdgeTreatment
     if (oldEdgeTreatment != newEdgeTreatment) {
       dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
-      needsLayerBoundsInvalidation = true
+      if (oldEdgeTreatment.isBounded() != newEdgeTreatment.isBounded()) {
+        needsLayerBoundsInvalidation = true
+      }
     }
   }
 
@@ -422,6 +426,8 @@ public class BlurVisualEffect private constructor(
 private fun Color.prefersClipToAreaBounds(): Boolean {
   return isSpecified && alpha > 0f && alpha < 0.9f
 }
+
+private fun BlurredEdgeTreatment.isBounded(): Boolean = shape != null
 
 internal interface RetainedOutputDelegate {
   fun canDrawRetainedOutput(): Boolean

@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Offset
@@ -311,12 +312,36 @@ class BlurVisualEffectLifecycleTest {
       blurRadius(24.dp)
       noiseFactor(0.5f)
       backgroundColor(Color.Blue.copy(alpha = 0.5f))
+      blurredEdgeTreatment(BlurredEdgeTreatment(RoundedCornerShape(8.dp)))
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(0)
+    assertThat(context.invalidateDrawCount).isEqualTo(1)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+      backgroundColor(Color.Blue.copy(alpha = 0.5f))
       blurredEdgeTreatment(BlurredEdgeTreatment.Unbounded)
     }
     effect.update(context)
 
     assertThat(context.invalidateLayerBoundsCount).isEqualTo(1)
     assertThat(context.invalidateDrawCount).isEqualTo(0)
+  }
+
+  @Test
+  fun directBoundedEdgeTreatmentChange_doesNotInvalidateLayerBounds() {
+    val effect = BlurVisualEffect()
+    val context = TrackingInvalidationContext()
+
+    effect.blurredEdgeTreatment = BlurredEdgeTreatment(RoundedCornerShape(8.dp))
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(0)
+    assertThat(context.invalidateDrawCount).isEqualTo(1)
   }
 
   @Test
