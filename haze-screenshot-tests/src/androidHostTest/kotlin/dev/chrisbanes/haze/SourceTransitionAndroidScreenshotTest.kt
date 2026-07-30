@@ -17,7 +17,8 @@ import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.blur.BlurVisualEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.then
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -60,17 +61,17 @@ class SourceTransitionAndroidScreenshotTest : ScreenshotTest() {
   @Test
   @Config(sdk = [35], qualifiers = "w393dp-h698dp-440dpi")
   fun glass_sourceRemoved_reprocessesRetainedCapture() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = Color.White.copy(alpha = 0.12f)
-      optics = GlassOptics.Absolute(refractionStrength = 0.45f, depth = 0.35f)
-      specularIntensity = 0.45f
-    }
+    var style by mutableStateOf(GlassStyle {
+      tint(Color.White.copy(alpha = 0.12f))
+      optics(GlassOptics.Absolute(refractionStrength = 0.45f, depth = 0.35f))
+      specularIntensity(0.45f)
+    })
     var showSource by mutableStateOf(true)
 
     setContent {
       ScreenshotTheme {
-        SourceTransitionSample(
-          visualEffect = visualEffect,
+        SourceTransitionGlassSample(
+          style = style,
           showSource = showSource,
         )
       }
@@ -80,7 +81,7 @@ class SourceTransitionAndroidScreenshotTest : ScreenshotTest() {
     showSource = false
     waitForIdle()
     val retained = captureRootPixels().snapshot()
-    visualEffect.tint = Color.Magenta.copy(alpha = 0.24f)
+    style = style.then { tint(Color.Magenta.copy(alpha = 0.24f)) }
     waitForIdle()
     val reprocessed = captureRootPixels().snapshot()
 

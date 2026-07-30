@@ -219,6 +219,49 @@ internal fun SourceTransitionSample(
   }
 }
 
+@Composable
+internal fun SourceTransitionGlassSample(
+  style: GlassStyle,
+  showSource: Boolean,
+) {
+  val hazeState = rememberHazeState()
+
+  Box(
+    modifier = Modifier
+      .fillMaxSize()
+      .background(Color.Black),
+  ) {
+    if (showSource) {
+      CreditCardBackground(
+        backgroundColors = listOf(Color(0xFF1E88E5), Color(0xFFE91E63)),
+        modifier = Modifier
+          .fillMaxSize()
+          .hazeSource(state = hazeState, zIndex = 0f),
+      )
+    }
+
+    Box(
+      modifier = Modifier
+        .align(Alignment.TopCenter)
+        .fillMaxWidth()
+        .height(176.dp)
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          style = style,
+        ),
+    ) {
+      Text(
+        text = "Transition",
+        color = Color.White,
+        style = MaterialTheme.typography.headlineSmall,
+        modifier = Modifier
+          .align(Alignment.CenterStart)
+          .padding(horizontal = 32.dp),
+      )
+    }
+  }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun StickyHeaderListSample(
