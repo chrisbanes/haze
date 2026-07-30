@@ -6,28 +6,28 @@ package dev.chrisbanes.haze.glass {
     enum_constant public static final dev.chrisbanes.haze.glass.ChromaticAberrationMode Simple;
   }
 
-  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassColor {
-    ctor public GlassColor();
-    ctor public GlassColor(optional float alpha, optional float contrast, optional float whitePoint, optional float chromaMultiplier);
-    method public float component1();
-    method public float component2();
-    method public float component3();
-    method public float component4();
-    method public dev.chrisbanes.haze.glass.GlassColor copy(optional float alpha, optional float contrast, optional float whitePoint, optional float chromaMultiplier);
-    method @InaccessibleFromKotlin public float getAlpha();
-    method @InaccessibleFromKotlin public float getChromaMultiplier();
-    method @InaccessibleFromKotlin public float getContrast();
-    method @InaccessibleFromKotlin public float getWhitePoint();
-    property public float alpha;
-    property public float chromaMultiplier;
-    property public float contrast;
-    property public float whitePoint;
-    field public static final dev.chrisbanes.haze.glass.GlassColor.Companion Companion;
+  @Deprecated @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassColor {
+    ctor @Deprecated public GlassColor();
+    ctor @Deprecated public GlassColor(optional float alpha, optional float contrast, optional float whitePoint, optional float chromaMultiplier);
+    method @Deprecated public float component1();
+    method @Deprecated public float component2();
+    method @Deprecated public float component3();
+    method @Deprecated public float component4();
+    method @Deprecated public dev.chrisbanes.haze.glass.GlassColor copy(optional float alpha, optional float contrast, optional float whitePoint, optional float chromaMultiplier);
+    method @InaccessibleFromKotlin @Deprecated public float getAlpha();
+    method @InaccessibleFromKotlin @Deprecated public float getChromaMultiplier();
+    method @InaccessibleFromKotlin @Deprecated public float getContrast();
+    method @InaccessibleFromKotlin @Deprecated public float getWhitePoint();
+    property @Deprecated public float alpha;
+    property @Deprecated public float chromaMultiplier;
+    property @Deprecated public float contrast;
+    property @Deprecated public float whitePoint;
+    field @Deprecated public static final dev.chrisbanes.haze.glass.GlassColor.Companion Companion;
   }
 
-  public static final class GlassColor.Companion {
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassColor getUnspecified();
-    property public dev.chrisbanes.haze.glass.GlassColor Unspecified;
+  @Deprecated public static final class GlassColor.Companion {
+    method @InaccessibleFromKotlin @Deprecated public dev.chrisbanes.haze.glass.GlassColor getUnspecified();
+    property @Deprecated public dev.chrisbanes.haze.glass.GlassColor Unspecified;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassDefaults {
@@ -85,30 +85,30 @@ package dev.chrisbanes.haze.glass {
     method public void whitePointDelta(float delta);
   }
 
-  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassLighting {
-    ctor public GlassLighting();
-    ctor @KotlinOnly public GlassLighting(optional float specularIntensity, optional float specularExponent, optional float fresnelExponent, optional float ambientResponse, optional androidx.compose.ui.geometry.Offset lightPosition);
-    method public float component1();
-    method public float component2();
-    method public float component3();
-    method public float component4();
-    method @KotlinOnly public operator androidx.compose.ui.geometry.Offset component5();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassLighting copy(optional float specularIntensity, optional float specularExponent, optional float fresnelExponent, optional float ambientResponse, optional androidx.compose.ui.geometry.Offset lightPosition);
-    method @InaccessibleFromKotlin public float getAmbientResponse();
-    method @InaccessibleFromKotlin public float getFresnelExponent();
-    method @InaccessibleFromKotlin public float getSpecularExponent();
-    method @InaccessibleFromKotlin public float getSpecularIntensity();
-    property public float ambientResponse;
-    property public float fresnelExponent;
-    property public androidx.compose.ui.geometry.Offset lightPosition;
-    property public float specularExponent;
-    property public float specularIntensity;
-    field public static final dev.chrisbanes.haze.glass.GlassLighting.Companion Companion;
+  @Deprecated @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassLighting {
+    ctor @Deprecated public GlassLighting();
+    ctor @KotlinOnly @Deprecated public GlassLighting(optional float specularIntensity, optional float specularExponent, optional float fresnelExponent, optional float ambientResponse, optional androidx.compose.ui.geometry.Offset lightPosition);
+    method @Deprecated public float component1();
+    method @Deprecated public float component2();
+    method @Deprecated public float component3();
+    method @Deprecated public float component4();
+    method @KotlinOnly @Deprecated public operator androidx.compose.ui.geometry.Offset component5();
+    method @KotlinOnly @Deprecated public dev.chrisbanes.haze.glass.GlassLighting copy(optional float specularIntensity, optional float specularExponent, optional float fresnelExponent, optional float ambientResponse, optional androidx.compose.ui.geometry.Offset lightPosition);
+    method @InaccessibleFromKotlin @Deprecated public float getAmbientResponse();
+    method @InaccessibleFromKotlin @Deprecated public float getFresnelExponent();
+    method @InaccessibleFromKotlin @Deprecated public float getSpecularExponent();
+    method @InaccessibleFromKotlin @Deprecated public float getSpecularIntensity();
+    property @Deprecated public float ambientResponse;
+    property @Deprecated public float fresnelExponent;
+    property @Deprecated public androidx.compose.ui.geometry.Offset lightPosition;
+    property @Deprecated public float specularExponent;
+    property @Deprecated public float specularIntensity;
+    field @Deprecated public static final dev.chrisbanes.haze.glass.GlassLighting.Companion Companion;
   }
 
-  public static final class GlassLighting.Companion {
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassLighting getUnspecified();
-    property public dev.chrisbanes.haze.glass.GlassLighting Unspecified;
+  @Deprecated public static final class GlassLighting.Companion {
+    method @InaccessibleFromKotlin @Deprecated public dev.chrisbanes.haze.glass.GlassLighting getUnspecified();
+    property @Deprecated public dev.chrisbanes.haze.glass.GlassLighting Unspecified;
   }
 
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public sealed exhaustive interface GlassOptics {
@@ -146,59 +146,39 @@ package dev.chrisbanes.haze.glass {
     enum_constant public static final dev.chrisbanes.haze.glass.GlassReducedMotionPolicy System;
   }
 
-  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassRendering {
-    ctor public GlassRendering();
-    ctor @KotlinOnly public GlassRendering(optional androidx.compose.ui.unit.Dp edgeSoftness, optional float contentNormalBlend, optional dev.chrisbanes.haze.glass.SurfaceProfile? surfaceProfile, optional float chromaticAberrationStrength, optional dev.chrisbanes.haze.glass.ChromaticAberrationMode? chromaticAberrationMode);
-    method @KotlinOnly public operator androidx.compose.ui.unit.Dp component1();
-    method public float component2();
-    method public dev.chrisbanes.haze.glass.SurfaceProfile? component3();
-    method public float component4();
-    method public dev.chrisbanes.haze.glass.ChromaticAberrationMode? component5();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassRendering copy(optional androidx.compose.ui.unit.Dp edgeSoftness, optional float contentNormalBlend, optional dev.chrisbanes.haze.glass.SurfaceProfile? surfaceProfile, optional float chromaticAberrationStrength, optional dev.chrisbanes.haze.glass.ChromaticAberrationMode? chromaticAberrationMode);
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.ChromaticAberrationMode? getChromaticAberrationMode();
-    method @InaccessibleFromKotlin public float getChromaticAberrationStrength();
-    method @InaccessibleFromKotlin public float getContentNormalBlend();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SurfaceProfile? getSurfaceProfile();
-    property public dev.chrisbanes.haze.glass.ChromaticAberrationMode? chromaticAberrationMode;
-    property public float chromaticAberrationStrength;
-    property public float contentNormalBlend;
-    property public androidx.compose.ui.unit.Dp edgeSoftness;
-    property public dev.chrisbanes.haze.glass.SurfaceProfile? surfaceProfile;
-    field public static final dev.chrisbanes.haze.glass.GlassRendering.Companion Companion;
+  @Deprecated @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassRendering {
+    ctor @Deprecated public GlassRendering();
+    ctor @KotlinOnly @Deprecated public GlassRendering(optional androidx.compose.ui.unit.Dp edgeSoftness, optional float contentNormalBlend, optional dev.chrisbanes.haze.glass.SurfaceProfile? surfaceProfile, optional float chromaticAberrationStrength, optional dev.chrisbanes.haze.glass.ChromaticAberrationMode? chromaticAberrationMode);
+    method @KotlinOnly @Deprecated public operator androidx.compose.ui.unit.Dp component1();
+    method @Deprecated public float component2();
+    method @Deprecated public dev.chrisbanes.haze.glass.SurfaceProfile? component3();
+    method @Deprecated public float component4();
+    method @Deprecated public dev.chrisbanes.haze.glass.ChromaticAberrationMode? component5();
+    method @KotlinOnly @Deprecated public dev.chrisbanes.haze.glass.GlassRendering copy(optional androidx.compose.ui.unit.Dp edgeSoftness, optional float contentNormalBlend, optional dev.chrisbanes.haze.glass.SurfaceProfile? surfaceProfile, optional float chromaticAberrationStrength, optional dev.chrisbanes.haze.glass.ChromaticAberrationMode? chromaticAberrationMode);
+    method @InaccessibleFromKotlin @Deprecated public dev.chrisbanes.haze.glass.ChromaticAberrationMode? getChromaticAberrationMode();
+    method @InaccessibleFromKotlin @Deprecated public float getChromaticAberrationStrength();
+    method @InaccessibleFromKotlin @Deprecated public float getContentNormalBlend();
+    method @InaccessibleFromKotlin @Deprecated public dev.chrisbanes.haze.glass.SurfaceProfile? getSurfaceProfile();
+    property @Deprecated public dev.chrisbanes.haze.glass.ChromaticAberrationMode? chromaticAberrationMode;
+    property @Deprecated public float chromaticAberrationStrength;
+    property @Deprecated public float contentNormalBlend;
+    property @Deprecated public androidx.compose.ui.unit.Dp edgeSoftness;
+    property @Deprecated public dev.chrisbanes.haze.glass.SurfaceProfile? surfaceProfile;
+    field @Deprecated public static final dev.chrisbanes.haze.glass.GlassRendering.Companion Companion;
   }
 
-  public static final class GlassRendering.Companion {
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassRendering getUnspecified();
-    property public dev.chrisbanes.haze.glass.GlassRendering Unspecified;
+  @Deprecated public static final class GlassRendering.Companion {
+    method @InaccessibleFromKotlin @Deprecated public dev.chrisbanes.haze.glass.GlassRendering getUnspecified();
+    property @Deprecated public dev.chrisbanes.haze.glass.GlassRendering Unspecified;
   }
 
-  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassStyle {
-    ctor public GlassStyle();
-    ctor @KotlinOnly public GlassStyle(optional androidx.compose.ui.graphics.Color tint, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.glass.GlassOptics? optics, optional dev.chrisbanes.haze.glass.GlassLighting lighting, optional dev.chrisbanes.haze.glass.GlassColor color, optional dev.chrisbanes.haze.glass.GlassRendering rendering);
-    method @KotlinOnly public operator androidx.compose.ui.graphics.Color component1();
-    method public androidx.compose.foundation.shape.RoundedCornerShape? component2();
-    method public dev.chrisbanes.haze.glass.GlassOptics? component3();
-    method public dev.chrisbanes.haze.glass.GlassLighting component4();
-    method public dev.chrisbanes.haze.glass.GlassColor component5();
-    method public dev.chrisbanes.haze.glass.GlassRendering component6();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassStyle copy(optional androidx.compose.ui.graphics.Color tint, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.glass.GlassOptics? optics, optional dev.chrisbanes.haze.glass.GlassLighting lighting, optional dev.chrisbanes.haze.glass.GlassColor color, optional dev.chrisbanes.haze.glass.GlassRendering rendering);
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassColor getColor();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassLighting getLighting();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics? getOptics();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassRendering getRendering();
-    method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape? getShape();
-    property public dev.chrisbanes.haze.glass.GlassColor color;
-    property public dev.chrisbanes.haze.glass.GlassLighting lighting;
-    property public dev.chrisbanes.haze.glass.GlassOptics? optics;
-    property public dev.chrisbanes.haze.glass.GlassRendering rendering;
-    property public androidx.compose.foundation.shape.RoundedCornerShape? shape;
-    property public androidx.compose.ui.graphics.Color tint;
+  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public sealed nonexhaustive interface GlassStyle {
     field public static final dev.chrisbanes.haze.glass.GlassStyle.Companion Companion;
   }
 
-  public static final class GlassStyle.Companion {
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassStyle getUnspecified();
-    property public dev.chrisbanes.haze.glass.GlassStyle Unspecified;
+  public static final class GlassStyle.Companion implements dev.chrisbanes.haze.glass.GlassStyle {
+    method @InaccessibleFromKotlin @Deprecated public dev.chrisbanes.haze.glass.GlassStyle getUnspecified();
+    property @Deprecated public dev.chrisbanes.haze.glass.GlassStyle Unspecified;
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public interface GlassStyleConfiguration {
@@ -253,8 +233,32 @@ package dev.chrisbanes.haze.glass {
   }
 
   public final class GlassStyleKt {
+    method @KotlinOnly @Deprecated @dev.chrisbanes.haze.ExperimentalHazeApi public static dev.chrisbanes.haze.glass.GlassStyle GlassStyle(optional androidx.compose.ui.graphics.Color tint, optional androidx.compose.foundation.shape.RoundedCornerShape? shape, optional dev.chrisbanes.haze.glass.GlassOptics? optics, optional dev.chrisbanes.haze.glass.GlassLighting lighting, optional dev.chrisbanes.haze.glass.GlassColor color, optional dev.chrisbanes.haze.glass.GlassRendering rendering);
+    method @dev.chrisbanes.haze.ExperimentalHazeApi public static dev.chrisbanes.haze.glass.GlassStyle GlassStyle(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassStyleScope,kotlin.Unit> block);
     method @InaccessibleFromKotlin public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassStyle> getLocalGlassStyle();
+    method @dev.chrisbanes.haze.ExperimentalHazeApi public static infix dev.chrisbanes.haze.glass.GlassStyle then(dev.chrisbanes.haze.glass.GlassStyle, dev.chrisbanes.haze.glass.GlassStyle other);
+    method @dev.chrisbanes.haze.ExperimentalHazeApi public static dev.chrisbanes.haze.glass.GlassStyle then(dev.chrisbanes.haze.glass.GlassStyle, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassStyleScope,kotlin.Unit> block);
     property @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassStyle> LocalGlassStyle;
+  }
+
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassStyleScope {
+    method public void alpha(float value);
+    method public void ambientResponse(float value);
+    method public void chromaMultiplier(float value);
+    method public void chromaticAberrationMode(dev.chrisbanes.haze.glass.ChromaticAberrationMode value);
+    method public void chromaticAberrationStrength(float value);
+    method public void contentNormalBlend(float value);
+    method public void contrast(float value);
+    method @KotlinOnly public void edgeSoftness(androidx.compose.ui.unit.Dp value);
+    method public void fresnelExponent(float value);
+    method @KotlinOnly public void lightPosition(androidx.compose.ui.geometry.Offset value);
+    method public void optics(dev.chrisbanes.haze.glass.GlassOptics value);
+    method public void shape(androidx.compose.foundation.shape.RoundedCornerShape value);
+    method public void specularExponent(float value);
+    method public void specularIntensity(float value);
+    method public void surfaceProfile(dev.chrisbanes.haze.glass.SurfaceProfile value);
+    method @KotlinOnly public void tint(androidx.compose.ui.graphics.Color value);
+    method public void whitePoint(float value);
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public enum GlassTransformPivot {
@@ -364,6 +368,10 @@ package dev.chrisbanes.haze.glass {
 
   public final class HazeEffectScopeKt {
     method @dev.chrisbanes.haze.ExperimentalHazeApi public static inline void glassEffect(dev.chrisbanes.haze.HazeEffectScope, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassVisualEffect,kotlin.Unit> block);
+  }
+
+  public final class HazeGlassKt {
+    method @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.ui.Modifier hazeGlass(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.glass.GlassStyle style, optional dev.chrisbanes.haze.HazeSampling sampling, optional boolean expandLayerBounds, optional androidx.compose.foundation.interaction.InteractionSource? interactionSource);
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public enum SurfaceProfile {

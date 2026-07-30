@@ -129,7 +129,7 @@ public fun GlassLabScreenshotContent(
   modifier: Modifier = Modifier,
 ) {
   GlassLabSampleContent(
-    state = GlassLabState(preset = preset, backdrop = backdrop, style = glassLabPresetStyle(preset)),
+    state = GlassLabState(preset = preset, backdrop = backdrop),
     recordingMode = true,
     onStateChanged = {},
     onRecordingModeChanged = {},
@@ -258,10 +258,8 @@ private fun <T : Enum<T>> LabChipGroup(
 
 @Composable
 private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
-  val absolute = (state.style.optics as? GlassOptics.Absolute) ?: GlassOptics.Absolute()
-  val lighting = state.style.lighting
-  val color = state.style.color
-  val rendering = state.style.rendering
+  val values = state.styleValues
+  val absolute = (values.optics as? GlassOptics.Absolute) ?: GlassOptics.Absolute()
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text("Optics", style = MaterialTheme.typography.titleMedium)
     LabSlider("Refraction", absolute.refractionStrength, 0f..1f) { value ->
@@ -274,36 +272,34 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
       onStateChanged(state.editStyle { it.copy(optics = absolute.copy(blurRadius = value.dp)) })
     }
     Text("Lighting", style = MaterialTheme.typography.titleMedium)
-    LabSlider("Specular", lighting.specularIntensity, 0f..1f) { value ->
+    LabSlider("Specular", values.specularIntensity, 0f..1f) { value ->
       onStateChanged(
-        state.editStyle { it.copy(optics = absolute, lighting = lighting.copy(specularIntensity = value)) },
+        state.editStyle { it.copy(optics = absolute, specularIntensity = value) },
       )
     }
-    LabSlider("Ambient", lighting.ambientResponse, 0f..1f) { value ->
+    LabSlider("Ambient", values.ambientResponse, 0f..1f) { value ->
       onStateChanged(
-        state.editStyle { it.copy(optics = absolute, lighting = lighting.copy(ambientResponse = value)) },
+        state.editStyle { it.copy(optics = absolute, ambientResponse = value) },
       )
     }
     Text("Colour", style = MaterialTheme.typography.titleMedium)
-    LabSlider("Contrast", color.contrast, -1f..1f) { value ->
-      onStateChanged(state.editStyle { it.copy(optics = absolute, color = color.copy(contrast = value)) })
+    LabSlider("Contrast", values.contrast, -1f..1f) { value ->
+      onStateChanged(state.editStyle { it.copy(optics = absolute, contrast = value) })
     }
-    LabSlider("Chroma", color.chromaMultiplier, 0f..2f) { value ->
+    LabSlider("Chroma", values.chromaMultiplier, 0f..2f) { value ->
       onStateChanged(
-        state.editStyle { it.copy(optics = absolute, color = color.copy(chromaMultiplier = value)) },
+        state.editStyle { it.copy(optics = absolute, chromaMultiplier = value) },
       )
     }
     Text("Rendering", style = MaterialTheme.typography.titleMedium)
-    LabSlider("Edge softness", rendering.edgeSoftness.value, 0f..24f) { value ->
+    LabSlider("Edge softness", values.edgeSoftness.value, 0f..24f) { value ->
       onStateChanged(
-        state.editStyle { it.copy(optics = absolute, rendering = rendering.copy(edgeSoftness = value.dp)) },
+        state.editStyle { it.copy(optics = absolute, edgeSoftness = value.dp) },
       )
     }
-    LabSlider("Chromatic", rendering.chromaticAberrationStrength, 0f..0.4f) { value ->
+    LabSlider("Chromatic", values.chromaticAberrationStrength, 0f..0.4f) { value ->
       onStateChanged(
-        state.editStyle {
-          it.copy(optics = absolute, rendering = rendering.copy(chromaticAberrationStrength = value))
-        },
+        state.editStyle { it.copy(optics = absolute, chromaticAberrationStrength = value) },
       )
     }
   }

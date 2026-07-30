@@ -1,6 +1,8 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:Suppress("DEPRECATION")
+
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.tween
@@ -28,6 +30,21 @@ class GlassVisualEffectOverrideTest {
   private val localShape = RoundedCornerShape(8.dp)
   private val styleShape = RoundedCornerShape(16.dp)
   private val directShape = RoundedCornerShape(24.dp)
+
+  @Test
+  fun legacyDirectOverride_remainsHighestCompatibilityTier() {
+    val effect = GlassVisualEffect().apply {
+      compositionLocalStyle = GlassStyle { tint(Color.Red) }
+      style = GlassStyle { tint(Color.Blue) }
+      tint = Color.Green
+    }
+
+    effect.compositionLocalStyle = GlassStyle { tint(Color.Yellow) }
+    effect.style = GlassStyle { contrast(0.25f) }
+
+    assertThat(effect.tint).isEqualTo(Color.Green)
+    assertThat(effect.contrast).isEqualTo(0.25f)
+  }
 
   @Test
   fun inputScale_defaultRemainsUnscaledAndExplicitAutoRemainsGlassSpecific() {

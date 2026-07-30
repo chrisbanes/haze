@@ -33,141 +33,105 @@ import kotlinx.coroutines.CoroutineScope
 class GlassStyleTest {
 
   @Test
-  fun styleChange_dirtiesOnlyTheSpecifiedScalarAndStyleFields() {
-    val effect = GlassVisualEffect()
-    effect.resetDirtyTracker()
-
-    effect.style = GlassStyle(color = GlassColor(alpha = 0.5f))
-
-    assertThat(GlassDirtyFields.stringify(effect.dirtyTracker))
-      .isEqualTo("[Alpha, Style]")
-  }
-
-  @Test
-  fun defaultsStyle_resolvesToGlassDefaults() {
-    val effect = GlassVisualEffect().apply {
-      compositionLocalStyle = GlassDefaults.style
+  fun styleChain_appliesWritesInOrder() {
+    val style = GlassStyle {
+      tint(Color.Red)
+      alpha(0.25f)
+    }.then {
+      tint(Color.Blue)
+      alpha(0.75f)
     }
 
-    assertThat(effect.tint).isEqualTo(GlassDefaults.tint)
-    assertThat(effect.shape).isEqualTo(GlassDefaults.shape)
-    assertThat(effect.optics).isEqualTo(GlassDefaults.optics)
-    assertThat(effect.specularIntensity).isEqualTo(GlassDefaults.specularIntensity)
-    assertThat(effect.specularExponent).isEqualTo(GlassDefaults.specularExponent)
-    assertThat(effect.fresnelExponent).isEqualTo(GlassDefaults.fresnelExponent)
-    assertThat(effect.ambientResponse).isEqualTo(GlassDefaults.ambientResponse)
-    assertThat(effect.alpha).isEqualTo(GlassDefaults.alpha)
-    assertThat(effect.contrast).isEqualTo(GlassDefaults.contrast)
-    assertThat(effect.whitePoint).isEqualTo(GlassDefaults.whitePoint)
-    assertThat(effect.chromaMultiplier).isEqualTo(GlassDefaults.chromaMultiplier)
-    assertThat(effect.edgeSoftness).isEqualTo(GlassDefaults.edgeSoftness)
-    assertThat(effect.contentNormalBlend).isEqualTo(GlassDefaults.contentNormalBlend)
-    assertThat(effect.surfaceProfile).isEqualTo(GlassDefaults.surfaceProfile)
-    assertThat(effect.chromaticAberrationStrength).isEqualTo(GlassDefaults.chromaticAberrationStrength)
-    assertThat(effect.chromaticAberrationMode).isEqualTo(GlassDefaults.chromaticAberrationMode)
-  }
-
-  @Test
-  fun optics_resolvesDirectStyleLocalAndDefaultPrecedence() {
-    val localOptics = GlassOptics.Absolute(refractionStrength = 0.2f)
-    val directOptics = GlassOptics.Absolute(refractionStrength = 0.9f)
-    val effect = GlassVisualEffect().apply {
-      compositionLocalStyle = GlassStyle(optics = localOptics)
-    }
-    assertThat(effect.optics).isEqualTo(localOptics)
-
-    effect.style = GlassStyle(optics = GlassOptics.Adaptive)
-    assertThat(effect.optics).isEqualTo(GlassOptics.Adaptive)
-
-    effect.optics = directOptics
-    assertThat(effect.optics).isEqualTo(directOptics)
-
-    effect.clearOpticsOverride()
-    assertThat(effect.optics).isEqualTo(GlassOptics.Adaptive)
-
-    effect.style = GlassStyle.Unspecified
-    effect.compositionLocalStyle = GlassStyle.Unspecified
-    assertThat(effect.optics).isEqualTo(GlassDefaults.optics)
-  }
-
-  @Test
-  fun groupedStyle_partiallySpecifiedValuesInheritFromCompositionLocal() {
-    val localStyle = GlassStyle(
-      tint = Color.Blue,
-      shape = RoundedCornerShape(12.dp),
-      optics = GlassOptics.Absolute(
-        refractionStrength = 0.2f,
-        refractionDisplacement = 8.dp,
-        depth = 0.3f,
-      ),
-      lighting = GlassLighting(
-        specularIntensity = 0.25f,
-        lightPosition = Offset(4f, 8f),
-      ),
-      color = GlassColor(alpha = 0.7f, contrast = 0.4f),
-      rendering = GlassRendering(
-        edgeSoftness = 6.dp,
-        surfaceProfile = SurfaceProfile.Concave,
-      ),
+    val resolved = resolveGlassStyleValues(
+      localStyle = GlassStyle,
+      explicitStyle = style,
     )
-    val directOptics = GlassOptics.Absolute(refractionStrength = 0.9f)
-    val directStyle = GlassStyle(
-      optics = directOptics,
-      lighting = GlassLighting(ambientResponse = 0.8f),
-      color = GlassColor(whitePoint = 0.1f),
-      rendering = GlassRendering(chromaticAberrationStrength = 0.5f),
+
+    assertThat(resolved.tint).isEqualTo(Color.Blue)
+    assertThat(resolved.alpha).isEqualTo(0.75f)
+  }
+
+  @Test
+  fun resolution_appliesDefaultsLocalAndExplicitStyle() {
+    val local = GlassStyle {
+      tint(Color.Red)
+      alpha(0.5f)
+      contrast(0.25f)
+    }
+    val explicit = GlassStyle {
+      tint(Color.Blue)
+      alpha(0.75f)
+    }
+
+    val resolved = resolveGlassStyleValues(
+      localStyle = local,
+      explicitStyle = explicit,
     )
-    val effect = GlassVisualEffect().apply {
-      compositionLocalStyle = localStyle
-      style = directStyle
-    }
 
-    assertThat(effect.optics).isEqualTo(directOptics)
-    assertThat(effect.ambientResponse).isEqualTo(0.8f)
-    assertThat(effect.specularIntensity).isEqualTo(0.25f)
-    assertThat(effect.lightPosition).isEqualTo(Offset(4f, 8f))
-    assertThat(effect.alpha).isEqualTo(0.7f)
-    assertThat(effect.contrast).isEqualTo(0.4f)
-    assertThat(effect.whitePoint).isEqualTo(0.1f)
-    assertThat(effect.edgeSoftness).isEqualTo(6.dp)
-    assertThat(effect.surfaceProfile).isEqualTo(SurfaceProfile.Concave)
-    assertThat(effect.chromaticAberrationStrength).isEqualTo(0.5f)
+    assertThat(resolved.tint).isEqualTo(Color.Blue)
+    assertThat(resolved.alpha).isEqualTo(0.75f)
+    assertThat(resolved.contrast).isEqualTo(0.25f)
+    assertThat(resolved.shape).isEqualTo(GlassDefaults.shape)
   }
 
   @Test
-  fun directPropertiesOverrideGroupedStyle() {
-    val effect = GlassVisualEffect().apply {
-      style = GlassStyle(
-        tint = Color.Blue,
-        optics = GlassOptics.Absolute(refractionStrength = 0.2f),
-        lighting = GlassLighting(ambientResponse = 0.3f),
-        color = GlassColor(alpha = 0.4f),
-        rendering = GlassRendering(edgeSoftness = 6.dp),
-      )
-      tint = Color.Red
-      optics = GlassOptics.Absolute(refractionStrength = 0.8f)
-      ambientResponse = 0.9f
-      alpha = 0.5f
-      edgeSoftness = 10.dp
+  fun evaluation_startsFromFreshAccumulator() {
+    val style = GlassStyle {
+      tint(Color.Blue)
+      alpha(0.5f)
     }
+    val first = resolveGlassStyleValues(GlassStyle, style)
+    val replacement = resolveGlassStyleValues(GlassStyle, GlassStyle { contrast(0.4f) })
+    val second = resolveGlassStyleValues(GlassStyle, style)
 
-    assertThat(effect.tint).isEqualTo(Color.Red)
-    assertThat(effect.optics).isEqualTo(GlassOptics.Absolute(refractionStrength = 0.8f))
-    assertThat(effect.ambientResponse).isEqualTo(0.9f)
-    assertThat(effect.alpha).isEqualTo(0.5f)
-    assertThat(effect.edgeSoftness).isEqualTo(10.dp)
+    assertThat(first).isEqualTo(second)
+    assertThat(replacement.tint).isEqualTo(GlassDefaults.tint)
+    assertThat(replacement.alpha).isEqualTo(GlassDefaults.alpha)
+    assertThat(replacement.contrast).isEqualTo(0.4f)
   }
 
   @Test
-  fun fallbackEdgeAlpha_clampsRawStyleAmbientResponse() {
-    val effect = GlassVisualEffect().apply {
-      style = GlassStyle(
-        lighting = GlassLighting(ambientResponse = 2f),
-      )
+  fun staticPropertyWrites_preserveCanonicalization() {
+    val optics = GlassOptics.Absolute(refractionStrength = 0.3f)
+    val shape = RoundedCornerShape(12.dp)
+    val style = GlassStyle {
+      shape(shape)
+      optics(optics)
+      specularIntensity(2f)
+      ambientResponse(-1f)
+      tint(Color.Blue)
+      edgeSoftness(6.dp)
+      lightPosition(Offset(4f, 8f))
+      chromaticAberrationStrength(2f)
+      surfaceProfile(SurfaceProfile.Concave)
+      chromaticAberrationMode(ChromaticAberrationMode.Full)
+      alpha(2f)
+      contrast(-2f)
+      whitePoint(2f)
+      chromaMultiplier(3f)
+      contentNormalBlend(-1f)
+      specularExponent(-1f)
+      fresnelExponent(-1f)
     }
+    val resolved = resolveGlassStyleValues(GlassStyle, style)
 
-    assertThat(fallbackEdgeAlpha(effect.ambientResponse)).isEqualTo(0.18f)
-    assertThat(fallbackEdgeAlpha(-1f)).isEqualTo(0f)
+    assertThat(resolved.shape).isEqualTo(shape)
+    assertThat(resolved.optics).isEqualTo(optics)
+    assertThat(resolved.specularIntensity).isEqualTo(1f)
+    assertThat(resolved.ambientResponse).isEqualTo(0f)
+    assertThat(resolved.tint).isEqualTo(Color.Blue)
+    assertThat(resolved.edgeSoftness).isEqualTo(6.dp)
+    assertThat(resolved.lightPosition).isEqualTo(Offset(4f, 8f))
+    assertThat(resolved.chromaticAberrationStrength).isEqualTo(1f)
+    assertThat(resolved.surfaceProfile).isEqualTo(SurfaceProfile.Concave)
+    assertThat(resolved.chromaticAberrationMode).isEqualTo(ChromaticAberrationMode.Full)
+    assertThat(resolved.alpha).isEqualTo(1f)
+    assertThat(resolved.contrast).isEqualTo(-1f)
+    assertThat(resolved.whitePoint).isEqualTo(1f)
+    assertThat(resolved.chromaMultiplier).isEqualTo(2f)
+    assertThat(resolved.contentNormalBlend).isEqualTo(0f)
+    assertThat(resolved.specularExponent).isEqualTo(0f)
+    assertThat(resolved.fresnelExponent).isEqualTo(0f)
   }
 
   @Test

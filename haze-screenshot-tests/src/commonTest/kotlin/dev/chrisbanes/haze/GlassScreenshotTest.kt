@@ -34,9 +34,7 @@ import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
-import dev.chrisbanes.haze.glass.GlassLighting
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassRendering
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.SurfaceProfile
@@ -531,21 +529,19 @@ class GlassScreenshotTest : ScreenshotTest() {
   companion object {
     val DefaultTint = Color.White.copy(alpha = 0.1f)
 
-    val VibrantStyle = GlassStyle(
-      tint = Color(0xFF3F8CFF).copy(alpha = 0.35f),
-      optics = GlassOptics.Absolute(
-        refractionStrength = 0.55f,
-        depth = 0.4f,
-      ),
-      lighting = GlassLighting(
-        specularIntensity = 0.75f,
-        ambientResponse = 0.8f,
-        lightPosition = Offset(64f, -48f),
-      ),
-      rendering = GlassRendering(
-        edgeSoftness = 14.dp,
-      ),
-    )
+    val VibrantStyle = GlassStyle {
+      tint(Color(0xFF3F8CFF).copy(alpha = 0.35f))
+      optics(
+        GlassOptics.Absolute(
+          refractionStrength = 0.55f,
+          depth = 0.4f,
+        ),
+      )
+      specularIntensity(0.75f)
+      ambientResponse(0.8f)
+      lightPosition(Offset(64f, -48f))
+      edgeSoftness(14.dp)
+    }
   }
 }
 

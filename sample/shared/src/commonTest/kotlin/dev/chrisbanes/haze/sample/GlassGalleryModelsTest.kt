@@ -11,7 +11,6 @@ import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
-import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
@@ -22,7 +21,7 @@ import kotlin.test.Test
 class GlassGalleryModelsTest {
   @Test
   fun adaptivePreset_usesBuiltInAdaptiveOptics() {
-    assertThat(glassLabPresetStyle(GlassLabPresetId.Adaptive).optics)
+    assertThat(GlassLabState().styleValues.optics)
       .isEqualTo(GlassOptics.Adaptive)
   }
 
@@ -37,12 +36,12 @@ class GlassGalleryModelsTest {
     assertThat(clear.depth).isLessThan(deep.depth)
     assertThat(prism).isNotEqualTo(deep)
     assertThat(
-      glassLabPresetStyle(GlassLabPresetId.Prism).rendering.chromaticAberrationMode,
+      GlassLabState(preset = GlassLabPresetId.Prism).styleValues.chromaticAberrationMode,
     ).isEqualTo(
       ChromaticAberrationMode.Full,
     )
     assertThat(
-      glassLabPresetStyle(GlassLabPresetId.Prism).rendering.chromaticAberrationStrength,
+      GlassLabState(preset = GlassLabPresetId.Prism).styleValues.chromaticAberrationStrength,
     ).isEqualTo(
       0.22f,
     )
@@ -50,12 +49,12 @@ class GlassGalleryModelsTest {
 
   @Test
   fun editingAdaptiveStyle_changesSelectionToCustomAndLiteralOptics() {
-    val edited = GlassLabState().editStyle { style ->
-      style.copy(optics = GlassOptics.Absolute(refractionStrength = 0.6f))
+    val edited = GlassLabState().editStyle { values ->
+      values.copy(optics = GlassOptics.Absolute(refractionStrength = 0.6f))
     }
 
     assertThat(edited.preset).isEqualTo(GlassLabPresetId.Custom)
-    assertThat(edited.style.optics).isNotNull().isInstanceOf<GlassOptics.Absolute>()
+    assertThat(edited.styleValues.optics).isInstanceOf<GlassOptics.Absolute>()
   }
 
   @Test
@@ -86,7 +85,7 @@ class GlassGalleryModelsTest {
       backdrop = GlassGalleryBackdropId.Grid,
       interaction = GlassLabInteractionMode.Off,
       advancedExpanded = true,
-      style = glassLabPresetStyle(GlassLabPresetId.Prism),
+      styleValues = GlassLabStyleValues(optics = GlassOptics.Absolute()),
     )
 
     assertThat(changed.reset()).isEqualTo(GlassLabState())
@@ -94,7 +93,7 @@ class GlassGalleryModelsTest {
 }
 
 private fun absoluteOpticsFor(id: GlassLabPresetId): GlassOptics.Absolute {
-  val optics = glassLabPresetStyle(id).optics
-  assertThat(optics).isNotNull().isInstanceOf<GlassOptics.Absolute>()
+  val optics = GlassLabState(preset = id).styleValues.optics
+  assertThat(optics).isInstanceOf<GlassOptics.Absolute>()
   return optics as GlassOptics.Absolute
 }

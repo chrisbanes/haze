@@ -13,6 +13,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.then
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -77,7 +78,7 @@ internal fun glassPlaygroundFrame(progress: Float): GlassPlaygroundFrame {
 internal fun glassPlaygroundStyle(id: GlassPlaygroundSurfaceId): GlassStyle = when (id) {
   GlassPlaygroundSurfaceId.Lens,
   GlassPlaygroundSurfaceId.Pill,
-  -> GlassDefaults.style.copy(optics = GlassOptics.Adaptive)
+  -> GlassDefaults.style.then { optics(GlassOptics.Adaptive) }
   GlassPlaygroundSurfaceId.Card -> glassLabPresetStyle(GlassLabPresetId.Deep)
   GlassPlaygroundSurfaceId.Prism -> glassLabPresetStyle(GlassLabPresetId.Prism)
 }

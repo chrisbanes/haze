@@ -329,12 +329,20 @@ public class HazeEffectNode(
     style: Style,
     sampling: HazeSampling,
   ) {
+    @Suppress("UNCHECKED_CAST")
+    val visualEffectFactory = factory as? HazeEffectVisualEffectFactory<Style>
     val createRuntime = {
-      TypedHazeEffectVisualEffectImpl(
-        renderer = factory.createRenderer(),
-        style = style,
-        sampling = sampling,
-      )
+      if (visualEffectFactory != null) {
+        HazeEffectFactoryVisualEffectBridge(
+          visualEffectFactory.createVisualEffect(style, sampling),
+        )
+      } else {
+        TypedHazeEffectVisualEffectImpl(
+          renderer = factory.createRenderer(),
+          style = style,
+          sampling = sampling,
+        )
+      }
     }
     if (typedEffectFactory !== factory) {
       if (isAttached) {

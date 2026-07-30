@@ -80,9 +80,42 @@ public enum class GlassLabPresetId {
 
 internal val SelectableGlassLabPresets = GlassLabPresetId.entries - GlassLabPresetId.Custom
 
-public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
-  GlassLabPresetId.Adaptive -> GlassDefaults.style
-  GlassLabPresetId.Clear -> GlassDefaults.style.copy(
+@Immutable
+internal data class GlassLabStyleValues(
+  val tint: Color = GlassDefaults.tint,
+  val optics: GlassOptics = GlassDefaults.optics,
+  val specularIntensity: Float = GlassDefaults.specularIntensity,
+  val ambientResponse: Float = GlassDefaults.ambientResponse,
+  val alpha: Float = GlassDefaults.alpha,
+  val contrast: Float = GlassDefaults.contrast,
+  val whitePoint: Float = GlassDefaults.whitePoint,
+  val chromaMultiplier: Float = GlassDefaults.chromaMultiplier,
+  val edgeSoftness: androidx.compose.ui.unit.Dp = GlassDefaults.edgeSoftness,
+  val contentNormalBlend: Float = GlassDefaults.contentNormalBlend,
+  val surfaceProfile: SurfaceProfile = GlassDefaults.surfaceProfile,
+  val chromaticAberrationStrength: Float = GlassDefaults.chromaticAberrationStrength,
+  val chromaticAberrationMode: ChromaticAberrationMode = GlassDefaults.chromaticAberrationMode,
+) {
+  fun toStyle(): GlassStyle = GlassStyle {
+    tint(tint)
+    optics(optics)
+    specularIntensity(specularIntensity)
+    ambientResponse(ambientResponse)
+    alpha(alpha)
+    contrast(contrast)
+    whitePoint(whitePoint)
+    chromaMultiplier(chromaMultiplier)
+    edgeSoftness(edgeSoftness)
+    contentNormalBlend(contentNormalBlend)
+    surfaceProfile(surfaceProfile)
+    chromaticAberrationStrength(chromaticAberrationStrength)
+    chromaticAberrationMode(chromaticAberrationMode)
+  }
+}
+
+private fun glassLabPresetValues(id: GlassLabPresetId): GlassLabStyleValues = when (id) {
+  GlassLabPresetId.Adaptive -> GlassLabStyleValues()
+  GlassLabPresetId.Clear -> GlassLabStyleValues(
     tint = Color.White.copy(alpha = 0.06f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.85f,
@@ -91,25 +124,13 @@ public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
       depth = 0.1f,
       blurRadius = 2.dp,
     ),
-    lighting = GlassDefaults.style.lighting.copy(
-      specularIntensity = 0.55f,
-      ambientResponse = 0.42f,
-    ),
-    color = GlassDefaults.style.color.copy(
-      alpha = 1f,
-      contrast = 0.08f,
-      whitePoint = 0.02f,
-      chromaMultiplier = 1.05f,
-    ),
-    rendering = GlassDefaults.style.rendering.copy(
-      edgeSoftness = 2.dp,
-      contentNormalBlend = 0.15f,
-      surfaceProfile = SurfaceProfile.Circle,
-      chromaticAberrationStrength = 0f,
-      chromaticAberrationMode = ChromaticAberrationMode.Simple,
-    ),
+    specularIntensity = 0.55f,
+    ambientResponse = 0.42f,
+    contrast = 0.08f,
+    whitePoint = 0.02f,
+    chromaMultiplier = 1.05f,
   )
-  GlassLabPresetId.Frosted -> GlassDefaults.style.copy(
+  GlassLabPresetId.Frosted -> GlassLabStyleValues(
     tint = Color.White.copy(alpha = 0.18f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.45f,
@@ -118,25 +139,15 @@ public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
       depth = 0.9f,
       blurRadius = 24.dp,
     ),
-    lighting = GlassDefaults.style.lighting.copy(
-      specularIntensity = 0.35f,
-      ambientResponse = 0.55f,
-    ),
-    color = GlassDefaults.style.color.copy(
-      alpha = 1f,
-      contrast = -0.08f,
-      whitePoint = 0.08f,
-      chromaMultiplier = 0.72f,
-    ),
-    rendering = GlassDefaults.style.rendering.copy(
-      edgeSoftness = 8.dp,
-      contentNormalBlend = 0.08f,
-      surfaceProfile = SurfaceProfile.Circle,
-      chromaticAberrationStrength = 0f,
-      chromaticAberrationMode = ChromaticAberrationMode.Simple,
-    ),
+    specularIntensity = 0.35f,
+    ambientResponse = 0.55f,
+    contrast = -0.08f,
+    whitePoint = 0.08f,
+    chromaMultiplier = 0.72f,
+    edgeSoftness = 8.dp,
+    contentNormalBlend = 0.08f,
   )
-  GlassLabPresetId.Deep -> GlassDefaults.style.copy(
+  GlassLabPresetId.Deep -> GlassLabStyleValues(
     tint = Color.White.copy(alpha = 0.1f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.9f,
@@ -145,25 +156,16 @@ public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
       depth = 0.78f,
       blurRadius = 16.dp,
     ),
-    lighting = GlassDefaults.style.lighting.copy(
-      specularIntensity = 0.75f,
-      ambientResponse = 0.62f,
-    ),
-    color = GlassDefaults.style.color.copy(
-      alpha = 1f,
-      contrast = 0.05f,
-      whitePoint = 0.02f,
-      chromaMultiplier = 1f,
-    ),
-    rendering = GlassDefaults.style.rendering.copy(
-      edgeSoftness = 10.dp,
-      contentNormalBlend = 0.2f,
-      surfaceProfile = SurfaceProfile.Squircle,
-      chromaticAberrationStrength = 0.05f,
-      chromaticAberrationMode = ChromaticAberrationMode.Simple,
-    ),
+    specularIntensity = 0.75f,
+    ambientResponse = 0.62f,
+    contrast = 0.05f,
+    whitePoint = 0.02f,
+    edgeSoftness = 10.dp,
+    contentNormalBlend = 0.2f,
+    surfaceProfile = SurfaceProfile.Squircle,
+    chromaticAberrationStrength = 0.05f,
   )
-  GlassLabPresetId.Prism -> GlassDefaults.style.copy(
+  GlassLabPresetId.Prism -> GlassLabStyleValues(
     tint = Color.White.copy(alpha = 0.08f),
     optics = GlassOptics.Absolute(
       refractionStrength = 0.82f,
@@ -172,26 +174,22 @@ public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle = when (id) {
       depth = 0.35f,
       blurRadius = 8.dp,
     ),
-    lighting = GlassDefaults.style.lighting.copy(
-      specularIntensity = 0.72f,
-      ambientResponse = 0.58f,
-    ),
-    color = GlassDefaults.style.color.copy(
-      alpha = 1f,
-      contrast = 0.1f,
-      whitePoint = 0.02f,
-      chromaMultiplier = 1.15f,
-    ),
-    rendering = GlassDefaults.style.rendering.copy(
-      edgeSoftness = 8.dp,
-      contentNormalBlend = 0.18f,
-      surfaceProfile = SurfaceProfile.Squircle,
-      chromaticAberrationStrength = 0.22f,
-      chromaticAberrationMode = ChromaticAberrationMode.Full,
-    ),
+    specularIntensity = 0.72f,
+    ambientResponse = 0.58f,
+    contrast = 0.1f,
+    whitePoint = 0.02f,
+    chromaMultiplier = 1.15f,
+    edgeSoftness = 8.dp,
+    contentNormalBlend = 0.18f,
+    surfaceProfile = SurfaceProfile.Squircle,
+    chromaticAberrationStrength = 0.22f,
+    chromaticAberrationMode = ChromaticAberrationMode.Full,
   )
   GlassLabPresetId.Custom -> error("Custom style must come from GlassLabState")
 }
+
+public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle =
+  glassLabPresetValues(id).toStyle()
 
 internal enum class GlassLabInteractionMode {
   Off,
@@ -215,15 +213,23 @@ internal data class GlassLabState(
   val backdrop: GlassGalleryBackdropId = GlassGalleryBackdropId.Gallery,
   val interaction: GlassLabInteractionMode = GlassLabInteractionMode.All,
   val advancedExpanded: Boolean = false,
-  val style: GlassStyle = glassLabPresetStyle(GlassLabPresetId.Adaptive),
+  val styleValues: GlassLabStyleValues = glassLabPresetValues(preset),
 ) {
+  val style: GlassStyle = styleValues.toStyle()
+
   fun selectPreset(id: GlassLabPresetId): GlassLabState {
     require(id != GlassLabPresetId.Custom)
-    return copy(preset = id, style = glassLabPresetStyle(id))
+    val values = glassLabPresetValues(id)
+    return copy(preset = id, styleValues = values)
   }
 
-  fun editStyle(transform: (GlassStyle) -> GlassStyle): GlassLabState =
-    copy(preset = GlassLabPresetId.Custom, style = transform(style))
+  fun editStyle(transform: (GlassLabStyleValues) -> GlassLabStyleValues): GlassLabState {
+    val values = transform(styleValues)
+    return copy(
+      preset = GlassLabPresetId.Custom,
+      styleValues = values,
+    )
+  }
 
   fun reset(): GlassLabState = GlassLabState()
 }

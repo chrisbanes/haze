@@ -86,29 +86,27 @@ public object GlassDefaults {
   /** Default exponent controlling the falloff of the Fresnel response. */
   public const val fresnelExponent: Float = 3f
 
-  /** Default [GlassStyle] for use with [GlassVisualEffect]. */
-  public val style: GlassStyle = GlassStyle(
-    tint = tint,
-    shape = shape,
-    optics = optics,
-    lighting = GlassLighting(
-      specularIntensity = specularIntensity,
-      specularExponent = specularExponent,
-      fresnelExponent = fresnelExponent,
-      ambientResponse = ambientResponse,
-    ),
-    color = GlassColor(
-      alpha = alpha,
-      contrast = contrast,
-      whitePoint = whitePoint,
-      chromaMultiplier = chromaMultiplier,
-    ),
-    rendering = GlassRendering(
-      edgeSoftness = edgeSoftness,
-      contentNormalBlend = contentNormalBlend,
-      surfaceProfile = surfaceProfile,
-      chromaticAberrationStrength = chromaticAberrationStrength,
-      chromaticAberrationMode = chromaticAberrationMode,
-    ),
-  )
+  /**
+   * Complete default [GlassStyle].
+   *
+   * Glass evaluates this Style before [LocalGlassStyle] and an explicit modifier Style.
+   */
+  public val style: GlassStyle = GlassStyle {
+    tint(tint)
+    shape(shape)
+    optics(optics)
+    specularIntensity(specularIntensity)
+    specularExponent(specularExponent)
+    fresnelExponent(fresnelExponent)
+    ambientResponse(ambientResponse)
+    alpha(alpha)
+    contrast(contrast)
+    whitePoint(whitePoint)
+    chromaMultiplier(chromaMultiplier)
+    edgeSoftness(edgeSoftness)
+    contentNormalBlend(contentNormalBlend)
+    surfaceProfile(surfaceProfile)
+    chromaticAberrationStrength(chromaticAberrationStrength)
+    chromaticAberrationMode(chromaticAberrationMode)
+  }
 }

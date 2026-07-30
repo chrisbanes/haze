@@ -14,9 +14,9 @@ import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
-import assertk.assertions.isNotNull
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassVisualEffect
 import kotlin.test.Test
 
 class GlassPlaygroundTimelineTest {
@@ -79,15 +79,13 @@ class GlassPlaygroundTimelineTest {
 
   @Test
   fun smallSurfacesUseAdaptiveAndFeatureSurfacesUseLiteralOptics() {
-    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Lens).optics)
+    assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Lens))
       .isEqualTo(GlassOptics.Adaptive)
-    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Pill).optics)
+    assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Pill))
       .isEqualTo(GlassOptics.Adaptive)
-    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Card).optics)
-      .isNotNull()
+    assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Card))
       .isInstanceOf<GlassOptics.Absolute>()
-    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Prism).optics)
-      .isNotNull()
+    assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Prism))
       .isInstanceOf<GlassOptics.Absolute>()
   }
 
@@ -104,3 +102,8 @@ class GlassPlaygroundTimelineTest {
     assertThat(frame.position(GlassPlaygroundSurfaceId.Prism)).isEqualTo(Offset(0.8f, 0.8f))
   }
 }
+
+private fun resolvedOptics(id: GlassPlaygroundSurfaceId): GlassOptics =
+  GlassVisualEffect().apply {
+    style = glassPlaygroundStyle(id)
+  }.optics
