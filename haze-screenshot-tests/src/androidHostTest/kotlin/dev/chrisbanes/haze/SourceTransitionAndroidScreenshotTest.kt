@@ -61,11 +61,13 @@ class SourceTransitionAndroidScreenshotTest : ScreenshotTest() {
   @Test
   @Config(sdk = [35], qualifiers = "w393dp-h698dp-440dpi")
   fun glass_sourceRemoved_reprocessesRetainedCapture() = runScreenshotTest {
-    var style by mutableStateOf(GlassStyle {
-      tint(Color.White.copy(alpha = 0.12f))
-      optics(GlassOptics.Absolute(refractionStrength = 0.45f, depth = 0.35f))
-      specularIntensity(0.45f)
-    })
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(Color.White.copy(alpha = 0.12f))
+        optics(GlassOptics.Absolute(refractionStrength = 0.45f, depth = 0.35f))
+        specularIntensity(0.45f)
+      },
+    )
     var showSource by mutableStateOf(true)
 
     setContent {

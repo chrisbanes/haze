@@ -123,9 +123,14 @@ private fun GlassProfilingScene(
   var effectFrame by remember(scenario) {
     mutableStateOf(glassProfilingFrame(scenario, progress = 0f))
   }
-  val styles = remember(scenario, effectFrame, effectSurfaceSizePx) {
+  val styleFrame = if (profilingStyleUsesFrame(scenario)) effectFrame else null
+  val styles = remember(scenario, styleFrame, effectSurfaceSizePx) {
     List(scenario.effectCount) {
-      profilingGlassStyle(scenario, effectFrame, effectSurfaceSizePx)
+      profilingGlassStyle(
+        scenario,
+        styleFrame ?: glassProfilingFrame(scenario, progress = 0f),
+        effectSurfaceSizePx,
+      )
     }
   }
 
@@ -385,6 +390,14 @@ internal fun profilingGlassStyle(
       scale(0.98f)
     }
   }
+}
+
+internal fun profilingStyleUsesFrame(scenario: GlassProfilingScenario): Boolean = when (scenario) {
+  GlassProfilingScenario.OpticalUpdate,
+  GlassProfilingScenario.DepthUpdate,
+  GlassProfilingScenario.BlurUpdate,
+  -> true
+  else -> false
 }
 
 private fun profilingEffectSize(surfaceSize: Size, effectCount: Int): Size {

@@ -202,13 +202,31 @@ internal enum class GlassLabInteractionMode {
   val style: GlassStyle
     get() = when (this) {
       Off -> GlassStyle
-      Pressed -> GlassStyle { pressed {} }
+      Pressed -> GlassStyle { pressed { defaultPressResponse() } }
       All -> GlassStyle {
-        hovered {}
-        if (includesFocusedResponse) focused {}
-        pressed {}
+        hovered { defaultHoverResponse() }
+        if (includesFocusedResponse) focused { defaultHoverResponse() }
+        pressed { defaultPressResponse() }
       }
     }
+}
+
+private fun dev.chrisbanes.haze.glass.GlassInteractionScope.defaultHoverResponse() {
+  animate(GlassDefaults.hoverAnimationSpec, GlassDefaults.releaseAnimationSpec) {
+    lightingIntensity(0.35f)
+    refractionMultiplier(1.02f)
+    whitePointDelta(0.01f)
+    scale(1f)
+  }
+}
+
+private fun dev.chrisbanes.haze.glass.GlassInteractionScope.defaultPressResponse() {
+  animate(GlassDefaults.pressAnimationSpec, GlassDefaults.releaseAnimationSpec) {
+    lightingIntensity(1f)
+    refractionMultiplier(1.08f)
+    whitePointDelta(0.04f)
+    scale(0.98f)
+  }
 }
 
 @Immutable

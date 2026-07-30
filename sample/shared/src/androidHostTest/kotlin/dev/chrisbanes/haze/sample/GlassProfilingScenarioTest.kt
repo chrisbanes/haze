@@ -94,6 +94,17 @@ class GlassProfilingScenarioTest {
   }
 
   @Test
+  fun styles_changeOnlyForOpticalDepthAndBlurScenarios() {
+    GlassProfilingScenario.entries.forEach { scenario ->
+      assertThat(profilingStyleUsesFrame(scenario), name = scenario.id).isEqualTo(
+        scenario == GlassProfilingScenario.OpticalUpdate ||
+          scenario == GlassProfilingScenario.DepthUpdate ||
+          scenario == GlassProfilingScenario.BlurUpdate,
+      )
+    }
+  }
+
+  @Test
   fun fullScenarios_useDefaultGlassStyleWithoutOpticsOverrides() {
     listOf(
       GlassProfilingScenario.SteadyFull,
