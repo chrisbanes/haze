@@ -35,19 +35,22 @@ import dev.chrisbanes.haze.VisualEffectContext
 @Stable
 public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
-  /** Creates a new [BlurVisualEffect] copying all effective properties from [other]. */
+  /** Creates a new [BlurVisualEffect] copying Styles and direct property overrides from [other]. */
   public constructor(other: BlurVisualEffect) : this() {
+    compositionLocalStyle = other.compositionLocalStyle
     style = other.style
-    blurEnabled = other.blurEnabled
-    blurRadius = other.blurRadius
-    noiseFactor = other.noiseFactor
-    mask = other.mask
-    backgroundColor = other.backgroundColor
-    colorEffects = other.colorEffects
-    fallbackTint = other.fallbackTint
-    alpha = other.alpha
-    progressive = other.progressive
-    blurredEdgeTreatment = other.blurredEdgeTreatment
+    blurEnabledOverride = other.blurEnabledOverride
+    blurRadiusOverride = other.blurRadiusOverride
+    noiseFactorOverride = other.noiseFactorOverride
+    maskOverrideSet = other.maskOverrideSet
+    maskOverride = other.maskOverride
+    backgroundColorOverride = other.backgroundColorOverride
+    colorEffectsOverride = other.colorEffectsOverride?.toList()
+    fallbackTintOverride = other.fallbackTintOverride
+    alphaOverride = other.alphaOverride
+    progressiveOverrideSet = other.progressiveOverrideSet
+    progressiveOverride = other.progressiveOverride
+    blurredEdgeTreatmentOverride = other.blurredEdgeTreatmentOverride
   }
 
   private var isAttached: Boolean = false
