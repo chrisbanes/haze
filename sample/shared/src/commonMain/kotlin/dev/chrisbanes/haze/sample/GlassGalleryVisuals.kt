@@ -41,6 +41,7 @@ import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.glassEffect
+import dev.chrisbanes.haze.glass.then
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 
@@ -183,7 +184,9 @@ internal fun DemoChrome(
   val shape = RoundedCornerShape(24.dp)
   GlassSurface(
     hazeState = hazeState,
-    style = GlassDefaults.style.copy(tint = Color.Black.copy(alpha = 0.08f)),
+    style = GlassDefaults.style.then {
+      tint(Color.Black.copy(alpha = 0.08f))
+    },
     shape = shape,
     modifier = modifier,
   ) {

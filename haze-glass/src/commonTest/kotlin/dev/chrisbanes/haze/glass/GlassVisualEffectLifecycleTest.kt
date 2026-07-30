@@ -36,6 +36,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
@@ -50,6 +51,103 @@ import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 class GlassVisualEffectLifecycleTest {
+
+  @Test
+  fun sharedStyle_resolvesIndependentlyPerTypedRenderer() {
+    val sharedStyle = GlassStyle { alpha(0.4f) }
+    val first = GlassHazeEffectFactory.createVisualEffect(
+      GlassNodeConfiguration(sharedStyle, interactionSource = null),
+      HazeSampling.Default,
+    ) as GlassHazeEffectFactoryVisualEffect
+    val second = GlassHazeEffectFactory.createVisualEffect(
+      GlassNodeConfiguration(sharedStyle, interactionSource = null),
+      HazeSampling.Default,
+    ) as GlassHazeEffectFactoryVisualEffect
+    val firstContext = TrackingVisualEffectContext(
+      localStyle = GlassStyle { tint(androidx.compose.ui.graphics.Color.Red) },
+    )
+    val secondContext = TrackingVisualEffectContext(
+      localStyle = GlassStyle { tint(androidx.compose.ui.graphics.Color.Blue) },
+    )
+
+    first.attach(firstContext)
+    second.attach(secondContext)
+    first.update(firstContext)
+    second.update(secondContext)
+
+    val firstRenderer = first.renderer as GlassRenderer
+    val secondRenderer = second.renderer as GlassRenderer
+    assertThat(firstRenderer).isNotSameInstanceAs(secondRenderer)
+    assertThat(firstRenderer.runtimeForTest.tint)
+      .isEqualTo(androidx.compose.ui.graphics.Color.Red)
+    assertThat(secondRenderer.runtimeForTest.tint)
+      .isEqualTo(androidx.compose.ui.graphics.Color.Blue)
+    assertThat(firstRenderer.runtimeForTest.alpha).isEqualTo(0.4f)
+    assertThat(secondRenderer.runtimeForTest.alpha).isEqualTo(0.4f)
+
+    first.detach(firstContext)
+    second.detach(secondContext)
+  }
+
+  @Test
+  fun styleReplacement_omittedPropertyFallsBackImmediatelyWithoutRendererReplacement() {
+    val initialSource = MutableInteractionSource()
+    val effect = GlassHazeEffectFactory.createVisualEffect(
+      GlassNodeConfiguration(
+        style = GlassStyle {
+          tint(androidx.compose.ui.graphics.Color.Blue)
+          alpha(0.4f)
+        },
+        interactionSource = initialSource,
+      ),
+      HazeSampling.Default,
+    ) as GlassHazeEffectFactoryVisualEffect
+    val context = TrackingVisualEffectContext(
+      localStyle = GlassStyle { tint(androidx.compose.ui.graphics.Color.Red) },
+    )
+    val renderer = effect.renderer as GlassRenderer
+    effect.attach(context)
+    effect.update(context)
+
+    effect.updateStyle(
+      GlassNodeConfiguration(
+        style = GlassStyle { contrast(0.2f) },
+        interactionSource = null,
+      ),
+      HazeSampling.Adaptive,
+    )
+    effect.update(context)
+
+    assertThat(effect.renderer).isSameInstanceAs(renderer)
+    assertThat(renderer.runtimeForTest.tint).isEqualTo(androidx.compose.ui.graphics.Color.Red)
+    assertThat(renderer.runtimeForTest.alpha).isEqualTo(GlassDefaults.alpha)
+    assertThat(renderer.runtimeForTest.contrast).isEqualTo(0.2f)
+    assertThat(renderer.runtimeForTest.interactionSource).isNull()
+    effect.detach(context)
+  }
+
+  @Test
+  fun localStyleChange_replacesResolvedSnapshot() {
+    val effect = GlassHazeEffectFactory.createVisualEffect(
+      GlassNodeConfiguration(GlassStyle, interactionSource = null),
+      HazeSampling.Default,
+    ) as GlassHazeEffectFactoryVisualEffect
+    val context = TrackingVisualEffectContext(
+      localStyle = GlassStyle { tint(androidx.compose.ui.graphics.Color.Red) },
+    )
+    val renderer = effect.renderer as GlassRenderer
+    effect.attach(context)
+    effect.update(context)
+    assertThat(renderer.runtimeForTest.tint)
+      .isEqualTo(androidx.compose.ui.graphics.Color.Red)
+
+    context.localStyle = GlassStyle { tint(androidx.compose.ui.graphics.Color.Blue) }
+    effect.update(context)
+
+    assertThat(renderer.runtimeForTest.tint)
+      .isEqualTo(androidx.compose.ui.graphics.Color.Blue)
+    effect.detach(context)
+  }
 
   @Test
   fun sharedConfiguration_createsDistinctRenderersAndControllers() {
@@ -1000,6 +1098,7 @@ private class TrackingVisualEffectContext(
   effectSize: Size = Size(100f, 100f),
   layerSize: Size = effectSize,
   coroutineScope: CoroutineScope? = null,
+  var localStyle: GlassStyle = GlassDefaults.style,
 ) : VisualEffectContext {
   override val position: Offset = Offset.Zero
   override val size: Size = effectSize
@@ -1023,7 +1122,7 @@ private class TrackingVisualEffectContext(
 
   @Suppress("UNCHECKED_CAST")
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = when (local) {
-    LocalGlassStyle -> GlassDefaults.style
+    LocalGlassStyle -> localStyle
     LocalLayoutDirection -> LayoutDirection.Ltr
     else -> error("Unused composition local")
   } as T

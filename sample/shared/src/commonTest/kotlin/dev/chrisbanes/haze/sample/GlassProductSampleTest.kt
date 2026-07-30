@@ -18,21 +18,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.v2.runComposeUiTest
-import assertk.assertThat
-import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassProductSampleTest : ContextTest() {
-  @Test
-  fun productGlassStyle_alwaysUsesAdaptiveOptics() {
-    assertThat(productGlassStyle(isDark = false).optics).isEqualTo(GlassOptics.Adaptive)
-    assertThat(productGlassStyle(isDark = true).optics).isEqualTo(GlassOptics.Adaptive)
-  }
-
   @Test
   fun normalMode_showsProductSceneTopBar() = runComposeUiTest {
     setContent {

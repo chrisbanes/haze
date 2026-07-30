@@ -41,6 +41,10 @@ package dev.chrisbanes.haze {
     method public dev.chrisbanes.haze.HazeEffectRenderer<Style> createRenderer();
   }
 
+  @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectFactoryVisualEffect<Style> extends dev.chrisbanes.haze.VisualEffect {
+    method public void updateStyle(Style style, dev.chrisbanes.haze.HazeSampling sampling);
+  }
+
   public final class HazeEffectKt {
     method @androidx.compose.runtime.Stable public static <Style> androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeEffectFactory<Style> factory, dev.chrisbanes.haze.HazeInput input, Style style, optional dev.chrisbanes.haze.HazeSampling sampling, optional boolean expandLayerBounds);
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeEffect(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.HazeSampling sampling, optional boolean expandLayerBounds, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
@@ -134,6 +138,10 @@ package dev.chrisbanes.haze {
     property public abstract dev.chrisbanes.haze.HazeInputScale inputScale;
     property public abstract boolean retainOutputWhenSourceUnavailable;
     property public abstract dev.chrisbanes.haze.VisualEffect visualEffect;
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectVisualEffectFactory<Style> {
+    method public dev.chrisbanes.haze.HazeEffectFactoryVisualEffect<Style> createVisualEffect(Style style, dev.chrisbanes.haze.HazeSampling sampling);
   }
 
   public sealed exhaustive interface HazeInput {

@@ -24,6 +24,31 @@ public fun interface HazeEffectFactory<Style> {
 }
 
 /**
+ * Built-in-only bridge for effects that require the complete legacy [VisualEffect] lifecycle.
+ *
+ * This keeps pointer input, foreground drawing, retained output, and platform resources internal
+ * while ordinary custom effects continue to use [HazeEffectRenderer]'s semantic scopes.
+ */
+@InternalHazeApi
+public interface HazeEffectVisualEffectFactory<Style> {
+  public fun createVisualEffect(
+    style: Style,
+    sampling: HazeSampling,
+  ): HazeEffectFactoryVisualEffect<Style>
+}
+
+/**
+ * Node-owned full-runtime effect created by [HazeEffectVisualEffectFactory].
+ *
+ * Haze calls [updateStyle] with the complete replacement Style and sampling policy. Implementations
+ * must not retain Style evaluation state outside this node-owned runtime.
+ */
+@InternalHazeApi
+public interface HazeEffectFactoryVisualEffect<Style> : VisualEffect {
+  public fun updateStyle(style: Style, sampling: HazeSampling)
+}
+
+/**
  * Node-owned rendering state for a custom Haze effect.
  *
  * Haze passes the complete current [Style] to every evaluation. Mutable rendering resources may
@@ -159,6 +184,90 @@ internal class TypedHazeEffectVisualEffectImpl<Style>(
   override fun update(style: Any?, sampling: HazeSampling) {
     this.style = style as Style
     this.sampling = sampling
+  }
+}
+
+@OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
+internal class HazeEffectFactoryVisualEffectBridge<Style>(
+  private val effect: HazeEffectFactoryVisualEffect<Style>,
+) : VisualEffect, TypedHazeEffectVisualEffect, InteractiveVisualEffect {
+  private var attachedContext: VisualEffectContext? = null
+
+  override val observesPointerEvents: Boolean
+    get() = (effect as? InteractiveVisualEffect)?.observesPointerEvents == true
+
+  override fun attach(context: VisualEffectContext) {
+    effect.attach(context)
+    attachedContext = context
+  }
+
+  override fun update(context: VisualEffectContext) {
+    effect.update(context)
+  }
+
+  override fun DrawScope.prepareDraw(context: VisualEffectContext) {
+    with(effect) { prepareDraw(context) }
+  }
+
+  override fun DrawScope.draw(context: VisualEffectContext) {
+    with(effect) { draw(context) }
+  }
+
+  override fun DrawScope.drawForeground(context: VisualEffectContext) {
+    with(effect) { drawForeground(context) }
+  }
+
+  override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean =
+    effect.shouldDrawContentBehind(context)
+
+  override fun shouldClipToNodeBounds(): Boolean = effect.shouldClipToNodeBounds()
+
+  override fun shouldPreferClipToAreaBounds(): Boolean = effect.shouldPreferClipToAreaBounds()
+
+  override fun calculateLayerBounds(rect: Rect, density: Density): Rect =
+    effect.calculateLayerBounds(rect, density)
+
+  override fun onPointerEvent(event: androidx.compose.ui.input.pointer.PointerEvent, context: VisualEffectContext) {
+    (effect as? InteractiveVisualEffect)?.onPointerEvent(event, context)
+  }
+
+  override fun onCancelPointerInput(context: VisualEffectContext) {
+    (effect as? InteractiveVisualEffect)?.onCancelPointerInput(context)
+  }
+
+  override fun currentContentTransform(context: VisualEffectContext): VisualEffectTransform =
+    (effect as? InteractiveVisualEffect)?.currentContentTransform(context)
+      ?: VisualEffectTransform.Identity
+
+  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean =
+    (effect as? RetainedOutputVisualEffect)?.canDrawRetainedOutput(context) == true
+
+  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean =
+    (effect as? RetainedOutputVisualEffect)?.shouldDrawRetainedOutput(context) == true
+
+  override fun clearRetainedOutput() {
+    (effect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
+  }
+
+  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+    effect.onTrimMemory(context, level)
+  }
+
+  override fun onTrimMemory(level: TrimMemoryLevel) {
+    attachedContext?.let { effect.onTrimMemory(it, level) }
+  }
+
+  override fun detach(context: VisualEffectContext) {
+    try {
+      effect.detach(context)
+    } finally {
+      attachedContext = null
+    }
+  }
+
+  @Suppress("UNCHECKED_CAST")
+  override fun update(style: Any?, sampling: HazeSampling) {
+    effect.updateStyle(style as Style, sampling)
   }
 }
 

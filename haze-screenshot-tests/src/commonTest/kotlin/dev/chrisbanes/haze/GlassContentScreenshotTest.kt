@@ -12,9 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
-import dev.chrisbanes.haze.glass.GlassLighting
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassRendering
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.SurfaceProfile
@@ -265,20 +263,18 @@ class GlassContentScreenshotTest : ScreenshotTest() {
   companion object {
     val DefaultTint = Color.White.copy(alpha = 0.1f)
 
-    val VibrantStyle = GlassStyle(
-      tint = Color(0xFF49E1FF).copy(alpha = 0.35f),
-      optics = GlassOptics.Absolute(
-        refractionStrength = 0.5f,
-        depth = 0.35f,
-      ),
-      lighting = GlassLighting(
-        specularIntensity = 0.75f,
-        ambientResponse = 0.75f,
-        lightPosition = Offset(48f, -32f),
-      ),
-      rendering = GlassRendering(
-        edgeSoftness = 12.dp,
-      ),
-    )
+    val VibrantStyle = GlassStyle {
+      tint(Color(0xFF49E1FF).copy(alpha = 0.35f))
+      optics(
+        GlassOptics.Absolute(
+          refractionStrength = 0.5f,
+          depth = 0.35f,
+        ),
+      )
+      specularIntensity(0.75f)
+      ambientResponse(0.75f)
+      lightPosition(Offset(48f, -32f))
+      edgeSoftness(12.dp)
+    }
   }
 }

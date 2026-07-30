@@ -531,7 +531,7 @@ public class GlassVisualEffect() :
    * [clearOpticsOverride] to restore the next complete inherited value.
    */
   override var optics: GlassOptics
-    get() = _optics ?: style.optics ?: compositionLocalStyle.optics ?: GlassDefaults.optics
+    get() = _optics ?: inheritedStyleValues.optics
     set(value) {
       if (value != _optics) {
         HazeLogger.d(TAG) { "optics changed. Current: $_optics. New: $value" }
@@ -558,15 +558,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.specularIntensity] value set in [style], if specified.
-   *  - [GlassStyle.specularIntensity] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.specularIntensity] value set in [style], if specified.
+   *  - [GlassStyleScope.specularIntensity] value set in [LocalGlassStyle], if specified.
    */
   internal var _specularIntensity: Float = Float.NaN
   override var specularIntensity: Float
     get() = _specularIntensity
-      .takeOrElse { styleLighting.specularIntensity }
-      .takeOrElse { localLighting.specularIntensity }
-      .takeOrElse { GlassDefaults.specularIntensity }
+      .takeOrElse { inheritedStyleValues.specularIntensity }
     set(value) {
       val normalized = value.coerceIn(0f, 1f)
       if (!_specularIntensity.hasSameOverrideValueAs(normalized)) {
@@ -582,15 +580,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.ambientResponse] value set in [style], if specified.
-   *  - [GlassStyle.ambientResponse] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.ambientResponse] value set in [style], if specified.
+   *  - [GlassStyleScope.ambientResponse] value set in [LocalGlassStyle], if specified.
    */
   internal var _ambientResponse: Float = Float.NaN
   override var ambientResponse: Float
     get() = _ambientResponse
-      .takeOrElse { styleLighting.ambientResponse }
-      .takeOrElse { localLighting.ambientResponse }
-      .takeOrElse { GlassDefaults.ambientResponse }
+      .takeOrElse { inheritedStyleValues.ambientResponse }
     set(value) {
       val normalized = value.coerceIn(0f, 1f)
       if (!_ambientResponse.hasSameOverrideValueAs(normalized)) {
@@ -606,15 +602,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.tint] value set in [style], if specified.
-   *  - [GlassStyle.tint] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.tint] value set in [style], if specified.
+   *  - [GlassStyleScope.tint] value set in [LocalGlassStyle], if specified.
    */
   internal var _tint: Color = Color.Unspecified
   override var tint: Color
     get() = _tint
-      .takeOrElse { style.tint }
-      .takeOrElse { compositionLocalStyle.tint }
-      .takeOrElse { GlassDefaults.tint }
+      .takeOrElse { inheritedStyleValues.tint }
     set(value) {
       if (_tint != value) {
         HazeLogger.d(TAG) { "tint changed. Current: $_tint. New: $value" }
@@ -629,15 +623,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.edgeSoftness] value set in [style], if specified.
-   *  - [GlassStyle.edgeSoftness] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.edgeSoftness] value set in [style], if specified.
+   *  - [GlassStyleScope.edgeSoftness] value set in [LocalGlassStyle], if specified.
    */
   internal var _edgeSoftness: Dp = Dp.Unspecified
   override var edgeSoftness: Dp
     get() = _edgeSoftness
-      .takeOrElse { styleRendering.edgeSoftness }
-      .takeOrElse { localRendering.edgeSoftness }
-      .takeOrElse { GlassDefaults.edgeSoftness }
+      .takeOrElse { inheritedStyleValues.edgeSoftness }
     set(value) {
       if (_edgeSoftness != value) {
         HazeLogger.d(TAG) { "edgeSoftness changed. Current: $_edgeSoftness. New: $value" }
@@ -652,8 +644,8 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.lightPosition] value set in [style], if specified.
-   *  - [GlassStyle.lightPosition] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.lightPosition] value set in [style], if specified.
+   *  - [GlassStyleScope.lightPosition] value set in [LocalGlassStyle], if specified.
    *
    * If no value is specified through any of the above, the delegate falls back to the
    * center of the layer at draw time.
@@ -661,8 +653,7 @@ public class GlassVisualEffect() :
   internal var _lightPosition: Offset = Offset.Unspecified
   override var lightPosition: Offset
     get() = _lightPosition
-      .takeOrElse { styleLighting.lightPosition }
-      .takeOrElse { localLighting.lightPosition }
+      .takeOrElse { inheritedStyleValues.lightPosition }
     set(value) {
       if (_lightPosition != value) {
         HazeLogger.d(TAG) { "lightPosition changed. Current: $_lightPosition. New: $value" }
@@ -677,15 +668,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.chromaticAberrationStrength] value set in [style], if specified.
-   *  - [GlassStyle.chromaticAberrationStrength] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.chromaticAberrationStrength] value set in [style], if specified.
+   *  - [GlassStyleScope.chromaticAberrationStrength] value set in [LocalGlassStyle], if specified.
    */
   internal var _chromaticAberrationStrength: Float = Float.NaN
   override var chromaticAberrationStrength: Float
     get() = _chromaticAberrationStrength
-      .takeOrElse { styleRendering.chromaticAberrationStrength }
-      .takeOrElse { localRendering.chromaticAberrationStrength }
-      .takeOrElse { GlassDefaults.chromaticAberrationStrength }
+      .takeOrElse { inheritedStyleValues.chromaticAberrationStrength }
     set(value) {
       val normalized = value.coerceIn(0f, 1f)
       if (!_chromaticAberrationStrength.hasSameOverrideValueAs(normalized)) {
@@ -703,13 +692,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.surfaceProfile] value set in [style], if specified.
-   *  - [GlassStyle.surfaceProfile] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.surfaceProfile] value set in [style], if specified.
+   *  - [GlassStyleScope.surfaceProfile] value set in [LocalGlassStyle], if specified.
    */
   internal var _surfaceProfile: SurfaceProfile? = null
 
   override var surfaceProfile: SurfaceProfile
-    get() = _surfaceProfile ?: styleRendering.surfaceProfile ?: localRendering.surfaceProfile ?: GlassDefaults.surfaceProfile
+    get() = _surfaceProfile ?: inheritedStyleValues.surfaceProfile
     set(value) {
       if (value != _surfaceProfile) {
         HazeLogger.d(TAG) { "surfaceProfile changed. Current: $_surfaceProfile. New: $value" }
@@ -736,13 +725,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.chromaticAberrationMode] value set in [style], if specified.
-   *  - [GlassStyle.chromaticAberrationMode] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.chromaticAberrationMode] value set in [style], if specified.
+   *  - [GlassStyleScope.chromaticAberrationMode] value set in [LocalGlassStyle], if specified.
    */
   internal var _chromaticAberrationMode: ChromaticAberrationMode? = null
 
   override var chromaticAberrationMode: ChromaticAberrationMode
-    get() = _chromaticAberrationMode ?: styleRendering.chromaticAberrationMode ?: localRendering.chromaticAberrationMode ?: GlassDefaults.chromaticAberrationMode
+    get() = _chromaticAberrationMode ?: inheritedStyleValues.chromaticAberrationMode
     set(value) {
       if (value != _chromaticAberrationMode) {
         HazeLogger.d(TAG) { "chromaticAberrationMode changed. Current: $_chromaticAberrationMode. New: $value" }
@@ -769,13 +758,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.shape] value set in [style], if specified.
-   *  - [GlassStyle.shape] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.shape] value set in [style], if specified.
+   *  - [GlassStyleScope.shape] value set in [LocalGlassStyle], if specified.
    */
   internal var _shape: RoundedCornerShape? = null
 
   override var shape: RoundedCornerShape
-    get() = _shape ?: style.shape ?: compositionLocalStyle.shape ?: GlassDefaults.shape
+    get() = _shape ?: inheritedStyleValues.shape
     set(value) {
       if (value != _shape) {
         HazeLogger.d(TAG) { "shape changed. Current: $_shape. New: $value" }
@@ -805,15 +794,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.alpha] value set in [style], if specified.
-   *  - [GlassStyle.alpha] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.alpha] value set in [style], if specified.
+   *  - [GlassStyleScope.alpha] value set in [LocalGlassStyle], if specified.
    */
   internal var _alpha: Float = Float.NaN
   override var alpha: Float
     get() = _alpha
-      .takeOrElse { styleColor.alpha }
-      .takeOrElse { localColor.alpha }
-      .takeOrElse { GlassDefaults.alpha }
+      .takeOrElse { inheritedStyleValues.alpha }
     set(value) {
       val normalized = value.coerceIn(0f, 1f)
       if (!_alpha.hasSameOverrideValueAs(normalized)) {
@@ -829,15 +816,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.contrast] value set in [style], if specified.
-   *  - [GlassStyle.contrast] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.contrast] value set in [style], if specified.
+   *  - [GlassStyleScope.contrast] value set in [LocalGlassStyle], if specified.
    */
   internal var _contrast: Float = Float.NaN
   override var contrast: Float
     get() = _contrast
-      .takeOrElse { styleColor.contrast }
-      .takeOrElse { localColor.contrast }
-      .takeOrElse { GlassDefaults.contrast }
+      .takeOrElse { inheritedStyleValues.contrast }
     set(value) {
       val normalized = value.coerceIn(-1f, 1f)
       if (!_contrast.hasSameOverrideValueAs(normalized)) {
@@ -853,15 +838,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.whitePoint] value set in [style], if specified.
-   *  - [GlassStyle.whitePoint] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.whitePoint] value set in [style], if specified.
+   *  - [GlassStyleScope.whitePoint] value set in [LocalGlassStyle], if specified.
    */
   internal var _whitePoint: Float = Float.NaN
   override var whitePoint: Float
     get() = _whitePoint
-      .takeOrElse { styleColor.whitePoint }
-      .takeOrElse { localColor.whitePoint }
-      .takeOrElse { GlassDefaults.whitePoint }
+      .takeOrElse { inheritedStyleValues.whitePoint }
     set(value) {
       val normalized = value.coerceIn(-1f, 1f)
       if (!_whitePoint.hasSameOverrideValueAs(normalized)) {
@@ -877,15 +860,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.chromaMultiplier] value set in [style], if specified.
-   *  - [GlassStyle.chromaMultiplier] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.chromaMultiplier] value set in [style], if specified.
+   *  - [GlassStyleScope.chromaMultiplier] value set in [LocalGlassStyle], if specified.
    */
   internal var _chromaMultiplier: Float = Float.NaN
   override var chromaMultiplier: Float
     get() = _chromaMultiplier
-      .takeOrElse { styleColor.chromaMultiplier }
-      .takeOrElse { localColor.chromaMultiplier }
-      .takeOrElse { GlassDefaults.chromaMultiplier }
+      .takeOrElse { inheritedStyleValues.chromaMultiplier }
     set(value) {
       val normalized = value.coerceIn(0f, 2f)
       if (!_chromaMultiplier.hasSameOverrideValueAs(normalized)) {
@@ -901,15 +882,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.contentNormalBlend] value set in [style], if specified.
-   *  - [GlassStyle.contentNormalBlend] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.contentNormalBlend] value set in [style], if specified.
+   *  - [GlassStyleScope.contentNormalBlend] value set in [LocalGlassStyle], if specified.
    */
   internal var _contentNormalBlend: Float = Float.NaN
   override var contentNormalBlend: Float
     get() = _contentNormalBlend
-      .takeOrElse { styleRendering.contentNormalBlend }
-      .takeOrElse { localRendering.contentNormalBlend }
-      .takeOrElse { GlassDefaults.contentNormalBlend }
+      .takeOrElse { inheritedStyleValues.contentNormalBlend }
     set(value) {
       val normalized = value.coerceIn(0f, 1f)
       if (!_contentNormalBlend.hasSameOverrideValueAs(normalized)) {
@@ -925,15 +904,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.specularExponent] value set in [style], if specified.
-   *  - [GlassStyle.specularExponent] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.specularExponent] value set in [style], if specified.
+   *  - [GlassStyleScope.specularExponent] value set in [LocalGlassStyle], if specified.
    */
   internal var _specularExponent: Float = Float.NaN
   override var specularExponent: Float
     get() = _specularExponent
-      .takeOrElse { styleLighting.specularExponent }
-      .takeOrElse { localLighting.specularExponent }
-      .takeOrElse { GlassDefaults.specularExponent }
+      .takeOrElse { inheritedStyleValues.specularExponent }
     set(value) {
       val normalized = value.coerceAtLeast(0f)
       if (!_specularExponent.hasSameOverrideValueAs(normalized)) {
@@ -949,15 +926,13 @@ public class GlassVisualEffect() :
    * There are precedence rules to how this styling property is applied:
    *
    *  - This property value, if specified.
-   *  - [GlassStyle.fresnelExponent] value set in [style], if specified.
-   *  - [GlassStyle.fresnelExponent] value set in the [LocalGlassStyle] composition local.
+   *  - [GlassStyleScope.fresnelExponent] value set in [style], if specified.
+   *  - [GlassStyleScope.fresnelExponent] value set in [LocalGlassStyle], if specified.
    */
   internal var _fresnelExponent: Float = Float.NaN
   override var fresnelExponent: Float
     get() = _fresnelExponent
-      .takeOrElse { styleLighting.fresnelExponent }
-      .takeOrElse { localLighting.fresnelExponent }
-      .takeOrElse { GlassDefaults.fresnelExponent }
+      .takeOrElse { inheritedStyleValues.fresnelExponent }
     set(value) {
       val normalized = value.coerceAtLeast(0f)
       if (!_fresnelExponent.hasSameOverrideValueAs(normalized)) {
@@ -977,31 +952,34 @@ public class GlassVisualEffect() :
    *  - Value set here in [style], if specified.
    *  - Value set in the [LocalGlassStyle] composition local.
    */
-  override var style: GlassStyle = GlassStyle.Unspecified
+  override var style: GlassStyle = GlassStyle
     set(value) {
-      if (field != value) {
+      if (field !== value) {
         HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
-        onStyleChanged(old = field, new = value)
         field = value
+        updateInheritedStyleValues()
         markDirty(GlassDirtyFields.Style)
       }
     }
 
-  private val styleLighting: GlassLighting get() = style.lighting
-  private val localLighting: GlassLighting get() = compositionLocalStyle.lighting
-  private val styleColor: GlassColor get() = style.color
-  private val localColor: GlassColor get() = compositionLocalStyle.color
-  private val styleRendering: GlassRendering get() = style.rendering
-  private val localRendering: GlassRendering get() = compositionLocalStyle.rendering
-
-  internal var compositionLocalStyle: GlassStyle = GlassDefaults.style
+  internal var compositionLocalStyle: GlassStyle = GlassStyle
     set(value) {
-      if (field != value) {
+      if (field !== value) {
         HazeLogger.d(TAG) { "LocalGlassStyle changed. Current: $field. New: $value" }
-        onStyleChanged(field, value)
         field = value
+        updateInheritedStyleValues()
       }
     }
+
+  private var inheritedStyleValues: GlassStyleValues =
+    resolveGlassStyleValues(compositionLocalStyle, style)
+
+  private fun updateInheritedStyleValues() {
+    val resolved = resolveGlassStyleValues(compositionLocalStyle, style)
+    val previous = inheritedStyleValues
+    inheritedStyleValues = resolved
+    onStyleChanged(old = previous, new = resolved)
+  }
 
   private fun markDirty(fields: Int) {
     if (trackConfigurationVersions) {
@@ -1017,39 +995,23 @@ public class GlassVisualEffect() :
     onConfigurationChanged?.invoke(fields)
   }
 
-  private fun onStyleChanged(old: GlassStyle, new: GlassStyle) {
+  private fun onStyleChanged(old: GlassStyleValues, new: GlassStyleValues) {
     if (old.optics != new.optics) {
       markDirty(GlassDirtyFields.Optics)
     }
-    if (
-      !old.lighting.specularIntensity.hasSameNormalizedOverrideValueAs(
-        new.lighting.specularIntensity,
-      ) { it.coerceIn(0f, 1f) }
-    ) {
+    if (old.specularIntensity != new.specularIntensity) {
       markDirty(GlassDirtyFields.SpecularIntensity)
     }
-    if (
-      !old.lighting.ambientResponse.hasSameNormalizedOverrideValueAs(
-        new.lighting.ambientResponse,
-      ) { it.coerceIn(0f, 1f) }
-    ) {
+    if (old.ambientResponse != new.ambientResponse) {
       markDirty(GlassDirtyFields.AmbientResponse)
     }
-    if (old.lighting.lightPosition != new.lighting.lightPosition) {
+    if (old.lightPosition != new.lightPosition) {
       markDirty(GlassDirtyFields.LightPosition)
     }
-    if (
-      !old.lighting.specularExponent.hasSameNormalizedOverrideValueAs(
-        new.lighting.specularExponent,
-      ) { it.coerceAtLeast(0f) }
-    ) {
+    if (old.specularExponent != new.specularExponent) {
       markDirty(GlassDirtyFields.SpecularExponent)
     }
-    if (
-      !old.lighting.fresnelExponent.hasSameNormalizedOverrideValueAs(
-        new.lighting.fresnelExponent,
-      ) { it.coerceAtLeast(0f) }
-    ) {
+    if (old.fresnelExponent != new.fresnelExponent) {
       markDirty(GlassDirtyFields.FresnelExponent)
     }
     if (old.tint != new.tint) {
@@ -1058,53 +1020,31 @@ public class GlassVisualEffect() :
     if (old.shape != new.shape) {
       markDirty(GlassDirtyFields.Shape)
     }
-    if (
-      !old.color.alpha.hasSameNormalizedOverrideValueAs(new.color.alpha) { it.coerceIn(0f, 1f) }
-    ) {
+    if (old.alpha != new.alpha) {
       markDirty(GlassDirtyFields.Alpha)
     }
-    if (
-      !old.color.contrast.hasSameNormalizedOverrideValueAs(new.color.contrast) {
-        it.coerceIn(-1f, 1f)
-      }
-    ) {
+    if (old.contrast != new.contrast) {
       markDirty(GlassDirtyFields.Contrast)
     }
-    if (
-      !old.color.whitePoint.hasSameNormalizedOverrideValueAs(new.color.whitePoint) {
-        it.coerceIn(-1f, 1f)
-      }
-    ) {
+    if (old.whitePoint != new.whitePoint) {
       markDirty(GlassDirtyFields.WhitePoint)
     }
-    if (
-      !old.color.chromaMultiplier.hasSameNormalizedOverrideValueAs(new.color.chromaMultiplier) {
-        it.coerceIn(0f, 2f)
-      }
-    ) {
+    if (old.chromaMultiplier != new.chromaMultiplier) {
       markDirty(GlassDirtyFields.ChromaMultiplier)
     }
-    if (old.rendering.edgeSoftness != new.rendering.edgeSoftness) {
+    if (old.edgeSoftness != new.edgeSoftness) {
       markDirty(GlassDirtyFields.EdgeSoftness)
     }
-    if (
-      !old.rendering.contentNormalBlend.hasSameNormalizedOverrideValueAs(
-        new.rendering.contentNormalBlend,
-      ) { it.coerceIn(0f, 1f) }
-    ) {
+    if (old.contentNormalBlend != new.contentNormalBlend) {
       markDirty(GlassDirtyFields.ContentNormalBlend)
     }
-    if (old.rendering.surfaceProfile != new.rendering.surfaceProfile) {
+    if (old.surfaceProfile != new.surfaceProfile) {
       markDirty(GlassDirtyFields.SurfaceProfile)
     }
-    if (
-      !old.rendering.chromaticAberrationStrength.hasSameNormalizedOverrideValueAs(
-        new.rendering.chromaticAberrationStrength,
-      ) { it.coerceIn(0f, 1f) }
-    ) {
+    if (old.chromaticAberrationStrength != new.chromaticAberrationStrength) {
       markDirty(GlassDirtyFields.ChromaticAberration)
     }
-    if (old.rendering.chromaticAberrationMode != new.rendering.chromaticAberrationMode) {
+    if (old.chromaticAberrationMode != new.chromaticAberrationMode) {
       markDirty(GlassDirtyFields.ChromaticAberrationMode)
     }
   }
