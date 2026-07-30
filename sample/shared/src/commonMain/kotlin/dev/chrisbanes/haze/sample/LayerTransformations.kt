@@ -29,8 +29,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.PI
@@ -100,12 +101,13 @@ fun LayerTransformations(
           translationY = (radiusPx * sin(theta)).toFloat()
         }
         .align(Alignment.Center)
-        .hazeEffect(state = hazeState) {
-          blurEffect {
-            this.blurEnabled = blurEnabled
-            blurRadius = 20.dp
-          }
-        }
+        .hazeBlur(
+          input = HazeInput.Sources(hazeState),
+          style = HazeBlurStyle {
+            blurEnabled(blurEnabled)
+            blurRadius(20.dp)
+          },
+        )
         .padding(16.dp),
     )
   }

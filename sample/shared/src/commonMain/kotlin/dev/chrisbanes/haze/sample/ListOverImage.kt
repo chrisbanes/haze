@@ -32,9 +32,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -96,12 +96,10 @@ fun ListOverImage(navController: NavHostController, blurEnabled: Boolean) {
                 modifier = Modifier
                   .fillMaxSize()
                   .padding(horizontal = 24.dp)
-                  .hazeEffect(state = hazeState) {
-                    blurEffect {
-                      this.blurEnabled = blurEnabled
-                      this.style = style
-                    }
-                  },
+                  .hazeBlur(
+                    input = HazeInput.Sources(hazeState),
+                    style = style.then { blurEnabled(blurEnabled) },
+                  ),
               ) {
                 Text(
                   "Item $index",

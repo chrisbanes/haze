@@ -357,14 +357,16 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
       Color.White.copy(alpha = 0.1f),
       HazeColorEffect.DefaultBlendMode,
     )
-    val OverrideStyle = HazeBlurStyle(
-      colorEffects = listOf(
-        HazeColorEffect.tint(
-          Color.Red.copy(alpha = 0.5f),
-          HazeColorEffect.DefaultBlendMode,
+    val OverrideStyle = HazeBlurStyle {
+      colorEffects(
+        listOf(
+          HazeColorEffect.tint(
+            Color.Red.copy(alpha = 0.5f),
+            HazeColorEffect.DefaultBlendMode,
+          ),
         ),
-      ),
-    )
+      )
+    }
 
     val BrushTint = HazeColorEffect.tint(
       brush = Brush.radialGradient(

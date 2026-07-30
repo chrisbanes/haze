@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze.blur.materials
 
-import androidx.compose.ui.graphics.Color
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import kotlin.test.Test
@@ -12,15 +11,12 @@ class FluentMaterialsTest {
 
   @Test
   fun acrylicBaseUsesOpaqueContainerAndFallbackColors() {
-    val lightStyle = FluentMaterials.acrylicBaseStyle(isDark = false)
-    val darkStyle = FluentMaterials.acrylicBaseStyle(isDark = true)
+    val (lightContainer, lightFallback) = FluentMaterials.acrylicBaseColors(isDark = false)
+    val (darkContainer, darkFallback) = FluentMaterials.acrylicBaseColors(isDark = true)
 
-    assertThat(lightStyle.backgroundColor.alpha).isEqualTo(1f)
-    assertThat(darkStyle.backgroundColor.alpha).isEqualTo(1f)
-    assertThat(lightStyle.fallbackColorEffect.color.alpha).isEqualTo(1f)
-    assertThat(darkStyle.fallbackColorEffect.color.alpha).isEqualTo(1f)
+    assertThat(lightContainer.alpha).isEqualTo(1f)
+    assertThat(lightFallback.alpha).isEqualTo(1f)
+    assertThat(darkContainer.alpha).isEqualTo(1f)
+    assertThat(darkFallback.alpha).isEqualTo(1f)
   }
 }
-
-private val dev.chrisbanes.haze.blur.HazeColorEffect.color: Color
-  get() = (this as dev.chrisbanes.haze.blur.HazeColorEffect.TintColor).color

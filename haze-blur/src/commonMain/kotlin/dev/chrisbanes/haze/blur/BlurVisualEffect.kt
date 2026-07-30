@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.collection.LruCache
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,13 +12,12 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.isSpecified
-import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.takeOrElse
+import androidx.compose.ui.unit.isSpecified
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive
@@ -27,60 +27,54 @@ import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
 
 /**
- * A [VisualEffect] implementation that applies blur effects to content.
+ * Legacy mutable Blur runtime retained while callers migrate to [hazeBlur].
  *
- * This effect supports various blur-related features including:
- * - Configurable blur radius
- * - Tinting with multiple colors
- * - Progressive (gradient) blur
- * - Noise overlays
- * - Background color
- * - Alpha masking
- *
- * Example usage:
- * ```
- * Modifier.hazeEffect {
- *   blurEffect {
- *     blurRadius = 20.dp
- *     colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
- *   }
- * }
- * ```
+ * New code should configure Blur with [HazeBlurStyle]. A modifier node owns each instance of this
+ * runtime, including its delegate, retained layers, input-scale history, and render-effect cache.
  */
 @Stable
-public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
+public class BlurVisualEffect private constructor(
+  initialCompositionLocalStyle: HazeBlurStyle,
+  initialStyle: HazeBlurStyle,
+) : VisualEffect, RetainedOutputVisualEffect {
 
-  /** Creates a new [BlurVisualEffect] copying all properties from [other]. */
-  public constructor(other: BlurVisualEffect) : this() {
-    blurEnabled = other.blurEnabled
-    blurRadius = other.blurRadius
-    noiseFactor = other.noiseFactor
-    mask = other.mask
-    backgroundColor = other.backgroundColor
-    colorEffects = other.colorEffects
-    fallbackTint = other.fallbackTint
-    alpha = other.alpha
-    progressive = other.progressive
-    blurredEdgeTreatment = other.blurredEdgeTreatment
-    style = other.style
+  public constructor() : this(HazeBlurStyle, HazeBlurStyle)
+
+  /** Creates a new [BlurVisualEffect] copying Styles and direct property overrides from [other]. */
+  public constructor(other: BlurVisualEffect) :
+    this(other.compositionLocalStyle, other.style) {
+    blurEnabledOverride = other.blurEnabledOverride
+    blurRadiusOverride = other.blurRadiusOverride
+    noiseFactorOverride = other.noiseFactorOverride
+    maskOverrideSet = other.maskOverrideSet
+    maskOverride = other.maskOverride
+    backgroundColorOverride = other.backgroundColorOverride
+    colorEffectsOverride = other.colorEffectsOverride?.toList()
+    fallbackTintOverride = other.fallbackTintOverride
+    alphaOverride = other.alphaOverride
+    progressiveOverrideSet = other.progressiveOverrideSet
+    progressiveOverride = other.progressiveOverride
+    blurredEdgeTreatmentOverride = other.blurredEdgeTreatmentOverride
   }
 
   private var isAttached: Boolean = false
-
   private var needsDelegateSelection: Boolean = true
+  private var needsLayerBoundsInvalidation: Boolean = false
   private val inputScalePolicy = BlurInputScalePolicy()
+  internal val renderEffectCache = LruCache<RenderEffectCacheKey, RenderEffect>(maxSize = 50)
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
+
+  private var resolvedStyle: ResolvedHazeBlurStyle =
+    resolveHazeBlurStyle(initialCompositionLocalStyle, initialStyle)
 
   internal var delegate: Delegate = ScrimBlurVisualEffectDelegate(this)
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "delegate changed. Current $field. New: $value" }
         if (isAttached) {
-          // attach new delegate
           value.attach()
-          // detach old delegate
           field.detach()
         }
         field = value
@@ -99,16 +93,21 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     if (isAttached) {
       isAttached = false
       delegate.detach()
+      clearRenderEffectCache()
       inputScalePolicy.reset()
     }
   }
 
   override fun update(context: VisualEffectContext) {
     compositionLocalStyle = context.currentValueOf(LocalHazeBlurStyle)
-
     if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
       needsDelegateSelection = true
-      context.invalidateDraw()
+      if (needsLayerBoundsInvalidation) {
+        needsLayerBoundsInvalidation = false
+        context.invalidateLayerBounds()
+      } else {
+        context.invalidateDraw()
+      }
     }
   }
 
@@ -129,10 +128,10 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     return delegate is ScrimBlurVisualEffectDelegate
   }
 
-  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel): Unit =
-    delegate.onTrimMemory(context, level).also {
-      clearRenderEffectCache()
-    }
+  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+    delegate.onTrimMemory(context, level)
+    clearRenderEffectCache()
+  }
 
   override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean {
     return (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true
@@ -146,7 +145,7 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     (delegate as? RetainedOutputDelegate)?.clearRetainedOutput()
   }
 
-  override fun shouldClipToNodeBounds(): Boolean = blurredEdgeTreatment.shape != null
+  override fun shouldClipToNodeBounds(): Boolean = blurredEdgeTreatment.isBounded()
 
   private fun resetDirtyTracker() {
     dirtyTracker = Bitmask()
@@ -159,221 +158,174 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     }
   }
 
-  private var _blurEnabled: Boolean? = null
+  private var blurEnabledOverride: Boolean? = null
 
-  /**
-   * Whether the blur effect is enabled or not, when running on platforms which support blurring.
-   *
-   * When set to `false` a scrim effect will be used. When set to `true`, and running on a platform
-   * which does not support blurring, a scrim effect will be used.
-   *
-   * Defaults to [HazeBlurDefaults.blurEnabled].
-   */
+  /** Whether Blur is enabled on supported platforms. */
   public var blurEnabled: Boolean
-    get() = _blurEnabled ?: HazeBlurDefaults.blurEnabled()
+    get() = blurEnabledOverride ?: resolvedStyle.blurEnabled
     set(value) {
-      if (_blurEnabled == null || value != _blurEnabled) {
-        HazeLogger.d(TAG) { "blurEnabled changed. Current: $_blurEnabled. New: $value" }
-        _blurEnabled = value
+      if (value != blurEnabled) {
+        HazeLogger.d(TAG) { "blurEnabled changed. Current: $blurEnabled. New: $value" }
+        blurEnabledOverride = value
         dirtyTracker += BlurDirtyFields.BlurEnabled
+      } else if (blurEnabledOverride == null) {
+        blurEnabledOverride = value
       }
     }
 
-  /**
-   * Radius of the blur.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified.
-   *  - [HazeBlurStyle.blurRadius] value set in [style], if specified.
-   *  - [HazeBlurStyle.blurRadius] value set in the [LocalHazeBlurStyle] composition local.
-   */
-  public var blurRadius: Dp = Dp.Unspecified
-    get() {
-      return field
-        .takeOrElse { style.blurRadius }
-        .takeOrElse { compositionLocalStyle.blurRadius }
-    }
+  private var blurRadiusOverride: Dp? = null
+
+  /** Radius of the blur. */
+  public var blurRadius: Dp
+    get() = blurRadiusOverride ?: resolvedStyle.blurRadius
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "blurRadius changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += BlurDirtyFields.BlurRadius
+      val normalized = value.takeIf(Dp::isSpecified)
+      if (normalized != blurRadiusOverride) {
+        HazeLogger.d(TAG) { "blurRadius changed. Current: $blurRadius. New: $value" }
+        val old = blurRadius
+        blurRadiusOverride = normalized
+        if (old != blurRadius) {
+          dirtyTracker += BlurDirtyFields.BlurRadius
+          needsLayerBoundsInvalidation = true
+        }
       }
     }
 
-  /**
-   * Amount of noise applied to the content, in the range `0f` to `1f`.
-   * Anything outside of that range will be clamped.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if in the range 0f..1f.
-   *  - [HazeBlurStyle.noiseFactor] value set in [style], if in the range 0f..1f.
-   *  - [HazeBlurStyle.noiseFactor] value set in the [LocalHazeBlurStyle] composition local.
-   */
-  public var noiseFactor: Float = -1f
-    get() {
-      return field
-        .takeOrElse { style.noiseFactor }
-        .takeOrElse { compositionLocalStyle.noiseFactor }
-    }
+  private var noiseFactorOverride: Float? = null
+
+  /** Amount of noise applied to the content, clamped to `0f..1f`. */
+  public var noiseFactor: Float
+    get() = noiseFactorOverride ?: resolvedStyle.noiseFactor
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "noiseFactor changed. Current: $field. New: $value" }
-        field = value.normalizeNoiseFactor()
-        dirtyTracker += BlurDirtyFields.NoiseFactor
+      val normalized = value.takeIf { it >= 0f }?.coerceAtMost(1f)
+      if (normalized != noiseFactorOverride) {
+        HazeLogger.d(TAG) { "noiseFactor changed. Current: $noiseFactor. New: $value" }
+        val old = noiseFactor
+        noiseFactorOverride = normalized
+        if (old != noiseFactor) dirtyTracker += BlurDirtyFields.NoiseFactor
       }
     }
 
-  /**
-   * Optional alpha mask which allows effects such as fading via a
-   * [Brush.verticalGradient] or similar. This is only applied when [progressive] is null.
-   *
-   * An alpha mask provides a similar effect as that provided as [HazeProgressive], in a more
-   * performant way, but may provide a less pleasing visual result.
-   */
-  public var mask: Brush? = null
+  private var maskOverrideSet: Boolean = false
+  private var maskOverride: Brush? = null
+
+  /** Optional alpha mask. */
+  public var mask: Brush?
+    get() = if (maskOverrideSet) maskOverride else resolvedStyle.mask
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "mask changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += BlurDirtyFields.Mask
+      if (!maskOverrideSet || value != maskOverride) {
+        HazeLogger.d(TAG) { "mask changed. Current: $mask. New: $value" }
+        val old = mask
+        maskOverrideSet = true
+        maskOverride = value
+        if (old != mask) dirtyTracker += BlurDirtyFields.Mask
       }
     }
 
-  /**
-   * Color to draw behind the blurred content. Ideally should be opaque
-   * so that the original content is not visible behind. Typically this would be
-   * `MaterialTheme.colorScheme.surface` or similar.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified.
-   *  - [HazeBlurStyle.backgroundColor] value set in [style], if specified.
-   *  - [HazeBlurStyle.backgroundColor] value set in the [LocalHazeBlurStyle] composition local.
-   */
-  public var backgroundColor: Color = Color.Unspecified
-    get() {
-      return field
-        .takeOrElse { style.backgroundColor }
-        .takeOrElse { compositionLocalStyle.backgroundColor }
-    }
+  private var backgroundColorOverride: Color? = null
+
+  /** Color drawn behind the blurred content. */
+  public var backgroundColor: Color
+    get() = backgroundColorOverride ?: resolvedStyle.backgroundColor
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "backgroundColor changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += BlurDirtyFields.BackgroundColor
+      val normalized = value.takeIf { it.isSpecified }
+      if (normalized != backgroundColorOverride) {
+        HazeLogger.d(TAG) { "backgroundColor changed. Current: $backgroundColor. New: $value" }
+        val old = backgroundColor
+        backgroundColorOverride = normalized
+        if (old != backgroundColor) {
+          dirtyTracker += BlurDirtyFields.BackgroundColor
+          if (old.prefersClipToAreaBounds() != backgroundColor.prefersClipToAreaBounds()) {
+            needsLayerBoundsInvalidation = true
+          }
+        }
       }
     }
 
-  /**
-   * The [HazeTint]s to apply to the blurred content.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if not empty.
-   *  - [HazeBlurStyle.colorEffects] value set in [style], if not empty.
-   *  - [HazeBlurStyle.colorEffects] value set in the [LocalHazeBlurStyle] composition local.
-   */
-  public var colorEffects: List<HazeColorEffect>? = null
-    get() {
-      return field
-        ?: style.specifiedColorEffects
-        ?: compositionLocalStyle.specifiedColorEffects
-        ?: emptyList()
-    }
+  private var colorEffectsOverride: List<HazeColorEffect>? = null
+
+  /** Color effects applied to the blurred content. */
+  public var colorEffects: List<HazeColorEffect>?
+    get() = colorEffectsOverride ?: resolvedStyle.colorEffects
     set(value) {
       val snapshot = value?.toList()
-      if (snapshot != field) {
-        HazeLogger.d(TAG) { "colorEffects changed. Current: $field. New: $snapshot" }
-        field = snapshot
-        dirtyTracker += BlurDirtyFields.ColorEffects
+      if (snapshot != colorEffectsOverride) {
+        HazeLogger.d(TAG) { "colorEffects changed. Current: $colorEffects. New: $snapshot" }
+        val old = colorEffects
+        colorEffectsOverride = snapshot
+        if (old != colorEffects) dirtyTracker += BlurDirtyFields.ColorEffects
       }
     }
 
-  /**
-   * The [HazeTint] to use when Haze uses the fallback scrim functionality.
-   *
-   * The scrim used whenever [blurEnabled] is resolved to false, either because the host
-   * platform does not support blurring, or it has been manually disabled.
-   *
-   * When the fallback tint is used, the tints provided in [colorEffects] are ignored.
-   *
-   * There are precedence rules to how this styling property is applied:
-   *
-   *  - This property value, if specified
-   *  - [HazeBlurStyle.fallbackColorEffect] value set in [style], if specified.
-   *  - [HazeBlurStyle.fallbackColorEffect] value set in the [LocalHazeBlurStyle] composition local.
-   */
-  public var fallbackTint: HazeColorEffect = HazeColorEffect.Unspecified
-    get() {
-      return field.takeIf { it.isSpecified }
-        ?: style.fallbackColorEffect.takeIf { it.isSpecified }
-        ?: compositionLocalStyle.fallbackColorEffect
-    }
+  private var fallbackTintOverride: HazeColorEffect? = null
+
+  /** Color effect used by the fallback scrim. */
+  public var fallbackTint: HazeColorEffect
+    get() = fallbackTintOverride ?: resolvedStyle.fallbackColorEffect
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "fallbackTint changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += BlurDirtyFields.FallbackColorEffect
+      val normalized = value.takeIf { it.isSpecified }
+      if (normalized != fallbackTintOverride) {
+        HazeLogger.d(TAG) { "fallbackTint changed. Current: $fallbackTint. New: $value" }
+        val old = fallbackTint
+        fallbackTintOverride = normalized
+        if (old != fallbackTint) dirtyTracker += BlurDirtyFields.FallbackColorEffect
       }
     }
 
-  /**
-   * The opacity that the overall effect will drawn with, in the range of 0..1.
-   */
-  public var alpha: Float = 1f
+  private var alphaOverride: Float? = null
+
+  /** Opacity of the overall effect. */
+  public var alpha: Float
+    get() = alphaOverride ?: resolvedStyle.alpha
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "alpha changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += BlurDirtyFields.Alpha
+      val normalized = value.coerceIn(0f, 1f)
+      if (normalized != alphaOverride) {
+        HazeLogger.d(TAG) { "alpha changed. Current: $alpha. New: $value" }
+        val old = alpha
+        alphaOverride = normalized
+        if (old != alpha) dirtyTracker += BlurDirtyFields.Alpha
       }
     }
 
-  /**
-   * Parameters for enabling a progressive (or gradient) blur effect, or null for a uniform
-   * blurring effect. Defaults to null.
-   *
-   * Please note: progressive blurring effects can be expensive, so you should test on a variety
-   * of devices to verify that performance is acceptable for your use case. An alternative and
-   * more performant way to achieve this effect is via the [mask] parameter, at the cost of
-   * visual finesse.
-   */
-  public var progressive: HazeProgressive? = null
+  private var progressiveOverrideSet: Boolean = false
+  private var progressiveOverride: HazeProgressive? = null
+
+  /** Progressive Blur parameters, or null for uniform Blur. */
+  public var progressive: HazeProgressive?
+    get() = if (progressiveOverrideSet) progressiveOverride else resolvedStyle.progressive
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "progressive changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += BlurDirtyFields.Progressive
+      if (!progressiveOverrideSet || value != progressiveOverride) {
+        HazeLogger.d(TAG) { "progressive changed. Current: $progressive. New: $value" }
+        val old = progressive
+        progressiveOverrideSet = true
+        progressiveOverride = value
+        if (old != progressive) dirtyTracker += BlurDirtyFields.Progressive
       }
     }
 
-  /**
-   * The [BlurredEdgeTreatment] to use when blurring content.
-   *
-   * Defaults to [BlurredEdgeTreatment.Rectangle] (via [HazeBlurDefaults.blurredEdgeTreatment]), which
-   * is nearly always the correct value for when performing background blurring. If you're
-   * performing content (foreground) blurring, it depends on the effect which you're looking for.
-   *
-   * Please note: some platforms do not support all of the treatments available. This value is a
-   * best-effort attempt.
-   */
-  public var blurredEdgeTreatment: BlurredEdgeTreatment = HazeBlurDefaults.blurredEdgeTreatment
+  private var blurredEdgeTreatmentOverride: BlurredEdgeTreatment? = null
+
+  /** Edge treatment used while blurring. */
+  public var blurredEdgeTreatment: BlurredEdgeTreatment
+    get() = blurredEdgeTreatmentOverride ?: resolvedStyle.blurredEdgeTreatment
     set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "blurredEdgeTreatment changed. Current: $field. New: $value" }
-        field = value
-        dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
+      if (value != blurredEdgeTreatmentOverride) {
+        HazeLogger.d(TAG) {
+          "blurredEdgeTreatment changed. Current: $blurredEdgeTreatment. New: $value"
+        }
+        val old = blurredEdgeTreatment
+        blurredEdgeTreatmentOverride = value
+        if (old != blurredEdgeTreatment) {
+          dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
+          if (old.isBounded() != blurredEdgeTreatment.isBounded()) {
+            needsLayerBoundsInvalidation = true
+          }
+        }
       }
     }
 
   internal fun resolveInputScaleFactor(context: VisualEffectContext): Float {
-    val density = context.requireDensity()
-    val blurRadiusPx = with(density) {
-      blurRadius.takeOrElse { 0.dp }.toPx()
-    }
+    val blurRadiusPx = with(context.requireDensity()) { blurRadius.toPx() }
     return inputScalePolicy.resolve(
       requestedScale = context.inputScale,
       blurRadiusPx = blurRadiusPx,
@@ -382,54 +334,81 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     )
   }
 
-  internal var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle.Unspecified
+  internal var compositionLocalStyle: HazeBlurStyle = initialCompositionLocalStyle
     set(value) {
-      if (field != value) {
+      if (field !== value) {
         HazeLogger.d(TAG) { "LocalHazeBlurStyle changed. Current: $field. New: $value" }
-        onStyleChanged(field, value)
         field = value
+        resolveStyle()
       }
     }
 
-  /**
-   * Style set on this specific blur effect.
-   *
-   * There are precedence rules to how each styling property is applied. The order of precedence
-   * for each property are as follows:
-   *
-   *  - Property value set directly on this [BlurVisualEffect], if specified.
-   *  - Value set here in [style], if specified.
-   *  - Value set in the [LocalHazeBlurStyle] composition local.
-   */
-  public var style: HazeBlurStyle = HazeBlurStyle.Unspecified
+  /** Explicit Style replayed after [LocalHazeBlurStyle]. */
+  public var style: HazeBlurStyle = initialStyle
     set(value) {
-      if (field != value) {
+      if (field !== value) {
         HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
-        onStyleChanged(field, value)
         field = value
+        resolveStyle()
       }
     }
+
+  private fun resolveStyle() {
+    val previous = resolvedStyle
+    val next = resolveHazeBlurStyle(compositionLocalStyle, style)
+    if (previous != next) {
+      resolvedStyle = next
+      onResolvedStyleChanged(previous, next)
+    }
+  }
 
   override fun shouldPreferClipToAreaBounds(): Boolean {
-    return backgroundColor.isSpecified && backgroundColor.alpha < 0.9f
+    return backgroundColor.prefersClipToAreaBounds()
   }
 
   override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    val blurRadiusPx = with(density) {
-      blurRadius.takeOrElse { 0.dp }.toPx()
-    }
-    return when {
-      blurRadiusPx >= 1f -> rect.inflate(blurRadiusPx)
-      else -> rect
-    }
+    val blurRadiusPx = with(density) { blurRadius.toPx() }
+    return if (blurRadiusPx >= 1f) rect.inflate(blurRadiusPx) else rect
   }
 
-  private fun onStyleChanged(old: HazeBlurStyle?, new: HazeBlurStyle?) {
-    if (old?.specifiedColorEffects != new?.specifiedColorEffects) dirtyTracker += BlurDirtyFields.ColorEffects
-    if (old?.fallbackColorEffect != new?.fallbackColorEffect) dirtyTracker += BlurDirtyFields.FallbackColorEffect
-    if (old?.backgroundColor != new?.backgroundColor) dirtyTracker += BlurDirtyFields.BackgroundColor
-    if (old?.noiseFactor != new?.noiseFactor) dirtyTracker += BlurDirtyFields.NoiseFactor
-    if (old?.blurRadius != new?.blurRadius) dirtyTracker += BlurDirtyFields.BlurRadius
+  private fun onResolvedStyleChanged(
+    old: ResolvedHazeBlurStyle,
+    new: ResolvedHazeBlurStyle,
+  ) {
+    if (old.blurEnabled != new.blurEnabled) dirtyTracker += BlurDirtyFields.BlurEnabled
+    val oldBlurRadius = blurRadiusOverride ?: old.blurRadius
+    val newBlurRadius = blurRadiusOverride ?: new.blurRadius
+    if (oldBlurRadius != newBlurRadius) {
+      dirtyTracker += BlurDirtyFields.BlurRadius
+      needsLayerBoundsInvalidation = true
+    }
+    if (old.noiseFactor != new.noiseFactor) dirtyTracker += BlurDirtyFields.NoiseFactor
+    if (old.mask != new.mask) dirtyTracker += BlurDirtyFields.Mask
+    val oldBackgroundColor = backgroundColorOverride ?: old.backgroundColor
+    val newBackgroundColor = backgroundColorOverride ?: new.backgroundColor
+    if (oldBackgroundColor != newBackgroundColor) {
+      dirtyTracker += BlurDirtyFields.BackgroundColor
+      if (
+        oldBackgroundColor.prefersClipToAreaBounds() !=
+        newBackgroundColor.prefersClipToAreaBounds()
+      ) {
+        needsLayerBoundsInvalidation = true
+      }
+    }
+    if (old.colorEffects != new.colorEffects) dirtyTracker += BlurDirtyFields.ColorEffects
+    if (old.fallbackColorEffect != new.fallbackColorEffect) {
+      dirtyTracker += BlurDirtyFields.FallbackColorEffect
+    }
+    if (old.alpha != new.alpha) dirtyTracker += BlurDirtyFields.Alpha
+    if (old.progressive != new.progressive) dirtyTracker += BlurDirtyFields.Progressive
+    val oldEdgeTreatment = blurredEdgeTreatmentOverride ?: old.blurredEdgeTreatment
+    val newEdgeTreatment = blurredEdgeTreatmentOverride ?: new.blurredEdgeTreatment
+    if (oldEdgeTreatment != newEdgeTreatment) {
+      dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
+      if (oldEdgeTreatment.isBounded() != newEdgeTreatment.isBounded()) {
+        needsLayerBoundsInvalidation = true
+      }
+    }
   }
 
   internal interface Delegate {
@@ -443,6 +422,12 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     const val TAG = "BlurVisualEffect"
   }
 }
+
+private fun Color.prefersClipToAreaBounds(): Boolean {
+  return isSpecified && alpha > 0f && alpha < 0.9f
+}
+
+private fun BlurredEdgeTreatment.isBounded(): Boolean = shape != null
 
 internal interface RetainedOutputDelegate {
   fun canDrawRetainedOutput(): Boolean

@@ -1,481 +1,284 @@
 # Migrating to Haze 2.0
 
-Haze 2.0 introduces a major architectural refactor that improves modularity and extensibility by introducing a pluggable visual effects system. While this is a breaking change, the migration path is straightforward and the core usage patterns remain familiar.
+Haze 2.0 separates structural input policy, shareable Style, and node-owned rendering resources.
+The preferred Blur API is now the typed `Modifier.hazeBlur`.
 
-## Overview of Changes
+## Dependencies and imports
 
-The primary change in v2 is the extraction of blur functionality from the core `haze` module into a separate `haze-blur` module. This is part of a new architecture that introduces the `VisualEffect` interface, allowing Haze to support different types of visual effects beyond just blurring.
-
-**Key Changes:**
-
-- **Hard source break:** v1 blur convenience names and root-package aliases are removed in v2.
-- **New module dependency:** Blur functionality now requires the `haze-blur` module
-- **Materials artifact rename:** Blur material presets are now published as `haze-blur-materials`.
-- **API nesting:** All blur properties now require a `blurEffect {}` wrapper
-- **Package changes:** Blur APIs moved to `dev.chrisbanes.haze.blur`; blur materials moved to `dev.chrisbanes.haze.blur.materials`.
-- **Removed v1 aliases:** `haze`, `hazeChild`, `HazeDefaults`, `HazeStyle`, `HazeTint`, `LocalHazeStyle`, and `HazeDialog` are removed.
-- **Glass style grouping:** `GlassStyle` parameters are grouped into `optics`, `lighting`, `color`, and `rendering`.
-- **Removed APIs:** `HazeState.blurEnabled` and the `rememberHazeState(blurEnabled)` parameter removed.
-- **Position strategy:** New `HazePositionStrategy` configuration on `HazeState`
-- **Geometry changes:** `HazeArea.positionOnScreen` is replaced by `HazeArea.coordinates`; `VisualEffectContext` now exposes `position`, `rootBounds`, `positionOf(area)`, and `boundsOf(area)`.
-- **Adaptive blur input scaling:** `HazeInputScale.Default` now lets each visual effect choose its
-  policy. Blur uses a quality-gated adaptive ladder; Glass remains unscaled. Set
-  `HazeInputScale.None` to preserve explicit full-resolution blur input.
-  `HazeInputScale.EffectDefault` is the new sealed subtype backing `Default`; exhaustive `when`
-  expressions over `HazeInputScale` must handle it (or add an `else` branch).
-- **Explicit input and rendering policies:** The new `hazeEffect(input = ...)` overload uses
-  `HazeInput.Sources` or `HazeInput.Content`, metadata-only source selection,
-  `HazeSourceRetention`, `HazeSampling`, and a non-null `expandLayerBounds` argument.
-
-**What Hasn't Changed:**
-
-- `hazeSource` remains in the core module
-- `hazeEffect` remains in the core module, but blur-specific style parameters moved into `blurEffect {}`.
-- Platform support unchanged
-- `HazeEffectScope` properties like `drawContentBehind` and `canDrawArea` unchanged
-
-## Dependency Changes
-
-### Add the haze-blur Module
-
-In addition to the core `haze` module, you now need to explicitly add the `haze-blur` module to use blur effects:
+Blur lives in `haze-blur`, with optional presets in `haze-blur-materials`:
 
 ```kotlin
 dependencies {
-  implementation("dev.chrisbanes.haze:haze:2.0.0-alpha03")
-  implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha03") // NEW in v2
+  implementation("dev.chrisbanes.haze:haze:<version>")
+  implementation("dev.chrisbanes.haze:haze-blur:<version>")
+  implementation("dev.chrisbanes.haze:haze-blur-materials:<version>")
 }
 ```
 
-### Rename the Materials Artifact
-
-If you use the pre-built Material, Cupertino, or Fluent blur styles, replace the v1 materials artifact with the renamed v2 artifact:
-
 ```kotlin
-dependencies {
-  // v1
-  implementation("dev.chrisbanes.haze:haze-materials:1.7.2")
-
-  // v2
-  implementation("dev.chrisbanes.haze:haze-blur-materials:2.0.0-alpha03")
-}
-```
-
-`haze-materials` is the old 1.x artifact. It does not publish 2.0 versions.
-
-### Update Imports
-
-Several blur-related classes have moved to the `dev.chrisbanes.haze.blur` package:
-
-**V1 imports:**
-```kotlin
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.LocalHazeStyle
-import dev.chrisbanes.haze.materials.HazeMaterials
-```
-
-**V2 imports:**
-```kotlin
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
-import dev.chrisbanes.haze.blur.blurEffect // NEW: extension function
-import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.blur.hazeBlur
 ```
 
-Blur-specific defaults from `HazeDefaults` are now in `HazeBlurDefaults`. `HazeDefaults.drawContentBehind` has no direct replacement; leave `drawContentBehind` unset or set it directly on `HazeEffectScope`.
+`HazeProgressive` remains in the core `dev.chrisbanes.haze` package.
 
-### HazeProgressive moved to core
+## Migrate source-backed Blur
 
-`HazeProgressive` now lives in `dev.chrisbanes.haze.HazeProgressive` because progressive masks are shared by blur and Glass. The old `dev.chrisbanes.haze.blur.HazeProgressive` name remains as a deprecated typealias for source compatibility during the v2 alpha cycle.
-
-## API Migration
-
-### Basic Blur Configuration
-
-All blur-related properties that were previously set directly on `HazeEffectScope` now need to be wrapped in a `blurEffect {}` block.
-
-=== "v1"
-
-    ```kotlin
-    Modifier.hazeEffect(state = hazeState) {
-      blurRadius = 20.dp
-      tints = listOf(HazeTint(Color.Black.copy(alpha = 0.7f)))
-      noiseFactor = 0.15f
-    }
-    ```
-
-=== "v2"
-
-    ```kotlin
-    Modifier.hazeEffect(state = hazeState) {
-      blurEffect {  // NEW: wrap blur properties
-        blurRadius = 20.dp
-        colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.7f)))
-        noiseFactor = 0.15f
-      }
-    }
-    ```
-
-### Using Material Styles
-
-=== "v1"
-
-    ```kotlin
-    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.ultraThin())
-    ```
-
-=== "v2"
-
-    ```kotlin
-    val style = HazeMaterials.ultraThin()
-
-    Modifier.hazeEffect(state = hazeState) {
-      blurEffect {
-        this.style = style
-      }
-    }
-    ```
-
-### Glass Style Grouping
-
-Flat `GlassStyle` construction has been grouped by concept.
+Before:
 
 ```kotlin
-// Before
-GlassStyle(
-  tint = Color.White.copy(alpha = 0.12f),
-  refractionStrength = 0.7f,
-  specularIntensity = 0.4f,
-  depth = 0.4f,
-  edgeSoftness = 12.dp,
-)
-
-// After
-GlassStyle(
-  tint = Color.White.copy(alpha = 0.12f),
-  optics = GlassOptics.Absolute(
-    refractionStrength = 0.7f,
-    depth = 0.4f,
-  ),
-  lighting = GlassLighting(
-    specularIntensity = 0.4f,
-  ),
-  rendering = GlassRendering(
-    edgeSoftness = 12.dp,
-  ),
-)
-```
-
-### Progressive Blurs
-
-=== "v1"
-
-    ```kotlin
-    Modifier.hazeEffect(state = hazeState) {
-      progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-    }
-    ```
-
-=== "v2"
-
-    ```kotlin
-    Modifier.hazeEffect(state = hazeState) {
-      blurEffect {
-        progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-      }
-    }
-    ```
-
-### Masking
-
-=== "v1"
-
-    ```kotlin
-    Modifier.hazeEffect(state = hazeState) {
-      mask = Brush.verticalGradient(...)
-    }
-    ```
-
-=== "v2"
-
-    ```kotlin
-    Modifier.hazeEffect(state = hazeState) {
-      blurEffect {
-        mask = Brush.verticalGradient(...)
-      }
-    }
-    ```
-
-### Enabling/Disabling Blur
-
-=== "v1"
-
-    ```kotlin
-    // At the state level (REMOVED in v2)
-    val hazeState = rememberHazeState(blurEnabled = true)
-
-    // At the effect level
-    Modifier.hazeEffect(state = hazeState) {
-      blurEnabled = true
-    }
-    ```
-
-=== "v2"
-
-    ```kotlin
-    // At the state level - parameter removed
-    val hazeState = rememberHazeState()
-
-    // At the effect level - now inside blurEffect {}
-    Modifier.hazeEffect(state = hazeState) {
-      blurEffect {
-        blurEnabled = true
-      }
-    }
-    ```
-
-### Foreground Blurring
-
-=== "v1"
-
-    ``` kotlin
-    Modifier.hazeEffect {
-      tints = listOf(HazeTint(Color.Black.copy(alpha = 0.5f)))
-      progressive = HazeProgressive.verticalGradient(...)
-    }
-    ```
-
-=== "v2"
-
-    ``` kotlin
-    Modifier.hazeEffect {
-      blurEffect {
-        colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
-        progressive = HazeProgressive.verticalGradient(...)
-      }
-    }
-    ```
-
-### Adopt Explicit Inputs and Rendering Policies
-
-The nullable-state overloads remain available during the staged Haze 2 migration. New code can
-make foreground versus source-backed input explicit without waiting for the later effect-specific
-modifier APIs:
-
-```kotlin
-// Source-backed input
-Modifier.hazeEffect(
-    input = HazeInput.Sources(hazeState),
-) {
-    blurEffect { /* ... */ }
-}
-
-// The modifier's own content
-Modifier.hazeEffect(input = HazeInput.Content) {
-    blurEffect { /* ... */ }
+Modifier.hazeEffect(hazeState) {
+  blurEffect {
+    blurRadius = 20.dp
+    colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.7f)))
+  }
 }
 ```
 
-Map legacy scope policies to structural values as follows:
+After:
 
 ```kotlin
-Modifier.hazeEffect(
-    input = HazeInput.Sources(
-        state = hazeState,
-        selection = HazeSourceSelection.Behind
-            .where { source -> source.key != "excluded" },
-        retention = HazeSourceRetention.ClearWhenUnavailable,
+Modifier.hazeBlur(
+  input = HazeInput.Sources(hazeState),
+  style = HazeBlurStyle {
+    blurRadius(20.dp)
+    colorEffects(
+      listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.7f))),
+    )
+  },
+)
+```
+
+Use `HazeInput.Content` for foreground or own-content Blur.
+
+## Migrate Styles
+
+`HazeBlurStyle` is no longer a readable value patch with `copy`. It records Blur-specific writes:
+
+```kotlin
+val base = HazeBlurStyle {
+  blurRadius(20.dp)
+  noiseFactor(0.15f)
+}
+
+val compact = base.then {
+  blurRadius(12.dp)
+}
+```
+
+Resolution is defaults, then `LocalHazeBlurStyle`, then the explicit modifier Style. The last write
+wins. Replacing `compact` with `base` removes the 12 dp write immediately; no previous resolved
+value is retained.
+
+An explicit `colorEffects(emptyList())` clears inherited effects. Caller-owned lists are
+snapshotted before replay.
+
+## Migrate material presets
+
+Before:
+
+```kotlin
+Modifier.hazeEffect(hazeState) {
+  blurEffect {
+    style = HazeMaterials.thin()
+  }
+}
+```
+
+After:
+
+```kotlin
+Modifier.hazeBlur(
+  input = HazeInput.Sources(hazeState),
+  style = HazeMaterials.thin(),
+)
+```
+
+Customize a preset with `then`, not `copy`.
+
+## Migrate input and rendering policy
+
+These values are modifier structure, not Style:
+
+```kotlin
+Modifier.hazeBlur(
+  input = HazeInput.Sources(
+    state = hazeState,
+    retention = HazeSourceRetention.ClearWhenUnavailable,
+  ),
+  style = style,
+  sampling = HazeSampling.FullResolution,
+  expandLayerBounds = false,
+)
+```
+
+`HazeSampling.Default` preserves Blur's adaptive default. Use `FullResolution`, `Adaptive`, or
+`Fixed(scale)` when the policy must be explicit.
+
+## Lifecycle and sharing
+
+A Style can be shared by any number of modifiers. Each modifier creates its own Blur runtime,
+delegate, cache, retained layers, platform resources, and adaptive-sampling history. Recomposition
+replaces the complete Style on the existing runtime; detachment releases only that node's
+resources.
+
+## Other Haze 2 migrations
+
+The typed Blur API does not change the other Haze 2 migrations.
+
+### Glass Style
+
+`GlassStyle` is also a replayable Style. Write each property through its Style scope:
+
+```kotlin
+GlassStyle {
+  tint(Color.White.copy(alpha = 0.12f))
+  optics(
+    GlassOptics.Absolute(
+      refractionStrength = 0.7f,
+      depth = 0.4f,
     ),
-    sampling = HazeSampling.FullResolution,
-    expandLayerBounds = false,
-) {
-    blurEffect { /* ... */ }
+  )
+  specularIntensity(0.4f)
+  edgeSoftness(12.dp)
 }
 ```
 
-- Nullable `state` mode selection becomes `HazeInput.Sources(state)` or `HazeInput.Content`.
-- `canDrawArea` becomes `HazeSourceSelection.Behind.where { ... }` or
-  `HazeSourceSelection.All.where { ... }`. Predicates receive only `key` and `zIndex`, and
-  repeated `where` calls combine with logical AND.
-- `retainOutputWhenSourceUnavailable = true` maps to `KeepLastFrame`; `false` maps to
-  `ClearWhenUnavailable`. Prefer the clearing policy for privacy-sensitive surfaces.
-- `HazeInputScale.Default`, `None`, `Auto`, and `Fixed(scale)` map to `HazeSampling.Default`,
-  `FullResolution`, `Adaptive`, and `Fixed(scale)` respectively.
-- Nullable scope `expandLayerBounds` becomes a non-null modifier argument that defaults to `true`.
+### Position and geometry
 
-The structural `input`, `sampling`, and `expandLayerBounds` arguments are authoritative on this
-overload. Existing nullable `hazeEffect` overloads and `HazeEffectScope` properties are not
-deprecated by this migration step.
+`HazeArea.positionOnScreen` is replaced by `HazeArea.coordinates`. Read
+`coordinates.localPosition` or `coordinates.screenPosition` for the coordinate space you need.
+Custom `VisualEffect` implementations use `VisualEffectContext.position`, `rootBounds`,
+`positionOf(area)`, and `boundsOf(area)`.
 
-## Complete API Mapping
+`HazeState.positionStrategy` defaults to `HazePositionStrategy.Auto`. Override it with `Local` or
+`Screen` only when the host window arrangement requires a fixed coordinate space.
 
-| V1 Location | V2 Location | Notes |
-|-------------|-------------|-------|
-| `Modifier.haze(state)` | `Modifier.hazeSource(state)` | `haze` was a deprecated alias in v1 and is removed in v2 |
-| `Modifier.hazeChild(...)` | `Modifier.hazeEffect(...)` | `hazeChild` was a deprecated alias in v1 and is removed in v2 |
-| `Modifier.hazeEffect(state, style = style)` | `Modifier.hazeEffect(state) { blurEffect { this.style = style } }` | Style parameter removed from the core effect modifier |
-| `HazeEffectScope.blurRadius` | `BlurVisualEffect.blurRadius` | Inside `blurEffect {}` |
-| `HazeEffectScope.tints` | `BlurVisualEffect.colorEffects` | Inside `blurEffect {}` |
-| `HazeEffectScope.noiseFactor` | `BlurVisualEffect.noiseFactor` | Inside `blurEffect {}` |
-| `HazeEffectScope.progressive` | `BlurVisualEffect.progressive` | Inside `blurEffect {}` |
-| `HazeEffectScope.mask` | `BlurVisualEffect.mask` | Inside `blurEffect {}` |
-| `HazeEffectScope.style` | `BlurVisualEffect.style` | Inside `blurEffect {}` |
-| `HazeEffectScope.backgroundColor` | `BlurVisualEffect.backgroundColor` | Inside `blurEffect {}` |
-| `HazeEffectScope.blurredEdgeTreatment` | `BlurVisualEffect.blurredEdgeTreatment` | Inside `blurEffect {}` |
-| `HazeEffectScope.fallbackTint` | `BlurVisualEffect.fallbackTint` | Inside `blurEffect {}` |
-| `HazeEffectScope.alpha` | `BlurVisualEffect.alpha` | Inside `blurEffect {}` |
-| `HazeEffectScope.blurEnabled` | `BlurVisualEffect.blurEnabled` | Inside `blurEffect {}` |
-| `HazeEffectScope.inputScale` | `HazeSampling` | Structural on the explicit-input overload; the scope property remains on legacy overloads |
-| `HazeEffectScope.drawContentBehind` | `HazeEffectScope.drawContentBehind` | **Unchanged** - still on scope |
-| `HazeEffectScope.clipToAreasBounds` | `HazeEffectScope.clipToAreasBounds` | **Unchanged** - still on scope |
-| `HazeEffectScope.expandLayerBounds` | `Modifier.hazeEffect(expandLayerBounds = ...)` | Non-null and defaults to `true` on the explicit-input overload |
-| `HazeEffectScope.forceInvalidateOnPreDraw` | `HazeEffectScope.forceInvalidateOnPreDraw` | **Unchanged** - still on scope |
-| `HazeEffectScope.canDrawArea` | `HazeSourceSelection.where { ... }` | Metadata-only (`key`, `zIndex`) on the explicit-input overload; the scope property remains on legacy overloads |
-| `HazeEffectScope.retainOutputWhenSourceUnavailable` | `HazeSourceRetention` | `KeepLastFrame` or privacy-sensitive `ClearWhenUnavailable` on source-backed explicit input |
-| `rememberHazeState(blurEnabled)` | *Removed* | Use `blurEffect { blurEnabled = ... }` |
-| `HazeState.blurEnabled` | *Removed* | Use `blurEffect { blurEnabled = ... }` on each effect |
-| `HazeState.contentLayer` | *Removed* | Internal implementation detail from old single-source model |
-| `HazeState.positionOnScreen` | *Removed* | Internal/deprecated geometry property from old model |
-| `HazeArea.positionOnScreen` | `HazeArea.coordinates.localPosition` or `HazeArea.coordinates.screenPosition` | Coordinate model now stores both spaces |
-| `VisualEffectContext.positionOnScreen` | `VisualEffectContext.position` | Renamed |
-| `VisualEffectContext.rootBoundsOnScreen` | `VisualEffectContext.rootBounds` | Renamed |
-| `VisualEffectContext.visualEffect` | *Removed* | Custom effects should read their own properties directly |
-| `VisualEffect.calculateInputScaleFactor()` | *Removed* | Use `VisualEffect.shouldDrawContentBehind(context)`, `HazeEffectScope.inputScale`, or effect-specific logic as needed |
-| `VisualEffect.requireInvalidation()` | *Removed* | Call `VisualEffectContext.invalidateDraw()` from `update` or other lifecycle paths |
-| `VisualEffect.detach()` | `VisualEffect.detach(context)` | Detach now receives the attached context |
-| *N/A* | `HazeState.positionStrategy` | New — configurable position calculation |
-| *N/A* | `rememberHazeState(positionStrategy)` | New parameter, defaults to `Auto` |
-| *N/A* | `HazeCoordinates` | New value storing local and screen positions for each area |
-| *N/A* | `VisualEffectContext.positionOf(area)` / `boundsOf(area)` | Preferred helpers for custom effects |
-| `dev.chrisbanes.haze.HazeDefaults` blur defaults | `dev.chrisbanes.haze.blur.HazeBlurDefaults` | Blur-specific defaults moved to the blur module |
-| `dev.chrisbanes.haze.HazeDefaults.drawContentBehind` | `HazeEffectScope.drawContentBehind` | Set directly in the `hazeEffect` block if needed |
-| `dev.chrisbanes.haze.HazeStyle` | `dev.chrisbanes.haze.blur.HazeBlurStyle` | Renamed + package change |
-| `dev.chrisbanes.haze.HazeTint` | `dev.chrisbanes.haze.blur.HazeColorEffect` | Renamed + package change |
-| `dev.chrisbanes.haze.HazeProgressive` | `dev.chrisbanes.haze.HazeProgressive` | Unchanged core location; `dev.chrisbanes.haze.blur.HazeProgressive` remains as a deprecated typealias during the v2 alpha cycle |
-| `dev.chrisbanes.haze.LocalHazeStyle` | `dev.chrisbanes.haze.blur.LocalHazeBlurStyle` | Renamed + package change |
-| `dev.chrisbanes.haze.materials.*` | `dev.chrisbanes.haze.blur.materials.*` | Package moved; artifact also renamed to `haze-blur-materials` |
-| `dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi` | *Removed* | Materials APIs are no longer annotated with this opt-in |
-| `HazeDialog` | *Removed* | Use regular Compose dialogs with `hazeSource` / `hazeEffect` where needed |
+The `VisualEffect.detach` lifecycle method now receives its attached `VisualEffectContext`.
 
-## Step-by-Step Migration
+## Temporary compatibility boundary
 
-**Update dependencies** in your `build.gradle.kts`:
+`BlurVisualEffect`, `HazeEffectScope.blurEffect`, and legacy lambda-based `hazeEffect` overloads
+remain temporarily available so migration can be staged. They are compatibility APIs, not the
+recommended 2.0 Blur interface, and are scheduled for contraction separately. The sentinel-based
+`HazeBlurStyle(...)` constructors and `HazeBlurDefaults.style(...)` builder are deprecated.
+`HazeBlurStyle.copy` and readable patch properties are removed; use replayable Style blocks and
+`then`.
 
-   ```kotlin
-    implementation("dev.chrisbanes.haze:haze:2.0.0-alpha03")
-    implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha03") // Add this for blur effects
-    implementation("dev.chrisbanes.haze:haze-blur-materials:2.0.0-alpha03") // Add this for material presets
-   ```
+## Complete API mapping
 
-**Update imports** for blur-related classes:
+| Haze 1 API | Haze 2 API | Notes |
+| --- | --- | --- |
+| `Modifier.haze(state)` | `Modifier.hazeSource(state)` | The deprecated `haze` alias is removed. |
+| `Modifier.hazeChild(...)` | `Modifier.hazeBlur(input = HazeInput.Sources(state), ...)` | Use `HazeInput.Content` for own-content Blur. |
+| `Modifier.hazeEffect(state, style = style)` | `Modifier.hazeBlur(input = HazeInput.Sources(state), style = style)` | Blur now has a typed modifier. |
+| `HazeEffectScope.blurRadius` | `HazeBlurStyle { blurRadius(...) }` | Style properties are write functions. |
+| `HazeEffectScope.tints` | `HazeBlurStyle { colorEffects(...) }` | `HazeTint` is renamed to `HazeColorEffect`. |
+| `HazeEffectScope.noiseFactor` | `HazeBlurStyle { noiseFactor(...) }` | Values are canonicalized during resolution. |
+| `HazeEffectScope.progressive` | `HazeBlurStyle { progressive(...) }` | `HazeProgressive` remains in the core package. |
+| `HazeEffectScope.mask` | `HazeBlurStyle { mask(...) }` | Write `null` to clear an inherited mask. |
+| `HazeEffectScope.backgroundColor` | `HazeBlurStyle { backgroundColor(...) }` | `Color.Unspecified` is not an inheritance sentinel in the new Style API. |
+| `HazeEffectScope.blurredEdgeTreatment` | `HazeBlurStyle { blurredEdgeTreatment(...) }` | Layer expansion remains structural. |
+| `HazeEffectScope.fallbackTint` | `HazeBlurStyle { fallbackColorEffect(...) }` | The effect type is unchanged. |
+| `HazeEffectScope.alpha` | `HazeBlurStyle { alpha(...) }` | Values are clamped to `0f..1f`. |
+| `HazeEffectScope.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | State-level Blur enablement is removed. |
+| `HazeEffectScope.inputScale` | `Modifier.hazeBlur(sampling = ...)` | Map `Default`, `None`, `Auto`, and `Fixed` to `Default`, `FullResolution`, `Adaptive`, and `Fixed`. |
+| `HazeEffectScope.drawContentBehind` | `HazeEffectScope.drawContentBehind` | Unchanged on the temporary lambda-based compatibility API. |
+| `HazeEffectScope.clipToAreasBounds` | `HazeEffectScope.clipToAreasBounds` | Unchanged on the temporary lambda-based compatibility API. |
+| `HazeEffectScope.expandLayerBounds` | `Modifier.hazeBlur(expandLayerBounds = ...)` | Non-null and `true` by default. |
+| `HazeEffectScope.forceInvalidateOnPreDraw` | `HazeEffectScope.forceInvalidateOnPreDraw` | Unchanged on the temporary lambda-based compatibility API. |
+| `HazeEffectScope.canDrawArea` | `HazeSourceSelection.where { ... }` | Typed selection exposes immutable `key` and `zIndex` metadata. |
+| `HazeEffectScope.retainOutputWhenSourceUnavailable` | `HazeSourceRetention` | Choose `KeepLastFrame` or `ClearWhenUnavailable`. |
+| `rememberHazeState(blurEnabled)` | `rememberHazeState()` | Put `blurEnabled(...)` in the Style. |
+| `HazeState.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | Configure each effect explicitly. |
+| `HazeState.contentLayer` | Removed | This was an internal detail of the old single-source model. |
+| `HazeState.positionOnScreen` | Removed | Use the position-strategy and coordinate APIs instead. |
+| `HazeArea.positionOnScreen` | `HazeArea.coordinates.localPosition` or `.screenPosition` | Choose the coordinate space required by the caller. |
+| `VisualEffectContext.positionOnScreen` | `VisualEffectContext.position` | Renamed for the selected position strategy. |
+| `VisualEffectContext.rootBoundsOnScreen` | `VisualEffectContext.rootBounds` | Renamed. |
+| `VisualEffectContext.visualEffect` | Removed | Custom effects read their own properties directly. |
+| `VisualEffect.calculateInputScaleFactor()` | Removed | Use sampling and effect-specific policy. |
+| `VisualEffect.requireInvalidation()` | Removed | Call `VisualEffectContext.invalidateDraw()`. |
+| `VisualEffect.detach()` | `VisualEffect.detach(context)` | Detach receives the attached context. |
+| N/A | `HazeState.positionStrategy` | New; defaults to `HazePositionStrategy.Auto`. |
+| N/A | `rememberHazeState(positionStrategy)` | New optional state-construction parameter. |
+| N/A | `HazeCoordinates` | Stores local and screen positions for each source area. |
+| N/A | `VisualEffectContext.positionOf(area)` / `boundsOf(area)` | Preferred geometry helpers for custom effects. |
+| `HazeDefaults` Blur values | `HazeBlurDefaults` | Blur defaults moved to `haze-blur`. |
+| `HazeDefaults.drawContentBehind` | `HazeEffectScope.drawContentBehind` | Set directly in the temporary `hazeEffect` compatibility block when needed. |
+| `HazeStyle` | `HazeBlurStyle` | Renamed, moved, and changed to a replayable Style. |
+| `HazeTint` | `HazeColorEffect` | Renamed and moved to `dev.chrisbanes.haze.blur`. |
+| `dev.chrisbanes.haze.blur.HazeProgressive` | `dev.chrisbanes.haze.HazeProgressive` | The old Blur-package name remains as a deprecated typealias during the v2 alpha cycle. |
+| `LocalHazeStyle` | `LocalHazeBlurStyle` | The local contains replayable Style writes. |
+| `dev.chrisbanes.haze.materials.*` | `dev.chrisbanes.haze.blur.materials.*` | The artifact is now `haze-blur-materials`. |
+| `ExperimentalHazeMaterialsApi` | Removed | Materials APIs no longer require this opt-in. |
+| `HazeDialog` | Regular Compose dialogs | Share one `HazeState` between the source and dialog effect. |
 
-  - Change blur-specific `dev.chrisbanes.haze.HazeDefaults` usage → `dev.chrisbanes.haze.blur.HazeBlurDefaults`
-  - Change `HazeDefaults.drawContentBehind` usage → direct `drawContentBehind` assignment in the `hazeEffect` block
-  - Change `dev.chrisbanes.haze.HazeStyle` → `dev.chrisbanes.haze.blur.HazeBlurStyle`
-  - Change `dev.chrisbanes.haze.HazeTint` → `dev.chrisbanes.haze.blur.HazeColorEffect`
-  - Keep `dev.chrisbanes.haze.HazeProgressive`; `dev.chrisbanes.haze.blur.HazeProgressive` remains as a deprecated typealias during the v2 alpha cycle
-  - Change `dev.chrisbanes.haze.LocalHazeStyle` → `dev.chrisbanes.haze.blur.LocalHazeBlurStyle`
-  - Change `dev.chrisbanes.haze.materials.HazeMaterials` → `dev.chrisbanes.haze.blur.materials.HazeMaterials`
-  - Add `import dev.chrisbanes.haze.blur.blurEffect`
+Legacy `HazeEffectScope` properties that are not represented above remain available only through
+the temporary lambda-based compatibility API.
 
-**Wrap blur properties** in `blurEffect {}`:
+## Step-by-step migration
 
-   - Find all `Modifier.hazeEffect { ... }` blocks
-   - Wrap blur-related properties in `blurEffect { ... }`
-   - Leave `inputScale`, `drawContentBehind`, `clipToAreasBounds`, `canDrawArea` outside the `blurEffect {}` block
+1. Add `haze-blur`, and replace `haze-materials` with `haze-blur-materials` if presets are used.
+2. Update imports from `HazeStyle`, `HazeTint`, `LocalHazeStyle`, and the old materials package to
+   `HazeBlurStyle`, `HazeColorEffect`, `LocalHazeBlurStyle`, and
+   `dev.chrisbanes.haze.blur.materials`.
+3. Replace `Modifier.haze(...)` with `Modifier.hazeSource(...)`.
+4. Replace Blur-configuring `hazeEffect` blocks with `hazeBlur`, choosing
+   `HazeInput.Sources(state)` or `HazeInput.Content`.
+5. Move Blur properties into `HazeBlurStyle { ... }`, changing property assignments into Style
+   functions. Use `then` instead of `copy` when customizing a preset.
+6. Move input scale, retention, source selection, and layer expansion to `HazeSampling`,
+   `HazeSourceRetention`, `HazeSourceSelection`, and `expandLayerBounds`.
+7. Remove `blurEnabled` from `rememberHazeState`; write it in the Style for each effect instead.
+8. Update custom-effect geometry and `detach` overrides using the mappings above.
 
-**Update `rememberHazeState()` calls**:
-
-   - Remove `blurEnabled` parameter if present
-   - Move blur enabling logic to `blurEffect { blurEnabled = ... }` if needed
-
-**Update Material style usage**:
-
-   - Change `hazeEffect(state, style = style)` to `val style = ...` followed by `hazeEffect(state) { blurEffect { this.style = style } }`
-   - Change the dependency from `haze-materials` to `haze-blur-materials`
-
-**Replace removed aliases**:
-
-   - Change `Modifier.haze(state)` to `Modifier.hazeSource(state)`
-   - Change `Modifier.hazeChild(...)` to `Modifier.hazeEffect(...)`
-   - Remove `HazeDialog` usage and compose dialogs directly
-
-## Position Strategy
-
-V2 introduces a configurable position calculation strategy that fixes blur misalignment in split-window modes (e.g. Huawei Parallel Space). In most cases, no action is needed — the default `Auto` strategy handles everything.
-
-**If you use `HazeArea.positionOnScreen`** in custom effects, read the coordinate space you need:
+For example:
 
 ```kotlin
-// v1
-val pos = area.positionOnScreen
+val style = HazeMaterials.thin().then {
+  blurRadius(24.dp)
+}
 
-// v2
-val localPos = area.coordinates.localPosition
-val screenPos = area.coordinates.screenPosition
+Modifier.hazeBlur(
+  input = HazeInput.Sources(
+    state = hazeState,
+    selection = HazeSourceSelection.Behind
+      .where { source -> source.key != "sensitive" },
+    retention = HazeSourceRetention.ClearWhenUnavailable,
+  ),
+  style = style,
+  sampling = HazeSampling.FullResolution,
+  expandLayerBounds = false,
+)
 ```
 
-**If you implement custom `VisualEffect`s**, update `VisualEffectContext` references:
+## Custom effects and architecture
+
+Haze 2 separates typed, shareable configuration from node-owned rendering resources:
+
+- `HazeEffectFactory<Style>` is stateless and may be shared.
+- Every modifier node creates its own `HazeEffectRenderer<Style>`.
+- Replacing a Style reuses that renderer.
+- Replacing the factory or detaching the node disposes its renderer exactly once.
+- `VisualEffect` remains temporarily available for compatibility and built-in adapter plumbing.
+
+Custom typed effects use the generic modifier rather than `hazeBlur`:
 
 ```kotlin
-// v1
-context.positionOnScreen
-context.rootBoundsOnScreen
-
-// v2
-context.position
-context.rootBounds
+Modifier.hazeEffect(
+  factory = myFactory,
+  input = HazeInput.Content,
+  style = myStyle,
+)
 ```
 
-Prefer the context helpers when working with source areas, because they respect `HazePositionStrategy`:
+## Getting help
 
-```kotlin
-val areaPosition = context.positionOf(area)
-val areaBounds = context.boundsOf(area)
-```
-
-Also update lifecycle overrides:
-
-```kotlin
-// v1
-override fun detach() = Unit
-
-// v2
-override fun detach(context: VisualEffectContext) = Unit
-```
-
-**If you need to force screen coordinates** (e.g. for a custom cross-window setup):
-
-```kotlin
-val state = rememberHazeState(positionStrategy = HazePositionStrategy.Screen)
-```
-
-## Understanding the New Architecture
-
-The v2 architecture introduces the `VisualEffect` interface, which allows Haze to support different types of visual effects:
-
-- **`VisualEffect`** - Core interface for all visual effects (in `haze` module)
-- **`BlurVisualEffect`** - Implementation for blur effects (in `haze-blur` module)
-- **`HazeEffectScope.visualEffect`** - Property that holds the current effect
-
-The `blurEffect {}` extension function is a convenience API that creates and configures a `BlurVisualEffect` instance. Under the hood, it sets the `visualEffect` property on `HazeEffectScope`.
-
-This architecture enables:
-
-- Better separation of concerns
-- Potential for custom visual effects in the future
-- Smaller core module for users who don't need blur
-- More maintainable and testable code
-
-## Getting Help
-
-If you encounter issues during migration:
-
-- Check the [GitHub Discussions](https://github.com/chrisbanes/haze/discussions)
-- Review the [updated usage documentation](blur/usage.md)
-- See working examples in the [sample app](https://github.com/chrisbanes/haze/tree/main/sample)
-- File an issue on [GitHub](https://github.com/chrisbanes/haze/issues)
+- Read the [Blur usage guide](blur/usage.md).
+- See the [sample applications](https://github.com/chrisbanes/haze/tree/main/sample).
+- Ask in [GitHub Discussions](https://github.com/chrisbanes/haze/discussions).
+- Report reproducible problems in [GitHub Issues](https://github.com/chrisbanes/haze/issues).

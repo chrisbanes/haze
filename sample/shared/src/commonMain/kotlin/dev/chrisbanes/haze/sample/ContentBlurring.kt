@@ -41,9 +41,9 @@ import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +76,6 @@ fun ContentBlurring(
     modifier = Modifier.fillMaxSize(),
   ) {
     var clipEnabled by remember { mutableStateOf(true) }
-    var drawContentBehind by remember { mutableStateOf(false) }
 
     val style = HazeMaterials.ultraThin()
 
@@ -93,21 +92,20 @@ fun ContentBlurring(
         contentScale = ContentScale.Crop,
         contentDescription = null,
         modifier = Modifier
-          .hazeEffect {
-            this.drawContentBehind = drawContentBehind
-
-            blurEffect {
-              this.blurEnabled = blurEnabled
-              this.style = style
-              backgroundColor = Color.Transparent
-              this.blurEnabled = blurEnabled
-              this.blurredEdgeTreatment = when {
-                clipEnabled -> BlurredEdgeTreatment.Rectangle
-                else -> BlurredEdgeTreatment.Unbounded
-              }
-              this.blurRadius = 100.dp
-            }
-          }
+          .hazeBlur(
+            input = HazeInput.Content,
+            style = style.then {
+              blurEnabled(blurEnabled)
+              backgroundColor(Color.Transparent)
+              blurredEdgeTreatment(
+                when {
+                  clipEnabled -> BlurredEdgeTreatment.Rectangle
+                  else -> BlurredEdgeTreatment.Unbounded
+                },
+              )
+              blurRadius(100.dp)
+            },
+          )
           .align(Alignment.Center)
           .size(300.dp),
       )
@@ -119,11 +117,6 @@ fun ContentBlurring(
           .windowInsetsPadding(WindowInsets.navigationBars)
           .align(Alignment.BottomCenter),
       ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Text("Draw content behind:", modifier = Modifier.padding(end = 8.dp))
-          Switch(checked = drawContentBehind, onCheckedChange = { drawContentBehind = it })
-        }
-
         Row(verticalAlignment = Alignment.CenterVertically) {
           Text("Clipped:", modifier = Modifier.padding(end = 8.dp))
           Switch(checked = clipEnabled, onCheckedChange = { clipEnabled = it })

@@ -28,10 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -74,13 +74,11 @@ fun ListWithStickyHeaders(navController: NavHostController, blurEnabled: Boolean
           Box(
             modifier = Modifier
               .fillMaxWidth()
-              .hazeEffect(state = hazeState) {
-                inputScale = HazeInputScale.Auto
-                blurEffect {
-                  this.blurEnabled = blurEnabled
-                  this.style = style
-                }
-              },
+              .hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                style = style.then { blurEnabled(blurEnabled) },
+                sampling = HazeSampling.Adaptive,
+              ),
           ) {
             Text("Header: $group", modifier = Modifier.padding(16.dp))
           }

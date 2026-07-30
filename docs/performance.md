@@ -8,8 +8,8 @@ Blur effects use adaptive input scaling by default. The common cross-platform po
 resolved blur radius in physical pixels and expanded capture-layer pixel area to choose `1.0`,
 `0.8`, or `0.5`. Stronger blur can hide more downsampling, while the area gate avoids reallocating
 small layers for negligible savings. Progressive blur is capped at `0.8`; Glass remains unscaled by
-default. Explicit `None`, `Auto`, and `Fixed` values always win. You can find configuration details
-[here](blur/usage.md#input-scale).
+default. Explicit `HazeSampling.FullResolution`, `Adaptive`, and `Fixed` values always win. You can
+find configuration details [here](blur/usage.md#input-scale).
 
 In terms of the performance benefit which scaling provides, it's fairly small. In our Android benchmark tests, using an `inputScale` set to `0.5` reduced the _cost of Haze_ by **5-20%**. You can read more about this below.
 
@@ -26,8 +26,12 @@ We currently have 4 benchmark scenarios, each of them is one of the samples in t
 
 - **Scaffold**. The simple example, where the app bar and bottom navigation bar are blurred, with a scrollable list. This example uses rectangular haze areas.
 - **Scaffold, with progressive**. Same as Scaffold, but using a progressive blur.
-- **Images List**. Each item in the list has it's own `hazeSource` and `hazeEffect`. As each item has it's own `hazeSource`, the internal haze state does not change all that much (the list item content moves, but the `hazeEffect` doesn't in terms of local coordinates). This is more about multiple testing `RenderNode`s. This example uses rounded rectangle haze areas (i.e. we use `clipPath`).
-- **Credit Card**. A simple example, where the user can drag the `hazeEffect`. This tests how fast Haze's internal state invalidates and propogates to the `RenderNode`s. This example uses rounded rectangle haze areas like 'Images List'.
+- **Images List**. Each item has its own `hazeSource` and `hazeBlur`. The list item content moves,
+  but its effect does not move in local coordinates, so this primarily exercises multiple
+  `RenderNode`s. This example uses rounded rectangle haze areas (that is, `clipPath`).
+- **Credit Card**. A simple example where the user can drag the `hazeBlur` modifier. This tests how
+  quickly Haze invalidates state and propagates it to the `RenderNode`s. This example uses rounded
+  rectangle haze areas like Images List.
 
 !!! abstract "Test setup"
     All of the tests were ran with 16 iterations on a Pixel 6, running the latest version of Android available.

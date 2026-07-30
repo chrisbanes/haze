@@ -5,7 +5,6 @@
 
 package dev.chrisbanes.haze.blur
 
-import androidx.collection.LruCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -62,14 +61,8 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
   )
 }
 
-private val renderEffectCache = lazy(mode = LazyThreadSafetyMode.NONE) {
-  LruCache<RenderEffectCacheKey, RenderEffect>(maxSize = 50)
-}
-
-internal fun clearRenderEffectCache() {
-  if (renderEffectCache.isInitialized()) {
-    renderEffectCache.value.evictAll()
-  }
+internal fun BlurVisualEffect.clearRenderEffectCache() {
+  renderEffectCache.evictAll()
 }
 
 @Poko
@@ -126,11 +119,14 @@ internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEf
 }
 
 @OptIn(ExperimentalHazeApi::class)
-private fun getOrCreateRenderEffect(context: VisualEffectContext, params: RenderEffectParams): RenderEffect? {
+private fun BlurVisualEffect.getOrCreateRenderEffect(
+  context: VisualEffectContext,
+  params: RenderEffectParams,
+): RenderEffect? {
   HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect: $params" }
   val density = context.requireDensity()
   val cacheKey = params.renderEffectCacheKey(density)
-  val cached = renderEffectCache.value[cacheKey]
+  val cached = renderEffectCache[cacheKey]
   if (cached != null) {
     HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect. Returning cached: $params" }
     return cached
@@ -144,6 +140,6 @@ private fun getOrCreateRenderEffect(context: VisualEffectContext, params: Render
       params = params,
     )
   }.also { effect ->
-    renderEffectCache.value.put(cacheKey, effect)
+    renderEffectCache.put(cacheKey, effect)
   }
 }

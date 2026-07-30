@@ -1,359 +1,344 @@
-# Core Concepts
+# Core concepts
 
-This page explains the fundamental concepts and patterns used throughout Haze, regardless of which effect you're using.
+Haze separates captured input, shareable configuration, and node-owned rendering resources.
 
-## HazeState
+## Sources
 
-`HazeState` is a state holder that manages the rendering targets for visual effects. You create one using `rememberHazeState()`:
+`HazeState` connects one or more `hazeSource` modifiers to source-backed effects:
 
 ```kotlin
 val hazeState = rememberHazeState()
-```
 
-This state is then shared between a `Modifier.hazeSource` (content to blur from) and one or more `Modifier.hazeEffect` (content to apply the blur to).
-
-## Modifiers
-
-Haze provides two main modifiers that work together:
-
-### Modifier.hazeSource
-
-Marks a composable as a source of content that can be blurred by effects elsewhere in the hierarchy.
-
-```kotlin
 LazyColumn(
-    modifier = Modifier
-        .fillMaxSize()
-        .hazeSource(state = hazeState)
+  modifier = Modifier.hazeSource(hazeState),
 ) {
-    // content
+  // Content
 }
 ```
 
-Parameters:
+Sources can have a `zIndex` and metadata `key`. `HazeSourceSelection.Behind` is the default. With
+a nearest ancestor `hazeSource` using the same state, it selects lower-z sources; without one, it
+selects every source. `HazeSourceSelection.All` bypasses the ancestor relationship.
 
-- **state**: The `HazeState` instance to share
-- **zIndex**: Optional z-index for layering (when using overlapping effects)
-- **key**: Optional identifier for filtering which areas to draw
-
-### Modifier.hazeEffect
-
-Applies a visual effect to a composable, drawing blurred content from areas marked with `Modifier.hazeSource`.
-
-```kotlin
-val style = HazeMaterials.thin()
-
-TopAppBar(
-    modifier = Modifier.hazeEffect(
-        input = HazeInput.Sources(hazeState),
-    ) {
-        blurEffect {
-            this.style = style
-        }
-    }
-)
-```
-
-The required `input` makes the source mode explicit:
-
-- `HazeInput.Sources(hazeState)` consumes content captured by matching `hazeSource` modifiers.
-- `HazeInput.Content` captures the modifier's own content.
-
-The effect is configured inside the lambda block using effect-specific builders. The older
-nullable-state overloads remain available during the Haze 2 migration.
-
-#### Selecting sources
-
-`HazeInput.Sources` defaults to `HazeSourceSelection.Behind`. With a nearest ancestor
-`hazeSource` using the same state, this selects lower-z sources. Without one, it selects every
-source. Use `All` to bypass the ancestor relationship:
-
-```kotlin
-HazeInput.Sources(
-    state = hazeState,
-    selection = HazeSourceSelection.All,
-)
-```
-
-Refine either relationship with `where`. Predicates receive only an immutable snapshot of the
-source `key` and `zIndex`; renderer-owned geometry, content, and platform resources stay private.
-Repeated refinements combine with logical AND:
+Refine either selection with `where`. Predicates receive only immutable `key` and `zIndex`
+metadata, not captured pixels or renderer resources. Repeated refinements combine with logical
+AND:
 
 ```kotlin
 val selection = HazeSourceSelection.Behind
-    .where { source -> source.zIndex >= 1f }
-    .where { source -> source.key != "sensitive" }
+  .where { source -> source.zIndex >= 1f }
+  .where { source -> source.key != "sensitive" }
 ```
 
-#### Rendering policies
+## Explicit inputs
 
-The explicit-input overload also makes sampling and layer expansion structural:
+Typed effects always declare what they consume:
+
+- `HazeInput.Sources(hazeState)` consumes captured source content.
+- `HazeInput.Content` consumes the modifier's own content.
+
+Source-backed input also declares retention:
 
 ```kotlin
-Modifier.hazeEffect(
-    input = HazeInput.Sources(
-        state = hazeState,
-        retention = HazeSourceRetention.ClearWhenUnavailable,
-    ),
-    sampling = HazeSampling.Adaptive,
-    expandLayerBounds = false,
-) {
-    blurEffect { /* ... */ }
+HazeInput.Sources(
+  state = hazeState,
+  retention = HazeSourceRetention.ClearWhenUnavailable,
+)
+```
+
+`KeepLastFrame` smooths temporary source gaps. `ClearWhenUnavailable` clears retained output as
+soon as no selected source is drawable.
+
+## Typed Blur
+
+Blur has an ordinary typed modifier:
+
+```kotlin
+Modifier.hazeBlur(
+  input = HazeInput.Sources(hazeState),
+  style = HazeMaterials.thin(),
+  sampling = HazeSampling.Default,
+  expandLayerBounds = true,
+)
+```
+
+Use `HazeInput.Content` for own-content Blur. The structural input, retention, sampling, and layer
+expansion policies do not live in `HazeBlurStyle`.
+
+`HazeBlurStyle` is an opaque replayable program:
+
+```kotlin
+val style = HazeBlurStyle {
+  blurRadius(20.dp)
+  colorEffects(
+    listOf(HazeColorEffect.tint(Color.White.copy(alpha = 0.12f))),
+  )
+}.then {
+  noiseFactor(0f)
 }
 ```
 
-- `HazeSourceRetention.KeepLastFrame` is the default and preserves smooth source transitions.
-  Use `ClearWhenUnavailable` for privacy-sensitive surfaces that must not display stale pixels.
-- `HazeSampling.Default` lets the effect choose, `FullResolution` disables scaling,
-  `Adaptive` requests the effect's adaptive policy, and `Fixed(scale)` uses a validated
-  `0 < scale <= 1` value.
-- `expandLayerBounds` is non-null and defaults to `true`. Set it to `false` to constrain the
-  effect layer to the composable's ordinary bounds.
+Resolution replays `HazeBlurDefaults.style`, `LocalHazeBlurStyle`, and the explicit Style in order.
+The last write wins, and every evaluation starts fresh. Styles contain no mutable renderer or
+platform state and can be shared by concurrent modifiers.
 
-These structural arguments are authoritative on the explicit-input overload.
+## Typed custom effects
 
-## HazeEffectScope
-
-The lambda block parameter of `Modifier.hazeEffect` receives a `HazeEffectScope`, which provides
-common properties applicable to all effects. `inputScale`, `canDrawArea`,
-`retainOutputWhenSourceUnavailable`, and nullable `expandLayerBounds` remain available for the
-legacy modifier overloads; prefer the structural contracts above on the explicit-input path.
-
-### Common Properties
+Custom effects use a stateless factory and one renderer per modifier node:
 
 ```kotlin
-modifier = Modifier.hazeEffect(state = hazeState) {
-    // Common properties
-    inputScale = HazeInputScale.Auto
-    drawContentBehind = true
-    canDrawArea = { area -> true }
-    retainOutputWhenSourceUnavailable = true
-
-    // Effect-specific configuration
-    blurEffect {
-        // ...
+val factory = HazeEffectFactory<MyStyle> {
+  object : HazeEffectRenderer<MyStyle> {
+    override fun HazeEffectDrawScope.draw(style: MyStyle) {
+      drawInput()
+      // Draw the effect.
     }
+  }
 }
+
+Modifier.hazeEffect(
+  factory = factory,
+  input = HazeInput.Content,
+  style = MyStyle(...),
+)
 ```
 
-#### inputScale
+The renderer can own mutable resources and releases them in `dispose`. Style replacement updates
+the existing renderer. Factory replacement and detachment dispose it exactly once.
 
-Controls the resolution at which the effect source content is rendered. This is a performance optimization that allows the effect to be applied at a lower resolution before being scaled back up.
+## Sampling
 
-Options:
+- `HazeSampling.Default` lets the effect choose.
+- `HazeSampling.FullResolution` uses the full input resolution.
+- `HazeSampling.Adaptive` requests the effect's adaptive policy.
+- `HazeSampling.Fixed(scale)` uses `0 < scale <= 1`.
 
-- `HazeInputScale.Default`: Let the visual effect choose its policy. Blur adapts to physical
-  workload; Glass remains unscaled.
-- `HazeInputScale.None`: Explicitly disable scaling.
-- `HazeInputScale.Auto`: Explicitly request the visual effect's automatic policy.
-- `HazeInputScale.Fixed(value)`: Use the exact fixed scale (greater than `0.0`, up to `1.0`).
+Blur's default policy is adaptive. It considers physical Blur radius and capture-layer area, with
+hysteresis between quality tiers.
 
-#### drawContentBehind
+## Layer bounds
 
-When `true`, the original source content is drawn before the effect is applied. When `false`, only the effect is drawn. Defaults to `false`.
+`expandLayerBounds` lets an effect request a larger capture layer. Blur normally expands by its
+resolved radius to avoid edge artifacts. Disable it only when the surrounding pixels must not be
+captured.
 
-#### canDrawArea
+## Legacy effect scope
 
-An optional filter function that controls which source areas should be included in the effect rendering. Useful for excluding specific layers:
-
-```kotlin
-canDrawArea = { area ->
-    // return true to include, false to exclude
-    area.key != "exclude_me"
-}
-```
-
-#### retainOutputWhenSourceUnavailable
-
-Some effects can retain and redraw their last output when all source areas disappear. This keeps
-source transitions visually smooth, for example when content is temporarily removed while an
-effect surface remains visible.
-
-The default is `true`. For privacy-sensitive UI, set this to `false` so stale source pixels are
-cleared as soon as there is no source content to draw:
+Lambda-based `Modifier.hazeEffect` receives a `HazeEffectScope`. It remains available while
+existing custom effects and Blur callers migrate:
 
 ```kotlin
 Modifier.hazeEffect(state = hazeState) {
-    retainOutputWhenSourceUnavailable = false
-    blurEffect { /* ... */ }
+  inputScale = HazeInputScale.Auto
+  drawContentBehind = true
+  canDrawArea = { area -> area.key != "excluded" }
+  retainOutputWhenSourceUnavailable = true
+
+  blurEffect {
+    // Legacy Blur configuration
+  }
 }
 ```
 
-## Foreground vs Background Effects
+### Input scale
 
-Haze supports two modes of applying effects:
+`inputScale` controls the resolution used to render source content:
 
-### Background Effect (Most Common)
+- `HazeInputScale.Default` lets the visual effect choose. Blur uses its adaptive policy; Glass
+  remains unscaled.
+- `HazeInputScale.None` disables scaling.
+- `HazeInputScale.Auto` requests the effect's automatic policy.
+- `HazeInputScale.Fixed(value)` uses an exact value greater than `0f` and at most `1f`.
 
-The effect blurs content from elsewhere (behind the composable). Requires both `hazeSource` and `hazeEffect`:
+Typed effects express the same choice through `HazeSampling`.
+
+### Drawing content behind
+
+`drawContentBehind` draws the original source content before the effect. It defaults to `false`.
+Built-in typed effects select the required behavior themselves.
+
+### Filtering source areas
+
+`canDrawArea` filters legacy `HazeArea` instances:
+
+```kotlin
+canDrawArea = { area -> area.key != "excluded" }
+```
+
+Typed source input uses `HazeSourceSelection.where`, which intentionally exposes only immutable
+`key` and `zIndex` metadata.
+
+### Retained output
+
+Some effects can redraw their last output while source areas are temporarily unavailable.
+`retainOutputWhenSourceUnavailable` defaults to `true` for the legacy API. Set it to `false` when
+stale source pixels must be cleared immediately:
+
+```kotlin
+Modifier.hazeEffect(state = hazeState) {
+  retainOutputWhenSourceUnavailable = false
+  blurEffect {
+    // Legacy Blur configuration
+  }
+}
+```
+
+Typed source input expresses this policy with `HazeSourceRetention.KeepLastFrame` or
+`ClearWhenUnavailable`.
+
+## Temporary legacy APIs
+
+The `VisualEffect`, `HazeEffectScope`, and lambda-based `hazeEffect` APIs remain during the staged
+2.0 migration. Blur code should move to `hazeBlur`; custom effects should use
+`HazeEffectFactory`.
+
+## Background and foreground effects
+
+Source-backed effects render captured content from elsewhere in the hierarchy:
 
 ```kotlin
 Box {
-    LazyColumn(
-        modifier = Modifier.hazeSource(state = hazeState)
-    ) {
-        // content
-    }
-    
-    TopAppBar(
-        modifier = Modifier.hazeEffect(
-            input = HazeInput.Sources(hazeState),
-        ) {
-            blurEffect { /* ... */ }
-        }
-    )
+  LazyColumn(
+    modifier = Modifier.hazeSource(hazeState),
+  ) {
+    // Content
+  }
+
+  TopAppBar(
+    modifier = Modifier.hazeBlur(
+      input = HazeInput.Sources(hazeState),
+    ),
+  )
 }
 ```
 
-### Foreground Effect
-
-The effect blurs the content within the composable itself. Only requires `hazeEffect`:
+Own-content effects capture and transform the modifier's content:
 
 ```kotlin
 Box(
-    modifier = Modifier.hazeEffect(input = HazeInput.Content) {
-        blurEffect { /* ... */ }
-    }
+  modifier = Modifier.hazeBlur(input = HazeInput.Content),
 ) {
-    // This content will be blurred
+  // This content is blurred.
 }
 ```
 
-## Deep UI Hierarchies
+## Deep UI hierarchies
 
-When `HazeState` needs to be passed through many levels of nested composables, you can use a composition local instead:
+When `HazeState` would otherwise pass through many composables, provide it through a composition
+local:
 
 ```kotlin
 val LocalHazeState = compositionLocalOf { HazeState() }
 
 @Composable
 fun HazeExample() {
-    val hazeState = rememberHazeState()
-    
-    CompositionLocalProvider(LocalHazeState provides hazeState) {
-        Box {
-            Background()
-            Foreground()
-        }
+  val hazeState = rememberHazeState()
+
+  CompositionLocalProvider(LocalHazeState provides hazeState) {
+    Box {
+      Background()
+      Foreground()
     }
+  }
 }
 
 @Composable
 fun Foreground() {
-    Text(
-        modifier = Modifier.hazeEffect(state = LocalHazeState.current) {
-            blurEffect { /* ... */ }
-        }
-    )
+  Text(
+    modifier = Modifier.hazeBlur(
+      input = HazeInput.Sources(LocalHazeState.current),
+    ),
+  )
 }
 ```
 
-## Overlapping Effects
+## Overlapping effects
 
-You can have multiple composables that both draw effects from the same source and serve as sources for other effects. This enables complex layering:
+One composable can both consume lower sources and become a source for a higher effect. Give each
+source an explicit `zIndex`:
 
 ```kotlin
 Box {
-    val hazeState = rememberHazeState()
-    
-    Background(
-        modifier = Modifier.hazeSource(hazeState, zIndex = 0f)
-    )
-    
-    Card(
-        modifier = Modifier
-            .hazeSource(hazeState, zIndex = 1f)
-            .hazeEffect(hazeState)
-    )
-    
-    TopAppBar(
-        modifier = Modifier
-            .hazeSource(hazeState, zIndex = 2f)
-            .hazeEffect(hazeState)
-    )
+  Background(
+    modifier = Modifier.hazeSource(hazeState, zIndex = 0f),
+  )
+
+  Card(
+    modifier = Modifier
+      .hazeSource(hazeState, zIndex = 1f)
+      .hazeBlur(input = HazeInput.Sources(hazeState)),
+  )
+
+  TopAppBar(
+    modifier = Modifier
+      .hazeSource(hazeState, zIndex = 2f)
+      .hazeBlur(input = HazeInput.Sources(hazeState)),
+  )
 }
 ```
 
-In this example:
-- Background is at zIndex 0
-- Card at zIndex 1 draws the background through its effect
-- TopAppBar at zIndex 2 draws both background and card through its effect
+The Card consumes the Background, while the TopAppBar consumes both lower sources.
 
 ## Dialogs
 
-When using effects with dialogs, the effect source must be marked before the dialog is shown:
+Mark the source before showing a dialog. Haze can then align a source and effect that live in
+different windows:
 
 ```kotlin
-val hazeState = rememberHazeState()
-var showDialog by remember { mutableStateOf(false) }
-
 Box {
-    LazyColumn(
-        modifier = Modifier.hazeSource(state = hazeState)
-    ) {
-        // background content
+  LazyColumn(
+    modifier = Modifier.hazeSource(hazeState),
+  ) {
+    // Background content
+  }
+
+  if (showDialog) {
+    Dialog(onDismissRequest = { showDialog = false }) {
+      Surface(
+        modifier = Modifier.hazeBlur(
+          input = HazeInput.Sources(hazeState),
+        ),
+      ) {
+        // Dialog content
+      }
     }
-    
-    if (showDialog) {
-        Dialog(onDismissRequest = { showDialog = false }) {
-            Surface(
-                modifier = Modifier.hazeEffect(state = hazeState) {
-                    blurEffect { /* ... */ }
-                }
-            ) {
-                // dialog content
-            }
-        }
-    }
+  }
 }
 ```
 
-## Position Strategy
+## Position strategy
 
-Haze needs to calculate the position of source and effect nodes to align the blur correctly. By default, `HazeState` uses `HazePositionStrategy.Auto`, which works for most scenarios without any configuration.
+`HazePositionStrategy.Auto` is the default. It uses root-relative coordinates when source and
+effect share a window, and screen coordinates for cross-window arrangements such as dialogs and
+popups.
 
 ```kotlin
-val hazeState = rememberHazeState() // Auto strategy (default)
+val hazeState = rememberHazeState()
 ```
 
-### How it works
-
-- **Same window**: Haze uses root-relative coordinates (`positionInRoot()`). This is the most common case and the most performant.
-- **Cross-window** (dialogs, popups): Haze automatically detects when source and effect are in different windows and promotes to screen-level coordinates.
-
-### Manual override
-
-In rare cases you may want to force a specific strategy:
+Override the strategy only when the host window arrangement requires a fixed coordinate space:
 
 ```kotlin
-// Force root-relative coordinates (same-window only)
-val hazeState = rememberHazeState(positionStrategy = HazePositionStrategy.Local)
-
-// Force screen-level coordinates
-val hazeState = rememberHazeState(positionStrategy = HazePositionStrategy.Screen)
+val localState = rememberHazeState(positionStrategy = HazePositionStrategy.Local)
+val screenState = rememberHazeState(positionStrategy = HazePositionStrategy.Screen)
 ```
 
 | Strategy | Coordinates | Use case |
-|----------|-------------|----------|
-| `Auto` | Adapts automatically | Default — handles everything |
-| `Local` | `positionInRoot()` | Same-window; immune to split-window offset issues |
-| `Screen` | `positionOnScreen()` | Cross-window setups |
+| --- | --- | --- |
+| `Auto` | Adapts automatically | Default for same- and cross-window layouts |
+| `Local` | Root-relative | Same-window layouts |
+| `Screen` | Screen-relative | Explicit cross-window layouts |
 
-## Screenshot Testing
+## Screenshot testing
 
-Haze supports screenshot testing with platform-specific considerations:
-
-### Android with Robolectric
-
-The `RenderEffect.createBlurEffect()` tile mode support was only recently added to Robolectric. For correct results at effect edges, run tests against SDK 35+:
+On Android, run Robolectric screenshot tests against SDK 35 or newer. Earlier Robolectric SDK
+levels do not fully reproduce the blur tile modes used at effect edges:
 
 ```kotlin
 @Config(sdk = [35])
 class MyScreenshotTest {
-    // tests
+  // Tests
 }
 ```
 
-Without this, you may see strange results at effect boundaries on earlier SDK levels (though this doesn't affect real devices).
-
-Other screenshot testing libraries may work but haven't been tested. YMMV.
+This limitation affects the test environment, not the equivalent effect on a physical device.

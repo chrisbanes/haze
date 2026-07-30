@@ -74,6 +74,19 @@ Reads are observed in the phase where they occur:
 
 Those details are intentionally absent from the public typed renderer scopes.
 
+## Built-in Blur
+
+Blur uses the same typed node lifecycle through a narrow internal full-`VisualEffect` bridge. The
+bridge preserves the existing platform Blur implementations without exposing `VisualEffectContext`,
+source geometry, captured layers, platform contexts, delegates, or caches in the public semantic
+renderer scopes.
+
+`HazeBlurStyle` and the shared Blur factory are stateless. Each modifier node creates one
+`BlurVisualEffect` runtime that owns its resolved snapshot, invalidation state, adaptive-sampling
+history, delegate, retained output, render-effect cache, and platform resources. Style replacement
+replays defaults, the current composition-local Style, and the explicit Style into a fresh snapshot
+on that same runtime.
+
 ## Modules
 
 - **haze** — core state, source capture, typed custom-effect orchestration, and the temporary legacy
@@ -88,8 +101,10 @@ boundaries.
 
 ## Legacy compatibility
 
-`VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, and the lambda-based modifier overloads
-remain temporarily available for Blur, Glass, and third-party migration. They expose more lifecycle
-and rendering internals and are no longer the recommended contract for new custom effects.
+`VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, `BlurVisualEffect`,
+`HazeEffectScope.blurEffect`, and the lambda-based modifier overloads remain temporarily available
+for Blur, Glass, and third-party migration. They expose more lifecycle and rendering internals and
+are no longer the recommended contract for new Blur or custom effects. New Blur code uses
+`hazeBlur`; new custom effects use `HazeEffectFactory`.
 
 See [Custom effects](custom-effects.md) for the preferred API.

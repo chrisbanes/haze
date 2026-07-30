@@ -1,43 +1,32 @@
+# Recipes
 
-## Scaffold
+## Scaffold chrome
 
-Blurring the content behind app bars is a common use case, so how can we use Haze with `Scaffold`? It's pretty much the same as above:
+Place `hazeSource` on the scrolling content and use the same state for each app bar:
 
-!!! tip "Multiple hazeEffects"
-    Note: We are using multiple `hazeEffect`s in this example. You can actually use an abitrary number of `hazeEffect`s.
-
-``` kotlin
+```kotlin
 val hazeState = rememberHazeState()
 val style = HazeMaterials.thin()
 
 Scaffold(
   topBar = {
     TopAppBar(
-      // Need to make app bar transparent to see the content behind
-      colors = TopAppBarDefaults.largeTopAppBarColors(Color.Transparent),
-      modifier = Modifier
-        .hazeEffect(state = hazeState) {
-          blurEffect {
-            this.style = style
-          }
-        }
-        .fillMaxWidth(),
-    ) {
-      /* todo */
-    }
+      colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+      modifier = Modifier.hazeBlur(
+        input = HazeInput.Sources(hazeState),
+        style = style,
+      ),
+    )
   },
   bottomBar = {
     NavigationBar(
       containerColor = Color.Transparent,
-      modifier = Modifier
-        .hazeEffect(state = hazeState) {
-          blurEffect {
-            this.style = style
-          }
-        }
-        .fillMaxWidth(),
+      modifier = Modifier.hazeBlur(
+        input = HazeInput.Sources(hazeState),
+        style = style,
+      ),
     ) {
-      /* todo */
+      // Items
     }
   },
 ) { contentPadding ->
@@ -45,58 +34,73 @@ Scaffold(
     contentPadding = contentPadding,
     modifier = Modifier
       .fillMaxSize()
-      .hazeSource(
-        state = hazeState,
-      ),
+      .hazeSource(hazeState),
   ) {
-    // todo
+    // Items
   }
 }
 ```
 
-Common scaffold composables include:
+Pass scaffold padding to the scrollable content rather than applying it outside the source. That
+keeps interactive content clear of chrome while preserving source pixels behind translucent bars.
 
-- [`Scaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/Scaffold.composable), which provides content padding for app bars and other chrome.
-- [`BottomSheetScaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/BottomSheetScaffold.composable), which provides content padding for its top bar and bottom sheet.
-- [`NavigationSuiteScaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/navigationsuite/NavigationSuiteScaffold.composable), which places adaptive navigation beside or below its content.
-- [`ListDetailPaneScaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/layout/ListDetailPaneScaffold.composable), which arranges list, detail, and optional extra panes.
-- [`SupportingPaneScaffold`](https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/layout/SupportingPaneScaffold.composable), which arranges main, supporting, and optional extra panes.
+## Sticky headers
 
-For scaffold composables that provide content padding, pass that padding to the scrollable content rather than applying it as an outer modifier. This keeps interactive items clear of the chrome while preserving a full-size Haze source with pixels behind translucent bars. Scaffold-like layouts that measure content beside or above their chrome require an application-level overlay or custom layout to achieve an edge-to-edge translucent effect.
-
-## Sticky Headers
-
-The `stickyHeader` functionality on `LazyColumn` and friends is very useful, but unfortunately the limitations of Haze means that blurring the list contents for the header background is tricky.
-
-Since we can not use `Modifier.hazeSource` on the `LazyColumn` and `Modifier.hazeEffect` on items, as we would get into recursive drawing, we need to get a bit more creative.
-
-Since we can have multiple nodes using `Modifier.hazeSource`, we can use the modifier on all non-header items, and then use `hazeEffect` as normal on the `stickyHeader`:
+Avoid making a `LazyColumn` both a source and a descendant effect. Mark non-header items as sources:
 
 ```kotlin
 val hazeState = rememberHazeState()
 val style = HazeMaterials.thin()
 
-LazyColumn(...) {
+LazyColumn {
   stickyHeader {
     Header(
-      modifier = Modifier
-        .hazeEffect(state = hazeState) {
-          blurEffect {
-            this.style = style
-          }
-        },
+      modifier = Modifier.hazeBlur(
+        input = HazeInput.Sources(hazeState),
+        style = style,
+        sampling = HazeSampling.Adaptive,
+      ),
     )
   }
 
-  items(list) { item ->
-    Foo(
-      modifier = Modifier
-        .hazeSource(hazeState),
+  items(items) { item ->
+    Item(
+      item,
+      modifier = Modifier.hazeSource(hazeState),
     )
   }
 }
 ```
 
-A more complete example can be found here: [ListWithStickyHeaders](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/ListWithStickyHeaders.kt).
+## Privacy-sensitive source transitions
 
-![type:video](./media/sticky.mp4)
+Clear retained Blur output when no source is available:
+
+```kotlin
+Modifier.hazeBlur(
+  input = HazeInput.Sources(
+    state = hazeState,
+    retention = HazeSourceRetention.ClearWhenUnavailable,
+  ),
+  style = style,
+)
+```
+
+## Reusing and customizing a Style
+
+```kotlin
+val base = HazeMaterials.regular()
+val quiet = base.then {
+  noiseFactor(0f)
+  colorEffects(emptyList())
+}
+
+TopAppBar(
+  modifier = Modifier.hazeBlur(HazeInput.Sources(hazeState), quiet),
+)
+BottomAppBar(
+  modifier = Modifier.hazeBlur(HazeInput.Sources(hazeState), quiet),
+)
+```
+
+Both modifiers evaluate the shared Style into independent node-owned runtimes.

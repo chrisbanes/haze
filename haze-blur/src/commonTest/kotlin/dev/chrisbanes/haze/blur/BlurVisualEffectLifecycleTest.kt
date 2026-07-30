@@ -3,22 +3,29 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
 import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.Poko
@@ -121,20 +128,220 @@ class BlurVisualEffectLifecycleTest {
   fun blurRadius_prefersDirectThenStyleThenCompositionLocal() {
     val effect = BlurVisualEffect()
 
-    effect.compositionLocalStyle = HazeBlurStyle(
-      colorEffects = emptyList(),
-      blurRadius = HazeBlurDefaults.blurRadius,
-    )
+    effect.compositionLocalStyle = HazeBlurStyle {
+      colorEffects(emptyList())
+      blurRadius(HazeBlurDefaults.blurRadius)
+    }
     assertThat(effect.blurRadius).isEqualTo(HazeBlurDefaults.blurRadius)
 
-    effect.style = HazeBlurStyle(
-      colorEffects = emptyList(),
-      blurRadius = HazeBlurDefaults.blurRadius * 2,
-    )
+    effect.style = HazeBlurStyle {
+      colorEffects(emptyList())
+      blurRadius(HazeBlurDefaults.blurRadius * 2)
+    }
     assertThat(effect.blurRadius).isEqualTo(HazeBlurDefaults.blurRadius * 2)
 
     effect.blurRadius = HazeBlurDefaults.blurRadius * 3
     assertThat(effect.blurRadius).isEqualTo(HazeBlurDefaults.blurRadius * 3)
+  }
+
+  @Test
+  fun copy_preservesStyleAndCompositionLocalInheritance() {
+    val inheritedMask = Brush.verticalGradient(listOf(Color.White, Color.Transparent))
+    val inheritedColorEffect = HazeColorEffect.tint(Color.Magenta)
+    val inheritedFallback = HazeColorEffect.tint(Color.Gray)
+    val inheritedProgressive = HazeProgressive.verticalGradient()
+    val original = BlurVisualEffect().apply {
+      compositionLocalStyle = fullStyle(
+        blurEnabled = false,
+        blurRadius = 12.dp,
+        noiseFactor = 0.2f,
+        backgroundColor = Color.Red,
+        mask = inheritedMask,
+        colorEffect = inheritedColorEffect,
+        fallback = inheritedFallback,
+        alpha = 0.7f,
+        progressive = inheritedProgressive,
+        blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded,
+      )
+      style = HazeBlurStyle {
+        blurRadius(16.dp)
+      }
+    }
+    val copy = BlurVisualEffect(original)
+    val localMask = Brush.verticalGradient(listOf(Color.Black, Color.Transparent))
+    val localColorEffect = HazeColorEffect.tint(Color.Blue)
+    val localFallback = HazeColorEffect.tint(Color.Green)
+    val localProgressive = HazeProgressive.verticalGradient()
+
+    assertThat(copy.blurEnabled).isFalse()
+    assertThat(copy.blurRadius).isEqualTo(16.dp)
+    assertThat(copy.noiseFactor).isEqualTo(0.2f)
+    assertThat(copy.backgroundColor).isEqualTo(Color.Red)
+    assertThat(copy.mask).isEqualTo(inheritedMask)
+    assertThat(copy.colorEffects).isEqualTo(listOf(inheritedColorEffect))
+    assertThat(copy.fallbackTint).isEqualTo(inheritedFallback)
+    assertThat(copy.alpha).isEqualTo(0.7f)
+    assertThat(copy.progressive).isEqualTo(inheritedProgressive)
+    assertThat(copy.blurredEdgeTreatment).isEqualTo(BlurredEdgeTreatment.Unbounded)
+
+    copy.compositionLocalStyle = fullStyle(
+      blurEnabled = true,
+      blurRadius = 20.dp,
+      noiseFactor = 0.6f,
+      backgroundColor = Color.Cyan,
+      mask = localMask,
+      colorEffect = localColorEffect,
+      fallback = localFallback,
+      alpha = 0.4f,
+      progressive = localProgressive,
+      blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded,
+    )
+    copy.style = HazeBlurStyle {
+      blurRadius(24.dp)
+    }
+
+    assertThat(copy.blurEnabled).isTrue()
+    assertThat(copy.blurRadius).isEqualTo(24.dp)
+    assertThat(copy.noiseFactor).isEqualTo(0.6f)
+    assertThat(copy.backgroundColor).isEqualTo(Color.Cyan)
+    assertThat(copy.mask).isEqualTo(localMask)
+    assertThat(copy.colorEffects).isEqualTo(listOf(localColorEffect))
+    assertThat(copy.fallbackTint).isEqualTo(localFallback)
+    assertThat(copy.alpha).isEqualTo(0.4f)
+    assertThat(copy.progressive).isEqualTo(localProgressive)
+    assertThat(copy.blurredEdgeTreatment).isEqualTo(BlurredEdgeTreatment.Unbounded)
+  }
+
+  @Test
+  fun copy_preservesDirectOverrides() {
+    val inheritedMask = Brush.verticalGradient(listOf(Color.Black, Color.Transparent))
+    val inheritedProgressive = HazeProgressive.verticalGradient()
+    val directFallback = HazeColorEffect.tint(Color.Green)
+    val original = BlurVisualEffect().apply {
+      style = fullStyle(
+        blurEnabled = false,
+        blurRadius = 12.dp,
+        noiseFactor = 0.2f,
+        backgroundColor = Color.Red,
+        mask = inheritedMask,
+        progressive = inheritedProgressive,
+        blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded,
+      )
+      blurEnabled = true
+      blurRadius = 32.dp
+      noiseFactor = 0.9f
+      backgroundColor = Color.Yellow
+      mask = null
+      colorEffects = emptyList()
+      fallbackTint = directFallback
+      alpha = 0.8f
+      progressive = null
+      blurredEdgeTreatment = BlurredEdgeTreatment.Rectangle
+    }
+    val copy = BlurVisualEffect(original)
+
+    copy.style = fullStyle(
+      blurEnabled = false,
+      blurRadius = 20.dp,
+      noiseFactor = 0.4f,
+      backgroundColor = Color.Cyan,
+      mask = inheritedMask,
+      progressive = inheritedProgressive,
+      blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded,
+    )
+
+    assertThat(copy.blurEnabled).isTrue()
+    assertThat(copy.blurRadius).isEqualTo(32.dp)
+    assertThat(copy.noiseFactor).isEqualTo(0.9f)
+    assertThat(copy.backgroundColor).isEqualTo(Color.Yellow)
+    assertThat(copy.mask).isNull()
+    assertThat(copy.colorEffects).isEqualTo(emptyList())
+    assertThat(copy.fallbackTint).isEqualTo(directFallback)
+    assertThat(copy.alpha).isEqualTo(0.8f)
+    assertThat(copy.progressive).isNull()
+    assertThat(copy.blurredEdgeTreatment).isEqualTo(BlurredEdgeTreatment.Rectangle)
+  }
+
+  @Test
+  fun inheritedStructuralStyleChanges_invalidateLayerBoundsOnlyWhenRequired() {
+    val effect = BlurVisualEffect()
+    val context = TrackingInvalidationContext()
+
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(1)
+    assertThat(context.invalidateDrawCount).isEqualTo(0)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(0)
+    assertThat(context.invalidateDrawCount).isEqualTo(1)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+      backgroundColor(Color.Red.copy(alpha = 0.5f))
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(1)
+    assertThat(context.invalidateDrawCount).isEqualTo(0)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+      backgroundColor(Color.Blue.copy(alpha = 0.5f))
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(0)
+    assertThat(context.invalidateDrawCount).isEqualTo(1)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+      backgroundColor(Color.Blue.copy(alpha = 0.5f))
+      blurredEdgeTreatment(BlurredEdgeTreatment(RoundedCornerShape(8.dp)))
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(0)
+    assertThat(context.invalidateDrawCount).isEqualTo(1)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+      backgroundColor(Color.Blue.copy(alpha = 0.5f))
+      blurredEdgeTreatment(BlurredEdgeTreatment.Unbounded)
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(1)
+    assertThat(context.invalidateDrawCount).isEqualTo(0)
+  }
+
+  @Test
+  fun directBoundedEdgeTreatmentChange_doesNotInvalidateLayerBounds() {
+    val effect = BlurVisualEffect()
+    val context = TrackingInvalidationContext()
+
+    effect.blurredEdgeTreatment = BlurredEdgeTreatment(RoundedCornerShape(8.dp))
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(0)
+    assertThat(context.invalidateDrawCount).isEqualTo(1)
   }
 
   @Test
@@ -165,6 +372,30 @@ class BlurVisualEffectLifecycleTest {
   }
 }
 
+private fun fullStyle(
+  blurEnabled: Boolean,
+  blurRadius: Dp,
+  noiseFactor: Float,
+  backgroundColor: Color,
+  mask: Brush? = null,
+  colorEffect: HazeColorEffect = HazeColorEffect.tint(Color.Magenta),
+  fallback: HazeColorEffect = HazeColorEffect.tint(Color.Gray),
+  alpha: Float = 0.7f,
+  progressive: HazeProgressive? = null,
+  blurredEdgeTreatment: BlurredEdgeTreatment = BlurredEdgeTreatment.Rectangle,
+): HazeBlurStyle = HazeBlurStyle {
+  blurEnabled(blurEnabled)
+  blurRadius(blurRadius)
+  noiseFactor(noiseFactor)
+  backgroundColor(backgroundColor)
+  mask(mask)
+  colorEffects(listOf(colorEffect))
+  fallbackColorEffect(fallback)
+  alpha(alpha)
+  progressive(progressive)
+  blurredEdgeTreatment(blurredEdgeTreatment)
+}
+
 private data object FakeVisualEffectContext : VisualEffectContext {
   override val position: Offset = Offset.Zero
   override val size: Size = Size.Zero
@@ -190,6 +421,33 @@ private data object FakeVisualEffectContext : VisualEffectContext {
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = error("Unused in lifecycle tests")
   override fun requireGraphicsContext(): GraphicsContext = error("Unused in lifecycle tests")
   override fun invalidateDraw() = Unit
+}
+
+private class TrackingInvalidationContext : VisualEffectContext by FakeVisualEffectContext {
+  var localStyle: HazeBlurStyle = HazeBlurStyle
+  var invalidateDrawCount: Int = 0
+    private set
+  var invalidateLayerBoundsCount: Int = 0
+    private set
+
+  @Suppress("UNCHECKED_CAST")
+  override fun <T> currentValueOf(local: CompositionLocal<T>): T {
+    check(local === LocalHazeBlurStyle)
+    return localStyle as T
+  }
+
+  override fun invalidateDraw() {
+    invalidateDrawCount++
+  }
+
+  override fun invalidateLayerBounds() {
+    invalidateLayerBoundsCount++
+  }
+
+  fun resetInvalidations() {
+    invalidateDrawCount = 0
+    invalidateLayerBoundsCount = 0
+  }
 }
 
 @Poko

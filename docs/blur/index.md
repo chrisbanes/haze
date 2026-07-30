@@ -37,7 +37,7 @@ The blur effect is supported on all platforms with platform-optimized implementa
 
 ## Basic Usage
 
-The blur effect is applied using the `blurEffect {}` builder within `Modifier.hazeEffect`:
+Apply Blur with the typed `Modifier.hazeBlur` API:
 
 ```kotlin
 val hazeState = rememberHazeState()
@@ -53,12 +53,10 @@ Box {
     }
 
     TopAppBar(
-        modifier = Modifier
-            .hazeEffect(state = hazeState) {
-                blurEffect {
-                    this.style = style
-                }
-            }
+        modifier = Modifier.hazeBlur(
+            input = HazeInput.Sources(hazeState),
+            style = style,
+        ),
     )
 }
 ```

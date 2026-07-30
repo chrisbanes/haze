@@ -96,12 +96,18 @@ public object HazeMaterials {
     containerColor: Color,
     lightAlpha: Float,
     darkAlpha: Float,
-  ): HazeBlurStyle = HazeBlurStyle(
-    blurRadius = 24.dp,
-    backgroundColor = containerColor,
-    colorEffect = HazeColorEffect.tint(
-      containerColor.copy(alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha),
-      HazeColorEffect.DefaultBlendMode,
-    ),
-  )
+  ): HazeBlurStyle = HazeBlurStyle {
+    blurRadius(24.dp)
+    backgroundColor(containerColor)
+    colorEffects(
+      listOf(
+        HazeColorEffect.tint(
+          containerColor.copy(
+            alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha,
+          ),
+          HazeColorEffect.DefaultBlendMode,
+        ),
+      ),
+    )
+  }
 }

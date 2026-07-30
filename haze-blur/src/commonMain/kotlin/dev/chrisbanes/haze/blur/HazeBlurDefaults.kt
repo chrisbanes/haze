@@ -36,6 +36,24 @@ public object HazeBlurDefaults {
   public val blurredEdgeTreatment: BlurredEdgeTreatment = BlurredEdgeTreatment.Rectangle
 
   /**
+   * Complete default Blur Style.
+   *
+   * This Style is replayed before composition-local and explicit Styles.
+   */
+  public val style: HazeBlurStyle = HazeBlurStyle {
+    blurEnabled(blurEnabled())
+    blurRadius(blurRadius)
+    noiseFactor(noiseFactor)
+    backgroundColor(Color.Transparent)
+    colorEffects(emptyList())
+    fallbackColorEffect(HazeColorEffect.Unspecified)
+    alpha(1f)
+    mask(null)
+    progressive(null)
+    blurredEdgeTreatment(blurredEdgeTreatment)
+  }
+
+  /**
    * Default builder for the 'tint' color. Transforms the provided [color].
    */
   public fun tint(color: Color): HazeColorEffect = HazeColorEffect.tint(
@@ -57,12 +75,18 @@ public object HazeBlurDefaults {
    * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
    * Anything outside of that range will be clamped.
    */
+  @Deprecated("Use HazeBlurDefaults.style.then { ... }")
   public fun style(
     backgroundColor: Color,
     tint: HazeColorEffect = tint(backgroundColor),
     blurRadius: Dp = this.blurRadius,
     noiseFactor: Float = this.noiseFactor,
-  ): HazeBlurStyle = HazeBlurStyle(backgroundColor, tint, blurRadius, noiseFactor)
+  ): HazeBlurStyle = style.then {
+    if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
+    if (tint.isSpecified) colorEffects(listOf(tint))
+    blurRadius(blurRadius)
+    noiseFactor(noiseFactor)
+  }
 
   /**
    * Default values for [BlurVisualEffect.blurEnabled]. This function only returns `true` on

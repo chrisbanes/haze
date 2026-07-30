@@ -95,23 +95,24 @@ public object FluentMaterials {
 
   internal fun acrylicBaseStyle(
     isDark: Boolean,
-  ): HazeBlurStyle = hazeAcrylicMaterialStyle(
-    containerColor = if (isDark) {
-      Color(0xFF202020)
-    } else {
-      Color(0xFFF3F3F3)
-    },
-    fallbackColor = if (isDark) {
-      Color(0xFF1C1C1C)
-    } else {
-      Color(0xFFEEEEEE)
-    },
-    isDark = isDark,
-    lightTintOpacity = 0f,
-    lightLuminosityOpacity = 0.9f,
-    darkTintOpacity = 0.5f,
-    darkLuminosityOpacity = 0.96f,
-  )
+  ): HazeBlurStyle {
+    val (containerColor, fallbackColor) = acrylicBaseColors(isDark)
+    return hazeAcrylicMaterialStyle(
+      containerColor = containerColor,
+      fallbackColor = fallbackColor,
+      isDark = isDark,
+      lightTintOpacity = 0f,
+      lightLuminosityOpacity = 0.9f,
+      darkTintOpacity = 0.5f,
+      darkLuminosityOpacity = 0.96f,
+    )
+  }
+
+  internal fun acrylicBaseColors(isDark: Boolean): Pair<Color, Color> = if (isDark) {
+    Color(0xFF202020) to Color(0xFF1C1C1C)
+  } else {
+    Color(0xFFF3F3F3) to Color(0xFFEEEEEE)
+  }
 
   /**
    * A [HazeBlurStyle] which implements a translucent material used for the popup container background.
@@ -212,26 +213,28 @@ public object FluentMaterials {
     lightLuminosityOpacity: Float,
     darkTintOpacity: Float,
     darkLuminosityOpacity: Float,
-  ): HazeBlurStyle = HazeBlurStyle(
-    blurRadius = blurRadius,
-    noiseFactor = noiseFactor,
-    backgroundColor = containerColor,
-    colorEffects = listOf(
-      HazeColorEffect.tint(
-        color = containerColor.copy(
-          alpha = if (isDark) darkTintOpacity else lightTintOpacity,
+  ): HazeBlurStyle = HazeBlurStyle {
+    blurRadius(blurRadius)
+    noiseFactor(noiseFactor)
+    backgroundColor(containerColor)
+    colorEffects(
+      listOf(
+        HazeColorEffect.tint(
+          color = containerColor.copy(
+            alpha = if (isDark) darkTintOpacity else lightTintOpacity,
+          ),
+          blendMode = BlendMode.Color,
         ),
-        blendMode = BlendMode.Color,
-      ),
-      HazeColorEffect.tint(
-        color = containerColor.copy(
-          alpha = if (isDark) darkLuminosityOpacity else lightLuminosityOpacity,
+        HazeColorEffect.tint(
+          color = containerColor.copy(
+            alpha = if (isDark) darkLuminosityOpacity else lightLuminosityOpacity,
+          ),
+          blendMode = BlendMode.Luminosity,
         ),
-        blendMode = BlendMode.Luminosity,
       ),
-    ),
-    fallbackColorEffect = HazeColorEffect.tint(fallbackColor),
-  )
+    )
+    fallbackColorEffect(HazeColorEffect.tint(fallbackColor))
+  }
 
   @ReadOnlyComposable
   @Composable

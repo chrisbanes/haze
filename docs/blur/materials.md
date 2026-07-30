@@ -1,115 +1,56 @@
-# Blur Materials
+# Blur materials
 
-Pre-built blur style implementations that match common design systems.
-
-## Download
-
-[![Maven Central](https://img.shields.io/maven-central/v/dev.chrisbanes.haze/haze-blur-materials)](https://search.maven.org/search?q=g:dev.chrisbanes.haze)
+The `haze-blur-materials` artifact provides replayable Blur Styles for common design systems:
 
 ```kotlin
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    implementation("dev.chrisbanes.haze:haze-blur-materials:<version>")
+  implementation("dev.chrisbanes.haze:haze-blur-materials:<version>")
 }
 ```
 
-## HazeMaterials
+## Material
 
-Implementations of Material Design blur styles, inspired by SwiftUI Material APIs. These don't attempt to replicate exact iOS effects, but rather provide pleasant blur styles compatible with Material Design.
-
-![](../media/hazematerials.webp)
-
-Class reference: [HazeMaterials](../api/haze-materials/dev.chrisbanes.haze.blur.materials/-haze-materials/index.html).
-
-### Usage
+`HazeMaterials` provides `ultraThin()`, `thin()`, `regular()`, `thick()`, and `ultraThick()`:
 
 ```kotlin
-Box {
-  val style = HazeMaterials.thin()
-
-  LazyColumn(
-    modifier = Modifier.hazeSource(state = hazeState)
-  ) {
-    // content
-  }
-
-  TopAppBar(
-    modifier = Modifier.hazeEffect(state = hazeState) {
-      blurEffect {
-        this.style = style
-      }
-    }
-  )
-}
-```
-
-Available levels: `thin()`, `regular()`, `thick()`, and more.
-
-## CupertinoMaterials
-
-Blur styles matching Apple platforms (iOS, macOS). Values are taken from the [iOS 18 Figma](https://www.figma.com/community/file/1385659531316001292) file published by Apple.
-
-Use these for consistency when mixing Compose Multiplatform with SwiftUI.
-
-![](../media/cupertinomaterials.webp)
-
-Class reference: [CupertinoMaterials](../api/haze-materials/dev.chrisbanes.haze.blur.materials/-cupertino-materials/index.html).
-
-### Usage
-
-```kotlin
-val style = CupertinoMaterials.thin()
-
-blurEffect {
-  this.style = style
-}
-```
-
-## FluentMaterials
-
-Blur styles matching Windows platforms (WinUI 3). Values are taken from the WinUI 3 Figma file published by Microsoft.
-
-Use these for consistency when mixing Compose Multiplatform with WinUI.
-
-![](../media/fluentmaterials.webp)
-
-Class reference: [FluentMaterials](../api/haze-materials/dev.chrisbanes.haze.blur.materials/-fluent-materials/index.html).
-
-### Usage
-
-```kotlin
-val style = FluentMaterials.thin()
-
-blurEffect {
-  this.style = style
-}
-```
-
-## Custom Styles
-
-To create custom blur styles, use the [HazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html) data class:
-
-```kotlin
-val customStyle = HazeBlurStyle(
-  blurRadius = 15.dp,
-  colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.2f))),
-  noiseFactor = 0.1f
+Modifier.hazeBlur(
+  input = HazeInput.Sources(hazeState),
+  style = HazeMaterials.thin(),
 )
-
-blurEffect {
-  style = customStyle
-}
 ```
 
-Or set properties directly in the `blurEffect` block:
+## Cupertino
+
+`CupertinoMaterials` follows Apple platform materials:
 
 ```kotlin
-blurEffect {
-  blurRadius = 15.dp
-  colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.2f)))
-  noiseFactor = 0.1f
+Modifier.hazeBlur(
+  input = HazeInput.Sources(hazeState),
+  style = CupertinoMaterials.regular(),
+)
+```
+
+## Fluent
+
+`FluentMaterials` provides acrylic and Mica presets:
+
+```kotlin
+Modifier.hazeBlur(
+  input = HazeInput.Sources(hazeState),
+  style = FluentMaterials.acrylicDefault(),
+)
+```
+
+## Customizing a preset
+
+Material presets are ordinary replayable Styles. Chain additional writes without copying readable
+fields:
+
+```kotlin
+val compact = HazeMaterials.thin().then {
+  blurRadius(12.dp)
+  noiseFactor(0f)
 }
 ```
+
+The chained Style remains stateless and can be reused by concurrent modifiers.
