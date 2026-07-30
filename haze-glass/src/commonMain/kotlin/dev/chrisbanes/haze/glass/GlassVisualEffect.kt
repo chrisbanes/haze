@@ -479,9 +479,9 @@ public class GlassVisualEffect() :
 
   private fun refreshInteractionSnapshots() {
     val slots = GlassInteractionSlots(
-      focused = styleFocusedSlot ?: focusedSlot,
-      hovered = styleHoveredSlot ?: hoveredSlot,
-      pressed = stylePressedSlot ?: pressedSlot,
+      focused = focusedSlot ?: styleFocusedSlot,
+      hovered = hoveredSlot ?: styleHoveredSlot,
+      pressed = pressedSlot ?: stylePressedSlot,
     )
     if (slots != interactionSlotsSnapshot) {
       interactionSlotsSnapshot = slots
@@ -499,10 +499,19 @@ public class GlassVisualEffect() :
       return
     }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
-    styleHoveredSlot = resolved.hovered?.let { GlassInteractionSlot(++nextInteractionRevision, it.response) }
-    styleFocusedSlot = resolved.focused?.let { GlassInteractionSlot(++nextInteractionRevision, it.response) }
-    stylePressedSlot = resolved.pressed?.let { GlassInteractionSlot(++nextInteractionRevision, it.response) }
+    styleHoveredSlot = updateStyleSlot(styleHoveredSlot, resolved.hovered)
+    styleFocusedSlot = updateStyleSlot(styleFocusedSlot, resolved.focused)
+    stylePressedSlot = updateStyleSlot(stylePressedSlot, resolved.pressed)
     onInteractionConfigurationChanged(previousRefractionMultiplier)
+  }
+
+  private fun updateStyleSlot(
+    previous: GlassInteractionSlot?,
+    next: GlassInteractionSlot?,
+  ): GlassInteractionSlot? = when {
+    previous?.response == next?.response -> previous
+    next == null -> null
+    else -> GlassInteractionSlot(++nextInteractionRevision, next.response)
   }
 
   @PublishedApi
