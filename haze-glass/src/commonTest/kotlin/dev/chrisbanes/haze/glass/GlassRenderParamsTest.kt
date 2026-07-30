@@ -31,7 +31,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun interactionTopology_usesConfiguredWorstCaseInsteadOfAnimatedValues() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       hovered { lightingIntensity(0.4f) }
       pressed {
         refractionMultiplier(1.2f)
@@ -39,7 +39,7 @@ class GlassRenderParamsTest {
       }
     }
 
-    assertThat(GlassRuntimeEffect(effect).interactionSlots.resolveInteractionTopology()).isEqualTo(
+    assertThat(effect.interactionSlots.resolveInteractionTopology()).isEqualTo(
       GlassInteractionTopology(
         hasOptics = true,
         hasLighting = true,
@@ -50,7 +50,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun interactionTopology_ignoresIdentityOnlyDeclarations() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       hovered {
         lightingIntensity(0f)
         refractionMultiplier(1f)
@@ -58,7 +58,7 @@ class GlassRenderParamsTest {
       }
     }
 
-    assertThat(GlassRuntimeEffect(effect).interactionSlots.resolveInteractionTopology()).isEqualTo(
+    assertThat(effect.interactionSlots.resolveInteractionTopology()).isEqualTo(
       GlassInteractionTopology(false, false, 1f),
     )
   }
@@ -226,44 +226,22 @@ class GlassRenderParamsTest {
 
   @Test
   fun resolvedStyle_canonicalizesAllScalarsEquallyAcrossPrecedenceLevels() {
-    val lighting = GlassLighting(
-      specularIntensity = 2f,
-      ambientResponse = -1f,
-      specularExponent = -1f,
-      fresnelExponent = -1f,
-    )
-    val color = GlassColor(
-      alpha = 2f,
-      contrast = 2f,
-      whitePoint = -2f,
-      chromaMultiplier = 3f,
-    )
-    val rendering = GlassRendering(
-      edgeSoftness = Float.POSITIVE_INFINITY.dp,
-      contentNormalBlend = 2f,
-      chromaticAberrationStrength = -1f,
-    )
-    val inheritedStyle = GlassStyle(
-      lighting = lighting,
-      color = color,
-      rendering = rendering,
-    )
+    val inheritedStyle = GlassStyle {
+      specularIntensity(2f)
+      ambientResponse(-1f)
+      specularExponent(-1f)
+      fresnelExponent(-1f)
+      alpha(2f)
+      contrast(2f)
+      whitePoint(-2f)
+      chromaMultiplier(3f)
+      edgeSoftness(Float.POSITIVE_INFINITY.dp)
+      contentNormalBlend(2f)
+      chromaticAberrationStrength(-1f)
+    }
     val effects = listOf(
-      GlassVisualEffect().apply {
-        specularIntensity = lighting.specularIntensity
-        ambientResponse = lighting.ambientResponse
-        specularExponent = lighting.specularExponent
-        fresnelExponent = lighting.fresnelExponent
-        alpha = color.alpha
-        contrast = color.contrast
-        whitePoint = color.whitePoint
-        chromaMultiplier = color.chromaMultiplier
-        edgeSoftness = rendering.edgeSoftness
-        contentNormalBlend = rendering.contentNormalBlend
-        chromaticAberrationStrength = rendering.chromaticAberrationStrength
-      },
-      GlassVisualEffect().apply { style = inheritedStyle },
-      GlassVisualEffect().apply { compositionLocalStyle = inheritedStyle },
+      GlassRuntimeEffect().apply { style = inheritedStyle },
+      GlassRuntimeEffect().apply { compositionLocalStyle = inheritedStyle },
     )
     val size = Size(100f, 80f)
     val density = Density(1f)
@@ -272,14 +250,12 @@ class GlassRenderParamsTest {
     }
 
     assertThat(resolved[1]).isEqualTo(resolved[0])
-    assertThat(resolved[2]).isEqualTo(resolved[0])
     assertThat(resolved[0].chromaticAberrationStrength).isEqualTo(0f)
     assertThat(resolved[0].edgeSoftnessPx).isEqualTo(GlassDefaults.edgeSoftness.value)
 
     val rect = Rect(0f, 0f, size.width, size.height)
     val bounds = effects.map { it.calculateLayerBounds(rect, density) }
     assertThat(bounds[1]).isEqualTo(bounds[0])
-    assertThat(bounds[2]).isEqualTo(bounds[0])
   }
 
   @Test
@@ -291,7 +267,7 @@ class GlassRenderParamsTest {
     )
 
     listOf(Float.NaN, Float.POSITIVE_INFINITY, -1f).forEach { invalidRadius ->
-      val effect = GlassVisualEffect().apply {
+      val effect = GlassRuntimeEffect().apply {
         shape = RoundedCornerShape(
           object : CornerSize {
             override fun toPx(shapeSize: Size, density: Density): Float = invalidRadius
@@ -312,7 +288,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun resolvedStyle_propagatesCornerSizeConversionFailures() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       shape = RoundedCornerShape(
         object : CornerSize {
           override fun toPx(shapeSize: Size, density: Density): Float {
@@ -335,8 +311,8 @@ class GlassRenderParamsTest {
 
   @Test
   fun preparedRender_carriesCanonicalAlphaForRuntimeDrawing() {
-    val effect = GlassVisualEffect().apply {
-      style = GlassStyle(color = GlassColor(alpha = Float.POSITIVE_INFINITY))
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle { alpha(Float.POSITIVE_INFINITY) }
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -780,7 +756,7 @@ class GlassRenderParamsTest {
       blurRadius = 32.dp,
       refractionDisplacement = 15.dp,
     )
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = absolute
     }
     val rect = Rect(0f, 0f, 200f, 100f)
@@ -820,7 +796,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun renderParams_deriveBlurSigmaFromScaledRadius() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(blurRadius = 20.dp)
     }
     val style = resolveGlassStyle(
@@ -850,7 +826,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun renderParams_scaleResolvedOpticalDistancesExactlyOnce() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         refractionHeightFraction = 0.25f,
         refractionDisplacement = 12.dp,
@@ -883,7 +859,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun renderParams_applyInputScaleAfterInternalOpticalClamping() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(refractionDisplacement = Float.MAX_VALUE.dp)
     }
     val style = resolveGlassStyle(
@@ -909,7 +885,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun renderParams_zeroBlurHasZeroRadiusAndSigma() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(blurRadius = 0.dp)
     }
     val style = resolveGlassStyle(
@@ -1070,7 +1046,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun calculateLayerBounds_usesAdaptiveGeometryBlurSupportForSquareEffect() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(0.dp)
     }
@@ -1090,7 +1066,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun calculateLayerBounds_zeroRefractionUsesEffectiveSemanticBlurRadiusExactly() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         blurRadius = 32.dp,
         refractionStrength = 0f,
@@ -1109,7 +1085,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun calculateLayerBounds_capsuleUsesResolvedGeometryBlurScale() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(40.dp)
     }
@@ -1147,11 +1123,12 @@ class GlassRenderParamsTest {
       bottomEnd = 32.dp,
       bottomStart = 24.dp,
     )
-    val firstEffect = GlassVisualEffect().apply {
+    val firstEffect = GlassRuntimeEffect().apply {
       edgeSoftness = 0.dp
       shape = firstShape
     }
-    val secondEffect = GlassVisualEffect(firstEffect).apply {
+    val secondEffect = GlassRuntimeEffect().apply {
+      edgeSoftness = 0.dp
       shape = secondShape
     }
     val rect = Rect(0f, 0f, 240f, 100f)
@@ -1166,7 +1143,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun calculateLayerBounds_invalidGeometryProducesFiniteInflatedBounds() {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         blurRadius = 32.dp,
         refractionStrength = 1f,
@@ -1195,7 +1172,7 @@ class GlassRenderParamsTest {
   }
 
   private fun expectedLayerPadding(
-    effect: GlassVisualEffect,
+    effect: GlassRuntimeEffect,
     rect: Rect,
     density: Density,
   ): Float {

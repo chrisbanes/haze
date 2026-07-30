@@ -34,20 +34,6 @@ import kotlinx.coroutines.CoroutineScope
 class GlassStyleTest {
 
   @Test
-  fun directInteractionOverride_canClearInheritedStyleResponse() {
-    val effect = GlassVisualEffect().apply {
-      style = GlassStyle { pressed { lightingIntensity(0.8f) } }
-      updateStyleInteractionSlots()
-    }
-    assertThat(effect.resolvedInteractionSlots.pressed?.response?.lightingIntensity?.value)
-      .isEqualTo(0.8f)
-
-    effect.clearPressed()
-
-    assertThat(effect.resolvedInteractionSlots.pressed).isEqualTo(null)
-  }
-
-  @Test
   fun interactionBlocks_chainAndReplacePerState() {
     val style = GlassStyle {
       hovered { lightingIntensity(0.2f) }
@@ -60,12 +46,12 @@ class GlassStyleTest {
       hovered { lightingIntensity(0.6f) }
     }
 
-    val slots = resolveGlassStyleInteractionSlots(GlassStyle, style)
+    val values = resolveGlassStyleValues(GlassStyle, style)
 
-    assertThat(slots.hovered?.response?.lightingIntensity?.value).isEqualTo(0.6f)
-    assertThat(slots.pressed?.response?.refractionMultiplier?.value).isEqualTo(1.1f)
-    assertThat(slots.pressed?.response?.refractionMultiplier?.toSpec).isEqualTo(tween(100))
-    assertThat(slots.focused).isEqualTo(null)
+    assertThat(values.hoveredInteraction?.lightingIntensity?.value).isEqualTo(0.6f)
+    assertThat(values.pressedInteraction?.refractionMultiplier?.value).isEqualTo(1.1f)
+    assertThat(values.pressedInteraction?.refractionMultiplier?.toSpec).isEqualTo(tween(100))
+    assertThat(values.focusedInteraction).isEqualTo(null)
   }
 
   @Test

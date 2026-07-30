@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
-import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.glass.then
 import dev.chrisbanes.haze.test.ScreenshotTest
@@ -51,23 +50,6 @@ class GlassContentScreenshotTest : ScreenshotTest() {
     setContent {
       ScreenshotTheme {
         CreditCardGlassContentBlurring(style = VibrantStyle)
-      }
-    }
-    captureRoot()
-  }
-
-  @Test
-  fun creditCard_drawContentBehind() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      edgeSoftness = 16.dp
-    }
-    setContent {
-      ScreenshotTheme {
-        CreditCardContentBlurring(
-          visualEffect = visualEffect,
-          drawContentBehind = true,
-        )
       }
     }
     captureRoot()
@@ -182,7 +164,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_chromatic() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
+    val visualEffect = GlassTestConfiguration().apply {
       tint = DefaultTint
       optics = GlassOptics.Absolute(refractionStrength = 0.8f, depth = 0.5f)
       chromaticAberrationStrength = 0.22f
@@ -193,8 +175,8 @@ class GlassContentScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(
-          visualEffect = visualEffect,
+        CreditCardGlassContentBlurring(
+          style = visualEffect.resolvedStyle,
           backgroundColors = listOf(Color(0xFF7E57C2), Color(0xFF26C6DA)),
         )
       }
@@ -205,7 +187,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_surfaceProfile() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
+    val visualEffect = GlassTestConfiguration().apply {
       tint = DefaultTint
       optics = GlassOptics.Absolute(refractionHeightFraction = 0.28f, depth = 0.4f)
       specularIntensity = 0.5f
@@ -215,8 +197,8 @@ class GlassContentScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(
-          visualEffect = visualEffect,
+        CreditCardGlassContentBlurring(
+          style = visualEffect.resolvedStyle,
           backgroundColors = listOf(Color(0xFF1E88E5), Color(0xFF00ACC1)),
         )
       }
@@ -235,7 +217,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_chromaticAberrationMode() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
+    val visualEffect = GlassTestConfiguration().apply {
       tint = DefaultTint
       optics = GlassOptics.Absolute(refractionStrength = 0.8f, depth = 0.45f)
       chromaticAberrationStrength = 0.3f
@@ -246,8 +228,8 @@ class GlassContentScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(
-          visualEffect = visualEffect,
+        CreditCardGlassContentBlurring(
+          style = visualEffect.resolvedStyle,
           backgroundColors = listOf(Color(0xFF7E57C2), Color(0xFF26C6DA)),
         )
       }

@@ -105,8 +105,7 @@ class HazeGlassModifierTest : ContextTest() {
 
     cases.forEach { case ->
       val effect = case.factory.effects.single()
-      val renderer = effect.delegate.renderer as GlassRenderer
-      val context = checkNotNull(renderer.runtimeForTest.attachedContextForTest)
+      val context = checkNotNull(effect.delegate.attachedContextForTest)
       val expectedState = (case.input as? HazeInput.Sources)?.state
       if (expectedState == null) {
         assertThat(context.state).isNull()
@@ -220,16 +219,13 @@ class HazeGlassModifierTest : ContextTest() {
 
     val first = factory.effects[0]
     val second = factory.effects[1]
-    val firstRenderer = first.delegate.renderer
-    val secondRenderer = second.delegate.renderer
     assertThat(first).isNotSameInstanceAs(second)
-    assertThat(first.delegate.configuration).isNotSameInstanceAs(second.delegate.configuration)
-    assertThat(firstRenderer).isNotSameInstanceAs(secondRenderer)
-    assertThat(first.delegate.configuration.style).isSameInstanceAs(firstStyle)
-    assertThat(second.delegate.configuration.style).isSameInstanceAs(firstStyle)
-    assertThat(first.delegate.configuration.interactionSource)
+    assertThat(first.delegate).isNotSameInstanceAs(second.delegate)
+    assertThat(first.delegate.style).isSameInstanceAs(firstStyle)
+    assertThat(second.delegate.style).isSameInstanceAs(firstStyle)
+    assertThat(first.delegate.interactionSource)
       .isSameInstanceAs(initialInteractionSource)
-    assertThat(second.delegate.configuration.interactionSource)
+    assertThat(second.delegate.interactionSource)
       .isSameInstanceAs(initialInteractionSource)
 
     sharedStyle.value = secondStyle
@@ -237,12 +233,10 @@ class HazeGlassModifierTest : ContextTest() {
     waitForIdle()
 
     assertThat(factory.effects.size).isEqualTo(2)
-    assertThat(first.delegate.renderer).isSameInstanceAs(firstRenderer)
-    assertThat(second.delegate.renderer).isSameInstanceAs(secondRenderer)
-    assertThat(first.delegate.configuration.style).isSameInstanceAs(secondStyle)
-    assertThat(second.delegate.configuration.style).isSameInstanceAs(secondStyle)
-    assertThat(first.delegate.configuration.interactionSource).isNull()
-    assertThat(second.delegate.configuration.interactionSource).isNull()
+    assertThat(first.delegate.style).isSameInstanceAs(secondStyle)
+    assertThat(second.delegate.style).isSameInstanceAs(secondStyle)
+    assertThat(first.delegate.interactionSource).isNull()
+    assertThat(second.delegate.interactionSource).isNull()
   }
 
   @Test
@@ -271,10 +265,8 @@ class HazeGlassModifierTest : ContextTest() {
     }
     waitForIdle()
 
-    val firstRuntime =
-      (factory.effects[0].delegate.renderer as GlassRenderer).runtimeForTest
-    val secondRuntime =
-      (factory.effects[1].delegate.renderer as GlassRenderer).runtimeForTest
+    val firstRuntime = factory.effects[0].delegate
+    val secondRuntime = factory.effects[1].delegate
     assertThat(firstRuntime).isNotSameInstanceAs(secondRuntime)
     assertThat(firstRuntime.alpha).isEqualTo(0.2f)
     assertThat(secondRuntime.alpha).isEqualTo(0.2f)
@@ -307,19 +299,16 @@ class HazeGlassModifierTest : ContextTest() {
     waitForIdle()
 
     val effect = factory.effects.single()
-    val renderer = effect.delegate.renderer
     assertThat(effect.delegate.observesPointerEvents).isEqualTo(false)
 
     style.value = GlassStyle { pressed { lightingIntensity(0.8f) } }
     waitForIdle()
 
-    assertThat(effect.delegate.renderer).isSameInstanceAs(renderer)
     assertThat(effect.delegate.observesPointerEvents).isEqualTo(true)
 
     style.value = GlassStyle
     waitForIdle()
 
-    assertThat(effect.delegate.renderer).isSameInstanceAs(renderer)
     assertThat(effect.delegate.observesPointerEvents).isEqualTo(false)
   }
 }
@@ -335,7 +324,7 @@ private class StructuralCase(
 private class RecordingGlassFactory :
   HazeEffectFactory<GlassNodeConfiguration>,
   HazeEffectVisualEffectFactory<GlassNodeConfiguration> {
-  val effects = mutableListOf<RecordingGlassVisualEffect>()
+  val effects = mutableListOf<RecordingGlassRuntimeEffect>()
 
   override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> {
     error("The full VisualEffect bridge must take precedence")
@@ -348,13 +337,13 @@ private class RecordingGlassFactory :
     val delegate = GlassHazeEffectFactory.createVisualEffect(
       style = style,
       sampling = sampling,
-    ) as GlassHazeEffectFactoryVisualEffect
-    return RecordingGlassVisualEffect(delegate, sampling).also(effects::add)
+    )
+    return RecordingGlassRuntimeEffect(delegate, sampling).also(effects::add)
   }
 }
 
-private class RecordingGlassVisualEffect(
-  val delegate: GlassHazeEffectFactoryVisualEffect,
+private class RecordingGlassRuntimeEffect(
+  val delegate: GlassRuntimeEffect,
   val sampling: HazeSampling,
 ) :
   HazeEffectFactoryVisualEffect<GlassNodeConfiguration> by delegate,

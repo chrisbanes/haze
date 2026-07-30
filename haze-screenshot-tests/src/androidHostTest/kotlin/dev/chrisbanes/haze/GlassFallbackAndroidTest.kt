@@ -32,7 +32,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
-import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -147,7 +147,7 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
 
   private fun assertRoundedPressedLightingDrawsOverOpaqueContent() = runScreenshotTest {
     val interactionSource = MutableInteractionSource()
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassTestConfiguration().apply {
       tint = Color.Transparent
       optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
       specularIntensity = 0f
@@ -180,7 +180,7 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
 }
 
 @Composable
-private fun FallbackOpaqueContentSample(effect: GlassVisualEffect) {
+private fun FallbackOpaqueContentSample(effect: GlassTestConfiguration) {
   val hazeState = rememberHazeState()
   val shape = RoundedCornerShape(32.dp)
   Box(Modifier.fillMaxSize().background(Color.DarkGray)) {
@@ -191,17 +191,18 @@ private fun FallbackOpaqueContentSample(effect: GlassVisualEffect) {
       Modifier
         .align(Alignment.Center)
         .size(FallbackSurfaceSize)
-        .hazeEffect(hazeState) {
-          inputScale = HazeInputScale.None
-          visualEffect = effect
-        }
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          configuration = effect,
+          sampling = HazeSampling.FullResolution,
+        )
         .clip(shape)
         .background(Color.Black),
     )
   }
 }
 
-private fun fallbackEffect(specularIntensity: Float): GlassVisualEffect = GlassVisualEffect().apply {
+private fun fallbackEffect(specularIntensity: Float): GlassTestConfiguration = GlassTestConfiguration().apply {
   tint = Color.Transparent
   optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
   this.specularIntensity = specularIntensity

@@ -61,8 +61,8 @@ CompositionLocalProvider(LocalGlassStyle provides baseStyle) {
 
 ## Default style
 
-`GlassDefaults.style` uses the built-in Haze `GlassOptics.Adaptive` material and is
-applied automatically when no style or direct property overrides are provided.
+`GlassDefaults.style` uses the built-in Haze `GlassOptics.Adaptive` material and is evaluated
+before `LocalGlassStyle` and the modifier's explicit Style.
 
 ```kotlin
 Box(
@@ -174,13 +174,20 @@ not add click handling, focusability, semantics, or keyboard/D-pad activation.
 ```kotlin
 Modifier.hazeGlass(
   input = HazeInput.Sources(hazeState),
-  style = GlassStyle { pressed {} },
+  style = GlassStyle {
+    pressed {
+      lightingIntensity(1f)
+      refractionMultiplier(1.08f)
+      whitePointDelta(0.04f)
+      scale(0.98f)
+    }
+  },
 )
 ```
 
-`hovered()`, `focused()`, and `pressed()` enable their respective default visual responses.
-`interactable()` enables all three. To make focus and keyboard/D-pad activation useful, retain one
-`MutableInteractionSource` and share it with both the glass effect and your behavior modifiers:
+Declare only the states and response channels the material needs. To make focus and keyboard/D-pad
+activation useful, retain one `MutableInteractionSource` and share it with both the glass effect
+and your behavior modifiers:
 
 ```kotlin
 val interactionSource = remember { MutableInteractionSource() }
@@ -192,9 +199,12 @@ Modifier
     input = HazeInput.Sources(hazeState),
     interactionSource = interactionSource,
     style = GlassStyle {
-      hovered {}
-      focused {}
-      pressed {}
+      hovered { lightingIntensity(0.35f) }
+      focused { lightingIntensity(0.35f) }
+      pressed {
+        lightingIntensity(1f)
+        scale(0.98f)
+      }
     },
   )
 ```
@@ -208,8 +218,11 @@ block to own the arrival and departure animation specs respectively; entering or
 GlassStyle {
   pressed {
     animate(
-      toSpec = GlassDefaults.pressAnimationSpec,
-      fromSpec = GlassDefaults.releaseAnimationSpec,
+      toSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMedium),
+      fromSpec = spring(
+        dampingRatio = 0.72f,
+        stiffness = Spring.StiffnessMediumLow,
+      ),
     ) {
       scale(0.98f)
     }
@@ -217,10 +230,11 @@ GlassStyle {
 }
 ```
 
-The `interactionTransformTarget` argument selects whether a response transforms only the material or the
-material and content. `interactionTransformPivot` selects `Pointer` or `Center`. Use
-Omit a state block from a replacement Style to remove it. `GlassReducedMotionPolicy.System` follows the available system duration scale,
-`Reduced` snaps lighting and optics while suppressing transforms, and `Full` forces motion.
+The `interactionTransformTarget` argument selects whether a response transforms only the material
+or the material and content. `interactionTransformPivot` selects `Pointer` or `Center`. Omit a
+state block from a replacement Style to remove it. `GlassReducedMotionPolicy.System` follows the
+available system duration scale, `Reduced` snaps lighting and optics while suppressing transforms,
+and `Full` forces motion.
 
 ## Usage
 

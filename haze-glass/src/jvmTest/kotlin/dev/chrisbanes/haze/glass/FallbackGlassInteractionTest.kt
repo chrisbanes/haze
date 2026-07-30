@@ -32,7 +32,7 @@ class FallbackGlassInteractionTest : ContextTest() {
 
   @Test
   fun fallback_pressedLighting_isLocalizedAtPointer() = runComposeUiTest {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       pressed { lightingIntensity(1f) }
       interactionLightRadiusFraction = 0.4f
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
@@ -49,7 +49,7 @@ class FallbackGlassInteractionTest : ContextTest() {
           .testTag("glass")
           .hazeEffect {
             visualEffect = effect
-            runtime = ((this as HazeEffectNode).activeVisualEffect as GlassRenderer).runtimeForTest
+            runtime = ((this as HazeEffectNode).activeVisualEffect as GlassRuntimeEffect)
           }
           .background(Color.Black),
       )

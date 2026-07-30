@@ -130,26 +130,6 @@ internal fun buildGlassInteractionResponse(
   block: GlassInteractionScope.() -> Unit,
 ): GlassInteractionResponse = GlassInteractionScopeImpl().apply(block).build()
 
-internal fun defaultHoverResponse(): GlassInteractionResponse = buildGlassInteractionResponse {
-  animate(GlassDefaults.hoverAnimationSpec, GlassDefaults.releaseAnimationSpec) {
-    lightingIntensity(0.35f)
-    refractionMultiplier(1.02f)
-    whitePointDelta(0.01f)
-    scale(1f)
-  }
-}
-
-internal fun defaultFocusResponse(): GlassInteractionResponse = defaultHoverResponse()
-
-internal fun defaultPressResponse(): GlassInteractionResponse = buildGlassInteractionResponse {
-  animate(GlassDefaults.pressAnimationSpec, GlassDefaults.releaseAnimationSpec) {
-    lightingIntensity(1f)
-    refractionMultiplier(1.08f)
-    whitePointDelta(0.04f)
-    scale(0.98f)
-  }
-}
-
 private fun requireFiniteInRange(
   name: String,
   value: Float,

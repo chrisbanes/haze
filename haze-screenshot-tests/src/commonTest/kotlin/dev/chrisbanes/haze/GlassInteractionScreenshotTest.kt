@@ -31,7 +31,7 @@ import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
-import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
@@ -94,7 +94,7 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
   @Test
   fun glassInteraction_localPatchPreservesPixelsOutsideInteractionRegion() = runScreenshotTest {
     val radiusFraction = 0.22f
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassTestConfiguration().apply {
       optics = GlassOptics.Absolute(
         refractionStrength = 0.7f,
         refractionDisplacement = 28.dp,
@@ -154,7 +154,7 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
   }
 }
 
-private fun ScreenshotUiTest.capturePressed(tag: String, label: String, effect: GlassVisualEffect) {
+private fun ScreenshotUiTest.capturePressed(tag: String, label: String, effect: GlassTestConfiguration) {
   setContent { ScreenshotTheme { GlassInteractionScene(tag, label, effect) } }
   onNodeWithTag(tag).performTouchInput { down(lowerRightPosition()) }
   waitForIdle()
@@ -167,7 +167,7 @@ private fun androidx.compose.ui.test.TouchInjectionScope.lowerRightPosition(): O
 )
 
 @Composable
-internal fun GlassInteractionScene(tag: String, label: String, effect: GlassVisualEffect) {
+internal fun GlassInteractionScene(tag: String, label: String, effect: GlassTestConfiguration) {
   val hazeState = remember { HazeState() }
   Box(Modifier.size(320.dp, 320.dp)) {
     Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
@@ -189,7 +189,10 @@ internal fun GlassInteractionScene(tag: String, label: String, effect: GlassVisu
         Modifier
           .size(264.dp, 144.dp)
           .testTag(tag)
-          .hazeEffect(hazeState) { visualEffect = effect },
+          .hazeGlass(
+            input = HazeInput.Sources(hazeState),
+            configuration = effect,
+          ),
         contentAlignment = Alignment.Center,
       ) {
         Text(label, color = Color.White)
@@ -198,20 +201,19 @@ internal fun GlassInteractionScene(tag: String, label: String, effect: GlassVisu
   }
 }
 
-private fun combinedEffect() = GlassVisualEffect().apply {
-  hovered()
-  pressed()
+private fun combinedEffect() = GlassTestConfiguration().apply {
+  applyTestHoverAndPressResponses()
   interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
   shape = RoundedCornerShape(20.dp)
 }
 
-private fun lightingEffect() = GlassVisualEffect().apply {
+private fun lightingEffect() = GlassTestConfiguration().apply {
   pressed { lightingIntensity(1f) }
   interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
   shape = RoundedCornerShape(20.dp)
 }
 
-private fun opticsEffect() = GlassVisualEffect().apply {
+private fun opticsEffect() = GlassTestConfiguration().apply {
   pressed {
     refractionMultiplier(1.08f)
     whitePointDelta(0.04f)
@@ -223,7 +225,7 @@ private fun opticsEffect() = GlassVisualEffect().apply {
 private fun scaleEffect(
   target: GlassTransformTarget,
   pivot: GlassTransformPivot = GlassTransformPivot.Pointer,
-) = GlassVisualEffect().apply {
+) = GlassTestConfiguration().apply {
   pressed { scale(0.9f, 0.96f) }
   interactionTransformTarget = target
   interactionTransformPivot = pivot
@@ -231,7 +233,7 @@ private fun scaleEffect(
   shape = RoundedCornerShape(20.dp)
 }
 
-private fun reducedEffect() = GlassVisualEffect().apply {
+private fun reducedEffect() = GlassTestConfiguration().apply {
   pressed {
     lightingIntensity(1f)
     refractionMultiplier(1.08f)

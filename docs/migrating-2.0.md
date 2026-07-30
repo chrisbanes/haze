@@ -137,9 +137,14 @@ through recomposition; do not mutate an effect, use sentinel patches, `copy`, or
 | Legacy | Typed replacement |
 | --- | --- |
 | `hazeEffect { glassEffect { … } }` | `hazeGlass(input, style, sampling, expandLayerBounds, …)` |
+| `GlassVisualEffect` | `GlassStyle` plus `Modifier.hazeGlass` |
+| `GlassLighting`, `GlassColor`, `GlassRendering` | property writes inside `GlassStyle { … }` |
+| `GlassStyle.Unspecified` | `GlassStyle`, the empty replayable Style |
 | mutable effect properties | replace `GlassStyle` through recomposition |
 | sentinel patches and `copy` | `GlassStyle { … }`, `then`, and `LocalGlassStyle` |
 | interaction mutation and `clear*` | declarative `hovered`, `focused`, and `pressed` blocks; omit blocks in a replacement Style |
+| `GlassDefaults.hoverAnimationSpec`, `pressAnimationSpec`, `releaseAnimationSpec` | explicit `animate(toSpec, fromSpec) { … }` declarations |
+| `GlassStyleConfiguration`, `GlassRenderer`, `GlassRendererCache`, retained-output methods, delegate and lifecycle hooks | no public replacement; each `hazeGlass` node owns and disposes these internal resources |
 | effect-owned interaction controls | typed modifier arguments |
 | implicit source/content | explicit `HazeInput.Sources` or `HazeInput.Content` |
 | raw optical displacement/caps | semantic `GlassOptics` and `Dp` controls |

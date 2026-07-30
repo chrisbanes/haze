@@ -29,7 +29,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-class GlassVisualEffectAndroidCapabilityTest {
+class GlassRuntimeEffectAndroidCapabilityTest {
 
   @Test
   @Config(sdk = [32])

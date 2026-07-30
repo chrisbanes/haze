@@ -18,21 +18,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 public object GlassDefaults {
   public const val interactionLightRadiusFraction: Float = 0.7f
 
-  public val hoverAnimationSpec: FiniteAnimationSpec<Float> = spring(
-    dampingRatio = 1f,
-    stiffness = Spring.StiffnessMediumLow,
-  )
-
-  public val pressAnimationSpec: FiniteAnimationSpec<Float> = spring(
-    dampingRatio = 0.82f,
-    stiffness = Spring.StiffnessMedium,
-  )
-
-  public val releaseAnimationSpec: FiniteAnimationSpec<Float> = spring(
-    dampingRatio = 0.72f,
-    stiffness = Spring.StiffnessMediumLow,
-  )
-
   public val positionAnimationSpec: FiniteAnimationSpec<Offset> = spring(
     dampingRatio = 1f,
     stiffness = Spring.StiffnessMedium,

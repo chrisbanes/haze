@@ -5,6 +5,9 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -14,6 +17,21 @@ import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.SurfaceProfile
+
+internal val DefaultGlassHoverAnimationSpec: FiniteAnimationSpec<Float> = spring(
+  dampingRatio = 1f,
+  stiffness = Spring.StiffnessMediumLow,
+)
+
+internal val DefaultGlassPressAnimationSpec: FiniteAnimationSpec<Float> = spring(
+  dampingRatio = 0.82f,
+  stiffness = Spring.StiffnessMedium,
+)
+
+internal val DefaultGlassReleaseAnimationSpec: FiniteAnimationSpec<Float> = spring(
+  dampingRatio = 0.72f,
+  stiffness = Spring.StiffnessMediumLow,
+)
 
 @Immutable
 internal data class GalleryArtwork(
@@ -212,7 +230,7 @@ internal enum class GlassLabInteractionMode {
 }
 
 private fun dev.chrisbanes.haze.glass.GlassInteractionScope.defaultHoverResponse() {
-  animate(GlassDefaults.hoverAnimationSpec, GlassDefaults.releaseAnimationSpec) {
+  animate(DefaultGlassHoverAnimationSpec, DefaultGlassReleaseAnimationSpec) {
     lightingIntensity(0.35f)
     refractionMultiplier(1.02f)
     whitePointDelta(0.01f)
@@ -221,7 +239,7 @@ private fun dev.chrisbanes.haze.glass.GlassInteractionScope.defaultHoverResponse
 }
 
 private fun dev.chrisbanes.haze.glass.GlassInteractionScope.defaultPressResponse() {
-  animate(GlassDefaults.pressAnimationSpec, GlassDefaults.releaseAnimationSpec) {
+  animate(DefaultGlassPressAnimationSpec, DefaultGlassReleaseAnimationSpec) {
     lightingIntensity(1f)
     refractionMultiplier(1.08f)
     whitePointDelta(0.04f)

@@ -11,7 +11,6 @@ import androidx.compose.ui.test.performTouchInput
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
-import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -23,9 +22,8 @@ class GlassInteractionAndroidRegressionTest : ScreenshotTest() {
 
   @Test
   fun runtimeShader_hoverThenPress_updatesActiveUniforms() = runScreenshotTest {
-    val effect = GlassVisualEffect().apply {
-      hovered()
-      pressed()
+    val effect = GlassTestConfiguration().apply {
+      applyTestHoverAndPressResponses()
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
     }
     setContent {
