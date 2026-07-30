@@ -391,6 +391,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#built-in-glass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in Glass
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#modules" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -966,6 +977,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#built-in-glass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in Glass
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#modules" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1077,6 +1099,13 @@ renderer scopes.</p>
 history, delegate, retained output, render-effect cache, and platform resources. Style replacement
 replays defaults, the current composition-local Style, and the explicit Style into a fresh snapshot
 on that same runtime.</p>
+<h2 id="built-in-glass">Built-in Glass<a class="headerlink" href="#built-in-glass" title="Permanent link">¶</a></h2>
+<p>Glass exposes only the typed <code>hazeGlass</code> modifier, replayable <code>GlassStyle</code>, and structural modifier
+arguments. The shared factory is stateless. Each modifier creates one internal node-owned runtime
+which evaluates defaults, <code>LocalGlassStyle</code>, and the explicit Style into a fresh snapshot and owns
+its interaction controller, delegate, caches, retained layers, and platform resources.</p>
+<p>The old public effect, renderer, cache, grouped sentinel values, and <code>glassEffect</code> DSL are removed.
+No renderer or lifecycle object can be shared between Glass nodes.</p>
 <h2 id="modules">Modules<a class="headerlink" href="#modules" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>haze</strong> — core state, source capture, typed custom-effect orchestration, and the temporary legacy
@@ -1091,9 +1120,9 @@ boundaries.</p>
 <h2 id="legacy-compatibility">Legacy compatibility<a class="headerlink" href="#legacy-compatibility" title="Permanent link">¶</a></h2>
 <p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, <code>BlurVisualEffect</code>,
 <code>HazeEffectScope.blurEffect</code>, and the lambda-based modifier overloads remain temporarily available
-for Blur, Glass, and third-party migration. They expose more lifecycle and rendering internals and
-are no longer the recommended contract for new Blur or custom effects. New Blur code uses
-<code>hazeBlur</code>; new custom effects use <code>HazeEffectFactory</code>.</p>
+for Blur and third-party migration. They expose more lifecycle and rendering internals and are no
+longer the recommended contract for new Blur or custom effects. New Blur code uses <code>hazeBlur</code>; new
+Glass code uses <code>hazeGlass</code>; new custom effects use <code>HazeEffectFactory</code>.</p>
 <p>See <a href="../custom-effects/">Custom effects</a> for the preferred API.</p></div>
 
 

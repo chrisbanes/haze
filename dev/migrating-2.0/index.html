@@ -1280,6 +1280,18 @@ through recomposition; do not mutate an effect, use sentinel patches, <code>copy
 <td><code>hazeGlass(input, style, sampling, expandLayerBounds, …)</code></td>
 </tr>
 <tr>
+<td><code>GlassVisualEffect</code></td>
+<td><code>GlassStyle</code> plus <code>Modifier.hazeGlass</code></td>
+</tr>
+<tr>
+<td><code>GlassLighting</code>, <code>GlassColor</code>, <code>GlassRendering</code></td>
+<td>property writes inside <code>GlassStyle { … }</code></td>
+</tr>
+<tr>
+<td><code>GlassStyle.Unspecified</code></td>
+<td><code>GlassStyle</code>, the empty replayable Style</td>
+</tr>
+<tr>
 <td>mutable effect properties</td>
 <td>replace <code>GlassStyle</code> through recomposition</td>
 </tr>
@@ -1290,6 +1302,14 @@ through recomposition; do not mutate an effect, use sentinel patches, <code>copy
 <tr>
 <td>interaction mutation and <code>clear*</code></td>
 <td>declarative <code>hovered</code>, <code>focused</code>, and <code>pressed</code> blocks; omit blocks in a replacement Style</td>
+</tr>
+<tr>
+<td><code>GlassDefaults.hoverAnimationSpec</code>, <code>pressAnimationSpec</code>, <code>releaseAnimationSpec</code></td>
+<td>explicit <code>animate(toSpec, fromSpec) { … }</code> declarations</td>
+</tr>
+<tr>
+<td><code>GlassStyleConfiguration</code>, <code>GlassRenderer</code>, <code>GlassRendererCache</code>, retained-output methods, delegate and lifecycle hooks</td>
+<td>no public replacement; each <code>hazeGlass</code> node owns and disposes these internal resources</td>
 </tr>
 <tr>
 <td>effect-owned interaction controls</td>

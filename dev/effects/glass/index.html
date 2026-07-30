@@ -985,8 +985,8 @@ the replacement.</p>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="default-style">Default style<a class="headerlink" href="#default-style" title="Permanent link">¶</a></h2>
-<p><code>GlassDefaults.style</code> uses the built-in Haze <code>GlassOptics.Adaptive</code> material and is
-applied automatically when no style or direct property overrides are provided.</p>
+<p><code>GlassDefaults.style</code> uses the built-in Haze <code>GlassOptics.Adaptive</code> material and is evaluated
+before <code>LocalGlassStyle</code> and the modifier's explicit Style.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
@@ -1073,12 +1073,19 @@ Perfetto interpretation.</p>
 not add click handling, focusability, semantics, or keyboard/D-pad activation.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
-<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">pressed</span><span class="w"> </span><span class="p">{}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">1f</span><span class="p">)</span>
+<span class="w">      </span><span class="n">refractionMultiplier</span><span class="p">(</span><span class="m">1.08f</span><span class="p">)</span>
+<span class="w">      </span><span class="n">whitePointDelta</span><span class="p">(</span><span class="m">0.04f</span><span class="p">)</span>
+<span class="w">      </span><span class="n">scale</span><span class="p">(</span><span class="m">0.98f</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>hovered()</code>, <code>focused()</code>, and <code>pressed()</code> enable their respective default visual responses.
-<code>interactable()</code> enables all three. To make focus and keyboard/D-pad activation useful, retain one
-<code>MutableInteractionSource</code> and share it with both the glass effect and your behavior modifiers:</p>
+<p>Declare only the states and response channels the material needs. To make focus and keyboard/D-pad
+activation useful, retain one <code>MutableInteractionSource</code> and share it with both the glass effect
+and your behavior modifiers:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">MutableInteractionSource</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 
 <span class="n">Modifier</span>
@@ -1088,9 +1095,12 @@ not add click handling, focusability, semantics, or keyboard/D-pad activation.</
 <span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">    </span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span>
 <span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">hovered</span><span class="w"> </span><span class="p">{}</span>
-<span class="w">      </span><span class="n">focused</span><span class="w"> </span><span class="p">{}</span>
-<span class="w">      </span><span class="n">pressed</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">      </span><span class="n">hovered</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">0.35f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w">      </span><span class="n">focused</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">0.35f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w">      </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">1f</span><span class="p">)</span>
+<span class="w">        </span><span class="n">scale</span><span class="p">(</span><span class="m">0.98f</span><span class="p">)</span>
+<span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">},</span>
 <span class="w">  </span><span class="p">)</span>
 </code></pre></div>
@@ -1101,18 +1111,22 @@ block to own the arrival and departure animation specs respectively; entering or
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">animate</span><span class="p">(</span>
-<span class="w">      </span><span class="n">toSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassDefaults</span><span class="p">.</span><span class="na">pressAnimationSpec</span><span class="p">,</span>
-<span class="w">      </span><span class="n">fromSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassDefaults</span><span class="p">.</span><span class="na">releaseAnimationSpec</span><span class="p">,</span>
+<span class="w">      </span><span class="n">toSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spring</span><span class="p">(</span><span class="n">dampingRatio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.82f</span><span class="p">,</span><span class="w"> </span><span class="n">stiffness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Spring</span><span class="p">.</span><span class="na">StiffnessMedium</span><span class="p">),</span>
+<span class="w">      </span><span class="n">fromSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spring</span><span class="p">(</span>
+<span class="w">        </span><span class="n">dampingRatio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.72f</span><span class="p">,</span>
+<span class="w">        </span><span class="n">stiffness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Spring</span><span class="p">.</span><span class="na">StiffnessMediumLow</span><span class="p">,</span>
+<span class="w">      </span><span class="p">),</span>
 <span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">scale</span><span class="p">(</span><span class="m">0.98f</span><span class="p">)</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>The <code>interactionTransformTarget</code> argument selects whether a response transforms only the material or the
-material and content. <code>interactionTransformPivot</code> selects <code>Pointer</code> or <code>Center</code>. Use
-Omit a state block from a replacement Style to remove it. <code>GlassReducedMotionPolicy.System</code> follows the available system duration scale,
-<code>Reduced</code> snaps lighting and optics while suppressing transforms, and <code>Full</code> forces motion.</p>
+<p>The <code>interactionTransformTarget</code> argument selects whether a response transforms only the material
+or the material and content. <code>interactionTransformPivot</code> selects <code>Pointer</code> or <code>Center</code>. Omit a
+state block from a replacement Style to remove it. <code>GlassReducedMotionPolicy.System</code> follows the
+available system duration scale, <code>Reduced</code> snaps lighting and optics while suppressing transforms,
+and <code>Full</code> forces motion.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
