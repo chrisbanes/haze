@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -242,6 +243,48 @@ class HazeGlassModifierTest : ContextTest() {
     assertThat(second.delegate.configuration.style).isSameInstanceAs(secondStyle)
     assertThat(first.delegate.configuration.interactionSource).isNull()
     assertThat(second.delegate.configuration.interactionSource).isNull()
+  }
+
+  @Test
+  fun reusedStateBackedStyle_replaysInEachNodeWhenSnapshotChanges() = runComposeUiTest {
+    val alpha = mutableFloatStateOf(0.2f)
+    val sharedStyle = GlassStyle { alpha(alpha.floatValue) }
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      Box {
+        repeat(2) {
+          Spacer(
+            Modifier
+              .size(10.dp)
+              .hazeGlass(
+                factory = factory,
+                input = HazeInput.Content,
+                style = sharedStyle,
+                sampling = HazeSampling.Default,
+                expandLayerBounds = true,
+                interactionSource = null,
+              ),
+          )
+        }
+      }
+    }
+    waitForIdle()
+
+    val firstRuntime =
+      (factory.effects[0].delegate.renderer as GlassRenderer).runtimeForTest
+    val secondRuntime =
+      (factory.effects[1].delegate.renderer as GlassRenderer).runtimeForTest
+    assertThat(firstRuntime).isNotSameInstanceAs(secondRuntime)
+    assertThat(firstRuntime.alpha).isEqualTo(0.2f)
+    assertThat(secondRuntime.alpha).isEqualTo(0.2f)
+
+    alpha.floatValue = 0.8f
+    waitForIdle()
+
+    assertThat(factory.effects.size).isEqualTo(2)
+    assertThat(firstRuntime.alpha).isEqualTo(0.8f)
+    assertThat(secondRuntime.alpha).isEqualTo(0.8f)
   }
 }
 

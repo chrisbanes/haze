@@ -967,8 +967,8 @@ public class GlassVisualEffect() :
       if (field !== value) {
         HazeLogger.d(TAG) { "LocalGlassStyle changed. Current: $field. New: $value" }
         field = value
-        updateInheritedStyleValues()
       }
+      updateInheritedStyleValues()
     }
 
   private var inheritedStyleValues: GlassStyleValues =
