@@ -13,7 +13,6 @@ import androidx.compose.ui.geometry.Offset
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
-import dev.chrisbanes.haze.HazeEffectVisualEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.Poko
@@ -104,16 +103,6 @@ internal class GlassNodeConfiguration(
   val interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
 )
 
-internal object GlassHazeEffectFactory :
-  HazeEffectFactory<GlassNodeConfiguration>,
-  HazeEffectVisualEffectFactory<GlassNodeConfiguration> {
-
-  override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> {
-    error("Glass uses the built-in full VisualEffect adapter")
-  }
-
-  override fun createVisualEffect(
-    style: GlassNodeConfiguration,
-    sampling: HazeSampling,
-  ): GlassRuntimeEffect = GlassRuntimeEffect(style)
+internal object GlassHazeEffectFactory : HazeEffectFactory<GlassNodeConfiguration> {
+  override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> = GlassRuntimeEffect()
 }

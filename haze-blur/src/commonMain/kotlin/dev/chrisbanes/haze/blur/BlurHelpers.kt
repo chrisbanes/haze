@@ -5,11 +5,9 @@
 
 package dev.chrisbanes.haze.blur
 
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ClipOp
@@ -25,9 +23,8 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.withGraphicsLayer
 import kotlin.math.max
 
@@ -43,7 +40,7 @@ import kotlin.math.max
  * @param expandedSize Size for drawing (defaults to canvas size)
  * @param mask Optional brush mask to apply to the effect
  */
-internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: VisualEffectContext, offset: Offset = Offset.Zero, expandedSize: Size = this.size, mask: Brush? = null) {
+internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffectRuntimeDrawScope, offset: Offset = Offset.Zero, expandedSize: Size = this.size, mask: Brush? = null) {
   when (colorEffect) {
     is HazeColorEffect.TintBrush -> {
       if (mask != null) {
@@ -120,7 +117,7 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: VisualEf
 }
 
 internal fun DrawScope.createAndDrawScaledContentLayer(
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
   scaleFactor: Float,
   clipToNodeBounds: Boolean,
   backgroundColor: Color,
@@ -155,7 +152,7 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
 }
 
 internal fun DrawScope.createScaledContentLayer(
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
   backgroundColor: Color,
   scaleFactor: Float,
   layerSize: Size,
@@ -181,29 +178,7 @@ internal fun DrawScope.createScaledContentLayer(
     }
 
     scale(scale = scaleFactor, pivot = Offset.Zero) {
-      translate(layerOffset - context.position) {
-        for (area in context.areas) {
-          val position = Snapshot.withoutReadObservation {
-            context.positionOf(area).takeOrElse { Offset.Zero }
-          }
-          translate(position) {
-            // Draw the content into our effect layer. Use withoutReadObservation to avoid
-            // creating snapshot edges — composition-level observation is handled by the node
-            val areaLayer = Snapshot.withoutReadObservation {
-              area.contentLayer
-                ?.takeUnless { it.isReleased }
-                ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
-            }
-
-            if (areaLayer != null) {
-              HazeLogger.d("Blur") { "Drawing HazeArea GraphicsLayer: $areaLayer" }
-              drawLayer(areaLayer)
-            } else {
-              HazeLogger.d("Blur") { "HazeArea GraphicsLayer is not valid" }
-            }
-          }
-        }
-      }
+      with(context) { this@record.drawInput() }
     }
   }
 

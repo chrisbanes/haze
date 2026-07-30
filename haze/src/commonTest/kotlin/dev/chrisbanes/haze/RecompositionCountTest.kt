@@ -38,37 +38,6 @@ class RecompositionCountTest : ContextTest() {
   }
 
   @Test
-  fun positionStrategyChange_causesBoundedRecompositions() = runComposeUiTest {
-    val hazeState = HazeState()
-    val effectCounter = mutableIntStateOf(0)
-    val sourceCounter = mutableIntStateOf(0)
-
-    setContent {
-      RecompositionCounter(sourceCounter) {
-        Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-          RecompositionCounter(effectCounter) {
-            GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
-          }
-        }
-      }
-    }
-    waitForIdle()
-
-    // Reset after initial composition. Safe because SideEffect-based counting
-    // does not read snapshot state during composition.
-    effectCounter.intValue = 0
-    sourceCounter.intValue = 0
-
-    hazeState.positionStrategy = HazePositionStrategy.Screen
-    waitForIdle()
-
-    assertThat(effectCounter.intValue, "effect recompositions")
-      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
-    assertThat(sourceCounter.intValue, "source recompositions")
-      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
-  }
-
-  @Test
   fun addingSourceNode_causesBoundedRecompositions() = runComposeUiTest {
     val hazeState = HazeState()
     val effectCounter = mutableIntStateOf(0)
@@ -82,7 +51,7 @@ class RecompositionCountTest : ContextTest() {
         }
       }
       RecompositionCounter(effectCounter) {
-        GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
+        GradientBox(Modifier.testHazeEffect(hazeState).size(100.dp))
       }
     }
     waitForIdle()
@@ -113,7 +82,7 @@ class RecompositionCountTest : ContextTest() {
         }
       }
       RecompositionCounter(effectCounter) {
-        GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
+        GradientBox(Modifier.testHazeEffect(hazeState).size(100.dp))
       }
     }
     waitForIdle()
@@ -131,42 +100,6 @@ class RecompositionCountTest : ContextTest() {
   }
 
   @Test
-  fun blurEnabledToggle_causesBoundedRecompositions() = runComposeUiTest {
-    val hazeState = HazeState()
-    val effectCounter = mutableIntStateOf(0)
-    val sourceCounter = mutableIntStateOf(0)
-    val blurEnabled = mutableStateOf(true)
-
-    setContent {
-      RecompositionCounter(sourceCounter) {
-        Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-          RecompositionCounter(effectCounter) {
-            GradientBox(
-              Modifier
-                .hazeEffect(hazeState) {
-                  drawContentBehind = blurEnabled.value
-                }
-                .size(100.dp),
-            )
-          }
-        }
-      }
-    }
-    waitForIdle()
-
-    effectCounter.intValue = 0
-    sourceCounter.intValue = 0
-
-    blurEnabled.value = false
-    waitForIdle()
-
-    assertThat(effectCounter.intValue, "effect recompositions after blur toggle")
-      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
-    assertThat(sourceCounter.intValue, "source recompositions after blur toggle")
-      .isLessThanOrEqualTo(RECOMPOSITION_THRESHOLD)
-  }
-
-  @Test
   fun addingEffectNode_doesNotExcessRecomposeSource() = runComposeUiTest {
     val hazeState = HazeState()
     val sourceCounter = mutableIntStateOf(0)
@@ -176,7 +109,7 @@ class RecompositionCountTest : ContextTest() {
       RecompositionCounter(sourceCounter) {
         Box(Modifier.hazeSource(hazeState).size(100.dp)) {
           if (showEffect.value) {
-            GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
+            GradientBox(Modifier.testHazeEffect(hazeState).size(100.dp))
           }
         }
       }
@@ -207,7 +140,7 @@ class RecompositionCountTest : ContextTest() {
         GradientBox(Modifier.hazeSource(hazeState).size(20.dp))
       }
       RecompositionCounter(effectCounter) {
-        GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
+        GradientBox(Modifier.testHazeEffect(hazeState).size(100.dp))
       }
     }
     waitForIdle()
@@ -250,7 +183,7 @@ class RecompositionCountTest : ContextTest() {
         RecompositionCounter(effectCounter) {
           GradientBox(
             Modifier
-              .hazeEffect(hazeState)
+              .testHazeEffect(hazeState)
               .fillMaxWidth()
               .height(56.dp),
           )
@@ -296,7 +229,7 @@ class RecompositionCountTest : ContextTest() {
         RecompositionCounter(effectCounter) {
           GradientBox(
             Modifier
-              .hazeEffect(hazeState)
+              .testHazeEffect(hazeState)
               .fillMaxWidth()
               .height(56.dp),
           )

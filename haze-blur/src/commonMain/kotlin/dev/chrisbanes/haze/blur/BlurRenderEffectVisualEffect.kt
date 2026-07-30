@@ -16,10 +16,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -34,13 +35,13 @@ internal class RenderEffectBlurVisualEffectDelegate(
   private var graphicsContext: GraphicsContext? = null
   private var retainedOutputAvailable: Boolean = false
 
-  override fun DrawScope.draw(context: VisualEffectContext) {
+  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
     // Calculate scaled layer size to detect size changes (needs re-allocation)
     val scaleFactor = blurVisualEffect.resolveInputScaleFactor(context)
     val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {
       Size(it.width.toFloat(), it.height.toFloat())
     }
-    val hasDrawableSourceLayers = context.hasDrawableSourceLayers()
+    val hasDrawableSourceLayers = context.hasDrawableInput
 
     if (!hasDrawableSourceLayers) {
       val retainedLayer = scaledContentLayer
@@ -85,7 +86,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
 
   private fun DrawScope.drawRetainedLayer(
     layer: GraphicsLayer,
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     scaleFactor: Float,
   ) {
     val clip = blurVisualEffect.shouldClipToNodeBounds()
@@ -124,7 +125,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
     releaseRetainedResources()
   }
 
-  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+  override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
     if (level.severity >= TrimMemoryLevel.MODERATE.severity) {
       releaseRetainedResources()
       context.invalidateDraw()
@@ -143,7 +144,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
   }
 
   private fun updateRenderEffectIfDirty(
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     scaleFactor: Float,
   ) {
     // Always resolve the current RenderEffect using the memoized cache keyed by params.
@@ -158,20 +159,11 @@ internal class RenderEffectBlurVisualEffectDelegate(
   }
 }
 
-@OptIn(InternalHazeApi::class)
-private fun VisualEffectContext.hasDrawableSourceLayers(): Boolean {
-  return areas.any { area ->
-    area.contentLayer
-      ?.takeUnless { it.isReleased }
-      ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 } != null
-  }
-}
-
 internal expect fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: RootHazeProgressive,
   contentLayer: GraphicsLayer,
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
 )
 
 internal fun DrawScope.drawProgressiveWithMultipleLayers(

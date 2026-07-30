@@ -16,8 +16,9 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.trace
 import kotlin.math.max
 
@@ -30,7 +31,7 @@ internal class FallbackGlassDelegate(
   private val groupAlpha = RetainedGlassGroupAlphaLayer()
   private var graphicsContext: GraphicsContext? = null
 
-  override fun DrawScope.prepareDraw(context: VisualEffectContext) {
+  override fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) {
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     val style = resolveGlassStyle(effect, size, density, layoutDirection)
@@ -147,7 +148,7 @@ internal class FallbackGlassDelegate(
     )
   }
 
-  override fun DrawScope.draw(context: VisualEffectContext) {
+  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
     val prepared = preparedDraw ?: return
     val style = prepared.style
     val tint = style.tint
@@ -192,7 +193,7 @@ internal class FallbackGlassDelegate(
     }
   }
 
-  override fun DrawScope.drawForeground(context: VisualEffectContext) {
+  override fun DrawScope.drawForeground(context: HazeEffectRuntimeDrawScope) {
     val prepared = preparedDraw ?: return
     val style = prepared.style
     val tint = style.tint
@@ -235,7 +236,7 @@ internal class FallbackGlassDelegate(
     preparedDraw = null
   }
 
-  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+  override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
     if (shouldReleaseRetainedGlass(level)) {
       groupAlpha.release(graphicsContext ?: context.requireGraphicsContext())
       graphicsContext = null

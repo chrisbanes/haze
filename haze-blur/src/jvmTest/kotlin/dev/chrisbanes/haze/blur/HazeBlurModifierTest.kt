@@ -11,10 +11,7 @@ import androidx.compose.runtime.CompositionLocal
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -30,16 +27,14 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeArea
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeSourceRetention
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
-import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.hazeSource
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -125,56 +120,49 @@ class HazeBlurModifierTest {
     val sharedStyle = HazeBlurStyle {
       blurRadius(12.dp)
     }
-    val first = HazeBlurFactory.createVisualEffect(
-      style = sharedStyle,
-      sampling = HazeSampling.Default,
-    ) as BlurHazeEffectFactoryVisualEffect
-    val second = HazeBlurFactory.createVisualEffect(
-      style = sharedStyle,
-      sampling = HazeSampling.Default,
-    ) as BlurHazeEffectFactoryVisualEffect
+    val first = HazeBlurFactory.createRenderer() as BlurVisualEffect
+    val second = HazeBlurFactory.createRenderer() as BlurVisualEffect
+    first.update(TestLifecycleScope, sharedStyle, HazeSampling.Default)
+    second.update(TestLifecycleScope, sharedStyle, HazeSampling.Default)
 
-    assertThat(first.effect).isNotSameInstanceAs(second.effect)
+    assertThat(first).isNotSameInstanceAs(second)
 
-    val firstRuntime = first.effect
-    first.updateStyle(
+    val firstRuntime = first
+    first.update(
+      scope = TestLifecycleScope,
       style = HazeBlurStyle {
         blurRadius(24.dp)
       },
       sampling = HazeSampling.FullResolution,
     )
 
-    assertThat(first.effect).isSameInstanceAs(firstRuntime)
-    assertThat(first.effect.blurRadius).isEqualTo(24.dp)
-    assertThat(second.effect.blurRadius).isEqualTo(12.dp)
+    assertThat(first).isSameInstanceAs(firstRuntime)
+    assertThat(first.blurRadius).isEqualTo(24.dp)
+    assertThat(second.blurRadius).isEqualTo(12.dp)
   }
 
   @Test
   fun detachingOneSharedFactoryRuntime_releasesOnlyThatRuntime() {
     val style = HazeBlurStyle
-    val first = HazeBlurFactory.createVisualEffect(
-      style = style,
-      sampling = HazeSampling.Default,
-    ) as BlurHazeEffectFactoryVisualEffect
-    val second = HazeBlurFactory.createVisualEffect(
-      style = style,
-      sampling = HazeSampling.Default,
-    ) as BlurHazeEffectFactoryVisualEffect
+    val first = HazeBlurFactory.createRenderer() as BlurVisualEffect
+    val second = HazeBlurFactory.createRenderer() as BlurVisualEffect
+    first.update(TestLifecycleScope, style, HazeSampling.Default)
+    second.update(TestLifecycleScope, style, HazeSampling.Default)
     val firstDelegate = ModifierTrackingDelegate()
     val secondDelegate = ModifierTrackingDelegate()
-    first.effect.delegate = firstDelegate
-    second.effect.delegate = secondDelegate
+    first.delegate = firstDelegate
+    second.delegate = secondDelegate
 
-    first.attach(TestVisualEffectContext)
-    second.attach(TestVisualEffectContext)
-    first.detach(TestVisualEffectContext)
+    first.attach(TestLifecycleScope)
+    second.attach(TestLifecycleScope)
+    first.detach()
 
     assertThat(firstDelegate.attachCount).isEqualTo(1)
     assertThat(firstDelegate.detachCount).isEqualTo(1)
     assertThat(secondDelegate.attachCount).isEqualTo(1)
     assertThat(secondDelegate.detachCount).isEqualTo(0)
 
-    second.detach(TestVisualEffectContext)
+    second.detach()
     assertThat(secondDelegate.detachCount).isEqualTo(1)
   }
 }
@@ -189,40 +177,29 @@ private class ModifierTrackingDelegate : BlurVisualEffect.Delegate {
     attachCount++
   }
 
-  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) = Unit
 
   override fun detach() {
     detachCount++
   }
 }
 
-@OptIn(ExperimentalHazeApi::class)
-private data object TestVisualEffectContext : VisualEffectContext {
-  override val position: Offset = Offset.Zero
-  override val size: Size = Size.Zero
-  override val layerSize: Size = Size.Zero
-  override val layerOffset: Offset = Offset.Zero
-  override val rootBounds: Rect = Rect.Zero
-  override val inputScale: HazeInputScale = HazeInputScale.None
-  override val windowId: Any? = null
-  override val areas: List<HazeArea> = emptyList()
-  override val state: HazeState? = null
+@OptIn(InternalHazeApi::class)
+private data object TestLifecycleScope : HazeEffectLifecycleScope {
+  override val modifierSize: Size = Size.Zero
   override val coroutineScope: CoroutineScope = object : CoroutineScope {
     override val coroutineContext: CoroutineContext = EmptyCoroutineContext
   }
 
-  override fun positionOf(area: HazeArea): Offset = area.coordinates.localPosition
-
-  override fun boundsOf(area: HazeArea): Rect? {
-    val position = area.coordinates.localPosition
-    return if (position.isSpecified && area.size.isSpecified) Rect(position, area.size) else null
-  }
-
   override fun requirePlatformContext(): PlatformContext = error("Unused in modifier tests")
   override fun requireDensity(): Density = Density(1f)
-  override fun <T> currentValueOf(local: CompositionLocal<T>): T = error("Unused in modifier tests")
+
+  @Suppress("UNCHECKED_CAST")
+  override fun <T> currentValueOf(local: CompositionLocal<T>): T =
+    if (local === LocalHazeBlurStyle) HazeBlurStyle as T else error("Unused local")
   override fun requireGraphicsContext(): GraphicsContext = error("Unused in modifier tests")
   override fun invalidateDraw() = Unit
+  override fun invalidateLayerBounds() = Unit
 }
 
 @Suppress("unused")

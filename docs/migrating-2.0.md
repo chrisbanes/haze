@@ -176,24 +176,19 @@ Modifier.hazeGlass(
 
 ### Position and geometry
 
-`HazeArea.positionOnScreen` is replaced by `HazeArea.coordinates`. Read
-`coordinates.localPosition` or `coordinates.screenPosition` for the coordinate space you need.
-Custom `VisualEffect` implementations use `VisualEffectContext.position`, `rootBounds`,
-`positionOf(area)`, and `boundsOf(area)`.
+Source areas, coordinates, captured layers, windows, and position strategy are no longer public.
+Custom renderers receive semantic modifier bounds through `HazeEffectDrawScope` and
+`HazeEffectLayoutScope`, and draw the selected input with `drawInput()`.
 
-`HazeState.positionStrategy` defaults to `HazePositionStrategy.Auto`. Override it with `Local` or
-`Screen` only when the host window arrangement requires a fixed coordinate space.
+Source-selection predicates receive only `HazeSourceInfo.key` and `zIndex`. Cross-window coordinate
+selection is handled internally by Haze.
 
-The `VisualEffect.detach` lifecycle method now receives its attached `VisualEffectContext`.
+## Removed compatibility APIs
 
-## Temporary compatibility boundary
-
-`BlurVisualEffect`, `HazeEffectScope.blurEffect`, and legacy lambda-based `hazeEffect` overloads
-remain temporarily available so migration can be staged. They are compatibility APIs, not the
-recommended 2.0 Blur interface, and are scheduled for contraction separately. The sentinel-based
-`HazeBlurStyle(...)` constructors and `HazeBlurDefaults.style(...)` builder are deprecated.
-`HazeBlurStyle.copy` and readable patch properties are removed; use replayable Style blocks and
-`then`.
+`VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, `BlurVisualEffect`,
+`HazeEffectScope.blurEffect`, and the lambda-based `hazeEffect` overloads are removed. The
+sentinel-based `HazeBlurStyle(...)` constructors, `HazeBlurStyle.Unspecified`, and the deprecated
+`HazeBlurDefaults.style(...)` builder are also removed. Use replayable Style blocks and `then`.
 
 ## Complete API mapping
 
@@ -213,29 +208,27 @@ recommended 2.0 Blur interface, and are scheduled for contraction separately. Th
 | `HazeEffectScope.alpha` | `HazeBlurStyle { alpha(...) }` | Values are clamped to `0f..1f`. |
 | `HazeEffectScope.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | State-level Blur enablement is removed. |
 | `HazeEffectScope.inputScale` | `Modifier.hazeBlur(sampling = ...)` | Map `Default`, `None`, `Auto`, and `Fixed` to `Default`, `FullResolution`, `Adaptive`, and `Fixed`. |
-| `HazeEffectScope.drawContentBehind` | `HazeEffectScope.drawContentBehind` | Unchanged on the temporary lambda-based compatibility API. |
-| `HazeEffectScope.clipToAreasBounds` | `HazeEffectScope.clipToAreasBounds` | Unchanged on the temporary lambda-based compatibility API. |
+| `HazeEffectScope.drawContentBehind` | Removed | Custom renderers control their own draw order inside `HazeEffectRenderer.draw`. |
+| `HazeEffectScope.clipToAreasBounds` | Removed | Source geometry is internal. Return required modifier-relative bounds from `calculateLayerBounds`. |
 | `HazeEffectScope.expandLayerBounds` | `Modifier.hazeBlur(expandLayerBounds = ...)` | Non-null and `true` by default. |
-| `HazeEffectScope.forceInvalidateOnPreDraw` | `HazeEffectScope.forceInvalidateOnPreDraw` | Unchanged on the temporary lambda-based compatibility API. |
+| `HazeEffectScope.forceInvalidateOnPreDraw` | Removed | Haze owns source invalidation. |
 | `HazeEffectScope.canDrawArea` | `HazeSourceSelection.where { ... }` | Typed selection exposes immutable `key` and `zIndex` metadata. |
 | `HazeEffectScope.retainOutputWhenSourceUnavailable` | `HazeSourceRetention` | Choose `KeepLastFrame` or `ClearWhenUnavailable`. |
 | `rememberHazeState(blurEnabled)` | `rememberHazeState()` | Put `blurEnabled(...)` in the Style. |
 | `HazeState.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | Configure each effect explicitly. |
 | `HazeState.contentLayer` | Removed | This was an internal detail of the old single-source model. |
-| `HazeState.positionOnScreen` | Removed | Use the position-strategy and coordinate APIs instead. |
-| `HazeArea.positionOnScreen` | `HazeArea.coordinates.localPosition` or `.screenPosition` | Choose the coordinate space required by the caller. |
-| `VisualEffectContext.positionOnScreen` | `VisualEffectContext.position` | Renamed for the selected position strategy. |
-| `VisualEffectContext.rootBoundsOnScreen` | `VisualEffectContext.rootBounds` | Renamed. |
+| `HazeState.positionOnScreen` | Removed | Source geometry is internal. |
+| `HazeEffectFactoryVisualEffect`, `HazeEffectVisualEffectFactory` | Removed | Built-ins use capability-specific `@InternalHazeApi` renderer hooks; there is no third-party full-runtime replacement. |
+| `HazeArea`, `HazeCoordinates`, `HazeSourceNode`, `HazeEffectNode` | Removed from the public API | Haze owns source capture and modifier nodes. |
+| `VisualEffectContext.positionOnScreen` | `HazeEffectDrawScope.modifierBounds` | Custom renderers receive only modifier-relative semantic bounds. |
+| `VisualEffectContext.rootBoundsOnScreen` | Removed | Root and window geometry are internal. |
 | `VisualEffectContext.visualEffect` | Removed | Custom effects read their own properties directly. |
-| `VisualEffect.calculateInputScaleFactor()` | Removed | Use sampling and effect-specific policy. |
-| `VisualEffect.requireInvalidation()` | Removed | Call `VisualEffectContext.invalidateDraw()`. |
-| `VisualEffect.detach()` | `VisualEffect.detach(context)` | Detach receives the attached context. |
-| N/A | `HazeState.positionStrategy` | New; defaults to `HazePositionStrategy.Auto`. |
-| N/A | `rememberHazeState(positionStrategy)` | New optional state-construction parameter. |
-| N/A | `HazeCoordinates` | Stores local and screen positions for each source area. |
-| N/A | `VisualEffectContext.positionOf(area)` / `boundsOf(area)` | Preferred geometry helpers for custom effects. |
+| `VisualEffect.calculateInputScaleFactor()` | `HazeSampling` | Choose default, adaptive, full-resolution, or fixed sampling. |
+| `VisualEffect.requireInvalidation()` | Snapshot state read by `draw` or `calculateLayerBounds` | Haze observes reads in their rendering phase. |
+| `VisualEffect`, `VisualEffectContext`, `InteractiveVisualEffect`, `RetainedOutputVisualEffect`, `VisualEffectRendererFactory`, `VisualEffectTransform` | `HazeEffectFactory` and `HazeEffectRenderer` | Renderer lifecycle and input are opaque and node-owned. |
+| `HazeState.positionStrategy`, `rememberHazeState(positionStrategy)` | Removed | Cross-window position strategy is internal. |
 | `HazeDefaults` Blur values | `HazeBlurDefaults` | Blur defaults moved to `haze-blur`. |
-| `HazeDefaults.drawContentBehind` | `HazeEffectScope.drawContentBehind` | Set directly in the temporary `hazeEffect` compatibility block when needed. |
+| `HazeDefaults.drawContentBehind` | Removed | Custom renderers own draw order; built-ins choose their internal composition. |
 | `HazeStyle` | `HazeBlurStyle` | Renamed, moved, and changed to a replayable Style. |
 | `HazeTint` | `HazeColorEffect` | Renamed and moved to `dev.chrisbanes.haze.blur`. |
 | `dev.chrisbanes.haze.blur.HazeProgressive` | `dev.chrisbanes.haze.HazeProgressive` | The old Blur-package name remains as a deprecated typealias during the v2 alpha cycle. |
@@ -243,9 +236,6 @@ recommended 2.0 Blur interface, and are scheduled for contraction separately. Th
 | `dev.chrisbanes.haze.materials.*` | `dev.chrisbanes.haze.blur.materials.*` | The artifact is now `haze-blur-materials`. |
 | `ExperimentalHazeMaterialsApi` | Removed | Materials APIs no longer require this opt-in. |
 | `HazeDialog` | Regular Compose dialogs | Share one `HazeState` between the source and dialog effect. |
-
-Legacy `HazeEffectScope` properties that are not represented above remain available only through
-the temporary lambda-based compatibility API.
 
 ## Step-by-step migration
 
@@ -261,7 +251,8 @@ the temporary lambda-based compatibility API.
 6. Move input scale, retention, source selection, and layer expansion to `HazeSampling`,
    `HazeSourceRetention`, `HazeSourceSelection`, and `expandLayerBounds`.
 7. Remove `blurEnabled` from `rememberHazeState`; write it in the Style for each effect instead.
-8. Update custom-effect geometry and `detach` overrides using the mappings above.
+8. Replace custom `VisualEffect` implementations with a stateless `HazeEffectFactory` and one
+   node-owned `HazeEffectRenderer` per modifier.
 
 For example:
 
@@ -291,7 +282,7 @@ Haze 2 separates typed, shareable configuration from node-owned rendering resour
 - Every modifier node creates its own `HazeEffectRenderer<Style>`.
 - Replacing a Style reuses that renderer.
 - Replacing the factory or detaching the node disposes its renderer exactly once.
-- `VisualEffect` remains temporarily available for compatibility and built-in adapter plumbing.
+- Source capture, node lifecycle, and built-in capabilities remain internal.
 
 Custom typed effects use the generic modifier rather than `hazeBlur`:
 

@@ -41,9 +41,10 @@ class HazeTest {
             Spacer(
               Modifier
                 .size(30.dp)
-                .hazeEffect(hazeState) {
-                  canDrawArea = { true }
-                },
+                .testHazeEffect(
+                  state = hazeState,
+                  selection = HazeSourceSelection.All,
+                ),
             )
           }
         }

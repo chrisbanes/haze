@@ -15,10 +15,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -29,7 +27,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import assertk.assertThat
@@ -45,19 +42,14 @@ import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeArea
-import dev.chrisbanes.haze.HazeEffectNode
-import dev.chrisbanes.haze.HazeEffectScope
-import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.VisualEffect
-import dev.chrisbanes.haze.VisualEffectContext
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
@@ -69,6 +61,8 @@ import kotlin.test.Test
 )
 class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   private val attachedRuntimes = mutableMapOf<GlassRuntimeEffect, GlassRuntimeEffect>()
+  private val rendererFactories =
+    mutableMapOf<GlassRuntimeEffect, HazeEffectFactory<GlassNodeConfiguration>>()
 
   @Test
   fun alphaZero_clearsRetainedOutputUntilVisibleFrameRefreshesIt() = runComposeUiTest {
@@ -102,10 +96,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Modifier
           .size(120.dp)
           .testTag("glass")
-          .hazeEffect {
-            inputScale = HazeInputScale.None
-            trackRenderer(effect)
-          },
+          .testGlass(effect),
       ) {
         Box(Modifier.fillMaxSize().background(Color.Red))
       }
@@ -128,10 +119,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Modifier
           .size(120.dp)
           .testTag("glass")
-          .hazeEffect {
-            inputScale = HazeInputScale.None
-            trackRenderer(effect)
-          },
+          .testGlass(effect),
       ) {
         Box(Modifier.fillMaxSize().background(Color.Red))
       }
@@ -175,10 +163,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Modifier
           .size(120.dp)
           .testTag("glass")
-          .hazeEffect {
-            inputScale = HazeInputScale.None
-            trackRenderer(effect)
-          },
+          .testGlass(effect),
       ) {
         Box(Modifier.fillMaxSize().background(Color.Red))
       }
@@ -405,10 +390,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       assertThat(delegate.interactionShaderHandle("interactionLightingEffect"))
         .isSameInstanceAs(lightingEffect)
 
-      runtime(effect).onTrimMemory(
-        checkNotNull(runtime(effect).attachedContextForTest),
-        TrimMemoryLevel.UI_HIDDEN,
-      )
+      runtime(effect).onTrimMemory(TrimMemoryLevel.UI_HIDDEN)
       assertThat(delegate.interactionShaderHandleOrNull("interactionOpticalEffect")).isNull()
       assertThat(delegate.interactionShaderHandleOrNull("interactionDetailEffect")).isNull()
       assertThat(delegate.interactionShaderHandleOrNull("interactionLightingEffect")).isNull()
@@ -481,10 +463,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           Modifier
             .fillMaxSize()
             .testTag("glass")
-            .hazeEffect(hazeState) {
-              inputScale = HazeInputScale.None
-              trackRenderer(effect)
-            },
+            .testGlass(effect, input = HazeInput.Sources(hazeState)),
         )
       }
     }
@@ -518,123 +497,6 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
-  fun unchangedSourceSnapshot_matchesContextBeforeMaterializingAreas() = runComposeUiTest {
-    val effect = activeDetailEffect()
-    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
-    waitForIdle()
-
-    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
-    val previousSnapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
-    val context = checkNotNull(runtime(effect).attachedContextForTest)
-    val trackedAreas = SizeReadTrackingList(context.areas)
-    val trackingContext = object : VisualEffectContext by context {
-      override val areas = trackedAreas
-    }
-
-    val sourceState = trackingContext.resolveGlassSourceState(
-      captureScale = previousSnapshot.captureScale,
-      previousSnapshot = previousSnapshot,
-    )
-
-    assertThat(sourceState.snapshot).isSameInstanceAs(previousSnapshot)
-    assertThat(trackedAreas.sizeReadCount).isEqualTo(0)
-  }
-
-  @Test
-  @OptIn(InternalHazeApi::class)
-  fun changedSourceSnapshot_materializesReplacementInOneContextPass() = runComposeUiTest {
-    val effect = activeDetailEffect()
-    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
-    waitForIdle()
-
-    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
-    val previousSnapshot = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
-    val context = checkNotNull(runtime(effect).attachedContextForTest)
-    val changedArea = context.areas.first()
-    val trackedAreas = SizeReadTrackingList(context.areas)
-    val trackingContext = object : VisualEffectContext by context {
-      override val areas = trackedAreas
-
-      override fun contentVersionOf(area: HazeArea): Long? {
-        val version = context.contentVersionOf(area)
-        return if (area === changedArea) version?.plus(1) else version
-      }
-    }
-
-    val sourceState = trackingContext.resolveGlassSourceState(
-      captureScale = previousSnapshot.captureScale,
-      previousSnapshot = previousSnapshot,
-    )
-
-    assertThat(sourceState.snapshot).isNotSameInstanceAs(previousSnapshot)
-    assertThat(trackedAreas.sizeReadCount).isEqualTo(0)
-    assertThat(trackedAreas.iteratorCount).isEqualTo(1)
-  }
-
-  @Test
-  @OptIn(InternalHazeApi::class)
-  fun zeroSizedSource_withRetainedLayerIsNotDrawable() = runComposeUiTest {
-    val hazeState = HazeState()
-    val sourceSize = mutableStateOf(120.dp)
-    val effect = activeDetailEffect()
-    setContent {
-      Box(Modifier.size(120.dp)) {
-        Box(
-          Modifier
-            .size(sourceSize.value)
-            .background(Color.Red)
-            .hazeSource(hazeState),
-        )
-        Box(
-          Modifier
-            .fillMaxSize()
-            .hazeEffect(hazeState) {
-              inputScale = HazeInputScale.None
-              trackRenderer(effect)
-            },
-        )
-      }
-    }
-    waitForIdle()
-
-    val context = checkNotNull(runtime(effect).attachedContextForTest)
-    val area = context.areas.single()
-    val graphicsContext = context.requireGraphicsContext()
-
-    sourceSize.value = 0.dp
-    waitForIdle()
-
-    assertThat(area.size).isEqualTo(Size.Zero)
-    val contentLayerSetter = area.javaClass.declaredMethods
-      .single { it.name.startsWith("setContentLayer") }
-    val retainedLayer = graphicsContext.createGraphicsLayer().apply {
-      record(
-        density = context.requireDensity(),
-        layoutDirection = LayoutDirection.Ltr,
-        size = Size(120f, 120f).roundToIntSize(),
-      ) {}
-    }
-    try {
-      contentLayerSetter.invoke(area, retainedLayer)
-      assertThat(area.contentLayer).isSameInstanceAs(retainedLayer)
-      assertThat(retainedLayer.size.width).isGreaterThan(0)
-      assertThat(context.resolveGlassSourceState(captureScale = 1f).hasDrawableSource).isFalse()
-
-      val sizeSetter = area.javaClass.declaredMethods
-        .single { it.name.startsWith("setSize") }
-      val unspecifiedSize = Size::class.java.declaredMethods
-        .single { it.name == "unbox-impl" }
-        .invoke(Size.Unspecified)
-      sizeSetter.invoke(area, unspecifiedSize)
-      assertThat(area.size).isEqualTo(Size.Unspecified)
-      assertThat(context.resolveGlassSourceState(captureScale = 1f).hasDrawableSource).isFalse()
-    } finally {
-      contentLayerSetter.invoke(area, null)
-      graphicsContext.releaseGraphicsLayer(retainedLayer)
-    }
-  }
-
-  @Test
   fun activeDetail_recordsAndSurvivesRetainedSourceGap() = runComposeUiTest {
     val hazeState = HazeState()
     val showSource = mutableStateOf(true)
@@ -653,10 +515,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Box(
           Modifier
             .fillMaxSize()
-            .hazeEffect(hazeState) {
-              inputScale = HazeInputScale.None
-              trackRenderer(effect)
-            },
+            .testGlass(effect, input = HazeInput.Sources(hazeState)),
         )
       }
     }
@@ -714,10 +573,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Box(
           Modifier
             .fillMaxSize()
-            .hazeEffect(hazeState) {
-              inputScale = HazeInputScale.None
-              trackRenderer(effect)
-            },
+            .testGlass(effect, input = HazeInput.Sources(hazeState)),
         )
       }
     }
@@ -740,10 +596,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       Box(Modifier.size(120.dp)) {
         Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))
         Box(
-          Modifier.fillMaxSize().hazeEffect(hazeState) {
-            inputScale = HazeInputScale.None
-            trackRenderer(effect)
-          },
+          Modifier.fillMaxSize().testGlass(effect, input = HazeInput.Sources(hazeState)),
         )
       }
     }
@@ -766,10 +619,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       Box(Modifier.size(120.dp)) {
         Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))
         Box(
-          Modifier.fillMaxSize().hazeEffect(hazeState) {
-            inputScale = HazeInputScale.None
-            trackRenderer(effect)
-          },
+          Modifier.fillMaxSize().testGlass(effect, input = HazeInput.Sources(hazeState)),
         )
       }
     }
@@ -797,10 +647,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Box(
           Modifier
             .fillMaxSize()
-            .hazeEffect(hazeState) {
-              inputScale = HazeInputScale.None
-              trackRenderer(effect)
-            },
+            .testGlass(effect, input = HazeInput.Sources(hazeState)),
         )
       }
     }
@@ -819,12 +666,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       RuntimeGlassTestContent(
         effect = effect,
         tag = "glass",
-        inputScale = HazeInputScale.Fixed(0.5f),
+        sampling = HazeSampling.Fixed(0.5f),
       )
     }
     waitForIdle()
 
-    val outputSize = checkNotNull(runtime(effect).attachedContextForTest).size.roundToIntSize()
+    val outputSize = checkNotNull(runtime(effect).attachedContextForTest)
+      .modifierSize
+      .roundToIntSize()
     val groupLayer = checkNotNull((runtime(effect).delegate as RuntimeShaderGlassDelegate).layers.groupAlpha.layer)
     val groupPlan = checkNotNull(runtime(effect).preparedRender).plan.layers.single {
       it.kind == GlassRetainedLayerKind.GroupComposite
@@ -832,30 +681,6 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     assertThat(groupLayer.size).isEqualTo(outputSize)
     assertThat(groupPlan.size).isEqualTo(outputSize)
-  }
-
-  @Test
-  fun initialBlurWorkingSizeSetup_doesNotInvalidateDraw() = runComposeUiTest {
-    val glassEffect = animatedStageEffect().apply { resetDirtyTracker() }
-    val effect = InvalidationTrackingVisualEffect(glassEffect)
-
-    setContent {
-      Box(
-        Modifier
-          .size(120.dp)
-          .hazeEffect {
-            inputScale = HazeInputScale.None
-            visualEffect = effect
-          },
-      ) {
-        Box(Modifier.fillMaxSize().background(Color.Red))
-      }
-    }
-    waitForIdle()
-
-    val delegate = glassEffect.delegate as RuntimeShaderGlassDelegate
-    assertThat(effect.invalidateDrawCalls).isEqualTo(0)
-    assertThat(delegate.canDrawRetainedOutput()).isTrue()
   }
 
   @Test
@@ -997,11 +822,27 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     specularIntensity = 0f
   }
 
-  private fun HazeEffectScope.trackRenderer(effect: GlassRuntimeEffect) {
-    visualEffect = effect
-    attachedRuntimes[effect] =
-      ((this as HazeEffectNode).activeVisualEffect as GlassRuntimeEffect)
-  }
+  private fun Modifier.testGlass(
+    effect: GlassRuntimeEffect,
+    input: HazeInput = HazeInput.Content,
+    sampling: HazeSampling = HazeSampling.FullResolution,
+  ): Modifier = hazeGlass(
+    factory = rendererFactories.getOrPut(effect) {
+      HazeEffectFactory {
+        effect.also { attachedRuntimes[effect] = it }
+      }
+    },
+    input = input,
+    style = effect.style,
+    sampling = sampling,
+    expandLayerBounds = true,
+    interactionSource = effect.interactionSource,
+    interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
+    interactionTransformTarget = effect.interactionTransformTarget,
+    interactionTransformPivot = effect.interactionTransformPivot,
+    interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
+    interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
+  )
 
   private fun runtime(effect: GlassRuntimeEffect): GlassRuntimeEffect =
     checkNotNull(attachedRuntimes[effect])
@@ -1015,10 +856,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       Modifier
         .size(120.dp)
         .then(if (tag != null) Modifier.testTag(tag) else Modifier)
-        .hazeEffect {
-          inputScale = HazeInputScale.None
-          trackRenderer(effect)
-        },
+        .testGlass(effect),
     ) {
       Box(Modifier.fillMaxSize().background(Color.Red))
     }
@@ -1047,101 +885,11 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     return field.get(this)
   }
 
-  private class InvalidationTrackingVisualEffect(
-    private val delegate: GlassRuntimeEffect,
-  ) : VisualEffect, RetainedOutputVisualEffect {
-    var invalidateDrawCalls = 0
-      private set
-
-    private var trackingContext: VisualEffectContext? = null
-
-    private fun trackingContext(original: VisualEffectContext): VisualEffectContext {
-      return trackingContext ?: object : VisualEffectContext by original {
-        override fun invalidateDraw() {
-          invalidateDrawCalls++
-          original.invalidateDraw()
-        }
-      }.also { trackingContext = it }
-    }
-
-    override fun DrawScope.prepareDraw(context: VisualEffectContext) {
-      with(delegate) { prepareDraw(trackingContext(context)) }
-    }
-
-    override fun DrawScope.draw(context: VisualEffectContext) {
-      with(delegate) { draw(trackingContext(context)) }
-    }
-
-    override fun DrawScope.drawForeground(context: VisualEffectContext) {
-      with(delegate) { drawForeground(trackingContext(context)) }
-    }
-
-    override fun attach(context: VisualEffectContext) {
-      delegate.attach(trackingContext(context))
-    }
-
-    override fun update(context: VisualEffectContext) {
-      delegate.update(trackingContext(context))
-    }
-
-    override fun detach(context: VisualEffectContext) {
-      delegate.detach(trackingContext(context))
-    }
-
-    override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
-      delegate.onTrimMemory(trackingContext(context), level)
-    }
-
-    override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
-      return delegate.shouldDrawContentBehind(trackingContext(context))
-    }
-
-    override fun shouldClipToNodeBounds(): Boolean = delegate.shouldClipToNodeBounds()
-
-    override fun shouldPreferClipToAreaBounds(): Boolean = delegate.shouldPreferClipToAreaBounds()
-
-    override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-      return delegate.calculateLayerBounds(rect, density)
-    }
-
-    override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean {
-      return delegate.canDrawRetainedOutput(trackingContext(context))
-    }
-
-    override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
-      return delegate.shouldDrawRetainedOutput(trackingContext(context))
-    }
-
-    override fun clearRetainedOutput() {
-      delegate.clearRetainedOutput()
-    }
-  }
-
-  private class SizeReadTrackingList<T>(
-    private val delegate: List<T>,
-  ) : List<T> by delegate {
-    var sizeReadCount: Int = 0
-      private set
-    var iteratorCount: Int = 0
-      private set
-
-    override val size: Int
-      get() {
-        sizeReadCount++
-        return delegate.size
-      }
-
-    override fun iterator(): Iterator<T> {
-      iteratorCount++
-      return delegate.iterator()
-    }
-  }
-
   @Composable
   private fun RuntimeGlassTestContent(
     effect: GlassRuntimeEffect,
     tag: String,
-    inputScale: HazeInputScale = HazeInputScale.None,
+    sampling: HazeSampling = HazeSampling.FullResolution,
   ) {
     val hazeState = remember { HazeState() }
     Box(Modifier.size(120.dp)) {
@@ -1150,10 +898,11 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         Modifier
           .fillMaxSize()
           .testTag(tag)
-          .hazeEffect(hazeState) {
-            this.inputScale = inputScale
-            trackRenderer(effect)
-          },
+          .testGlass(
+            effect = effect,
+            input = HazeInput.Sources(hazeState),
+            sampling = sampling,
+          ),
       )
     }
   }
@@ -1166,10 +915,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       Box(
         Modifier
           .fillMaxSize()
-          .hazeEffect(hazeState) {
-            inputScale = HazeInputScale.None
-            trackRenderer(effect)
-          },
+          .testGlass(effect, input = HazeInput.Sources(hazeState)),
       )
     }
   }

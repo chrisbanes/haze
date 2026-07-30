@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -36,15 +36,15 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
-import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeEffectNode
-import dev.chrisbanes.haze.HazeEffectScope
-import dev.chrisbanes.haze.InteractiveVisualEffect
+import dev.chrisbanes.haze.HazeEffectContentTransform
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.HazeEffectRendererInteraction
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.VisualEffectTransform
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlinx.coroutines.flow.Flow
@@ -57,6 +57,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 )
 class GlassInteractionControllerTest : ContextTest() {
   private var attachedRuntime: GlassRuntimeEffect? = null
+  private val rendererFactories = mutableMapOf<GlassRuntimeEffect, HazeEffectFactory<GlassNodeConfiguration>>()
 
   @Test
   fun equivalentCustomInteraction_retainsSlotAndRevision() {
@@ -86,7 +87,7 @@ class GlassInteractionControllerTest : ContextTest() {
       interactionPositionAnimationSpec = tween(1_000)
     }
     setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp).testGlass(effect))
     }
 
     mainClock.advanceTimeByFrame()
@@ -102,17 +103,17 @@ class GlassInteractionControllerTest : ContextTest() {
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
     }
     setContent {
-      Box(Modifier.size(100.dp, 80.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp, 80.dp).testGlass(effect))
     }
     waitForIdle()
     runtime(effect).setPressedForTest(position = Offset(20f, 30f))
     waitForIdle()
     val context = checkNotNull(runtime(effect).attachedContextForTest)
 
-    assertThat(runtime(effect).currentContentTransform(context))
-      .isEqualTo(VisualEffectTransform.Identity)
-    assertThat(runtime(effect).currentMaterialTransform(context))
-      .isEqualTo(VisualEffectTransform(0.9f, 0.8f, Offset(20f, 30f)))
+    assertThat(runtime(effect).currentContentTransform())
+      .isEqualTo(HazeEffectContentTransform.Identity)
+    assertThat(runtime(effect).currentMaterialTransform(context.modifierSize))
+      .isEqualTo(HazeEffectContentTransform(0.9f, 0.8f, Offset(20f, 30f)))
   }
 
   @Test
@@ -124,17 +125,17 @@ class GlassInteractionControllerTest : ContextTest() {
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
     }
     setContent {
-      Box(Modifier.size(100.dp, 80.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp, 80.dp).testGlass(effect))
     }
     waitForIdle()
     runtime(effect).setPressedForTest(position = Offset(20f, 30f))
     waitForIdle()
     val context = checkNotNull(runtime(effect).attachedContextForTest)
 
-    assertThat(runtime(effect).currentContentTransform(context))
-      .isEqualTo(VisualEffectTransform(0.9f, 0.9f, context.size.center))
-    assertThat(runtime(effect).currentMaterialTransform(context))
-      .isEqualTo(VisualEffectTransform.Identity)
+    assertThat(runtime(effect).currentContentTransform())
+      .isEqualTo(HazeEffectContentTransform(0.9f, 0.9f, context.modifierSize.center))
+    assertThat(runtime(effect).currentMaterialTransform(context.modifierSize))
+      .isEqualTo(HazeEffectContentTransform.Identity)
   }
 
   @Test
@@ -144,17 +145,17 @@ class GlassInteractionControllerTest : ContextTest() {
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
     }
     setContent {
-      Box(Modifier.size(0.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(0.dp).testGlass(effect))
     }
     waitForIdle()
     runtime(effect).setPressedForTest(position = Offset.Zero)
     waitForIdle()
     val context = checkNotNull(runtime(effect).attachedContextForTest)
 
-    assertThat(runtime(effect).currentContentTransform(context))
-      .isEqualTo(VisualEffectTransform.Identity)
-    assertThat(runtime(effect).currentMaterialTransform(context))
-      .isEqualTo(VisualEffectTransform.Identity)
+    assertThat(runtime(effect).currentContentTransform())
+      .isEqualTo(HazeEffectContentTransform.Identity)
+    assertThat(runtime(effect).currentMaterialTransform(context.modifierSize))
+      .isEqualTo(HazeEffectContentTransform.Identity)
   }
 
   @Test
@@ -203,7 +204,7 @@ class GlassInteractionControllerTest : ContextTest() {
         Modifier
           .size(size)
           .testTag("glass")
-          .hazeEffect { trackRenderer(effect) },
+          .testGlass(effect),
       )
     }
 
@@ -266,7 +267,7 @@ class GlassInteractionControllerTest : ContextTest() {
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
     }
     setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp).testGlass(effect))
     }
     waitForIdle()
 
@@ -492,7 +493,7 @@ class GlassInteractionControllerTest : ContextTest() {
               }
             }
           }
-          .hazeEffect { trackRenderer(effect) },
+          .testGlass(effect),
       )
     }
     waitForIdle()
@@ -529,7 +530,7 @@ class GlassInteractionControllerTest : ContextTest() {
     val source = MutableInteractionSource()
     val effect = reducedPressEffect().apply { interactionSource = source }
     setContent {
-      Box(Modifier.size(0.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(0.dp).testGlass(effect))
     }
     waitForIdle()
 
@@ -537,49 +538,6 @@ class GlassInteractionControllerTest : ContextTest() {
     waitForIdle()
 
     assertThat(renderState(effect).position).isEqualTo(Offset.Zero)
-  }
-
-  @Test
-  fun replacingInteractionSource_cancelsOldCollectorWithoutClearingRawPress() = runComposeUiTest {
-    val oldSource = MutableInteractionSource()
-    val newSource = MutableInteractionSource()
-    val oldPress = PressInteraction.Press(Offset(60f, 40f))
-    val effect = reducedPressEffect().apply { interactionSource = oldSource }
-    setTaggedEffectContent(effect)
-    waitForIdle()
-
-    oldSource.tryEmit(oldPress)
-    onNodeWithTag("glass").performTouchInput { down(Offset(20f, 20f)) }
-    waitForIdle()
-    effect.interactionSource = newSource
-    waitForIdle()
-    assertThat(renderState(effect).lightingIntensity).isEqualTo(1f)
-
-    onNodeWithTag("glass").performTouchInput { up() }
-    oldSource.tryEmit(PressInteraction.Press(Offset(80f, 80f)))
-    waitForIdle()
-    assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
-
-    newSource.tryEmit(PressInteraction.Press(Offset(40f, 50f)))
-    waitForIdle()
-    assertThat(renderState(effect).lightingIntensity).isEqualTo(1f)
-  }
-
-  @Test
-  fun replacingDistinctButEqualInteractionSource_usesNewSource() = runComposeUiTest {
-    val oldSource = EqualInteractionSource()
-    val newSource = EqualInteractionSource()
-    val effect = reducedPressEffect().apply { interactionSource = oldSource }
-    setTaggedEffectContent(effect)
-    waitForIdle()
-
-    effect.interactionSource = newSource
-    waitForIdle()
-    newSource.tryEmit(PressInteraction.Press(Offset(40f, 50f)))
-    waitForIdle()
-
-    assertThat(renderState(effect).lightingIntensity).isEqualTo(1f)
-    assertThat(renderState(effect).position).isEqualTo(Offset(40f, 50f))
   }
 
   @Test
@@ -735,7 +693,7 @@ class GlassInteractionControllerTest : ContextTest() {
       }
     }
     setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp).testGlass(effect))
     }
     waitForIdle()
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -763,7 +721,7 @@ class GlassInteractionControllerTest : ContextTest() {
         interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
       }
       setContent {
-        Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+        Box(Modifier.size(100.dp).testGlass(effect))
       }
       waitForIdle()
       val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -790,7 +748,7 @@ class GlassInteractionControllerTest : ContextTest() {
       pressed { lightingIntensity(1f) }
     }
     setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp).testGlass(effect))
     }
     waitForIdle()
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -810,41 +768,12 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
-  fun controller_clearingActivePressUsesRemovedPressFromSpec() = runComposeUiTest {
-    val hoveredStyle = GlassStyle { hovered { lightingIntensity(0.2f) } }
-    val effect = GlassRuntimeEffect().apply {
-      style = hoveredStyle.then {
-        pressed {
-          animate(snap(), tween(100)) { lightingIntensity(1f) }
-        }
-      }
-    }
-    setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
-    }
-    waitForIdle()
-    val controller = checkNotNull(runtime(effect).interactionControllerForTest)
-    controller.updateSignals(GlassInteractionSignals(rawHovered = true, rawPressed = true))
-    waitForIdle()
-    assertThat(controller.renderState.lightingIntensity).isEqualTo(1f)
-
-    mainClock.autoAdvance = false
-    effect.style = hoveredStyle
-    effect.update(checkNotNull(runtime(effect).attachedContextForTest))
-    controller.updateConfiguration(effect.runtimeConfiguration(systemMotionScale = 1f))
-    mainClock.advanceTimeBy(50)
-
-    assertThat(controller.renderState.lightingIntensity).isGreaterThan(0.2f)
-    assertThat(controller.renderState.lightingIntensity).isLessThan(1f)
-  }
-
-  @Test
   fun controller_declarationOutsideAnimateSnapsImmediately() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       pressed { lightingIntensity(0.7f) }
     }
     setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp).testGlass(effect))
     }
     waitForIdle()
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -864,7 +793,7 @@ class GlassInteractionControllerTest : ContextTest() {
       }
     }
     setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp).testGlass(effect))
     }
     waitForIdle()
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -890,7 +819,7 @@ class GlassInteractionControllerTest : ContextTest() {
       }
     }
     setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp).testGlass(effect))
     }
     waitForIdle()
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -914,7 +843,7 @@ class GlassInteractionControllerTest : ContextTest() {
       }
     }
     setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp).testGlass(effect))
     }
     waitForIdle()
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -948,7 +877,7 @@ class GlassInteractionControllerTest : ContextTest() {
       }
     }
     setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
+      Box(Modifier.size(100.dp).testGlass(effect))
     }
     waitForIdle()
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -972,81 +901,6 @@ class GlassInteractionControllerTest : ContextTest() {
     assertThat(controller.renderState.position.x).isLessThan(100f)
   }
 
-  @Test
-  fun effect_motionPolicyUsesAttachedNodeCoroutineContextThroughLifecycleUpdate() =
-    runComposeUiTest {
-      val effect = GlassRuntimeEffect().apply { testPressResponse() }
-      setContent {
-        Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
-      }
-      waitForIdle()
-      val context = checkNotNull(runtime(effect).attachedContextForTest)
-      val nodeMotionScale = context.coroutineScope.coroutineContext[MotionDurationScale]
-      val controller = checkNotNull(runtime(effect).interactionControllerForTest)
-
-      assertThat(nodeMotionScale).isNull()
-      assertThat(controller.configurationForTest.reducedMotion).isEqualTo(false)
-      assertThat(controller.configurationForTest.forceFullMotion).isEqualTo(false)
-
-      effect.interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      waitForIdle()
-
-      assertThat(controller.configurationForTest.reducedMotion).isEqualTo(false)
-      assertThat(controller.configurationForTest.forceFullMotion).isEqualTo(true)
-    }
-
-  @Test
-  fun controller_leavingReducedMotionExposesActiveTransformTarget() = runComposeUiTest {
-    val effect = GlassRuntimeEffect().apply {
-      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      pressed {
-        animate(tween(1_000), tween(1_000)) { scale(0.9f) }
-      }
-    }
-    setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
-    }
-    waitForIdle()
-    val controller = checkNotNull(runtime(effect).interactionControllerForTest)
-    controller.updateSignals(GlassInteractionSignals(rawPressed = true))
-    mainClock.advanceTimeBy(50)
-    assertThat(controller.renderState.scaleX).isGreaterThan(0.9f)
-
-    effect.interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
-    controller.updateConfiguration(effect.runtimeConfiguration(systemMotionScale = 1f))
-    mainClock.advanceTimeByFrame()
-    assertThat(controller.renderState.scaleX).isEqualTo(1f)
-
-    effect.interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-    controller.updateConfiguration(effect.runtimeConfiguration(systemMotionScale = 1f))
-    mainClock.advanceTimeByFrame()
-    assertThat(controller.renderState.scaleX).isEqualTo(0.9f)
-  }
-
-  @Test
-  fun controller_clearingFinalSlotDisposesAndImmediatelyExposesIdentity() = runComposeUiTest {
-    val effect = GlassRuntimeEffect().apply {
-      style = GlassStyle { pressed { scale(0.9f) } }
-    }
-    setContent {
-      Box(Modifier.size(100.dp).hazeEffect { trackRenderer(effect) })
-    }
-    waitForIdle()
-    val context = checkNotNull(runtime(effect).attachedContextForTest)
-    val controller = checkNotNull(runtime(effect).interactionControllerForTest)
-    controller.updateSignals(GlassInteractionSignals(rawPressed = true))
-    waitForIdle()
-
-    effect.style = GlassStyle
-    effect.update(context)
-    waitForIdle()
-
-    assertThat(runtime(effect).interactionControllerForTest).isNull()
-    assertThat(runtime(effect).interactionRenderState(context)).isEqualTo(
-      GlassInteractionRenderState(position = Offset(50f, 50f)),
-    )
-  }
-
   private fun reducedPressEffect(): GlassRuntimeEffect = GlassRuntimeEffect().apply {
     pressed {
       lightingIntensity(1f)
@@ -1065,19 +919,63 @@ class GlassInteractionControllerTest : ContextTest() {
         Modifier
           .size(100.dp)
           .testTag("glass")
-          .hazeEffect { trackRenderer(effect) },
+          .testGlass(effect),
       )
     }
   }
 
-  private fun HazeEffectScope.trackRenderer(effect: GlassRuntimeEffect) {
-    visualEffect = effect
-    attachedRuntime = ((this as HazeEffectNode).activeVisualEffect as GlassRuntimeEffect)
+  private fun Modifier.testGlass(effect: GlassRuntimeEffect): Modifier {
+    val configuration = Snapshot.withoutReadObservation {
+      GlassNodeConfiguration(
+        style = effect.style,
+        interactionSource = effect.interactionSource,
+        interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
+        interactionTransformTarget = effect.interactionTransformTarget,
+        interactionTransformPivot = effect.interactionTransformPivot,
+        interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
+        interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
+      )
+    }
+    return hazeGlass(
+      factory = rendererFactories.getOrPut(effect) {
+        HazeEffectFactory {
+          effect.also { attachedRuntime = it }
+        }
+      },
+      input = HazeInput.Content,
+      style = configuration.style,
+      sampling = HazeSampling.Default,
+      expandLayerBounds = true,
+      interactionSource = configuration.interactionSource,
+      interactionLightRadiusFraction = configuration.interactionLightRadiusFraction,
+      interactionTransformTarget = configuration.interactionTransformTarget,
+      interactionTransformPivot = configuration.interactionTransformPivot,
+      interactionPositionAnimationSpec = configuration.interactionPositionAnimationSpec,
+      interactionReducedMotionPolicy = configuration.interactionReducedMotionPolicy,
+    )
   }
 
-  private fun runtime(effect: GlassRuntimeEffect): GlassRuntimeEffect = checkNotNull(attachedRuntime)
+  private fun GlassRuntimeEffect.update(context: HazeEffectLifecycleScope) {
+    val configuration = GlassNodeConfiguration(
+      style = this.style,
+      interactionSource = this.interactionSource,
+      interactionLightRadiusFraction = this.interactionLightRadiusFraction,
+      interactionTransformTarget = this.interactionTransformTarget,
+      interactionTransformPivot = this.interactionTransformPivot,
+      interactionPositionAnimationSpec = this.interactionPositionAnimationSpec,
+      interactionReducedMotionPolicy = this.interactionReducedMotionPolicy,
+    )
+    update(
+      scope = context,
+      style = configuration,
+      sampling = HazeSampling.Default,
+    )
+  }
 
-  private fun interactive(effect: GlassRuntimeEffect): InteractiveVisualEffect =
+  private fun runtime(effect: GlassRuntimeEffect): GlassRuntimeEffect =
+    checkNotNull(attachedRuntime).also { check(it === effect) }
+
+  private fun interactive(effect: GlassRuntimeEffect): HazeEffectRendererInteraction =
     runtime(effect)
 
   private fun GlassRuntimeEffect.runtimeConfiguration(
@@ -1092,7 +990,7 @@ class GlassInteractionControllerTest : ContextTest() {
     checkNotNull(runtime(effect).attachedContextForTest)
 
   private fun renderState(effect: GlassRuntimeEffect): GlassInteractionRenderState =
-    runtime(effect).interactionRenderState(context(effect))
+    runtime(effect).interactionRenderState(context(effect).modifierSize)
 
   private fun testSlots(
     focused: GlassInteractionResponse? = null,

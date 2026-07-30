@@ -6,14 +6,9 @@ package dev.chrisbanes.haze.blur
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import dev.chrisbanes.haze.HazeEffectFactory
-import dev.chrisbanes.haze.HazeEffectFactoryVisualEffect
 import dev.chrisbanes.haze.HazeEffectRenderer
-import dev.chrisbanes.haze.HazeEffectVisualEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeSampling
-import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.RetainedOutputVisualEffect
-import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.hazeEffect
 
 /**
@@ -42,35 +37,6 @@ public fun Modifier.hazeBlur(
   expandLayerBounds = expandLayerBounds,
 )
 
-@OptIn(InternalHazeApi::class)
-internal object HazeBlurFactory :
-  HazeEffectFactory<HazeBlurStyle>,
-  HazeEffectVisualEffectFactory<HazeBlurStyle> {
-
-  override fun createRenderer(): HazeEffectRenderer<HazeBlurStyle> {
-    error("Blur uses the built-in full VisualEffect adapter")
-  }
-
-  override fun createVisualEffect(
-    style: HazeBlurStyle,
-    sampling: HazeSampling,
-  ): HazeEffectFactoryVisualEffect<HazeBlurStyle> {
-    return BlurHazeEffectFactoryVisualEffect(
-      BlurVisualEffect().apply {
-        this.style = style
-      },
-    )
-  }
-}
-
-@OptIn(InternalHazeApi::class)
-internal class BlurHazeEffectFactoryVisualEffect(
-  internal val effect: BlurVisualEffect,
-) : HazeEffectFactoryVisualEffect<HazeBlurStyle>,
-  VisualEffect by effect,
-  RetainedOutputVisualEffect by effect {
-
-  override fun updateStyle(style: HazeBlurStyle, sampling: HazeSampling) {
-    effect.style = style
-  }
+internal object HazeBlurFactory : HazeEffectFactory<HazeBlurStyle> {
+  override fun createRenderer(): HazeEffectRenderer<HazeBlurStyle> = BlurVisualEffect()
 }

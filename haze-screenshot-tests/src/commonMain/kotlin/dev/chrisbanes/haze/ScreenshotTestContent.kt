@@ -41,8 +41,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.blur.BlurVisualEffect
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import haze_root.haze_screenshot_tests.generated.resources.Res
@@ -52,8 +53,8 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun CreditCardSample(
-  visualEffect: VisualEffect,
-  visualEffects: List<VisualEffect> = listOf(visualEffect),
+  visualEffect: HazeBlurStyle,
+  visualEffects: List<HazeBlurStyle> = listOf(visualEffect),
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
@@ -140,10 +141,9 @@ internal fun CreditCardGlassSample(
 
 @Composable
 internal fun CreditCardContentBlurring(
-  visualEffect: VisualEffect,
+  visualEffect: HazeBlurStyle,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
-  drawContentBehind: Boolean = false,
-  inputScale: HazeInputScale = HazeInputScale.Default,
+  sampling: HazeSampling = HazeSampling.Default,
 ) {
   Box(Modifier.background(backgroundColors.first())) {
     // Background content
@@ -151,11 +151,11 @@ internal fun CreditCardContentBlurring(
       backgroundColors = backgroundColors,
       modifier = Modifier
         .fillMaxSize()
-        .hazeEffect {
-          this.drawContentBehind = drawContentBehind
-          this.inputScale = inputScale
-          this.visualEffect = visualEffect
-        },
+        .hazeBlur(
+          input = HazeInput.Content,
+          style = visualEffect,
+          sampling = sampling,
+        ),
     )
   }
 }
@@ -179,7 +179,7 @@ internal fun CreditCardGlassContentBlurring(
 
 @Composable
 internal fun SourceTransitionSample(
-  visualEffect: VisualEffect,
+  visualEffect: HazeBlurStyle,
   showSource: Boolean,
 ) {
   val hazeState = rememberHazeState()
@@ -203,9 +203,10 @@ internal fun SourceTransitionSample(
         .align(Alignment.TopCenter)
         .fillMaxWidth()
         .height(176.dp)
-        .hazeEffect(state = hazeState) {
-          this.visualEffect = visualEffect
-        },
+        .hazeBlur(
+          input = HazeInput.Sources(hazeState),
+          style = visualEffect,
+        ),
     ) {
       Text(
         text = "Transition",
@@ -265,7 +266,7 @@ internal fun SourceTransitionGlassSample(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun StickyHeaderListSample(
-  visualEffect: VisualEffect,
+  visualEffect: HazeBlurStyle,
 ) {
   val hazeState = rememberHazeState()
 
@@ -279,10 +280,11 @@ internal fun StickyHeaderListSample(
         modifier = Modifier
           .fillMaxWidth()
           .height(104.dp)
-          .hazeEffect(state = hazeState) {
-            inputScale = HazeInputScale.Auto
-            this.visualEffect = visualEffect
-          },
+          .hazeBlur(
+            input = HazeInput.Sources(hazeState),
+            style = visualEffect,
+            sampling = HazeSampling.Adaptive,
+          ),
       ) {
         Text(
           text = "Header",
@@ -318,13 +320,13 @@ internal fun StickyHeaderListSample(
 
 @Composable
 internal fun CreditCardPagerSample(
-  visualEffects: List<VisualEffect>,
+  visualEffects: List<HazeBlurStyle>,
   pagerPosition: Float,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
   onPagerState: (PagerState) -> Unit = {},
-  onPageComposed: (Int, VisualEffect) -> Unit = { _, _ -> },
+  onPageComposed: (Int, HazeBlurStyle) -> Unit = { _, _ -> },
 ) {
   require(visualEffects.isNotEmpty())
   require(pagerPosition.isFinite() && pagerPosition in 0f..visualEffects.lastIndex.toFloat()) {
@@ -395,7 +397,7 @@ private fun CreditCard(
   index: Int,
   shape: RoundedCornerShape,
   enabled: Boolean,
-  visualEffect: VisualEffect,
+  visualEffect: HazeBlurStyle,
   modifier: Modifier = Modifier,
   baseWidth: Float = .7f,
 ) {
@@ -409,9 +411,10 @@ private fun CreditCard(
       .clip(shape)
       .then(
         if (enabled) {
-          Modifier.hazeEffect(state = hazeState) {
-            this.visualEffect = visualEffect
-          }
+          Modifier.hazeBlur(
+            input = HazeInput.Sources(hazeState),
+            style = visualEffect,
+          )
         } else {
           Modifier
         },
@@ -425,7 +428,7 @@ private fun CreditCard(
 
 @Composable
 fun OverlayingContent(
-  visualEffect: VisualEffect,
+  visualEffect: HazeBlurStyle,
   topOffset: DpOffset = DpOffset.Zero,
 ) {
   val hazeState = rememberHazeState()
@@ -473,16 +476,17 @@ fun OverlayingContent(
           }
         }
         .align(Alignment.Center)
-        .hazeEffect(state = hazeState) {
-          this.visualEffect = visualEffect
-        }
+        .hazeBlur(
+          input = HazeInput.Sources(hazeState),
+          style = visualEffect,
+        )
         .padding(16.dp),
     )
   }
 }
 
 @Composable
-fun ContentAtEdges(visualEffect: VisualEffect) {
+fun ContentAtEdges(visualEffect: HazeBlurStyle) {
   val hazeState = rememberHazeState()
 
   Box(modifier = Modifier.fillMaxSize()) {
@@ -499,9 +503,10 @@ fun ContentAtEdges(visualEffect: VisualEffect) {
       modifier = Modifier
         .align(Alignment.BottomCenter)
         .fillMaxSize()
-        .hazeEffect(state = hazeState) {
-          this.visualEffect = visualEffect
-        },
+        .hazeBlur(
+          input = HazeInput.Sources(hazeState),
+          style = visualEffect,
+        ),
     ) {
       Text(
         text = "Content",
@@ -513,13 +518,15 @@ fun ContentAtEdges(visualEffect: VisualEffect) {
   }
 }
 
-internal fun stickyHeaderBlurVisualEffect(): BlurVisualEffect {
-  return BlurVisualEffect().apply {
-    blurRadius = 24.dp
-    colorEffects = listOf(
-      HazeColorEffect.tint(
-        Color.White.copy(alpha = 0.18f),
-        HazeColorEffect.DefaultBlendMode,
+internal fun stickyHeaderBlurVisualEffect(): HazeBlurStyle {
+  return HazeBlurStyle {
+    blurRadius(24.dp)
+    colorEffects(
+      listOf(
+        HazeColorEffect.tint(
+          Color.White.copy(alpha = 0.18f),
+          HazeColorEffect.DefaultBlendMode,
+        ),
       ),
     )
   }

@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.IntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -79,7 +79,7 @@ private inline fun DrawScope.withLayerPaint(
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal fun DrawScope.createAndDrawScaledContentLayer(
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
   scaleFactor: Float,
   clipToNodeBounds: Boolean,
   backgroundColor: Color,
@@ -115,7 +115,7 @@ internal fun DrawScope.createAndDrawScaledContentLayer(
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal fun DrawScope.createScaledContentLayer(
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
   backgroundColor: Color,
   scaleFactor: Float,
   layerSize: Size,
@@ -138,20 +138,7 @@ internal fun DrawScope.createScaledContentLayer(
     }
 
     scale(scale = scaleFactor, pivot = Offset.Zero) {
-      val effectPosition = context.position
-      translate(layerOffset) {
-        for (area in context.areas) {
-          translate(context.glassSourcePositionOf(area, effectPosition)) {
-            val areaLayer = area.contentLayer
-              ?.takeUnless { it.isReleased }
-              ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
-
-            if (areaLayer != null) {
-              drawLayer(areaLayer)
-            }
-          }
-        }
-      }
+      with(context) { this@record.drawInput() }
     }
   }
 

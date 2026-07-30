@@ -5,30 +5,17 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeArea
-import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.PlatformContext
-import dev.chrisbanes.haze.VisualEffectContext
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import kotlin.test.Test
-import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalHazeApi::class)
 class GlassStyleTest {
@@ -162,54 +149,26 @@ class GlassStyleTest {
     val delegate = RetainedTrackingGlassDelegate()
     effect.delegate = delegate
 
-    assertThat(effect.canDrawRetainedOutput(FakeGlassContext)).isFalse()
-    assertThat(effect.shouldDrawRetainedOutput(FakeGlassContext)).isFalse()
+    assertThat(effect.canDrawRetainedOutput()).isFalse()
+    assertThat(effect.shouldDrawRetainedOutput()).isFalse()
 
     delegate.retainedOutputAvailable = true
 
-    assertThat(effect.canDrawRetainedOutput(FakeGlassContext)).isTrue()
-    assertThat(effect.shouldDrawRetainedOutput(FakeGlassContext)).isTrue()
+    assertThat(effect.canDrawRetainedOutput()).isTrue()
+    assertThat(effect.shouldDrawRetainedOutput()).isTrue()
 
     delegate.retainedOutputAvailable = false
     delegate.pendingRetainedOutput = true
 
-    assertThat(effect.canDrawRetainedOutput(FakeGlassContext)).isFalse()
-    assertThat(effect.shouldDrawRetainedOutput(FakeGlassContext)).isTrue()
+    assertThat(effect.canDrawRetainedOutput()).isFalse()
+    assertThat(effect.shouldDrawRetainedOutput()).isTrue()
 
     effect.clearRetainedOutput()
 
     assertThat(delegate.clearCount).isEqualTo(1)
-    assertThat(effect.canDrawRetainedOutput(FakeGlassContext)).isFalse()
-    assertThat(effect.shouldDrawRetainedOutput(FakeGlassContext)).isFalse()
+    assertThat(effect.canDrawRetainedOutput()).isFalse()
+    assertThat(effect.shouldDrawRetainedOutput()).isFalse()
   }
-}
-
-private data object FakeGlassContext : VisualEffectContext {
-  override val position: Offset = Offset.Zero
-  override val size: Size = Size.Zero
-  override val layerSize: Size = Size.Zero
-  override val layerOffset: Offset = Offset.Zero
-  override val rootBounds: Rect = Rect.Zero
-  override val inputScale: HazeInputScale = HazeInputScale.None
-  override val windowId: Any? = null
-  override val areas: List<HazeArea> = emptyList()
-  override val state: HazeState? = null
-  override val coroutineScope: CoroutineScope = object : CoroutineScope {
-    override val coroutineContext: CoroutineContext = EmptyCoroutineContext
-  }
-
-  override fun positionOf(area: HazeArea): Offset = area.coordinates.localPosition
-
-  override fun boundsOf(area: HazeArea): Rect? {
-    val position = area.coordinates.localPosition
-    return if (position.isSpecified && area.size.isSpecified) Rect(position, area.size) else null
-  }
-
-  override fun requirePlatformContext(): PlatformContext = error("Unused in lifecycle tests")
-  override fun requireDensity(): Density = Density(1f)
-  override fun <T> currentValueOf(local: CompositionLocal<T>): T = error("Unused in lifecycle tests")
-  override fun requireGraphicsContext(): GraphicsContext = error("Unused in lifecycle tests")
-  override fun invalidateDraw() = Unit
 }
 
 private class RetainedTrackingGlassDelegate :
@@ -230,5 +189,5 @@ private class RetainedTrackingGlassDelegate :
     pendingRetainedOutput = false
   }
 
-  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) = Unit
 }

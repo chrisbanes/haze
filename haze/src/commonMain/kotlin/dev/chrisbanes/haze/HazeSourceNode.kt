@@ -35,14 +35,7 @@ internal enum class HazeTraversableNodeKeys {
   Source,
 }
 
-/**
- * The [Modifier.Node] implementation used by [Modifier.hazeSource].
- *
- * This is public API in order to aid custom extensible modifiers, _but_ we reserve the right
- * to be able to change the API in the future, hence why it is marked as experimental forever.
- */
-@ExperimentalHazeApi
-public class HazeSourceNode(
+internal class HazeSourceNode(
   state: HazeState,
   zIndex: Float = 0f,
   key: Any? = null,
@@ -63,13 +56,13 @@ public class HazeSourceNode(
     area.zIndex = zIndex
   }
 
-  public var zIndex: Float = zIndex
+  internal var zIndex: Float = zIndex
     set(value) {
       field = value
       area.zIndex = value
     }
 
-  public var state: HazeState = state
+  internal var state: HazeState = state
     set(value) {
       if (value === field) return
       val attachedToState = area in field.areas
@@ -84,7 +77,7 @@ public class HazeSourceNode(
       }
     }
 
-  public var key: Any?
+  internal var key: Any?
     get() = area.key
     set(value) {
       area.key = value

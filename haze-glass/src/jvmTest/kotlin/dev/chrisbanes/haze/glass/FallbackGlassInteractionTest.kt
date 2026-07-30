@@ -21,9 +21,10 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeEffectNode
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -42,15 +43,27 @@ class FallbackGlassInteractionTest : ContextTest() {
       lightPosition = Offset(80f, 80f)
     }
     lateinit var runtime: GlassRuntimeEffect
+    val factory = HazeEffectFactory<GlassNodeConfiguration> {
+      effect.also { runtime = it }
+    }
     setContent {
       Box(
         Modifier
           .size(100.dp)
           .testTag("glass")
-          .hazeEffect {
-            visualEffect = effect
-            runtime = ((this as HazeEffectNode).activeVisualEffect as GlassRuntimeEffect)
-          }
+          .hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = effect.style,
+            sampling = HazeSampling.Default,
+            expandLayerBounds = true,
+            interactionSource = effect.interactionSource,
+            interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
+            interactionTransformTarget = effect.interactionTransformTarget,
+            interactionTransformPivot = effect.interactionTransformPivot,
+            interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
+            interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
+          )
           .background(Color.Black),
       )
     }

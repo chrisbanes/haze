@@ -7,13 +7,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -615,17 +613,6 @@ internal fun resolveGlassStyle(
       .finiteOr(GlassDefaults.fresnelExponent).coerceAtLeast(0f),
     cornerRadii = cornerRadii,
   )
-}
-
-internal fun buildGlassRenderParams(
-  effect: GlassRuntimeEffect,
-  context: VisualEffectContext,
-  coordinates: GlassCoordinates,
-): GlassRenderParams {
-  val density = context.requireDensity()
-  val layoutDirection = context.currentValueOf(LocalLayoutDirection)
-  val resolvedStyle = resolveGlassStyle(effect, context.size, density, layoutDirection)
-  return buildGlassRenderParams(resolvedStyle, coordinates)
 }
 
 internal fun buildGlassRenderParams(

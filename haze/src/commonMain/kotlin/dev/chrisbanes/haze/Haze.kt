@@ -26,18 +26,14 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 
 @Composable
-public fun rememberHazeState(
-  positionStrategy: HazePositionStrategy = HazePositionStrategy.Auto,
-): HazeState = remember { HazeState() }.apply {
-  this.positionStrategy = positionStrategy
-}
+public fun rememberHazeState(): HazeState = remember { HazeState() }
 
 @Stable
 public class HazeState {
-  public var positionStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Auto)
+  internal var positionStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Auto)
 
   private val _areas = mutableStateListOf<HazeArea>()
-  public val areas: List<HazeArea> get() = _areas
+  internal val areas: List<HazeArea> get() = _areas
 
   internal fun addArea(area: HazeArea) {
     _areas += area
@@ -64,14 +60,14 @@ internal fun resolvePositionStrategy(
 }
 
 @Stable
-public class HazeCoordinates(
+internal class HazeCoordinates(
   localPosition: Offset = Offset.Unspecified,
   screenPosition: Offset = Offset.Unspecified,
 ) {
-  public var localPosition: Offset by mutableStateOf(localPosition)
+  internal var localPosition: Offset by mutableStateOf(localPosition)
     internal set
 
-  public var screenPosition: Offset by mutableStateOf(screenPosition)
+  internal var screenPosition: Offset by mutableStateOf(screenPosition)
     internal set
 
   internal fun positionFor(strategy: HazePositionStrategy): Offset = when (strategy) {
@@ -91,34 +87,24 @@ public class HazeCoordinates(
  * Returns `true` if either [HazeCoordinates.localPosition] or [HazeCoordinates.screenPosition]
  * is [Offset.Unspecified].
  */
-public val HazeCoordinates.isUnspecified: Boolean
+internal val HazeCoordinates.isUnspecified: Boolean
   get() = localPosition.isUnspecified || screenPosition.isUnspecified
 
 @Stable
-public class HazeArea internal constructor() {
+internal class HazeArea {
 
-  public val coordinates: HazeCoordinates = HazeCoordinates()
+  internal val coordinates: HazeCoordinates = HazeCoordinates()
 
-  @Deprecated(
-    message = "Use coordinates.localPosition or VisualEffectContext helpers instead.",
-    replaceWith = ReplaceWith("coordinates.localPosition"),
-  )
-  public var position: Offset
-    get() = coordinates.localPosition
-    internal set(value) {
-      coordinates.localPosition = value
-    }
-
-  public var size: Size by mutableStateOf(Size.Unspecified)
+  internal var size: Size by mutableStateOf(Size.Unspecified)
     internal set
 
-  public var zIndex: Float by mutableFloatStateOf(0f)
+  internal var zIndex: Float by mutableFloatStateOf(0f)
     internal set
 
-  public var key: Any? by mutableStateOf(null)
+  internal var key: Any? by mutableStateOf(null)
     internal set
 
-  public var windowId: Any? = null
+  internal var windowId: Any? = null
     internal set
 
   internal val preDrawListeners = mutableStateSetOf<OnPreDrawListener>()
@@ -128,8 +114,7 @@ public class HazeArea internal constructor() {
    *
    * This is exposed for effect implementations and is not a stable public contract.
    */
-  @InternalHazeApi
-  public var contentLayer: GraphicsLayer? by mutableStateOf(null)
+  internal var contentLayer: GraphicsLayer? by mutableStateOf(null)
     internal set
 
   internal var contentDrawing: Boolean = false
@@ -142,11 +127,10 @@ public class HazeArea internal constructor() {
    */
   internal var contentVersion: Long = 0
 
-  @InternalHazeApi
-  public val isContentDrawing: Boolean
+  internal val isContentDrawing: Boolean
     get() = contentDrawing
 
-  public override fun toString(): String = buildString {
+  override fun toString(): String = buildString {
     append("HazeArea(")
     append("localPosition=${coordinates.localPosition}, ")
     append("screenPosition=${coordinates.screenPosition}, ")

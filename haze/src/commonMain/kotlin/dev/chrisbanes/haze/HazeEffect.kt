@@ -16,120 +16,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.jvm.JvmInline
 
-public interface HazeEffectScope {
-
-  /**
-   * The visual effect implementation used by this node. Clients can replace or configure
-   * the effect directly.
-   */
-  public var visualEffect: VisualEffect
-
-  /**
-   * The input scale policy used to render the effect source.
-   * Defaults to [HazeInputScale.Default], allowing each [VisualEffect] to choose its own policy.
-   *
-   * The content will be scaled by this value in both the x and y dimensions, allowing the blur
-   * effect to be potentially applied over scaled-down content, before being scaled back up
-   * and drawn at the original size.
-   *
-   * Using a value less than 1.0 **may** improve performance, at the sacrifice of
-   * quality and crispness. As always, run your own benchmarks as to whether this
-   * compromise is worth it.
-   *
-   * If you're looking for a good value to experiment with, `0.8` results in a reduction in
-   * total resolution of ~35%, while being visually imperceptible to most people (probably).
-   *
-   * The minimum value I would realistically use is somewhere in the region of
-   * `0.5`, which results in the total pixel count being only 25% of the original content. This
-   * will likely be visually perceptible different to no scaling, but depending on the styling
-   * parameters will still look pleasing to the user.
-   *
-   * The exact performance and quality trade-off of using [inputScale] can vary between devices
-   * and use cases, so you should benchmark it in the context of your own app.
-   */
-  public var inputScale: HazeInputScale
-
-  /**
-   * A block which controls whether this [hazeEffect] should draw the given [HazeArea].
-   *
-   * When null, the default behavior is that this effect only draws areas with [HazeArea.zIndex]
-   * less than the nearest ancestor [hazeSource] modifier's z-index.
-   */
-  @ExperimentalHazeApi
-  public var canDrawArea: ((HazeArea) -> Boolean)?
-
-  /**
-   * Whether to draw the content behind the blurred effect for foreground blurring. This is
-   * sometimes useful when you're using a mask or progressive effect. Defaults to `false`.
-   *
-   * This flag has no effect when used with background blurring.
-   */
-  public var drawContentBehind: Boolean
-
-  /**
-   * Whether the drawn effect should be clipped to the total bounds which cover all of the
-   * areas provided via the [HazeState.areas].
-   *
-   * This defaults to `null` which means that Haze will decide whether to clip or not depending
-   * on other conditions.
-   */
-  public var clipToAreasBounds: Boolean?
-
-  /**
-   * Whether the layer should be expanded on all edges. Defaults to enabled.
-   *
-   * This might sound strange, but when enabled it allows effects to be more
-   * consistent and realistic on the edges, by being able to capture more nearby content.
-   * You may wish to disable this if you find that the effect is drawn in unwanted areas.
-   */
-  public var expandLayerBounds: Boolean?
-
-  /**
-   * Whether this effect may continue drawing its last retained output after all source areas become
-   * unavailable.
-   *
-   * This defaults to `true`, which keeps source transitions visually smooth when source content is
-   * temporarily removed. Set this to `false` for privacy-sensitive surfaces where stale source
-   * pixels must be cleared as soon as there is no source content to draw.
-   *
-   * This only affects effects that support retained output.
-   */
-  public var retainOutputWhenSourceUnavailable: Boolean
-
-  /**
-   * Force draw invalidation from pre-draw events of contributing [HazeArea]s.
-   *
-   * When enabled, Haze will register a pre-draw listener and invalidate this effect node
-   * whenever the source areas are about to be drawn. This helps ensure the effect stays in sync
-   * with rapidly changing or externally-invalidated content.
-   *
-   * Haze automatically enables this for scenarios where it knows we need it:
-   * - The source content is drawn in a different window than this effect (e.g. Dialogs/Popups),
-   *   so it's outside of this node's normal invalidation scope.
-   * - On some older Android versions where invalidation propagation is less reliable.
-   *
-   * However, there may be other use cases where invalidation does not work as expected, and
-   * the [hazeEffect] looks like it is 'stuck' or out of sync. By setting this flag to `true`,
-   * we use the pre-draw listener to force invalidations, and thus should fix the majority
-   * of issues.
-   *
-   * Notes:
-   * - Only has an effect when blurring is enabled.
-   * - May have a performance cost due to additional invalidations from the pre-draw listener.
-   */
-  public var forceInvalidateOnPreDraw: Boolean
-}
-
 /**
  * Input-sampling policies used by the explicit-input [hazeEffect] overload.
- *
- * These values adapt to the existing effect-facing [HazeInputScale] semantics so built-in
- * effects keep their current default and adaptive behavior.
  */
 public sealed interface HazeSampling {
 
   /**
-   * Lets the configured [VisualEffect] choose its input-sampling policy.
+   * Lets the configured renderer choose its input-sampling policy.
    */
   public data object Default : HazeSampling
 
@@ -157,123 +50,6 @@ public sealed interface HazeSampling {
     }
   }
 }
-
-internal fun HazeSampling.toInputScale(): HazeInputScale = when (this) {
-  HazeSampling.Default -> HazeInputScale.Default
-  HazeSampling.FullResolution -> HazeInputScale.None
-  HazeSampling.Adaptive -> HazeInputScale.Auto
-  is HazeSampling.Fixed -> HazeInputScale.Fixed(scale)
-}
-
-/**
- * Input-scale policies used for [HazeEffectScope.inputScale].
- */
-public sealed interface HazeInputScale {
-  /**
-   * Lets the configured [VisualEffect] choose its input scale.
-   *
-   * This object backs the binary-compatible [Companion.Default] property.
-   */
-  public data object EffectDefault : HazeInputScale
-
-  /**
-   * No input scaling. This is functionally the same as `Fixed(1.0f)` and always overrides an
-   * effect's default or automatic policy.
-   */
-  public data object None : HazeInputScale
-
-  /**
-   * Requests the configured effect's automatic input-scaling policy.
-   *
-   * Built-in blur effects choose between `1.0`, `0.8`, and `0.5` using the physical blur radius
-   * and expanded capture-layer area. Built-in Glass effects use their separate Glass-specific
-   * automatic policy. Custom effects receive this value unchanged and define its meaning.
-   * Automatic values and thresholds may change in future releases.
-   */
-  public data object Auto : HazeInputScale
-
-  /**
-   * An input scale which uses a fixed scale factor.
-   * This value always overrides an effect's default or automatic policy.
-   *
-   * @param scale The scale factor, in the range 0 < x <= 1.
-   */
-  @JvmInline
-  public value class Fixed(public val scale: Float) : HazeInputScale {
-    init {
-      require(scale > 0f && scale <= 1f) {
-        "scale needs to be in the range 0 < x <= 1f"
-      }
-    }
-  }
-
-  public companion object {
-    /**
-     * Lets the configured [VisualEffect] choose its input scale.
-     *
-     * Built-in blur effects use an adaptive policy, while built-in Glass effects remain unscaled.
-     * Custom effects receive this value unchanged and may define their own policy. Use [None] when
-     * scaling must be disabled explicitly.
-     */
-    public val Default: HazeInputScale get() = EffectDefault
-  }
-}
-
-/**
- * Draw the 'haze' effect behind the attached node using a pre-configured [VisualEffect].
- *
- * ```
- * Modifier.hazeEffect(state) {
- *   blurEffect {
- *     blurRadius = 20.dp
- *     colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
- *   }
- * }
- * ```
- *
- * @param state The [HazeState] to observe for background content.
- * @param block Optional configuration block for additional effect scope properties.
- */
-@Stable
-public fun Modifier.hazeEffect(
-  state: HazeState?,
-  block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = thenHazeEffect(state = state, block = block)
-
-/**
- * Draw the 'haze' effect, using this node's content as the source, with a pre-configured [VisualEffect].
- *
- * @param block Optional configuration block for additional effect scope properties.
- */
-@Stable
-public fun Modifier.hazeEffect(
-  block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = thenHazeEffect(state = null, block = block)
-
-/**
- * Draw the 'haze' effect using an explicit [input].
- *
- * @param input The content consumed by the configured effect.
- * @param sampling The input-sampling policy. Defaults to the configured effect's policy.
- * @param expandLayerBounds Whether effect-requested layer-bound expansion is enabled.
- * @param block Optional configuration block for the existing visual-effect surface.
- *
- * The structural [input], [sampling], and [expandLayerBounds] values are authoritative over their
- * legacy [HazeEffectScope] equivalents in [block].
- */
-@Stable
-public fun Modifier.hazeEffect(
-  input: HazeInput,
-  sampling: HazeSampling = HazeSampling.Default,
-  expandLayerBounds: Boolean = true,
-  block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = thenHazeEffect(
-  state = (input as? HazeInput.Sources)?.state,
-  explicitInput = input,
-  explicitSampling = sampling,
-  explicitExpandLayerBounds = expandLayerBounds,
-  block = block,
-)
 
 /**
  * Draws a typed custom effect using an explicit [input].
@@ -318,35 +94,6 @@ public fun <Style> Modifier.hazeEffect(
   }
 }
 
-private fun Modifier.thenHazeEffect(
-  state: HazeState?,
-  explicitInput: HazeInput? = null,
-  explicitSampling: HazeSampling? = null,
-  explicitExpandLayerBounds: Boolean? = null,
-  block: (HazeEffectScope.() -> Unit)?,
-): Modifier = composed(
-  "dev.chrisbanes.haze.hazeEffect",
-  state,
-  explicitInput,
-  explicitSampling,
-  explicitExpandLayerBounds,
-  block,
-) {
-  val effect = Modifier then HazeEffectNodeElement(
-    state = state,
-    explicitInput = explicitInput,
-    explicitSampling = explicitSampling,
-    explicitExpandLayerBounds = explicitExpandLayerBounds,
-    block = block,
-    lifecycle = LocalLifecycleOwner.current.lifecycle,
-  )
-  if (state == null) {
-    effect.graphicsLayer() then ForegroundContentInvalidationElement
-  } else {
-    effect
-  }
-}
-
 private class TypedHazeEffectNodeElement<Style>(
   val factory: HazeEffectFactory<Style>,
   val input: HazeInput,
@@ -356,12 +103,10 @@ private class TypedHazeEffectNodeElement<Style>(
   val lifecycle: Lifecycle,
 ) : ModifierNodeElement<HazeEffectNode>() {
 
-  @Suppress("DEPRECATION")
   override fun create(): HazeEffectNode = HazeEffectNode(
     state = (input as? HazeInput.Sources)?.state,
   ).also { node ->
     node.explicitInput = input
-    node.explicitSampling = sampling
     node.explicitExpandLayerBounds = expandLayerBounds
     node.updateTypedEffect(factory, style, sampling)
     node.updateLifecycle(lifecycle)
@@ -369,7 +114,6 @@ private class TypedHazeEffectNodeElement<Style>(
 
   override fun update(node: HazeEffectNode) {
     node.explicitInput = input
-    node.explicitSampling = sampling
     node.explicitExpandLayerBounds = expandLayerBounds
     node.state = (input as? HazeInput.Sources)?.state
     node.updateTypedEffect(factory, style, sampling)
@@ -403,61 +147,6 @@ private class TypedHazeEffectNodeElement<Style>(
     result = 31 * result + (style?.hashCode() ?: 0)
     result = 31 * result + sampling.hashCode()
     result = 31 * result + expandLayerBounds.hashCode()
-    return 31 * result + lifecycle.hashCode()
-  }
-}
-
-private class HazeEffectNodeElement(
-  val state: HazeState?,
-  val explicitInput: HazeInput? = null,
-  val explicitSampling: HazeSampling? = null,
-  val explicitExpandLayerBounds: Boolean? = null,
-  val block: (HazeEffectScope.() -> Unit)? = null,
-  val lifecycle: Lifecycle,
-) : ModifierNodeElement<HazeEffectNode>() {
-
-  @Suppress("DEPRECATION")
-  override fun create(): HazeEffectNode = HazeEffectNode(
-    state = state,
-    block = block,
-  ).also { node ->
-    node.explicitInput = explicitInput
-    node.explicitSampling = explicitSampling
-    node.explicitExpandLayerBounds = explicitExpandLayerBounds
-    node.updateLifecycle(lifecycle)
-  }
-
-  override fun update(node: HazeEffectNode) {
-    node.explicitInput = explicitInput
-    node.explicitSampling = explicitSampling
-    node.explicitExpandLayerBounds = explicitExpandLayerBounds
-    node.state = state
-    node.block = block
-    node.updateLifecycle(lifecycle)
-    node.update()
-  }
-
-  override fun InspectorInfo.inspectableProperties() {
-    name = "HazeEffect"
-  }
-
-  override fun equals(other: Any?): Boolean {
-    if (this === other) return true
-    if (other !is HazeEffectNodeElement) return false
-    return state == other.state &&
-      explicitInput == other.explicitInput &&
-      explicitSampling == other.explicitSampling &&
-      explicitExpandLayerBounds == other.explicitExpandLayerBounds &&
-      block == other.block &&
-      lifecycle === other.lifecycle
-  }
-
-  override fun hashCode(): Int {
-    var result = state?.hashCode() ?: 0
-    result = 31 * result + (explicitInput?.hashCode() ?: 0)
-    result = 31 * result + (explicitSampling?.hashCode() ?: 0)
-    result = 31 * result + (explicitExpandLayerBounds?.hashCode() ?: 0)
-    result = 31 * result + (block?.hashCode() ?: 0)
     return 31 * result + lifecycle.hashCode()
   }
 }

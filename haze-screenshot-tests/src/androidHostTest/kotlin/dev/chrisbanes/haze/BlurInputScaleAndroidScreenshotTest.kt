@@ -19,7 +19,8 @@ import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThanOrEqualTo
-import dev.chrisbanes.haze.blur.BlurVisualEffect
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -32,12 +33,12 @@ class BlurInputScaleAndroidScreenshotTest : ScreenshotTest() {
 
   @Test
   fun progressiveBlur_preservesScreenSpaceRadiusAcrossInputScales() = runScreenshotTest {
-    val effect = BlurVisualEffect().apply {
-      blurRadius = 48.dp
-      noiseFactor = 0f
-      progressive = HazeProgressive.verticalGradient()
+    val effect = HazeBlurStyle {
+      blurRadius(48.dp)
+      noiseFactor(0f)
+      progressive(HazeProgressive.verticalGradient())
     }
-    var inputScale by mutableStateOf<HazeInputScale>(HazeInputScale.None)
+    var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
 
     setContent {
       ScreenshotTheme {
@@ -64,17 +65,18 @@ class BlurInputScaleAndroidScreenshotTest : ScreenshotTest() {
           Box(
             Modifier
               .fillMaxSize()
-              .hazeEffect(hazeState) {
-                this.inputScale = inputScale
-                visualEffect = effect
-              },
+              .hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                style = effect,
+                sampling = sampling,
+              ),
           )
         }
       }
     }
 
     val unscaled = captureRootPixels().snapshot()
-    inputScale = HazeInputScale.Fixed(0.5f)
+    sampling = HazeSampling.Fixed(0.5f)
     waitForIdle()
     val scaled = captureRootPixels().snapshot()
 

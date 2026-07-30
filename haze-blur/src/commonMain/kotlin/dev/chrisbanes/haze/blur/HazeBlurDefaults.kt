@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.HazeBlurDefaults.tint
 
 /**
- * Default values for the [BlurVisualEffect].
+ * Default values for [hazeBlur].
  */
 @Suppress("ktlint:standard:property-naming")
 public object HazeBlurDefaults {
@@ -31,7 +31,7 @@ public object HazeBlurDefaults {
   public const val tintAlpha: Float = 0.7f
 
   /**
-   * Default value for [BlurVisualEffect.blurredEdgeTreatment]
+   * Default edge treatment used by [hazeBlur].
    */
   public val blurredEdgeTreatment: BlurredEdgeTreatment = BlurredEdgeTreatment.Rectangle
 
@@ -64,32 +64,7 @@ public object HazeBlurDefaults {
   )
 
   /**
-   * Default [dev.chrisbanes.haze.blur.HazeBlurStyle] for usage with [BlurVisualEffect].
-   *
-   * @param backgroundColor Color to draw behind the blurred content. Ideally should be opaque
-   * so that the original content is not visible behind. Typically this would be
-   * `MaterialTheme.colorScheme.surface` or similar.
-   * @param tint Default color to tint the blurred content. Should be translucent, otherwise you
-   * will not see the blurred content.
-   * @param blurRadius Radius of the blur.
-   * @param noiseFactor Amount of noise applied to the content, in the range `0f` to `1f`.
-   * Anything outside of that range will be clamped.
-   */
-  @Deprecated("Use HazeBlurDefaults.style.then { ... }")
-  public fun style(
-    backgroundColor: Color,
-    tint: HazeColorEffect = tint(backgroundColor),
-    blurRadius: Dp = this.blurRadius,
-    noiseFactor: Float = this.noiseFactor,
-  ): HazeBlurStyle = style.then {
-    if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
-    if (tint.isSpecified) colorEffects(listOf(tint))
-    blurRadius(blurRadius)
-    noiseFactor(noiseFactor)
-  }
-
-  /**
-   * Default values for [BlurVisualEffect.blurEnabled]. This function only returns `true` on
+   * Default value for Blur enablement. This function only returns `true` on
    * platforms where we know blurring works reliably.
    *
    * This is not the same as everywhere where it technically works. Some platforms may

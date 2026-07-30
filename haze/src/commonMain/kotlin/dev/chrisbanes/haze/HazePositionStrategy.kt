@@ -3,12 +3,7 @@
 
 package dev.chrisbanes.haze
 
-/**
- * Strategy for how Haze calculates positions of source and effect nodes.
- *
- * @see HazeState.positionStrategy
- */
-public enum class HazePositionStrategy {
+internal enum class HazePositionStrategy {
   /**
    * Uses `positionInRoot()` coordinates.
    *

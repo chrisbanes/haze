@@ -43,11 +43,7 @@ public sealed interface HazeBlurStyle {
   public fun then(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
     then(HazeBlurStyle(block))
 
-  public companion object : HazeBlurStyle {
-    /** Compatibility name for the empty Style. */
-    @Deprecated("Use HazeBlurStyle")
-    public val Unspecified: HazeBlurStyle get() = this
-  }
+  public companion object : HazeBlurStyle
 }
 
 @Immutable
@@ -67,43 +63,6 @@ private class RecordedHazeBlurStyle(
 /** Creates an opaque, replayable Blur Style from [block]. */
 public fun HazeBlurStyle(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
   RecordedHazeBlurStyle(recordWrites(block))
-
-/**
- * Compatibility adapter for the pre-2.0 value Style.
- *
- * Sentinel interpretation is deliberately isolated here. New code should use the Style block.
- */
-@Deprecated("Use HazeBlurStyle { ... }")
-public fun HazeBlurStyle(
-  backgroundColor: Color = Color.Unspecified,
-  colorEffects: List<HazeColorEffect>? = null,
-  blurRadius: Dp = Dp.Unspecified,
-  noiseFactor: Float = -1f,
-  fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified,
-): HazeBlurStyle = HazeBlurStyle {
-  if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
-  if (colorEffects != null) colorEffects(colorEffects)
-  if (blurRadius.isSpecified) blurRadius(blurRadius)
-  if (noiseFactor >= 0f) noiseFactor(noiseFactor)
-  if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
-}
-
-/** Compatibility adapter for the singular pre-2.0 color effect constructor. */
-@Deprecated("Use HazeBlurStyle { ... }")
-@Suppress("DEPRECATION")
-public fun HazeBlurStyle(
-  backgroundColor: Color = Color.Unspecified,
-  colorEffect: HazeColorEffect?,
-  blurRadius: Dp = Dp.Unspecified,
-  noiseFactor: Float = -1f,
-  fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified,
-): HazeBlurStyle = HazeBlurStyle(
-  backgroundColor = backgroundColor,
-  colorEffects = colorEffect?.let(::listOf),
-  blurRadius = blurRadius,
-  noiseFactor = noiseFactor,
-  fallbackColorEffect = fallbackColorEffect,
-)
 
 private fun combineHazeBlurStyles(
   first: HazeBlurStyle,

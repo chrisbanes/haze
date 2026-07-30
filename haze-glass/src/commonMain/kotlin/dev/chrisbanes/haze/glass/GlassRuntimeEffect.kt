@@ -24,18 +24,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeEffectFactoryVisualEffect
-import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeEffectContentTransform
+import dev.chrisbanes.haze.HazeEffectDrawScope
+import dev.chrisbanes.haze.HazeEffectLayoutScope
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
+import dev.chrisbanes.haze.HazeEffectRendererInteraction
+import dev.chrisbanes.haze.HazeEffectRendererLifecycle
+import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeSampling
-import dev.chrisbanes.haze.InteractiveVisualEffect
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.RetainedOutputVisualEffect
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.VisualEffect
-import dev.chrisbanes.haze.VisualEffectContext
-import dev.chrisbanes.haze.VisualEffectTransform
 import dev.chrisbanes.haze.trace
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -62,7 +65,7 @@ private class GlassPreparedDrawCacheKey(
   val size: Size,
   val layerSize: Size,
   val layerOffset: Offset,
-  val inputScale: HazeInputScale,
+  val sampling: HazeSampling,
   val density: Density,
   val layoutDirection: LayoutDirection,
   val style: ResolvedGlassStyle?,
@@ -115,10 +118,11 @@ private val IdleInteractionSignals = GlassInteractionSignals()
 @OptIn(InternalHazeApi::class)
 internal class GlassRuntimeEffect() :
   GlassRuntimeState(),
-  VisualEffect,
-  RetainedOutputVisualEffect,
-  InteractiveVisualEffect,
-  HazeEffectFactoryVisualEffect<GlassNodeConfiguration> {
+  HazeEffectRenderer<GlassNodeConfiguration>,
+  HazeEffectRendererLifecycle<GlassNodeConfiguration>,
+  HazeEffectRendererDrawHooks<GlassNodeConfiguration>,
+  HazeEffectRendererRetainedOutput,
+  HazeEffectRendererInteraction {
 
   constructor(configuration: GlassNodeConfiguration) : this() {
     applyConfiguration(configuration)
@@ -126,10 +130,6 @@ internal class GlassRuntimeEffect() :
 
   init {
     onConfigurationChanged = ::onRuntimeConfigurationChanged
-  }
-
-  override fun updateStyle(style: GlassNodeConfiguration, sampling: HazeSampling) {
-    applyConfiguration(style)
   }
 
   private fun applyConfiguration(configuration: GlassNodeConfiguration) {
@@ -144,7 +144,7 @@ internal class GlassRuntimeEffect() :
 
   private var isAttached: Boolean = false
 
-  private var attachedContext: VisualEffectContext? = null
+  private var attachedContext: HazeEffectLifecycleScope? = null
 
   private fun onRuntimeConfigurationChanged(fields: Int) {
     markDirty(fields)
@@ -165,7 +165,7 @@ internal class GlassRuntimeEffect() :
   internal val interactionControllerForTest: GlassInteractionController?
     get() = interactionController
 
-  internal val attachedContextForTest: VisualEffectContext?
+  internal val attachedContextForTest: HazeEffectLifecycleScope?
     get() = attachedContext
 
   internal val currentInteractionState: GlassInteractionRenderState
@@ -260,7 +260,8 @@ internal class GlassRuntimeEffect() :
       }
     }
 
-  override fun attach(context: VisualEffectContext) {
+  override fun attach(scope: HazeEffectLifecycleScope) {
+    val context = scope
     if (!isAttached) {
       isAttached = true
       attachedContext = context
@@ -283,7 +284,7 @@ internal class GlassRuntimeEffect() :
     }
   }
 
-  override fun detach(context: VisualEffectContext) {
+  override fun detach() {
     if (isAttached) {
       interactionController?.dispose()
       interactionController = null
@@ -321,7 +322,13 @@ internal class GlassRuntimeEffect() :
     }
   }
 
-  override fun update(context: VisualEffectContext) {
+  override fun update(
+    scope: HazeEffectLifecycleScope,
+    style: GlassNodeConfiguration,
+    sampling: HazeSampling,
+  ) {
+    val context = scope
+    applyConfiguration(style)
     dirtyTrackerVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
     updateStyleInteractionSlots()
@@ -336,20 +343,21 @@ internal class GlassRuntimeEffect() :
     }
   }
 
-  override fun onPointerEvent(event: PointerEvent, context: VisualEffectContext) {
-    interactionController?.onPointerEvent(event, context.size)
+  override fun onPointerEvent(event: PointerEvent, scope: HazeEffectLifecycleScope) {
+    interactionController?.onPointerEvent(event, scope.modifierSize)
   }
 
-  override fun onCancelPointerInput(context: VisualEffectContext) {
-    interactionController?.cancelPointerInput(context.size)
+  override fun onCancelPointerInput(scope: HazeEffectLifecycleScope) {
+    interactionController?.cancelPointerInput(scope.modifierSize)
   }
 
   internal fun setPressedForTest(position: Offset, pressed: Boolean = true) {
     val context = attachedContext ?: return
-    interactionController?.setRawPressedForTest(pressed, position, context.size)
+    interactionController?.setRawPressedForTest(pressed, position, context.modifierSize)
   }
 
-  override fun DrawScope.prepareDraw(context: VisualEffectContext) {
+  override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
+    val context = this
     trace(GlassTraceSection.Prepare) {
       if (canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
@@ -375,17 +383,17 @@ internal class GlassRuntimeEffect() :
     }
   }
 
-  private fun canReusePreparedDraw(context: VisualEffectContext): Boolean {
+  private fun canReusePreparedDraw(context: HazeEffectRuntimeDrawScope): Boolean {
     val key = preparedDrawCacheKey ?: return false
     val style = resolvedStyleCache ?: return false
-    val interactionState = interactionRenderState(context)
+    val interactionState = interactionRenderState(context.modifierSize)
     return preparedRender != null &&
       (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true &&
       key.dirtyTrackerVersion == dirtyTrackerVersion &&
-      key.size == context.size &&
+      key.size == context.modifierSize &&
       key.layerSize == context.layerSize &&
       key.layerOffset == context.layerOffset &&
-      key.inputScale == context.inputScale &&
+      key.sampling == context.sampling &&
       key.density == context.requireDensity() &&
       key.layoutDirection == context.currentValueOf(LocalLayoutDirection) &&
       key.style === style &&
@@ -393,22 +401,23 @@ internal class GlassRuntimeEffect() :
       key.interactionTopology === interactionTopologySnapshot
   }
 
-  private fun cachePreparedDrawInputs(context: VisualEffectContext) {
+  private fun cachePreparedDrawInputs(context: HazeEffectRuntimeDrawScope) {
     preparedDrawCacheKey = GlassPreparedDrawCacheKey(
       dirtyTrackerVersion = dirtyTrackerVersion,
-      size = context.size,
+      size = context.modifierSize,
       layerSize = context.layerSize,
       layerOffset = context.layerOffset,
-      inputScale = context.inputScale,
+      sampling = context.sampling,
       density = context.requireDensity(),
       layoutDirection = context.currentValueOf(LocalLayoutDirection),
       style = resolvedStyleCache,
-      interactionState = interactionRenderState(context),
+      interactionState = interactionRenderState(context.modifierSize),
       interactionTopology = interactionTopologySnapshot,
     )
   }
 
-  override fun DrawScope.draw(context: VisualEffectContext) {
+  override fun HazeEffectDrawScope.draw(style: GlassNodeConfiguration) {
+    val context = this as HazeEffectRuntimeDrawScope
     try {
       selectDelegateForDraw(context)
       val selectedDelegate = delegate
@@ -426,7 +435,7 @@ internal class GlassRuntimeEffect() :
   }
 
   private fun DrawScope.downgradeRuntimeDelegate(
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     failure: RuntimeShaderRenderEffectException,
   ) {
     runtimeShaderIncompatible = true
@@ -438,21 +447,23 @@ internal class GlassRuntimeEffect() :
     context.invalidateDraw()
   }
 
-  override fun DrawScope.drawForeground(context: VisualEffectContext) {
+  override fun HazeEffectRuntimeDrawScope.drawForeground(style: GlassNodeConfiguration) {
+    val context = this
     withMaterialTransform(context) {
       with(delegate) { drawForeground(context) }
     }
   }
 
-  override fun currentContentTransform(context: VisualEffectContext): VisualEffectTransform {
-    return resolveTransform(context, GlassTransformTarget.MaterialAndContent)
+  override fun currentContentTransform(): HazeEffectContentTransform {
+    val size = attachedContext?.modifierSize ?: return HazeEffectContentTransform.Identity
+    return resolveTransform(size, GlassTransformTarget.MaterialAndContent)
   }
 
-  internal fun currentMaterialTransform(context: VisualEffectContext): VisualEffectTransform {
-    return resolveTransform(context, GlassTransformTarget.MaterialOnly)
+  internal fun currentMaterialTransform(size: Size): HazeEffectContentTransform {
+    return resolveTransform(size, GlassTransformTarget.MaterialOnly)
   }
 
-  override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean {
+  override fun shouldDrawContentBehind(): Boolean {
     return delegate is FallbackGlassDelegate
   }
 
@@ -471,36 +482,35 @@ internal class GlassRuntimeEffect() :
     )
   }
 
-  internal fun interactionRenderState(context: VisualEffectContext): GlassInteractionRenderState {
+  internal fun interactionRenderState(size: Size): GlassInteractionRenderState {
     interactionController?.let { return it.renderState }
-    if (idleInteractionRenderStateSize != context.size) {
-      idleInteractionRenderStateSize = context.size
-      idleInteractionRenderState = GlassInteractionRenderState(position = context.size.center)
+    if (idleInteractionRenderStateSize != size) {
+      idleInteractionRenderStateSize = size
+      idleInteractionRenderState = GlassInteractionRenderState(position = size.center)
     }
     return idleInteractionRenderState
   }
 
   private fun resolveTransform(
-    context: VisualEffectContext,
+    size: Size,
     target: GlassTransformTarget,
-  ): VisualEffectTransform {
-    if (interactionTransformTarget != target) return VisualEffectTransform.Identity
+  ): HazeEffectContentTransform {
+    if (interactionTransformTarget != target) return HazeEffectContentTransform.Identity
     val state = currentInteractionState
-    val size = context.size
-    if (!state.hasTransform || !size.isDrawable()) return VisualEffectTransform.Identity
+    if (!state.hasTransform || !size.isDrawable()) return HazeEffectContentTransform.Identity
     val pivot = when (interactionTransformPivot) {
       GlassTransformPivot.Pointer -> state.position.clampTo(size)
       GlassTransformPivot.Center -> size.center
     }
-    return VisualEffectTransform(state.scaleX, state.scaleY, pivot)
+    return HazeEffectContentTransform(state.scaleX, state.scaleY, pivot)
   }
 
   private inline fun DrawScope.withMaterialTransform(
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     block: DrawScope.() -> Unit,
   ) {
-    val transform = currentMaterialTransform(context)
-    if (transform == VisualEffectTransform.Identity) {
+    val transform = currentMaterialTransform(context.modifierSize)
+    if (transform == HazeEffectContentTransform.Identity) {
       block()
     } else {
       scale(
@@ -512,7 +522,7 @@ internal class GlassRuntimeEffect() :
     }
   }
 
-  private fun syncInteractionController(context: VisualEffectContext) {
+  private fun syncInteractionController(context: HazeEffectLifecycleScope) {
     if (
       interactionSlots.hovered == null &&
       interactionSlots.focused == null &&
@@ -528,22 +538,22 @@ internal class GlassRuntimeEffect() :
       interactionController = it
     }
     controller.updateConfiguration(controllerConfiguration(systemMotionScale(context)))
-    controller.updateInteractionSource(interactionSource, context.size)
+    controller.updateInteractionSource(interactionSource, context.modifierSize)
   }
 
-  private fun systemMotionScale(context: VisualEffectContext): Float {
+  private fun systemMotionScale(context: HazeEffectLifecycleScope): Float {
     return context.coroutineScope.coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
   }
 
-  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
-    delegate.onTrimMemory(context, level)
+  override fun onTrimMemory(level: TrimMemoryLevel) {
+    attachedContext?.let { delegate.onTrimMemory(it, level) }
   }
 
-  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean {
+  override fun canDrawRetainedOutput(): Boolean {
     return (delegate as? RetainedOutputDelegate)?.canDrawRetainedOutput() == true
   }
 
-  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
+  override fun shouldDrawRetainedOutput(): Boolean {
     return (delegate as? RetainedOutputDelegate)?.shouldDrawRetainedOutput() == true
   }
 
@@ -566,21 +576,21 @@ internal class GlassRuntimeEffect() :
     return shouldClipToNodeBoundsCache
   }
 
-  internal fun resolveInputScaleFactor(scale: HazeInputScale): Float = when {
-    scale === HazeInputScale.Auto -> 0.75f
-    scale is HazeInputScale.Fixed -> scale.scale
+  internal fun resolveInputScaleFactor(sampling: HazeSampling): Float = when {
+    sampling === HazeSampling.Adaptive -> 0.75f
+    sampling is HazeSampling.Fixed -> sampling.scale
     else -> 1f
   }
 
-  internal fun resolveGlassRenderBudget(context: VisualEffectContext): GlassRenderBudgetDecision {
+  internal fun resolveGlassRenderBudget(context: HazeEffectRuntimeDrawScope): GlassRenderBudgetDecision {
     return resolveGlassRenderPreparation(context, runtimeShaderSupported = true).decision
   }
 
-  private fun resolvePreparedStyle(context: VisualEffectContext): ResolvedGlassStyle {
+  private fun resolvePreparedStyle(context: HazeEffectRuntimeDrawScope): ResolvedGlassStyle {
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     resolvedStyleCache?.takeIf {
-      resolvedStyleCacheSize == context.size &&
+      resolvedStyleCacheSize == context.modifierSize &&
         resolvedStyleCacheDensity == density &&
         resolvedStyleCacheLayoutDirection == layoutDirection
     }?.let { return it }
@@ -588,23 +598,23 @@ internal class GlassRuntimeEffect() :
     val resolvedStyle = geometrySnapshotObserver?.let { observer ->
       lateinit var observedStyle: ResolvedGlassStyle
       observer.observeReads(styleObservationScope, onObservedStyleChanged) {
-        observedStyle = resolveGlassStyle(this, context.size, density, layoutDirection)
+        observedStyle = resolveGlassStyle(this, context.modifierSize, density, layoutDirection)
       }
       observedStyle
-    } ?: resolveGlassStyle(this, context.size, density, layoutDirection)
+    } ?: resolveGlassStyle(this, context.modifierSize, density, layoutDirection)
 
     return resolvedStyle.also {
       resolvedStyleCache = it
-      resolvedStyleCacheSize = context.size
+      resolvedStyleCacheSize = context.modifierSize
       resolvedStyleCacheDensity = density
       resolvedStyleCacheLayoutDirection = layoutDirection
     }
   }
 
   private fun resolvePreparedInteraction(
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
   ): ResolvedGlassInteraction {
-    val state = interactionRenderState(context)
+    val state = interactionRenderState(context.modifierSize)
     resolvedInteractionCache?.takeIf {
       interactionRenderStateCache === state &&
         interactionRadiusFractionCache == interactionLightRadiusFraction
@@ -648,13 +658,13 @@ internal class GlassRuntimeEffect() :
   }
 
   private fun resolveGlassRenderPreparation(
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     runtimeShaderSupported: Boolean,
   ): GlassRenderPreparation {
-    val requestedScale = resolveInputScaleFactor(context.inputScale)
+    val requestedScale = resolveInputScaleFactor(context.sampling)
     if (
       !requestedScale.isFinite() || requestedScale <= 0f ||
-      !context.size.isDrawable() || !context.layerSize.isDrawable()
+      !context.modifierSize.isDrawable() || !context.layerSize.isDrawable()
     ) {
       clearPreparedRenderCache()
       return updateRenderPreparation(
@@ -672,7 +682,7 @@ internal class GlassRuntimeEffect() :
       budgetKey.style.hasSameBudgetParams(style) &&
       budgetKey.requestedScale == requestedScale &&
       budgetKey.layerSize == context.layerSize &&
-      budgetKey.materialSize == context.size &&
+      budgetKey.materialSize == context.modifierSize &&
       budgetKey.interactionTopology === interactionTopology &&
       budgetKey.interactionRadiusFraction == interaction.radiusFraction
     ) {
@@ -683,7 +693,7 @@ internal class GlassRuntimeEffect() :
         val rawCoordinates = resolveGlassCoordinates(
           layerSize = context.layerSize,
           layerOffset = context.layerOffset,
-          materialSize = context.size,
+          materialSize = context.modifierSize,
           scaleFactor = scaleFactor,
         )
         if (!rawCoordinates.materialSize.isDrawable() || !rawCoordinates.sampleSize.isDrawable()) {
@@ -693,7 +703,7 @@ internal class GlassRuntimeEffect() :
         if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
           return@resolveGlassRenderBudget GlassRetainedLayerPlan(emptyList())
         }
-        val outputSize = context.size.roundToIntSize()
+        val outputSize = context.modifierSize.roundToIntSize()
         val interactionPatchSize = calculateGlassInteractionPatchSize(
           buildGlassRenderParams(style, coordinates),
           radiusFraction = interaction.radiusFraction,
@@ -730,7 +740,7 @@ internal class GlassRuntimeEffect() :
           style = style,
           requestedScale = requestedScale,
           layerSize = context.layerSize,
-          materialSize = context.size,
+          materialSize = context.modifierSize,
           interactionTopology = interactionTopology,
           interactionRadiusFraction = interaction.radiusFraction,
         )
@@ -788,7 +798,7 @@ internal class GlassRuntimeEffect() :
       interactionTopology = interactionTopology,
       interactionRadiusFraction = interaction.radiusFraction,
       alpha = style.alpha,
-      outputSize = context.size.roundToIntSize(),
+      outputSize = context.modifierSize.roundToIntSize(),
       previous = previousPrepared,
     )
     if (!exactPrepared.plan.fitsGlassRenderBudget()) {
@@ -835,7 +845,7 @@ internal class GlassRuntimeEffect() :
   }
 
   internal fun prepareRenderBudget(
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     runtimeShaderSupported: Boolean,
   ): GlassRenderBudgetDecision {
     val previousBudget = preparedRenderBudget
@@ -851,7 +861,7 @@ internal class GlassRuntimeEffect() :
           "Glass render budget selected fallback: ${decision.reason}"
         }
         is GlassRenderBudgetDecision.Runtime -> {
-          val requestedScale = resolveInputScaleFactor(context.inputScale)
+          val requestedScale = resolveInputScaleFactor(context.sampling)
           if (decision.scaleFactor < requestedScale) {
             HazeLogger.d(TAG) {
               "Glass render budget reduced scale from $requestedScale to ${decision.scaleFactor}"
@@ -863,9 +873,13 @@ internal class GlassRuntimeEffect() :
     return preparation.decision
   }
 
-  override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
+  override fun HazeEffectLayoutScope.calculateLayerBounds(style: GlassNodeConfiguration): Rect {
+    return calculateLayerBounds(modifierBounds, this)
+  }
+
+  internal fun calculateLayerBounds(rect: Rect, density: Density): Rect {
     val resolvedStyle = resolveGlassStyle(
-      effect = this,
+      effect = this@GlassRuntimeEffect,
       materialSizePx = rect.size,
       density = density,
       layoutDirection = LayoutDirection.Ltr,
@@ -884,19 +898,19 @@ internal class GlassRuntimeEffect() :
     return rect.inflate(paddingPx)
   }
 
-  override fun shouldPreferClipToAreaBounds(): Boolean = !shouldClipToNodeBounds()
+  override fun shouldPreferClipToInputBounds(): Boolean = !shouldClipToNodeBounds()
 
   private fun maximumInteractionRefractionMultiplier(): Float =
     interactionTopologySnapshot.maxRefractionMultiplier
 
   internal interface Delegate {
     fun attach() = Unit
-    fun DrawScope.prepareDraw(context: VisualEffectContext) = Unit
-    fun DrawScope.draw(context: VisualEffectContext)
-    fun DrawScope.drawForeground(context: VisualEffectContext) = Unit
+    fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) = Unit
+    fun DrawScope.draw(context: HazeEffectRuntimeDrawScope)
+    fun DrawScope.drawForeground(context: HazeEffectRuntimeDrawScope) = Unit
     fun detach() = Unit
     fun release() = detach()
-    fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) = Unit
+    fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) = Unit
   }
 
   internal fun release() {
@@ -921,7 +935,7 @@ internal class GlassRuntimeEffect() :
     }
   }
 
-  private fun DrawScope.selectDelegateForDraw(context: VisualEffectContext) {
+  private fun DrawScope.selectDelegateForDraw(context: HazeEffectRuntimeDrawScope) {
     if (needsDelegateSelection) {
       delegate = updateDelegate()
       needsDelegateSelection = false

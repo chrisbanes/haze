@@ -1,13 +1,12 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
+
 package dev.chrisbanes.haze.blur
 
 import androidx.compose.runtime.CompositionLocal
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.unit.Density
 import assertk.assertThat
@@ -15,34 +14,31 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isTrue
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeArea
-import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.VisualEffectContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
 
-@OptIn(ExperimentalHazeApi::class)
 class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
 
   @Test
   fun renderEffectCache_isOwnedByEachBlurRuntime() {
-    val first = BlurVisualEffect()
-    val second = BlurVisualEffect()
+    val first = HazeBlurFactory.createRenderer() as BlurVisualEffect
+    val second = HazeBlurFactory.createRenderer() as BlurVisualEffect
 
     assertThat(first.renderEffectCache).isNotSameInstanceAs(second.renderEffectCache)
   }
 
   @Test
   fun onTrimMemory_backgroundKeepsRetainedOutputAvailability() {
-    val delegate = RenderEffectBlurVisualEffectDelegate(BlurVisualEffect())
+    val delegate = RenderEffectBlurVisualEffectDelegate(
+      HazeBlurFactory.createRenderer() as BlurVisualEffect,
+    )
     delegate.setPrivateField("retainedOutputAvailable", true)
-    val context = RecordingVisualEffectContext()
+    val context = RecordingLifecycleScope()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.BACKGROUND)
 
@@ -52,10 +48,12 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
 
   @Test
   fun onTrimMemory_moderateClearsRetainedOutputAvailabilityAndInvalidatesDraw() {
-    val delegate = RenderEffectBlurVisualEffectDelegate(BlurVisualEffect())
+    val delegate = RenderEffectBlurVisualEffectDelegate(
+      HazeBlurFactory.createRenderer() as BlurVisualEffect,
+    )
     delegate.setPrivateField("retainedOutputAvailable", true)
     delegate.setPrivateField("lastScaledLayerSize", Size(10f, 10f))
-    val context = RecordingVisualEffectContext()
+    val context = RecordingLifecycleScope()
 
     delegate.onTrimMemory(context, TrimMemoryLevel.MODERATE)
 
@@ -79,27 +77,13 @@ private inline fun <reified T> Any.getPrivateField(name: String): T {
   }
 }
 
-private class RecordingVisualEffectContext : VisualEffectContext {
+private class RecordingLifecycleScope : HazeEffectLifecycleScope {
   var invalidateDrawCalls = 0
     private set
 
-  override val position: Offset = Offset.Zero
-  override val size: Size = Size.Zero
-  override val layerSize: Size = Size.Zero
-  override val layerOffset: Offset = Offset.Zero
-  override val rootBounds: Rect = Rect.Zero
-  override val inputScale: HazeInputScale = HazeInputScale.None
-  override val windowId: Any? = null
-  override val areas: List<HazeArea> = emptyList()
-  override val state: HazeState? = null
+  override val modifierSize: Size = Size.Zero
   override val coroutineScope: CoroutineScope = object : CoroutineScope {
     override val coroutineContext: CoroutineContext = EmptyCoroutineContext
-  }
-
-  override fun positionOf(area: HazeArea): Offset = area.coordinates.localPosition
-  override fun boundsOf(area: HazeArea): Rect? {
-    val position = area.coordinates.localPosition
-    return if (position.isSpecified && area.size.isSpecified) Rect(position, area.size) else null
   }
 
   override fun requirePlatformContext(): PlatformContext = error("Unused in trim-memory tests")
@@ -110,4 +94,6 @@ private class RecordingVisualEffectContext : VisualEffectContext {
   override fun invalidateDraw() {
     invalidateDrawCalls++
   }
+
+  override fun invalidateLayerBounds() = Unit
 }

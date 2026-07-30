@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.blur.hazeBlur
@@ -65,7 +64,7 @@ fun ScaffoldSample(
   navController: NavHostController,
   blurEnabled: Boolean,
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
-  inputScale: HazeInputScale = HazeInputScale.Default,
+  sampling: HazeSampling = HazeSampling.Default,
 ) {
   val hazeState = rememberHazeState()
   val gridState = rememberLazyGridState()
@@ -94,7 +93,7 @@ fun ScaffoldSample(
         modifier = Modifier
           .hazeBlur(
             input = HazeInput.Sources(hazeState),
-            sampling = inputScale.toSampling(),
+            sampling = sampling,
             style = style.then {
               blurEnabled(blurEnabled)
               when (mode) {
@@ -130,7 +129,7 @@ fun ScaffoldSample(
           modifier = Modifier
             .hazeBlur(
               input = HazeInput.Sources(hazeState),
-              sampling = inputScale.toSampling(),
+              sampling = sampling,
               style = style.then { blurEnabled(blurEnabled) },
             )
             .fillMaxWidth(),
@@ -161,13 +160,6 @@ fun ScaffoldSample(
       }
     }
   }
-}
-
-private fun HazeInputScale.toSampling(): HazeSampling = when (this) {
-  HazeInputScale.EffectDefault -> HazeSampling.Default
-  HazeInputScale.None -> HazeSampling.FullResolution
-  HazeInputScale.Auto -> HazeSampling.Adaptive
-  is HazeInputScale.Fixed -> HazeSampling.Fixed(scale)
 }
 
 @Composable

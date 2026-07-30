@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.drawLayer
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.withGraphicsLayer
 
 internal inline fun DrawScope.translate(
@@ -26,7 +26,7 @@ internal inline fun DrawScope.translate(
 @OptIn(ExperimentalHazeApi::class)
 internal inline fun DrawScope.withAlpha(
   alpha: Float,
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
   crossinline block: DrawScope.() -> Unit,
 ) {
   if (alpha < 1f) {
