@@ -120,6 +120,19 @@ Box(
 )
 ```
 
+The default is `HazeSourceRetention.KeepLastFrame`. For privacy-sensitive source content, opt out
+of retaining pixels when the source disappears:
+
+```kotlin
+Modifier.hazeGlass(
+  input = HazeInput.Sources(
+    state = hazeState,
+    retention = HazeSourceRetention.ClearWhenUnavailable,
+  ),
+  style = GlassStyle,
+)
+```
+
 You can select a literal optical configuration when the built-in material does not fit the design:
 
 ```kotlin

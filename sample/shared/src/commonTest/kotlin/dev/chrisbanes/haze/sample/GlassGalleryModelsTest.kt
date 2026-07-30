@@ -10,6 +10,8 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
@@ -60,6 +62,8 @@ class GlassGalleryModelsTest {
     assertThat(GlassLabInteractionMode.Off.style).isEqualTo(GlassStyle)
     assertThat(GlassLabInteractionMode.Pressed.style).isNotEqualTo(GlassStyle)
     assertThat(GlassLabInteractionMode.All.style).isNotEqualTo(GlassStyle)
+    assertThat(GlassLabInteractionMode.All.includesFocusedResponse).isTrue()
+    assertThat(GlassLabInteractionMode.Pressed.includesFocusedResponse).isFalse()
   }
 
   @Test

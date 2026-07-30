@@ -196,12 +196,16 @@ internal enum class GlassLabInteractionMode {
   All,
   ;
 
+  val includesFocusedResponse: Boolean
+    get() = this == All
+
   val style: GlassStyle
     get() = when (this) {
       Off -> GlassStyle
       Pressed -> GlassStyle { pressed {} }
       All -> GlassStyle {
         hovered {}
+        if (includesFocusedResponse) focused {}
         pressed {}
       }
     }
