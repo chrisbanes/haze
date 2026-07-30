@@ -318,7 +318,7 @@ internal fun profilingGlassStyle(
   scenario: GlassProfilingScenario,
   frame: GlassProfilingFrame,
   surfaceSize: Size,
-) : GlassStyle = GlassDefaults.style.then {
+): GlassStyle = GlassDefaults.style.then {
   scenario.opticsOverride?.let(::optics)
   if (scenario.fullChroma) {
     chromaticAberrationMode(ChromaticAberrationMode.Full)
@@ -327,18 +327,22 @@ internal fun profilingGlassStyle(
   if (!scenario.rimEnabled) specularIntensity(0f)
   when (scenario) {
     GlassProfilingScenario.OpticalUpdate -> {
-      lightPosition(Offset(
-        x = surfaceSize.width * frame.lightPosition.x,
-        y = surfaceSize.height * frame.lightPosition.y,
-      ))
+      lightPosition(
+        Offset(
+          x = surfaceSize.width * frame.lightPosition.x,
+          y = surfaceSize.height * frame.lightPosition.y,
+        ),
+      )
     }
     GlassProfilingScenario.DepthUpdate,
     GlassProfilingScenario.BlurUpdate,
     -> {
-      optics((scenario.opticsOverride ?: GlassOptics.Absolute()).copy(
-        depth = frame.depth,
-        blurRadius = frame.blurRadius,
-      ))
+      optics(
+        (scenario.opticsOverride ?: GlassOptics.Absolute()).copy(
+          depth = frame.depth,
+          blurRadius = frame.blurRadius,
+        ),
+      )
     }
     GlassProfilingScenario.EffectAttach,
     GlassProfilingScenario.EffectAttach3,

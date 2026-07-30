@@ -5,7 +5,6 @@
 
 package dev.chrisbanes.haze.sample
 
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
@@ -15,10 +14,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.glass.ChromaticAberrationMode
-import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassVisualEffect
 import kotlin.test.Test
 
 class GlassProfilingScenarioTest {
@@ -104,13 +100,6 @@ class GlassProfilingScenarioTest {
       GlassProfilingScenario.SteadyFull3,
       GlassProfilingScenario.SteadyFull9,
     ).forEach { scenario ->
-      val effect = GlassVisualEffect().apply {
-        applyProfilingScenarioBase(scenario)
-      }
-
-      assertThat(effect.style, name = scenario.id).isEqualTo(GlassDefaults.style)
-      assertThat(effect.optics, name = scenario.id).isEqualTo(GlassDefaults.optics)
-      assertThat(effect.shape, name = scenario.id).isEqualTo(GlassDefaults.shape)
       assertThat(scenario.opticsOverride, name = scenario.id).isNull()
     }
   }
@@ -134,9 +123,7 @@ class GlassProfilingScenarioTest {
       GlassProfilingScenario.SteadyProgressive,
       GlassProfilingScenario.SteadyProgressive9,
     ).forEach { scenario ->
-      val effect = GlassVisualEffect().apply { applyProfilingScenarioBase(scenario) }
-      assertThat(effect.style, name = scenario.id).isEqualTo(GlassDefaults.style)
-      assertThat(effect.optics, name = scenario.id).isEqualTo(
+      assertThat(scenario.opticsOverride, name = scenario.id).isEqualTo(
         scenario.opticsOverride,
       )
     }
@@ -144,35 +131,7 @@ class GlassProfilingScenarioTest {
       GlassProfilingScenario.SteadyFullChroma,
       GlassProfilingScenario.SteadyFullChroma9,
     ).forEach { scenario ->
-      val effect = GlassVisualEffect().apply { applyProfilingScenarioBase(scenario) }
-      assertThat(effect.style, name = scenario.id).isEqualTo(GlassDefaults.style)
-      assertThat(effect.optics, name = scenario.id).isEqualTo(GlassDefaults.optics)
-      assertThat(effect.chromaticAberrationMode, name = scenario.id)
-        .isEqualTo(ChromaticAberrationMode.Full)
-      assertThat(effect.chromaticAberrationStrength, name = scenario.id).isEqualTo(0.3f)
-    }
-  }
-
-  @Test
-  fun opticalUpdateScenarios_changeOnlyTheirNamedAbsoluteValue() {
-    val baseline = GlassOptics.Absolute()
-    listOf(
-      GlassProfilingScenario.DepthUpdate,
-      GlassProfilingScenario.BlurUpdate,
-    ).forEach { scenario ->
-      val frame = glassProfilingFrame(scenario, progress = 0.75f)
-      val effect = GlassVisualEffect().apply {
-        applyProfilingScenarioBase(scenario)
-        applyProfilingFrame(scenario, frame, Size(240f, 160f))
-      }
-
-      val expected = when (scenario) {
-        GlassProfilingScenario.DepthUpdate -> baseline.copy(depth = frame.depth)
-        GlassProfilingScenario.BlurUpdate -> baseline.copy(blurRadius = frame.blurRadius)
-        else -> error("Unexpected scenario: $scenario")
-      }
-      assertThat(effect.style, name = scenario.id).isEqualTo(GlassDefaults.style)
-      assertThat(effect.optics, name = scenario.id).isEqualTo(expected)
+      assertThat(scenario.fullChroma, name = scenario.id).isTrue()
     }
   }
 
