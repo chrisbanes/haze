@@ -374,12 +374,3 @@ public sealed interface HazeColorEffect {
     ): HazeColorEffect = TintBrush(brush, blendMode)
   }
 }
-
-internal inline fun Float.takeOrElse(block: () -> Float): Float =
-  if (this in 0f..1f) this else block()
-
-internal fun Float.normalizeNoiseFactor(): Float = when {
-  this > 1f -> 1f
-  this in 0f..1f -> this
-  else -> -1f
-}
