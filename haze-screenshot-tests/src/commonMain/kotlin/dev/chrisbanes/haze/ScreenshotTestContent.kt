@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.blur.BlurVisualEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import haze_root.haze_screenshot_tests.generated.resources.Res
 import haze_root.haze_screenshot_tests.generated.resources.photo
 import kotlin.math.roundToInt
@@ -88,6 +90,55 @@ internal fun CreditCardSample(
 }
 
 @Composable
+internal fun CreditCardGlassSample(
+  style: GlassStyle,
+  styles: List<GlassStyle> = listOf(style),
+  backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
+  shape: RoundedCornerShape = RoundedCornerShape(16.dp),
+  enabled: Boolean = true,
+  numberCards: Int = 1,
+) {
+  require(styles.size == numberCards)
+  val hazeState = remember { HazeState() }
+
+  Box {
+    CreditCardBackground(
+      backgroundColors = backgroundColors,
+      modifier = Modifier
+        .fillMaxSize()
+        .hazeSource(state = hazeState, zIndex = 0f),
+    )
+
+    repeat(numberCards) { index ->
+      val reverseIndex = numberCards - 1 - index
+      Box(
+        modifier = Modifier
+          .align(Alignment.Center)
+          .fillMaxWidth(.7f - (reverseIndex * 0.05f))
+          .aspectRatio(16 / 9f)
+          .offset { IntOffset(x = 0, y = reverseIndex * -100) }
+          .hazeSource(hazeState, zIndex = 1f + index)
+          .clip(shape)
+          .then(
+            if (enabled) {
+              Modifier.hazeGlass(
+                input = HazeInput.Sources(hazeState),
+                style = styles[index],
+              )
+            } else {
+              Modifier
+            },
+          ),
+      ) {
+        Column(Modifier.padding(32.dp)) {
+          Text("Bank of Haze")
+        }
+      }
+    }
+  }
+}
+
+@Composable
 internal fun CreditCardContentBlurring(
   visualEffect: VisualEffect,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
@@ -106,6 +157,23 @@ internal fun CreditCardContentBlurring(
           this.visualEffect = visualEffect
         },
     )
+  }
+}
+
+@Composable
+internal fun CreditCardGlassContentBlurring(
+  style: GlassStyle,
+  backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
+) {
+  Box(
+    Modifier
+      .background(backgroundColors.first())
+      .hazeGlass(
+        input = HazeInput.Content,
+        style = style,
+      ),
+  ) {
+    CreditCardBackground(backgroundColors = backgroundColors, modifier = Modifier.fillMaxSize())
   }
 }
 
