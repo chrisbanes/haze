@@ -34,6 +34,20 @@ import kotlinx.coroutines.CoroutineScope
 class GlassStyleTest {
 
   @Test
+  fun directInteractionOverride_canClearInheritedStyleResponse() {
+    val effect = GlassVisualEffect().apply {
+      style = GlassStyle { pressed { lightingIntensity(0.8f) } }
+      updateStyleInteractionSlots()
+    }
+    assertThat(effect.resolvedInteractionSlots.pressed?.response?.lightingIntensity?.value)
+      .isEqualTo(0.8f)
+
+    effect.clearPressed()
+
+    assertThat(effect.resolvedInteractionSlots.pressed).isEqualTo(null)
+  }
+
+  @Test
   fun interactionBlocks_chainAndReplacePerState() {
     val style = GlassStyle {
       hovered { lightingIntensity(0.2f) }
