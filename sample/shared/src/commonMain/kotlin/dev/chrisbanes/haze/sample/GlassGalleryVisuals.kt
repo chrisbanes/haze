@@ -36,13 +36,15 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.glass.GlassDefaults
+import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
-import dev.chrisbanes.haze.glass.GlassVisualEffect
-import dev.chrisbanes.haze.glass.glassEffect
+import dev.chrisbanes.haze.glass.GlassTransformPivot
+import dev.chrisbanes.haze.glass.GlassTransformTarget
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.glass.then
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 
 @Composable
@@ -150,21 +152,23 @@ internal fun GlassSurface(
   shape: RoundedCornerShape,
   modifier: Modifier = Modifier,
   interactionSource: InteractionSource? = null,
-  interaction: (GlassVisualEffect.() -> Unit)? = null,
+  interactionStyle: GlassStyle = GlassStyle,
   content: @Composable BoxScope.() -> Unit,
 ) {
   Box(
     modifier = modifier
       // Let Glass own the material silhouette. An outer Compose clip creates a second,
       // independently-rasterized rounded boundary and exposes isolated carrier pixels on Skiko.
-      .hazeEffect(state = hazeState) {
-        glassEffect {
-          this.style = style
-          this.shape = shape
-          this.interactionSource = interactionSource
-          interaction?.invoke(this)
-        }
-      }
+      .hazeGlass(
+        input = HazeInput.Sources(hazeState),
+        style = style.then {
+          this.shape(shape)
+        }.then(interactionStyle),
+        interactionSource = interactionSource,
+        interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
+        interactionTransformPivot = GlassTransformPivot.Pointer,
+        interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
+      )
       // This clip is inside the effect node, so it only constrains foreground content.
       .clip(shape),
     content = content,

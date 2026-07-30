@@ -208,7 +208,10 @@ private fun ProductTopBar(
     style = productGlassStyle(androidx.compose.foundation.isSystemInDarkTheme()),
     shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
     modifier = modifier,
-    interaction = { interactable() },
+    interactionStyle = GlassStyle {
+      hovered {}
+      pressed {}
+    },
   ) {
     Row(
       modifier = Modifier.padding(4.dp),
@@ -290,7 +293,10 @@ private fun ProductActionDock(
     style = productGlassStyle(androidx.compose.foundation.isSystemInDarkTheme()),
     shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
     modifier = modifier,
-    interaction = { interactable() },
+    interactionStyle = GlassStyle {
+      hovered {}
+      pressed {}
+    },
   ) {
     val actions: @Composable () -> Unit = {
       IconButton(onClick = onPrevious) {

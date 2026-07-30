@@ -40,23 +40,22 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 
 ## GlassStyle
 
-Use a `GlassStyle` container to provide a shared `optics` configuration and grouped visual
-styling. The style supports a four-tier precedence chain for each property:
-
-1. Direct property value on the effect (highest priority)
-2. Value set via the `style` parameter
-3. Value from the `LocalGlassStyle` composition local
-4. Default from `GlassDefaults`
+`GlassStyle` is an opaque, replayable appearance program. Create it with a block and compose
+values with `then`; later writes win. A style can be shared by any number of `hazeGlass` nodes:
+each node evaluates defaults, `LocalGlassStyle`, and its explicit style into its own snapshot.
+Replacing a Style through recomposition also removes properties and interaction blocks omitted by
+the replacement.
 
 ```kotlin
-val myStyle = GlassStyle(
-  tint = Color.White.copy(alpha = 0.16f),
-  optics = GlassOptics.Absolute(refractionStrength = 0.8f),
-  shape = RoundedCornerShape(20.dp),
-)
+val baseStyle = GlassStyle {
+  tint(Color.White.copy(alpha = 0.16f))
+  optics(GlassOptics.Absolute(refractionStrength = 0.8f))
+  shape(RoundedCornerShape(20.dp))
+}
+val emphasizedStyle = baseStyle.then { specularIntensity(0.7f) }
 
-CompositionLocalProvider(LocalGlassStyle provides myStyle) {
-  // All Glass effects in this scope will use myStyle as their baseline
+CompositionLocalProvider(LocalGlassStyle provides baseStyle) {
+  // Each node gets a fresh snapshot; an explicit Style is applied last.
 }
 ```
 
@@ -69,9 +68,7 @@ applied automatically when no style or direct property overrides are provided.
 Box(
   Modifier
     .size(180.dp)
-    .hazeEffect(state = hazeState) {
-      glassEffect()
-    }
+    .hazeGlass(input = HazeInput.Sources(hazeState))
 )
 ```
 
@@ -82,20 +79,18 @@ material's size, aspect ratio, and roundness. Use `GlassOptics.Absolute` when yo
 complete literal configuration instead:
 
 ```kotlin
-glassEffect {
-  optics = GlassOptics.Adaptive
-}
+GlassStyle { optics(GlassOptics.Adaptive) }
 ```
 
 ```kotlin
-glassEffect {
-  optics = GlassOptics.Absolute(
+GlassStyle {
+  optics(GlassOptics.Absolute(
     blurRadius = 20.dp,
     refractionStrength = 0.8f,
     refractionHeightFraction = 0.3f,
     refractionDisplacement = 18.dp,
     depth = 0.5f,
-  )
+  ))
 }
 ```
 
@@ -111,30 +106,31 @@ content also needs clipping.
 
 Glass can retain and redraw its last captured output when all source areas disappear. This
 keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.
-For privacy-sensitive surfaces, disable retained output on the shared effect scope:
+The typed modifier preserves Glass's default retained-output policy. Keep source ownership explicit
+with `HazeInput.Sources` so transitions are visible at the call site:
 
 ```kotlin
 Box(
   Modifier
     .size(180.dp)
-    .hazeEffect(state = hazeState) {
-      retainOutputWhenSourceUnavailable = false
-      glassEffect()
-    }
+    .hazeGlass(
+      input = HazeInput.Sources(hazeState),
+      style = GlassStyle,
+    )
 )
 ```
 
 You can select a literal optical configuration when the built-in material does not fit the design:
 
 ```kotlin
-glassEffect {
-  tint = Color.White.copy(alpha = 0.20f)
-  optics = GlassOptics.Absolute(
+GlassStyle {
+  tint(Color.White.copy(alpha = 0.20f))
+  optics(GlassOptics.Absolute(
     progressive = HazeProgressive.verticalGradient(
       startIntensity = 1f,
       endIntensity = 0.25f,
     ),
-  )
+  ))
 }
 ```
 
@@ -163,11 +159,10 @@ Glass interaction is default-disabled and entirely opt-in. It adds a visual resp
 not add click handling, focusability, semantics, or keyboard/D-pad activation.
 
 ```kotlin
-Modifier.hazeEffect(hazeState) {
-  glassEffect {
-    pressed()
-  }
-}
+Modifier.hazeGlass(
+  input = HazeInput.Sources(hazeState),
+  style = GlassStyle { pressed {} },
+)
 ```
 
 `hovered()`, `focused()`, and `pressed()` enable their respective default visual responses.
@@ -180,12 +175,15 @@ val interactionSource = remember { MutableInteractionSource() }
 Modifier
   .clickable(interactionSource = interactionSource, indication = null) { onClick() }
   .focusable(interactionSource = interactionSource)
-  .hazeEffect(hazeState) {
-    glassEffect {
-      this.interactionSource = interactionSource
-      interactable()
-    }
-  }
+  .hazeGlass(
+    input = HazeInput.Sources(hazeState),
+    interactionSource = interactionSource,
+    style = GlassStyle {
+      hovered {}
+      focused {}
+      pressed {}
+    },
+  )
 ```
 
 Custom blocks replace that state's preset from identity. Resolve each property with fixed
@@ -194,7 +192,7 @@ block to own the arrival and departure animation specs respectively; entering or
 `toSpec`, while departing uses `fromSpec`.
 
 ```kotlin
-glassEffect {
+GlassStyle {
   pressed {
     animate(
       toSpec = GlassDefaults.pressAnimationSpec,
@@ -206,10 +204,9 @@ glassEffect {
 }
 ```
 
-`interactionTransformTarget` selects whether a response transforms only the material or the
+The `interactionTransformTarget` argument selects whether a response transforms only the material or the
 material and content. `interactionTransformPivot` selects `Pointer` or `Center`. Use
-`clearHovered()`, `clearFocused()`, `clearPressed()`, or `clearInteractions()` to remove configured
-responses. `GlassReducedMotionPolicy.System` follows the available system duration scale,
+Omit a state block from a replacement Style to remove it. `GlassReducedMotionPolicy.System` follows the available system duration scale,
 `Reduced` snaps lighting and optics while suppressing transforms, and `Full` forces motion.
 
 ## Usage
@@ -218,22 +215,23 @@ responses. `GlassReducedMotionPolicy.System` follows the available system durati
 Box(
   Modifier
     .size(180.dp)
-    .hazeEffect(state = hazeState) {
-      glassEffect {
-        tint = Color.White.copy(alpha = 0.16f)
-        optics = GlassOptics.Absolute(
+    .hazeGlass(
+      input = HazeInput.Sources(hazeState),
+      style = GlassStyle {
+        tint(Color.White.copy(alpha = 0.16f))
+        optics(GlassOptics.Absolute(
           refractionStrength = 0.8f,
           refractionHeightFraction = 0.32f,
           depth = 0.5f,
-        )
-        specularIntensity = 0.7f
-        ambientResponse = 0.7f
-        edgeSoftness = 14.dp
-        shape = RoundedCornerShape(20.dp)
-        surfaceProfile = SurfaceProfile.Squircle
-        chromaticAberrationStrength = 0.2f
-      }
-    }
+        ))
+        specularIntensity(0.7f)
+        ambientResponse(0.7f)
+        edgeSoftness(14.dp)
+        shape(RoundedCornerShape(20.dp))
+        surfaceProfile(SurfaceProfile.Squircle)
+        chromaticAberrationStrength(0.2f)
+      },
+    )
 )
 ```
 

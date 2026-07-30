@@ -13,7 +13,6 @@ import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
-import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.SurfaceProfile
 
 @Immutable
@@ -113,7 +112,7 @@ internal data class GlassLabStyleValues(
   }
 }
 
-private fun glassLabPresetValues(id: GlassLabPresetId): GlassLabStyleValues = when (id) {
+internal fun glassLabPresetValues(id: GlassLabPresetId): GlassLabStyleValues = when (id) {
   GlassLabPresetId.Adaptive -> GlassLabStyleValues()
   GlassLabPresetId.Clear -> GlassLabStyleValues(
     tint = Color.White.copy(alpha = 0.06f),
@@ -197,14 +196,15 @@ internal enum class GlassLabInteractionMode {
   All,
   ;
 
-  fun applyTo(effect: GlassVisualEffect) {
-    effect.clearInteractions()
-    when (this) {
-      Off -> Unit
-      Pressed -> effect.pressed()
-      All -> effect.interactable()
+  val style: GlassStyle
+    get() = when (this) {
+      Off -> GlassStyle
+      Pressed -> GlassStyle { pressed {} }
+      All -> GlassStyle {
+        hovered {}
+        pressed {}
+      }
     }
-  }
 }
 
 @Immutable

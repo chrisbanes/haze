@@ -48,13 +48,14 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
-import dev.chrisbanes.haze.glass.GlassVisualEffect
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.glass.hazeGlass
+import dev.chrisbanes.haze.glass.then
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -373,13 +374,11 @@ private fun PlaygroundSurface(
     IntSize(size.width.roundToPx(), size.height.roundToPx())
   }
   val interactionSource = interactionSourceProvider(id)
-  val effect = remember(id, interactionSource) {
-    GlassVisualEffect().apply {
-      style = glassPlaygroundStyle(id)
-      shape = glassPlaygroundShape(id)
-      configurePlaygroundInteraction(interactionSource)
-    }
-  }
+  var lightPosition by remember(id) { mutableStateOf(Offset.Unspecified) }
+  val style = glassPlaygroundStyle(id).then {
+    shape(glassPlaygroundShape(id))
+    lightPosition(lightPosition)
+  }.then(playgroundInteractionStyle())
   val latestProgressProvider by rememberUpdatedState(progressProvider)
   val latestSceneSizeProvider by rememberUpdatedState(sceneSizeProvider)
   val latestDragOffsetProvider by rememberUpdatedState(dragOffsetProvider)
@@ -387,7 +386,7 @@ private fun PlaygroundSurface(
   val latestOnDrag by rememberUpdatedState(onDrag)
   val latestOnDragEnd by rememberUpdatedState(onDragEnd)
 
-  LaunchedEffect(effect, id, surfaceSize) {
+  LaunchedEffect(id, surfaceSize) {
     snapshotFlow {
       val frame = glassPlaygroundFrame(latestProgressProvider())
       resolvePlaygroundSurfaceLightPosition(
@@ -399,13 +398,21 @@ private fun PlaygroundSurface(
       )
     }
       .distinctUntilChanged()
-      .collect { effect.lightPosition = it }
+      .collect { lightPosition = it }
   }
 
   Box(
     modifier = Modifier
       .size(size)
-      .hazeEffect(state = hazeState) { visualEffect = effect }
+      .hazeGlass(
+        input = HazeInput.Sources(hazeState),
+        style = style,
+        interactionSource = interactionSource,
+        interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
+        interactionTransformPivot = GlassTransformPivot.Pointer,
+        interactionPositionAnimationSpec = GlassDefaults.positionAnimationSpec,
+        interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
+      )
       .pointerInput(id) {
         detectDragGestures(
           onDragStart = { latestOnDragStart(id) },
@@ -429,13 +436,8 @@ private fun PlaygroundSurface(
   }
 }
 
-internal fun GlassVisualEffect.configurePlaygroundInteraction(source: InteractionSource?) {
-  interactionSource = source
-  interactionTransformTarget = GlassTransformTarget.MaterialAndContent
-  interactionTransformPivot = GlassTransformPivot.Pointer
-  interactionPositionAnimationSpec = GlassDefaults.positionAnimationSpec
-  interactionReducedMotionPolicy = GlassReducedMotionPolicy.System
-  hovered()
+internal fun playgroundInteractionStyle() = dev.chrisbanes.haze.glass.GlassStyle {
+  hovered {}
   pressed {
     animate(
       toSpec = GlassDefaults.pressAnimationSpec,

@@ -16,7 +16,6 @@ import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassVisualEffect
 import kotlin.test.Test
 
 class GlassPlaygroundTimelineTest {
@@ -104,6 +103,4 @@ class GlassPlaygroundTimelineTest {
 }
 
 private fun resolvedOptics(id: GlassPlaygroundSurfaceId): GlassOptics =
-  GlassVisualEffect().apply {
-    style = glassPlaygroundStyle(id)
-  }.optics
+  glassPlaygroundOptics(id)
