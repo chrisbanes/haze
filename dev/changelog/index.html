@@ -7712,9 +7712,13 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">¶</a></h3>
 <ul>
 <li><code>HazeArea.position</code> is deprecated in favour of <code>HazeArea.coordinates.localPosition</code> (or, inside a <code>VisualEffect</code>, <code>VisualEffectContext.positionOf(area)</code>). The setter now writes through to <code>coordinates.localPosition</code> for source compatibility.</li>
+<li>Direct <code>HazeEffectNode</code> construction is deprecated ahead of <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/1132" title="GitHub Issue chrisbanes/haze #1132">#1132</a>. Custom modifier extensions
+  should migrate to the typed <code>Modifier.hazeEffect</code> overload with a <code>HazeEffectFactory</code>; direct
+  nodes do not receive automatic Desktop or Web lifecycle trimming.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Release rebuildable Desktop and Web effect resources when their composition lifecycle stops.</li>
 <li>Bound and reuse Glass group-alpha composition surfaces, including allocation-free zero-alpha drawing and predictable fallback for oversized output in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/1062" title="GitHub Issue chrisbanes/haze #1062">#1062</a>.</li>
 <li>Reuse retained Glass stages, prepared render data, and runtime shaders during animation in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/1045" title="GitHub Issue chrisbanes/haze #1045">#1045</a>.</li>
 <li><strong>Fix cross-window recomposition livelock</strong> in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/974" title="GitHub Issue chrisbanes/haze #974">#974</a>. When a <code>HazeState</code> is shared between effects in different windows (e.g. a host composable and a <code>Dialog</code>), the previously-shared <code>HazeState.resolvedStrategy</code> oscillated between <code>Local</code> and <code>Screen</code>, causing an infinite recomposition loop. The resolved position strategy is now per-effect (<code>HazeEffectNode.resolvedPositionStrategy</code>), so effects in different windows no longer stomp on each other.</li>

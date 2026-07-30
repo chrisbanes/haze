@@ -1117,6 +1117,14 @@ calculating bounds recalculate the bounds and then redraw.</p>
 <li>Keep pointer interaction and retained-output behavior inside your effect module until those
   capabilities have dedicated public contracts.</li>
 </ul>
+<p>On Android and iOS, Haze forwards the platform's native memory-pressure notifications to attached
+effects. On Desktop and Web, an attached effect receives <code>TrimMemoryLevel.MODERATE</code> whenever its
+composition lifecycle reaches <code>ON_STOP</code>. Discard only resources that can be rebuilt: the next draw
+that needs them must recreate valid output.</p>
+<p>Direct <code>HazeEffectNode</code> construction is deprecated and does not receive automatic Desktop or Web
+lifecycle trimming. Custom modifier extensions should migrate to the typed <code>Modifier.hazeEffect</code>
+overload with a <code>HazeEffectFactory</code>; the node type will become internal in
+<a href="https://github.com/chrisbanes/haze/issues/1132">#1132</a>.</p>
 <p>Platform-specific renderer internals can use <code>expect</code>/<code>actual</code> declarations in the effect module.
 The public renderer contract intentionally does not expose platform delegates or captured layers.</p>
 <h2 id="temporary-legacy-path">Temporary legacy path<a class="headerlink" href="#temporary-legacy-path" title="Permanent link">¶</a></h2>
