@@ -7,10 +7,12 @@ package dev.chrisbanes.haze
 
 import android.content.ComponentCallbacks2
 import android.content.res.Configuration
+import androidx.lifecycle.Lifecycle
 import kotlinx.coroutines.DisposableHandle
 
 internal actual fun registerTrimMemoryCallback(
   context: PlatformContext,
+  lifecycle: Lifecycle?,
   callback: (TrimMemoryLevel) -> Unit,
 ): DisposableHandle {
   val cb = object : ComponentCallbacks2 {

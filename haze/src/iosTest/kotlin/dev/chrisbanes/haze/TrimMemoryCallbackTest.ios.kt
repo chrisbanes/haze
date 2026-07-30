@@ -3,6 +3,9 @@
 
 package dev.chrisbanes.haze
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isTrue
@@ -18,6 +21,7 @@ class TrimMemoryCallbackTest {
     val received = mutableListOf<TrimMemoryLevel>()
     val handle = registerTrimMemoryCallback(
       context = PlatformContext.INSTANCE,
+      lifecycle = TestLifecycleOwner().lifecycle,
       callback = received::add,
     )
 
@@ -34,4 +38,8 @@ class TrimMemoryCallbackTest {
     )
     assertThat(received).isEqualTo(listOf(TrimMemoryLevel.COMPLETE))
   }
+}
+
+private class TestLifecycleOwner : LifecycleOwner {
+  override val lifecycle: Lifecycle = LifecycleRegistry(this)
 }

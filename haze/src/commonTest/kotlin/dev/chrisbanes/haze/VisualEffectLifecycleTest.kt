@@ -33,6 +33,7 @@ import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class, InternalHazeApi::class)
+@Suppress("DEPRECATION")
 class VisualEffectLifecycleTest : ContextTest() {
 
   @Test

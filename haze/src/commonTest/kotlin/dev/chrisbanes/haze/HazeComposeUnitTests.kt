@@ -373,6 +373,7 @@ class HazeComposeUnitTests : ContextTest() {
   }
 
   @Test
+  @Suppress("DEPRECATION")
   fun test_visualEffectContext_positionStrategy_reflectsEffectNodeResolution() {
     // Wiring test: verifies that VisualEffectContext.positionStrategy reads through to
     // HazeEffectNode.resolvedPositionStrategy. The cross-window auto-promotion logic

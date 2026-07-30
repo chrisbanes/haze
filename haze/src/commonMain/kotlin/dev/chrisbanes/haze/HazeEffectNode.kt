@@ -38,6 +38,7 @@ import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
+import androidx.lifecycle.Lifecycle
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -47,11 +48,19 @@ import kotlinx.coroutines.launch
 /**
  * The [Modifier.Node] implementation used by [Modifier.hazeEffect].
  *
- * This is public API in order to aid custom extensible modifiers, _but_ we reserve the right
- * to be able to change the API in the future, hence why it is marked as experimental forever.
+ * Direct construction is deprecated and does not receive automatic Desktop or Web lifecycle
+ * trimming. Custom effects should use the typed [Modifier.hazeEffect] overload with a
+ * [HazeEffectFactory].
+ *
+ * This type remains public temporarily for source and binary compatibility.
  */
 @ExperimentalHazeApi
-public class HazeEffectNode(
+public class HazeEffectNode
+@Deprecated(
+  message = "Direct HazeEffectNode construction is deprecated. Use the typed Modifier.hazeEffect " +
+    "overload with a HazeEffectFactory.",
+)
+public constructor(
   state: HazeState? = null,
   public var block: (HazeEffectScope.() -> Unit)? = null,
 ) : DelegatingNode(),
@@ -68,6 +77,7 @@ public class HazeEffectNode(
     message = "For binary compatibility only. Use the hazeEffect modifier APIs.",
     level = DeprecationLevel.HIDDEN,
   )
+  @Suppress("DEPRECATION")
   public constructor() : this(state = null, block = null)
 
   override val traverseKey: Any
@@ -465,6 +475,8 @@ public class HazeEffectNode(
     onObservedReadsChanged()
   }
 
+  private var lifecycle: Lifecycle? = null
+  private var trimMemoryCallbackLifecycle: Lifecycle? = null
   private var trimMemoryCallbackDisposable: DisposableHandle? = null
 
   override fun onAttach() {
@@ -473,16 +485,7 @@ public class HazeEffectNode(
       ?: visualEffect.createRenderer()
     attachVisualEffect(runtime)
     activeVisualEffect = runtime
-    trimMemoryCallbackDisposable = registerTrimMemoryCallback(
-      requirePlatformContext(),
-    ) { level ->
-      val activeEffect = activeVisualEffect
-      if (activeEffect is TypedHazeEffectVisualEffect) {
-        activeEffect.onTrimMemory(level)
-      } else {
-        activeEffect.onTrimMemory(visualEffectContext, level)
-      }
-    }
+    rebindTrimMemoryCallback()
     update()
   }
 
@@ -490,6 +493,7 @@ public class HazeEffectNode(
     stopSourceSelectionSnapshotObserver()
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
+    trimMemoryCallbackLifecycle = null
     resetPendingInvalidations()
     _areas = emptyList()
     areaZIndexes.clear()
@@ -898,6 +902,38 @@ public class HazeEffectNode(
     }
 
     invalidateIfNeeded()
+  }
+
+  internal fun updateLifecycle(lifecycle: Lifecycle) {
+    if (this.lifecycle !== lifecycle) {
+      this.lifecycle = lifecycle
+      if (isAttached) {
+        rebindTrimMemoryCallback()
+      }
+    }
+  }
+
+  private fun rebindTrimMemoryCallback() {
+    val lifecycle = lifecycle
+    if (trimMemoryCallbackDisposable != null && trimMemoryCallbackLifecycle === lifecycle) return
+    trimMemoryCallbackDisposable?.dispose()
+    trimMemoryCallbackDisposable = null
+    trimMemoryCallbackLifecycle = null
+    trimMemoryCallbackDisposable = registerTrimMemoryCallback(
+      context = requirePlatformContext(),
+      lifecycle = lifecycle,
+      callback = ::dispatchTrimMemory,
+    )
+    trimMemoryCallbackLifecycle = lifecycle
+  }
+
+  private fun dispatchTrimMemory(level: TrimMemoryLevel) {
+    val activeEffect = activeVisualEffect
+    if (activeEffect is TypedHazeEffectVisualEffect) {
+      activeEffect.onTrimMemory(level)
+    } else {
+      activeEffect.onTrimMemory(visualEffectContext, level)
+    }
   }
 
   internal fun invalidateVisualEffectLayerBounds() {
