@@ -9,13 +9,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
@@ -29,7 +30,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val blurRadius = mutableStateOf(10.dp)
 
     setBlurEffectContent(hazeState) {
-      this.blurRadius = blurRadius.value
+      blurRadius(blurRadius.value)
     }
     waitForIdle()
 
@@ -46,7 +47,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     )
 
     setBlurEffectContent(hazeState) {
-      this.colorEffects = colorEffects.value
+      colorEffects(colorEffects.value)
     }
     waitForIdle()
 
@@ -59,21 +60,21 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
   fun styleMutation_doesNotInfiniteLoop() = runComposeUiTest {
     val hazeState = HazeState()
     val style = mutableStateOf(
-      HazeBlurStyle(
-        colorEffects = emptyList(),
-        blurRadius = 10.dp,
-      ),
+      HazeBlurStyle {
+        colorEffects(emptyList())
+        blurRadius(10.dp)
+      },
     )
 
     setBlurEffectContent(hazeState) {
-      this.style = style.value
+      style.value.replay(this)
     }
     waitForIdle()
 
-    style.value = HazeBlurStyle(
-      colorEffects = emptyList(),
-      blurRadius = 20.dp,
-    )
+    style.value = HazeBlurStyle {
+      colorEffects(emptyList())
+      blurRadius(20.dp)
+    }
 
     awaitIdleWithTimeout("after style mutation")
   }
@@ -84,7 +85,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val blurEnabled = mutableStateOf(true)
 
     setBlurEffectContent(hazeState) {
-      this.blurEnabled = blurEnabled.value
+      blurEnabled(blurEnabled.value)
     }
     waitForIdle()
 
@@ -99,7 +100,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val progressive = mutableStateOf<HazeProgressive?>(null)
 
     setBlurEffectContent(hazeState) {
-      this.progressive = progressive.value
+      progressive(progressive.value)
     }
     waitForIdle()
 
@@ -117,7 +118,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val noiseFactor = mutableStateOf(0f)
 
     setBlurEffectContent(hazeState) {
-      this.noiseFactor = noiseFactor.value
+      noiseFactor(noiseFactor.value)
     }
     waitForIdle()
 
@@ -132,7 +133,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val backgroundColor = mutableStateOf(Color.Unspecified)
 
     setBlurEffectContent(hazeState) {
-      this.backgroundColor = backgroundColor.value
+      if (backgroundColor.value.isSpecified) backgroundColor(backgroundColor.value)
     }
     waitForIdle()
 
@@ -147,7 +148,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val alpha = mutableStateOf(1f)
 
     setBlurEffectContent(hazeState) {
-      this.alpha = alpha.value
+      alpha(alpha.value)
     }
     waitForIdle()
 
@@ -162,7 +163,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val mask = mutableStateOf<Brush?>(null)
 
     setBlurEffectContent(hazeState) {
-      this.mask = mask.value
+      mask(mask.value)
     }
     waitForIdle()
 
@@ -179,7 +180,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val fallbackTint = mutableStateOf<HazeColorEffect>(HazeColorEffect.Unspecified)
 
     setBlurEffectContent(hazeState) {
-      this.fallbackTint = fallbackTint.value
+      fallbackColorEffect(fallbackTint.value)
     }
     waitForIdle()
 
@@ -194,7 +195,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val blurredEdgeTreatment = mutableStateOf(HazeBlurDefaults.blurredEdgeTreatment)
 
     setBlurEffectContent(hazeState) {
-      this.blurredEdgeTreatment = blurredEdgeTreatment.value
+      blurredEdgeTreatment(blurredEdgeTreatment.value)
     }
     waitForIdle()
 
@@ -212,8 +213,8 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     )
 
     setBlurEffectContent(hazeState) {
-      this.blurRadius = blurRadius.value
-      this.colorEffects = colorEffects.value
+      blurRadius(blurRadius.value)
+      colorEffects(colorEffects.value)
     }
     waitForIdle()
 
@@ -246,11 +247,10 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
       BlurTestGradientBox(
         Modifier
-          .hazeEffect(hazeState) {
-            blurEffect {
-              this.blurRadius = blurRadius.value
-            }
-          }
+          .hazeBlur(
+            input = HazeInput.Sources(hazeState),
+            style = HazeBlurStyle { blurRadius(blurRadius.value) },
+          )
           .size(100.dp),
       )
     }
@@ -271,10 +271,10 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val hazeState = HazeState()
     val showSource = mutableStateOf(true)
     val style = mutableStateOf(
-      HazeBlurStyle(
-        blurRadius = 10.dp,
-        colorEffects = emptyList(),
-      ),
+      HazeBlurStyle {
+        blurRadius(10.dp)
+        colorEffects(emptyList())
+      },
     )
 
     setContent {
@@ -284,11 +284,10 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
       BlurTestGradientBox(
         Modifier
-          .hazeEffect(hazeState) {
-            blurEffect {
-              this.style = style.value
-            }
-          }
+          .hazeBlur(
+            input = HazeInput.Sources(hazeState),
+            style = style.value,
+          )
           .size(100.dp),
       )
     }
@@ -296,10 +295,10 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
     runOnIdle {
       showSource.value = false
-      style.value = HazeBlurStyle(
-        blurRadius = 22.dp,
-        colorEffects = listOf(HazeColorEffect.tint(Color.Cyan.copy(alpha = 0.3f))),
-      )
+      style.value = HazeBlurStyle {
+        blurRadius(22.dp)
+        colorEffects(listOf(HazeColorEffect.tint(Color.Cyan.copy(alpha = 0.3f))))
+      }
     }
     awaitIdleWithTimeout("after combined source and style mutation")
   }
@@ -312,9 +311,9 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
     val noiseFactor = mutableStateOf(0f)
 
     setBlurEffectContent(hazeState) {
-      this.blurRadius = blurRadius.value
-      this.alpha = alpha.value
-      this.noiseFactor = noiseFactor.value
+      blurRadius(blurRadius.value)
+      alpha(alpha.value)
+      noiseFactor(noiseFactor.value)
     }
     waitForIdle()
 
@@ -331,15 +330,16 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
 
   private fun ComposeUiTest.setBlurEffectContent(
     hazeState: HazeState,
-    configure: BlurVisualEffect.() -> Unit,
+    configure: HazeBlurStyleScope.() -> Unit,
   ) {
     setContent {
       Box(Modifier.hazeSource(hazeState).size(100.dp)) {
         BlurTestGradientBox(
           Modifier
-            .hazeEffect(hazeState) {
-              blurEffect(configure)
-            }
+            .hazeBlur(
+              input = HazeInput.Sources(hazeState),
+              style = HazeBlurStyle(configure),
+            )
             .size(100.dp),
         )
       }

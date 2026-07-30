@@ -35,9 +35,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -99,12 +99,10 @@ fun BottomSheet(navController: NavHostController, blurEnabled: Boolean) {
         val style = HazeMaterials.thin()
         Column(
           modifier = Modifier
-            .hazeEffect(state = hazeState) {
-              blurEffect {
-                this.blurEnabled = blurEnabled
-                this.style = style
-              }
-            }
+            .hazeBlur(
+              input = HazeInput.Sources(hazeState),
+              style = style.then { blurEnabled(blurEnabled) },
+            )
             .height(400.dp)
             .fillMaxWidth(),
         ) {

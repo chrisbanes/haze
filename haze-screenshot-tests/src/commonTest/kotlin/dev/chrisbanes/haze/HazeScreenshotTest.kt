@@ -36,7 +36,7 @@ import dev.chrisbanes.haze.blur.HazeBlurDefaults
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -642,15 +642,14 @@ class HazeScreenshotTest : ScreenshotTest() {
 
           Box(
             modifier = Modifier
-              .hazeEffect(state = outerHazeState) {
-                blurEffect {
-                  style = HazeBlurDefaults.style(
-                    backgroundColor = Color.Blue,
-                    tint = DefaultTint,
-                    blurRadius = 8.dp,
-                  )
-                }
-              }
+              .hazeBlur(
+                input = HazeInput.Sources(outerHazeState),
+                style = HazeBlurDefaults.style.then {
+                  backgroundColor(Color.Blue)
+                  colorEffects(listOf(DefaultTint))
+                  blurRadius(8.dp)
+                },
+              )
               .align(Alignment.TopStart)
               .fillMaxWidth()
               .height(56.dp),
@@ -858,14 +857,16 @@ class HazeScreenshotTest : ScreenshotTest() {
       Color.White.copy(alpha = 0.1f),
       HazeColorEffect.DefaultBlendMode,
     )
-    val OverrideStyle = HazeBlurStyle(
-      colorEffects = listOf(
-        HazeColorEffect.tint(
-          Color.Red.copy(alpha = 0.5f),
-          HazeColorEffect.DefaultBlendMode,
+    val OverrideStyle = HazeBlurStyle {
+      colorEffects(
+        listOf(
+          HazeColorEffect.tint(
+            Color.Red.copy(alpha = 0.5f),
+            HazeColorEffect.DefaultBlendMode,
+          ),
         ),
-      ),
-    )
+      )
+    }
 
     val BrushTint = HazeColorEffect.tint(
       brush = Brush.radialGradient(

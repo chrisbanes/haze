@@ -121,16 +121,16 @@ class BlurVisualEffectLifecycleTest {
   fun blurRadius_prefersDirectThenStyleThenCompositionLocal() {
     val effect = BlurVisualEffect()
 
-    effect.compositionLocalStyle = HazeBlurStyle(
-      colorEffects = emptyList(),
-      blurRadius = HazeBlurDefaults.blurRadius,
-    )
+    effect.compositionLocalStyle = HazeBlurStyle {
+      colorEffects(emptyList())
+      blurRadius(HazeBlurDefaults.blurRadius)
+    }
     assertThat(effect.blurRadius).isEqualTo(HazeBlurDefaults.blurRadius)
 
-    effect.style = HazeBlurStyle(
-      colorEffects = emptyList(),
-      blurRadius = HazeBlurDefaults.blurRadius * 2,
-    )
+    effect.style = HazeBlurStyle {
+      colorEffects(emptyList())
+      blurRadius(HazeBlurDefaults.blurRadius * 2)
+    }
     assertThat(effect.blurRadius).isEqualTo(HazeBlurDefaults.blurRadius * 2)
 
     effect.blurRadius = HazeBlurDefaults.blurRadius * 3

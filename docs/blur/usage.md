@@ -1,14 +1,9 @@
-# Blur Usage
+# Blur usage
 
-This guide covers the blur effect in detail, including all available features and patterns.
+Blur works with either source-backed content or the modifier's own content. Both modes use the
+typed `hazeBlur` modifier and the same replayable Style.
 
-## Modes
-
-Blur works in two modes: 'background blurring' and 'foreground blurring'. Both modes use the same APIs and features, with the main difference being whether you need a `HazeState`.
-
-### Background Blurring (Most Common)
-
-Blurs content from elsewhere in the UI that's marked with `hazeSource`:
+## Source-backed Blur
 
 ```kotlin
 val hazeState = rememberHazeState()
@@ -18,370 +13,165 @@ Box {
   LazyColumn(
     modifier = Modifier
       .fillMaxSize()
-      .hazeSource(state = hazeState)
+      .hazeSource(hazeState),
   ) {
-    // scrollable content
+    // Content
   }
 
   TopAppBar(
-    modifier = Modifier
-      .hazeEffect(state = hazeState) {
-        blurEffect {
-          this.style = style
-        }
-      }
-      .fillMaxWidth(),
+    modifier = Modifier.hazeBlur(
+      input = HazeInput.Sources(hazeState),
+      style = style,
+    ),
   )
 }
 ```
 
-#### Retained Output
-
-Background blur may keep drawing the last captured output when all source areas disappear. This is
-intentional and helps source transitions avoid flashing to empty content. If the source may contain
-private content, disable retained output on the effect scope:
+`HazeInput.Sources` also owns source selection and retained-output behavior. The default
+`KeepLastFrame` policy avoids an empty flash during source transitions. Use
+`ClearWhenUnavailable` for privacy-sensitive content:
 
 ```kotlin
-Modifier.hazeEffect(state = hazeState) {
-  retainOutputWhenSourceUnavailable = false
-  blurEffect {
-    // ...
-  }
-}
-```
-
-### Foreground Blurring
-
-Blurs the content within the composable itself. No `HazeState` or `hazeSource` needed:
-
-```kotlin
-@Composable
-fun HazeExample(modifier: Modifier = Modifier) {
-  val style = HazeMaterials.thin()
-
-  Box(modifier = modifier) {
-    Foreground(
-      modifier = Modifier
-        .hazeEffect {
-          blurEffect {
-            this.style = style
-          }
-        }
-        .fillMaxSize()
-    )
-  }
-}
-```
-
-## Styling
-
-Blur appearance is controlled via the [HazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-haze-blur-style/index.html) class or properties in the `blurEffect` block:
-
-Styles can be provided in multiple ways:
-
-- [LocalHazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html) composition local
-- `style` property inside `blurEffect {}` block
-- Individual properties in the `blurEffect {}` block
-
-### HazeEffectScope Lambda
-
-The `blurEffect` block receives properties you can set dynamically:
-
-```kotlin
-TopAppBar(
-  modifier = Modifier
-    .hazeEffect(state = hazeState) {
-      blurEffect {
-        alpha = if (listState.firstVisibleItemIndex == 0) {
-          listState.layoutInfo.visibleItemsInfo.first().let {
-            (it.offset / it.size.height.toFloat()).absoluteValue
-          }
-        } else {
-          1f
-        }
-      }
-    },
+Modifier.hazeBlur(
+  input = HazeInput.Sources(
+    state = hazeState,
+    retention = HazeSourceRetention.ClearWhenUnavailable,
+  ),
 )
 ```
 
-### Styling Resolution
+## Own-content Blur
 
-Each styling property is resolved using the following precedence:
-
-1. Value set in `blurEffect {}` block (if specified)
-2. Value set via `style` property in `blurEffect {}` (if specified)
-3. Value set in [LocalHazeBlurStyle](../api/haze-blur/dev.chrisbanes.haze.blur/-local-haze-blur-style.html) composition local
-4. Default value
-
-### Styling Properties
-
-#### Blur Radius
-
-Controls how strong the blur effect is. Defaults to `20.dp`. Larger values may be needed to keep foreground control (text) legible.
+Use `HazeInput.Content` when the modifier's own content is the input:
 
 ```kotlin
-blurEffect {
-  blurRadius = 20.dp
-}
-```
-
-#### Tint
-
-A tint effect is applied primarily to maintain contrast and legibility. By default, the provided background color is used at 70% opacity. You can provide multiple color effects applied in sequence:
-
-```kotlin
-blurEffect {
-  colorEffects = listOf(
-    HazeColorEffect.tint(Color.Black.copy(alpha = 0.2f)),
-    HazeColorEffect.tint(Color.Blue.copy(alpha = 0.1f))
-  )
-}
-```
-
-#### Noise
-
-Visual noise provides tactility. Defaults to `0.15f` (15% strength). Disable by setting to `0f`:
-
-```kotlin
-blurEffect {
-  noiseFactor = 0f  // Disable noise
-}
-```
-
-## Progressive (Gradient) Blurs
-
-Progressive blurs vary the blur radius across a dimension. This effect is common on iOS:
-
-![type:video](../media/progressive.mp4)
-
-Enable by setting the `progressive` property on [HazeEffectScope](../api/haze/dev.chrisbanes.haze/-haze-effect-scope/index.html):
-
-```kotlin
-TopAppBar(
-  modifier = Modifier.hazeEffect(hazeState) {
-    blurEffect {
-      progressive = HazeProgressive.verticalGradient(
-        startIntensity = 1f,
-        endIntensity = 0f
-      )
-    }
-  }
-)
-```
-
-### Linear Gradient
-
-Vertical, horizontal, or custom-angle gradients:
-
-```kotlin
-progressive = HazeProgressive.verticalGradient(
-  startIntensity = 1f,
-  endIntensity = 0f
-)
-
-// or horizontal
-progressive = HazeProgressive.horizontalGradient(
-  startIntensity = 1f,
-  endIntensity = 0f
-)
-```
-
-Class documentation: [HazeProgressive.LinearGradient](../api/haze/dev.chrisbanes.haze/-haze-progressive/-linear-gradient/index.html)
-
-### Radial Gradient
-
-A gradient radiating from a center point:
-
-```kotlin
-progressive = HazeProgressive.RadialGradient()
-```
-
-Class documentation: [HazeProgressive.RadialGradient](../api/haze/dev.chrisbanes.haze/-haze-progressive/-radial-gradient/index.html)
-
-### Custom Brush
-
-Use any [Brush](https://developer.android.com/develop/ui/compose/graphics/draw/brush) as an alpha mask:
-
-```kotlin
-progressive = HazeProgressive.Brush(
-  brush = Brush.verticalGradient(...)
-)
-```
-
-Class documentation: [HazeProgressive.Brush](../api/haze/dev.chrisbanes.haze/-haze-progressive/-brush/index.html)
-
-!!! warning "Performance of Progressive Blur"
-
-    Progressive blur comes with a performance cost. See the [Performance](../performance.md) page for benchmarks.
-
-    Quick summary: Android 13+ costs ~25% more than non-progressive. On Android 12 it's about 2x. Consider using masking below for better performance.
-
-## Masking
-
-Apply any [Brush](https://developer.android.com/develop/ui/compose/graphics/draw/brush) as an opacity mask:
-
-```kotlin
-TopAppBar(
-  modifier = Modifier.hazeEffect(state = hazeState) {
-    blurEffect {
-      mask = Brush.verticalGradient(
-        colors = listOf(Color.Black, Color.Transparent)
-      )
-    }
-  }
-)
-```
-
-!!! info "Mask vs Progressive"
-
-    Masks fade the effect through opacity only and may not feel as refined as progressive blur. However, masks are much faster with negligible performance cost.
-
-## Input Scale
-
-Blur effects adapt their input resolution by default. The policy considers the resolved blur radius
-in physical pixels and the expanded capture-layer pixel area, then chooses `1.0`, `0.8`, or `0.5`.
-Both inputs must cross a tier boundary, and hysteresis avoids retained-layer reallocations when an
-animated radius or resizing surface hovers near a boundary.
-
-![](../media/inputscale.png)
-
-```kotlin
-TopAppBar(
-  modifier = Modifier.hazeEffect(state = hazeState) {
-    blurEffect {
-      // ...
-    }
-  }
-)
-```
-
-[HazeInputScale](../api/haze/dev.chrisbanes.haze/-haze-input-scale/index.html) options:
-
-- `HazeInputScale.Default`: Let the visual effect choose. Blur adapts; Glass stays at `1.0`.
-- `HazeInputScale.None`: Explicitly disable scaling.
-- `HazeInputScale.Auto`: Explicitly request the effect's automatic policy.
-- `HazeInputScale.Fixed(...)`: Use the exact custom scaling factor (greater than `0.0`, up to `1.0`).
-
-The ordinary blur ladder uses:
-
-- `0.8` — 36% fewer input pixels for medium workloads.
-- `0.5` — 75% fewer input pixels for large surfaces with strong blur.
-
-Progressive blur stays at `1.0` for smaller workloads and never goes below `0.8`. A non-progressive
-mask uses the ordinary ladder. Scrim fallback does not perform a blur and remains at `1.0`.
-
-!!! info "Experimentation Recommended"
-
-    The default is quality-gated and intentionally conservative, but device backends and content
-    vary. Use `None` or `Fixed` when your own visual review or benchmarks call for a different
-    tradeoff.
-
-## Overlapping Blurred Layouts
-
-A layout can use both `hazeEffect` (drawing blur from other areas) and `hazeSource` (serving as a blur source for others):
-
-![](../media/overlap.webp)
-
-This enables overlapping blurred cards:
-
-```kotlin
-Box {
-  val hazeState = rememberHazeState()
-
-  Background(
-    modifier = Modifier.hazeSource(hazeState, zIndex = 0f)
-  )
-
-  // Rear card
-  CreditCard(
-    modifier = Modifier
-      .hazeSource(hazeState, zIndex = 1f)
-      .hazeEffect(hazeState)
-  )
-
-  // Middle card
-  CreditCard(
-    modifier = Modifier
-      .hazeSource(hazeState, zIndex = 2f)
-      .hazeEffect(hazeState),
-  )
-
-  // Front card
-  CreditCard(
-    modifier = Modifier
-      .hazeSource(hazeState, zIndex = 3f)
-      .hazeEffect(hazeState)
-  )
-}
-```
-
-The `zIndex` parameter tells Haze which layers to draw. By default, a `hazeEffect` draws all layers with a `zIndex` less than its sibling `hazeSource`.
-
-### Filtering Areas
-
-Control which layers are included via the `canDrawArea` filter:
-
-```kotlin
-CreditCard(
-  modifier = Modifier
-    .hazeSource(hazeState, zIndex = 2f, key = "foo")
-    .hazeEffect(hazeState) {
-      canDrawArea = { area ->
-        area.key != "foo"  // Exclude self
-      }
-    },
+Image(
+  modifier = Modifier.hazeBlur(
+    input = HazeInput.Content,
+    style = HazeMaterials.thin(),
+  ),
 )
 ```
 
 ## Enabling Blur
 
-Control whether blurring is active on individual effects:
+Blur is enabled by default only where Haze considers the platform implementation reliable. To
+override that decision, write `blurEnabled` in a Style:
 
 ```kotlin
-blurEffect {
-  blurEnabled = true  // or false to disable
+Modifier.hazeBlur(
+  input = HazeInput.Sources(hazeState),
+  style = HazeBlurStyle {
+    blurEnabled(true)
+  },
+)
+```
+
+When Blur is disabled, Haze draws the configured fallback scrim instead.
+
+## Replayable Styles
+
+`HazeBlurStyle` is an opaque program of Blur-specific writes:
+
+```kotlin
+val style = HazeBlurStyle {
+  blurEnabled(true)
+  blurRadius(20.dp)
+  noiseFactor(0.15f)
+  backgroundColor(Color.Black)
+  colorEffects(
+    listOf(
+      HazeColorEffect.tint(Color.White.copy(alpha = 0.12f)),
+    ),
+  )
+  fallbackColorEffect(HazeColorEffect.tint(Color.Black.copy(alpha = 0.7f)))
+  alpha(1f)
+  mask(null)
+  progressive(null)
+  blurredEdgeTreatment(BlurredEdgeTreatment.Rectangle)
 }
 ```
 
-## Dialogs
+Style resolution always replays these tiers in order:
 
-You can blur dialog backgrounds over content. **Important**: Tints display as a scrim over background with dialogs, so use a translucent dialog background color instead:
+1. `HazeBlurDefaults.style`
+2. `LocalHazeBlurStyle`
+3. The explicit `hazeBlur` Style
+
+The last write to a property wins, both across tiers and within a Style chain:
 
 ```kotlin
-val hazeState = rememberHazeState()
-var showDialog by remember { mutableStateOf(false) }
-val style = HazeMaterials.regular()
-
-Box {
-  if (showDialog) {
-    Dialog(onDismissRequest = { showDialog = false }) {
-      Surface(
-        modifier = Modifier
-          .fillMaxWidth()
-          .fillMaxHeight(fraction = .5f),
-        shape = MaterialTheme.shapes.extraLarge,
-        // Set translucent background instead of using tints
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
-      ) {
-        Box(
-          Modifier.hazeEffect(state = hazeState) {
-            blurEffect {
-              this.style = style
-            }
-          },
-        ) {
-          // Dialog content
-        }
-      }
-    }
-  }
-
-  LazyVerticalGrid(
-    modifier = Modifier.hazeSource(state = hazeState),
-  ) {
-    // Background content
-  }
+val compact = HazeMaterials.thin().then {
+  blurRadius(12.dp)
+  noiseFactor(0f)
 }
 ```
 
-Complete sample: [DialogSample](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/DialogSample.kt)
+Every evaluation starts from fresh defaults. If a replacement Style omits `blurRadius`, the local
+or default value becomes visible immediately; the previous explicit value cannot stick. A Style
+can be shared by concurrent modifiers because it contains no renderer, delegate, cache, retained
+layer, or lifecycle state.
+
+Caller-owned color-effect lists are snapshotted when the Style is created. An explicit empty list
+clears inherited color effects:
+
+```kotlin
+val noColorEffects = HazeBlurStyle {
+  colorEffects(emptyList())
+}
+```
+
+## Progressive Blur and masks
+
+Progressive Blur varies intensity across the surface:
+
+```kotlin
+val progressiveStyle = HazeBlurStyle {
+  progressive(
+    HazeProgressive.verticalGradient(
+      startIntensity = 1f,
+      endIntensity = 0f,
+    ),
+  )
+}
+```
+
+A mask fades the effect's opacity and is usually cheaper:
+
+```kotlin
+val maskedStyle = HazeBlurStyle {
+  mask(
+    Brush.verticalGradient(
+      colors = listOf(Color.Black, Color.Transparent),
+    ),
+  )
+}
+```
+
+## Input scale
+
+### Sampling and layer expansion
+
+Sampling and layer expansion are structural modifier policies, not Style properties:
+
+```kotlin
+Modifier.hazeBlur(
+  input = HazeInput.Sources(hazeState),
+  style = style,
+  sampling = HazeSampling.Adaptive,
+  expandLayerBounds = true,
+)
+```
+
+- `HazeSampling.Default` uses Blur's adaptive policy.
+- `HazeSampling.FullResolution` disables input downscaling.
+- `HazeSampling.Adaptive` explicitly requests the adaptive policy.
+- `HazeSampling.Fixed(scale)` uses a fixed scale in `0 < scale <= 1`.
+
+Adaptive Blur considers the physical Blur radius and expanded capture-layer area, with hysteresis
+between its quality tiers.
+
+## Temporary legacy boundary
+
+`BlurVisualEffect`, `HazeEffectScope.blurEffect`, and the lambda-based `hazeEffect` overloads remain
+temporarily available for staged migration. New code should use `hazeBlur` and replayable Styles.

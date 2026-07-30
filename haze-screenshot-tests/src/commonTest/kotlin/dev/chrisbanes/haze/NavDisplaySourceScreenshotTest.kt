@@ -46,8 +46,9 @@ import androidx.navigation3.scene.SceneDecoratorStrategy
 import androidx.navigation3.ui.NavDisplay
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import kotlin.test.Ignore
 import kotlin.test.Test
@@ -200,12 +201,13 @@ private fun TestNavigationBar(
     modifier = modifier
       .fillMaxWidth()
       .height(220.dp)
-      .hazeEffect(hazeState) {
-        blurEffect {
-          blurRadius = 32.dp
-          colorEffects = listOf(HazeColorEffect.tint(Color.White.copy(alpha = 0.18f)))
-        }
-      },
+      .hazeBlur(
+        input = HazeInput.Sources(hazeState),
+        style = HazeBlurStyle {
+          blurRadius(32.dp)
+          colorEffects(listOf(HazeColorEffect.tint(Color.White.copy(alpha = 0.18f))))
+        },
+      ),
     contentAlignment = Alignment.Center,
   ) {
     Text(

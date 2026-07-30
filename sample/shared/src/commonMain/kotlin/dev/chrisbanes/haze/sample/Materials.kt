@@ -28,13 +28,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.CupertinoMaterials
 import dev.chrisbanes.haze.blur.materials.FluentMaterials
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -317,12 +317,10 @@ private fun MaterialsCard(
     Box(
       Modifier
         .fillMaxSize()
-        .hazeEffect(state = state) {
-          blurEffect {
-            this.blurEnabled = blurEnabled
-            this.style = style
-          }
-        }
+        .hazeBlur(
+          input = HazeInput.Sources(state),
+          style = style,
+        )
         .padding(16.dp),
     ) {
       Text(name)

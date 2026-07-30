@@ -39,46 +39,53 @@ package dev.chrisbanes.haze.blur {
 
   public final class HazeBlurDefaults {
     method public boolean blurEnabled();
-    method @KotlinOnly public dev.chrisbanes.haze.blur.HazeBlurStyle style(androidx.compose.ui.graphics.Color backgroundColor, optional dev.chrisbanes.haze.blur.HazeColorEffect tint, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor);
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.blur.HazeBlurStyle getStyle();
+    method @KotlinOnly @Deprecated public dev.chrisbanes.haze.blur.HazeBlurStyle style(androidx.compose.ui.graphics.Color backgroundColor, optional dev.chrisbanes.haze.blur.HazeColorEffect tint, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor);
     method @KotlinOnly public dev.chrisbanes.haze.blur.HazeColorEffect tint(androidx.compose.ui.graphics.Color color);
     property public androidx.compose.ui.unit.Dp blurRadius;
     property public androidx.compose.ui.draw.BlurredEdgeTreatment blurredEdgeTreatment;
     property public static float noiseFactor;
+    property public dev.chrisbanes.haze.blur.HazeBlurStyle style;
     property public static float tintAlpha;
     field public static final dev.chrisbanes.haze.blur.HazeBlurDefaults INSTANCE;
     field public static final float noiseFactor = 0.15f;
     field public static final float tintAlpha = 0.7f;
   }
 
-  @androidx.compose.runtime.Immutable public final class HazeBlurStyle {
-    ctor public HazeBlurStyle();
-    ctor @KotlinOnly public HazeBlurStyle(optional androidx.compose.ui.graphics.Color backgroundColor, optional dev.chrisbanes.haze.blur.HazeColorEffect? colorEffect, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.blur.HazeColorEffect fallbackColorEffect);
-    ctor @KotlinOnly public HazeBlurStyle(optional androidx.compose.ui.graphics.Color backgroundColor, optional java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect>? colorEffects, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.blur.HazeColorEffect fallbackColorEffect);
-    method @KotlinOnly public operator androidx.compose.ui.graphics.Color component1();
-    method public operator java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect> component2();
-    method @KotlinOnly public operator androidx.compose.ui.unit.Dp component3();
-    method public operator float component4();
-    method public operator dev.chrisbanes.haze.blur.HazeColorEffect component5();
-    method @KotlinOnly public dev.chrisbanes.haze.blur.HazeBlurStyle copy(optional androidx.compose.ui.graphics.Color backgroundColor, optional java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect>? colorEffects, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.blur.HazeColorEffect fallbackColorEffect);
-    method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect> getColorEffects();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.blur.HazeColorEffect getFallbackColorEffect();
-    method @InaccessibleFromKotlin public float getNoiseFactor();
-    property public androidx.compose.ui.graphics.Color backgroundColor;
-    property public androidx.compose.ui.unit.Dp blurRadius;
-    property public java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect> colorEffects;
-    property public dev.chrisbanes.haze.blur.HazeColorEffect fallbackColorEffect;
-    property public float noiseFactor;
+  public final class HazeBlurKt {
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeBlur(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.blur.HazeBlurStyle style, optional dev.chrisbanes.haze.HazeSampling sampling, optional boolean expandLayerBounds);
+  }
+
+  @androidx.compose.runtime.Immutable public sealed nonexhaustive interface HazeBlurStyle {
+    method public default dev.chrisbanes.haze.blur.HazeBlurStyle then(dev.chrisbanes.haze.blur.HazeBlurStyle other);
+    method public default dev.chrisbanes.haze.blur.HazeBlurStyle then(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.blur.HazeBlurStyleScope,kotlin.Unit> block);
     field public static final dev.chrisbanes.haze.blur.HazeBlurStyle.Companion Companion;
   }
 
-  public static final class HazeBlurStyle.Companion {
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.blur.HazeBlurStyle getUnspecified();
-    property public dev.chrisbanes.haze.blur.HazeBlurStyle Unspecified;
+  public static final class HazeBlurStyle.Companion implements dev.chrisbanes.haze.blur.HazeBlurStyle {
+    method @InaccessibleFromKotlin @Deprecated public dev.chrisbanes.haze.blur.HazeBlurStyle getUnspecified();
+    property @Deprecated public dev.chrisbanes.haze.blur.HazeBlurStyle Unspecified;
   }
 
   public final class HazeBlurStyleKt {
+    method @KotlinOnly @Deprecated public static dev.chrisbanes.haze.blur.HazeBlurStyle HazeBlurStyle(optional androidx.compose.ui.graphics.Color backgroundColor, dev.chrisbanes.haze.blur.HazeColorEffect? colorEffect, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.blur.HazeColorEffect fallbackColorEffect);
+    method @KotlinOnly @Deprecated public static dev.chrisbanes.haze.blur.HazeBlurStyle HazeBlurStyle(optional androidx.compose.ui.graphics.Color backgroundColor, optional java.util.List<dev.chrisbanes.haze.blur.HazeColorEffect>? colorEffects, optional androidx.compose.ui.unit.Dp blurRadius, optional float noiseFactor, optional dev.chrisbanes.haze.blur.HazeColorEffect fallbackColorEffect);
+    method public static dev.chrisbanes.haze.blur.HazeBlurStyle HazeBlurStyle(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.blur.HazeBlurStyleScope,kotlin.Unit> block);
     method @InaccessibleFromKotlin public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeBlurStyle> getLocalHazeBlurStyle();
     property public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.blur.HazeBlurStyle> LocalHazeBlurStyle;
+  }
+
+  public sealed nonexhaustive interface HazeBlurStyleScope {
+    method public void alpha(float alpha);
+    method @KotlinOnly public void backgroundColor(androidx.compose.ui.graphics.Color color);
+    method public void blurEnabled(boolean enabled);
+    method @KotlinOnly public void blurRadius(androidx.compose.ui.unit.Dp radius);
+    method @KotlinOnly public void blurredEdgeTreatment(androidx.compose.ui.draw.BlurredEdgeTreatment treatment);
+    method public void colorEffects(java.util.List<? extends dev.chrisbanes.haze.blur.HazeColorEffect> effects);
+    method public void fallbackColorEffect(dev.chrisbanes.haze.blur.HazeColorEffect effect);
+    method public void mask(androidx.compose.ui.graphics.Brush? mask);
+    method public void noiseFactor(float factor);
+    method public void progressive(dev.chrisbanes.haze.HazeProgressive? progressive);
   }
 
   @androidx.compose.runtime.Stable public sealed exhaustive interface HazeColorEffect {

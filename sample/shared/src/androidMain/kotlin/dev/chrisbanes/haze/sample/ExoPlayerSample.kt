@@ -21,9 +21,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.sample.shared.R
@@ -72,12 +72,10 @@ fun ExoPlayerSample(blurEnabled: Boolean) {
         .fillMaxSize(0.5f)
         .align(Alignment.Center)
         .clip(MaterialTheme.shapes.large)
-        .hazeEffect(hazeState) {
-          blurEffect {
-            this.blurEnabled = blurEnabled
-            this.style = style
-          }
-        },
+        .hazeBlur(
+          input = HazeInput.Sources(hazeState),
+          style = style.then { blurEnabled(blurEnabled) },
+        ),
     )
   }
 }

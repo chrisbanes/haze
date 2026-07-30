@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.Density
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeArea
@@ -28,6 +29,14 @@ import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalHazeApi::class)
 class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
+
+  @Test
+  fun renderEffectCache_isOwnedByEachBlurRuntime() {
+    val first = BlurVisualEffect()
+    val second = BlurVisualEffect()
+
+    assertThat(first.renderEffectCache).isNotSameInstanceAs(second.renderEffectCache)
+  }
 
   @Test
   fun onTrimMemory_backgroundKeepsRetainedOutputAvailability() {

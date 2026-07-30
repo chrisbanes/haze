@@ -37,9 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.navigation.NavHostController
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.time.Duration.Companion.seconds
@@ -80,12 +80,10 @@ fun PopupSample(navController: NavHostController, blurEnabled: Boolean) {
         ) {
           val style = HazeMaterials.regular()
           Box(
-            Modifier.hazeEffect(state = hazeState) {
-              blurEffect {
-                this.blurEnabled = blurEnabled
-                this.style = style
-              }
-            },
+            Modifier.hazeBlur(
+              input = HazeInput.Sources(hazeState),
+              style = style.then { blurEnabled(blurEnabled) },
+            ),
           ) {
             // empty
           }

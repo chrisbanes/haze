@@ -94,18 +94,37 @@ internal fun cupertinoMaterialStyle(
   lightForegroundColor: Color,
   darkBackgroundColor: Color,
   darkForegroundColor: Color,
-): HazeBlurStyle = HazeBlurStyle(
-  blurRadius = 24.dp,
-  backgroundColor = containerColor,
-  colorEffects = listOf(
-    HazeColorEffect.tint(
-      color = if (isDark) darkBackgroundColor else lightBackgroundColor,
-      blendMode = if (isDark) BlendMode.Overlay else BlendMode.ColorDodge,
-    ),
-    HazeColorEffect.tint(
-      color = if (isDark) darkForegroundColor else lightForegroundColor,
-      blendMode = HazeColorEffect.DefaultBlendMode,
-    ),
+): HazeBlurStyle {
+  val (backgroundColor, colorEffects) = cupertinoMaterialValues(
+    containerColor = containerColor,
+    isDark = isDark,
+    lightBackgroundColor = lightBackgroundColor,
+    lightForegroundColor = lightForegroundColor,
+    darkBackgroundColor = darkBackgroundColor,
+    darkForegroundColor = darkForegroundColor,
+  )
+  return HazeBlurStyle {
+    blurRadius(24.dp)
+    backgroundColor(backgroundColor)
+    colorEffects(colorEffects)
+  }
+}
+
+internal fun cupertinoMaterialValues(
+  containerColor: Color,
+  isDark: Boolean,
+  lightBackgroundColor: Color,
+  lightForegroundColor: Color,
+  darkBackgroundColor: Color,
+  darkForegroundColor: Color,
+): Pair<Color, List<HazeColorEffect>> = containerColor to listOf(
+  HazeColorEffect.tint(
+    color = if (isDark) darkBackgroundColor else lightBackgroundColor,
+    blendMode = if (isDark) BlendMode.Overlay else BlendMode.ColorDodge,
+  ),
+  HazeColorEffect.tint(
+    color = if (isDark) darkForegroundColor else lightForegroundColor,
+    blendMode = HazeColorEffect.DefaultBlendMode,
   ),
 )
 

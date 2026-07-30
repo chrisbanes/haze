@@ -27,14 +27,15 @@ You can disable this behavior by setting the [preferPerformance](../api/haze/dev
 ```kotlin hl_lines="7"
 LargeTopAppBar(
   // ...
-  modifier = Modifier.hazeEffect(hazeState) {
-    blurEffect {
-      progressive = HazeProgressive.verticalGradient(
+  modifier = Modifier.hazeBlur(
+    input = HazeInput.Sources(hazeState),
+    style = HazeBlurStyle {
+      progressive(HazeProgressive.verticalGradient(
         // ...
         preferPerformance = true,
-      )
-    }
-  }
+      ))
+    },
+  )
 )
 ```
 

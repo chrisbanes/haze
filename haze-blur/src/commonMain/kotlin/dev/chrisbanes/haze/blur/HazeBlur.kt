@@ -1,0 +1,76 @@
+// Copyright 2026, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze.blur
+
+import androidx.compose.runtime.Stable
+import androidx.compose.ui.Modifier
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectFactoryVisualEffect
+import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeEffectVisualEffectFactory
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.RetainedOutputVisualEffect
+import dev.chrisbanes.haze.VisualEffect
+import dev.chrisbanes.haze.hazeEffect
+
+/**
+ * Applies Blur to an explicit [input].
+ *
+ * [style] is an opaque, shareable program. Resolution starts from [HazeBlurDefaults.style], then
+ * replays [LocalHazeBlurStyle], then [style]. Later writes win. Each modifier node owns its Blur
+ * runtime, delegate, retained output, input-scale history, cache, and lifecycle resources.
+ *
+ * @param input Source-backed content or this modifier's own content.
+ * @param style Explicit Blur Style replayed after [LocalHazeBlurStyle].
+ * @param sampling Input-sampling policy for the Blur runtime.
+ * @param expandLayerBounds Whether Blur may expand its capture layer by the resolved radius.
+ */
+@Stable
+public fun Modifier.hazeBlur(
+  input: HazeInput,
+  style: HazeBlurStyle = HazeBlurStyle,
+  sampling: HazeSampling = HazeSampling.Default,
+  expandLayerBounds: Boolean = true,
+): Modifier = hazeEffect(
+  factory = HazeBlurFactory,
+  input = input,
+  style = style,
+  sampling = sampling,
+  expandLayerBounds = expandLayerBounds,
+)
+
+@OptIn(InternalHazeApi::class)
+internal object HazeBlurFactory :
+  HazeEffectFactory<HazeBlurStyle>,
+  HazeEffectVisualEffectFactory<HazeBlurStyle> {
+
+  override fun createRenderer(): HazeEffectRenderer<HazeBlurStyle> {
+    error("Blur uses the built-in full VisualEffect adapter")
+  }
+
+  override fun createVisualEffect(
+    style: HazeBlurStyle,
+    sampling: HazeSampling,
+  ): HazeEffectFactoryVisualEffect<HazeBlurStyle> {
+    return BlurHazeEffectFactoryVisualEffect(
+      BlurVisualEffect().apply {
+        this.style = style
+      },
+    )
+  }
+}
+
+@OptIn(InternalHazeApi::class)
+internal class BlurHazeEffectFactoryVisualEffect(
+  internal val effect: BlurVisualEffect,
+) : HazeEffectFactoryVisualEffect<HazeBlurStyle>,
+  VisualEffect by effect,
+  RetainedOutputVisualEffect by effect {
+
+  override fun updateStyle(style: HazeBlurStyle, sampling: HazeSampling) {
+    effect.style = style
+  }
+}
