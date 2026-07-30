@@ -34,8 +34,10 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  * Create a Style with [GlassStyle] and combine Styles with [then]. Writes run in order and the last
  * write to a property wins. The companion object is the empty Style and performs no writes.
  *
- * A Style contains no renderer or mutable evaluation state. Each `hazeGlass` node evaluates it
- * into a fresh node-owned snapshot.
+ * A Style contains no renderer or mutable evaluation state. [GlassStyleScope.hovered],
+ * [GlassStyleScope.focused], and [GlassStyleScope.pressed] record declarative responses only;
+ * each `hazeGlass` node evaluates them into a fresh node-owned snapshot and owns its signals,
+ * animations, pointer observation, and renderer resources.
  */
 @ExperimentalHazeApi
 @Immutable
@@ -99,6 +101,26 @@ private class CombinedGlassStyle(
 public class GlassStyleScope internal constructor(
   private val values: GlassStyleValues,
 ) {
+  /**
+   * Declares the response evaluated by each node while it is hovered.
+   *
+   * The last declaration for this state wins. Pointer observation is installed only when hover or
+   * press has a declaration, and observes without consuming application input.
+   */
+  public fun hovered(block: GlassInteractionScope.() -> Unit) {
+    values.hoveredInteraction = buildGlassInteractionResponse(block)
+  }
+
+  /** Declares the response evaluated by each node while it is focused. */
+  public fun focused(block: GlassInteractionScope.() -> Unit) {
+    values.focusedInteraction = buildGlassInteractionResponse(block)
+  }
+
+  /** Declares the response evaluated by each node while it is pressed. */
+  public fun pressed(block: GlassInteractionScope.() -> Unit) {
+    values.pressedInteraction = buildGlassInteractionResponse(block)
+  }
+
   public fun shape(value: RoundedCornerShape) {
     values.shape = value
   }
@@ -198,6 +220,9 @@ internal class GlassStyleValues(
   var contentNormalBlend: Float = GlassDefaults.contentNormalBlend,
   var specularExponent: Float = GlassDefaults.specularExponent,
   var fresnelExponent: Float = GlassDefaults.fresnelExponent,
+  var hoveredInteraction: GlassInteractionResponse? = null,
+  var focusedInteraction: GlassInteractionResponse? = null,
+  var pressedInteraction: GlassInteractionResponse? = null,
 )
 
 internal fun resolveGlassStyleValues(
@@ -208,6 +233,19 @@ internal fun resolveGlassStyleValues(
   GlassDefaults.style.applyTo(scope)
   localStyle.applyTo(scope)
   explicitStyle.applyTo(scope)
+}
+
+/** Evaluates stateless Style declarations into a fresh, node-owned response snapshot. */
+internal fun resolveGlassStyleInteractionSlots(
+  localStyle: GlassStyle,
+  explicitStyle: GlassStyle,
+): GlassInteractionSlots {
+  val values = resolveGlassStyleValues(localStyle, explicitStyle)
+  return GlassInteractionSlots(
+    focused = values.focusedInteraction?.let { GlassInteractionSlot(1L, it) },
+    hovered = values.hoveredInteraction?.let { GlassInteractionSlot(1L, it) },
+    pressed = values.pressedInteraction?.let { GlassInteractionSlot(1L, it) },
+  )
 }
 
 private fun GlassStyle.applyTo(scope: GlassStyleScope) {

@@ -412,6 +412,7 @@ internal class GlassRuntimeEffect private constructor(
   override fun update(context: VisualEffectContext) {
     dirtyTrackerVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
+    resolvedConfiguration.updateStyleInteractionSlots()
     syncInteractionController(context)
 
     if (dirtyTracker.any(GlassDirtyFields.LayerBoundsFlags)) {

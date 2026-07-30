@@ -81,6 +81,9 @@ public class GlassVisualEffect() :
     hoveredSlot = other.hoveredSlot
     focusedSlot = other.focusedSlot
     pressedSlot = other.pressedSlot
+    styleHoveredSlot = other.styleHoveredSlot
+    styleFocusedSlot = other.styleFocusedSlot
+    stylePressedSlot = other.stylePressedSlot
     _interactionSource = other._interactionSource
     _interactionLightRadiusFraction = other._interactionLightRadiusFraction
     _interactionTransformTarget = other._interactionTransformTarget
@@ -152,6 +155,9 @@ public class GlassVisualEffect() :
         hoveredSlot = other.hoveredSlot
         focusedSlot = other.focusedSlot
         pressedSlot = other.pressedSlot
+        styleHoveredSlot = other.styleHoveredSlot
+        styleFocusedSlot = other.styleFocusedSlot
+        stylePressedSlot = other.stylePressedSlot
         _interactionSource = other._interactionSource
         _interactionLightRadiusFraction = other._interactionLightRadiusFraction
         _interactionTransformTarget = other._interactionTransformTarget
@@ -234,6 +240,11 @@ public class GlassVisualEffect() :
   internal var pressedSlot: GlassInteractionSlot? by mutableStateOf(null)
     private set
 
+  // A Style contains only declarations. Each attached effect owns these evaluated slots.
+  private var styleHoveredSlot: GlassInteractionSlot? by mutableStateOf(null)
+  private var styleFocusedSlot: GlassInteractionSlot? by mutableStateOf(null)
+  private var stylePressedSlot: GlassInteractionSlot? by mutableStateOf(null)
+
   private var interactionSlotsSnapshot: GlassInteractionSlots = GlassInteractionSlots()
   private var currentInteractionTopology = interactionSlotsSnapshot.resolveInteractionTopology()
 
@@ -258,7 +269,7 @@ public class GlassVisualEffect() :
   private var interactionSlotTransaction: InteractionSlotTransaction? = null
 
   override val observesPointerEvents: Boolean
-    get() = hoveredSlot != null || pressedSlot != null
+    get() = interactionSlotsSnapshot.hovered != null || interactionSlotsSnapshot.pressed != null
 
   internal var _interactionSource: InteractionSource? by mutableStateOf(
     null,
@@ -468,14 +479,30 @@ public class GlassVisualEffect() :
 
   private fun refreshInteractionSnapshots() {
     val slots = GlassInteractionSlots(
-      focused = focusedSlot,
-      hovered = hoveredSlot,
-      pressed = pressedSlot,
+      focused = styleFocusedSlot ?: focusedSlot,
+      hovered = styleHoveredSlot ?: hoveredSlot,
+      pressed = stylePressedSlot ?: pressedSlot,
     )
     if (slots != interactionSlotsSnapshot) {
       interactionSlotsSnapshot = slots
       currentInteractionTopology = slots.resolveInteractionTopology()
     }
+  }
+
+  internal fun updateStyleInteractionSlots() {
+    val resolved = resolveGlassStyleInteractionSlots(compositionLocalStyle, style)
+    if (
+      styleHoveredSlot?.response == resolved.hovered?.response &&
+      styleFocusedSlot?.response == resolved.focused?.response &&
+      stylePressedSlot?.response == resolved.pressed?.response
+    ) {
+      return
+    }
+    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
+    styleHoveredSlot = resolved.hovered?.let { GlassInteractionSlot(++nextInteractionRevision, it.response) }
+    styleFocusedSlot = resolved.focused?.let { GlassInteractionSlot(++nextInteractionRevision, it.response) }
+    stylePressedSlot = resolved.pressed?.let { GlassInteractionSlot(++nextInteractionRevision, it.response) }
+    onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   @PublishedApi
