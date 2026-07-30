@@ -440,8 +440,8 @@ internal fun playgroundInteractionStyle() = dev.chrisbanes.haze.glass.GlassStyle
   hovered {}
   pressed {
     animate(
-      toSpec = GlassDefaults.pressAnimationSpec,
-      fromSpec = GlassDefaults.releaseAnimationSpec,
+      toSpec = DefaultGlassPressAnimationSpec,
+      fromSpec = DefaultGlassReleaseAnimationSpec,
     ) {
       lightingIntensity(1f)
       refractionMultiplier(1.08f)

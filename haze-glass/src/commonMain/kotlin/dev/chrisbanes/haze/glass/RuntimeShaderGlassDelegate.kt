@@ -46,19 +46,6 @@ internal class RuntimeShaderGlassDelegate(
     runtimeEffectFactory = value
   }
 
-  internal fun sanitizeConfigurationReferencesForCache(releaseShaderHandles: Boolean) {
-    if (releaseShaderHandles) {
-      release()
-      return
-    }
-    progressiveBlurHorizontalShader = null
-    progressiveBlurVerticalShader = null
-    if (fusedInputKey?.blur?.progressive != null) {
-      fusedShader = null
-      fusedInputKey = null
-    }
-  }
-
   private var blurKey: GlassBlurEffectKey? = null
   private var blurEffects: GlassBlurRenderEffects? = null
   internal var blurHorizontalShader: MutableRuntimeShaderRenderEffect? = null

@@ -8,184 +8,28 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.takeOrElse
-import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
-import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
-import dev.chrisbanes.haze.InteractiveVisualEffect
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.RetainedOutputVisualEffect
-import dev.chrisbanes.haze.VisualEffect
-import dev.chrisbanes.haze.VisualEffectContext
-import dev.chrisbanes.haze.VisualEffectRendererFactory
 
-/**
- * Shareable Glass compatibility configuration.
- *
- * Each attached `hazeEffect` node materializes and owns an internal renderer. This object stores
- * only caller configuration and may be reused by multiple nodes.
- */
+/** Mutable style and interaction state owned by one [GlassRuntimeEffect]. */
 @ExperimentalHazeApi
 @Stable
 @OptIn(InternalHazeApi::class)
 @Suppress("ktlint:standard:property-naming")
-public class GlassVisualEffect() :
-  VisualEffect,
-  InteractiveVisualEffect,
-  RetainedOutputVisualEffect,
-  VisualEffectRendererFactory,
-  GlassStyleConfiguration {
-  /** Creates a new [GlassVisualEffect] copying all properties from [other]. */
-  public constructor(other: GlassVisualEffect) : this() {
-    copyConfigurationFrom(other)
-  }
+internal abstract class GlassRuntimeState {
+  protected constructor()
 
-  internal fun copyConfigurationFrom(other: GlassVisualEffect) {
-    _optics = other._optics
-    _specularIntensity = other._specularIntensity
-    _ambientResponse = other._ambientResponse
-    _tint = other._tint
-    _edgeSoftness = other._edgeSoftness
-    _lightPosition = other._lightPosition
-    _chromaticAberrationStrength = other._chromaticAberrationStrength
-    _surfaceProfile = other._surfaceProfile
-    _chromaticAberrationMode = other._chromaticAberrationMode
-    _shape = other._shape
-    _alpha = other._alpha
-    _contrast = other._contrast
-    _whitePoint = other._whitePoint
-    _chromaMultiplier = other._chromaMultiplier
-    _contentNormalBlend = other._contentNormalBlend
-    _specularExponent = other._specularExponent
-    _fresnelExponent = other._fresnelExponent
-    compositionLocalStyle = other.compositionLocalStyle
-    style = other.style
-    nextInteractionRevision = other.nextInteractionRevision
-    hoveredSlot = other.hoveredSlot
-    focusedSlot = other.focusedSlot
-    pressedSlot = other.pressedSlot
-    hoveredOverride = other.hoveredOverride
-    focusedOverride = other.focusedOverride
-    pressedOverride = other.pressedOverride
-    styleHoveredSlot = other.styleHoveredSlot
-    styleFocusedSlot = other.styleFocusedSlot
-    stylePressedSlot = other.stylePressedSlot
-    _interactionSource = other._interactionSource
-    _interactionLightRadiusFraction = other._interactionLightRadiusFraction
-    _interactionTransformTarget = other._interactionTransformTarget
-    _interactionTransformPivot = other._interactionTransformPivot
-    _interactionPositionAnimationSpec = other._interactionPositionAnimationSpec
-    _interactionReducedMotionPolicy = other._interactionReducedMotionPolicy
-    runtimeEffectFactory = other.runtimeEffectFactory
-    refreshInteractionSnapshots()
-  }
-
-  internal var configurationRevision: Int by mutableIntStateOf(0)
-    private set
-
-  private val configurationFieldVersions = IntArray(Int.SIZE_BITS)
   internal var onConfigurationChanged: ((Int) -> Unit)? = null
-  internal var trackConfigurationVersions: Boolean = true
-
-  internal fun configurationFieldVersions(): IntArray = configurationFieldVersions.copyOf()
-
-  internal fun synchronizeConfigurationFrom(
-    other: GlassVisualEffect,
-    changedFields: Int,
-  ) {
-    val callback = onConfigurationChanged
-    onConfigurationChanged = null
-    try {
-      if (changedFields and GlassDirtyFields.Optics != 0) _optics = other._optics
-      if (changedFields and GlassDirtyFields.SpecularIntensity != 0) {
-        _specularIntensity = other._specularIntensity
-      }
-      if (changedFields and GlassDirtyFields.AmbientResponse != 0) {
-        _ambientResponse = other._ambientResponse
-      }
-      if (changedFields and GlassDirtyFields.Tint != 0) _tint = other._tint
-      if (changedFields and GlassDirtyFields.EdgeSoftness != 0) {
-        _edgeSoftness = other._edgeSoftness
-      }
-      if (changedFields and GlassDirtyFields.LightPosition != 0) {
-        _lightPosition = other._lightPosition
-      }
-      if (changedFields and GlassDirtyFields.ChromaticAberration != 0) {
-        _chromaticAberrationStrength = other._chromaticAberrationStrength
-      }
-      if (changedFields and GlassDirtyFields.SurfaceProfile != 0) {
-        _surfaceProfile = other._surfaceProfile
-      }
-      if (changedFields and GlassDirtyFields.ChromaticAberrationMode != 0) {
-        _chromaticAberrationMode = other._chromaticAberrationMode
-      }
-      if (changedFields and GlassDirtyFields.Shape != 0) _shape = other._shape
-      if (changedFields and GlassDirtyFields.Alpha != 0) _alpha = other._alpha
-      if (changedFields and GlassDirtyFields.Contrast != 0) _contrast = other._contrast
-      if (changedFields and GlassDirtyFields.WhitePoint != 0) _whitePoint = other._whitePoint
-      if (changedFields and GlassDirtyFields.ChromaMultiplier != 0) {
-        _chromaMultiplier = other._chromaMultiplier
-      }
-      if (changedFields and GlassDirtyFields.ContentNormalBlend != 0) {
-        _contentNormalBlend = other._contentNormalBlend
-      }
-      if (changedFields and GlassDirtyFields.SpecularExponent != 0) {
-        _specularExponent = other._specularExponent
-      }
-      if (changedFields and GlassDirtyFields.FresnelExponent != 0) {
-        _fresnelExponent = other._fresnelExponent
-      }
-      if (changedFields and GlassDirtyFields.Style != 0) style = other.style
-      if (changedFields and GlassDirtyFields.Interaction != 0) {
-        nextInteractionRevision = other.nextInteractionRevision
-        hoveredSlot = other.hoveredSlot
-        focusedSlot = other.focusedSlot
-        pressedSlot = other.pressedSlot
-        hoveredOverride = other.hoveredOverride
-        focusedOverride = other.focusedOverride
-        pressedOverride = other.pressedOverride
-        styleHoveredSlot = other.styleHoveredSlot
-        styleFocusedSlot = other.styleFocusedSlot
-        stylePressedSlot = other.stylePressedSlot
-        _interactionSource = other._interactionSource
-        _interactionLightRadiusFraction = other._interactionLightRadiusFraction
-        _interactionTransformTarget = other._interactionTransformTarget
-        _interactionTransformPivot = other._interactionTransformPivot
-        _interactionPositionAnimationSpec = other._interactionPositionAnimationSpec
-        _interactionReducedMotionPolicy = other._interactionReducedMotionPolicy
-        refreshInteractionSnapshots()
-      }
-      if (changedFields and GlassDirtyFields.RuntimeEffectFactory != 0) {
-        runtimeEffectFactory = other.runtimeEffectFactory
-      }
-    } finally {
-      onConfigurationChanged = callback
-    }
-  }
-
-  internal var dirtyTracker: Bitmask = Bitmask()
-    private set
-
-  internal fun resetDirtyTracker() {
-    dirtyTracker = Bitmask()
-  }
 
   internal var runtimeEffectFactory: GlassRuntimeEffectFactory = PlatformGlassRuntimeEffectFactory
     set(value) {
@@ -194,46 +38,6 @@ public class GlassVisualEffect() :
         markDirty(GlassDirtyFields.RuntimeEffectFactory)
       }
     }
-
-  internal val rendererCacheKey: Any by lazy(LazyThreadSafetyMode.NONE) { Any() }
-
-  override fun createRenderer(): VisualEffect = GlassRendererCache.acquire(this)
-
-  override fun DrawScope.draw(context: VisualEffectContext): Unit = Unit
-
-  override fun onPointerEvent(event: PointerEvent, context: VisualEffectContext): Unit = Unit
-
-  override fun onCancelPointerInput(context: VisualEffectContext): Unit = Unit
-
-  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean = false
-
-  override fun clearRetainedOutput(): Unit = Unit
-
-  override fun shouldClipToNodeBounds(): Boolean =
-    edgeSoftness > 0.dp || !shape.hasZeroCornerRadii()
-
-  override fun shouldPreferClipToAreaBounds(): Boolean = !shouldClipToNodeBounds()
-
-  override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    val resolvedStyle = resolveGlassStyle(
-      effect = this,
-      materialSizePx = rect.size,
-      density = density,
-      layoutDirection = LayoutDirection.Ltr,
-    )
-    val resolved = resolvedStyle.resolvedOptics
-    val paddingPx = calculateGlassSamplePaddingPx(
-      blurRadiusPx = if (resolved.depth <= 0f) 0f else resolved.blurRadiusPx,
-      refractionScale = resolved.refractionScalePx,
-      refractionStrength = (
-        resolved.refractionStrength * maximumInteractionRefractionMultiplier()
-        ).coerceIn(0f, 1f),
-      chromaticAberrationStrength = resolvedStyle.chromaticAberrationStrength,
-      edgeSoftnessPx = resolvedStyle.edgeSoftnessPx,
-      foregroundOutsetPx = 0f,
-    )
-    return rect.inflate(paddingPx)
-  }
 
   internal var nextInteractionRevision: Long = 0L
 
@@ -263,21 +67,7 @@ public class GlassVisualEffect() :
   internal val resolvedInteractionTopology: GlassInteractionTopology
     get() = currentInteractionTopology
 
-  internal fun resolveInputScaleFactor(scale: HazeInputScale): Float = when {
-    scale === HazeInputScale.Auto -> 0.75f
-    scale is HazeInputScale.Fixed -> scale.scale
-    else -> 1f
-  }
-
-  private class InteractionSlotTransaction(effect: GlassVisualEffect) {
-    var hovered: GlassInteractionResponse? = effect.hoveredSlot?.response
-    var focused: GlassInteractionResponse? = effect.focusedSlot?.response
-    var pressed: GlassInteractionResponse? = effect.pressedSlot?.response
-  }
-
-  private var interactionSlotTransaction: InteractionSlotTransaction? = null
-
-  override val observesPointerEvents: Boolean
+  internal open val observesPointerEvents: Boolean
     get() = interactionSlotsSnapshot.hovered != null || interactionSlotsSnapshot.pressed != null
 
   internal var _interactionSource: InteractionSource? by mutableStateOf(
@@ -368,91 +158,19 @@ public class GlassVisualEffect() :
       }
     }
 
-  public fun hovered() {
-    setHovered(defaultHoverResponse())
-  }
-
   public fun hovered(block: GlassInteractionScope.() -> Unit) {
     setHovered(buildGlassInteractionResponse(block))
-  }
-
-  public fun focused() {
-    setFocused(defaultFocusResponse())
   }
 
   public fun focused(block: GlassInteractionScope.() -> Unit) {
     setFocused(buildGlassInteractionResponse(block))
   }
 
-  public fun pressed() {
-    setPressed(defaultPressResponse())
-  }
-
   public fun pressed(block: GlassInteractionScope.() -> Unit) {
     setPressed(buildGlassInteractionResponse(block))
   }
 
-  public fun interactable() {
-    hovered()
-    focused()
-    pressed()
-  }
-
-  public fun clearHovered() {
-    interactionSlotTransaction?.let {
-      it.hovered = null
-      return
-    }
-    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
-    hoveredOverride = true
-    hoveredSlot = null
-    onInteractionConfigurationChanged(previousRefractionMultiplier)
-  }
-
-  public fun clearFocused() {
-    interactionSlotTransaction?.let {
-      it.focused = null
-      return
-    }
-    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
-    focusedOverride = true
-    focusedSlot = null
-    onInteractionConfigurationChanged(previousRefractionMultiplier)
-  }
-
-  public fun clearPressed() {
-    interactionSlotTransaction?.let {
-      it.pressed = null
-      return
-    }
-    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
-    pressedOverride = true
-    pressedSlot = null
-    onInteractionConfigurationChanged(previousRefractionMultiplier)
-  }
-
-  public fun clearInteractions() {
-    interactionSlotTransaction?.let {
-      it.hovered = null
-      it.focused = null
-      it.pressed = null
-      return
-    }
-    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
-    hoveredOverride = true
-    focusedOverride = true
-    pressedOverride = true
-    hoveredSlot = null
-    focusedSlot = null
-    pressedSlot = null
-    onInteractionConfigurationChanged(previousRefractionMultiplier)
-  }
-
   private fun setHovered(response: GlassInteractionResponse) {
-    interactionSlotTransaction?.let {
-      it.hovered = response
-      return
-    }
     if (hoveredOverride && hoveredSlot?.response == response) return
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     hoveredOverride = true
@@ -461,10 +179,6 @@ public class GlassVisualEffect() :
   }
 
   private fun setFocused(response: GlassInteractionResponse) {
-    interactionSlotTransaction?.let {
-      it.focused = response
-      return
-    }
     if (focusedOverride && focusedSlot?.response == response) return
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     focusedOverride = true
@@ -473,10 +187,6 @@ public class GlassVisualEffect() :
   }
 
   private fun setPressed(response: GlassInteractionResponse) {
-    interactionSlotTransaction?.let {
-      it.pressed = response
-      return
-    }
     if (pressedOverride && pressedSlot?.response == response) return
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
     pressedOverride = true
@@ -508,69 +218,27 @@ public class GlassVisualEffect() :
   }
 
   internal fun updateStyleInteractionSlots() {
-    val resolved = resolveGlassStyleInteractionSlots(compositionLocalStyle, style)
     if (
-      styleHoveredSlot?.response == resolved.hovered?.response &&
-      styleFocusedSlot?.response == resolved.focused?.response &&
-      stylePressedSlot?.response == resolved.pressed?.response
+      styleHoveredSlot?.response == inheritedStyleValues.hoveredInteraction &&
+      styleFocusedSlot?.response == inheritedStyleValues.focusedInteraction &&
+      stylePressedSlot?.response == inheritedStyleValues.pressedInteraction
     ) {
       return
     }
     val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
-    styleHoveredSlot = updateStyleSlot(styleHoveredSlot, resolved.hovered)
-    styleFocusedSlot = updateStyleSlot(styleFocusedSlot, resolved.focused)
-    stylePressedSlot = updateStyleSlot(stylePressedSlot, resolved.pressed)
+    styleHoveredSlot = updateStyleSlot(styleHoveredSlot, inheritedStyleValues.hoveredInteraction)
+    styleFocusedSlot = updateStyleSlot(styleFocusedSlot, inheritedStyleValues.focusedInteraction)
+    stylePressedSlot = updateStyleSlot(stylePressedSlot, inheritedStyleValues.pressedInteraction)
     onInteractionConfigurationChanged(previousRefractionMultiplier)
   }
 
   private fun updateStyleSlot(
     previous: GlassInteractionSlot?,
-    next: GlassInteractionSlot?,
+    response: GlassInteractionResponse?,
   ): GlassInteractionSlot? = when {
-    previous?.response == next?.response -> previous
-    next == null -> null
-    else -> GlassInteractionSlot(++nextInteractionRevision, next.response)
-  }
-
-  @PublishedApi
-  internal fun beginInteractionSlotTransaction(): Boolean {
-    if (interactionSlotTransaction != null) return false
-    interactionSlotTransaction = InteractionSlotTransaction(this)
-    return true
-  }
-
-  @PublishedApi
-  internal fun commitInteractionSlotTransaction(ownsTransaction: Boolean) {
-    if (!ownsTransaction) return
-    val transaction = checkNotNull(interactionSlotTransaction)
-    interactionSlotTransaction = null
-    commitInteractionSlots(transaction)
-  }
-
-  @PublishedApi
-  internal fun rollbackInteractionSlotTransaction(ownsTransaction: Boolean) {
-    if (!ownsTransaction) return
-    interactionSlotTransaction = null
-  }
-
-  private fun commitInteractionSlots(transaction: InteractionSlotTransaction) {
-    val previousRefractionMultiplier = maximumInteractionRefractionMultiplier()
-    var changed = false
-    if (hoveredSlot?.response != transaction.hovered) {
-      hoveredSlot = transaction.hovered?.let { GlassInteractionSlot(++nextInteractionRevision, it) }
-      changed = true
-    }
-    if (focusedSlot?.response != transaction.focused) {
-      focusedSlot = transaction.focused?.let { GlassInteractionSlot(++nextInteractionRevision, it) }
-      changed = true
-    }
-    if (pressedSlot?.response != transaction.pressed) {
-      pressedSlot = transaction.pressed?.let { GlassInteractionSlot(++nextInteractionRevision, it) }
-      changed = true
-    }
-    if (changed) {
-      onInteractionConfigurationChanged(previousRefractionMultiplier)
-    }
+    previous?.response == response -> previous
+    response == null -> null
+    else -> GlassInteractionSlot(++nextInteractionRevision, response)
   }
 
   private fun maximumInteractionRefractionMultiplier(): Float =
@@ -581,10 +249,9 @@ public class GlassVisualEffect() :
   /**
    * Complete optical configuration for this effect.
    *
-   * A direct value takes precedence over [style], [LocalGlassStyle], and [GlassDefaults]. Call
-   * [clearOpticsOverride] to restore the next complete inherited value.
+   * A direct value takes precedence over [style], [LocalGlassStyle], and [GlassDefaults].
    */
-  override var optics: GlassOptics
+  internal var optics: GlassOptics
     get() = _optics ?: inheritedStyleValues.optics
     set(value) {
       if (value != _optics) {
@@ -593,18 +260,6 @@ public class GlassVisualEffect() :
         markDirty(GlassDirtyFields.Optics)
       }
     }
-
-  /**
-   * Clears the direct [optics] override and restores inherited values from [style] and
-   * [LocalGlassStyle].
-   */
-  public fun clearOpticsOverride() {
-    if (_optics != null) {
-      HazeLogger.d(TAG) { "optics override cleared. Current: $_optics" }
-      _optics = null
-      markDirty(GlassDirtyFields.Optics)
-    }
-  }
 
   /**
    * Intensity of specular highlights, in the range `0f..1f`.
@@ -616,7 +271,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.specularIntensity] value set in [LocalGlassStyle], if specified.
    */
   internal var _specularIntensity: Float = Float.NaN
-  override var specularIntensity: Float
+  internal var specularIntensity: Float
     get() = _specularIntensity
       .takeOrElse { inheritedStyleValues.specularIntensity }
     set(value) {
@@ -638,7 +293,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.ambientResponse] value set in [LocalGlassStyle], if specified.
    */
   internal var _ambientResponse: Float = Float.NaN
-  override var ambientResponse: Float
+  internal var ambientResponse: Float
     get() = _ambientResponse
       .takeOrElse { inheritedStyleValues.ambientResponse }
     set(value) {
@@ -660,7 +315,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.tint] value set in [LocalGlassStyle], if specified.
    */
   internal var _tint: Color = Color.Unspecified
-  override var tint: Color
+  internal var tint: Color
     get() = _tint
       .takeOrElse { inheritedStyleValues.tint }
     set(value) {
@@ -681,7 +336,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.edgeSoftness] value set in [LocalGlassStyle], if specified.
    */
   internal var _edgeSoftness: Dp = Dp.Unspecified
-  override var edgeSoftness: Dp
+  internal var edgeSoftness: Dp
     get() = _edgeSoftness
       .takeOrElse { inheritedStyleValues.edgeSoftness }
     set(value) {
@@ -705,7 +360,7 @@ public class GlassVisualEffect() :
    * center of the layer at draw time.
    */
   internal var _lightPosition: Offset = Offset.Unspecified
-  override var lightPosition: Offset
+  internal var lightPosition: Offset
     get() = _lightPosition
       .takeOrElse { inheritedStyleValues.lightPosition }
     set(value) {
@@ -726,7 +381,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.chromaticAberrationStrength] value set in [LocalGlassStyle], if specified.
    */
   internal var _chromaticAberrationStrength: Float = Float.NaN
-  override var chromaticAberrationStrength: Float
+  internal var chromaticAberrationStrength: Float
     get() = _chromaticAberrationStrength
       .takeOrElse { inheritedStyleValues.chromaticAberrationStrength }
     set(value) {
@@ -751,7 +406,7 @@ public class GlassVisualEffect() :
    */
   internal var _surfaceProfile: SurfaceProfile? = null
 
-  override var surfaceProfile: SurfaceProfile
+  internal var surfaceProfile: SurfaceProfile
     get() = _surfaceProfile ?: inheritedStyleValues.surfaceProfile
     set(value) {
       if (value != _surfaceProfile) {
@@ -760,18 +415,6 @@ public class GlassVisualEffect() :
         markDirty(GlassDirtyFields.SurfaceProfile)
       }
     }
-
-  /**
-   * Clears the direct [surfaceProfile] override and restores inherited values from [style] and
-   * [LocalGlassStyle].
-   */
-  public fun clearSurfaceProfileOverride() {
-    if (_surfaceProfile != null) {
-      HazeLogger.d(TAG) { "surfaceProfile override cleared. Current: $_surfaceProfile" }
-      _surfaceProfile = null
-      markDirty(GlassDirtyFields.SurfaceProfile)
-    }
-  }
 
   /**
    * Quality mode for chromatic aberration (color dispersion).
@@ -784,7 +427,7 @@ public class GlassVisualEffect() :
    */
   internal var _chromaticAberrationMode: ChromaticAberrationMode? = null
 
-  override var chromaticAberrationMode: ChromaticAberrationMode
+  internal var chromaticAberrationMode: ChromaticAberrationMode
     get() = _chromaticAberrationMode ?: inheritedStyleValues.chromaticAberrationMode
     set(value) {
       if (value != _chromaticAberrationMode) {
@@ -793,18 +436,6 @@ public class GlassVisualEffect() :
         markDirty(GlassDirtyFields.ChromaticAberrationMode)
       }
     }
-
-  /**
-   * Clears the direct [chromaticAberrationMode] override and restores inherited values from [style]
-   * and [LocalGlassStyle].
-   */
-  public fun clearChromaticAberrationModeOverride() {
-    if (_chromaticAberrationMode != null) {
-      HazeLogger.d(TAG) { "chromaticAberrationMode override cleared. Current: $_chromaticAberrationMode" }
-      _chromaticAberrationMode = null
-      markDirty(GlassDirtyFields.ChromaticAberrationMode)
-    }
-  }
 
   /**
    * Shape applied to the glass. Defaults to [RoundedCornerShape] with 16.dp corners.
@@ -817,7 +448,7 @@ public class GlassVisualEffect() :
    */
   internal var _shape: RoundedCornerShape? = null
 
-  override var shape: RoundedCornerShape
+  internal var shape: RoundedCornerShape
     get() = _shape ?: inheritedStyleValues.shape
     set(value) {
       if (value != _shape) {
@@ -826,18 +457,6 @@ public class GlassVisualEffect() :
         markDirty(GlassDirtyFields.Shape)
       }
     }
-
-  /**
-   * Clears the direct [shape] override and restores inherited values from [style] and
-   * [LocalGlassStyle].
-   */
-  public fun clearShapeOverride() {
-    if (_shape != null) {
-      HazeLogger.d(TAG) { "shape override cleared. Current: $_shape" }
-      _shape = null
-      markDirty(GlassDirtyFields.Shape)
-    }
-  }
 
   /**
    * Opacity for the effect, in the range `0f..1f`.
@@ -852,7 +471,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.alpha] value set in [LocalGlassStyle], if specified.
    */
   internal var _alpha: Float = Float.NaN
-  override var alpha: Float
+  internal var alpha: Float
     get() = _alpha
       .takeOrElse { inheritedStyleValues.alpha }
     set(value) {
@@ -874,7 +493,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.contrast] value set in [LocalGlassStyle], if specified.
    */
   internal var _contrast: Float = Float.NaN
-  override var contrast: Float
+  internal var contrast: Float
     get() = _contrast
       .takeOrElse { inheritedStyleValues.contrast }
     set(value) {
@@ -896,7 +515,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.whitePoint] value set in [LocalGlassStyle], if specified.
    */
   internal var _whitePoint: Float = Float.NaN
-  override var whitePoint: Float
+  internal var whitePoint: Float
     get() = _whitePoint
       .takeOrElse { inheritedStyleValues.whitePoint }
     set(value) {
@@ -918,7 +537,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.chromaMultiplier] value set in [LocalGlassStyle], if specified.
    */
   internal var _chromaMultiplier: Float = Float.NaN
-  override var chromaMultiplier: Float
+  internal var chromaMultiplier: Float
     get() = _chromaMultiplier
       .takeOrElse { inheritedStyleValues.chromaMultiplier }
     set(value) {
@@ -940,7 +559,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.contentNormalBlend] value set in [LocalGlassStyle], if specified.
    */
   internal var _contentNormalBlend: Float = Float.NaN
-  override var contentNormalBlend: Float
+  internal var contentNormalBlend: Float
     get() = _contentNormalBlend
       .takeOrElse { inheritedStyleValues.contentNormalBlend }
     set(value) {
@@ -962,7 +581,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.specularExponent] value set in [LocalGlassStyle], if specified.
    */
   internal var _specularExponent: Float = Float.NaN
-  override var specularExponent: Float
+  internal var specularExponent: Float
     get() = _specularExponent
       .takeOrElse { inheritedStyleValues.specularExponent }
     set(value) {
@@ -984,7 +603,7 @@ public class GlassVisualEffect() :
    *  - [GlassStyleScope.fresnelExponent] value set in [LocalGlassStyle], if specified.
    */
   internal var _fresnelExponent: Float = Float.NaN
-  override var fresnelExponent: Float
+  internal var fresnelExponent: Float
     get() = _fresnelExponent
       .takeOrElse { inheritedStyleValues.fresnelExponent }
     set(value) {
@@ -1002,11 +621,11 @@ public class GlassVisualEffect() :
    * There are precedence rules to how each styling property is applied. The order of precedence
    * for each property are as follows:
    *
-   *  - Property value set directly on this [GlassVisualEffect], if specified.
+   *  - Property value set directly on this [GlassRuntimeConfiguration], if specified.
    *  - Value set here in [style], if specified.
    *  - Value set in the [LocalGlassStyle] composition local.
    */
-  override var style: GlassStyle = GlassStyle
+  internal var style: GlassStyle = GlassStyle
     set(value) {
       if (field !== value) {
         HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
@@ -1036,16 +655,6 @@ public class GlassVisualEffect() :
   }
 
   private fun markDirty(fields: Int) {
-    if (trackConfigurationVersions) {
-      configurationRevision++
-      dirtyTracker += fields
-      configurationFieldVersions.indices.forEach { index ->
-        val field = 1 shl index
-        if (fields and field != 0) {
-          configurationFieldVersions[index]++
-        }
-      }
-    }
     onConfigurationChanged?.invoke(fields)
   }
 
@@ -1104,6 +713,6 @@ public class GlassVisualEffect() :
   }
 
   internal companion object {
-    const val TAG = "GlassVisualEffect"
+    const val TAG = "GlassRuntimeConfiguration"
   }
 }

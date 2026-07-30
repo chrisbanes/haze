@@ -42,13 +42,7 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
 @ExperimentalHazeApi
 @Immutable
 public sealed interface GlassStyle {
-  public companion object : GlassStyle {
-    /**
-     * Temporary compatibility name for the empty Style.
-     */
-    @Deprecated("Use GlassStyle directly as the empty Style.")
-    public val Unspecified: GlassStyle get() = this
-  }
+  public companion object : GlassStyle
 }
 
 /**
@@ -235,19 +229,6 @@ internal fun resolveGlassStyleValues(
   explicitStyle.applyTo(scope)
 }
 
-/** Evaluates stateless Style declarations into a fresh, node-owned response snapshot. */
-internal fun resolveGlassStyleInteractionSlots(
-  localStyle: GlassStyle,
-  explicitStyle: GlassStyle,
-): GlassInteractionSlots {
-  val values = resolveGlassStyleValues(localStyle, explicitStyle)
-  return GlassInteractionSlots(
-    focused = values.focusedInteraction?.let { GlassInteractionSlot(1L, it) },
-    hovered = values.hoveredInteraction?.let { GlassInteractionSlot(1L, it) },
-    pressed = values.pressedInteraction?.let { GlassInteractionSlot(1L, it) },
-  )
-}
-
 private fun GlassStyle.applyTo(scope: GlassStyleScope) {
   when (this) {
     GlassStyle -> Unit
@@ -257,101 +238,4 @@ private fun GlassStyle.applyTo(scope: GlassStyleScope) {
       second.applyTo(scope)
     }
   }
-}
-
-/**
- * Legacy grouped lighting patch retained temporarily for source migration.
- *
- * New code should use property functions in [GlassStyleScope].
- */
-@Deprecated("Use GlassStyle { specularIntensity(...); ambientResponse(...); ... }.")
-@ExperimentalHazeApi
-@Immutable
-public data class GlassLighting(
-  val specularIntensity: Float = Float.NaN,
-  val specularExponent: Float = Float.NaN,
-  val fresnelExponent: Float = Float.NaN,
-  val ambientResponse: Float = Float.NaN,
-  val lightPosition: Offset = Offset.Unspecified,
-) {
-  public companion object {
-    public val Unspecified: GlassLighting = GlassLighting()
-  }
-}
-
-/**
- * Legacy grouped color patch retained temporarily for source migration.
- *
- * New code should use property functions in [GlassStyleScope].
- */
-@Deprecated("Use GlassStyle { alpha(...); contrast(...); ... }.")
-@ExperimentalHazeApi
-@Immutable
-public data class GlassColor(
-  val alpha: Float = Float.NaN,
-  val contrast: Float = Float.NaN,
-  val whitePoint: Float = Float.NaN,
-  val chromaMultiplier: Float = Float.NaN,
-) {
-  public companion object {
-    public val Unspecified: GlassColor = GlassColor()
-  }
-}
-
-/**
- * Legacy grouped rendering patch retained temporarily for source migration.
- *
- * New code should use property functions in [GlassStyleScope].
- */
-@Deprecated("Use GlassStyle { edgeSoftness(...); contentNormalBlend(...); ... }.")
-@ExperimentalHazeApi
-@Immutable
-public data class GlassRendering(
-  val edgeSoftness: Dp = Dp.Unspecified,
-  val contentNormalBlend: Float = Float.NaN,
-  val surfaceProfile: SurfaceProfile? = null,
-  val chromaticAberrationStrength: Float = Float.NaN,
-  val chromaticAberrationMode: ChromaticAberrationMode? = null,
-) {
-  public companion object {
-    public val Unspecified: GlassRendering = GlassRendering()
-  }
-}
-
-/**
- * Temporary constructor adapter for the legacy grouped Style surface.
- *
- * Sentinel interpretation is confined to this adapter; ordinary Style evaluation only replays
- * explicit property writes.
- */
-@Deprecated("Use GlassStyle { property(value) }.")
-@ExperimentalHazeApi
-@Suppress("DEPRECATION")
-public fun GlassStyle(
-  tint: Color = Color.Unspecified,
-  shape: RoundedCornerShape? = null,
-  optics: GlassOptics? = null,
-  lighting: GlassLighting = GlassLighting.Unspecified,
-  color: GlassColor = GlassColor.Unspecified,
-  rendering: GlassRendering = GlassRendering.Unspecified,
-): GlassStyle = GlassStyle {
-  if (tint.isSpecified) tint(tint)
-  shape?.let(::shape)
-  optics?.let(::optics)
-  if (!lighting.specularIntensity.isNaN()) specularIntensity(lighting.specularIntensity)
-  if (!lighting.specularExponent.isNaN()) specularExponent(lighting.specularExponent)
-  if (!lighting.fresnelExponent.isNaN()) fresnelExponent(lighting.fresnelExponent)
-  if (!lighting.ambientResponse.isNaN()) ambientResponse(lighting.ambientResponse)
-  if (lighting.lightPosition != Offset.Unspecified) lightPosition(lighting.lightPosition)
-  if (!color.alpha.isNaN()) alpha(color.alpha)
-  if (!color.contrast.isNaN()) contrast(color.contrast)
-  if (!color.whitePoint.isNaN()) whitePoint(color.whitePoint)
-  if (!color.chromaMultiplier.isNaN()) chromaMultiplier(color.chromaMultiplier)
-  if (rendering.edgeSoftness.isSpecified) edgeSoftness(rendering.edgeSoftness)
-  if (!rendering.contentNormalBlend.isNaN()) contentNormalBlend(rendering.contentNormalBlend)
-  rendering.surfaceProfile?.let(::surfaceProfile)
-  if (!rendering.chromaticAberrationStrength.isNaN()) {
-    chromaticAberrationStrength(rendering.chromaticAberrationStrength)
-  }
-  rendering.chromaticAberrationMode?.let(::chromaticAberrationMode)
 }

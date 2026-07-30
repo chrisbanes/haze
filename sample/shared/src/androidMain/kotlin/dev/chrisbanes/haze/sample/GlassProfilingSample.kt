@@ -382,8 +382,8 @@ internal fun profilingGlassStyle(
 }.then {
   pressed {
     animate(
-      toSpec = GlassDefaults.pressAnimationSpec,
-      fromSpec = GlassDefaults.releaseAnimationSpec,
+      toSpec = DefaultGlassPressAnimationSpec,
+      fromSpec = DefaultGlassReleaseAnimationSpec,
     ) {
       lightingIntensity(1f)
       refractionMultiplier(1.08f)

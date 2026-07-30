@@ -10,20 +10,13 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.PointerEvent
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
-import dev.chrisbanes.haze.HazeEffectFactoryVisualEffect
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeEffectVisualEffectFactory
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeSampling
-import dev.chrisbanes.haze.InteractiveVisualEffect
 import dev.chrisbanes.haze.Poko
-import dev.chrisbanes.haze.RetainedOutputVisualEffect
-import dev.chrisbanes.haze.VisualEffect
-import dev.chrisbanes.haze.VisualEffectContext
-import dev.chrisbanes.haze.VisualEffectTransform
 import dev.chrisbanes.haze.hazeEffect
 
 /**
@@ -70,32 +63,6 @@ public fun Modifier.hazeGlass(
   interactionTransformPivot = interactionTransformPivot,
   interactionPositionAnimationSpec = interactionPositionAnimationSpec,
   interactionReducedMotionPolicy = interactionReducedMotionPolicy,
-)
-
-/** Binary-compatible bridge for callers compiled against the original typed Glass modifier. */
-@Deprecated(
-  message = "Use the overload with interaction configuration to opt into explicit motion policy.",
-  level = DeprecationLevel.HIDDEN,
-)
-@Stable
-@ExperimentalHazeApi
-public fun Modifier.hazeGlass(
-  input: HazeInput,
-  style: GlassStyle = GlassStyle,
-  sampling: HazeSampling = HazeSampling.Default,
-  expandLayerBounds: Boolean = true,
-  interactionSource: InteractionSource? = null,
-): Modifier = hazeGlass(
-  input = input,
-  style = style,
-  sampling = sampling,
-  expandLayerBounds = expandLayerBounds,
-  interactionSource = interactionSource,
-  interactionLightRadiusFraction = GlassDefaults.interactionLightRadiusFraction,
-  interactionTransformTarget = GlassTransformTarget.MaterialOnly,
-  interactionTransformPivot = GlassTransformPivot.Pointer,
-  interactionPositionAnimationSpec = GlassDefaults.positionAnimationSpec,
-  interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
 )
 
 internal fun Modifier.hazeGlass(
@@ -148,68 +115,5 @@ internal object GlassHazeEffectFactory :
   override fun createVisualEffect(
     style: GlassNodeConfiguration,
     sampling: HazeSampling,
-  ): HazeEffectFactoryVisualEffect<GlassNodeConfiguration> {
-    val configuration = GlassVisualEffect().apply {
-      this.style = style.style
-      interactionSource = style.interactionSource
-      interactionLightRadiusFraction = style.interactionLightRadiusFraction
-      interactionTransformTarget = style.interactionTransformTarget
-      interactionTransformPivot = style.interactionTransformPivot
-      interactionPositionAnimationSpec = style.interactionPositionAnimationSpec
-      interactionReducedMotionPolicy = style.interactionReducedMotionPolicy
-    }
-    return GlassHazeEffectFactoryVisualEffect(
-      configuration = configuration,
-      renderer = configuration.createRenderer(),
-    )
-  }
-}
-
-internal class GlassHazeEffectFactoryVisualEffect(
-  internal val configuration: GlassVisualEffect,
-  internal val renderer: VisualEffect,
-) : HazeEffectFactoryVisualEffect<GlassNodeConfiguration>,
-  VisualEffect by renderer,
-  InteractiveVisualEffect,
-  RetainedOutputVisualEffect {
-
-  private val interactiveRenderer: InteractiveVisualEffect?
-    get() = renderer as? InteractiveVisualEffect
-
-  private val retainedRenderer: RetainedOutputVisualEffect?
-    get() = renderer as? RetainedOutputVisualEffect
-
-  override fun updateStyle(style: GlassNodeConfiguration, sampling: HazeSampling) {
-    configuration.style = style.style
-    configuration.interactionSource = style.interactionSource
-    configuration.interactionLightRadiusFraction = style.interactionLightRadiusFraction
-    configuration.interactionTransformTarget = style.interactionTransformTarget
-    configuration.interactionTransformPivot = style.interactionTransformPivot
-    configuration.interactionPositionAnimationSpec = style.interactionPositionAnimationSpec
-    configuration.interactionReducedMotionPolicy = style.interactionReducedMotionPolicy
-  }
-
-  override val observesPointerEvents: Boolean
-    get() = interactiveRenderer?.observesPointerEvents == true
-
-  override fun onPointerEvent(event: PointerEvent, context: VisualEffectContext) {
-    interactiveRenderer?.onPointerEvent(event, context)
-  }
-
-  override fun onCancelPointerInput(context: VisualEffectContext) {
-    interactiveRenderer?.onCancelPointerInput(context)
-  }
-
-  override fun currentContentTransform(context: VisualEffectContext): VisualEffectTransform =
-    interactiveRenderer?.currentContentTransform(context) ?: VisualEffectTransform.Identity
-
-  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean =
-    retainedRenderer?.canDrawRetainedOutput(context) == true
-
-  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean =
-    retainedRenderer?.shouldDrawRetainedOutput(context) == true
-
-  override fun clearRetainedOutput() {
-    retainedRenderer?.clearRetainedOutput()
-  }
+  ): GlassRuntimeEffect = GlassRuntimeEffect(style)
 }

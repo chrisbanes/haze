@@ -49,13 +49,13 @@ import kotlin.test.Test
   InternalHazeApi::class,
 )
 class GlassInteractionIntegrationTest : ContextTest() {
-  private val attachedRuntimes = mutableMapOf<GlassVisualEffect, GlassRuntimeEffect>()
+  private val attachedRuntimes = mutableMapOf<GlassRuntimeEffect, GlassRuntimeEffect>()
 
   @Test
   fun interactiveGlass_doesNotBlockClick() = runComposeUiTest {
     val source = MutableInteractionSource()
-    val effect = GlassVisualEffect().apply {
-      pressed()
+    val effect = GlassRuntimeEffect().apply {
+      testPressResponse()
       interactionSource = source
     }
     var clicks = 0
@@ -79,8 +79,8 @@ class GlassInteractionIntegrationTest : ContextTest() {
   @Test
   fun scrollConsumesMovementAndCancelsOnlyRawPress() = runComposeUiTest {
     val scroll = ScrollState(0)
-    val effect = GlassVisualEffect().apply {
-      pressed()
+    val effect = GlassRuntimeEffect().apply {
+      testPressResponse()
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
     }
     setContent {
@@ -108,8 +108,8 @@ class GlassInteractionIntegrationTest : ContextTest() {
 
   @Test
   fun mouseHoverTracksPointerAndEndsOnExit() = runComposeUiTest {
-    val effect = GlassVisualEffect().apply {
-      hovered()
+    val effect = GlassRuntimeEffect().apply {
+      testHoverResponse()
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
     }
     setContent {
@@ -139,7 +139,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
 
   @Test
   fun interactionFrames_doNotRecomposeConfiguration() = runComposeUiTest {
-    val effect = GlassVisualEffect().apply { pressed() }
+    val effect = GlassRuntimeEffect().apply { testPressResponse() }
     var compositions = 0
     setContent {
       SideEffect { compositions++ }
@@ -170,9 +170,9 @@ class GlassInteractionIntegrationTest : ContextTest() {
     val source = MutableInteractionSource()
     val focus = FocusInteraction.Focus()
     val press = PressInteraction.Press(Offset.Unspecified)
-    val effect = GlassVisualEffect().apply {
-      focused()
-      pressed()
+    val effect = GlassRuntimeEffect().apply {
+      testFocusResponse()
+      testPressResponse()
       interactionSource = source
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
     }
@@ -204,13 +204,13 @@ class GlassInteractionIntegrationTest : ContextTest() {
     )
   }
 
-  private fun HazeEffectScope.trackRenderer(effect: GlassVisualEffect) {
+  private fun HazeEffectScope.trackRenderer(effect: GlassRuntimeEffect) {
     visualEffect = effect
     attachedRuntimes[effect] =
-      ((this as HazeEffectNode).activeVisualEffect as GlassRenderer).runtimeForTest
+      ((this as HazeEffectNode).activeVisualEffect as GlassRuntimeEffect)
   }
 
-  private fun runtime(effect: GlassVisualEffect): GlassRuntimeEffect =
+  private fun runtime(effect: GlassRuntimeEffect): GlassRuntimeEffect =
     checkNotNull(attachedRuntimes[effect])
 }
 

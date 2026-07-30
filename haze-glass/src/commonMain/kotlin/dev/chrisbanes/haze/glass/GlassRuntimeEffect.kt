@@ -3,8 +3,6 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -26,8 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectFactoryVisualEffect
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InteractiveVisualEffect
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RetainedOutputVisualEffect
@@ -103,102 +103,62 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
 
 private val IdleInteractionState = GlassInteractionRenderState(Offset.Zero)
 private val IdleInteractionSignals = GlassInteractionSignals()
-private val EmptyGlassConfiguration = GlassVisualEffect()
-
-private class ResolvedGlassConfiguration(source: GlassVisualEffect) {
-  val value = GlassVisualEffect(source)
-}
 
 /**
- * Node-owned runtime for rendering a translucent refractive glass material. Configuration is
- * resolved through a resource-free [GlassVisualEffect] copy, while attachment state, delegates,
- * caches, controllers, and platform resources remain local to this instance.
+ * Node-owned runtime for rendering a translucent refractive glass material.
+ *
+ * Style evaluation, attachment state, delegates, caches, controllers, and platform resources all
+ * belong to this instance.
  */
 @ExperimentalHazeApi
 @Stable
 @OptIn(InternalHazeApi::class)
-internal class GlassRuntimeEffect private constructor(
-  configuration: ResolvedGlassConfiguration,
-) :
+internal class GlassRuntimeEffect() :
+  GlassRuntimeState(),
   VisualEffect,
   RetainedOutputVisualEffect,
   InteractiveVisualEffect,
-  GlassStyleConfiguration by configuration.value {
+  HazeEffectFactoryVisualEffect<GlassNodeConfiguration> {
 
-  constructor(sourceConfiguration: GlassVisualEffect = GlassVisualEffect()) :
-    this(ResolvedGlassConfiguration(sourceConfiguration))
-
-  private val resolvedConfiguration = configuration.value
+  constructor(configuration: GlassNodeConfiguration) : this() {
+    applyConfiguration(configuration)
+  }
 
   init {
-    resolvedConfiguration.trackConfigurationVersions = false
-    resolvedConfiguration.onConfigurationChanged = ::markDirty
+    onConfigurationChanged = ::onRuntimeConfigurationChanged
   }
 
-  internal fun synchronizeConfigurationFrom(other: GlassVisualEffect, changedFields: Int) {
-    resolvedConfiguration.synchronizeConfigurationFrom(other, changedFields)
-    markDirty(changedFields)
+  override fun updateStyle(style: GlassNodeConfiguration, sampling: HazeSampling) {
+    applyConfiguration(style)
   }
 
-  internal fun clearConfigurationReferences() {
-    val retainedRuntimeDelegate = delegate as? RuntimeShaderGlassDelegate
-    retainedRuntimeDelegate?.sanitizeConfigurationReferencesForCache(
-      releaseShaderHandles = runtimeEffectFactory !== PlatformGlassRuntimeEffectFactory,
-    )
-    replaceConfigurationFrom(EmptyGlassConfiguration)
-    retainedRuntimeDelegate?.updateRuntimeEffectFactory(
-      PlatformGlassRuntimeEffectFactory,
-    )
-    clearConfigurationCaches()
-    resetDirtyTracker()
-  }
-
-  internal fun reseedConfiguration(
-    other: GlassVisualEffect,
-    runtimeEffectFactoryChanged: Boolean,
-  ) {
-    replaceConfigurationFrom(other)
-    val retainedRuntimeDelegate = (delegate as? RuntimeShaderGlassDelegate)?.takeUnless {
-      runtimeEffectFactoryChanged
-    }
-    if (runtimeEffectFactoryChanged && delegate is RuntimeShaderGlassDelegate) {
-      delegate.release()
-      delegate = FallbackGlassDelegate(this)
-    }
-    retainedRuntimeDelegate?.updateRuntimeEffectFactory(runtimeEffectFactory)
-    resetDirtyTracker()
-    markDirty(
-      if (retainedRuntimeDelegate != null) {
-        GlassDirtyFields.All and GlassDirtyFields.RuntimeEffectFactory.inv()
-      } else {
-        GlassDirtyFields.All
-      },
-    )
-  }
-
-  private fun replaceConfigurationFrom(other: GlassVisualEffect) {
-    resolvedConfiguration.onConfigurationChanged = null
-    try {
-      resolvedConfiguration.copyConfigurationFrom(other)
-    } finally {
-      resolvedConfiguration.onConfigurationChanged = ::markDirty
-    }
-  }
-
-  private fun clearConfigurationCaches() {
-    preparedRender = null
-    renderPreparation.prepared = null
-    clearPreparedRenderCache()
-    budgetCacheKey = null
-    budgetCacheDecision = null
-    preparedDrawCacheKey = null
-    resolvedStyleCache = null
-    resolvedStyleCacheDensity = null
+  private fun applyConfiguration(configuration: GlassNodeConfiguration) {
+    style = configuration.style
+    interactionSource = configuration.interactionSource
+    interactionLightRadiusFraction = configuration.interactionLightRadiusFraction
+    interactionTransformTarget = configuration.interactionTransformTarget
+    interactionTransformPivot = configuration.interactionTransformPivot
+    interactionPositionAnimationSpec = configuration.interactionPositionAnimationSpec
+    interactionReducedMotionPolicy = configuration.interactionReducedMotionPolicy
   }
 
   private var isAttached: Boolean = false
 
   private var attachedContext: VisualEffectContext? = null
+
+  private fun onRuntimeConfigurationChanged(fields: Int) {
+    markDirty(fields)
+    val context = attachedContext ?: return
+    if ((fields and GlassDirtyFields.Interaction) != 0) {
+      syncInteractionController(context)
+    }
+    if ((fields and GlassDirtyFields.LayerBoundsFlags) != 0) {
+      context.invalidateLayerBounds()
+    }
+    if ((fields and GlassDirtyFields.InvalidateFlags) != 0) {
+      context.invalidateDraw()
+    }
+  }
 
   private var interactionController: GlassInteractionController? = null
 
@@ -279,61 +239,13 @@ internal class GlassRuntimeEffect private constructor(
   )
 
   internal val interactionSlots: GlassInteractionSlots
-    get() = resolvedConfiguration.resolvedInteractionSlots
+    get() = resolvedInteractionSlots
 
   private val interactionTopologySnapshot: GlassInteractionTopology
-    get() = resolvedConfiguration.resolvedInteractionTopology
+    get() = resolvedInteractionTopology
 
   override val observesPointerEvents: Boolean
-    get() = resolvedConfiguration.observesPointerEvents
-
-  public var interactionSource: InteractionSource?
-    get() = resolvedConfiguration.interactionSource
-    set(value) {
-      resolvedConfiguration.interactionSource = value
-    }
-
-  public var interactionLightRadiusFraction: Float
-    get() = resolvedConfiguration.interactionLightRadiusFraction
-    set(value) {
-      resolvedConfiguration.interactionLightRadiusFraction = value
-    }
-
-  public var interactionTransformTarget: GlassTransformTarget
-    get() = resolvedConfiguration.interactionTransformTarget
-    set(value) {
-      resolvedConfiguration.interactionTransformTarget = value
-    }
-
-  public var interactionTransformPivot: GlassTransformPivot
-    get() = resolvedConfiguration.interactionTransformPivot
-    set(value) {
-      resolvedConfiguration.interactionTransformPivot = value
-    }
-
-  public var interactionPositionAnimationSpec: FiniteAnimationSpec<Offset>
-    get() = resolvedConfiguration.interactionPositionAnimationSpec
-    set(value) {
-      resolvedConfiguration.interactionPositionAnimationSpec = value
-    }
-
-  public var interactionReducedMotionPolicy: GlassReducedMotionPolicy
-    get() = resolvedConfiguration.interactionReducedMotionPolicy
-    set(value) {
-      resolvedConfiguration.interactionReducedMotionPolicy = value
-    }
-
-  public fun hovered() = resolvedConfiguration.hovered()
-  public fun hovered(block: GlassInteractionScope.() -> Unit) = resolvedConfiguration.hovered(block)
-  public fun focused() = resolvedConfiguration.focused()
-  public fun focused(block: GlassInteractionScope.() -> Unit) = resolvedConfiguration.focused(block)
-  public fun pressed() = resolvedConfiguration.pressed()
-  public fun pressed(block: GlassInteractionScope.() -> Unit) = resolvedConfiguration.pressed(block)
-  public fun interactable() = resolvedConfiguration.interactable()
-  public fun clearHovered() = resolvedConfiguration.clearHovered()
-  public fun clearFocused() = resolvedConfiguration.clearFocused()
-  public fun clearPressed() = resolvedConfiguration.clearPressed()
-  public fun clearInteractions() = resolvedConfiguration.clearInteractions()
+    get() = super.observesPointerEvents
 
   internal var delegate: Delegate = FallbackGlassDelegate(this)
     set(value) {
@@ -382,7 +294,7 @@ internal class GlassRuntimeEffect private constructor(
       geometrySnapshotObserver = null
       attachedContext = null
       isAttached = false
-      delegate.detach()
+      delegate.release()
     }
     runtimeShaderIncompatible = false
     needsDelegateSelection = true
@@ -412,7 +324,7 @@ internal class GlassRuntimeEffect private constructor(
   override fun update(context: VisualEffectContext) {
     dirtyTrackerVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
-    resolvedConfiguration.updateStyleInteractionSlots()
+    updateStyleInteractionSlots()
     syncInteractionController(context)
 
     if (dirtyTracker.any(GlassDirtyFields.LayerBoundsFlags)) {
@@ -977,25 +889,6 @@ internal class GlassRuntimeEffect private constructor(
   private fun maximumInteractionRefractionMultiplier(): Float =
     interactionTopologySnapshot.maxRefractionMultiplier
 
-  public fun clearOpticsOverride() = resolvedConfiguration.clearOpticsOverride()
-  public fun clearSurfaceProfileOverride() =
-    resolvedConfiguration.clearSurfaceProfileOverride()
-  public fun clearChromaticAberrationModeOverride() =
-    resolvedConfiguration.clearChromaticAberrationModeOverride()
-  public fun clearShapeOverride() = resolvedConfiguration.clearShapeOverride()
-
-  internal var compositionLocalStyle: GlassStyle
-    get() = resolvedConfiguration.compositionLocalStyle
-    set(value) {
-      resolvedConfiguration.compositionLocalStyle = value
-    }
-
-  internal var runtimeEffectFactory: GlassRuntimeEffectFactory
-    get() = resolvedConfiguration.runtimeEffectFactory
-    set(value) {
-      resolvedConfiguration.runtimeEffectFactory = value
-    }
-
   internal interface Delegate {
     fun attach() = Unit
     fun DrawScope.prepareDraw(context: VisualEffectContext) = Unit
@@ -1036,7 +929,7 @@ internal class GlassRuntimeEffect private constructor(
   }
 
   internal companion object {
-    const val TAG = "GlassVisualEffect"
+    const val TAG = "GlassRuntimeEffect"
   }
 }
 

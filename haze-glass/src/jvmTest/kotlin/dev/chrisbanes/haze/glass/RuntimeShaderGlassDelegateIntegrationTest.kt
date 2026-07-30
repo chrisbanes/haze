@@ -68,7 +68,7 @@ import kotlin.test.Test
   InternalHazeApi::class,
 )
 class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
-  private val attachedRuntimes = mutableMapOf<GlassVisualEffect, GlassRuntimeEffect>()
+  private val attachedRuntimes = mutableMapOf<GlassRuntimeEffect, GlassRuntimeEffect>()
 
   @Test
   fun alphaZero_clearsRetainedOutputUntilVisibleFrameRefreshesIt() = runComposeUiTest {
@@ -119,7 +119,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
   @Test
   fun nonFiniteCornerShape_fallbackDrawUsesCanonicalSafeRadii() = runComposeUiTest {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       shape = invalidCornerShape(Float.POSITIVE_INFINITY)
     }
 
@@ -160,7 +160,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
   @Test
   fun maximumRefraction_foregroundContentSelectsFallbackDelegate() = runComposeUiTest {
-    val effect = GlassVisualEffect().apply {
+    val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(
         refractionStrength = 1f,
         refractionDisplacement = 16_384.dp,
@@ -836,7 +836,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
   @Test
   fun initialBlurWorkingSizeSetup_doesNotInvalidateDraw() = runComposeUiTest {
-    val glassEffect = GlassRuntimeEffect(animatedStageEffect()).apply { resetDirtyTracker() }
+    val glassEffect = animatedStageEffect().apply { resetDirtyTracker() }
     val effect = InvalidationTrackingVisualEffect(glassEffect)
 
     setContent {
@@ -953,7 +953,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(delegate.layers.blurred?.renderEffect).isNotSameInstanceAs(verticalEffect)
   }
 
-  private fun activeDetailEffect() = GlassVisualEffect().apply {
+  private fun activeDetailEffect() = GlassRuntimeEffect().apply {
     optics = GlassOptics.Absolute(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
@@ -972,7 +972,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
   }
 
-  private fun animatedStageEffect() = GlassVisualEffect().apply {
+  private fun animatedStageEffect() = GlassRuntimeEffect().apply {
     optics = GlassOptics.Absolute(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
@@ -986,7 +986,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
   private fun retainedBlurEffect(
     progressive: HazeProgressive? = null,
-  ) = GlassVisualEffect().apply {
+  ) = GlassRuntimeEffect().apply {
     optics = GlassOptics.Absolute(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
@@ -997,18 +997,18 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     specularIntensity = 0f
   }
 
-  private fun HazeEffectScope.trackRenderer(effect: GlassVisualEffect) {
+  private fun HazeEffectScope.trackRenderer(effect: GlassRuntimeEffect) {
     visualEffect = effect
     attachedRuntimes[effect] =
-      ((this as HazeEffectNode).activeVisualEffect as GlassRenderer).runtimeForTest
+      ((this as HazeEffectNode).activeVisualEffect as GlassRuntimeEffect)
   }
 
-  private fun runtime(effect: GlassVisualEffect): GlassRuntimeEffect =
+  private fun runtime(effect: GlassRuntimeEffect): GlassRuntimeEffect =
     checkNotNull(attachedRuntimes[effect])
 
   @Composable
   private fun RuntimeForegroundGlassTestContent(
-    effect: GlassVisualEffect,
+    effect: GlassRuntimeEffect,
     tag: String? = null,
   ) {
     Box(
@@ -1139,7 +1139,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
   @Composable
   private fun RuntimeGlassTestContent(
-    effect: GlassVisualEffect,
+    effect: GlassRuntimeEffect,
     tag: String,
     inputScale: HazeInputScale = HazeInputScale.None,
   ) {
@@ -1159,7 +1159,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Composable
-  private fun RuntimeLargeGlassTestContent(effect: GlassVisualEffect) {
+  private fun RuntimeLargeGlassTestContent(effect: GlassRuntimeEffect) {
     val hazeState = remember { HazeState() }
     Box(Modifier.size(1000.dp, 600.dp)) {
       Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))

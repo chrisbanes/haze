@@ -40,9 +40,7 @@ import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
-import dev.chrisbanes.haze.VisualEffect
 import dev.chrisbanes.haze.VisualEffectContext
-import dev.chrisbanes.haze.VisualEffectRendererFactory
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
@@ -50,19 +48,19 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
-class GlassVisualEffectLifecycleTest {
+class GlassRuntimeEffectLifecycleTest {
 
   @Test
-  fun sharedStyle_resolvesIndependentlyPerTypedRenderer() {
+  fun sharedStyle_resolvesIndependentlyPerTypedRuntime() {
     val sharedStyle = GlassStyle { alpha(0.4f) }
     val first = GlassHazeEffectFactory.createVisualEffect(
       GlassNodeConfiguration(sharedStyle, interactionSource = null),
       HazeSampling.Default,
-    ) as GlassHazeEffectFactoryVisualEffect
+    )
     val second = GlassHazeEffectFactory.createVisualEffect(
       GlassNodeConfiguration(sharedStyle, interactionSource = null),
       HazeSampling.Default,
-    ) as GlassHazeEffectFactoryVisualEffect
+    )
     val firstContext = TrackingVisualEffectContext(
       localStyle = GlassStyle { tint(androidx.compose.ui.graphics.Color.Red) },
     )
@@ -75,15 +73,15 @@ class GlassVisualEffectLifecycleTest {
     first.update(firstContext)
     second.update(secondContext)
 
-    val firstRenderer = first.renderer as GlassRenderer
-    val secondRenderer = second.renderer as GlassRenderer
-    assertThat(firstRenderer).isNotSameInstanceAs(secondRenderer)
-    assertThat(firstRenderer.runtimeForTest.tint)
+    val firstRuntime = first
+    val secondRuntime = second
+    assertThat(firstRuntime).isNotSameInstanceAs(secondRuntime)
+    assertThat(firstRuntime.tint)
       .isEqualTo(androidx.compose.ui.graphics.Color.Red)
-    assertThat(secondRenderer.runtimeForTest.tint)
+    assertThat(secondRuntime.tint)
       .isEqualTo(androidx.compose.ui.graphics.Color.Blue)
-    assertThat(firstRenderer.runtimeForTest.alpha).isEqualTo(0.4f)
-    assertThat(secondRenderer.runtimeForTest.alpha).isEqualTo(0.4f)
+    assertThat(firstRuntime.alpha).isEqualTo(0.4f)
+    assertThat(secondRuntime.alpha).isEqualTo(0.4f)
 
     first.detach(firstContext)
     second.detach(secondContext)
@@ -101,11 +99,10 @@ class GlassVisualEffectLifecycleTest {
         interactionSource = initialSource,
       ),
       HazeSampling.Default,
-    ) as GlassHazeEffectFactoryVisualEffect
+    )
     val context = TrackingVisualEffectContext(
       localStyle = GlassStyle { tint(androidx.compose.ui.graphics.Color.Red) },
     )
-    val renderer = effect.renderer as GlassRenderer
     effect.attach(context)
     effect.update(context)
 
@@ -118,11 +115,10 @@ class GlassVisualEffectLifecycleTest {
     )
     effect.update(context)
 
-    assertThat(effect.renderer).isSameInstanceAs(renderer)
-    assertThat(renderer.runtimeForTest.tint).isEqualTo(androidx.compose.ui.graphics.Color.Red)
-    assertThat(renderer.runtimeForTest.alpha).isEqualTo(GlassDefaults.alpha)
-    assertThat(renderer.runtimeForTest.contrast).isEqualTo(0.2f)
-    assertThat(renderer.runtimeForTest.interactionSource).isNull()
+    assertThat(effect.tint).isEqualTo(androidx.compose.ui.graphics.Color.Red)
+    assertThat(effect.alpha).isEqualTo(GlassDefaults.alpha)
+    assertThat(effect.contrast).isEqualTo(0.2f)
+    assertThat(effect.interactionSource).isNull()
     effect.detach(context)
   }
 
@@ -131,31 +127,34 @@ class GlassVisualEffectLifecycleTest {
     val effect = GlassHazeEffectFactory.createVisualEffect(
       GlassNodeConfiguration(GlassStyle, interactionSource = null),
       HazeSampling.Default,
-    ) as GlassHazeEffectFactoryVisualEffect
+    )
     val context = TrackingVisualEffectContext(
       localStyle = GlassStyle { tint(androidx.compose.ui.graphics.Color.Red) },
     )
-    val renderer = effect.renderer as GlassRenderer
     effect.attach(context)
     effect.update(context)
-    assertThat(renderer.runtimeForTest.tint)
+    assertThat(effect.tint)
       .isEqualTo(androidx.compose.ui.graphics.Color.Red)
 
     context.localStyle = GlassStyle { tint(androidx.compose.ui.graphics.Color.Blue) }
     effect.update(context)
 
-    assertThat(renderer.runtimeForTest.tint)
+    assertThat(effect.tint)
       .isEqualTo(androidx.compose.ui.graphics.Color.Blue)
     effect.detach(context)
   }
 
   @Test
-  fun sharedConfiguration_createsDistinctRenderersAndControllers() {
-    val configuration = GlassVisualEffect().apply { pressed() }
-    val configuredEffect: VisualEffect = configuration
-    val factory = configuredEffect as VisualEffectRendererFactory
-    val first = factory.createRenderer()
-    val second = factory.createRenderer()
+  fun sharedStyle_createsDistinctRuntimesAndControllers() {
+    val sharedStyle = GlassStyle { pressed { lightingIntensity(1f) } }
+    val first = GlassHazeEffectFactory.createVisualEffect(
+      GlassNodeConfiguration(sharedStyle, interactionSource = null),
+      HazeSampling.Default,
+    )
+    val second = GlassHazeEffectFactory.createVisualEffect(
+      GlassNodeConfiguration(sharedStyle, interactionSource = null),
+      HazeSampling.Default,
+    )
     val firstContext = TrackingVisualEffectContext()
     val secondContext = TrackingVisualEffectContext()
 
@@ -163,78 +162,26 @@ class GlassVisualEffectLifecycleTest {
     second.attach(secondContext)
     first.update(firstContext)
     second.update(secondContext)
-    val firstRenderer = first as GlassRenderer
-    val secondRenderer = second as GlassRenderer
-
     assertThat(first).isNotSameInstanceAs(second)
-    assertThat(first).isNotSameInstanceAs(configuration)
-    assertThat(second).isNotSameInstanceAs(configuration)
-    assertThat(firstRenderer.runtimeForTest.delegate)
-      .isNotSameInstanceAs(secondRenderer.runtimeForTest.delegate)
-    assertThat(firstRenderer.runtimeForTest.interactionControllerForTest)
-      .isNotSameInstanceAs(secondRenderer.runtimeForTest.interactionControllerForTest)
-    assertThat(firstRenderer.runtimeForTest.attachedContextForTest).isSameInstanceAs(firstContext)
-    assertThat(secondRenderer.runtimeForTest.attachedContextForTest).isSameInstanceAs(secondContext)
+    assertThat(first.delegate).isNotSameInstanceAs(second.delegate)
+    assertThat(first.interactionControllerForTest)
+      .isNotSameInstanceAs(second.interactionControllerForTest)
+    assertThat(first.attachedContextForTest).isSameInstanceAs(firstContext)
+    assertThat(second.attachedContextForTest).isSameInstanceAs(secondContext)
     first.detach(firstContext)
     second.detach(secondContext)
-  }
-
-  @Test
-  fun configurationChange_invalidatesEveryRenderer() {
-    val configuration = GlassVisualEffect()
-    val factory = configuration as VisualEffectRendererFactory
-    val first = factory.createRenderer() as GlassRenderer
-    val second = factory.createRenderer() as GlassRenderer
-    val firstContext = TrackingVisualEffectContext()
-    val secondContext = TrackingVisualEffectContext()
-    first.attach(firstContext)
-    second.attach(secondContext)
-    first.update(firstContext)
-    second.update(secondContext)
-    first.runtimeForTest.resetDirtyTracker()
-    second.runtimeForTest.resetDirtyTracker()
-    firstContext.invalidateDrawCalls = 0
-    secondContext.invalidateDrawCalls = 0
-
-    configuration.alpha = 0.5f
-    first.update(firstContext)
-    second.update(secondContext)
-
-    assertThat(first.runtimeForTest.alpha).isEqualTo(0.5f)
-    assertThat(second.runtimeForTest.alpha).isEqualTo(0.5f)
-    assertThat(firstContext.invalidateDrawCalls).isEqualTo(1)
-    assertThat(secondContext.invalidateDrawCalls).isEqualTo(1)
-    first.detach(firstContext)
-    second.detach(secondContext)
-  }
-
-  @Test
-  fun runtimeEffectFactoryChange_synchronizesWithAttachedRenderer() {
-    val configuration = GlassVisualEffect()
-    val renderer = configuration.createRenderer() as GlassRenderer
-    val context = TrackingVisualEffectContext()
-    val replacement = GlassRuntimeEffectFactory { create -> create() }
-    renderer.attach(context)
-    renderer.update(context)
-
-    configuration.runtimeEffectFactory = replacement
-    renderer.update(context)
-
-    assertThat(renderer.runtimeForTest.runtimeEffectFactory).isSameInstanceAs(replacement)
-    renderer.detach(context)
   }
 
   @Test
   fun rendererResourceRelease_isExactAndDoesNotAffectSibling() {
-    val configuration = GlassVisualEffect()
-    val first = configuration.createRenderer() as GlassRenderer
-    val second = configuration.createRenderer() as GlassRenderer
+    val first = GlassRuntimeEffect()
+    val second = GlassRuntimeEffect()
     val firstDelegate = CountingGlassDelegate()
     val secondDelegate = CountingGlassDelegate()
     val firstContext = TrackingVisualEffectContext()
     val secondContext = TrackingVisualEffectContext()
-    first.runtimeForTest.delegate = firstDelegate
-    second.runtimeForTest.delegate = secondDelegate
+    first.delegate = firstDelegate
+    second.delegate = secondDelegate
     first.attach(firstContext)
     second.attach(secondContext)
 
@@ -251,57 +198,6 @@ class GlassVisualEffectLifecycleTest {
 
     assertThat(secondDelegate.releaseCalls).isEqualTo(1)
     assertThat(secondDelegate.detachCalls).isEqualTo(1)
-  }
-
-  @Test
-  fun rendererCacheEviction_releasesRetainedShaderHandles() {
-    val delegates = List(9) {
-      val renderer = GlassVisualEffect().createRenderer() as GlassRenderer
-      val delegate = CountingGlassDelegate()
-      val context = TrackingVisualEffectContext()
-      renderer.runtimeForTest.delegate = delegate
-      renderer.attach(context)
-      renderer.detach(context)
-      delegate
-    }
-
-    assertThat(delegates.first().finalReleaseCalls).isEqualTo(1)
-    assertThat(delegates.last().finalReleaseCalls).isEqualTo(0)
-  }
-
-  @Test
-  fun fallbackRendererCache_releasesAndReseedsCallerReferences() {
-    val initialSource = MutableInteractionSource()
-    val initialShape = RoundedCornerShape(11.dp)
-    val configuration = GlassVisualEffect().apply {
-      interactionSource = initialSource
-      shape = initialShape
-    }
-    val renderer = configuration.createRenderer() as GlassRenderer
-    val runtime = renderer.runtimeForTest
-    val context = TrackingVisualEffectContext()
-    renderer.attach(context)
-    renderer.update(context)
-    runtime.prepareRenderBudget(context, runtimeShaderSupported = false)
-
-    renderer.detach(context)
-
-    assertThat(runtime.delegate).isInstanceOf<FallbackGlassDelegate>()
-    assertThat(runtime.interactionSource).isNull()
-    assertThat(runtime.shape).isNotSameInstanceAs(initialShape)
-    assertThat(runtime.resolvedStyleCacheDensityForTest).isNull()
-
-    val replacementSource = MutableInteractionSource()
-    val replacementShape = RoundedCornerShape(23.dp)
-    configuration.interactionSource = replacementSource
-    configuration.shape = replacementShape
-    val reacquired = configuration.createRenderer() as GlassRenderer
-
-    assertThat(reacquired).isSameInstanceAs(renderer)
-    assertThat(runtime.interactionSource).isSameInstanceAs(replacementSource)
-    assertThat(runtime.shape).isSameInstanceAs(replacementShape)
-    reacquired.attach(context)
-    reacquired.detach(context)
   }
 
   @Test
@@ -789,7 +685,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun update_readsInjectedMotionScaleAndFullOverridesIt() {
-    val effect = GlassRuntimeEffect().apply { pressed() }
+    val effect = GlassRuntimeEffect().apply { testPressResponse() }
     val context = TrackingVisualEffectContext(
       motionScale = 0f,
       effectSize = Size.Zero,
@@ -824,7 +720,7 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun detach_disposesInteractionController() {
-    val effect = GlassRuntimeEffect().apply { pressed() }
+    val effect = GlassRuntimeEffect().apply { testPressResponse() }
     val context = TrackingVisualEffectContext()
 
     effect.attach(context)
@@ -969,21 +865,6 @@ class GlassVisualEffectLifecycleTest {
   }
 
   @Test
-  fun update_clearingAbsoluteOverrideInvalidatesDrawAndLayerBounds() {
-    val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics.Absolute(refractionStrength = 0.4f)
-      resetDirtyTracker()
-    }
-    val context = TrackingVisualEffectContext()
-
-    effect.clearOpticsOverride()
-    effect.update(context)
-
-    assertThat(context.invalidateDrawCalls).isEqualTo(1)
-    assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
-  }
-
-  @Test
   fun calculateLayerBounds_usesMaximumConfiguredInteractionRefractionStrength() {
     val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics.Absolute(refractionStrength = 0.6f)
@@ -1013,21 +894,19 @@ class GlassVisualEffectLifecycleTest {
 
   @Test
   fun changingInteractionRefractionMaximum_invalidatesLayerBounds_butEquivalentDeclarationDoesNot() {
-    val effect = GlassRuntimeEffect()
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle { pressed { refractionMultiplier(2f) } }
+    }
     val context = TrackingVisualEffectContext()
-    effect.update(context)
-    context.invalidateLayerBoundsCalls = 0
-
-    effect.pressed { refractionMultiplier(2f) }
     effect.update(context)
     assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
     effect.resetDirtyTracker()
 
-    effect.pressed { refractionMultiplier(2f) }
+    effect.style = GlassStyle { pressed { refractionMultiplier(2f) } }
     effect.update(context)
     assertThat(context.invalidateLayerBoundsCalls).isEqualTo(1)
 
-    effect.clearPressed()
+    effect.style = GlassStyle
     effect.update(context)
     assertThat(context.invalidateLayerBoundsCalls).isEqualTo(2)
   }

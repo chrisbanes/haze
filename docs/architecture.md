@@ -87,6 +87,16 @@ history, delegate, retained output, render-effect cache, and platform resources.
 replays defaults, the current composition-local Style, and the explicit Style into a fresh snapshot
 on that same runtime.
 
+## Built-in Glass
+
+Glass exposes only the typed `hazeGlass` modifier, replayable `GlassStyle`, and structural modifier
+arguments. The shared factory is stateless. Each modifier creates one internal node-owned runtime
+which evaluates defaults, `LocalGlassStyle`, and the explicit Style into a fresh snapshot and owns
+its interaction controller, delegate, caches, retained layers, and platform resources.
+
+The old public effect, renderer, cache, grouped sentinel values, and `glassEffect` DSL are removed.
+No renderer or lifecycle object can be shared between Glass nodes.
+
 ## Modules
 
 - **haze** — core state, source capture, typed custom-effect orchestration, and the temporary legacy
@@ -103,8 +113,8 @@ boundaries.
 
 `VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, `BlurVisualEffect`,
 `HazeEffectScope.blurEffect`, and the lambda-based modifier overloads remain temporarily available
-for Blur, Glass, and third-party migration. They expose more lifecycle and rendering internals and
-are no longer the recommended contract for new Blur or custom effects. New Blur code uses
-`hazeBlur`; new custom effects use `HazeEffectFactory`.
+for Blur and third-party migration. They expose more lifecycle and rendering internals and are no
+longer the recommended contract for new Blur or custom effects. New Blur code uses `hazeBlur`; new
+Glass code uses `hazeGlass`; new custom effects use `HazeEffectFactory`.
 
 See [Custom effects](custom-effects.md) for the preferred API.

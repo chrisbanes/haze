@@ -4,9 +4,8 @@
 package dev.chrisbanes.haze
 
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassVisualEffect
 
-internal fun GlassVisualEffect.updateAbsoluteOptics(
+internal fun GlassTestConfiguration.updateAbsoluteOptics(
   transform: GlassOptics.Absolute.() -> GlassOptics.Absolute,
 ) {
   optics = (optics as GlassOptics.Absolute).transform()

@@ -48,8 +48,8 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
-import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.SurfaceProfile
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
@@ -68,7 +68,7 @@ internal enum class GlassContinuityCarrier {
 
 @Composable
 internal fun GlassInvariantSample(
-  effect: GlassVisualEffect,
+  effect: GlassTestConfiguration,
   inputScale: HazeInputScale,
   shape: RoundedCornerShape,
   enabled: Boolean = true,
@@ -130,10 +130,11 @@ internal fun GlassInvariantSample(
         .then(if (effectTestTag != null) Modifier.testTag(effectTestTag) else Modifier)
         .then(
           if (enabled) {
-            Modifier.hazeEffect(hazeState) {
-              this.inputScale = inputScale
-              visualEffect = effect
-            }
+            Modifier.hazeGlass(
+              input = HazeInput.Sources(hazeState),
+              configuration = effect,
+              sampling = inputScale.toHazeSampling(),
+            )
           } else {
             Modifier
           },
@@ -146,7 +147,7 @@ internal fun GlassInvariantSample(
 internal fun GlassChromaInvariantSample() {
   val hazeState = rememberHazeState()
   val effect = remember {
-    GlassVisualEffect().apply {
+    GlassTestConfiguration().apply {
       tint = Color.Transparent
       optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
       specularIntensity = 0f
@@ -169,10 +170,11 @@ internal fun GlassChromaInvariantSample() {
     Box(
       Modifier
         .fillMaxSize()
-        .hazeEffect(hazeState) {
-          inputScale = HazeInputScale.None
-          visualEffect = effect
-        },
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          style = effect.resolvedStyle,
+          sampling = HazeSampling.FullResolution,
+        ),
     )
   }
 }
@@ -300,7 +302,7 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
   )
   var currentCase by mutableStateOf(cases.first())
   var carrier by mutableStateOf(GlassContinuityCarrier.Horizontal)
-  val effect = GlassVisualEffect().apply {
+  val effect = GlassTestConfiguration().apply {
     tint = Color.Transparent
     specularIntensity = 0f
     ambientResponse = 0f
@@ -370,7 +372,7 @@ internal fun ScreenshotUiTest.assertGlassAsymmetricCornerNormalsContinuous() {
     bottomEnd = 0.dp,
     bottomStart = 0.dp,
   )
-  val effect = GlassVisualEffect().apply {
+  val effect = GlassTestConfiguration().apply {
     tint = Color.Transparent
     optics = GlassOptics.Absolute(
       refractionStrength = 1f,
@@ -429,7 +431,7 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
   )
   val shape = RoundedCornerShape(28.dp)
   var surfaceSize by mutableStateOf(cases.first())
-  val effect = GlassVisualEffect().apply {
+  val effect = GlassTestConfiguration().apply {
     tint = Color.Transparent
     optics = GlassOptics.Absolute(
       refractionStrength = 1f,
@@ -1022,7 +1024,7 @@ private fun PixelSnapshot.localHighFrequencyEnergy(
 }
 
 @Composable
-private fun ProgressiveInvariantPanel(effect: GlassVisualEffect, height: androidx.compose.ui.unit.Dp) {
+private fun ProgressiveInvariantPanel(effect: GlassTestConfiguration, height: androidx.compose.ui.unit.Dp) {
   val hazeState = remember { HazeState() }
   Box(Modifier.size(280.dp, height)) {
     Canvas(
@@ -1045,10 +1047,11 @@ private fun ProgressiveInvariantPanel(effect: GlassVisualEffect, height: android
     Box(
       Modifier
         .fillMaxSize()
-        .hazeEffect(hazeState) {
-          inputScale = HazeInputScale.None
-          visualEffect = effect
-        },
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          configuration = effect,
+          sampling = HazeSampling.FullResolution,
+        ),
     )
   }
 }
@@ -1194,7 +1197,7 @@ internal fun ScreenshotUiTest.assertGlassHardClipInvariant() {
 
 internal fun ScreenshotUiTest.assertGlassTransparentOutputInvariant() {
   val shape = RoundedCornerShape(28.dp)
-  val effect = GlassVisualEffect().apply {
+  val effect = GlassTestConfiguration().apply {
     tint = Color.Transparent
     optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
     specularIntensity = 0f
@@ -1233,7 +1236,7 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
   verifyInteractionRgb: Boolean = false,
 ) {
   val shape = RoundedCornerShape(28.dp)
-  val effect = GlassVisualEffect().apply {
+  val effect = GlassTestConfiguration().apply {
     tint = Color.Transparent
     optics = GlassOptics.Absolute(
       depth = 0f,
@@ -1514,7 +1517,7 @@ internal fun ScreenshotUiTest.assertGlassProfileBranchContinuous() {
 internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val inputScale = HazeInputScale.None
-  val effect = GlassVisualEffect().apply {
+  val effect = GlassTestConfiguration().apply {
     style = GlassDefaults.style
     this.shape = shape
     optics = GlassOptics.Absolute(refractionStrength = 0f)
@@ -1615,7 +1618,7 @@ internal fun ScreenshotUiTest.assertGlassCrossEdgeCornersInvariant() {
 
 internal fun ScreenshotUiTest.assertGlassZeroExponentLightingInvariant() {
   val shape = RoundedCornerShape(28.dp)
-  val effect = GlassVisualEffect().apply {
+  val effect = GlassTestConfiguration().apply {
     tint = Color.White.copy(alpha = 0.12f)
     optics = GlassOptics.Absolute(refractionStrength = 0.5f, depth = 0.5f, blurRadius = 16.dp)
     specularIntensity = 0.6f
@@ -1645,7 +1648,7 @@ private fun ScreenshotUiTest.assertGlassCornersMatchComposeClipInvariant(
   surfaceSize: DpSize,
   shape: RoundedCornerShape,
 ) {
-  val effect = GlassVisualEffect().apply {
+  val effect = GlassTestConfiguration().apply {
     tint = Color.White
     optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
     specularIntensity = 0f
@@ -1760,7 +1763,7 @@ private fun centeredSurfaceBounds(
   return IntRect(left, top, left + surfaceWidthPx, top + surfaceHeightPx)
 }
 
-private fun invariantEffect(shape: RoundedCornerShape) = GlassVisualEffect().apply {
+private fun invariantEffect(shape: RoundedCornerShape) = GlassTestConfiguration().apply {
   tint = Color.White.copy(alpha = 0.12f)
   optics = GlassOptics.Absolute(depth = 0.5f, blurRadius = 16.dp)
   specularIntensity = 0.4f

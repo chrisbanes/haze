@@ -23,15 +23,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 
 internal fun glassDepthProgressionVisualEffect(
   depth: Float,
   shape: RoundedCornerShape,
-): GlassVisualEffect {
-  return GlassVisualEffect().apply {
+): GlassTestConfiguration {
+  return GlassTestConfiguration().apply {
     tint = Color.White.copy(alpha = 0.12f)
     optics = GlassOptics.Absolute(depth = depth, blurRadius = 32.dp)
     specularIntensity = 0.4f
@@ -75,7 +75,7 @@ internal fun ScreenshotUiTest.assertGlassDepthProgression() {
 
 @Composable
 internal fun GlassDepthComparisonSample(
-  visualEffects: List<GlassVisualEffect>,
+  visualEffects: List<GlassTestConfiguration>,
   shape: RoundedCornerShape,
   cardWidth: Dp = 94.dp,
   cardHeight: Dp = 440.dp,
@@ -130,9 +130,10 @@ internal fun GlassDepthComparisonSample(
           modifier = Modifier
             .size(width = cardWidth, height = cardHeight)
             .clip(shape)
-            .hazeEffect(state = hazeState) {
-              this.visualEffect = visualEffect
-            }
+            .hazeGlass(
+              input = HazeInput.Sources(hazeState),
+              style = visualEffect.resolvedStyle,
+            )
             .border(width = 1.dp, color = Color(0x66000000), shape = shape),
         )
       }
@@ -142,7 +143,7 @@ internal fun GlassDepthComparisonSample(
 
 @Composable
 internal fun GlassDepthSingleSample(
-  visualEffect: GlassVisualEffect,
+  visualEffect: GlassTestConfiguration,
   shape: RoundedCornerShape,
   cardWidth: Dp = 280.dp,
   cardHeight: Dp = 440.dp,
