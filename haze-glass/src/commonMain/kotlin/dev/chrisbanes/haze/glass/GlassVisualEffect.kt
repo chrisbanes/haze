@@ -81,6 +81,9 @@ public class GlassVisualEffect() :
     hoveredSlot = other.hoveredSlot
     focusedSlot = other.focusedSlot
     pressedSlot = other.pressedSlot
+    hoveredOverride = other.hoveredOverride
+    focusedOverride = other.focusedOverride
+    pressedOverride = other.pressedOverride
     styleHoveredSlot = other.styleHoveredSlot
     styleFocusedSlot = other.styleFocusedSlot
     stylePressedSlot = other.stylePressedSlot
@@ -155,6 +158,9 @@ public class GlassVisualEffect() :
         hoveredSlot = other.hoveredSlot
         focusedSlot = other.focusedSlot
         pressedSlot = other.pressedSlot
+        hoveredOverride = other.hoveredOverride
+        focusedOverride = other.focusedOverride
+        pressedOverride = other.pressedOverride
         styleHoveredSlot = other.styleHoveredSlot
         styleFocusedSlot = other.styleFocusedSlot
         stylePressedSlot = other.stylePressedSlot
