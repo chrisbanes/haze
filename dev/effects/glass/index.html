@@ -968,22 +968,20 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 <li><strong>alpha</strong>: Overall opacity multiplier <code>0..1</code> (default 1).</li>
 </ul>
 <h2 id="glassstyle">GlassStyle<a class="headerlink" href="#glassstyle" title="Permanent link">¶</a></h2>
-<p>Use a <code>GlassStyle</code> container to provide a shared <code>optics</code> configuration and grouped visual
-styling. The style supports a four-tier precedence chain for each property:</p>
-<ol>
-<li>Direct property value on the effect (highest priority)</li>
-<li>Value set via the <code>style</code> parameter</li>
-<li>Value from the <code>LocalGlassStyle</code> composition local</li>
-<li>Default from <code>GlassDefaults</code></li>
-</ol>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">myStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">(</span>
-<span class="w">  </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">),</span>
-<span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">),</span>
-<span class="w">  </span><span class="n">shape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">),</span>
-<span class="p">)</span>
+<p><code>GlassStyle</code> is an opaque, replayable appearance program. Create it with a block and compose
+values with <code>then</code>; later writes win. A style can be shared by any number of <code>hazeGlass</code> nodes:
+each node evaluates defaults, <code>LocalGlassStyle</code>, and its explicit style into its own snapshot.
+Replacing a Style through recomposition also removes properties and interaction blocks omitted by
+the replacement.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">baseStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
+<span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">))</span>
+<span class="w">  </span><span class="n">shape</span><span class="p">(</span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">))</span>
+<span class="p">}</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">emphasizedStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">baseStyle</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 
-<span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalGlassStyle</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">myStyle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// All Glass effects in this scope will use myStyle as their baseline</span>
+<span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalGlassStyle</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">baseStyle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Each node gets a fresh snapshot; an explicit Style is applied last.</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="default-style">Default style<a class="headerlink" href="#default-style" title="Permanent link">¶</a></h2>
@@ -992,27 +990,23 @@ applied automatically when no style or direct property overrides are provided.</
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">glassEffect</span><span class="p">()</span>
-<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">))</span>
 <span class="p">)</span>
 </code></pre></div>
 <h3 id="choosing-optics">Choosing optics<a class="headerlink" href="#choosing-optics" title="Permanent link">¶</a></h3>
 <p>Use <code>GlassOptics.Adaptive</code> for the built-in Haze material, which adapts its optical response to the
 material's size, aspect ratio, and roundness. Use <code>GlassOptics.Absolute</code> when your design needs a
 complete literal configuration instead:</p>
-<div class="highlight"><pre><span></span><code><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Adaptive</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
+<div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
 <span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="p">,</span>
 <span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
 <span class="w">    </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span><span class="p">,</span>
 <span class="w">    </span><span class="n">refractionDisplacement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">18.</span><span class="n">dp</span><span class="p">,</span>
 <span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">,</span>
-<span class="w">  </span><span class="p">)</span>
+<span class="w">  </span><span class="p">))</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>Absolute values are not geometry-adjusted. <code>refractionDisplacement</code> and <code>blurRadius</code> describe
@@ -1025,25 +1019,36 @@ content also needs clipping.</p>
 <h3 id="retained-output">Retained Output<a class="headerlink" href="#retained-output" title="Permanent link">¶</a></h3>
 <p>Glass can retain and redraw its last captured output when all source areas disappear. This
 keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.
-For privacy-sensitive surfaces, disable retained output on the shared effect scope:</p>
+The typed modifier preserves Glass's default retained-output policy. Keep source ownership explicit
+with <code>HazeInput.Sources</code> so transitions are visible at the call site:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">retainOutputWhenSourceUnavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
-<span class="w">      </span><span class="n">glassEffect</span><span class="p">()</span>
-<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
+<span class="w">      </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">,</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>The default is <code>HazeSourceRetention.KeepLastFrame</code>. For privacy-sensitive source content, opt out
+of retaining pixels when the source disappears:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
+<span class="w">    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+<span class="w">    </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
 <p>You can select a literal optical configuration when the built-in material does not fit the design:</p>
-<div class="highlight"><pre><span></span><code><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.20f</span><span class="p">)</span>
-<span class="w">  </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
+<div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.20f</span><span class="p">))</span>
+<span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
 <span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span>
 <span class="w">      </span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span>
 <span class="w">      </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.25f</span><span class="p">,</span>
 <span class="w">    </span><span class="p">),</span>
-<span class="w">  </span><span class="p">)</span>
+<span class="w">  </span><span class="p">))</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="fallbacks">Fallbacks<a class="headerlink" href="#fallbacks" title="Permanent link">¶</a></h2>
@@ -1066,11 +1071,10 @@ Perfetto interpretation.</p>
 <h2 id="interaction">Interaction<a class="headerlink" href="#interaction" title="Permanent link">¶</a></h2>
 <p>Glass interaction is default-disabled and entirely opt-in. It adds a visual response only: it does
 not add click handling, focusability, semantics, or keyboard/D-pad activation.</p>
-<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">pressed</span><span class="p">()</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">pressed</span><span class="w"> </span><span class="p">{}</span><span class="w"> </span><span class="p">},</span>
+<span class="p">)</span>
 </code></pre></div>
 <p><code>hovered()</code>, <code>focused()</code>, and <code>pressed()</code> enable their respective default visual responses.
 <code>interactable()</code> enables all three. To make focus and keyboard/D-pad activation useful, retain one
@@ -1080,18 +1084,21 @@ not add click handling, focusability, semantics, or keyboard/D-pad activation.</
 <span class="n">Modifier</span>
 <span class="w">  </span><span class="p">.</span><span class="na">clickable</span><span class="p">(</span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span><span class="w"> </span><span class="n">indication</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">onClick</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 <span class="w">  </span><span class="p">.</span><span class="na">focusable</span><span class="p">(</span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">)</span>
-<span class="w">  </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="k">this</span><span class="p">.</span><span class="na">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span>
-<span class="w">      </span><span class="n">interactable</span><span class="p">()</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
+<span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">    </span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span>
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">hovered</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">      </span><span class="n">focused</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">      </span><span class="n">pressed</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">  </span><span class="p">)</span>
 </code></pre></div>
 <p>Custom blocks replace that state's preset from identity. Resolve each property with fixed
 precedence: focused, then hovered, then pressed. Use <code>animate(toSpec, fromSpec)</code> inside a custom
 block to own the arrival and departure animation specs respectively; entering or replacement uses
 <code>toSpec</code>, while departing uses <code>fromSpec</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">animate</span><span class="p">(</span>
 <span class="w">      </span><span class="n">toSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassDefaults</span><span class="p">.</span><span class="na">pressAnimationSpec</span><span class="p">,</span>
@@ -1102,31 +1109,31 @@ block to own the arrival and departure animation specs respectively; entering or
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><code>interactionTransformTarget</code> selects whether a response transforms only the material or the
+<p>The <code>interactionTransformTarget</code> argument selects whether a response transforms only the material or the
 material and content. <code>interactionTransformPivot</code> selects <code>Pointer</code> or <code>Center</code>. Use
-<code>clearHovered()</code>, <code>clearFocused()</code>, <code>clearPressed()</code>, or <code>clearInteractions()</code> to remove configured
-responses. <code>GlassReducedMotionPolicy.System</code> follows the available system duration scale,
+Omit a state block from a replacement Style to remove it. <code>GlassReducedMotionPolicy.System</code> follows the available system duration scale,
 <code>Reduced</code> snaps lighting and optics while suppressing transforms, and <code>Full</code> forces motion.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">)</span>
-<span class="w">        </span><span class="n">optics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
+<span class="w">    </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
+<span class="w">      </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
+<span class="w">        </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
 <span class="w">          </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
 <span class="w">          </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.32f</span><span class="p">,</span>
 <span class="w">          </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">,</span>
-<span class="w">        </span><span class="p">)</span>
-<span class="w">        </span><span class="n">specularIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span>
-<span class="w">        </span><span class="n">ambientResponse</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span>
-<span class="w">        </span><span class="n">edgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">14.</span><span class="n">dp</span>
-<span class="w">        </span><span class="n">shape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
-<span class="w">        </span><span class="n">surfaceProfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SurfaceProfile</span><span class="p">.</span><span class="na">Squircle</span>
-<span class="w">        </span><span class="n">chromaticAberrationStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span>
-<span class="w">      </span><span class="p">}</span>
-<span class="w">    </span><span class="p">}</span>
+<span class="w">        </span><span class="p">))</span>
+<span class="w">        </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ambientResponse</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span>
+<span class="w">        </span><span class="n">edgeSoftness</span><span class="p">(</span><span class="m">14.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">        </span><span class="n">shape</span><span class="p">(</span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">))</span>
+<span class="w">        </span><span class="n">surfaceProfile</span><span class="p">(</span><span class="n">SurfaceProfile</span><span class="p">.</span><span class="na">Squircle</span><span class="p">)</span>
+<span class="w">        </span><span class="n">chromaticAberrationStrength</span><span class="p">(</span><span class="m">0.2f</span><span class="p">)</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">    </span><span class="p">)</span>
 <span class="p">)</span>
 </code></pre></div>
 <h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">¶</a></h2>

@@ -743,10 +743,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#glass-style" class="md-nav__link">
+  <a href="#glass-migration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Glass Style
+        Glass migration
       
     </span>
   </a>
@@ -1072,10 +1072,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#glass-style" class="md-nav__link">
+  <a href="#glass-migration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Glass Style
+        Glass migration
       
     </span>
   </a>
@@ -1264,9 +1264,50 @@ replaces the complete Style on the existing runtime; detachment releases only th
 resources.</p>
 <h2 id="other-haze-2-migrations">Other Haze 2 migrations<a class="headerlink" href="#other-haze-2-migrations" title="Permanent link">¶</a></h2>
 <p>The typed Blur API does not change the other Haze 2 migrations.</p>
-<h3 id="glass-style">Glass Style<a class="headerlink" href="#glass-style" title="Permanent link">¶</a></h3>
-<p><code>GlassStyle</code> is also a replayable Style. Write each property through its Style scope:</p>
-<div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<h3 id="glass-migration">Glass migration<a class="headerlink" href="#glass-migration" title="Permanent link">¶</a></h3>
+<p>Glass also has a typed modifier and an opaque, replayable <code>GlassStyle</code>. Replace the complete Style
+through recomposition; do not mutate an effect, use sentinel patches, <code>copy</code>, or <code>clear*</code> calls.</p>
+<table>
+<thead>
+<tr>
+<th>Legacy</th>
+<th>Typed replacement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hazeEffect { glassEffect { … } }</code></td>
+<td><code>hazeGlass(input, style, sampling, expandLayerBounds, …)</code></td>
+</tr>
+<tr>
+<td>mutable effect properties</td>
+<td>replace <code>GlassStyle</code> through recomposition</td>
+</tr>
+<tr>
+<td>sentinel patches and <code>copy</code></td>
+<td><code>GlassStyle { … }</code>, <code>then</code>, and <code>LocalGlassStyle</code></td>
+</tr>
+<tr>
+<td>interaction mutation and <code>clear*</code></td>
+<td>declarative <code>hovered</code>, <code>focused</code>, and <code>pressed</code> blocks; omit blocks in a replacement Style</td>
+</tr>
+<tr>
+<td>effect-owned interaction controls</td>
+<td>typed modifier arguments</td>
+</tr>
+<tr>
+<td>implicit source/content</td>
+<td>explicit <code>HazeInput.Sources</code> or <code>HazeInput.Content</code></td>
+</tr>
+<tr>
+<td>raw optical displacement/caps</td>
+<td>semantic <code>GlassOptics</code> and <code>Dp</code> controls</td>
+</tr>
+</tbody>
+</table>
+<p>Write each property through the Style scope, then pass the Style and structural policies to
+<code>hazeGlass</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">glassStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">))</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span>
 <span class="w">    </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
@@ -1276,7 +1317,15 @@ resources.</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="w">  </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.4f</span><span class="p">)</span>
 <span class="w">  </span><span class="n">edgeSoftness</span><span class="p">(</span><span class="m">12.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">  </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">scale</span><span class="p">(</span><span class="m">0.98f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 <span class="p">}</span>
+
+<span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">glassStyle</span><span class="p">,</span>
+<span class="w">  </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">Default</span><span class="p">,</span>
+<span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="p">)</span>
 </code></pre></div>
 <h3 id="position-and-geometry">Position and geometry<a class="headerlink" href="#position-and-geometry" title="Permanent link">¶</a></h3>
 <p><code>HazeArea.positionOnScreen</code> is replaced by <code>HazeArea.coordinates</code>. Read
