@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze.sample
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -14,12 +13,10 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import assertk.assertions.isFalse
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.glass.GlassTransformPivot
-import dev.chrisbanes.haze.glass.GlassTransformTarget
-import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlinx.coroutines.test.runTest
@@ -86,21 +83,8 @@ class GlassPlaygroundSampleTest : ContextTest() {
   }
 
   @Test
-  fun playgroundInteraction_keepsHoverAfterPressAndUsesPointerContentTransform() {
-    val source = MutableInteractionSource()
-    val effect = GlassVisualEffect()
-
-    effect.configurePlaygroundInteraction(source)
-
-    assertThat(effect.interactionSource).isEqualTo(source)
-    assertThat(effect.interactionTransformTarget).isEqualTo(GlassTransformTarget.MaterialAndContent)
-    assertThat(effect.interactionTransformPivot).isEqualTo(GlassTransformPivot.Pointer)
-    assertThat(effect.observesPointerEvents).isTrue()
-
-    effect.clearPressed()
-    assertThat(effect.observesPointerEvents).isTrue()
-    effect.clearHovered()
-    assertThat(effect.observesPointerEvents).isFalse()
+  fun playgroundInteraction_isDeclaredInTheTypedStyle() {
+    assertThat(playgroundInteractionStyle()).isNotEqualTo(GlassStyle)
   }
 
   @Test

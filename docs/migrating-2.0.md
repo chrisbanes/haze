@@ -129,12 +129,26 @@ resources.
 
 The typed Blur API does not change the other Haze 2 migrations.
 
-### Glass Style
+### Glass migration
 
-`GlassStyle` is also a replayable Style. Write each property through its Style scope:
+Glass also has a typed modifier and an opaque, replayable `GlassStyle`. Replace the complete Style
+through recomposition; do not mutate an effect, use sentinel patches, `copy`, or `clear*` calls.
+
+| Legacy | Typed replacement |
+| --- | --- |
+| `hazeEffect { glassEffect { … } }` | `hazeGlass(input, style, sampling, expandLayerBounds, …)` |
+| mutable effect properties | replace `GlassStyle` through recomposition |
+| sentinel patches and `copy` | `GlassStyle { … }`, `then`, and `LocalGlassStyle` |
+| interaction mutation and `clear*` | declarative `hovered`, `focused`, and `pressed` blocks; omit blocks in a replacement Style |
+| effect-owned interaction controls | typed modifier arguments |
+| implicit source/content | explicit `HazeInput.Sources` or `HazeInput.Content` |
+| raw optical displacement/caps | semantic `GlassOptics` and `Dp` controls |
+
+Write each property through the Style scope, then pass the Style and structural policies to
+`hazeGlass`:
 
 ```kotlin
-GlassStyle {
+val glassStyle = GlassStyle {
   tint(Color.White.copy(alpha = 0.12f))
   optics(
     GlassOptics.Absolute(
@@ -144,7 +158,15 @@ GlassStyle {
   )
   specularIntensity(0.4f)
   edgeSoftness(12.dp)
+  pressed { scale(0.98f) }
 }
+
+Modifier.hazeGlass(
+  input = HazeInput.Sources(hazeState),
+  style = glassStyle,
+  sampling = HazeSampling.Default,
+  expandLayerBounds = true,
+)
 ```
 
 ### Position and geometry

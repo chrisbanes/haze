@@ -15,7 +15,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.glass.GlassStyle
 import kotlin.test.Test
 
 class GlassGalleryModelsTest {
@@ -58,24 +58,12 @@ class GlassGalleryModelsTest {
   }
 
   @Test
-  fun interactionModes_configureExpectedPointerSlots() {
-    val off = GlassVisualEffect()
-    GlassLabInteractionMode.Off.applyTo(off)
-    assertThat(off.observesPointerEvents).isFalse()
-
-    val pressed = GlassVisualEffect()
-    GlassLabInteractionMode.Pressed.applyTo(pressed)
-    assertThat(pressed.observesPointerEvents).isTrue()
-    pressed.clearPressed()
-    assertThat(pressed.observesPointerEvents).isFalse()
-
-    val all = GlassVisualEffect()
-    GlassLabInteractionMode.All.applyTo(all)
-    assertThat(all.observesPointerEvents).isTrue()
-    all.clearPressed()
-    assertThat(all.observesPointerEvents).isTrue()
-    all.clearHovered()
-    assertThat(all.observesPointerEvents).isFalse()
+  fun interactionModes_produceDeclarativeStyles() {
+    assertThat(GlassLabInteractionMode.Off.style).isEqualTo(GlassStyle)
+    assertThat(GlassLabInteractionMode.Pressed.style).isNotEqualTo(GlassStyle)
+    assertThat(GlassLabInteractionMode.All.style).isNotEqualTo(GlassStyle)
+    assertThat(GlassLabInteractionMode.All.includesFocusedResponse).isTrue()
+    assertThat(GlassLabInteractionMode.Pressed.includesFocusedResponse).isFalse()
   }
 
   @Test

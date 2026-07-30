@@ -78,9 +78,17 @@ internal fun glassPlaygroundFrame(progress: Float): GlassPlaygroundFrame {
 internal fun glassPlaygroundStyle(id: GlassPlaygroundSurfaceId): GlassStyle = when (id) {
   GlassPlaygroundSurfaceId.Lens,
   GlassPlaygroundSurfaceId.Pill,
-  -> GlassDefaults.style.then { optics(GlassOptics.Adaptive) }
+  -> GlassDefaults.style.then { optics(glassPlaygroundOptics(id)) }
   GlassPlaygroundSurfaceId.Card -> glassLabPresetStyle(GlassLabPresetId.Deep)
   GlassPlaygroundSurfaceId.Prism -> glassLabPresetStyle(GlassLabPresetId.Prism)
+}
+
+internal fun glassPlaygroundOptics(id: GlassPlaygroundSurfaceId): GlassOptics = when (id) {
+  GlassPlaygroundSurfaceId.Lens,
+  GlassPlaygroundSurfaceId.Pill,
+  -> GlassOptics.Adaptive
+  GlassPlaygroundSurfaceId.Card -> (glassLabPresetValues(GlassLabPresetId.Deep)).optics
+  GlassPlaygroundSurfaceId.Prism -> (glassLabPresetValues(GlassLabPresetId.Prism)).optics
 }
 
 internal fun glassPlaygroundShape(id: GlassPlaygroundSurfaceId): RoundedCornerShape = when (id) {

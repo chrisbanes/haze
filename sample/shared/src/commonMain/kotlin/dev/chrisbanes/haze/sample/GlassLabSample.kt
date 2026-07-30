@@ -165,7 +165,7 @@ private fun LabSpecimen(
       style = state.style,
       shape = RoundedCornerShape(32.dp),
       interactionSource = interactionSource,
-      interaction = { state.interaction.applyTo(this) },
+      interactionStyle = state.interaction.style,
       modifier = Modifier
         .align(Alignment.Center)
         .fillMaxWidth(0.85f)

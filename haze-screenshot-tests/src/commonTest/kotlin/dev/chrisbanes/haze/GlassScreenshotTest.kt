@@ -36,8 +36,9 @@ import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
-import dev.chrisbanes.haze.glass.GlassVisualEffect
 import dev.chrisbanes.haze.glass.SurfaceProfile
+import dev.chrisbanes.haze.glass.hazeGlass
+import dev.chrisbanes.haze.glass.then
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -53,13 +54,11 @@ class GlassScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-    }
+    val style = GlassStyle { tint(DefaultTint) }
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect)
+        CreditCardGlassSample(style = style)
       }
     }
     captureRoot()
@@ -67,13 +66,11 @@ class GlassScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_noTint() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = Color.Transparent
-    }
+    val style = GlassStyle { tint(Color.Transparent) }
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect)
+        CreditCardGlassSample(style = style)
       }
     }
     captureRoot()
@@ -81,17 +78,17 @@ class GlassScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_multiple() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionStrength = 0.45f)
+    val style = GlassStyle {
+      tint(DefaultTint)
+      optics(GlassOptics.Absolute(refractionStrength = 0.45f))
     }
-    val visualEffects = List(3) { GlassVisualEffect(visualEffect) }
+    val styles = List(3) { style }
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(
-          visualEffect = visualEffects.first(),
-          visualEffects = visualEffects,
+        CreditCardGlassSample(
+          style = styles.first(),
+          styles = styles,
           numberCards = 3,
         )
       }
@@ -102,13 +99,9 @@ class GlassScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_style() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      style = VibrantStyle
-    }
-
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect)
+        CreditCardGlassSample(style = VibrantStyle)
       }
     }
     captureRoot()
@@ -116,25 +109,27 @@ class GlassScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_alpha() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      alpha = 0.85f
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        alpha(0.85f)
+      },
+    )
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect)
+        CreditCardGlassSample(style = style)
       }
     }
 
     captureRoot()
     val initialPixels = captureRootPixels().snapshot()
 
-    visualEffect.alpha = 0.45f
+    style = style.then { alpha(0.45f) }
     waitForIdle()
     captureRoot("45")
 
-    visualEffect.alpha = 0.15f
+    style = style.then { alpha(0.15f) }
     waitForIdle()
     val lowAlphaPixels = captureRootPixels().snapshot()
     captureRoot("15")
@@ -147,42 +142,48 @@ class GlassScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_edgeSoftness() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      edgeSoftness = 0.dp
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        edgeSoftness(0.dp)
+      },
+    )
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect)
+        CreditCardGlassSample(style = style)
       }
     }
 
     captureRoot("sharp")
 
-    visualEffect.edgeSoftness = 18.dp
+    style = style.then { edgeSoftness(18.dp) }
     waitForIdle()
     captureRoot("soft", unmatchedPixelThreshold = 0.01f)
   }
 
   @Test
   fun creditCard_refraction_depth() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionStrength = 0.25f, depth = 0.15f)
-      specularIntensity = 0.35f
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        optics(GlassOptics.Absolute(refractionStrength = 0.25f, depth = 0.15f))
+        specularIntensity(0.35f)
+      },
+    )
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect)
+        CreditCardGlassSample(style = style)
       }
     }
 
     captureRoot("low")
 
-    visualEffect.optics = GlassOptics.Absolute(refractionStrength = 0.6f, depth = 0.5f)
-    visualEffect.specularIntensity = 0.7f
+    style = style.then {
+      optics(GlassOptics.Absolute(refractionStrength = 0.6f, depth = 0.5f))
+      specularIntensity(0.7f)
+    }
     waitForIdle()
     captureRoot("high")
   }
@@ -190,19 +191,19 @@ class GlassScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_blurRadius() = runScreenshotTest {
     val shape = RoundedCornerShape(28.dp)
-    val visualEffect = GlassVisualEffect().apply {
-      tint = Color.White.copy(alpha = 0.08f)
-      optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 1f, blurRadius = 32.dp)
-      specularIntensity = 0f
-      ambientResponse = 0f
-      edgeSoftness = 0.dp
-      this.shape = shape
+    val style = GlassStyle {
+      tint(Color.White.copy(alpha = 0.08f))
+      optics(GlassOptics.Absolute(refractionStrength = 0f, depth = 1f, blurRadius = 32.dp))
+      specularIntensity(0f)
+      ambientResponse(0f)
+      edgeSoftness(0.dp)
+      this.shape(shape)
     }
 
     setContent {
       ScreenshotTheme {
         GlassBlurRadiusSample(
-          visualEffect = visualEffect,
+          style = style,
           shape = shape,
         )
       }
@@ -217,25 +218,29 @@ class GlassScreenshotTest : ScreenshotTest() {
     if (!isRuntimeShaderRenderEffectSupported()) return@runScreenshotTest
 
     val shape = RoundedCornerShape(0.dp)
-    val visualEffect = GlassVisualEffect().apply {
-      tint = Color.White.copy(alpha = 0.08f)
-      optics = GlassOptics.Absolute(
-        refractionStrength = 0f,
-        depth = 1f,
-        blurRadius = 0.dp,
-      )
-      specularIntensity = 0f
-      ambientResponse = 0f
-      edgeSoftness = 0.dp
-      this.shape = shape
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(Color.White.copy(alpha = 0.08f))
+        optics(
+          GlassOptics.Absolute(
+            refractionStrength = 0f,
+            depth = 1f,
+            blurRadius = 0.dp,
+          ),
+        )
+        specularIntensity(0f)
+        ambientResponse(0f)
+        edgeSoftness(0.dp)
+        this.shape(shape)
+      },
+    )
     var density by mutableStateOf(Density(1f))
 
     setContent {
       CompositionLocalProvider(LocalDensity provides density) {
         ScreenshotTheme {
           GlassBlurRadiusSample(
-            visualEffect = visualEffect,
+            style = style,
             shape = shape,
             cardWidth = (520f / density.density).dp,
             cardHeight = (320f / density.density).dp,
@@ -247,11 +252,9 @@ class GlassScreenshotTest : ScreenshotTest() {
 
     val zeroBlurPixels = captureRootPixels().snapshot()
 
-    visualEffect.optics = GlassOptics.Absolute(
-      refractionStrength = 0f,
-      depth = 1f,
-      blurRadius = 100.dp,
-    )
+    style = style.then {
+      optics(GlassOptics.Absolute(refractionStrength = 0f, depth = 1f, blurRadius = 100.dp))
+    }
     waitForIdle()
     val densityOnePixels = captureRootPixels().snapshot()
 
@@ -273,18 +276,18 @@ class GlassScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_fallbackTintAndEdge() = runScreenshotTest {
     val shape = RoundedCornerShape(28.dp)
-    val visualEffect = GlassVisualEffect().apply {
-      tint = Color.White.copy(alpha = 0.18f)
-      edgeSoftness = 12.dp
-      specularIntensity = 0.4f
-      ambientResponse = 0.5f
-      this.shape = shape
+    val style = GlassStyle {
+      tint(Color.White.copy(alpha = 0.18f))
+      edgeSoftness(12.dp)
+      specularIntensity(0.4f)
+      ambientResponse(0.5f)
+      this.shape(shape)
     }
 
     setContent {
       ScreenshotTheme {
         GlassBlurRadiusSample(
-          visualEffect = visualEffect,
+          style = style,
           shape = shape,
           clipShape = false,
         )
@@ -297,19 +300,21 @@ class GlassScreenshotTest : ScreenshotTest() {
   @Test
   fun creditCard_blurRadiusWithRefraction() = runScreenshotTest {
     val shape = RoundedCornerShape(28.dp)
-    val visualEffect = GlassVisualEffect().apply {
-      tint = Color.White.copy(alpha = 0.08f)
-      optics = GlassOptics.Absolute(refractionStrength = 0.85f, depth = 0.9f, blurRadius = 0.dp)
-      specularIntensity = 0f
-      ambientResponse = 0f
-      edgeSoftness = 0.dp
-      this.shape = shape
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(Color.White.copy(alpha = 0.08f))
+        optics(GlassOptics.Absolute(refractionStrength = 0.85f, depth = 0.9f, blurRadius = 0.dp))
+        specularIntensity(0f)
+        ambientResponse(0f)
+        edgeSoftness(0.dp)
+        this.shape(shape)
+      },
+    )
 
     setContent {
       ScreenshotTheme {
         GlassBlurRadiusSample(
-          visualEffect = visualEffect,
+          style = style,
           shape = shape,
         )
       }
@@ -317,32 +322,36 @@ class GlassScreenshotTest : ScreenshotTest() {
 
     captureRoot("zero")
 
-    visualEffect.optics = GlassOptics.Absolute(refractionStrength = 0.85f, depth = 0.9f, blurRadius = 32.dp)
+    style = style.then {
+      optics(GlassOptics.Absolute(refractionStrength = 0.85f, depth = 0.9f, blurRadius = 32.dp))
+    }
     waitForIdle()
     captureRoot("strong")
   }
 
   @Test
   fun creditCard_lightPosition() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      lightPosition = Offset.Unspecified
-      specularIntensity = 0.55f
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        lightPosition(Offset.Unspecified)
+        specularIntensity(0.55f)
+      },
+    )
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect)
+        CreditCardGlassSample(style = style)
       }
     }
 
     captureRoot("center")
 
-    visualEffect.lightPosition = Offset(-120f, -80f)
+    style = style.then { lightPosition(Offset(-120f, -80f)) }
     waitForIdle()
     captureRoot("topLeft")
 
-    visualEffect.lightPosition = Offset(140f, 120f)
+    style = style.then { lightPosition(Offset(140f, 120f)) }
     waitForIdle()
     captureRoot("bottomRight")
   }
@@ -359,22 +368,24 @@ class GlassScreenshotTest : ScreenshotTest() {
     setContent {
       ScreenshotTheme {
         key(effectGeneration) {
-          val visualEffect = remember {
-            GlassVisualEffect().apply {
-              tint = Color.Transparent
-              optics = GlassOptics.Absolute(
-                refractionStrength = 0.6f,
-                depth = 0.5f,
-                blurRadius = 0.dp,
+          val style = remember {
+            GlassStyle {
+              tint(Color.Transparent)
+              optics(
+                GlassOptics.Absolute(
+                  refractionStrength = 0.6f,
+                  depth = 0.5f,
+                  blurRadius = 0.dp,
+                ),
               )
-              specularIntensity = 0f
-              ambientResponse = 0f
-              edgeSoftness = 0.dp
-              this.shape = shape
+              specularIntensity(0f)
+              ambientResponse(0f)
+              edgeSoftness(0.dp)
+              this.shape(shape)
             }
           }
           GlassBlurRadiusSample(
-            visualEffect = visualEffect,
+            style = style,
             shape = shape,
             effectOffset = effectOffset,
             cardWidth = 320.dp,
@@ -405,14 +416,12 @@ class GlassScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_conditional_enabled() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-    }
+    val style = GlassStyle { tint(DefaultTint) }
     var enabled by mutableStateOf(true)
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect, enabled = enabled)
+        CreditCardGlassSample(style = style, enabled = enabled)
       }
     }
 
@@ -429,99 +438,106 @@ class GlassScreenshotTest : ScreenshotTest() {
 
   @Test
   fun creditCard_shape_refractionHeight() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionHeightFraction = 0.32f, depth = 0.45f)
-      specularIntensity = 0.6f
-      shape = RoundedCornerShape(24.dp)
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        optics(GlassOptics.Absolute(refractionHeightFraction = 0.32f, depth = 0.45f))
+        specularIntensity(0.6f)
+        shape(RoundedCornerShape(24.dp))
+      },
+    )
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(24.dp))
+        CreditCardGlassSample(style = style, shape = RoundedCornerShape(24.dp))
       }
     }
 
     captureRoot("rounded")
 
-    visualEffect.optics = GlassOptics.Absolute(
-      refractionHeightFraction = 0.18f,
-      depth = 0.45f,
-    )
+    style = style.then {
+      optics(GlassOptics.Absolute(refractionHeightFraction = 0.18f, depth = 0.45f))
+    }
     waitForIdle()
     captureRoot("shallow")
   }
 
   @Test
   fun creditCard_chromaticAberration() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionStrength = 0.8f, depth = 0.4f)
-      chromaticAberrationStrength = 0.0f
-      edgeSoftness = 14.dp
-      shape = RoundedCornerShape(20.dp)
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        optics(GlassOptics.Absolute(refractionStrength = 0.8f, depth = 0.4f))
+        chromaticAberrationStrength(0.0f)
+        edgeSoftness(14.dp)
+        shape(RoundedCornerShape(20.dp))
+      },
+    )
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(20.dp))
+        CreditCardGlassSample(style = style, shape = RoundedCornerShape(20.dp))
       }
     }
 
     captureRoot("off")
 
-    visualEffect.chromaticAberrationStrength = 0.24f
+    style = style.then { chromaticAberrationStrength(0.24f) }
     waitForIdle()
     captureRoot("on")
   }
 
   @Test
   fun creditCard_surfaceProfile() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionHeightFraction = 0.28f, depth = 0.4f)
-      specularIntensity = 0.5f
-      shape = RoundedCornerShape(24.dp)
-      surfaceProfile = SurfaceProfile.Squircle
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        optics(GlassOptics.Absolute(refractionHeightFraction = 0.28f, depth = 0.4f))
+        specularIntensity(0.5f)
+        shape(RoundedCornerShape(24.dp))
+        surfaceProfile(SurfaceProfile.Squircle)
+      },
+    )
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(24.dp))
+        CreditCardGlassSample(style = style, shape = RoundedCornerShape(24.dp))
       }
     }
 
     captureRoot("squircle")
 
-    visualEffect.surfaceProfile = SurfaceProfile.Concave
+    style = style.then { surfaceProfile(SurfaceProfile.Concave) }
     waitForIdle()
     captureRoot("concave")
 
-    visualEffect.surfaceProfile = SurfaceProfile.Lip
+    style = style.then { surfaceProfile(SurfaceProfile.Lip) }
     waitForIdle()
     captureRoot("lip")
   }
 
   @Test
   fun creditCard_chromaticAberrationMode() = runScreenshotTest {
-    val visualEffect = GlassVisualEffect().apply {
-      tint = DefaultTint
-      optics = GlassOptics.Absolute(refractionStrength = 0.8f, depth = 0.45f)
-      chromaticAberrationStrength = 0.3f
-      edgeSoftness = 14.dp
-      shape = RoundedCornerShape(20.dp)
-      chromaticAberrationMode = ChromaticAberrationMode.Simple
-    }
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        optics(GlassOptics.Absolute(refractionStrength = 0.8f, depth = 0.45f))
+        chromaticAberrationStrength(0.3f)
+        edgeSoftness(14.dp)
+        shape(RoundedCornerShape(20.dp))
+        chromaticAberrationMode(ChromaticAberrationMode.Simple)
+      },
+    )
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = visualEffect, shape = RoundedCornerShape(20.dp))
+        CreditCardGlassSample(style = style, shape = RoundedCornerShape(20.dp))
       }
     }
 
     captureRoot("simple")
 
-    visualEffect.chromaticAberrationMode = ChromaticAberrationMode.Full
+    style = style.then { chromaticAberrationMode(ChromaticAberrationMode.Full) }
     waitForIdle()
     captureRoot("full")
   }
@@ -547,7 +563,7 @@ class GlassScreenshotTest : ScreenshotTest() {
 
 @Composable
 internal fun GlassBlurRadiusSample(
-  visualEffect: GlassVisualEffect,
+  style: GlassStyle,
   shape: RoundedCornerShape,
   clipShape: Boolean = true,
   cardWidth: Dp = 520.dp,
@@ -598,9 +614,10 @@ internal fun GlassBlurRadiusSample(
         .offset { effectOffset }
         .size(width = cardWidth, height = cardHeight)
         .then(if (clipShape) Modifier.clip(shape) else Modifier)
-        .hazeEffect(state = hazeState) {
-          this.visualEffect = visualEffect
-        },
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          style = style,
+        ),
     )
   }
 }

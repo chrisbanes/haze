@@ -21,7 +21,8 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
 
@@ -39,17 +40,19 @@ private enum class RoundedEdgeClipPlacement {
 
 internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
   val shape = RoundedCornerShape(31.dp)
-  val effect = GlassVisualEffect().apply {
-    tint = Color.White.copy(alpha = 0.8f)
-    optics = GlassOptics.Absolute(
-      refractionStrength = 0f,
-      depth = 0f,
-      blurRadius = 0.dp,
+  val style = GlassStyle {
+    tint(Color.White.copy(alpha = 0.8f))
+    optics(
+      GlassOptics.Absolute(
+        refractionStrength = 0f,
+        depth = 0f,
+        blurRadius = 0.dp,
+      ),
     )
-    specularIntensity = 0f
-    ambientResponse = 0f
-    edgeSoftness = 0.dp
-    this.shape = shape
+    specularIntensity(0f)
+    ambientResponse(0f)
+    edgeSoftness(0.dp)
+    this.shape(shape)
   }
   var clipPlacement by mutableStateOf(RoundedEdgeClipPlacement.InternalMaskOnly)
 
@@ -80,18 +83,21 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
 
       Box(
         when (clipPlacement) {
-          RoundedEdgeClipPlacement.InternalMaskOnly -> effectModifier.hazeEffect(hazeState) {
-            inputScale = HazeInputScale.None
-            visualEffect = effect
-          }
-          RoundedEdgeClipPlacement.AroundEffect -> effectModifier.clip(shape).hazeEffect(hazeState) {
-            inputScale = HazeInputScale.None
-            visualEffect = effect
-          }
-          RoundedEdgeClipPlacement.AroundContent -> effectModifier.hazeEffect(hazeState) {
-            inputScale = HazeInputScale.None
-            visualEffect = effect
-          }.clip(shape)
+          RoundedEdgeClipPlacement.InternalMaskOnly -> effectModifier.hazeGlass(
+            input = HazeInput.Sources(hazeState),
+            style = style,
+            sampling = HazeSampling.FullResolution,
+          )
+          RoundedEdgeClipPlacement.AroundEffect -> effectModifier.clip(shape).hazeGlass(
+            input = HazeInput.Sources(hazeState),
+            style = style,
+            sampling = HazeSampling.FullResolution,
+          )
+          RoundedEdgeClipPlacement.AroundContent -> effectModifier.hazeGlass(
+            input = HazeInput.Sources(hazeState),
+            style = style,
+            sampling = HazeSampling.FullResolution,
+          ).clip(shape)
         },
       )
     }

@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.GlassVisualEffect
+import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -147,19 +147,19 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   @Test
   fun glass_depthZeroMasksShape() = runScreenshotTest {
     val shape = RoundedCornerShape(48.dp)
-    val visualEffect = GlassVisualEffect().apply {
-      tint = Color.White.copy(alpha = 0.28f)
-      optics = GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 32.dp)
-      specularIntensity = 0f
-      ambientResponse = 0f
-      edgeSoftness = 16.dp
-      this.shape = shape
+    val style = GlassStyle {
+      tint(Color.White.copy(alpha = 0.28f))
+      optics(GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 32.dp))
+      specularIntensity(0f)
+      ambientResponse(0f)
+      edgeSoftness(16.dp)
+      this.shape(shape)
     }
 
     setContent {
       ScreenshotTheme {
         GlassBlurRadiusSample(
-          visualEffect = visualEffect,
+          style = style,
           shape = shape,
           clipShape = false,
         )
