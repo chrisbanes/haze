@@ -145,12 +145,22 @@ class BlurVisualEffectLifecycleTest {
 
   @Test
   fun copy_preservesStyleAndCompositionLocalInheritance() {
+    val inheritedMask = Brush.verticalGradient(listOf(Color.White, Color.Transparent))
+    val inheritedColorEffect = HazeColorEffect.tint(Color.Magenta)
+    val inheritedFallback = HazeColorEffect.tint(Color.Gray)
+    val inheritedProgressive = HazeProgressive.verticalGradient()
     val original = BlurVisualEffect().apply {
       compositionLocalStyle = fullStyle(
         blurEnabled = false,
         blurRadius = 12.dp,
         noiseFactor = 0.2f,
         backgroundColor = Color.Red,
+        mask = inheritedMask,
+        colorEffect = inheritedColorEffect,
+        fallback = inheritedFallback,
+        alpha = 0.7f,
+        progressive = inheritedProgressive,
+        blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded,
       )
       style = HazeBlurStyle {
         blurRadius(16.dp)
@@ -161,6 +171,17 @@ class BlurVisualEffectLifecycleTest {
     val localColorEffect = HazeColorEffect.tint(Color.Blue)
     val localFallback = HazeColorEffect.tint(Color.Green)
     val localProgressive = HazeProgressive.verticalGradient()
+
+    assertThat(copy.blurEnabled).isFalse()
+    assertThat(copy.blurRadius).isEqualTo(16.dp)
+    assertThat(copy.noiseFactor).isEqualTo(0.2f)
+    assertThat(copy.backgroundColor).isEqualTo(Color.Red)
+    assertThat(copy.mask).isEqualTo(inheritedMask)
+    assertThat(copy.colorEffects).isEqualTo(listOf(inheritedColorEffect))
+    assertThat(copy.fallbackTint).isEqualTo(inheritedFallback)
+    assertThat(copy.alpha).isEqualTo(0.7f)
+    assertThat(copy.progressive).isEqualTo(inheritedProgressive)
+    assertThat(copy.blurredEdgeTreatment).isEqualTo(BlurredEdgeTreatment.Unbounded)
 
     copy.compositionLocalStyle = fullStyle(
       blurEnabled = true,
@@ -241,6 +262,64 @@ class BlurVisualEffectLifecycleTest {
   }
 
   @Test
+  fun inheritedStructuralStyleChanges_invalidateLayerBoundsOnlyWhenRequired() {
+    val effect = BlurVisualEffect()
+    val context = TrackingInvalidationContext()
+
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(1)
+    assertThat(context.invalidateDrawCount).isEqualTo(0)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(0)
+    assertThat(context.invalidateDrawCount).isEqualTo(1)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+      backgroundColor(Color.Red.copy(alpha = 0.5f))
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(1)
+    assertThat(context.invalidateDrawCount).isEqualTo(0)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+      backgroundColor(Color.Blue.copy(alpha = 0.5f))
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(0)
+    assertThat(context.invalidateDrawCount).isEqualTo(1)
+
+    context.resetInvalidations()
+    context.localStyle = HazeBlurStyle {
+      blurRadius(24.dp)
+      noiseFactor(0.5f)
+      backgroundColor(Color.Blue.copy(alpha = 0.5f))
+      blurredEdgeTreatment(BlurredEdgeTreatment.Unbounded)
+    }
+    effect.update(context)
+
+    assertThat(context.invalidateLayerBoundsCount).isEqualTo(1)
+    assertThat(context.invalidateDrawCount).isEqualTo(0)
+  }
+
+  @Test
   fun retainedOutputAvailabilityReflectsDelegate() {
     val effect = BlurVisualEffect()
     val delegate = RetainedTrackingBlurDelegate()
@@ -317,6 +396,33 @@ private data object FakeVisualEffectContext : VisualEffectContext {
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = error("Unused in lifecycle tests")
   override fun requireGraphicsContext(): GraphicsContext = error("Unused in lifecycle tests")
   override fun invalidateDraw() = Unit
+}
+
+private class TrackingInvalidationContext : VisualEffectContext by FakeVisualEffectContext {
+  var localStyle: HazeBlurStyle = HazeBlurStyle
+  var invalidateDrawCount: Int = 0
+    private set
+  var invalidateLayerBoundsCount: Int = 0
+    private set
+
+  @Suppress("UNCHECKED_CAST")
+  override fun <T> currentValueOf(local: CompositionLocal<T>): T {
+    check(local === LocalHazeBlurStyle)
+    return localStyle as T
+  }
+
+  override fun invalidateDraw() {
+    invalidateDrawCount++
+  }
+
+  override fun invalidateLayerBounds() {
+    invalidateLayerBoundsCount++
+  }
+
+  fun resetInvalidations() {
+    invalidateDrawCount = 0
+    invalidateLayerBoundsCount = 0
+  }
 }
 
 @Poko

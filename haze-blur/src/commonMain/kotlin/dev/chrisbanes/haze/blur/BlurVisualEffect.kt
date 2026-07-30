@@ -33,12 +33,16 @@ import dev.chrisbanes.haze.VisualEffectContext
  * runtime, including its delegate, retained layers, input-scale history, and render-effect cache.
  */
 @Stable
-public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
+public class BlurVisualEffect private constructor(
+  initialCompositionLocalStyle: HazeBlurStyle,
+  initialStyle: HazeBlurStyle,
+) : VisualEffect, RetainedOutputVisualEffect {
+
+  public constructor() : this(HazeBlurStyle, HazeBlurStyle)
 
   /** Creates a new [BlurVisualEffect] copying Styles and direct property overrides from [other]. */
-  public constructor(other: BlurVisualEffect) : this() {
-    compositionLocalStyle = other.compositionLocalStyle
-    style = other.style
+  public constructor(other: BlurVisualEffect) :
+    this(other.compositionLocalStyle, other.style) {
     blurEnabledOverride = other.blurEnabledOverride
     blurRadiusOverride = other.blurRadiusOverride
     noiseFactorOverride = other.noiseFactorOverride
@@ -55,6 +59,7 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
 
   private var isAttached: Boolean = false
   private var needsDelegateSelection: Boolean = true
+  private var needsLayerBoundsInvalidation: Boolean = false
   private val inputScalePolicy = BlurInputScalePolicy()
   internal val renderEffectCache = LruCache<RenderEffectCacheKey, RenderEffect>(maxSize = 50)
 
@@ -62,7 +67,7 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     private set
 
   private var resolvedStyle: ResolvedHazeBlurStyle =
-    resolveHazeBlurStyle(HazeBlurStyle, HazeBlurStyle)
+    resolveHazeBlurStyle(initialCompositionLocalStyle, initialStyle)
 
   internal var delegate: Delegate = ScrimBlurVisualEffectDelegate(this)
     set(value) {
@@ -97,7 +102,12 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     compositionLocalStyle = context.currentValueOf(LocalHazeBlurStyle)
     if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
       needsDelegateSelection = true
-      context.invalidateDraw()
+      if (needsLayerBoundsInvalidation) {
+        needsLayerBoundsInvalidation = false
+        context.invalidateLayerBounds()
+      } else {
+        context.invalidateDraw()
+      }
     }
   }
 
@@ -174,7 +184,10 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
         HazeLogger.d(TAG) { "blurRadius changed. Current: $blurRadius. New: $value" }
         val old = blurRadius
         blurRadiusOverride = normalized
-        if (old != blurRadius) dirtyTracker += BlurDirtyFields.BlurRadius
+        if (old != blurRadius) {
+          dirtyTracker += BlurDirtyFields.BlurRadius
+          needsLayerBoundsInvalidation = true
+        }
       }
     }
 
@@ -220,7 +233,12 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
         HazeLogger.d(TAG) { "backgroundColor changed. Current: $backgroundColor. New: $value" }
         val old = backgroundColor
         backgroundColorOverride = normalized
-        if (old != backgroundColor) dirtyTracker += BlurDirtyFields.BackgroundColor
+        if (old != backgroundColor) {
+          dirtyTracker += BlurDirtyFields.BackgroundColor
+          if (old.prefersClipToAreaBounds() != backgroundColor.prefersClipToAreaBounds()) {
+            needsLayerBoundsInvalidation = true
+          }
+        }
       }
     }
 
@@ -297,7 +315,10 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
         }
         val old = blurredEdgeTreatment
         blurredEdgeTreatmentOverride = value
-        if (old != blurredEdgeTreatment) dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
+        if (old != blurredEdgeTreatment) {
+          dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
+          needsLayerBoundsInvalidation = true
+        }
       }
     }
 
@@ -311,7 +332,7 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     )
   }
 
-  internal var compositionLocalStyle: HazeBlurStyle = HazeBlurStyle
+  internal var compositionLocalStyle: HazeBlurStyle = initialCompositionLocalStyle
     set(value) {
       if (field !== value) {
         HazeLogger.d(TAG) { "LocalHazeBlurStyle changed. Current: $field. New: $value" }
@@ -321,7 +342,7 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     }
 
   /** Explicit Style replayed after [LocalHazeBlurStyle]. */
-  public var style: HazeBlurStyle = HazeBlurStyle
+  public var style: HazeBlurStyle = initialStyle
     set(value) {
       if (field !== value) {
         HazeLogger.d(TAG) { "style changed. Current: $field. New: $value" }
@@ -340,7 +361,7 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   }
 
   override fun shouldPreferClipToAreaBounds(): Boolean {
-    return backgroundColor.isSpecified && backgroundColor.alpha > 0f && backgroundColor.alpha < 0.9f
+    return backgroundColor.prefersClipToAreaBounds()
   }
 
   override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
@@ -353,18 +374,36 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
     new: ResolvedHazeBlurStyle,
   ) {
     if (old.blurEnabled != new.blurEnabled) dirtyTracker += BlurDirtyFields.BlurEnabled
-    if (old.blurRadius != new.blurRadius) dirtyTracker += BlurDirtyFields.BlurRadius
+    val oldBlurRadius = blurRadiusOverride ?: old.blurRadius
+    val newBlurRadius = blurRadiusOverride ?: new.blurRadius
+    if (oldBlurRadius != newBlurRadius) {
+      dirtyTracker += BlurDirtyFields.BlurRadius
+      needsLayerBoundsInvalidation = true
+    }
     if (old.noiseFactor != new.noiseFactor) dirtyTracker += BlurDirtyFields.NoiseFactor
     if (old.mask != new.mask) dirtyTracker += BlurDirtyFields.Mask
-    if (old.backgroundColor != new.backgroundColor) dirtyTracker += BlurDirtyFields.BackgroundColor
+    val oldBackgroundColor = backgroundColorOverride ?: old.backgroundColor
+    val newBackgroundColor = backgroundColorOverride ?: new.backgroundColor
+    if (oldBackgroundColor != newBackgroundColor) {
+      dirtyTracker += BlurDirtyFields.BackgroundColor
+      if (
+        oldBackgroundColor.prefersClipToAreaBounds() !=
+        newBackgroundColor.prefersClipToAreaBounds()
+      ) {
+        needsLayerBoundsInvalidation = true
+      }
+    }
     if (old.colorEffects != new.colorEffects) dirtyTracker += BlurDirtyFields.ColorEffects
     if (old.fallbackColorEffect != new.fallbackColorEffect) {
       dirtyTracker += BlurDirtyFields.FallbackColorEffect
     }
     if (old.alpha != new.alpha) dirtyTracker += BlurDirtyFields.Alpha
     if (old.progressive != new.progressive) dirtyTracker += BlurDirtyFields.Progressive
-    if (old.blurredEdgeTreatment != new.blurredEdgeTreatment) {
+    val oldEdgeTreatment = blurredEdgeTreatmentOverride ?: old.blurredEdgeTreatment
+    val newEdgeTreatment = blurredEdgeTreatmentOverride ?: new.blurredEdgeTreatment
+    if (oldEdgeTreatment != newEdgeTreatment) {
       dirtyTracker += BlurDirtyFields.BlurredEdgeTreatment
+      needsLayerBoundsInvalidation = true
     }
   }
 
@@ -378,6 +417,10 @@ public class BlurVisualEffect() : VisualEffect, RetainedOutputVisualEffect {
   internal companion object {
     const val TAG = "BlurVisualEffect"
   }
+}
+
+private fun Color.prefersClipToAreaBounds(): Boolean {
+  return isSpecified && alpha > 0f && alpha < 0.9f
 }
 
 internal interface RetainedOutputDelegate {
