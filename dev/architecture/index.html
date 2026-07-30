@@ -380,6 +380,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#built-in-blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in Blur
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#modules" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -944,6 +955,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#built-in-blur" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in Blur
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#modules" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1045,6 +1067,16 @@ or captured layers.</p>
 <li>draw and bounds invalidation.</li>
 </ul>
 <p>Those details are intentionally absent from the public typed renderer scopes.</p>
+<h2 id="built-in-blur">Built-in Blur<a class="headerlink" href="#built-in-blur" title="Permanent link">¶</a></h2>
+<p>Blur uses the same typed node lifecycle through a narrow internal full-<code>VisualEffect</code> bridge. The
+bridge preserves the existing platform Blur implementations without exposing <code>VisualEffectContext</code>,
+source geometry, captured layers, platform contexts, delegates, or caches in the public semantic
+renderer scopes.</p>
+<p><code>HazeBlurStyle</code> and the shared Blur factory are stateless. Each modifier node creates one
+<code>BlurVisualEffect</code> runtime that owns its resolved snapshot, invalidation state, adaptive-sampling
+history, delegate, retained output, render-effect cache, and platform resources. Style replacement
+replays defaults, the current composition-local Style, and the explicit Style into a fresh snapshot
+on that same runtime.</p>
 <h2 id="modules">Modules<a class="headerlink" href="#modules" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>haze</strong> — core state, source capture, typed custom-effect orchestration, and the temporary legacy
@@ -1057,9 +1089,11 @@ or captured layers.</p>
 <p>Effect modules can keep platform-specific renderer internals behind their own <code>expect</code>/<code>actual</code>
 boundaries.</p>
 <h2 id="legacy-compatibility">Legacy compatibility<a class="headerlink" href="#legacy-compatibility" title="Permanent link">¶</a></h2>
-<p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, and the lambda-based modifier overloads
-remain temporarily available for Blur, Glass, and third-party migration. They expose more lifecycle
-and rendering internals and are no longer the recommended contract for new custom effects.</p>
+<p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, <code>BlurVisualEffect</code>,
+<code>HazeEffectScope.blurEffect</code>, and the lambda-based modifier overloads remain temporarily available
+for Blur, Glass, and third-party migration. They expose more lifecycle and rendering internals and
+are no longer the recommended contract for new Blur or custom effects. New Blur code uses
+<code>hazeBlur</code>; new custom effects use <code>HazeEffectFactory</code>.</p>
 <p>See <a href="../custom-effects/">Custom effects</a> for the preferred API.</p></div>
 
 

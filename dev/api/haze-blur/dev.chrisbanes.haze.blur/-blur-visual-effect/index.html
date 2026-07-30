@@ -93,7 +93,7 @@
   <div class="breadcrumbs"><a href="../../index.html">haze-blur</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze.blur</a><span class="delimiter">/</span><span class="current">BlurVisualEffect</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Blur</span><wbr><span>Visual</span><wbr><span><span>Effect</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Stable.html"><span class="token annotation builtin">Stable</span></a></div></div><span class="token keyword">class </span><a href="index.html">BlurVisualEffect</a> : <a href="../../../haze/dev.chrisbanes.haze/-visual-effect/index.html">VisualEffect</a>, <a href="../../../haze/dev.chrisbanes.haze/-retained-output-visual-effect/index.html">RetainedOutputVisualEffect</a></div><p class="paragraph">A <a href="../../../haze/dev.chrisbanes.haze/-visual-effect/index.html">VisualEffect</a> implementation that applies blur effects to content.</p><p class="paragraph">This effect supports various blur-related features including:</p><ul><li><p class="paragraph">Configurable blur radius</p></li><li><p class="paragraph">Tinting with multiple colors</p></li><li><p class="paragraph">Progressive (gradient) blur</p></li><li><p class="paragraph">Noise overlays</p></li><li><p class="paragraph">Background color</p></li><li><p class="paragraph">Alpha masking</p></li></ul><p class="paragraph">Example usage:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">Modifier.hazeEffect {<br>  blurEffect {<br>    blurRadius = 20.dp<br>    colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))<br>  }<br>}</code></pre><span class="copy-tooltip"><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div><span class="copy-icon"></span></span></div></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Stable.html"><span class="token annotation builtin">Stable</span></a></div></div><span class="token keyword">class </span><a href="index.html">BlurVisualEffect</a> : <a href="../../../haze/dev.chrisbanes.haze/-visual-effect/index.html">VisualEffect</a>, <a href="../../../haze/dev.chrisbanes.haze/-retained-output-visual-effect/index.html">RetainedOutputVisualEffect</a></div><p class="paragraph">Legacy mutable Blur runtime retained while callers migrate to <a href="../haze-blur.html">hazeBlur</a>.</p><p class="paragraph">New code should configure Blur with <a href="../-haze-blur-style/index.html">HazeBlurStyle</a>. A modifier node owns each instance of this runtime, including its delegate, retained layers, input-scale history, and render-effect cache.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
@@ -110,7 +110,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">BlurVisualEffect</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Creates a new <a href="-blur-visual-effect.html">BlurVisualEffect</a> copying all properties from <a href="../../../haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/--root--.html">other</a>.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="index.html">BlurVisualEffect</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Creates a new <a href="-blur-visual-effect.html">BlurVisualEffect</a> copying Styles and direct property overrides from <a href="../../../haze-blur/dev.chrisbanes.haze.blur/-blur-visual-effect/--root--.html">other</a>.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -129,7 +129,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="alpha.html">alpha</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">The opacity that the overall effect will drawn with, in the range of 0..1.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="alpha.html">alpha</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Opacity of the overall effect.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -144,7 +144,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="background-color.html">backgroundColor</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a></div><div class="brief "><p class="paragraph">Color to draw behind the blurred content. Ideally should be opaque so that the original content is not visible behind. Typically this would be <code class="lang-kotlin">MaterialTheme.colorScheme.surface</code> or similar.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="background-color.html">backgroundColor</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a></div><div class="brief "><p class="paragraph">Color drawn behind the blurred content.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -159,7 +159,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="blur-enabled.html">blurEnabled</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Whether the blur effect is enabled or not, when running on platforms which support blurring.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="blur-enabled.html">blurEnabled</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Whether Blur is enabled on supported platforms.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -189,7 +189,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="blurred-edge-treatment.html">blurredEdgeTreatment</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/draw/BlurredEdgeTreatment.html">BlurredEdgeTreatment</a></div><div class="brief "><p class="paragraph">The <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/draw/BlurredEdgeTreatment.html">BlurredEdgeTreatment</a> to use when blurring content.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="blurred-edge-treatment.html">blurredEdgeTreatment</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/draw/BlurredEdgeTreatment.html">BlurredEdgeTreatment</a></div><div class="brief "><p class="paragraph">Edge treatment used while blurring.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -204,7 +204,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="color-effects.html">colorEffects</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-haze-color-effect/index.html">HazeColorEffect</a><span class="token operator">&gt;</span><span class="token operator">?</span></div><div class="brief "><p class="paragraph">The HazeTints to apply to the blurred content.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="color-effects.html">colorEffects</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-haze-color-effect/index.html">HazeColorEffect</a><span class="token operator">&gt;</span><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Color effects applied to the blurred content.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -219,7 +219,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="fallback-tint.html">fallbackTint</a><span class="token operator">: </span><a href="../-haze-color-effect/index.html">HazeColorEffect</a></div><div class="brief "><p class="paragraph">The HazeTint to use when Haze uses the fallback scrim functionality.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="fallback-tint.html">fallbackTint</a><span class="token operator">: </span><a href="../-haze-color-effect/index.html">HazeColorEffect</a></div><div class="brief "><p class="paragraph">Color effect used by the fallback scrim.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -234,7 +234,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="mask.html">mask</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Brush.html">Brush</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Optional alpha mask which allows effects such as fading via a <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Brush.Companion.html#verticalgradient">Brush.verticalGradient</a> or similar. This is only applied when <a href="progressive.html">progressive</a> is null.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="mask.html">mask</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Brush.html">Brush</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Optional alpha mask.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -249,7 +249,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="noise-factor.html">noiseFactor</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Amount of noise applied to the content, in the range <code class="lang-kotlin">0f</code> to <code class="lang-kotlin">1f</code>. Anything outside of that range will be clamped.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="noise-factor.html">noiseFactor</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Amount of noise applied to the content, clamped to <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -264,7 +264,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="progressive.html">progressive</a><span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-haze-progressive/index.html">HazeProgressive</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Parameters for enabling a progressive (or gradient) blur effect, or null for a uniform blurring effect. Defaults to null.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="progressive.html">progressive</a><span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-haze-progressive/index.html">HazeProgressive</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Progressive Blur parameters, or null for uniform Blur.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -279,7 +279,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="style.html">style</a><span class="token operator">: </span><a href="../-haze-blur-style/index.html">HazeBlurStyle</a></div><div class="brief "><p class="paragraph">Style set on this specific blur effect.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-blur/commonMain"><div class="symbol monospace"><span class="token keyword">var </span><a href="style.html">style</a><span class="token operator">: </span><a href="../-haze-blur-style/index.html">HazeBlurStyle</a></div><div class="brief "><p class="paragraph">Explicit Style replayed after <a href="../-local-haze-blur-style.html">LocalHazeBlurStyle</a>.</p></div></div></div>
                 </div>
               </div>
             </div>

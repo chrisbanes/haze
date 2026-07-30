@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#scaffold" class="md-skip">
+        <a href="#recipes" class="md-skip">
           Skip to content
         </a>
       
@@ -584,6 +584,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -626,6 +628,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -634,10 +638,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#scaffold" class="md-nav__link">
+  <a href="#scaffold-chrome" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scaffold
+        Scaffold chrome
       
     </span>
   </a>
@@ -648,7 +652,29 @@
   <a href="#sticky-headers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sticky Headers
+        Sticky headers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privacy-sensitive-source-transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privacy-sensitive source transitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reusing-and-customizing-a-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reusing and customizing a Style
       
     </span>
   </a>
@@ -842,6 +868,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -850,10 +878,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#scaffold" class="md-nav__link">
+  <a href="#scaffold-chrome" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scaffold
+        Scaffold chrome
       
     </span>
   </a>
@@ -864,7 +892,29 @@
   <a href="#sticky-headers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sticky Headers
+        Sticky headers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privacy-sensitive-source-transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privacy-sensitive source transitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reusing-and-customizing-a-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reusing and customizing a Style
       
     </span>
   </a>
@@ -891,45 +941,31 @@
   
 
 
-  <h1>Recipes</h1>
-
-<div><h2 id="scaffold">Scaffold<a class="headerlink" href="#scaffold" title="Permanent link">¶</a></h2>
-<p>Blurring the content behind app bars is a common use case, so how can we use Haze with <code>Scaffold</code>? It's pretty much the same as above:</p>
-<div class="admonition tip">
-<p class="admonition-title">Multiple hazeEffects</p>
-<p>Note: We are using multiple <code>hazeEffect</code>s in this example. You can actually use an abitrary number of <code>hazeEffect</code>s.</p>
-</div>
+<div><h1 id="recipes">Recipes<a class="headerlink" href="#recipes" title="Permanent link">¶</a></h1>
+<h2 id="scaffold-chrome">Scaffold chrome<a class="headerlink" href="#scaffold-chrome" title="Permanent link">¶</a></h2>
+<p>Place <code>hazeSource</code> on the scrolling content and use the same state for each app bar:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
 
 <span class="n">Scaffold</span><span class="p">(</span>
 <span class="w">  </span><span class="n">topBar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">TopAppBar</span><span class="p">(</span>
-<span class="w">      </span><span class="c1">// Need to make app bar transparent to see the content behind</span>
-<span class="w">      </span><span class="n">colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TopAppBarDefaults</span><span class="p">.</span><span class="na">largeTopAppBarColors</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">),</span>
-<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
-<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span>
-<span class="w">          </span><span class="p">}</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">(),</span>
-<span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="cm">/* todo */</span>
-<span class="w">    </span><span class="p">}</span>
+<span class="w">      </span><span class="n">colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TopAppBarDefaults</span><span class="p">.</span><span class="na">topAppBarColors</span><span class="p">(</span><span class="n">containerColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">),</span>
+<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
+<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
+<span class="w">      </span><span class="p">),</span>
+<span class="w">    </span><span class="p">)</span>
 <span class="w">  </span><span class="p">},</span>
 <span class="w">  </span><span class="n">bottomBar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">NavigationBar</span><span class="p">(</span>
 <span class="w">      </span><span class="n">containerColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">Transparent</span><span class="p">,</span>
-<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
-<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span>
-<span class="w">          </span><span class="p">}</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">        </span><span class="p">.</span><span class="na">fillMaxWidth</span><span class="p">(),</span>
+<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
+<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
+<span class="w">      </span><span class="p">),</span>
 <span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="cm">/* todo */</span>
+<span class="w">      </span><span class="c1">// Items</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
 <span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">contentPadding</span><span class="w"> </span><span class="o">-&gt;</span>
@@ -937,52 +973,63 @@
 <span class="w">    </span><span class="n">contentPadding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">contentPadding</span><span class="p">,</span>
 <span class="w">    </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
 <span class="w">      </span><span class="p">.</span><span class="na">fillMaxSize</span><span class="p">()</span>
-<span class="w">      </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span>
-<span class="w">        </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
-<span class="w">      </span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// todo</span>
+<span class="w">    </span><span class="c1">// Items</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Common scaffold composables include:</p>
-<ul>
-<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/Scaffold.composable"><code>Scaffold</code></a>, which provides content padding for app bars and other chrome.</li>
-<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/BottomSheetScaffold.composable"><code>BottomSheetScaffold</code></a>, which provides content padding for its top bar and bottom sheet.</li>
-<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/navigationsuite/NavigationSuiteScaffold.composable"><code>NavigationSuiteScaffold</code></a>, which places adaptive navigation beside or below its content.</li>
-<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/layout/ListDetailPaneScaffold.composable"><code>ListDetailPaneScaffold</code></a>, which arranges list, detail, and optional extra panes.</li>
-<li><a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/adaptive/layout/SupportingPaneScaffold.composable"><code>SupportingPaneScaffold</code></a>, which arranges main, supporting, and optional extra panes.</li>
-</ul>
-<p>For scaffold composables that provide content padding, pass that padding to the scrollable content rather than applying it as an outer modifier. This keeps interactive items clear of the chrome while preserving a full-size Haze source with pixels behind translucent bars. Scaffold-like layouts that measure content beside or above their chrome require an application-level overlay or custom layout to achieve an edge-to-edge translucent effect.</p>
-<h2 id="sticky-headers">Sticky Headers<a class="headerlink" href="#sticky-headers" title="Permanent link">¶</a></h2>
-<p>The <code>stickyHeader</code> functionality on <code>LazyColumn</code> and friends is very useful, but unfortunately the limitations of Haze means that blurring the list contents for the header background is tricky.</p>
-<p>Since we can not use <code>Modifier.hazeSource</code> on the <code>LazyColumn</code> and <code>Modifier.hazeEffect</code> on items, as we would get into recursive drawing, we need to get a bit more creative.</p>
-<p>Since we can have multiple nodes using <code>Modifier.hazeSource</code>, we can use the modifier on all non-header items, and then use <code>hazeEffect</code> as normal on the <code>stickyHeader</code>:</p>
+<p>Pass scaffold padding to the scrollable content rather than applying it outside the source. That
+keeps interactive content clear of chrome while preserving source pixels behind translucent bars.</p>
+<h2 id="sticky-headers">Sticky headers<a class="headerlink" href="#sticky-headers" title="Permanent link">¶</a></h2>
+<p>Avoid making a <code>LazyColumn</code> both a source and a descendant effect. Mark non-header items as sources:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">hazeState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rememberHazeState</span><span class="p">()</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">()</span>
 
-<span class="n">LazyColumn</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
+<span class="n">LazyColumn</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">stickyHeader</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">Header</span><span class="p">(</span>
-<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
-<span class="w">        </span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">          </span><span class="n">blurEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span>
-<span class="w">          </span><span class="p">}</span>
-<span class="w">        </span><span class="p">},</span>
+<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
+<span class="w">        </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">        </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
+<span class="w">        </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
+<span class="w">      </span><span class="p">),</span>
 <span class="w">    </span><span class="p">)</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="n">items</span><span class="p">(</span><span class="n">list</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">item</span><span class="w"> </span><span class="o">-&gt;</span>
-<span class="w">    </span><span class="n">Foo</span><span class="p">(</span>
-<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span>
-<span class="w">        </span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">  </span><span class="n">items</span><span class="p">(</span><span class="n">items</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">item</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">    </span><span class="n">Item</span><span class="p">(</span>
+<span class="w">      </span><span class="n">item</span><span class="p">,</span>
+<span class="w">      </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeSource</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">    </span><span class="p">)</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>A more complete example can be found here: <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/ListWithStickyHeaders.kt">ListWithStickyHeaders</a>.</p>
-<p><div class="video-container"><video style="width:100%;height:30rem" loop muted autoplay alt="type:video"><source src="../media/sticky.mp4" type="video/mp4"></source></video></div></p></div>
+<h2 id="privacy-sensitive-source-transitions">Privacy-sensitive source transitions<a class="headerlink" href="#privacy-sensitive-source-transitions" title="Permanent link">¶</a></h2>
+<p>Clear retained Blur output when no source is available:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
+<span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
+<span class="w">    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+<span class="w">    </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+<h2 id="reusing-and-customizing-a-style">Reusing and customizing a Style<a class="headerlink" href="#reusing-and-customizing-a-style" title="Permanent link">¶</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">base</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">regular</span><span class="p">()</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">quiet</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">base</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">noiseFactor</span><span class="p">(</span><span class="m">0f</span><span class="p">)</span>
+<span class="w">  </span><span class="n">colorEffects</span><span class="p">(</span><span class="n">emptyList</span><span class="p">())</span>
+<span class="p">}</span>
+
+<span class="n">TopAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">quiet</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">BottomAppBar</span><span class="p">(</span>
+<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span><span class="w"> </span><span class="n">quiet</span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Both modifiers evaluate the shared Style into independent node-owned runtimes.</p></div>
 
 
 
