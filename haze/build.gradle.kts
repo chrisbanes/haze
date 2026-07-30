@@ -42,6 +42,7 @@ kotlin {
         implementation(projects.hazeUtils)
         implementation(libs.compose.foundation)
         implementation(libs.androidx.collection)
+        implementation(libs.androidx.lifecycle.runtime.compose)
       }
     }
 

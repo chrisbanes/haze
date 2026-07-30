@@ -33,6 +33,7 @@ import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
+@Suppress("DEPRECATION")
 class AutoPositionStrategyTransitionTest : ContextTest() {
 
   @Test

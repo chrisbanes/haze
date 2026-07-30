@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.lifecycle.Lifecycle
 import kotlinx.coroutines.DisposableHandle
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
@@ -10,6 +11,7 @@ import platform.UIKit.UIApplicationDidReceiveMemoryWarningNotification
 
 internal actual fun registerTrimMemoryCallback(
   context: PlatformContext,
+  lifecycle: Lifecycle?,
   callback: (TrimMemoryLevel) -> Unit,
 ): DisposableHandle {
   val center = NSNotificationCenter.defaultCenter

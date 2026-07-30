@@ -11,6 +11,7 @@ import assertk.assertions.isInstanceOf
 import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class)
+@Suppress("DEPRECATION")
 class HazeEffectNodeConstructorTest {
 
   @Test

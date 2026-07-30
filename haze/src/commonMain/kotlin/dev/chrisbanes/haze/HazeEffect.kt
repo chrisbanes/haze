@@ -5,12 +5,15 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.jvm.JvmInline
 
 public interface HazeEffectScope {
@@ -292,15 +295,23 @@ public fun <Style> Modifier.hazeEffect(
   style: Style,
   sampling: HazeSampling = HazeSampling.Default,
   expandLayerBounds: Boolean = true,
-): Modifier {
-  val effect = this then TypedHazeEffectNodeElement(
+): Modifier = composed(
+  "dev.chrisbanes.haze.hazeEffect",
+  factory,
+  input,
+  style,
+  sampling,
+  expandLayerBounds,
+) {
+  val effect = Modifier then TypedHazeEffectNodeElement(
     factory = factory,
     input = input,
     style = style,
     sampling = sampling,
     expandLayerBounds = expandLayerBounds,
+    lifecycle = LocalLifecycleOwner.current.lifecycle,
   )
-  return if (input === HazeInput.Content) {
+  if (input === HazeInput.Content) {
     effect.graphicsLayer() then ForegroundContentInvalidationElement
   } else {
     effect
@@ -313,15 +324,23 @@ private fun Modifier.thenHazeEffect(
   explicitSampling: HazeSampling? = null,
   explicitExpandLayerBounds: Boolean? = null,
   block: (HazeEffectScope.() -> Unit)?,
-): Modifier {
-  val effect = this then HazeEffectNodeElement(
+): Modifier = composed(
+  "dev.chrisbanes.haze.hazeEffect",
+  state,
+  explicitInput,
+  explicitSampling,
+  explicitExpandLayerBounds,
+  block,
+) {
+  val effect = Modifier then HazeEffectNodeElement(
     state = state,
     explicitInput = explicitInput,
     explicitSampling = explicitSampling,
     explicitExpandLayerBounds = explicitExpandLayerBounds,
     block = block,
+    lifecycle = LocalLifecycleOwner.current.lifecycle,
   )
-  return if (state == null) {
+  if (state == null) {
     effect.graphicsLayer() then ForegroundContentInvalidationElement
   } else {
     effect
@@ -334,8 +353,10 @@ private class TypedHazeEffectNodeElement<Style>(
   val style: Style,
   val sampling: HazeSampling,
   val expandLayerBounds: Boolean,
+  val lifecycle: Lifecycle,
 ) : ModifierNodeElement<HazeEffectNode>() {
 
+  @Suppress("DEPRECATION")
   override fun create(): HazeEffectNode = HazeEffectNode(
     state = (input as? HazeInput.Sources)?.state,
   ).also { node ->
@@ -343,6 +364,7 @@ private class TypedHazeEffectNodeElement<Style>(
     node.explicitSampling = sampling
     node.explicitExpandLayerBounds = expandLayerBounds
     node.updateTypedEffect(factory, style, sampling)
+    node.updateLifecycle(lifecycle)
   }
 
   override fun update(node: HazeEffectNode) {
@@ -351,6 +373,7 @@ private class TypedHazeEffectNodeElement<Style>(
     node.explicitExpandLayerBounds = expandLayerBounds
     node.state = (input as? HazeInput.Sources)?.state
     node.updateTypedEffect(factory, style, sampling)
+    node.updateLifecycle(lifecycle)
     node.update()
   }
 
@@ -370,7 +393,8 @@ private class TypedHazeEffectNodeElement<Style>(
       input == other.input &&
       style == other.style &&
       sampling == other.sampling &&
-      expandLayerBounds == other.expandLayerBounds
+      expandLayerBounds == other.expandLayerBounds &&
+      lifecycle === other.lifecycle
   }
 
   override fun hashCode(): Int {
@@ -378,18 +402,21 @@ private class TypedHazeEffectNodeElement<Style>(
     result = 31 * result + input.hashCode()
     result = 31 * result + (style?.hashCode() ?: 0)
     result = 31 * result + sampling.hashCode()
-    return 31 * result + expandLayerBounds.hashCode()
+    result = 31 * result + expandLayerBounds.hashCode()
+    return 31 * result + lifecycle.hashCode()
   }
 }
 
-private data class HazeEffectNodeElement(
+private class HazeEffectNodeElement(
   val state: HazeState?,
   val explicitInput: HazeInput? = null,
   val explicitSampling: HazeSampling? = null,
   val explicitExpandLayerBounds: Boolean? = null,
   val block: (HazeEffectScope.() -> Unit)? = null,
+  val lifecycle: Lifecycle,
 ) : ModifierNodeElement<HazeEffectNode>() {
 
+  @Suppress("DEPRECATION")
   override fun create(): HazeEffectNode = HazeEffectNode(
     state = state,
     block = block,
@@ -397,6 +424,7 @@ private data class HazeEffectNodeElement(
     node.explicitInput = explicitInput
     node.explicitSampling = explicitSampling
     node.explicitExpandLayerBounds = explicitExpandLayerBounds
+    node.updateLifecycle(lifecycle)
   }
 
   override fun update(node: HazeEffectNode) {
@@ -405,11 +433,32 @@ private data class HazeEffectNodeElement(
     node.explicitExpandLayerBounds = explicitExpandLayerBounds
     node.state = state
     node.block = block
+    node.updateLifecycle(lifecycle)
     node.update()
   }
 
   override fun InspectorInfo.inspectableProperties() {
     name = "HazeEffect"
+  }
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is HazeEffectNodeElement) return false
+    return state == other.state &&
+      explicitInput == other.explicitInput &&
+      explicitSampling == other.explicitSampling &&
+      explicitExpandLayerBounds == other.explicitExpandLayerBounds &&
+      block == other.block &&
+      lifecycle === other.lifecycle
+  }
+
+  override fun hashCode(): Int {
+    var result = state?.hashCode() ?: 0
+    result = 31 * result + (explicitInput?.hashCode() ?: 0)
+    result = 31 * result + (explicitSampling?.hashCode() ?: 0)
+    result = 31 * result + (explicitExpandLayerBounds?.hashCode() ?: 0)
+    result = 31 * result + (block?.hashCode() ?: 0)
+    return 31 * result + lifecycle.hashCode()
   }
 }
 

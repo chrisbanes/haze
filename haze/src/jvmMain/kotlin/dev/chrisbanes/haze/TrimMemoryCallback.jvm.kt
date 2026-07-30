@@ -3,9 +3,11 @@
 
 package dev.chrisbanes.haze
 
+import androidx.lifecycle.Lifecycle
 import kotlinx.coroutines.DisposableHandle
 
 internal actual fun registerTrimMemoryCallback(
   context: PlatformContext,
+  lifecycle: Lifecycle?,
   callback: (TrimMemoryLevel) -> Unit,
-): DisposableHandle = DisposableHandle {}
+): DisposableHandle = registerLifecycleTrimMemoryCallback(lifecycle, callback)

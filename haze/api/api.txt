@@ -59,7 +59,7 @@ package dev.chrisbanes.haze {
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeEffectNode extends androidx.compose.ui.node.DelegatingNode implements androidx.compose.ui.node.CompositionLocalConsumerModifierNode androidx.compose.ui.node.DrawModifierNode androidx.compose.ui.node.GlobalPositionAwareModifierNode dev.chrisbanes.haze.HazeEffectScope androidx.compose.ui.node.LayoutAwareModifierNode androidx.compose.ui.modifier.ModifierLocalModifierNode androidx.compose.ui.node.ObserverModifierNode androidx.compose.ui.node.TraversableNode {
-    ctor public HazeEffectNode(optional dev.chrisbanes.haze.HazeState? state, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
+    ctor @Deprecated public HazeEffectNode(optional dev.chrisbanes.haze.HazeState? state, optional kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeEffectScope,kotlin.Unit>? block);
     method public void draw(androidx.compose.ui.graphics.drawscope.ContentDrawScope);
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.VisualEffect getActiveVisualEffect();
     method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.HazeArea> getAreas();
