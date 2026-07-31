@@ -37,6 +37,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
@@ -173,11 +175,11 @@ private fun LabSpecimen(
   val scope = rememberCoroutineScope()
   var dragOffset by remember { mutableStateOf(Offset.Zero) }
   var viewportSize by remember { mutableStateOf(IntSize.Zero) }
-  var returnJob by remember { mutableStateOf<Job?>(null) }
+  val returnJob = remember { mutableStateOf<Job?>(null) }
   var pressInteraction by remember { mutableStateOf<PressInteraction.Press?>(null) }
   val returnToCenter = {
-    returnJob?.cancel()
-    returnJob = scope.launch {
+    returnJob.value?.cancel()
+    returnJob.value = scope.launch {
       Animatable(dragOffset, Offset.VectorConverter).animateTo(
         targetValue = Offset.Zero,
         animationSpec = spring(
@@ -188,6 +190,9 @@ private fun LabSpecimen(
         dragOffset = value.coerceCenterTo(viewportSize)
       }
     }
+  }
+  LaunchedEffect(viewportSize) {
+    if (returnJob.value != null) returnToCenter()
   }
   val finishDrag = { cancelled: Boolean ->
     pressInteraction?.let { press ->
@@ -234,10 +239,9 @@ private fun LabSpecimen(
         .pointerInput(Unit) {
           awaitPointerEventScope {
             while (true) {
-              awaitPointerEvent(PointerEventPass.Initial)
-                .changes
-                .firstOrNull { it.changedToDown() }
-                ?.let { returnJob?.cancel() }
+              val changes = awaitPointerEvent(PointerEventPass.Initial).changes
+              if (changes.any { it.changedToDown() }) returnJob.value?.cancel()
+              if (changes.any { it.changedToUp() }) returnToCenter()
             }
           }
         }
@@ -245,7 +249,7 @@ private fun LabSpecimen(
           try {
             detectDragGestures(
               onDragStart = { position ->
-                returnJob?.cancel()
+                returnJob.value?.cancel()
                 pressInteraction = PressInteraction.Press(position).also(interactionSource::tryEmit)
               },
               onDragEnd = { finishDrag(false) },

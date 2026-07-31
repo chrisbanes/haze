@@ -173,6 +173,13 @@ class GlassLabSampleTest : ContextTest() {
       val viewportBounds = viewport.fetchSemanticsNode().boundsInRoot
       assertThat(specimenCenter.x).isLessThanOrEqualTo(viewportBounds.right + 0.5f)
       assertThat(specimenCenter.y).isLessThanOrEqualTo(viewportBounds.bottom + 0.5f)
+      val clampedOffsetX = specimenCenter.x - viewportBounds.center.x
+      labSize = 800.dp
+      mainClock.advanceTimeBy(64)
+
+      val expandedViewportCenterX = viewport.fetchSemanticsNode().boundsInRoot.center.x
+      assertThat(specimen.fetchSemanticsNode().boundsInRoot.center.x - expandedViewportCenterX)
+        .isLessThanOrEqualTo(clampedOffsetX + 0.5f)
     } finally {
       mainClock.autoAdvance = autoAdvance
     }
@@ -308,6 +315,42 @@ class GlassLabSampleTest : ContextTest() {
       showSpecimen = false
       mainClock.autoAdvance = autoAdvance
       waitForIdle()
+    }
+  }
+
+  @Test
+  fun tappingSpecimenDuringReturnResumesReturnToCenter() = runComposeUiTest {
+    setContent {
+      GlassLabSampleContent(
+        state = GlassLabState(interaction = GlassLabInteractionMode.Off),
+        recordingMode = false,
+        onStateChanged = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+      )
+    }
+
+    val specimen = onNodeWithContentDescription("Glass specimen")
+    val initialCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+    specimen.performTouchInput { down(center) }
+    specimen.performTouchInput {
+      updatePointerTo(0, center + Offset(120f, 0f))
+      move()
+    }
+    val autoAdvance = mainClock.autoAdvance
+    mainClock.autoAdvance = false
+    try {
+      specimen.performTouchInput { up() }
+      mainClock.advanceTimeBy(64)
+      specimen.performTouchInput { down(center) }
+      specimen.performTouchInput { up() }
+      mainClock.advanceTimeUntil(timeoutMillis = 5_000) {
+        specimen.fetchSemanticsNode().boundsInRoot.center == initialCenter
+      }
+
+      assertThat(specimen.fetchSemanticsNode().boundsInRoot.center).isEqualTo(initialCenter)
+    } finally {
+      mainClock.autoAdvance = autoAdvance
     }
   }
 
