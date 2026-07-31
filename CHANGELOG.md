@@ -18,10 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Source-selection predicates receive only `HazeSourceInfo`.
 - `HazeInputScale` is removed. Use `HazeSampling` to choose default, adaptive, full-resolution, or
   fixed input sampling for typed effects.
-- Blur now exposes only `Modifier.hazeBlur`, immutable `HazeBlurStyle`, and
-  `HazeBlurDefaults.style`. The mutable `BlurVisualEffect` runtime, scope extension, sentinel
-  `HazeBlurStyle.Unspecified`, legacy singular-effect constructors, and deprecated defaults
-  builder are removed.
+- Blur now exposes `Modifier.hazeBlur`, opaque replayable `HazeBlurStyle`, and
+  `HazeBlurDefaults.style`. The mutable `BlurVisualEffect` runtime, scope extension, readable Style
+  properties, `copy`, and destructuring are removed permanently.
 - Glass now exposes only the typed `Modifier.hazeGlass` and replayable `GlassStyle` surface.
   `GlassVisualEffect`, `glassEffect`, the old `hazeGlass` overload, `GlassRenderer`,
   `GlassRendererCache`, `GlassStyleConfiguration`, grouped `GlassLighting`/`GlassColor`/
@@ -36,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Temporarily retain the former plural and singular `HazeBlurStyle(...)` construction forms,
+  `HazeBlurStyle.Unspecified`, and `HazeBlurDefaults.style(...)` builder as warning-level,
+  source-only migration shims. They preserve legacy sentinel behavior and will be removed before
+  Haze 2.0 stable; they do not provide binary compatibility with the former Style class.
 - Blur effects now adapt `HazeSampling.Default` between `1.0`, `0.8`, and `0.5` using physical
   blur radius and expanded capture-layer area, with hysteresis and a `0.8` progressive-blur cap.
   Glass remains unscaled by default; explicit sampling choices remain authoritative.

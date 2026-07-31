@@ -44,7 +44,19 @@ public sealed interface HazeBlurStyle {
     then(HazeBlurStyle(block))
 
   /** The empty Blur Style, which performs no writes. */
-  public companion object : HazeBlurStyle
+  public companion object : HazeBlurStyle {
+    /**
+     * Temporary source-compatibility name for the empty Style.
+     *
+     * This alias will be removed before Haze 2.0 stable.
+     */
+    @Deprecated(
+      message = "Use HazeBlurStyle. This source-only shim will be removed before Haze 2.0 stable.",
+      replaceWith = ReplaceWith("HazeBlurStyle"),
+      level = DeprecationLevel.WARNING,
+    )
+    public val Unspecified: HazeBlurStyle get() = this
+  }
 }
 
 @Immutable
@@ -64,6 +76,79 @@ private class RecordedHazeBlurStyle(
 /** Creates an opaque, replayable Blur Style from [block]. */
 public fun HazeBlurStyle(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
   RecordedHazeBlurStyle(recordWrites(block))
+
+/**
+ * Temporary source adapter for the former plural Blur Style construction form.
+ *
+ * Sentinel values omit their corresponding writes, while a non-null empty [colorEffects] list
+ * explicitly clears inherited effects. This source-only shim will be removed before Haze 2.0
+ * stable.
+ */
+@Deprecated(
+  message =
+  "Use HazeBlurStyle { ... }. This source-only shim will be removed before Haze 2.0 stable.",
+  replaceWith = ReplaceWith(
+    expression = """HazeBlurStyle {
+      if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
+      if (colorEffects != null) colorEffects(colorEffects)
+      if (blurRadius.isSpecified) blurRadius(blurRadius)
+      if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
+      if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
+    }""",
+    "androidx.compose.ui.graphics.isSpecified",
+    "androidx.compose.ui.unit.isSpecified",
+  ),
+  level = DeprecationLevel.WARNING,
+)
+public fun HazeBlurStyle(
+  backgroundColor: Color = Color.Unspecified,
+  colorEffects: List<HazeColorEffect>? = null,
+  blurRadius: Dp = Dp.Unspecified,
+  noiseFactor: Float = -1f,
+  fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified,
+): HazeBlurStyle = HazeBlurStyle {
+  if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
+  if (colorEffects != null) colorEffects(colorEffects)
+  if (blurRadius.isSpecified) blurRadius(blurRadius)
+  if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
+  if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
+}
+
+/**
+ * Temporary source adapter for the former singular Blur Style construction form.
+ *
+ * A null [colorEffect] omits the color-effects write. This source-only shim will be removed before
+ * Haze 2.0 stable.
+ */
+@Deprecated(
+  message =
+  "Use HazeBlurStyle { ... }. This source-only shim will be removed before Haze 2.0 stable.",
+  replaceWith = ReplaceWith(
+    expression = """HazeBlurStyle {
+      if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
+      if (colorEffect != null) colorEffects(listOf(colorEffect))
+      if (blurRadius.isSpecified) blurRadius(blurRadius)
+      if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
+      if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
+    }""",
+    "androidx.compose.ui.graphics.isSpecified",
+    "androidx.compose.ui.unit.isSpecified",
+  ),
+  level = DeprecationLevel.WARNING,
+)
+public fun HazeBlurStyle(
+  backgroundColor: Color = Color.Unspecified,
+  colorEffect: HazeColorEffect?,
+  blurRadius: Dp = Dp.Unspecified,
+  noiseFactor: Float = -1f,
+  fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified,
+): HazeBlurStyle = HazeBlurStyle {
+  if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
+  if (colorEffect != null) colorEffects(listOf(colorEffect))
+  if (blurRadius.isSpecified) blurRadius(blurRadius)
+  if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
+  if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
+}
 
 private fun combineHazeBlurStyles(
   first: HazeBlurStyle,

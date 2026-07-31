@@ -76,6 +76,50 @@ value is retained.
 An explicit `colorEffects(emptyList())` clears inherited effects. Caller-owned lists are
 snapshotted before replay.
 
+### Temporary Blur construction shims
+
+During the remaining Haze 2 prereleases, the former `HazeBlurStyle(...)` construction forms,
+`HazeBlurStyle.Unspecified`, and `HazeBlurDefaults.style(...)` builder remain available as
+warning-level deprecations. They are source-migration aids only: code already compiled against the
+former `HazeBlurStyle` class is not binary compatible with the replayable Style interface. Every
+shim will be removed before Haze 2.0 stable.
+
+The plural construction form translates to guarded Style writes:
+
+```kotlin
+val migrated = HazeBlurStyle {
+  if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
+  if (colorEffects != null) colorEffects(colorEffects)
+  if (blurRadius.isSpecified) blurRadius(blurRadius)
+  if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
+  if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
+}
+```
+
+For the singular form, replace the effects line with:
+
+```kotlin
+if (colorEffect != null) colorEffects(listOf(colorEffect))
+```
+
+`null` omits the color-effects write and reveals a lower-precedence value. A non-null empty plural
+list explicitly clears inherited effects, and non-empty caller-owned lists are snapshotted. An
+unspecified color, dimension, or fallback effect also omits its write. Negative numeric noise is
+the legacy omission sentinel; other values use normal Style resolution, so values above `1f`
+clamp and `NaN` fails validation.
+
+Replace `HazeBlurStyle.Unspecified` with `HazeBlurStyle`. Migrate the defaults builder by replaying
+the canonical defaults first and guarding its overrides in the same way:
+
+```kotlin
+val migrated = HazeBlurDefaults.style.then {
+  if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
+  if (tint.isSpecified) colorEffects(listOf(tint))
+  if (blurRadius.isSpecified) blurRadius(blurRadius)
+  if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
+}
+```
+
 ## Migrate material presets
 
 Before:
@@ -186,9 +230,10 @@ selection is handled internally by Haze.
 ## Removed compatibility APIs
 
 `VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, `BlurVisualEffect`,
-`HazeEffectScope.blurEffect`, and the lambda-based `hazeEffect` overloads are removed. The
-sentinel-based `HazeBlurStyle(...)` constructors, `HazeBlurStyle.Unspecified`, and the deprecated
-`HazeBlurDefaults.style(...)` builder are also removed. Use replayable Style blocks and `then`.
+`HazeEffectScope.blurEffect`, and the lambda-based `hazeEffect` overloads are removed. Readable
+`HazeBlurStyle` properties, `copy`, destructuring, and mutable runtime interfaces remain removed.
+Only the temporary source construction shims described above survive during the prerelease cycle;
+use replayable Style blocks and `then` before Haze 2.0 stable.
 
 ## Complete API mapping
 
