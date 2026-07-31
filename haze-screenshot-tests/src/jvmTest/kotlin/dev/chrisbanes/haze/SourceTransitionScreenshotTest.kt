@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
-import dev.chrisbanes.haze.blur.BlurVisualEffect
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -28,12 +28,14 @@ class SourceTransitionScreenshotTest : ScreenshotTest() {
 
   @Test
   fun blur_sourceRemoved_retainsLastOutput() = runScreenshotTest {
-    val visualEffect = BlurVisualEffect().apply {
-      blurRadius = 16.dp
-      colorEffects = listOf(
-        HazeColorEffect.tint(
-          Color.White.copy(alpha = 0.12f),
-          HazeColorEffect.DefaultBlendMode,
+    val visualEffect = HazeBlurStyle {
+      blurRadius(16.dp)
+      colorEffects(
+        listOf(
+          HazeColorEffect.tint(
+            Color.White.copy(alpha = 0.12f),
+            HazeColorEffect.DefaultBlendMode,
+          ),
         ),
       )
     }

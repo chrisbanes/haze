@@ -4,7 +4,7 @@ Haze separates shareable effect configuration from modifier-node rendering state
 
 ## Core model
 
-The preferred custom-effect path has three parts:
+The supported custom-effect path has three parts:
 
 ```kotlin
 interface HazeEffectFactory<Style> {
@@ -76,10 +76,9 @@ Those details are intentionally absent from the public typed renderer scopes.
 
 ## Built-in Blur
 
-Blur uses the same typed node lifecycle through a narrow internal full-`VisualEffect` bridge. The
-bridge preserves the existing platform Blur implementations without exposing `VisualEffectContext`,
-source geometry, captured layers, platform contexts, delegates, or caches in the public semantic
-renderer scopes.
+Blur uses the same typed node lifecycle plus narrow `@InternalHazeApi` capabilities for lifecycle,
+retained output, and semantic input drawing. Source geometry, captured layers, modifier nodes,
+delegates, and caches remain owned by their implementation modules.
 
 `HazeBlurStyle` and the shared Blur factory are stateless. Each modifier node creates one
 `BlurVisualEffect` runtime that owns its resolved snapshot, invalidation state, adaptive-sampling
@@ -99,8 +98,7 @@ No renderer or lifecycle object can be shared between Glass nodes.
 
 ## Modules
 
-- **haze** — core state, source capture, typed custom-effect orchestration, and the temporary legacy
-  path
+- **haze** — core state, source capture, and typed custom-effect orchestration
 - **haze-blur** — blur effect implementation
 - **haze-blur-materials** — reusable blur presets
 - **haze-glass** — Glass effect implementation
@@ -109,12 +107,10 @@ No renderer or lifecycle object can be shared between Glass nodes.
 Effect modules can keep platform-specific renderer internals behind their own `expect`/`actual`
 boundaries.
 
-## Legacy compatibility
+## Extension boundary
 
-`VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, `BlurVisualEffect`,
-`HazeEffectScope.blurEffect`, and the lambda-based modifier overloads remain temporarily available
-for Blur and third-party migration. They expose more lifecycle and rendering internals and are no
-longer the recommended contract for new Blur or custom effects. New Blur code uses `hazeBlur`; new
-Glass code uses `hazeGlass`; new custom effects use `HazeEffectFactory`.
+The lambda-based effect API, mutable `VisualEffect` runtime, direct modifier nodes, source areas,
+coordinates, captured layers, and position strategies are internal or removed. New Blur code uses
+`hazeBlur`; new Glass code uses `hazeGlass`; custom effects use `HazeEffectFactory`.
 
 See [Custom effects](custom-effects.md) for the preferred API.

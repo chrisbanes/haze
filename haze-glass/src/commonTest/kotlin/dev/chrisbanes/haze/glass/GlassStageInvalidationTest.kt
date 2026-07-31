@@ -12,6 +12,7 @@ import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import kotlin.test.Test
 
 class GlassStageInvalidationTest {
@@ -285,12 +286,13 @@ class GlassStageInvalidationTest {
   }
 
   @Test
-  fun resolveGlassSourceState_unknownVersionIsDrawableButHasNoSnapshot() {
-    val state = resolveGlassSourceState(
+  fun resolveGlassRuntimeSourceState_drawableInputWithoutSnapshotForcesRecapture() {
+    val state = resolveGlassRuntimeSourceState(
       captureScale = .5f,
       layerSize = Size(100f, 80f),
       layerOffset = Offset(4f, 2f),
-      areas = listOf(sourceArea(contentVersion = null)),
+      hasDrawableInput = true,
+      inputSnapshot = null,
     )
 
     assertThat(state.hasDrawableSource).isTrue()
@@ -298,12 +300,13 @@ class GlassStageInvalidationTest {
   }
 
   @Test
-  fun resolveGlassSourceState_noDrawableAreasIsDistinctFromUnknownVersion() {
-    val state = resolveGlassSourceState(
+  fun resolveGlassRuntimeSourceState_noDrawableInputIsDistinctFromUnknownSnapshot() {
+    val state = resolveGlassRuntimeSourceState(
       captureScale = 1f,
       layerSize = Size(100f, 80f),
       layerOffset = Offset.Zero,
-      areas = listOf(sourceArea(contentLayerIdentity = null)),
+      hasDrawableInput = false,
+      inputSnapshot = null,
     )
 
     assertThat(state.hasDrawableSource).isFalse()
@@ -311,59 +314,27 @@ class GlassStageInvalidationTest {
   }
 
   @Test
-  fun resolveGlassSourceState_snapshotTracksCaptureGeometryAndOrderedAreaIdentity() {
-    val base = resolveGlassSourceState(
-      captureScale = 1f,
-      layerSize = Size(100f, 80f),
-      layerOffset = Offset(4f, 2f),
-      areas = listOf(sourceArea()),
-    ).snapshot!!
+  fun resolveGlassRuntimeSourceState_snapshotTracksCaptureGeometryAndOpaqueInput() {
+    val input = TestInputSnapshot(1)
+    val base = snapshot(inputSnapshot = input)
 
     assertThat(base).isEqualTo(base)
     assertThat(snapshot(captureScale = .5f)).isNotEqualTo(base)
     assertThat(snapshot(layerSize = Size(120f, 80f))).isNotEqualTo(base)
     assertThat(snapshot(layerOffset = Offset(8f, 2f))).isNotEqualTo(base)
-    assertThat(snapshot(contentVersion = 2L)).isNotEqualTo(base)
-    assertThat(snapshot(position = Offset(2f, 3f))).isNotEqualTo(base)
-    assertThat(snapshot(size = Size(40f, 24f))).isNotEqualTo(base)
-    assertThat(snapshot(areaIdentity = EqualIdentity())).isNotEqualTo(base)
-    assertThat(snapshot(contentLayerIdentity = EqualIdentity())).isNotEqualTo(base)
+    assertThat(snapshot(inputSnapshot = TestInputSnapshot(2))).isNotEqualTo(base)
   }
 
   @Test
-  fun resolveGlassSourceState_snapshotPreservesAreaOrder() {
-    val first = sourceArea(areaIdentity = "first", contentLayerIdentity = "first-layer")
-    val second = sourceArea(areaIdentity = "second", contentLayerIdentity = "second-layer")
-
-    val ordered = stateOf(first, second).snapshot!!
-    val reversed = stateOf(second, first).snapshot!!
-
-    assertThat(ordered).isNotEqualTo(reversed)
-  }
-
-  @Test
-  fun resolveGlassSourceState_separatelyAllocatedEquivalentAreasProduceEqualSnapshots() {
-    val areaIdentity = Any()
-    val contentLayerIdentity = Any()
-
-    val first = stateOf(
-      sourceArea(areaIdentity = areaIdentity, contentLayerIdentity = contentLayerIdentity),
-    ).snapshot!!
-    val second = stateOf(
-      sourceArea(areaIdentity = areaIdentity, contentLayerIdentity = contentLayerIdentity),
-    ).snapshot!!
-
-    assertThat(first).isEqualTo(second)
-  }
-
-  @Test
-  fun resolveGlassSourceState_unchangedInputsReuseAcceptedSnapshot() {
-    val first = stateOf(sourceArea()).snapshot!!
-    val second = resolveGlassSourceState(
+  fun resolveGlassRuntimeSourceState_unchangedInputsReuseAcceptedSnapshot() {
+    val input = TestInputSnapshot(1)
+    val first = snapshot(inputSnapshot = input)
+    val second = resolveGlassRuntimeSourceState(
       captureScale = 1f,
       layerSize = Size(100f, 80f),
       layerOffset = Offset.Zero,
-      areas = listOf(sourceArea()),
+      hasDrawableInput = true,
+      inputSnapshot = input,
       previousSnapshot = first,
     ).snapshot
 
@@ -371,62 +342,16 @@ class GlassStageInvalidationTest {
   }
 
   @Test
-  fun glassSourcePosition_tracksSourcePlacementRelativeToEffect() {
-    val sourcePosition = Offset(20f, 12f)
-
-    assertThat(relativeGlassSourcePosition(sourcePosition, Offset.Zero))
-      .isEqualTo(Offset(20f, 12f))
-    assertThat(relativeGlassSourcePosition(sourcePosition, Offset(10f, 4f)))
-      .isEqualTo(Offset(10f, 8f))
-    assertThat(relativeGlassSourcePosition(Offset(30f, 16f), Offset(10f, 4f)))
-      .isEqualTo(Offset(20f, 12f))
-  }
-
-  @Test
-  fun resolveGlassSourceState_relativeSourcePositionControlsCacheAndStageReuse() {
-    val initialSourcePosition = Offset(20f, 12f)
-    val initialEffectPosition = Offset.Zero
-    val movedEffectPosition = Offset(10f, 4f)
-    val captured = stateOf(
-      sourceArea(
-        position = relativeGlassSourcePosition(initialSourcePosition, initialEffectPosition),
-      ),
-    ).snapshot!!
-    val movedTogether = resolveGlassSourceState(
-      captureScale = 1f,
-      layerSize = Size(100f, 80f),
-      layerOffset = Offset.Zero,
-      areas = listOf(
-        sourceArea(
-          position = relativeGlassSourcePosition(
-            sourcePosition = initialSourcePosition + movedEffectPosition,
-            effectPosition = movedEffectPosition,
-          ),
-        ),
-      ),
-      previousSnapshot = captured,
-    ).snapshot!!
-    val movedEffectOnly = stateOf(
-      sourceArea(
-        position = relativeGlassSourcePosition(initialSourcePosition, movedEffectPosition),
-      ),
-    ).snapshot!!
+  fun resolveGlassRuntimeSourceState_changedInputInvalidatesSourceDependentStages() {
+    val captured = snapshot(inputSnapshot = TestInputSnapshot(1))
+    val changed = snapshot(inputSnapshot = TestInputSnapshot(2))
     val inputs = inputs()
 
-    assertThat(movedTogether).isSameInstanceAs(captured)
-    assertThat(movedEffectOnly).isNotEqualTo(captured)
     assertThat(
       calculateStageInvalidation(
         previous = inputs,
         current = inputs,
-        sourceChanged = movedTogether != captured,
-      ),
-    ).isEqualTo(GlassStageInvalidation.None)
-    assertThat(
-      calculateStageInvalidation(
-        previous = inputs,
-        current = inputs,
-        sourceChanged = movedEffectOnly != captured,
+        sourceChanged = changed != captured,
       ),
     ).isEqualTo(
       GlassStageInvalidation(
@@ -437,32 +362,6 @@ class GlassStageInvalidationTest {
         rim = false,
       ),
     )
-  }
-
-  @Test
-  fun resolveGlassSourceState_valueEqualAreaIdentitiesProduceUnequalSnapshots() {
-    val contentLayerIdentity = Any()
-    val first = stateOf(
-      sourceArea(areaIdentity = EqualIdentity(), contentLayerIdentity = contentLayerIdentity),
-    ).snapshot!!
-    val second = stateOf(
-      sourceArea(areaIdentity = EqualIdentity(), contentLayerIdentity = contentLayerIdentity),
-    ).snapshot!!
-
-    assertThat(first).isNotEqualTo(second)
-  }
-
-  @Test
-  fun resolveGlassSourceState_valueEqualContentLayerIdentitiesProduceUnequalSnapshots() {
-    val areaIdentity = Any()
-    val first = stateOf(
-      sourceArea(areaIdentity = areaIdentity, contentLayerIdentity = EqualIdentity()),
-    ).snapshot!!
-    val second = stateOf(
-      sourceArea(areaIdentity = areaIdentity, contentLayerIdentity = EqualIdentity()),
-    ).snapshot!!
-
-    assertThat(first).isNotEqualTo(second)
   }
 
   private fun inputs() = GlassStageInputs(
@@ -476,41 +375,15 @@ class GlassStageInvalidationTest {
   private fun snapshot(
     captureScale: Float = 1f,
     layerSize: Size = Size(100f, 80f),
-    layerOffset: Offset = Offset(4f, 2f),
-    areaIdentity: Any = GlassStageInvalidationTest.areaIdentity,
-    contentLayerIdentity: Any? = GlassStageInvalidationTest.contentLayerIdentity,
-    contentVersion: Long? = 1L,
-    position: Offset = Offset(1f, 3f),
-    size: Size = Size(30f, 24f),
-  ) = resolveGlassSourceState(
+    layerOffset: Offset = Offset.Zero,
+    inputSnapshot: HazeEffectInputSnapshot = TestInputSnapshot(1),
+  ) = resolveGlassRuntimeSourceState(
     captureScale = captureScale,
     layerSize = layerSize,
     layerOffset = layerOffset,
-    areas = listOf(sourceArea(areaIdentity, contentLayerIdentity, contentVersion, position, size)),
+    hasDrawableInput = true,
+    inputSnapshot = inputSnapshot,
   ).snapshot!!
 
-  private fun stateOf(vararg areas: GlassSourceArea) = resolveGlassSourceState(
-    captureScale = 1f,
-    layerSize = Size(100f, 80f),
-    layerOffset = Offset.Zero,
-    areas = areas.toList(),
-  )
-
-  private fun sourceArea(
-    areaIdentity: Any = GlassStageInvalidationTest.areaIdentity,
-    contentLayerIdentity: Any? = GlassStageInvalidationTest.contentLayerIdentity,
-    contentVersion: Long? = 1L,
-    position: Offset = Offset(1f, 3f),
-    size: Size = Size(30f, 24f),
-  ) = GlassSourceArea(areaIdentity, contentLayerIdentity, contentVersion, position, size)
-
-  private class EqualIdentity {
-    override fun equals(other: Any?) = other is EqualIdentity
-    override fun hashCode() = 0
-  }
-
-  private companion object {
-    val areaIdentity = Any()
-    val contentLayerIdentity = Any()
-  }
+  private data class TestInputSnapshot(val value: Int) : HazeEffectInputSnapshot
 }

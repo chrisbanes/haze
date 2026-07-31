@@ -35,7 +35,7 @@ import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
 
 expect val Samples: List<Sample>
@@ -85,7 +85,7 @@ class Sample(
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
       )
     }
 
@@ -96,7 +96,7 @@ class Sample(
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
-        inputScale = HazeInputScale.Fixed(0.8f),
+        sampling = HazeSampling.Fixed(0.8f),
       )
     }
 
@@ -119,7 +119,7 @@ class Sample(
         navController = navController,
         blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Progressive,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
       )
     }
 
@@ -142,7 +142,7 @@ class Sample(
         navController = navController,
         blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Mask,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
       )
     }
 

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -41,13 +42,13 @@ import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeEffectNode
-import dev.chrisbanes.haze.HazeEffectScope
-import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.test.ContextTest
@@ -63,8 +64,6 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35])
 class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
-  private val attachedRuntimes = mutableMapOf<GlassRuntimeEffect, GlassRuntimeEffect>()
-
   @Test
   fun directRuntimePath_ownsRenderedResources() =
     runAndroidComposeUiTest<ComponentActivity> {
@@ -78,7 +77,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(runtime.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
       assertThat(runtime.delegate).isNotSameInstanceAs(configuration)
       assertThat(runtime).isSameInstanceAs(configuration)
-      assertThat(configuration.canDrawRetainedOutput(context)).isTrue()
+      assertThat(configuration.canDrawRetainedOutput()).isTrue()
     }
 
   @Test
@@ -467,7 +466,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         val context = runtime(effect).attachedContextForTest
         "Expected runtime delegate; budget=${runtime(effect).preparedRenderBudget}, " +
           "prepared=${runtime(effect).preparedRender}, runtimeSupported=${isRuntimeShaderGlassSupported()}, " +
-          "size=${context?.size}, layerSize=${context?.layerSize}, inputScale=${context?.inputScale}"
+          "modifierSize=${context?.modifierSize}"
       }
 
       val fusedShader = checkNotNull(delegate.fusedShader)
@@ -826,10 +825,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         .size(120.dp)
         .then(
           if (attachEffect) {
-            Modifier.hazeEffect {
-              inputScale = HazeInputScale.None
-              trackRenderer(effect)
-            }
+            Modifier.testGlassRuntime(effect, HazeInput.Content)
           } else {
             Modifier
           },
@@ -844,10 +840,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     Box(
       Modifier
         .size(width = 800.dp, height = 480.dp)
-        .hazeEffect {
-          inputScale = HazeInputScale.None
-          trackRenderer(effect)
-        },
+        .testGlassRuntime(effect, HazeInput.Content),
     ) {
       Box(Modifier.fillMaxSize().background(Color.Red))
     }
@@ -868,10 +861,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
           Box(
             Modifier
               .size(120.dp)
-              .hazeEffect(hazeState) {
-                inputScale = HazeInputScale.None
-                trackRenderer(effect)
-              },
+              .testGlassRuntime(effect, HazeInput.Sources(hazeState)),
           )
         }
       }
@@ -897,10 +887,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
               Box(
                 Modifier
                   .size(100.dp)
-                  .hazeEffect(hazeState) {
-                    inputScale = HazeInputScale.None
-                    trackRenderer(effect)
-                  },
+                  .testGlassRuntime(effect, HazeInput.Sources(hazeState)),
               )
             }
           }
@@ -936,37 +923,45 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         Modifier
           .offset(x = 50.dp)
           .size(100.dp)
-          .hazeEffect(hazeState) {
-            inputScale = HazeInputScale.None
-            trackRenderer(effects[0])
-          },
+          .testGlassRuntime(effects[0], HazeInput.Sources(hazeState)),
       )
       if (attachSecond) {
         Box(
           Modifier
             .offset(x = 180.dp)
             .size(100.dp)
-            .hazeEffect(hazeState) {
-              inputScale = HazeInputScale.None
-              trackRenderer(effects[1])
-            },
+            .testGlassRuntime(effects[1], HazeInput.Sources(hazeState)),
         )
       }
     }
+  }
+
+  @Composable
+  private fun Modifier.testGlassRuntime(
+    effect: GlassRuntimeEffect,
+    input: HazeInput,
+  ): Modifier {
+    val factory = remember(effect) { FixedGlassRuntimeFactory(effect) }
+    return hazeGlass(
+      factory = factory,
+      input = input,
+      style = GlassStyle,
+      sampling = HazeSampling.FullResolution,
+      expandLayerBounds = true,
+      interactionSource = effect.interactionSource,
+      interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
+      interactionTransformTarget = effect.interactionTransformTarget,
+      interactionTransformPivot = effect.interactionTransformPivot,
+      interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
+      interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
+    )
   }
 
   private fun AndroidComposeUiTest<ComponentActivity>.drawFrame() {
     captureFrame().recycle()
   }
 
-  private fun HazeEffectScope.trackRenderer(effect: GlassRuntimeEffect) {
-    visualEffect = effect
-    attachedRuntimes[effect] =
-      ((this as HazeEffectNode).activeVisualEffect as GlassRuntimeEffect)
-  }
-
-  private fun runtime(effect: GlassRuntimeEffect): GlassRuntimeEffect =
-    checkNotNull(attachedRuntimes[effect])
+  private fun runtime(effect: GlassRuntimeEffect): GlassRuntimeEffect = effect
 
   private fun assertFusedRenderer(
     effect: GlassRuntimeEffect,
@@ -1025,4 +1020,10 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
   private fun RuntimeShaderGlassDelegate.recordedInteractionLayer(fieldName: String): GraphicsLayer? =
     interactionField(fieldName) as? GraphicsLayer
+}
+
+private class FixedGlassRuntimeFactory(
+  private val effect: GlassRuntimeEffect,
+) : HazeEffectFactory<GlassNodeConfiguration> {
+  override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> = effect
 }

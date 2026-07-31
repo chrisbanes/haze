@@ -69,7 +69,7 @@ internal enum class GlassContinuityCarrier {
 @Composable
 internal fun GlassInvariantSample(
   effect: GlassTestConfiguration,
-  inputScale: HazeInputScale,
+  sampling: HazeSampling,
   shape: RoundedCornerShape,
   enabled: Boolean = true,
   surfaceSize: DpSize = DpSize(280.dp, 180.dp),
@@ -133,7 +133,7 @@ internal fun GlassInvariantSample(
             Modifier.hazeGlass(
               input = HazeInput.Sources(hazeState),
               configuration = effect,
-              sampling = inputScale.toHazeSampling(),
+              sampling = sampling,
             )
           } else {
             Modifier
@@ -314,7 +314,7 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = currentCase.shape,
         surfaceSize = currentCase.size,
         drawGridLines = false,
@@ -391,7 +391,7 @@ internal fun ScreenshotUiTest.assertGlassAsymmetricCornerNormalsContinuous() {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = shape,
         surfaceSize = surfaceSize,
         drawGridLines = false,
@@ -451,7 +451,7 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = shape,
         surfaceSize = surfaceSize,
         drawGridLines = false,
@@ -505,7 +505,7 @@ internal fun ScreenshotUiTest.assertGlassBlurInvariant() {
   }
   setContent {
     ScreenshotTheme {
-      GlassInvariantSample(effect, HazeInputScale.None, shape)
+      GlassInvariantSample(effect, HazeSampling.FullResolution, shape)
     }
   }
 
@@ -547,7 +547,7 @@ internal fun ScreenshotUiTest.assertGlassRefractionDetailPreservesSharpSourceInv
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = shape,
         drawGridLines = false,
         adversarialStripePeriodPx = 2,
@@ -624,7 +624,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = currentCase.shape,
         surfaceSize = currentCase.size,
       )
@@ -690,7 +690,7 @@ internal fun ScreenshotUiTest.assertGlassAdversarialDownsampleInvariant() {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = shape,
         surfaceSize = DpSize(280.dp, 400.dp),
         drawGridLines = false,
@@ -830,21 +830,21 @@ internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
     ambientResponse = 0f
     edgeSoftness = 0.dp
   }
-  var inputScale by mutableStateOf<HazeInputScale>(HazeInputScale.None)
+  var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
   setContent {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = inputScale,
+        sampling = sampling,
         shape = shape,
         surfaceSize = DpSize(280.dp, 180.dp),
       )
     }
   }
 
-  fun capture(progressive: HazeProgressive, scale: HazeInputScale): PixelSnapshot {
+  fun capture(progressive: HazeProgressive, scale: HazeSampling): PixelSnapshot {
     effect.updateAbsoluteOptics { copy(progressive = progressive) }
-    inputScale = scale
+    sampling = scale
     waitForIdle()
     return captureInvariantSnapshot()
   }
@@ -854,20 +854,20 @@ internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
   }
 
   val vertical = HazeProgressive.verticalGradient(startY = 35f, endY = 75f)
-  val verticalUnscaled = capture(vertical, HazeInputScale.None)
+  val verticalUnscaled = capture(vertical, HazeSampling.FullResolution)
   val verticalBounds = verticalUnscaled.invariantGeometry().surfaceBounds
   val verticalUnscaledGeometry = verticalUnscaled.detectVerticalBlurGeometry(
     bounds = verticalBounds,
     startY = 35,
     endY = 75,
   )
-  val verticalScaledGeometry = capture(vertical, HazeInputScale.Fixed(0.75f))
+  val verticalScaledGeometry = capture(vertical, HazeSampling.Fixed(0.75f))
     .detectVerticalBlurGeometry(bounds = verticalBounds, startY = 35, endY = 75)
   assertWithinOnePixel(verticalUnscaledGeometry.firstBoundary, verticalScaledGeometry.firstBoundary)
   assertWithinOnePixel(verticalUnscaledGeometry.secondBoundary, verticalScaledGeometry.secondBoundary)
 
   val radial = HazeProgressive.RadialGradient(center = Offset(84f, 62f), radius = 48f)
-  val radialUnscaled = capture(radial, HazeInputScale.None)
+  val radialUnscaled = capture(radial, HazeSampling.FullResolution)
   val radialBounds = radialUnscaled.invariantGeometry().surfaceBounds
   val radialUnscaledGeometry = radialUnscaled.detectRadialBlurGeometry(
     bounds = radialBounds,
@@ -875,7 +875,7 @@ internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
     centerY = 62f,
     radius = 48f,
   )
-  val radialScaledGeometry = capture(radial, HazeInputScale.Fixed(0.75f))
+  val radialScaledGeometry = capture(radial, HazeSampling.Fixed(0.75f))
     .detectRadialBlurGeometry(
       bounds = radialBounds,
       centerX = 84f,
@@ -1116,7 +1116,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
   setContent {
     GlassInvariantSample(
       effect = effect,
-      inputScale = HazeInputScale.None,
+      sampling = HazeSampling.FullResolution,
       shape = shape,
       transparentRoot = true,
       transparentRootBackground = matte,
@@ -1176,7 +1176,7 @@ internal fun ScreenshotUiTest.assertGlassHardClipInvariant() {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = shape,
         enabled = enabled,
       )
@@ -1209,7 +1209,7 @@ internal fun ScreenshotUiTest.assertGlassTransparentOutputInvariant() {
   setContent {
     GlassInvariantSample(
       effect = effect,
-      inputScale = HazeInputScale.None,
+      sampling = HazeSampling.FullResolution,
       shape = shape,
       transparentRoot = true,
       transparentRootBackground = matte,
@@ -1264,7 +1264,7 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
   setContent {
     GlassInvariantSample(
       effect = effect,
-      inputScale = HazeInputScale.None,
+      sampling = HazeSampling.FullResolution,
       shape = shape,
       transparentRoot = true,
       transparentRootBackground = matte,
@@ -1407,12 +1407,12 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
     chromaticAberrationStrength = 0f
     edgeSoftness = 0.dp
   }
-  var inputScale by mutableStateOf<HazeInputScale>(HazeInputScale.None)
+  var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
   var matte by mutableStateOf(Color.Black)
   setContent {
     GlassInvariantSample(
       effect = effect,
-      inputScale = inputScale,
+      sampling = sampling,
       shape = shape,
       transparentRoot = true,
       transparentRootBackground = matte,
@@ -1438,7 +1438,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
     xRange = geometry.leftEdgeRange,
   )
 
-  inputScale = HazeInputScale.Fixed(0.75f)
+  sampling = HazeSampling.Fixed(0.75f)
   waitForIdle()
   val fixedScale = captureTransparentSnapshot { matte = it }
   assertInvariantMaterialSilhouette(largePadding, geometry)
@@ -1472,7 +1472,7 @@ internal fun ScreenshotUiTest.assertGlassFirstEnabledFrameInvariant() {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = shape,
         enabled = enabled,
       )
@@ -1496,7 +1496,7 @@ internal fun ScreenshotUiTest.assertGlassProfileBranchContinuous() {
   }
   setContent {
     ScreenshotTheme {
-      GlassInvariantSample(effect, HazeInputScale.None, shape)
+      GlassInvariantSample(effect, HazeSampling.FullResolution, shape)
     }
   }
 
@@ -1516,7 +1516,7 @@ internal fun ScreenshotUiTest.assertGlassProfileBranchContinuous() {
 
 internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
   val shape = RoundedCornerShape(28.dp)
-  val inputScale = HazeInputScale.None
+  val sampling = HazeSampling.FullResolution
   val effect = GlassTestConfiguration().apply {
     style = GlassDefaults.style
     this.shape = shape
@@ -1527,7 +1527,7 @@ internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = inputScale,
+        sampling = sampling,
         shape = shape,
         drawGridLines = false,
         verticalCarrierFractionInsideLeftEdge = if (drawCarrier) .045f else null,
@@ -1632,7 +1632,7 @@ internal fun ScreenshotUiTest.assertGlassZeroExponentLightingInvariant() {
     ScreenshotTheme {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = shape,
       )
     }
@@ -1662,7 +1662,7 @@ private fun ScreenshotUiTest.assertGlassCornersMatchComposeClipInvariant(
     if (showGlass) {
       GlassInvariantSample(
         effect = effect,
-        inputScale = HazeInputScale.None,
+        sampling = HazeSampling.FullResolution,
         shape = shape,
         surfaceSize = surfaceSize,
         transparentRoot = true,

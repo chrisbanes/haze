@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -36,13 +37,19 @@ import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
-import dev.chrisbanes.haze.HazeArea
-import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeEffectDrawScope
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectInputSnapshot
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
+import dev.chrisbanes.haze.HazeEffectRendererLifecycle
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.VisualEffect
-import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.hazeEffect
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -51,7 +58,7 @@ import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
 import sun.misc.Unsafe
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
 class FallbackGlassDelegateTest {
 
   @Test
@@ -318,11 +325,19 @@ class FallbackGlassDelegateTest {
 
   @Composable
   private fun FallbackTestContent(fallbackVisualEffect: FallbackOnlyVisualEffect) {
+    val factory = remember(fallbackVisualEffect) {
+      HazeEffectFactory<Unit> { fallbackVisualEffect }
+    }
     Box(
       Modifier
         .size(120.dp)
         .testTag(FALLBACK_TAG)
-        .hazeEffect { visualEffect = fallbackVisualEffect },
+        .hazeEffect(
+          factory = factory,
+          input = HazeInput.Content,
+          style = Unit,
+          sampling = HazeSampling.FullResolution,
+        ),
     )
   }
 }
@@ -342,7 +357,10 @@ private const val FALLBACK_TAG = "fallback"
 private class FallbackOnlyVisualEffect(
   private val glass: GlassRuntimeEffect,
   private val fallback: FallbackGlassDelegate,
-) : VisualEffect {
+) :
+  HazeEffectRenderer<Unit>,
+  HazeEffectRendererLifecycle<Unit>,
+  HazeEffectRendererDrawHooks<Unit> {
   private var prepareGroup = true
 
   fun disableGroupPreparation() {
@@ -350,56 +368,79 @@ private class FallbackOnlyVisualEffect(
     fallback.onTrimMemory(checkNotNull(glass.attachedContextForTest), TrimMemoryLevel.UI_HIDDEN)
   }
 
-  override fun androidx.compose.ui.graphics.drawscope.DrawScope.prepareDraw(context: VisualEffectContext) {
+  override fun HazeEffectRuntimeDrawScope.prepareDraw(style: Unit) {
+    val context = this
     with(fallback) { prepareDraw(context) }
     if (!prepareGroup) {
-      fallback.onTrimMemory(context, TrimMemoryLevel.UI_HIDDEN)
+      fallback.releaseGroupWithoutInvalidation(context)
     }
   }
 
-  override fun androidx.compose.ui.graphics.drawscope.DrawScope.draw(context: VisualEffectContext) {
+  override fun HazeEffectDrawScope.draw(style: Unit) {
+    val context = this as HazeEffectRuntimeDrawScope
     with(fallback) { draw(context) }
   }
 
-  override fun androidx.compose.ui.graphics.drawscope.DrawScope.drawForeground(
-    context: VisualEffectContext,
-  ) {
+  override fun HazeEffectRuntimeDrawScope.drawForeground(style: Unit) {
+    val context = this
     with(fallback) { drawForeground(context) }
   }
 
-  override fun attach(context: VisualEffectContext) {
-    glass.attach(context)
+  override fun attach(scope: HazeEffectLifecycleScope) {
+    glass.attach(scope)
     fallback.attach()
   }
 
-  override fun update(context: VisualEffectContext) {
-    glass.update(context)
+  override fun update(
+    scope: HazeEffectLifecycleScope,
+    style: Unit,
+    sampling: HazeSampling,
+  ) {
+    glass.update(
+      scope,
+      GlassNodeConfiguration(
+        style = glass.style,
+        interactionSource = glass.interactionSource,
+      ),
+      sampling,
+    )
   }
 
-  override fun detach(context: VisualEffectContext) {
+  override fun detach() {
     fallback.detach()
-    glass.detach(context)
+    glass.detach()
+  }
+
+  private fun FallbackGlassDelegate.releaseGroupWithoutInvalidation(
+    context: HazeEffectRuntimeDrawScope,
+  ) {
+    val groupAlpha = javaClass.getDeclaredField("groupAlpha").run {
+      isAccessible = true
+      get(this@releaseGroupWithoutInvalidation) as RetainedGlassGroupAlphaLayer
+    }
+    groupAlpha.release(context.requireGraphicsContext())
   }
 }
 
+@OptIn(InternalHazeApi::class)
 private class FallbackRecordingContext(
   override val size: Size,
-) : VisualEffectContext {
+) :
+  HazeEffectRuntimeDrawScope,
+  HazeEffectLifecycleScope,
+  androidx.compose.ui.graphics.drawscope.DrawScope by CanvasDrawScope() {
+  override val modifierSize: Size get() = size
+  override val modifierBounds: Rect get() = Rect(Offset.Zero, size)
+  override val sampling: HazeSampling = HazeSampling.FullResolution
   override val layerSize: Size = size
   val graphicsContext = FallbackTestGraphicsContext()
-  override val position: Offset = Offset.Zero
   override val layerOffset: Offset = Offset.Zero
-  override val rootBounds: Rect = Rect.Zero
-  override val inputScale: HazeInputScale = HazeInputScale.None
-  override val windowId: Any? = null
-  override val areas: List<HazeArea> = emptyList()
-  override val state: HazeState? = null
+  override val hasDrawableInput: Boolean = true
+  override val inputSnapshot: HazeEffectInputSnapshot = FallbackInputSnapshot
   override val coroutineScope: CoroutineScope = object : CoroutineScope {
     override val coroutineContext: CoroutineContext = EmptyCoroutineContext
   }
 
-  override fun positionOf(area: HazeArea): Offset = area.coordinates.localPosition
-  override fun boundsOf(area: HazeArea): Rect? = null
   override fun requirePlatformContext(): PlatformContext = error("Unused in fallback tests")
   override fun requireDensity(): Density = Density(1f)
   override fun <T> currentValueOf(local: androidx.compose.runtime.CompositionLocal<T>): T {
@@ -407,8 +448,14 @@ private class FallbackRecordingContext(
     return LayoutDirection.Ltr as T
   }
   override fun requireGraphicsContext(): GraphicsContext = graphicsContext
+  override fun drawInput() = Unit
+  override fun androidx.compose.ui.graphics.drawscope.DrawScope.drawInput() = Unit
   override fun invalidateDraw() = Unit
+  override fun invalidateLayerBounds() = Unit
 }
+
+@OptIn(InternalHazeApi::class)
+private object FallbackInputSnapshot : HazeEffectInputSnapshot
 
 private class FallbackTestGraphicsContext : GraphicsContext {
   val createdLayers = mutableListOf<GraphicsLayer>()

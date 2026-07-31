@@ -7,11 +7,18 @@ import androidx.compose.runtime.CompositionLocal
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.requireDensity
+import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.unit.Density
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * A stateless, shareable descriptor that creates a renderer for one `hazeEffect` modifier node.
@@ -21,31 +28,6 @@ import androidx.compose.ui.unit.Density
  */
 public fun interface HazeEffectFactory<Style> {
   public fun createRenderer(): HazeEffectRenderer<Style>
-}
-
-/**
- * Built-in-only bridge for effects that require the complete legacy [VisualEffect] lifecycle.
- *
- * This keeps pointer input, foreground drawing, retained output, and platform resources internal
- * while ordinary custom effects continue to use [HazeEffectRenderer]'s semantic scopes.
- */
-@InternalHazeApi
-public interface HazeEffectVisualEffectFactory<Style> {
-  public fun createVisualEffect(
-    style: Style,
-    sampling: HazeSampling,
-  ): HazeEffectFactoryVisualEffect<Style>
-}
-
-/**
- * Node-owned full-runtime effect created by [HazeEffectVisualEffectFactory].
- *
- * Haze calls [updateStyle] with the complete replacement Style and sampling policy. Implementations
- * must not retain Style evaluation state outside this node-owned runtime.
- */
-@InternalHazeApi
-public interface HazeEffectFactoryVisualEffect<Style> : VisualEffect {
-  public fun updateStyle(style: Style, sampling: HazeSampling)
 }
 
 /**
@@ -114,192 +96,187 @@ public interface HazeEffectLayoutScope : Density {
   public fun <T> currentValueOf(local: CompositionLocal<T>): T
 }
 
-internal interface TypedHazeEffectVisualEffect : RetainedOutputVisualEffect {
-  fun update(style: Any?, sampling: HazeSampling)
-  fun onTrimMemory(level: TrimMemoryLevel)
-
-  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean = true
-  override fun clearRetainedOutput() = Unit
+/**
+ * Built-in renderer lifecycle hook.
+ *
+ * This is intentionally separate from the supported custom-renderer surface. It exposes only
+ * node-owned resources and invalidation, never live source records or modifier nodes.
+ */
+@InternalHazeApi
+public interface HazeEffectRendererLifecycle<Style> {
+  public fun attach(scope: HazeEffectLifecycleScope): Unit = Unit
+  public fun update(
+    scope: HazeEffectLifecycleScope,
+    style: Style,
+    sampling: HazeSampling,
+  ): Unit = Unit
+  public fun detach(): Unit = Unit
 }
 
-@OptIn(ExperimentalHazeApi::class)
-internal class TypedHazeEffectVisualEffectImpl<Style>(
-  private val renderer: HazeEffectRenderer<Style>,
-  style: Style,
-  private var sampling: HazeSampling,
-) : VisualEffect, TypedHazeEffectVisualEffect {
-  private var style: Style = style
-  private var context: VisualEffectContext? = null
-  private var disposed = false
-
-  override fun attach(context: VisualEffectContext) {
-    this.context = context
-  }
-
-  override fun DrawScope.draw(context: VisualEffectContext) {
-    val scope = HazeEffectDrawScopeImpl(
-      drawScope = this,
-      context = context,
-      sampling = sampling,
-    )
-    with(renderer) {
-      scope.draw(style)
-    }
-  }
-
-  override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    val context = checkNotNull(context) { "Typed Haze renderer is not attached" }
-    val modifierBounds = Rect(offset = Offset.Zero, size = rect.size)
-    val scope = HazeEffectLayoutScopeImpl(
-      density = density,
-      context = context,
-      modifierBounds = modifierBounds,
-    )
-    val requiredBounds = with(renderer) {
-      scope.calculateLayerBounds(style)
-    }
-    return Rect(
-      offset = rect.topLeft + requiredBounds.topLeft,
-      size = requiredBounds.size,
-    )
-  }
-
-  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
-    onTrimMemory(level)
-  }
-
-  override fun onTrimMemory(level: TrimMemoryLevel) {
-    renderer.onTrimMemory(level)
-  }
-
-  override fun detach(context: VisualEffectContext) {
-    this.context = null
-    if (!disposed) {
-      disposed = true
-      renderer.dispose()
-    }
-  }
-
-  @Suppress("UNCHECKED_CAST")
-  override fun update(style: Any?, sampling: HazeSampling) {
-    this.style = style as Style
-    this.sampling = sampling
-  }
+/** Built-in-only resources used while a renderer is attached to one modifier node. */
+@InternalHazeApi
+public interface HazeEffectLifecycleScope {
+  public val modifierSize: Size
+  public val coroutineScope: CoroutineScope
+  public fun requirePlatformContext(): PlatformContext
+  public fun requireGraphicsContext(): GraphicsContext
+  public fun requireDensity(): Density
+  public fun <T> currentValueOf(local: CompositionLocal<T>): T
+  public fun invalidateDraw()
+  public fun invalidateLayerBounds()
 }
 
-@OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
-internal class HazeEffectFactoryVisualEffectBridge<Style>(
-  private val effect: HazeEffectFactoryVisualEffect<Style>,
-) : VisualEffect, TypedHazeEffectVisualEffect, InteractiveVisualEffect {
-  private var attachedContext: VisualEffectContext? = null
+/** Built-in-only draw hooks which are not part of the third-party renderer contract. */
+@InternalHazeApi
+public interface HazeEffectRendererDrawHooks<Style> {
+  public fun HazeEffectRuntimeDrawScope.prepareDraw(style: Style): Unit = Unit
+  public fun HazeEffectRuntimeDrawScope.drawForeground(style: Style): Unit = Unit
+  public fun shouldDrawContentBehind(): Boolean = false
+  public fun shouldClipToNodeBounds(): Boolean = false
+  public fun shouldPreferClipToInputBounds(): Boolean = false
+}
 
-  override val observesPointerEvents: Boolean
-    get() = (effect as? InteractiveVisualEffect)?.observesPointerEvents == true
+/** Built-in-only retained-output capability. */
+@InternalHazeApi
+public interface HazeEffectRendererRetainedOutput {
+  public fun canDrawRetainedOutput(): Boolean
+  public fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
+  public fun clearRetainedOutput()
+}
 
-  override fun attach(context: VisualEffectContext) {
-    effect.attach(context)
-    attachedContext = context
+/** Built-in-only pointer and content-transform capability. */
+@InternalHazeApi
+public interface HazeEffectRendererInteraction {
+  public val observesPointerEvents: Boolean
+  public fun onPointerEvent(event: PointerEvent, scope: HazeEffectLifecycleScope)
+  public fun onCancelPointerInput(scope: HazeEffectLifecycleScope)
+  public fun currentContentTransform(): HazeEffectContentTransform =
+    HazeEffectContentTransform.Identity
+}
+
+/** Built-in-only transform applied to a modifier's own content and effect output. */
+@InternalHazeApi
+public class HazeEffectContentTransform(
+  public val scaleX: Float,
+  public val scaleY: Float,
+  public val pivot: Offset,
+) {
+  init {
+    require(scaleX.isFinite() && scaleX > 0f) { "scaleX must be finite and greater than zero" }
+    require(scaleY.isFinite() && scaleY > 0f) { "scaleY must be finite and greater than zero" }
+    require(pivot.x.isFinite() && pivot.y.isFinite()) { "pivot must be finite" }
   }
 
-  override fun update(context: VisualEffectContext) {
-    effect.update(context)
+  override fun equals(other: Any?): Boolean =
+    other is HazeEffectContentTransform &&
+      scaleX == other.scaleX &&
+      scaleY == other.scaleY &&
+      pivot == other.pivot
+
+  override fun hashCode(): Int {
+    var result = scaleX.hashCode()
+    result = 31 * result + scaleY.hashCode()
+    return 31 * result + pivot.hashCode()
   }
 
-  override fun DrawScope.prepareDraw(context: VisualEffectContext) {
-    with(effect) { prepareDraw(context) }
-  }
-
-  override fun DrawScope.draw(context: VisualEffectContext) {
-    with(effect) { draw(context) }
-  }
-
-  override fun DrawScope.drawForeground(context: VisualEffectContext) {
-    with(effect) { drawForeground(context) }
-  }
-
-  override fun shouldDrawContentBehind(context: VisualEffectContext): Boolean =
-    effect.shouldDrawContentBehind(context)
-
-  override fun shouldClipToNodeBounds(): Boolean = effect.shouldClipToNodeBounds()
-
-  override fun shouldPreferClipToAreaBounds(): Boolean = effect.shouldPreferClipToAreaBounds()
-
-  override fun calculateLayerBounds(rect: Rect, density: Density): Rect =
-    effect.calculateLayerBounds(rect, density)
-
-  override fun onPointerEvent(event: androidx.compose.ui.input.pointer.PointerEvent, context: VisualEffectContext) {
-    (effect as? InteractiveVisualEffect)?.onPointerEvent(event, context)
-  }
-
-  override fun onCancelPointerInput(context: VisualEffectContext) {
-    (effect as? InteractiveVisualEffect)?.onCancelPointerInput(context)
-  }
-
-  override fun currentContentTransform(context: VisualEffectContext): VisualEffectTransform =
-    (effect as? InteractiveVisualEffect)?.currentContentTransform(context)
-      ?: VisualEffectTransform.Identity
-
-  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean =
-    (effect as? RetainedOutputVisualEffect)?.canDrawRetainedOutput(context) == true
-
-  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean =
-    (effect as? RetainedOutputVisualEffect)?.shouldDrawRetainedOutput(context) == true
-
-  override fun clearRetainedOutput() {
-    (effect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
-  }
-
-  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
-    effect.onTrimMemory(context, level)
-  }
-
-  override fun onTrimMemory(level: TrimMemoryLevel) {
-    attachedContext?.let { effect.onTrimMemory(it, level) }
-  }
-
-  override fun detach(context: VisualEffectContext) {
-    try {
-      effect.detach(context)
-    } finally {
-      attachedContext = null
-    }
-  }
-
-  @Suppress("UNCHECKED_CAST")
-  override fun update(style: Any?, sampling: HazeSampling) {
-    effect.updateStyle(style as Style, sampling)
+  public companion object {
+    public val Identity: HazeEffectContentTransform =
+      HazeEffectContentTransform(1f, 1f, Offset.Zero)
   }
 }
 
-private class HazeEffectDrawScopeImpl(
+/**
+ * Opaque built-in-only identity for the currently drawable input capture.
+ *
+ * Renderers may compare instances for equality but cannot inspect live source handles.
+ */
+@InternalHazeApi
+public interface HazeEffectInputSnapshot
+
+/**
+ * Built-in-only semantic draw capability.
+ *
+ * Source geometry and layers remain owned by core. Built-ins can record the selected input into
+ * their own target [DrawScope] without receiving source handles.
+ */
+@InternalHazeApi
+public interface HazeEffectRuntimeDrawScope : HazeEffectDrawScope {
+  public val modifierSize: Size
+  public val layerSize: Size
+  public val layerOffset: Offset
+  public val hasDrawableInput: Boolean
+  public val inputSnapshot: HazeEffectInputSnapshot?
+  public val coroutineScope: CoroutineScope
+  public fun requirePlatformContext(): PlatformContext
+  public fun requireGraphicsContext(): GraphicsContext
+  public fun requireDensity(): Density = this
+  public fun invalidateDraw()
+  public fun DrawScope.drawInput()
+}
+
+/** Provides a temporary graphics layer to a built-in renderer and releases it after [block]. */
+@InternalHazeApi
+public inline fun <R> HazeEffectRuntimeDrawScope.withGraphicsLayer(
+  block: (androidx.compose.ui.graphics.layer.GraphicsLayer) -> R,
+): R {
+  val graphicsContext = requireGraphicsContext()
+  val layer = graphicsContext.createGraphicsLayer()
+  return try {
+    block(layer)
+  } finally {
+    graphicsContext.releaseGraphicsLayer(layer)
+  }
+}
+
+@OptIn(InternalHazeApi::class)
+internal class HazeEffectDrawScopeImpl(
   private val drawScope: DrawScope,
-  private val context: VisualEffectContext,
+  private val node: HazeEffectNode,
   override val sampling: HazeSampling,
-) : HazeEffectDrawScope, DrawScope by drawScope {
+) : HazeEffectRuntimeDrawScope, DrawScope by drawScope {
 
   override val modifierBounds: Rect
-    get() = Rect(offset = context.layerOffset, size = context.size)
+    get() = Rect(offset = node.layerOffset, size = node.size)
+
+  override val modifierSize: Size
+    get() = node.size
+
+  override val layerSize: Size
+    get() = node.layerSize
+
+  override val layerOffset: Offset
+    get() = node.layerOffset
+
+  override val hasDrawableInput: Boolean
+    get() = node.hasDrawableSourceLayers()
+
+  override val inputSnapshot: HazeEffectInputSnapshot?
+    get() = node.inputSnapshot()
+
+  override val coroutineScope: CoroutineScope
+    get() = node.coroutineScope
 
   override fun drawInput() {
-    val layerOffset = context.layerOffset
-    val effectPosition = context.position
-    val areas = context.areas
-    with(drawScope) {
-      translate(left = layerOffset.x, top = layerOffset.y) {
-        for (area in areas) {
-          val sourcePosition = Snapshot.withoutReadObservation {
-            this@HazeEffectDrawScopeImpl.context.positionOf(area)
-          }
-          val relativePosition = (
-            sourcePosition.takeIf(Offset::isSpecified) ?: Offset.Zero
-            ) - effectPosition
-          translate(left = relativePosition.x, top = relativePosition.y) {
-            val layer = area.contentLayer
-              ?.takeUnless { it.isReleased }
-              ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
-            if (layer != null) {
-              drawLayer(layer)
-            }
+    with(this) { drawScope.drawInput() }
+  }
+
+  override fun DrawScope.drawInput() {
+    val owner = this@HazeEffectDrawScopeImpl.node
+    val effectPosition = owner.position
+    translate(left = owner.layerOffset.x, top = owner.layerOffset.y) {
+      for (area in owner.areas) {
+        val sourcePosition = Snapshot.withoutReadObservation {
+          area.coordinates.positionFor(owner.resolvedPositionStrategy)
+        }
+        val relativePosition = (
+          sourcePosition.takeIf(Offset::isSpecified) ?: Offset.Zero
+          ) - effectPosition
+        translate(left = relativePosition.x, top = relativePosition.y) {
+          val layer = area.contentLayer
+            ?.takeUnless { it.isReleased }
+            ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+          if (layer != null) {
+            drawLayer(layer)
           }
         }
       }
@@ -307,17 +284,36 @@ private class HazeEffectDrawScopeImpl(
   }
 
   override fun <T> currentValueOf(local: CompositionLocal<T>): T {
-    return context.currentValueOf(local)
+    return node.currentValueOf(local)
   }
+
+  override fun requirePlatformContext(): PlatformContext = node.requirePlatformContext()
+  override fun requireGraphicsContext(): GraphicsContext = node.requireGraphicsContext()
+  override fun requireDensity(): Density = node.requireDensity()
+  override fun invalidateDraw() = node.invalidateVisualEffectDraw()
 }
 
-private class HazeEffectLayoutScopeImpl(
+internal class HazeEffectLayoutScopeImpl(
   density: Density,
-  private val context: VisualEffectContext,
+  private val node: HazeEffectNode,
   override val modifierBounds: Rect,
 ) : HazeEffectLayoutScope, Density by density {
 
   override fun <T> currentValueOf(local: CompositionLocal<T>): T {
-    return context.currentValueOf(local)
+    return node.currentValueOf(local)
   }
+}
+
+@OptIn(InternalHazeApi::class)
+internal class HazeEffectLifecycleScopeImpl(
+  private val node: HazeEffectNode,
+) : HazeEffectLifecycleScope {
+  override val modifierSize: Size get() = node.size
+  override val coroutineScope: CoroutineScope get() = node.coroutineScope
+  override fun requirePlatformContext(): PlatformContext = node.requirePlatformContext()
+  override fun requireGraphicsContext(): GraphicsContext = node.requireGraphicsContext()
+  override fun requireDensity(): Density = node.requireDensity()
+  override fun <T> currentValueOf(local: CompositionLocal<T>): T = node.currentValueOf(local)
+  override fun invalidateDraw() = node.invalidateVisualEffectDraw()
+  override fun invalidateLayerBounds() = node.invalidateVisualEffectLayerBounds()
 }

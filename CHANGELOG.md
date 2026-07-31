@@ -9,9 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
-- `HazeInputScale.Default` is now backed by the new `HazeInputScale.EffectDefault` sealed subtype
-  so effects can distinguish an unspecified policy from explicit `None`. Exhaustive `when`
-  expressions over `HazeInputScale` must handle the new subtype or add an `else` branch.
+- Custom effects now use only the typed `Modifier.hazeEffect`, `HazeEffectFactory`,
+  `HazeEffectRenderer`, `HazeEffectDrawScope`, and `HazeEffectLayoutScope` surface.
+  `VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, the lambda-based `hazeEffect`
+  overloads, and the legacy renderer capability interfaces are removed.
+- `HazeEffectNode`, `HazeSourceNode`, `HazeArea`, `HazeCoordinates`, `HazePositionStrategy`, and
+  the source records and position policy on `HazeState` are now internal implementation details.
+  Source-selection predicates receive only `HazeSourceInfo`.
+- `HazeInputScale` is removed. Use `HazeSampling` to choose default, adaptive, full-resolution, or
+  fixed input sampling for typed effects.
+- Blur now exposes only `Modifier.hazeBlur`, immutable `HazeBlurStyle`, and
+  `HazeBlurDefaults.style`. The mutable `BlurVisualEffect` runtime, scope extension, sentinel
+  `HazeBlurStyle.Unspecified`, legacy singular-effect constructors, and deprecated defaults
+  builder are removed.
 - Glass now exposes only the typed `Modifier.hazeGlass` and replayable `GlassStyle` surface.
   `GlassVisualEffect`, `glassEffect`, the old `hazeGlass` overload, `GlassRenderer`,
   `GlassRendererCache`, `GlassStyleConfiguration`, grouped `GlassLighting`/`GlassColor`/
@@ -23,25 +33,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added declarative hover, focus, and press responses to `GlassStyle`, including localized lighting
   and optics plus configurable transforms and motion on `Modifier.hazeGlass`.
 - Added progressive blur support to Glass.
-- **`HazeCoordinates`** — new value class on `HazeArea` exposing both `localPosition` and `screenPosition`, so custom `VisualEffect` implementations can read the geometry of an area in either coordinate space. A new `HazeCoordinates.isUnspecified` extension reports when either position has not yet been laid out.
-- **`VisualEffectContext` helpers** (Experimental) — `positionOf(area)`, `boundsOf(area)`, and a `positionStrategy` property that read geometry in the effect's resolved coordinate space. Custom effects should prefer these over reading `HazeArea.position` / `HazeArea.coordinates` directly.
 
 ### Changed
 
-- Blur effects now adapt `HazeInputScale.Default` between `1.0`, `0.8`, and `0.5` using physical
+- Blur effects now adapt `HazeSampling.Default` between `1.0`, `0.8`, and `0.5` using physical
   blur radius and expanded capture-layer area, with hysteresis and a `0.8` progressive-blur cap.
-  Glass remains unscaled by default; explicit input-scale choices remain authoritative.
+  Glass remains unscaled by default; explicit sampling choices remain authoritative.
 - Changed Glass blur composition so blur participates in refracted content.
 - Use one Android Glass output renderer per surface, independent of sibling count, while preserving
   semantic blur, progressive masks, Full chromatic aberration, and configured interactions.
 - Moved `HazeProgressive` to the core `dev.chrisbanes.haze` package with a deprecated blur-package typealias.
-
-### Deprecated
-
-- `HazeArea.position` is deprecated in favour of `HazeArea.coordinates.localPosition` (or, inside a `VisualEffect`, `VisualEffectContext.positionOf(area)`). The setter now writes through to `coordinates.localPosition` for source compatibility.
-- Direct `HazeEffectNode` construction is deprecated ahead of #1132. Custom modifier extensions
-  should migrate to the typed `Modifier.hazeEffect` overload with a `HazeEffectFactory`; direct
-  nodes do not receive automatic Desktop or Web lifecycle trimming.
 
 ### Fixed
 

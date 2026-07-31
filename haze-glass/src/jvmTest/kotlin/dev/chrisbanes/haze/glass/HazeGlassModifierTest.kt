@@ -15,12 +15,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.v2.runComposeUiTest
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -29,18 +29,23 @@ import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectContentTransform
+import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectFactory
-import dev.chrisbanes.haze.HazeEffectFactoryVisualEffect
+import dev.chrisbanes.haze.HazeEffectLayoutScope
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
-import dev.chrisbanes.haze.HazeEffectVisualEffectFactory
+import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
+import dev.chrisbanes.haze.HazeEffectRendererInteraction
+import dev.chrisbanes.haze.HazeEffectRendererLifecycle
+import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeSourceRetention
 import dev.chrisbanes.haze.HazeSourceSelection
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.RetainedOutputVisualEffect
-import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
@@ -105,15 +110,7 @@ class HazeGlassModifierTest : ContextTest() {
 
     cases.forEach { case ->
       val effect = case.factory.effects.single()
-      val context = checkNotNull(effect.delegate.attachedContextForTest)
-      val expectedState = (case.input as? HazeInput.Sources)?.state
-      if (expectedState == null) {
-        assertThat(context.state).isNull()
-      } else {
-        assertThat(context.state).isSameInstanceAs(expectedState)
-      }
       assertThat(effect.sampling).isEqualTo(case.sampling)
-      assertThat(context.inputScale).isEqualTo(case.sampling.expectedInputScale())
       val boundsCalls = assertThat(
         effect.calculateLayerBoundsCalls,
         name = "${case.input}/${case.sampling}/expand=${case.expandLayerBounds}",
@@ -321,62 +318,104 @@ private class StructuralCase(
   val factory = RecordingGlassFactory()
 }
 
-private class RecordingGlassFactory :
-  HazeEffectFactory<GlassNodeConfiguration>,
-  HazeEffectVisualEffectFactory<GlassNodeConfiguration> {
+private class RecordingGlassFactory : HazeEffectFactory<GlassNodeConfiguration> {
   val effects = mutableListOf<RecordingGlassRuntimeEffect>()
 
   override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> {
-    error("The full VisualEffect bridge must take precedence")
-  }
-
-  override fun createVisualEffect(
-    style: GlassNodeConfiguration,
-    sampling: HazeSampling,
-  ): HazeEffectFactoryVisualEffect<GlassNodeConfiguration> {
-    val delegate = GlassHazeEffectFactory.createVisualEffect(
-      style = style,
-      sampling = sampling,
-    )
-    return RecordingGlassRuntimeEffect(delegate, sampling).also(effects::add)
+    return RecordingGlassRuntimeEffect(GlassRuntimeEffect()).also(effects::add)
   }
 }
 
 private class RecordingGlassRuntimeEffect(
   val delegate: GlassRuntimeEffect,
-  val sampling: HazeSampling,
 ) :
-  HazeEffectFactoryVisualEffect<GlassNodeConfiguration> by delegate,
-  RetainedOutputVisualEffect {
-  private val retainedDelegate = delegate as RetainedOutputVisualEffect
+  HazeEffectRenderer<GlassNodeConfiguration>,
+  HazeEffectRendererLifecycle<GlassNodeConfiguration>,
+  HazeEffectRendererDrawHooks<GlassNodeConfiguration>,
+  HazeEffectRendererRetainedOutput,
+  HazeEffectRendererInteraction {
+  var sampling: HazeSampling = HazeSampling.Default
+    private set
 
   var calculateLayerBoundsCalls = 0
   var clearRetainedOutputCalls = 0
   var retainedDrawDecisions = 0
 
-  override fun calculateLayerBounds(rect: Rect, density: Density): Rect {
-    calculateLayerBoundsCalls++
-    return delegate.calculateLayerBounds(rect, density)
+  override fun HazeEffectDrawScope.draw(style: GlassNodeConfiguration) {
+    with(delegate) { draw(style) }
   }
 
-  override fun canDrawRetainedOutput(context: VisualEffectContext): Boolean =
-    retainedDelegate.canDrawRetainedOutput(context)
+  override fun HazeEffectLayoutScope.calculateLayerBounds(
+    style: GlassNodeConfiguration,
+  ): Rect {
+    calculateLayerBoundsCalls++
+    return with(delegate) { calculateLayerBounds(style) }
+  }
 
-  override fun shouldDrawRetainedOutput(context: VisualEffectContext): Boolean {
-    return retainedDelegate.shouldDrawRetainedOutput(context).also { shouldDraw ->
+  override fun attach(scope: HazeEffectLifecycleScope) {
+    delegate.attach(scope)
+  }
+
+  override fun update(
+    scope: HazeEffectLifecycleScope,
+    style: GlassNodeConfiguration,
+    sampling: HazeSampling,
+  ) {
+    this.sampling = sampling
+    delegate.update(scope, style, sampling)
+  }
+
+  override fun detach() {
+    delegate.detach()
+  }
+
+  override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
+    with(delegate) { prepareDraw(style) }
+  }
+
+  override fun HazeEffectRuntimeDrawScope.drawForeground(style: GlassNodeConfiguration) {
+    with(delegate) { drawForeground(style) }
+  }
+
+  override fun shouldDrawContentBehind(): Boolean = delegate.shouldDrawContentBehind()
+
+  override fun shouldClipToNodeBounds(): Boolean = delegate.shouldClipToNodeBounds()
+
+  override fun shouldPreferClipToInputBounds(): Boolean =
+    delegate.shouldPreferClipToInputBounds()
+
+  override val observesPointerEvents: Boolean
+    get() = delegate.observesPointerEvents
+
+  override fun onPointerEvent(event: PointerEvent, scope: HazeEffectLifecycleScope) {
+    delegate.onPointerEvent(event, scope)
+  }
+
+  override fun onCancelPointerInput(scope: HazeEffectLifecycleScope) {
+    delegate.onCancelPointerInput(scope)
+  }
+
+  override fun currentContentTransform(): HazeEffectContentTransform =
+    delegate.currentContentTransform()
+
+  override fun onTrimMemory(level: TrimMemoryLevel) {
+    delegate.onTrimMemory(level)
+  }
+
+  override fun dispose() {
+    delegate.dispose()
+  }
+
+  override fun canDrawRetainedOutput(): Boolean = delegate.canDrawRetainedOutput()
+
+  override fun shouldDrawRetainedOutput(): Boolean {
+    return delegate.shouldDrawRetainedOutput().also { shouldDraw ->
       if (shouldDraw) retainedDrawDecisions++
     }
   }
 
   override fun clearRetainedOutput() {
     clearRetainedOutputCalls++
-    retainedDelegate.clearRetainedOutput()
+    delegate.clearRetainedOutput()
   }
-}
-
-private fun HazeSampling.expectedInputScale(): HazeInputScale = when (this) {
-  HazeSampling.Default -> HazeInputScale.Default
-  HazeSampling.FullResolution -> HazeInputScale.None
-  HazeSampling.Adaptive -> HazeInputScale.Auto
-  is HazeSampling.Fixed -> HazeInputScale.Fixed(scale)
 }

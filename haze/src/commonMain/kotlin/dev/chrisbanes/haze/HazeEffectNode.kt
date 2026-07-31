@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 @file:OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
+@file:Suppress("UNCHECKED_CAST")
 
 package dev.chrisbanes.haze
 
@@ -44,25 +45,10 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
-/**
- * The [Modifier.Node] implementation used by [Modifier.hazeEffect].
- *
- * Direct construction is deprecated and does not receive automatic Desktop or Web lifecycle
- * trimming. Custom effects should use the typed [Modifier.hazeEffect] overload with a
- * [HazeEffectFactory].
- *
- * This type remains public temporarily for source and binary compatibility.
- */
-@ExperimentalHazeApi
-public class HazeEffectNode
-@Deprecated(
-  message = "Direct HazeEffectNode construction is deprecated. Use the typed Modifier.hazeEffect " +
-    "overload with a HazeEffectFactory.",
-)
-public constructor(
+internal class HazeEffectNode(
   state: HazeState? = null,
-  public var block: (HazeEffectScope.() -> Unit)? = null,
 ) : DelegatingNode(),
   CompositionLocalConsumerModifierNode,
   ModifierLocalModifierNode,
@@ -70,15 +56,7 @@ public constructor(
   LayoutAwareModifierNode,
   ObserverModifierNode,
   DrawModifierNode,
-  TraversableNode,
-  HazeEffectScope {
-
-  @Deprecated(
-    message = "For binary compatibility only. Use the hazeEffect modifier APIs.",
-    level = DeprecationLevel.HIDDEN,
-  )
-  @Suppress("DEPRECATION")
-  public constructor() : this(state = null, block = null)
+  TraversableNode {
 
   override val traverseKey: Any
     get() = HazeTraversableNodeKeys.Effect
@@ -87,7 +65,7 @@ public constructor(
 
   internal var dirtyTracker = Bitmask(DirtyFields.Areas)
 
-  public var state: HazeState? = state
+  internal var state: HazeState? = state
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "state changed. Current: $field. New: $value" }
@@ -126,10 +104,11 @@ public constructor(
   private var needsPreDrawInvalidation = false
   private var needsDirtyFieldsInvalidation = false
   private var needsVisualEffectInvalidation = false
+  private var needsNextFrameVisualEffectInvalidation = false
   private var needsContentInvalidation = false
   private var hasRenderedTypedSourceOutput = false
+  private var lastInputSnapshot: HazeEffectInputSnapshotImpl? = null
   private var isDrawing = false
-  private var isInvokingBlock = false
   private var lastKnownCoordinates: LayoutCoordinates? = null
   private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
   private var sourceSelectionObserverGeneration: Int = 0
@@ -160,32 +139,6 @@ public constructor(
     sourceSelectionSnapshotObserver = null
   }
 
-  override var inputScale: HazeInputScale = HazeInputScale.Default
-    set(value) {
-      val resolvedValue = if (isInvokingBlock) {
-        explicitSampling?.toInputScale() ?: value
-      } else {
-        value
-      }
-      if (resolvedValue != field) {
-        HazeLogger.d(TAG) { "inputScale changed. Current: $field. New: $resolvedValue" }
-        field = resolvedValue
-        dirtyTracker += DirtyFields.InputScale
-      }
-    }
-
-  internal var explicitSampling: HazeSampling? = null
-    set(value) {
-      if (value != field) {
-        val previous = field
-        field = value
-        when {
-          value != null -> inputScale = value.toInputScale()
-          previous != null -> inputScale = HazeInputScale.Default
-        }
-      }
-    }
-
   private var _position: Offset = Offset.Unspecified
     set(value) {
       if (value != field) {
@@ -195,7 +148,7 @@ public constructor(
       }
     }
 
-  public val position: Offset get() = _position
+  internal val position: Offset get() = _position
 
   internal var rootBounds: Rect = Rect.Zero
     set(value) {
@@ -220,7 +173,7 @@ public constructor(
       }
     }
 
-  public val size: Size get() = _size
+  internal val size: Size get() = _size
   private var _layerSize: Size = Size.Unspecified
     set(value) {
       if (value != field) {
@@ -231,7 +184,7 @@ public constructor(
       }
     }
 
-  public val layerSize: Size
+  internal val layerSize: Size
     get() = _layerSize
 
   private var _layerOffset: Offset = Offset.Zero
@@ -243,7 +196,7 @@ public constructor(
       }
     }
 
-  public val layerOffset: Offset
+  internal val layerOffset: Offset
     get() = _layerOffset
 
   internal var windowId: Any? = null
@@ -262,8 +215,8 @@ public constructor(
       }
     }
 
-  internal val visualEffectContext: VisualEffectContext by lazy(LazyThreadSafetyMode.NONE) {
-    HazeEffectNodeVisualEffectContext(this)
+  private val typedLifecycleScope: HazeEffectLifecycleScope by lazy(LazyThreadSafetyMode.NONE) {
+    HazeEffectLifecycleScopeImpl(this)
   }
 
   private var lastSeenStateAreas: List<HazeArea> = emptyList()
@@ -286,53 +239,17 @@ public constructor(
       }
     }
 
-  public val areas: List<HazeArea> get() = _areas
+  internal val areas: List<HazeArea> get() = _areas
 
   private val contentDrawArea by lazy { HazeArea() }
 
-  /** The node-owned runtime currently serving [visualEffect]. */
-  @InternalHazeApi
-  public var activeVisualEffect: VisualEffect = EmptyVisualEffect
-    private set
-
   private var typedEffectFactory: Any? = null
   private var typedEffectStyle: Any? = null
-  private var typedEffectSampling: HazeSampling? = null
-  private var createTypedRuntime: (() -> VisualEffect)? = null
-
-  override var canDrawArea: ((HazeArea) -> Boolean)? = null
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "canDrawArea changed. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.Areas
-        field = value
-      }
-    }
-
-  public override var visualEffect: VisualEffect = VisualEffect.Empty
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "visualEffect changed. Current $field. New: $value" }
-        val oldConfiguredEffect = field
-        val oldRuntime = activeVisualEffect
-        pointerInputDelegate?.cancel(oldRuntime as? InteractiveVisualEffect)
-        if (isAttached) {
-          val newRuntime = value.createRenderer()
-          replaceActiveVisualEffect(newRuntime)
-        } else {
-          clearRetainedOutput(
-            activeVisualEffect.takeUnless { it === EmptyVisualEffect } ?: oldConfiguredEffect,
-          )
-          activeVisualEffect = EmptyVisualEffect
-        }
-        field = value
-        dirtyTracker += DirtyFields.VisualEffectLayerBounds
-        syncPointerInputDelegate()
-        if (isAttached) {
-          invalidateVisualEffectDraw()
-        }
-      }
-    }
+  private var typedEffectSampling: HazeSampling = HazeSampling.Default
+  internal var typedEffectRenderer: HazeEffectRenderer<Any?>? = null
+    private set
+  private var typedRendererAttached: Boolean = false
+  private var createTypedRenderer: (() -> HazeEffectRenderer<Any?>)? = null
 
   internal fun <Style> updateTypedEffect(
     factory: HazeEffectFactory<Style>,
@@ -340,28 +257,35 @@ public constructor(
     sampling: HazeSampling,
   ) {
     @Suppress("UNCHECKED_CAST")
-    val visualEffectFactory = factory as? HazeEffectVisualEffectFactory<Style>
-    val createRuntime = {
-      if (visualEffectFactory != null) {
-        HazeEffectFactoryVisualEffectBridge(
-          visualEffectFactory.createVisualEffect(style, sampling),
-        )
-      } else {
-        TypedHazeEffectVisualEffectImpl(
-          renderer = factory.createRenderer(),
-          style = style,
-          sampling = sampling,
-        )
-      }
-    }
+    val createRenderer = { factory.createRenderer() as HazeEffectRenderer<Any?> }
     if (typedEffectFactory !== factory) {
+      val newRenderer = createRenderer()
+      try {
+        if (isAttached) {
+          pointerInputDelegate?.cancel(
+            typedEffectRenderer as? HazeEffectRendererInteraction,
+          )
+        }
+        clearRetainedOutput()
+        disposeTypedRenderer()
+      } catch (throwable: Throwable) {
+        runCatching { newRenderer.dispose() }
+          .exceptionOrNull()
+          ?.let(throwable::addSuppressed)
+        throw throwable
+      }
       if (isAttached) {
-        replaceActiveVisualEffect(createRuntime())
+        attachTypedRenderer(newRenderer)
       }
       typedEffectFactory = factory
       typedEffectStyle = style
       typedEffectSampling = sampling
-      createTypedRuntime = createRuntime
+      typedEffectRenderer = newRenderer
+      createTypedRenderer = createRenderer
+      if (isAttached) {
+        typedRendererAttached = true
+        updateTypedRenderer()
+      }
       dirtyTracker += DirtyFields.VisualEffectLayerBounds
       if (isAttached) {
         invalidateVisualEffectDraw()
@@ -369,60 +293,66 @@ public constructor(
     } else if (typedEffectStyle != style || typedEffectSampling != sampling) {
       typedEffectStyle = style
       typedEffectSampling = sampling
-      createTypedRuntime = createRuntime
-      (activeVisualEffect as? TypedHazeEffectVisualEffect)?.update(style, sampling)
       invalidateVisualEffectLayerBounds()
     } else {
-      createTypedRuntime = createRuntime
+      createTypedRenderer = createRenderer
     }
   }
 
-  private fun replaceActiveVisualEffect(newRuntime: VisualEffect) {
-    val oldRuntime = activeVisualEffect
-    attachVisualEffect(newRuntime)
+  @OptIn(InternalHazeApi::class)
+  private fun attachTypedRenderer(renderer: HazeEffectRenderer<Any?>) {
     try {
-      clearRetainedOutput(oldRuntime)
+      (renderer as? HazeEffectRendererLifecycle<Any?>)?.attach(typedLifecycleScope)
     } catch (throwable: Throwable) {
-      runCatching { detachVisualEffect(newRuntime) }
+      runCatching { (renderer as? HazeEffectRendererLifecycle<Any?>)?.detach() }
+        .exceptionOrNull()
+        ?.let(throwable::addSuppressed)
+      runCatching { renderer.dispose() }
         .exceptionOrNull()
         ?.let(throwable::addSuppressed)
       throw throwable
     }
-    runCatching { detachVisualEffect(oldRuntime) }
-    activeVisualEffect = newRuntime
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun updateTypedRenderer() {
+    val renderer = typedEffectRenderer ?: return
+    (renderer as? HazeEffectRendererLifecycle<Any?>)?.update(
+      scope = typedLifecycleScope,
+      style = typedEffectStyle,
+      sampling = typedEffectSampling,
+    )
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun disposeTypedRenderer() {
+    val renderer = typedEffectRenderer ?: return
+    val wasAttached = typedRendererAttached
+    typedEffectRenderer = null
+    typedRendererAttached = false
+    if (wasAttached) {
+      try {
+        (renderer as? HazeEffectRendererLifecycle<Any?>)?.detach()
+      } finally {
+        renderer.dispose()
+      }
+    } else {
+      renderer.dispose()
+    }
   }
 
   private var pointerInputDelegate: HazeEffectPointerInputNode? = null
 
-  override var drawContentBehind: Boolean = false
+  internal var expandLayerBounds: Boolean = true
     set(value) {
       if (value != field) {
-        HazeLogger.d(TAG) { "drawContentBehind changed. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.DrawContentBehind
-        field = value
-      }
-    }
-
-  override var clipToAreasBounds: Boolean? = null
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "clipToAreasBounds changed. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.ClipToAreas
-        field = value
-      }
-    }
-
-  override var expandLayerBounds: Boolean? = null
-    set(value) {
-      val resolvedValue = if (isInvokingBlock) explicitExpandLayerBounds ?: value else value
-      if (resolvedValue != field) {
-        HazeLogger.d(TAG) { "expandLayer changed. Current $field. New: $resolvedValue" }
+        HazeLogger.d(TAG) { "expandLayer changed. Current $field. New: $value" }
         dirtyTracker += DirtyFields.ExpandLayer
-        field = resolvedValue
+        field = value
       }
     }
 
-  internal var explicitExpandLayerBounds: Boolean? = null
+  internal var explicitExpandLayerBounds: Boolean = true
     set(value) {
       if (value != field) {
         field = value
@@ -430,36 +360,7 @@ public constructor(
       }
     }
 
-  override var retainOutputWhenSourceUnavailable: Boolean = true
-    set(value) {
-      val resolvedValue = if (isInvokingBlock) {
-        (explicitInput as? HazeInput.Sources)
-          ?.retention
-          ?.keepsLastFrame()
-          ?: value
-      } else {
-        value
-      }
-      if (resolvedValue != field) {
-        HazeLogger.d(TAG) {
-          "retainOutputWhenSourceUnavailable changed. Current $field. New: $resolvedValue"
-        }
-        if (!resolvedValue) {
-          clearRetainedOutput()
-        }
-        dirtyTracker += DirtyFields.RetainOutput
-        field = resolvedValue
-      }
-    }
-
-  override var forceInvalidateOnPreDraw: Boolean = false
-    set(value) {
-      if (value != field) {
-        HazeLogger.d(TAG) { "forceInvalidateOnPreDraw changed. Current $field. New: $value" }
-        dirtyTracker += DirtyFields.ForcePreDraw
-        field = value
-      }
-    }
+  private var retainOutputWhenSourceUnavailable: Boolean = true
   private val areaPreDrawListener by lazy(LazyThreadSafetyMode.NONE) {
     OnPreDrawListener {
       if (!needsPreDrawInvalidation) {
@@ -480,11 +381,13 @@ public constructor(
   private var trimMemoryCallbackDisposable: DisposableHandle? = null
 
   override fun onAttach() {
-    val runtime = activeVisualEffect.takeUnless { it === EmptyVisualEffect }
-      ?: createTypedRuntime?.invoke()
-      ?: visualEffect.createRenderer()
-    attachVisualEffect(runtime)
-    activeVisualEffect = runtime
+    val typedRenderer = typedEffectRenderer ?: createTypedRenderer?.invoke()?.also {
+      typedEffectRenderer = it
+    }
+    checkNotNull(typedRenderer) { "A typed Haze renderer must be configured before attachment" }
+    attachTypedRenderer(typedRenderer)
+    typedRendererAttached = true
+    updateTypedRenderer()
     rebindTrimMemoryCallback()
     update()
   }
@@ -501,16 +404,15 @@ public constructor(
     contentDrawArea.releaseLayer()
     clearRetainedOutput()
     pointerInputDelegate?.let { delegate ->
-      delegate.cancel(activeVisualEffect as? InteractiveVisualEffect)
+      val renderer = typedEffectRenderer as? HazeEffectRendererInteraction
+      delegate.cancel(renderer)
       undelegate(delegate)
     }
     pointerInputDelegate = null
     lastKnownCoordinates = null
-    try {
-      detachVisualEffect(activeVisualEffect)
-    } finally {
-      activeVisualEffect = EmptyVisualEffect
-    }
+    lastInputSnapshot = null
+    disposeTypedRenderer()
+    typedEffectRenderer = null
   }
 
   private fun HazeArea.releaseLayer() {
@@ -588,9 +490,8 @@ public constructor(
 
       for (area in areas) {
         require(!area.isContentDrawing) {
-          "Modifier.haze nodes can not draw Modifier.hazeChild nodes. " +
-            "This should not happen if you are providing correct values for zIndex on Modifier.haze. " +
-            "Alternatively you can use can `canDrawArea` to to filter out parent areas."
+          "Modifier.hazeEffect nodes cannot draw an ancestor Modifier.hazeSource. " +
+            "Use HazeSourceSelection or correct source zIndex values to exclude it."
         }
       }
 
@@ -607,32 +508,20 @@ public constructor(
             hasDrawableSourceLayers
           }
           if (shouldDrawEffect) {
-            with(activeVisualEffect) {
-              prepareDraw(visualEffectContext)
-            }
+            prepareEffectDraw()
           }
           withVisualEffectTransform {
             if (shouldDrawEffect) {
-              with(activeVisualEffect) {
-                draw(visualEffectContext)
-              }
-              if (
-                activeVisualEffect is TypedHazeEffectVisualEffect &&
-                hasDrawableSourceLayers
-              ) {
+              drawEffect()
+              if (typedEffectRenderer != null && hasDrawableSourceLayers) {
                 hasRenderedTypedSourceOutput = true
               }
             }
             drawContentSafely()
             if (shouldDrawEffect) {
-              with(activeVisualEffect) {
-                drawForeground(visualEffectContext)
-              }
+              drawEffectForeground()
             }
           }
-        } else if (activeVisualEffect === EmptyVisualEffect) {
-          contentDrawArea.releaseLayer()
-          drawContentSafely()
         } else {
           // Else we're doing content (foreground) blurring, so we need to use our
           // contentDrawArea
@@ -653,20 +542,13 @@ public constructor(
           if (!effectOnlyDraw) {
             contentDrawArea.contentVersion++
           }
-          with(activeVisualEffect) {
-            prepareDraw(visualEffectContext)
-          }
+          prepareEffectDraw()
           withVisualEffectTransform {
-            if (
-              drawContentBehind ||
-              activeVisualEffect.shouldDrawContentBehind(visualEffectContext)
-            ) {
+            if (shouldDrawContentBehindEffect()) {
               drawLayer(contentLayer)
             }
-            with(activeVisualEffect) {
-              draw(visualEffectContext)
-              drawForeground(visualEffectContext)
-            }
+            drawEffect()
+            drawEffectForeground()
           }
         }
       } else {
@@ -674,30 +556,45 @@ public constructor(
         drawContentSafely()
       }
     } finally {
-      onPostDraw()
       isDrawing = false
+      onPostDraw()
       HazeLogger.d(TAG) { "-> end draw()" }
     }
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun ContentDrawScope.prepareEffectDraw() {
+    val renderer = typedEffectRenderer ?: return
+    val hooks = renderer as? HazeEffectRendererDrawHooks<Any?> ?: return
+    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
+    with(hooks) { scope.prepareDraw(typedEffectStyle) }
+  }
+
+  private fun ContentDrawScope.drawEffect() {
+    val renderer = typedEffectRenderer ?: return
+    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
+    with(renderer) { scope.draw(typedEffectStyle) }
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun ContentDrawScope.drawEffectForeground() {
+    val renderer = typedEffectRenderer ?: return
+    val hooks = renderer as? HazeEffectRendererDrawHooks<Any?> ?: return
+    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
+    with(hooks) { scope.drawForeground(typedEffectStyle) }
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun shouldDrawContentBehindEffect(): Boolean {
+    val renderer = typedEffectRenderer ?: return false
+    return (renderer as? HazeEffectRendererDrawHooks<Any?>)
+      ?.shouldDrawContentBehind() == true
   }
 
   private fun updateEffect(): Unit = trace("HazeEffectNode-updateEffect") {
     if (!isAttached) return@trace
 
     windowId = getWindowId()
-
-    // Read positionStrategy to establish snapshot observation.
-    // When the user changes positionStrategy, this triggers updateEffect() to re-run
-    // via onObservedReadsChanged().
-    state?.positionStrategy
-
-    // Invalidate if any of the effects triggered an invalidation, or we now have zero
-    // effects but were previously showing some
-    isInvokingBlock = true
-    try {
-      block?.invoke(this)
-    } finally {
-      isInvokingBlock = false
-    }
 
     val state = this.state
     if (state != null) {
@@ -733,70 +630,44 @@ public constructor(
             ?.takeIf { it.state == this.state }
 
         val unfilteredAreas = stateAreas.orEmpty()
-        val selection = (explicitInput as? HazeInput.Sources)?.selection
+        val selection = checkNotNull(explicitInput as? HazeInput.Sources).selection
         HazeLogger.d(TAG) { "Background Areas observing: $unfilteredAreas" }
-        val filteredAreas = when (val sourceSelection = selection) {
-          null -> {
-            unfilteredAreas
-              .asSequence()
-              .filter { area ->
-                val filter = canDrawArea
-                when {
-                  filter != null -> filter(area)
-                  ancestorSourceNode != null -> area.zIndex < ancestorSourceNode.zIndex
-                  else -> true
-                }.also { included ->
-                  HazeLogger.d(TAG) { "Background Area: $area. Included=$included" }
-                }
-              }
-              .toMutableList()
-              .apply { sortBy(HazeArea::zIndex) }
-          }
-          else -> {
-            val relatedSources = unfilteredAreas.mapNotNull { area ->
-              val info = HazeSourceInfo(key = area.key, zIndex = area.zIndex)
-              val relationshipMatches = when (sourceSelection.baseSelection()) {
-                HazeSourceSelection.All -> true
-                HazeSourceSelection.Behind -> {
-                  ancestorSourceNode == null || info.zIndex < ancestorSourceNode.zIndex
-                }
-                else -> error("Unexpected base HazeSourceSelection")
-              }
-              if (relationshipMatches) area to info else null
+        val relatedSources = unfilteredAreas.mapNotNull { area ->
+          val info = HazeSourceInfo(key = area.key, zIndex = area.zIndex)
+          val relationshipMatches = when (selection.baseSelection()) {
+            HazeSourceSelection.All -> true
+            HazeSourceSelection.Behind -> {
+              ancestorSourceNode == null || info.zIndex < ancestorSourceNode.zIndex
             }
-            val selectedSources = if (sourceSelection.hasRefinements()) {
-              Snapshot.withoutReadObservation {
-                lateinit var result: List<Pair<HazeArea, HazeSourceInfo>>
-                getOrCreateSourceSelectionSnapshotObserver().observeReads(
-                  sourceSelectionObservationScope,
-                  onObservedSourceSelectionChanged,
-                ) {
-                  result = relatedSources.filter { (_, info) ->
-                    sourceSelection.matches(info)
-                  }
-                }
-                result
-              }
-            } else {
-              relatedSources
-            }
-            selectedSources
-              .sortedBy { (_, info) -> info.zIndex }
-              .map { (area) ->
-                HazeLogger.d(TAG) { "Background Area: $area. Included=true" }
-                area
-              }
+            else -> error("Unexpected base HazeSourceSelection")
           }
+          if (relationshipMatches) area to info else null
         }
+        val selectedSources = if (selection.hasRefinements()) {
+          Snapshot.withoutReadObservation {
+            lateinit var result: List<Pair<HazeArea, HazeSourceInfo>>
+            getOrCreateSourceSelectionSnapshotObserver().observeReads(
+              sourceSelectionObservationScope,
+              onObservedSourceSelectionChanged,
+            ) {
+              result = relatedSources.filter { (_, info) ->
+                selection.matches(info)
+              }
+            }
+            result
+          }
+        } else {
+          relatedSources
+        }
+        val filteredAreas = selectedSources
+          .sortedBy { (_, info) -> info.zIndex }
+          .map { (area) ->
+            HazeLogger.d(TAG) { "Background Area: $area. Included=true" }
+            area
+          }
         _areas = filteredAreas
 
         if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers()) {
-          clearRetainedOutput()
-        } else if (
-          explicitInput == null &&
-          unfilteredAreas.isNotEmpty() &&
-          filteredAreas.isEmpty()
-        ) {
           clearRetainedOutput()
         }
         updateAreaZIndexes(currentStateAreas)
@@ -850,16 +721,16 @@ public constructor(
       }
     }
 
-    // Allow the current VisualEffect to update from CompositionLocals/state before calculating
-    // bounds, so it can request a bounds refresh for values observed during this update.
-    activeVisualEffect.update(visualEffectContext)
+    // Allow the current renderer to update from CompositionLocals/state before calculating bounds,
+    // so it can request a bounds refresh for values observed during this update.
+    updateTypedRenderer()
     syncPointerInputDelegate()
 
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
         val clippedLayerBounds = Rect(position, size)
           .letIf(shouldExpandLayer()) {
-            activeVisualEffect.calculateLayerBounds(it, requireDensity())
+            calculateEffectLayerBounds(it, requireDensity())
           }
           .letIf(shouldClipToAreaBounds()) { rect ->
             var left = Float.POSITIVE_INFINITY
@@ -888,11 +759,11 @@ public constructor(
       } else if (
         state == null &&
         size.isSpecified &&
-        !activeVisualEffect.shouldClipToNodeBounds() &&
+        !shouldClipEffectToNodeBounds() &&
         shouldExpandLayer()
       ) {
         val rect = size.toRect()
-        val expanded = activeVisualEffect.calculateLayerBounds(rect, requireDensity())
+        val expanded = calculateEffectLayerBounds(rect, requireDensity())
         _layerSize = expanded.size
         _layerOffset = rect.topLeft - expanded.topLeft
       } else {
@@ -913,6 +784,30 @@ public constructor(
     }
   }
 
+  private fun calculateEffectLayerBounds(rect: Rect, density: androidx.compose.ui.unit.Density): Rect {
+    val renderer = typedEffectRenderer ?: return rect
+    val modifierBounds = Rect(offset = Offset.Zero, size = rect.size)
+    val scope = HazeEffectLayoutScopeImpl(
+      density = density,
+      node = this,
+      modifierBounds = modifierBounds,
+    )
+    val requiredBounds = with(renderer) {
+      scope.calculateLayerBounds(typedEffectStyle)
+    }
+    return Rect(
+      offset = rect.topLeft + requiredBounds.topLeft,
+      size = requiredBounds.size,
+    )
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun shouldClipEffectToNodeBounds(): Boolean {
+    val renderer = typedEffectRenderer ?: return false
+    return (renderer as? HazeEffectRendererDrawHooks<Any?>)
+      ?.shouldClipToNodeBounds() == true
+  }
+
   private fun rebindTrimMemoryCallback() {
     val lifecycle = lifecycle
     if (trimMemoryCallbackDisposable != null && trimMemoryCallbackLifecycle === lifecycle) return
@@ -928,22 +823,24 @@ public constructor(
   }
 
   private fun dispatchTrimMemory(level: TrimMemoryLevel) {
-    val activeEffect = activeVisualEffect
-    if (activeEffect is TypedHazeEffectVisualEffect) {
-      activeEffect.onTrimMemory(level)
-    } else {
-      activeEffect.onTrimMemory(visualEffectContext, level)
-    }
+    typedEffectRenderer?.onTrimMemory(level)
   }
 
   internal fun invalidateVisualEffectLayerBounds() {
     dirtyTracker += DirtyFields.VisualEffectLayerBounds
-    invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
+    invalidateVisualEffectDraw()
   }
 
   internal fun invalidateVisualEffectDraw() {
-    needsVisualEffectInvalidation = true
-    invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
+    when {
+      isDrawing && !needsNextFrameVisualEffectInvalidation -> {
+        needsNextFrameVisualEffectInvalidation = true
+      }
+      !isDrawing && !needsVisualEffectInvalidation -> {
+        needsVisualEffectInvalidation = true
+        invalidateHazeDraw(HazeInvalidationReason.VisualEffect)
+      }
+    }
   }
 
   internal fun onForegroundContentDraw() {
@@ -957,13 +854,21 @@ public constructor(
 
   private fun onPostDraw() {
     dirtyTracker = Bitmask()
+    val invalidateNextFrame = needsNextFrameVisualEffectInvalidation
     resetPendingInvalidations()
+    if (invalidateNextFrame) {
+      coroutineScope.launch {
+        yield()
+        invalidateVisualEffectDraw()
+      }
+    }
   }
 
   private fun resetPendingInvalidations() {
     needsPreDrawInvalidation = false
     needsDirtyFieldsInvalidation = false
     needsVisualEffectInvalidation = false
+    needsNextFrameVisualEffectInvalidation = false
     needsContentInvalidation = false
   }
 
@@ -976,7 +881,13 @@ public constructor(
         "Dirty params=${DirtyFields.stringify(dirtyTracker)}"
     }
 
-    if (invalidateRequired && !needsDirtyFieldsInvalidation) {
+    if (
+      invalidateRequired &&
+      !needsDirtyFieldsInvalidation &&
+      !needsVisualEffectInvalidation &&
+      !needsPreDrawInvalidation &&
+      !needsContentInvalidation
+    ) {
       needsDirtyFieldsInvalidation = true
       invalidateHazeDraw(HazeInvalidationReason.DirtyFields)
     }
@@ -1036,41 +947,48 @@ public constructor(
     }
   }
 
-  private fun clearRetainedOutput(effect: VisualEffect = activeVisualEffect) {
-    if (effect === activeVisualEffect) {
-      hasRenderedTypedSourceOutput = false
-    }
-    (effect as? RetainedOutputVisualEffect)?.clearRetainedOutput()
+  @OptIn(InternalHazeApi::class)
+  private fun clearRetainedOutput() {
+    hasRenderedTypedSourceOutput = false
+    (typedEffectRenderer as? HazeEffectRendererRetainedOutput)?.clearRetainedOutput()
   }
 
+  @OptIn(InternalHazeApi::class)
   private fun syncPointerInputDelegate() {
-    val interactive = activeVisualEffect as? InteractiveVisualEffect
-    val required = interactive?.observesPointerEvents == true
-    when {
-      required && pointerInputDelegate == null -> {
-        pointerInputDelegate = delegate(
-          HazeEffectPointerInputNode(
-            interactiveEffect = { activeVisualEffect as? InteractiveVisualEffect },
-            context = { visualEffectContext },
-          ),
-        )
+    val interactive = typedEffectRenderer as? HazeEffectRendererInteraction
+    if (interactive != null) {
+      val required = interactive.observesPointerEvents
+      when {
+        required && pointerInputDelegate == null -> {
+          pointerInputDelegate = delegate(
+            HazeEffectPointerInputNode(
+              interactiveRenderer = { typedEffectRenderer as? HazeEffectRendererInteraction },
+              lifecycleScope = { typedLifecycleScope },
+            ),
+          )
+        }
+        !required && pointerInputDelegate != null -> {
+          val current = pointerInputDelegate ?: return
+          current.cancel(interactive)
+          undelegate(current)
+          pointerInputDelegate = null
+        }
       }
-      !required && pointerInputDelegate != null -> {
-        val current = pointerInputDelegate ?: return
-        current.cancel(interactive)
-        undelegate(current)
-        pointerInputDelegate = null
-      }
+      return
+    }
+    pointerInputDelegate?.let { current ->
+      undelegate(current)
+      pointerInputDelegate = null
     }
   }
 
   private inline fun ContentDrawScope.withVisualEffectTransform(
     block: ContentDrawScope.() -> Unit,
   ) {
-    val transform = (activeVisualEffect as? InteractiveVisualEffect)
-      ?.currentContentTransform(visualEffectContext)
-      ?: VisualEffectTransform.Identity
-    if (transform == VisualEffectTransform.Identity) {
+    val transform = (typedEffectRenderer as? HazeEffectRendererInteraction)
+      ?.currentContentTransform()
+      ?: HazeEffectContentTransform.Identity
+    if (transform == HazeEffectContentTransform.Identity) {
       block()
     } else {
       scale(
@@ -1084,20 +1002,47 @@ public constructor(
 
   private fun shouldDrawRetainedOutput(): Boolean {
     return retainOutputWhenSourceUnavailable &&
+      hasRenderedTypedSourceOutput &&
       (
-        activeVisualEffect !is TypedHazeEffectVisualEffect ||
-          hasRenderedTypedSourceOutput
-        ) &&
-      (activeVisualEffect as? RetainedOutputVisualEffect)
-        ?.shouldDrawRetainedOutput(visualEffectContext) == true
+        (typedEffectRenderer as? HazeEffectRendererRetainedOutput)
+          ?.shouldDrawRetainedOutput() ?: true
+        )
   }
 
-  private fun hasDrawableSourceLayers(): Boolean {
+  internal fun hasDrawableSourceLayers(): Boolean {
     return areas.any { area ->
       area.size.isSpecified &&
         area.size.minDimension.roundToInt() >= 1 &&
         area.contentLayer?.isReleased == false
     }
+  }
+
+  internal fun inputSnapshot(): HazeEffectInputSnapshot? {
+    lastInputSnapshot?.takeIf { it.matches(this) }?.let { return it }
+    val snapshots = ArrayList<HazeEffectInputSnapshotEntry>(areas.size)
+    val effectPosition = position
+    for (area in areas) {
+      val layer = area.contentLayer
+        ?.takeUnless { it.isReleased }
+        ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+        ?: continue
+      val sourcePosition = Snapshot.withoutReadObservation {
+        area.coordinates.positionFor(resolvedPositionStrategy)
+      }
+      snapshots += HazeEffectInputSnapshotEntry(
+        areaIdentity = area,
+        layerIdentity = layer,
+        contentVersion = area.contentVersion,
+        position = (
+          sourcePosition.takeIf(Offset::isSpecified) ?: Offset.Zero
+          ) - effectPosition,
+        size = area.size,
+      )
+    }
+    return snapshots
+      .takeIf { it.isNotEmpty() }
+      ?.let(::HazeEffectInputSnapshotImpl)
+      .also { lastInputSnapshot = it }
   }
 
   private companion object {
@@ -1106,8 +1051,8 @@ public constructor(
 }
 
 private class HazeEffectPointerInputNode(
-  private val interactiveEffect: () -> InteractiveVisualEffect?,
-  private val context: () -> VisualEffectContext,
+  private val interactiveRenderer: () -> HazeEffectRendererInteraction?,
+  private val lifecycleScope: () -> HazeEffectLifecycleScope,
 ) : Modifier.Node(), PointerInputModifierNode {
   private var cancellationDelivered = false
 
@@ -1118,83 +1063,106 @@ private class HazeEffectPointerInputNode(
   ) {
     if (pass == PointerEventPass.Final) {
       cancellationDelivered = false
-      interactiveEffect()?.onPointerEvent(pointerEvent, context())
+      interactiveRenderer()?.onPointerEvent(pointerEvent, lifecycleScope())
     }
   }
 
   override fun onCancelPointerInput() {
-    cancel(interactiveEffect())
+    cancel(interactiveRenderer())
   }
 
-  fun cancel(effect: InteractiveVisualEffect?) {
+  fun cancel(renderer: HazeEffectRendererInteraction?) {
     if (!cancellationDelivered) {
       cancellationDelivered = true
-      effect?.onCancelPointerInput(context())
+      renderer?.onCancelPointerInput(lifecycleScope())
     }
+  }
+}
+
+private class HazeEffectInputSnapshotImpl(
+  private val entries: List<HazeEffectInputSnapshotEntry>,
+) : HazeEffectInputSnapshot {
+  fun matches(node: HazeEffectNode): Boolean {
+    val effectPosition = node.position
+    var drawableIndex = 0
+    for (area in node.areas) {
+      val layer = area.contentLayer
+        ?.takeUnless { it.isReleased }
+        ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
+        ?: continue
+      val sourcePosition = Snapshot.withoutReadObservation {
+        area.coordinates.positionFor(node.resolvedPositionStrategy)
+      }
+      val entry = entries.getOrNull(drawableIndex++) ?: return false
+      if (
+        !entry.matches(
+          areaIdentity = area,
+          layerIdentity = layer,
+          contentVersion = area.contentVersion,
+          position = (
+            sourcePosition.takeIf(Offset::isSpecified) ?: Offset.Zero
+            ) - effectPosition,
+          size = area.size,
+        )
+      ) {
+        return false
+      }
+    }
+    return drawableIndex == entries.size
+  }
+
+  override fun equals(other: Any?): Boolean =
+    other is HazeEffectInputSnapshotImpl && entries == other.entries
+
+  override fun hashCode(): Int = entries.hashCode()
+}
+
+private class HazeEffectInputSnapshotEntry(
+  private val areaIdentity: Any,
+  private val layerIdentity: Any,
+  private val contentVersion: Long,
+  private val position: Offset,
+  private val size: Size,
+) {
+  fun matches(
+    areaIdentity: Any,
+    layerIdentity: Any,
+    contentVersion: Long,
+    position: Offset,
+    size: Size,
+  ): Boolean =
+    this.areaIdentity === areaIdentity &&
+      this.layerIdentity === layerIdentity &&
+      this.contentVersion == contentVersion &&
+      this.position == position &&
+      this.size == size
+
+  override fun equals(other: Any?): Boolean =
+    other is HazeEffectInputSnapshotEntry &&
+      areaIdentity === other.areaIdentity &&
+      layerIdentity === other.layerIdentity &&
+      contentVersion == other.contentVersion &&
+      position == other.position &&
+      size == other.size
+
+  override fun hashCode(): Int {
+    var result = areaIdentity.hashCode()
+    result = 31 * result + layerIdentity.hashCode()
+    result = 31 * result + contentVersion.hashCode()
+    result = 31 * result + position.hashCode()
+    return 31 * result + size.hashCode()
   }
 }
 
 internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
 
 internal fun HazeEffectNode.shouldClipToAreaBounds(): Boolean {
-  clipToAreasBounds?.let { return it }
-  return activeVisualEffect.shouldPreferClipToAreaBounds()
-}
-
-private fun VisualEffect.createRenderer(): VisualEffect =
-  (this as? VisualEffectRendererFactory)?.createRenderer() ?: this
-
-// Tracks currently attached effect instances across all nodes.
-// Multiple entries are expected (different effect instances on different nodes),
-// but a single effect instance must never be owned by more than one node.
-// Confined to main-thread access; Compose modifier node callbacks run exclusively on main.
-// Entries are removed in detachVisualEffect(), called from onDetach() which Compose
-// guarantees before the node becomes unreachable.
-private val attachedEffectOwners = mutableListOf<Pair<VisualEffect, HazeEffectNode>>()
-
-internal fun HazeEffectNode.attachVisualEffect(effect: VisualEffect) {
-  if (effect === EmptyVisualEffect) return // No-op singleton; no ownership needed
-
-  val current = attachedEffectOwners
-    .firstOrNull { (attachedEffect, _) -> attachedEffect === effect }
-    ?.second
-
-  check(current == null || current === this) {
-    "VisualEffect instances are single-owner and cannot be shared across multiple hazeEffect nodes."
-  }
-
-  if (current === this) return // Already attached to this node; no-op
-
-  attachedEffectOwners += effect to this
-
-  try {
-    effect.attach(visualEffectContext)
-  } catch (throwable: Throwable) {
-    runCatching { effect.detach(visualEffectContext) }
-      .exceptionOrNull()
-      ?.let(throwable::addSuppressed)
-    attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
-      attachedEffect === effect && attachedNode === this
-    }
-    throw throwable
-  }
-}
-
-internal fun HazeEffectNode.detachVisualEffect(effect: VisualEffect) {
-  if (effect === EmptyVisualEffect) return // No-op singleton; no ownership needed
-
-  try {
-    effect.detach(visualEffectContext)
-  } finally {
-    attachedEffectOwners.removeAll { (attachedEffect, attachedNode) ->
-      attachedEffect === effect && attachedNode === this
-    }
-  }
+  return (typedEffectRenderer as? HazeEffectRendererDrawHooks<Any?>)
+    ?.shouldPreferClipToInputBounds() == true
 }
 
 internal fun HazeEffectNode.shouldExpandLayer(): Boolean {
-  expandLayerBounds?.let { return it }
-  return true
+  return expandLayerBounds
 }
 
 /**
@@ -1207,7 +1175,6 @@ internal fun HazeEffectNode.shouldExpandLayer(): Boolean {
  *   like Dialogs.
  */
 internal fun HazeEffectNode.shouldUsePreDrawListener(): Boolean {
-  if (forceInvalidateOnPreDraw) return true
   if (invalidateOnHazeAreaPreDraw()) return true
   if (areas.any { it.windowId != windowId }) return true
   return false
@@ -1215,39 +1182,28 @@ internal fun HazeEffectNode.shouldUsePreDrawListener(): Boolean {
 
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {
-  const val InputScale: Int = 0b1
-  const val Position: Int = InputScale shl 1
+  const val Position: Int = 0b1
   const val AreaOffsets: Int = Position shl 1
   const val AreaPositionReads: Int = AreaOffsets shl 1
   const val Size: Int = AreaPositionReads shl 1
   const val Areas: Int = Size shl 1
   const val LayerSize: Int = Areas shl 1
   const val LayerOffset: Int = LayerSize shl 1
-  const val DrawContentBehind: Int = LayerOffset shl 1
-  const val ClipToAreas: Int = DrawContentBehind shl 1
-  const val ExpandLayer: Int = ClipToAreas shl 1
-  const val RetainOutput: Int = ExpandLayer shl 1
-  const val ForcePreDraw: Int = RetainOutput shl 1
-  const val VisualEffectLayerBounds: Int = ForcePreDraw shl 1
+  const val ExpandLayer: Int = LayerOffset shl 1
+  const val VisualEffectLayerBounds: Int = ExpandLayer shl 1
 
   const val InvalidateFlags: Int =
-    InputScale or
-      Size or
+    Size or
       Position or
       AreaOffsets or
       LayerSize or
       LayerOffset or
       Areas or
-      DrawContentBehind or
-      ClipToAreas or
       ExpandLayer or
-      RetainOutput or
-      ForcePreDraw or
       VisualEffectLayerBounds
 
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
-      if (InputScale in dirtyTracker) add("InputScale")
       if (Position in dirtyTracker) add("Position")
       if (AreaOffsets in dirtyTracker) add("AreaOffsets")
       if (AreaPositionReads in dirtyTracker) add("AreaPositionReads")
@@ -1255,11 +1211,7 @@ internal object DirtyFields {
       if (LayerSize in dirtyTracker) add("LayerSize")
       if (LayerOffset in dirtyTracker) add("LayerOffset")
       if (Areas in dirtyTracker) add("Areas")
-      if (DrawContentBehind in dirtyTracker) add("DrawContentBehind")
-      if (ClipToAreas in dirtyTracker) add("ClipToAreas")
       if (ExpandLayer in dirtyTracker) add("ExpandLayer")
-      if (RetainOutput in dirtyTracker) add("RetainOutput")
-      if (ForcePreDraw in dirtyTracker) add("ForcePreDraw")
       if (VisualEffectLayerBounds in dirtyTracker) add("VisualEffectLayerBounds")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
@@ -1280,6 +1232,4 @@ internal val LayerBoundsDirtyFields: Int =
     DirtyFields.Size or
     DirtyFields.Areas or
     DirtyFields.ExpandLayer or
-    DirtyFields.ClipToAreas or
-    DirtyFields.RetainOutput or
     DirtyFields.VisualEffectLayerBounds

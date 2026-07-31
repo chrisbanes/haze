@@ -15,8 +15,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
-import assertk.assertions.containsExactly
-import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
@@ -148,30 +146,6 @@ class HazeEffectFactoryLifecycleTest : ContextTest() {
 
     assertThat(firstFactory.renderers.single().disposeCalls).isEqualTo(1)
     assertThat(secondFactory.renderers.single().disposeCalls).isEqualTo(0)
-  }
-
-  @Test
-  fun trimMemory_forwardsOnlyToTheTargetRenderer() {
-    val first = RecordingRenderer()
-    val second = RecordingRenderer()
-    val firstRuntime = TypedHazeEffectVisualEffectImpl(
-      renderer = first,
-      style = RecordingStyle("first"),
-      sampling = HazeSampling.Default,
-    )
-    val secondRuntime = TypedHazeEffectVisualEffectImpl(
-      renderer = second,
-      style = RecordingStyle("second"),
-      sampling = HazeSampling.Default,
-    )
-
-    firstRuntime.onTrimMemory(TrimMemoryLevel.BACKGROUND)
-    assertThat(first.trimLevels).containsExactly(TrimMemoryLevel.BACKGROUND)
-    assertThat(second.trimLevels).isEmpty()
-
-    secondRuntime.onTrimMemory(TrimMemoryLevel.COMPLETE)
-    assertThat(first.trimLevels).containsExactly(TrimMemoryLevel.BACKGROUND)
-    assertThat(second.trimLevels).containsExactly(TrimMemoryLevel.COMPLETE)
   }
 }
 

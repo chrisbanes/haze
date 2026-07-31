@@ -4,7 +4,7 @@
 package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.geometry.Size
-import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeSampling
 
 /**
  * Resolves automatic blur input scaling while retaining the previous automatic tier for
@@ -15,13 +15,13 @@ internal class BlurInputScalePolicy {
   private var previousProgressive: Boolean? = null
 
   fun resolve(
-    requestedScale: HazeInputScale,
+    requestedScale: HazeSampling,
     blurRadiusPx: Float,
     layerSize: Size,
     progressive: Boolean = false,
   ): Float {
     return when {
-      requestedScale === HazeInputScale.Default || requestedScale === HazeInputScale.Auto -> {
+      requestedScale === HazeSampling.Default || requestedScale === HazeSampling.Adaptive -> {
         if (previousProgressive != progressive) {
           previousAutomaticScale = NONE_SCALE
         }
@@ -35,7 +35,7 @@ internal class BlurInputScalePolicy {
         }
       }
 
-      requestedScale is HazeInputScale.Fixed -> {
+      requestedScale is HazeSampling.Fixed -> {
         reset()
         requestedScale.scale
       }

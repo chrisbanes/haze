@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
-import dev.chrisbanes.haze.blur.BlurVisualEffect
+import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -22,17 +22,17 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
 
   @Test
   fun adaptiveTiers_preserveRepresentativeBlurQuality() = runScreenshotTest {
-    val effect = BlurVisualEffect().apply { blurRadius = 12.dp }
-    var inputScale by mutableStateOf<HazeInputScale>(HazeInputScale.None)
+    var effect by mutableStateOf(HazeBlurStyle { blurRadius(12.dp) })
+    var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(effect, inputScale = inputScale)
+        CreditCardContentBlurring(effect, sampling = sampling)
       }
     }
 
     val balancedReference = captureRootPixels().snapshot()
-    inputScale = HazeInputScale.Default
+    sampling = HazeSampling.Default
     waitForIdle()
     val balancedAdaptive = captureRootPixels().snapshot()
     captureRoot("balanced")
@@ -42,11 +42,11 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
       expectsScaledBlur = supportsRuntimeBlur,
     )
 
-    effect.blurRadius = 24.dp
-    inputScale = HazeInputScale.None
+    effect = effect.then { blurRadius(24.dp) }
+    sampling = HazeSampling.FullResolution
     waitForIdle()
     val aggressiveReference = captureRootPixels().snapshot()
-    inputScale = HazeInputScale.Default
+    sampling = HazeSampling.Default
     waitForIdle()
     val aggressiveAdaptive = captureRootPixels().snapshot()
     captureRoot("aggressive")
@@ -59,20 +59,20 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
 
   @Test
   fun progressiveDefault_preservesGeometryAtBalancedCap() = runScreenshotTest {
-    val effect = BlurVisualEffect().apply {
-      blurRadius = 24.dp
-      progressive = HazeProgressive.verticalGradient()
+    val effect = HazeBlurStyle {
+      blurRadius(24.dp)
+      progressive(HazeProgressive.verticalGradient())
     }
-    var inputScale by mutableStateOf<HazeInputScale>(HazeInputScale.None)
+    var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(effect, inputScale = inputScale)
+        CreditCardContentBlurring(effect, sampling = sampling)
       }
     }
 
     val reference = captureRootPixels().snapshot()
-    inputScale = HazeInputScale.Default
+    sampling = HazeSampling.Default
     waitForIdle()
     val adaptive = captureRootPixels().snapshot()
     captureRoot()
@@ -86,20 +86,22 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
 
   @Test
   fun gradientAndHardEdgedMasks_useOrdinaryLadder() = runScreenshotTest {
-    val effect = BlurVisualEffect().apply {
-      blurRadius = 24.dp
-      mask = Brush.verticalGradient(listOf(Color.Black, Color.Transparent))
-    }
-    var inputScale by mutableStateOf<HazeInputScale>(HazeInputScale.None)
+    var effect by mutableStateOf(
+      HazeBlurStyle {
+        blurRadius(24.dp)
+        mask(Brush.verticalGradient(listOf(Color.Black, Color.Transparent)))
+      },
+    )
+    var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(effect, inputScale = inputScale)
+        CreditCardContentBlurring(effect, sampling = sampling)
       }
     }
 
     val gradientReference = captureRootPixels().snapshot()
-    inputScale = HazeInputScale.Default
+    sampling = HazeSampling.Default
     waitForIdle()
     val gradientAdaptive = captureRootPixels().snapshot()
     gradientReference.assertPerceptuallyCloseTo(
@@ -108,16 +110,20 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
       expectsScaledBlur = supportsRuntimeBlur,
     )
 
-    effect.mask = Brush.verticalGradient(
-      0f to Color.Black,
-      0.49f to Color.Black,
-      0.51f to Color.Transparent,
-      1f to Color.Transparent,
-    )
-    inputScale = HazeInputScale.None
+    effect = effect.then {
+      mask(
+        Brush.verticalGradient(
+          0f to Color.Black,
+          0.49f to Color.Black,
+          0.51f to Color.Transparent,
+          1f to Color.Transparent,
+        ),
+      )
+    }
+    sampling = HazeSampling.FullResolution
     waitForIdle()
     val hardEdgeReference = captureRootPixels().snapshot()
-    inputScale = HazeInputScale.Default
+    sampling = HazeSampling.Default
     waitForIdle()
     val hardEdgeAdaptive = captureRootPixels().snapshot()
     captureRoot()
@@ -130,19 +136,19 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
 
   @Test
   fun boundaryHysteresis_preservesTierUntilExitMargin() = runScreenshotTest {
-    val effect = BlurVisualEffect().apply { blurRadius = 12.dp }
+    var effect by mutableStateOf(HazeBlurStyle { blurRadius(12.dp) })
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(effect, inputScale = HazeInputScale.Default)
+        CreditCardContentBlurring(effect, sampling = HazeSampling.Default)
       }
     }
 
-    effect.blurRadius = 11.25.dp
+    effect = effect.then { blurRadius(11.25.dp) }
     waitForIdle()
     captureRoot("held")
 
-    effect.blurRadius = 10.dp
+    effect = effect.then { blurRadius(10.dp) }
     waitForIdle()
     captureRoot("exited")
   }

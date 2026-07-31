@@ -13,10 +13,10 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.withGraphicsLayer
 
@@ -28,7 +28,7 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   drawScope: DrawScope,
   progressive: RootHazeProgressive,
   contentLayer: GraphicsLayer,
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
 ) {
   if (USE_RUNTIME_SHADER && Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
@@ -63,7 +63,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   drawScope: DrawScope,
   progressive: RootHazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
 ) = with(drawScope) {
   val colorEffects = blurVisualEffect.colorEffects
   val noiseFactor = blurVisualEffect.noiseFactor

@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.roundToIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.MutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.PlatformRenderEffect
@@ -25,7 +27,6 @@ import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.RuntimeShaderUniformProvider
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.createBlendRenderEffect
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
@@ -133,7 +134,7 @@ internal class RuntimeShaderGlassDelegate(
   private var preparedSourceAvailable: Boolean = false
   private var preparedStageAvailability: GlassStageAvailability? = null
   private var retainedOutputAvailable: Boolean = false
-  internal var lastSuccessfulSourceSnapshot: GlassSourceSnapshot? = null
+  internal var lastSuccessfulSourceSnapshot: GlassRuntimeSourceSnapshot? = null
     private set
   internal var lastSuccessfulStageInputs: GlassStageInputs? = null
     private set
@@ -167,7 +168,7 @@ internal class RuntimeShaderGlassDelegate(
       rim = rimRecordCount,
     )
 
-  override fun DrawScope.prepareDraw(context: VisualEffectContext) {
+  override fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) {
     val currentPreparedRender = effect.preparedRender
     if (
       effect.preparedRenderBudget !is GlassRenderBudgetDecision.Runtime ||
@@ -377,7 +378,7 @@ internal class RuntimeShaderGlassDelegate(
     }
   }
 
-  override fun DrawScope.draw(context: VisualEffectContext): Unit =
+  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope): Unit =
     trace(GlassTraceSection.RuntimeDraw) {
       val render = preparedRender ?: return
       val params = preparedParams ?: return
@@ -406,7 +407,7 @@ internal class RuntimeShaderGlassDelegate(
           detail = render.refractionDetailKey,
           rim = render.rimKey,
         )
-        val sourceState = context.resolveGlassSourceState(
+        val sourceState = context.resolveGlassRuntimeSourceState(
           captureScale = params.coordinates.scaleFactor,
           previousSnapshot = lastSuccessfulSourceSnapshot,
         )
@@ -746,7 +747,7 @@ internal class RuntimeShaderGlassDelegate(
       }
     }
 
-  override fun DrawScope.drawForeground(context: VisualEffectContext): Unit =
+  override fun DrawScope.drawForeground(context: HazeEffectRuntimeDrawScope): Unit =
     trace(GlassTraceSection.Compose) {
       val render = preparedRender ?: return
       val params = preparedParams ?: return
@@ -873,7 +874,7 @@ internal class RuntimeShaderGlassDelegate(
     releaseRetainedResources(releaseShaderHandles = true)
   }
 
-  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+  override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
     if (shouldReleaseRetainedGlass(level)) {
       releaseRetainedResources(graphicsContext ?: context.requireGraphicsContext())
       context.invalidateDraw()
@@ -976,15 +977,10 @@ internal class RuntimeShaderGlassDelegate(
   }
 
   private fun DrawScope.recordSource(
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
   ): GraphicsLayer? {
-    val hasDrawableSource = context.areas.any { area ->
-      area.contentLayer
-        ?.takeUnless { it.isReleased }
-        ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 } != null
-    }
-    if (!hasDrawableSource) {
+    if (!context.hasDrawableInput) {
       return layers.source
         ?.takeUnless { it.isReleased }
         ?.takeIf { retainedOutputAvailable }
@@ -1501,7 +1497,7 @@ internal class RuntimeShaderGlassDelegate(
 
   private fun DrawScope.drawCompletedLayer(
     layer: GraphicsLayer,
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
     alpha: Float,
   ) {
@@ -1520,7 +1516,7 @@ internal class RuntimeShaderGlassDelegate(
     optical: GraphicsLayer,
     interactionOutput: GraphicsLayer?,
     interactionPatch: GlassInteractionPatch?,
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
   ) {
     drawCompletedLayer(optical, context, params, alpha = 1f)
@@ -1539,7 +1535,7 @@ internal class RuntimeShaderGlassDelegate(
   private fun DrawScope.drawCompletedPatch(
     layer: GraphicsLayer,
     patch: GlassInteractionPatch,
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     params: GlassRenderParams,
     blendMode: BlendMode,
     alpha: Float,

@@ -33,11 +33,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.compose.ui.unit.toIntSize
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.asBrush
 import dev.chrisbanes.haze.trace
 import dev.chrisbanes.haze.traceAsync
@@ -77,7 +78,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
   private val contentLayer: GraphicsLayer = graphicsContext.createGraphicsLayer()
 
-  override fun DrawScope.draw(context: VisualEffectContext) {
+  override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
     val density = context.requireDensity()
     val offset = context.layerOffset
     var scaleFactor = blurVisualEffect.resolveInputScaleFactor(context)
@@ -94,7 +95,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
     HazeLogger.d(TAG) { "drawEffect. blurRadius=${blurRadiusPx}px. scaleFactor=$scaleFactor" }
 
-    val hasDrawableSourceLayers = context.hasDrawableSourceLayers()
+    val hasDrawableSourceLayers = context.hasDrawableInput
 
     if (hasDrawableSourceLayers && shouldUpdateLayer()) {
       drawSkipped = false
@@ -222,7 +223,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
     else -> false
   }
 
-  override fun onTrimMemory(context: VisualEffectContext, level: TrimMemoryLevel) {
+  override fun onTrimMemory(context: HazeEffectLifecycleScope, level: TrimMemoryLevel) {
     if (level.severity >= TrimMemoryLevel.MODERATE.severity) {
       currentJob?.cancel()
       renderScriptContext?.release()
@@ -250,7 +251,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private suspend fun updateSurface(
     content: GraphicsLayer,
     blurRadius: Float,
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
     density: Density,
     retainedOutputGenerationAtStart: Int,
   ) {
@@ -356,7 +357,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private fun padToMultipleOf4(
     layer: GraphicsLayer,
     density: Density,
-    context: VisualEffectContext,
+    context: HazeEffectRuntimeDrawScope,
   ): GraphicsLayer {
     val size = layer.size
     val paddedWidth = ((size.width + 3) / 4) * 4
@@ -423,7 +424,7 @@ internal class RenderScriptBlurVisualEffectDelegate(
 
     fun createOrNull(
       effect: BlurVisualEffect,
-      context: VisualEffectContext,
+      context: HazeEffectRuntimeDrawScope,
     ): RenderScriptBlurVisualEffectDelegate? {
       if (isEnabled) {
         return runCatching {
@@ -461,14 +462,6 @@ private fun Surface.drawGraphicsLayer(
         drawLayer(layer)
       }
     }
-  }
-}
-
-private fun VisualEffectContext.hasDrawableSourceLayers(): Boolean {
-  return areas.any { area ->
-    area.contentLayer
-      ?.takeUnless { it.isReleased }
-      ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 } != null
   }
 }
 

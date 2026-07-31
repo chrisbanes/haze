@@ -7,7 +7,7 @@ import androidx.compose.ui.geometry.Size
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
-import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeSampling
 import kotlin.test.Test
 
 class BlurInputScalePolicyTest {
@@ -21,11 +21,11 @@ class BlurInputScalePolicyTest {
     )
 
     assertThat(
-      policy.resolve(HazeInputScale.None, BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX, largeWorkload),
+      policy.resolve(HazeSampling.FullResolution, BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX, largeWorkload),
     ).isEqualTo(1f)
     assertThat(
       policy.resolve(
-        HazeInputScale.Fixed(0.67f),
+        HazeSampling.Fixed(0.67f),
         BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
         largeWorkload,
       ),
@@ -43,14 +43,14 @@ class BlurInputScalePolicyTest {
 
     assertThat(
       defaultPolicy.resolve(
-        HazeInputScale.Default,
+        HazeSampling.Default,
         BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
         largeWorkload,
       ),
     ).isEqualTo(0.5f)
     assertThat(
       autoPolicy.resolve(
-        HazeInputScale.Auto,
+        HazeSampling.Adaptive,
         BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
         largeWorkload,
       ),
@@ -170,7 +170,7 @@ class BlurInputScalePolicyTest {
       ),
     ).isEqualTo(0.5f)
     policy.resolve(
-      requestedScale = HazeInputScale.None,
+      requestedScale = HazeSampling.FullResolution,
       blurRadiusPx = 0f,
       layerSize = Size.Zero,
     )
@@ -208,7 +208,7 @@ class BlurInputScalePolicyTest {
     areaPx: Float,
     progressive: Boolean = false,
   ): Float = resolve(
-    requestedScale = HazeInputScale.Auto,
+    requestedScale = HazeSampling.Adaptive,
     blurRadiusPx = radiusPx,
     layerSize = Size(areaPx, 1f),
     progressive = progressive,

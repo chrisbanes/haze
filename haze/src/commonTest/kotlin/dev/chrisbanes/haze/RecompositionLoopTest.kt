@@ -17,7 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -57,22 +56,6 @@ class RecompositionLoopTest : ContextTest() {
   }
 
   @Test
-  fun positionStrategyMutation_doesNotInfiniteLoop() = runComposeUiTest {
-    val hazeState = HazeState()
-
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
-      }
-    }
-    waitForIdle()
-
-    hazeState.positionStrategy = HazePositionStrategy.Screen
-
-    awaitIdleWithTimeout("after positionStrategy mutation")
-  }
-
-  @Test
   fun addingSourceNode_doesNotInfiniteLoop() = runComposeUiTest {
     val hazeState = HazeState()
     val showSource = mutableStateOf(false)
@@ -81,7 +64,7 @@ class RecompositionLoopTest : ContextTest() {
       if (showSource.value) {
         GradientBox(Modifier.hazeSource(hazeState).size(50.dp))
       }
-      GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
+      GradientBox(Modifier.testHazeEffect(hazeState).size(100.dp))
     }
     waitForIdle()
 
@@ -99,7 +82,7 @@ class RecompositionLoopTest : ContextTest() {
       if (showSource.value) {
         GradientBox(Modifier.hazeSource(hazeState).size(50.dp))
       }
-      GradientBox(Modifier.hazeEffect(hazeState).size(100.dp))
+      GradientBox(Modifier.testHazeEffect(hazeState).size(100.dp))
     }
     waitForIdle()
 
@@ -113,16 +96,17 @@ class RecompositionLoopTest : ContextTest() {
     val hazeState = HazeState()
     val showDialog = mutableStateOf(false)
     val detector = LivelockDetector()
-    val hostEffect = LoopDetectingVisualEffect(detector::onUpdate)
-    val dialogEffect = LoopDetectingVisualEffect(detector::onUpdate)
+    val factory = LoopDetectingRendererFactory(detector::onUpdate)
 
     setContent {
       Box(Modifier.hazeSource(hazeState).size(100.dp)) {
         GradientBox(
           Modifier
-            .hazeEffect(hazeState) {
-              visualEffect = hostEffect
-            }
+            .hazeEffect(
+              factory = factory,
+              input = HazeInput.Sources(hazeState),
+              style = Unit,
+            )
             .size(100.dp),
         )
       }
@@ -131,9 +115,11 @@ class RecompositionLoopTest : ContextTest() {
         Dialog(onDismissRequest = {}) {
           GradientBox(
             Modifier
-              .hazeEffect(hazeState) {
-                visualEffect = dialogEffect
-              }
+              .hazeEffect(
+                factory = factory,
+                input = HazeInput.Sources(hazeState),
+                style = Unit,
+              )
               .size(100.dp),
           )
         }
@@ -145,54 +131,6 @@ class RecompositionLoopTest : ContextTest() {
     showDialog.value = true
 
     awaitIdleWithTimeout("after opening dialog with shared HazeState")
-  }
-
-  @Test
-  fun blurEffectBlockMutation_doesNotInfiniteLoop() = runComposeUiTest {
-    val hazeState = HazeState()
-    val drawBehind = mutableStateOf(false)
-
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              drawContentBehind = drawBehind.value
-            }
-            .size(100.dp),
-        )
-      }
-    }
-    waitForIdle()
-
-    drawBehind.value = true
-
-    awaitIdleWithTimeout("after blur effect block mutation")
-  }
-
-  @Test
-  fun rapidAlternatingMutations_doNotInfiniteLoop() = runComposeUiTest {
-    val hazeState = HazeState()
-    val flag = mutableStateOf(false)
-
-    setContent {
-      Box(Modifier.hazeSource(hazeState).size(100.dp)) {
-        GradientBox(
-          Modifier
-            .hazeEffect(hazeState) {
-              drawContentBehind = flag.value
-            }
-            .size(100.dp),
-        )
-      }
-    }
-    waitForIdle()
-
-    // Alternate quickly to mimic interactive toggles and catch feedback loops.
-    repeat(5) {
-      flag.value = !flag.value
-      awaitIdleWithTimeout("on alternating mutation #$it")
-    }
   }
 
   @Test
@@ -220,7 +158,7 @@ class RecompositionLoopTest : ContextTest() {
 
         GradientBox(
           Modifier
-            .hazeEffect(hazeState)
+            .testHazeEffect(hazeState)
             .fillMaxWidth()
             .height(56.dp),
         )
@@ -258,7 +196,7 @@ class RecompositionLoopTest : ContextTest() {
 
         GradientBox(
           Modifier
-            .hazeEffect(hazeState)
+            .testHazeEffect(hazeState)
             .fillMaxWidth()
             .height(56.dp),
         )
@@ -372,14 +310,25 @@ private fun GradientBox(modifier: Modifier = Modifier) {
   )
 }
 
-private class LoopDetectingVisualEffect(
+private class LoopDetectingRendererFactory(
   private val onUpdate: () -> Unit,
-) : VisualEffect {
-  override fun update(context: VisualEffectContext) {
+) : HazeEffectFactory<Unit> {
+  override fun createRenderer(): HazeEffectRenderer<Unit> = LoopDetectingRenderer(onUpdate)
+}
+
+@OptIn(InternalHazeApi::class)
+private class LoopDetectingRenderer(
+  private val onUpdate: () -> Unit,
+) : HazeEffectRenderer<Unit>, HazeEffectRendererLifecycle<Unit> {
+  override fun update(
+    scope: HazeEffectLifecycleScope,
+    style: Unit,
+    sampling: HazeSampling,
+  ) {
     onUpdate()
   }
 
-  override fun DrawScope.draw(context: VisualEffectContext) = Unit
+  override fun HazeEffectDrawScope.draw(style: Unit) = Unit
 }
 
 /**
@@ -419,7 +368,8 @@ internal class LivelockDetector(
     }
     if (recentUpdates.size > maxUpdatesPerWindow) {
       throw AssertionError(
-        "Livelock detected: VisualEffect.update() fired ${recentUpdates.size} times " +
+        "Livelock detected: HazeEffectRendererLifecycle.update() fired " +
+          "${recentUpdates.size} times " +
           "within $window (threshold = $maxUpdatesPerWindow).",
       )
     }

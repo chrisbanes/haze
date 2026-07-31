@@ -23,7 +23,7 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.positionChangedIgnoreConsumed
-import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -164,11 +164,11 @@ internal fun selectTransitionSpec(
 }
 
 internal class GlassInteractionController(
-  context: VisualEffectContext,
+  context: HazeEffectLifecycleScope,
 ) {
   private val scope = context.coroutineScope
   private val hasFrameClock = scope.coroutineContext[MonotonicFrameClock] != null
-  private val sizeProvider = { context.size }
+  private val sizeProvider = { context.modifierSize }
   private val invalidateDraw = context::invalidateDraw
   private val lightingIntensity = AnimatedFloatChannel(0f, scope, invalidateDraw)
   private val refractionMultiplier = AnimatedFloatChannel(1f, scope, invalidateDraw)

@@ -6,10 +6,10 @@ package dev.chrisbanes.haze.blur
 import android.os.Build
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
-import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 
 internal actual fun BlurVisualEffect.updateDelegate(
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
   drawScope: DrawScope,
 ): BlurVisualEffect.Delegate {
   val canUseRenderEffect = canUseRenderEffect(

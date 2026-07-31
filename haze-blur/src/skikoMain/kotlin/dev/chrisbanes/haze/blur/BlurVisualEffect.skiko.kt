@@ -4,10 +4,10 @@
 package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import dev.chrisbanes.haze.VisualEffectContext
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 
 internal actual fun BlurVisualEffect.updateDelegate(
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
   drawScope: DrawScope,
 ): BlurVisualEffect.Delegate {
   return when {

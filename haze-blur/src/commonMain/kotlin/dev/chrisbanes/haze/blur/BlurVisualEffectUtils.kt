@@ -15,11 +15,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.takeOrElse
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
-import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.trace
 
 /**
@@ -32,7 +32,7 @@ internal fun BlurVisualEffect.calculateBlurTileMode(): TileMode = when (blurredE
 
 @OptIn(ExperimentalHazeApi::class)
 internal fun BlurVisualEffect.getOrCreateRenderEffect(
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
   inputScale: Float = resolveInputScaleFactor(context),
   blurRadius: Dp = this.blurRadius.takeOrElse { 0.dp },
   noiseFactor: Float = this.noiseFactor,
@@ -120,7 +120,7 @@ internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEf
 
 @OptIn(ExperimentalHazeApi::class)
 private fun BlurVisualEffect.getOrCreateRenderEffect(
-  context: VisualEffectContext,
+  context: HazeEffectRuntimeDrawScope,
   params: RenderEffectParams,
 ): RenderEffect? {
   HazeLogger.d(BlurVisualEffect.TAG) { "getOrCreateRenderEffect: $params" }

@@ -9,7 +9,6 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -30,13 +29,14 @@ import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeArea
-import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeEffectInputSnapshot
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
-import dev.chrisbanes.haze.VisualEffectContext
 import dev.chrisbanes.haze.createMutableRuntimeShaderRenderEffect
 import dev.chrisbanes.haze.createRuntimeEffect
 import kotlin.coroutines.CoroutineContext
@@ -257,7 +257,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(secondRuntime !== firstRuntime).isTrue()
     assertThat(secondRuntime.layers.hasSource).isTrue()
     assertThat(secondRuntime.layers.hasOptical).isTrue()
-    effect.detach(safeContext)
+    effect.detach()
   }
 
   @Test
@@ -306,13 +306,13 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
     assertThat(creationAttempts).isEqualTo(2)
 
-    effect.detach(context)
+    effect.detach()
     effect.attach(context)
     effect.prepareDrawForTest(context)
 
     assertThat(effect.delegate).isInstanceOf<FallbackGlassDelegate>()
     assertThat(creationAttempts).isEqualTo(4)
-    effect.detach(context)
+    effect.detach()
   }
 
   @Test
@@ -333,7 +333,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       effect.prepareDrawForTest(context)
     }.isInstanceOf<IllegalStateException>()
     assertThat(effect.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
-    effect.detach(context)
+    effect.detach()
   }
 
   @Test
@@ -360,7 +360,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     assertThat(effect.delegate is FallbackGlassDelegate).isTrue()
     assertThat(effect.preparedRender).isNull()
     assertThat(graphicsContext.events.filterIsInstance<LayerEvent.Create>()).isEqualTo(emptyList())
-    effect.detach(context)
+    effect.detach()
   }
 
   @Test
@@ -747,10 +747,32 @@ private fun RuntimeShaderGlassDelegate.prepareDrawForTest(
 }
 
 private fun GlassRuntimeEffect.prepareDrawForTest(context: RecordingVisualEffectContext) {
-  with(CanvasDrawScope()) {
-    with(this@prepareDrawForTest) { prepareDraw(context) }
+  val configuration = configuration()
+  with(this) {
+    with(context) {
+      prepareDraw(configuration)
+    }
   }
 }
+
+private fun GlassRuntimeEffect.update(context: RecordingVisualEffectContext) {
+  update(
+    scope = context,
+    style = configuration(),
+    sampling = HazeSampling.Default,
+  )
+}
+
+private fun GlassRuntimeEffect.configuration(): GlassNodeConfiguration =
+  GlassNodeConfiguration(
+    style = style,
+    interactionSource = interactionSource,
+    interactionLightRadiusFraction = interactionLightRadiusFraction,
+    interactionTransformTarget = interactionTransformTarget,
+    interactionTransformPivot = interactionTransformPivot,
+    interactionPositionAnimationSpec = interactionPositionAnimationSpec,
+    interactionReducedMotionPolicy = interactionReducedMotionPolicy,
+  )
 
 private fun RuntimeShaderGlassDelegate.setGraphicsContextForTest(
   graphicsContext: GraphicsContext,
@@ -774,7 +796,12 @@ private fun RuntimeShaderGlassDelegate.seedSuccessfulCacheMetadata(
     isAccessible = true
     set(
       this@seedSuccessfulCacheMetadata,
-      GlassSourceSnapshot(1f, Size(1f, 1f), Offset.Zero, emptyList()),
+      GlassRuntimeSourceSnapshot(
+        captureScale = 1f,
+        layerSize = Size(1f, 1f),
+        layerOffset = Offset.Zero,
+        inputSnapshot = TestInputSnapshot,
+      ),
     )
   }
   javaClass.getDeclaredField("lastSuccessfulStageInputs").apply {
@@ -799,31 +826,26 @@ private fun RuntimeShaderGlassDelegate.seedRetainedOutputAvailable() {
   }
 }
 
-@OptIn(InternalComposeUiApi::class)
+@OptIn(InternalComposeUiApi::class, InternalHazeApi::class)
 private class RecordingVisualEffectContext(
   override val size: Size = Size.Zero,
   override val layerSize: Size = Size.Zero,
   private val failIfBuildRenderParamsReached: Boolean = false,
   val graphicsContext: TestGraphicsContext = TestGraphicsContext(),
-) : VisualEffectContext {
+) : HazeEffectRuntimeDrawScope,
+  HazeEffectLifecycleScope,
+  androidx.compose.ui.graphics.drawscope.DrawScope by CanvasDrawScope() {
   var invalidateDrawCalls = 0
     private set
 
-  override val position: Offset = Offset.Zero
+  override val modifierSize: Size get() = size
+  override val modifierBounds: Rect get() = Rect(Offset.Zero, size)
+  override val sampling: HazeSampling = HazeSampling.Default
   override val layerOffset: Offset = Offset.Zero
-  override val rootBounds: Rect = Rect.Zero
-  override val inputScale: HazeInputScale = HazeInputScale.None
-  override val windowId: Any? = null
-  override val areas: List<HazeArea> = emptyList()
-  override val state: HazeState? = null
+  override val hasDrawableInput: Boolean = true
+  override val inputSnapshot: HazeEffectInputSnapshot = TestInputSnapshot
   override val coroutineScope: CoroutineScope = object : CoroutineScope {
     override val coroutineContext: CoroutineContext = EmptyCoroutineContext
-  }
-
-  override fun positionOf(area: HazeArea): Offset = area.coordinates.localPosition
-  override fun boundsOf(area: HazeArea): Rect? {
-    val position = area.coordinates.localPosition
-    return if (position.isSpecified && area.size.isSpecified) Rect(position, area.size) else null
   }
 
   override fun requirePlatformContext(): PlatformContext = error("Unused in trim-memory tests")
@@ -838,10 +860,19 @@ private class RecordingVisualEffectContext(
   }
   override fun requireGraphicsContext(): GraphicsContext = graphicsContext
 
+  override fun drawInput() = Unit
+
+  override fun androidx.compose.ui.graphics.drawscope.DrawScope.drawInput() = Unit
+
   override fun invalidateDraw() {
     invalidateDrawCalls++
   }
+
+  override fun invalidateLayerBounds() = Unit
 }
+
+@OptIn(InternalHazeApi::class)
+private object TestInputSnapshot : HazeEffectInputSnapshot
 
 @OptIn(InternalComposeUiApi::class)
 private class TestGraphicsContext : GraphicsContext {

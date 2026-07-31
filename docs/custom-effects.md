@@ -141,19 +141,12 @@ effects. On Desktop and Web, an attached effect receives `TrimMemoryLevel.MODERA
 composition lifecycle reaches `ON_STOP`. Discard only resources that can be rebuilt: the next draw
 that needs them must recreate valid output.
 
-Direct `HazeEffectNode` construction is deprecated and does not receive automatic Desktop or Web
-lifecycle trimming. Custom modifier extensions should migrate to the typed `Modifier.hazeEffect`
-overload with a `HazeEffectFactory`; the node type will become internal in
-[#1132](https://github.com/chrisbanes/haze/issues/1132).
+The typed `Modifier.hazeEffect` overload is the only custom-effect extension seam.
+`HazeEffectNode`, `HazeSourceNode`, source areas, coordinates, captured layers, and built-in
+renderer capabilities are implementation details owned by Haze.
 
 Platform-specific renderer internals can use `expect`/`actual` declarations in the effect module.
 The public renderer contract intentionally does not expose platform delegates or captured layers.
-
-## Temporary legacy path
-
-`VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, and the lambda-based `hazeEffect`
-overloads remain available while built-in and existing third-party effects migrate. They are a
-temporary compatibility path, not the recommended extension seam for new effects.
 
 See
 [`CustomVisualEffectSample.kt`](https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/CustomVisualEffectSample.kt)

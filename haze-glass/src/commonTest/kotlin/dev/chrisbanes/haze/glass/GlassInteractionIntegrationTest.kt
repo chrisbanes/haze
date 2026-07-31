@@ -34,11 +34,11 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeEffectNode
-import dev.chrisbanes.haze.HazeEffectScope
+import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
@@ -50,6 +50,8 @@ import kotlin.test.Test
 )
 class GlassInteractionIntegrationTest : ContextTest() {
   private val attachedRuntimes = mutableMapOf<GlassRuntimeEffect, GlassRuntimeEffect>()
+  private val rendererFactories =
+    mutableMapOf<GlassRuntimeEffect, HazeEffectFactory<GlassNodeConfiguration>>()
 
   @Test
   fun interactiveGlass_doesNotBlockClick() = runComposeUiTest {
@@ -65,7 +67,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
           Modifier
             .fillMaxSize()
             .testTag("glass")
-            .hazeEffect(hazeState) { trackRenderer(effect) }
+            .testGlass(effect, hazeState)
             .clickable(interactionSource = source, indication = null, onClick = { clicks++ }),
         )
       }
@@ -89,7 +91,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
           Modifier
             .fillMaxSize()
             .testTag("glass")
-            .hazeEffect(hazeState) { trackRenderer(effect) }
+            .testGlass(effect, hazeState)
             .verticalScroll(scroll),
         ) { Spacer(Modifier.height(400.dp)) }
       }
@@ -118,7 +120,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
           Modifier
             .fillMaxSize()
             .testTag("glass")
-            .hazeEffect(hazeState) { trackRenderer(effect) },
+            .testGlass(effect, hazeState),
         )
       }
     }
@@ -148,7 +150,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
           Modifier
             .fillMaxSize()
             .testTag("glass")
-            .hazeEffect(hazeState) { trackRenderer(effect) },
+            .testGlass(effect, hazeState),
         )
       }
     }
@@ -182,7 +184,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
           Modifier
             .fillMaxSize()
             .testTag("glass")
-            .hazeEffect(hazeState) { trackRenderer(effect) },
+            .testGlass(effect, hazeState),
         )
       }
     }
@@ -204,11 +206,26 @@ class GlassInteractionIntegrationTest : ContextTest() {
     )
   }
 
-  private fun HazeEffectScope.trackRenderer(effect: GlassRuntimeEffect) {
-    visualEffect = effect
-    attachedRuntimes[effect] =
-      ((this as HazeEffectNode).activeVisualEffect as GlassRuntimeEffect)
-  }
+  private fun Modifier.testGlass(
+    effect: GlassRuntimeEffect,
+    hazeState: HazeState,
+  ): Modifier = hazeGlass(
+    factory = rendererFactories.getOrPut(effect) {
+      HazeEffectFactory {
+        effect.also { attachedRuntimes[effect] = it }
+      }
+    },
+    input = HazeInput.Sources(hazeState),
+    style = effect.style,
+    sampling = HazeSampling.Default,
+    expandLayerBounds = true,
+    interactionSource = effect.interactionSource,
+    interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
+    interactionTransformTarget = effect.interactionTransformTarget,
+    interactionTransformPivot = effect.interactionTransformPivot,
+    interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
+    interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
+  )
 
   private fun runtime(effect: GlassRuntimeEffect): GlassRuntimeEffect =
     checkNotNull(attachedRuntimes[effect])
