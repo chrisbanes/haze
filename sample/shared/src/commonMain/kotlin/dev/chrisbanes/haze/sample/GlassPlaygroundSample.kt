@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -56,6 +57,7 @@ import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.glass.then
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -404,6 +406,7 @@ private fun PlaygroundSurface(
   Box(
     modifier = Modifier
       .size(size)
+      .hazeSource(hazeState, zIndex = 1f + id.ordinal)
       .hazeGlass(
         input = HazeInput.Sources(hazeState),
         style = style,
@@ -459,7 +462,7 @@ internal fun playgroundSurfaceSize(id: GlassPlaygroundSurfaceId): DpSize = when 
 
 @Composable
 private fun SurfaceLabel(text: String) {
-  androidx.compose.material3.Text(
+  Text(
     text = text,
     color = Color.White,
     modifier = Modifier.padding(20.dp),
