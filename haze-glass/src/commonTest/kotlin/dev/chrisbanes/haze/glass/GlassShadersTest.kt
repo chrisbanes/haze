@@ -382,17 +382,30 @@ class GlassShadersTest {
   }
 
   @Test
-  fun refractionShaders_taperOnlyTheSquircleTerminalQuarter() {
+  fun refractionShaders_useOneContinuousSquircleProfile() {
     listOf(
       GlassShaders.buildOptical(),
       GlassShaders.buildRefractionDetail(),
     ).forEach { shader ->
       assertThat(shader).contains("float squircleMap(float t)")
-      assertThat(shader).contains("float terminalT = clamp((t - 0.75) / 0.25, 0.0, 1.0);")
-      assertThat(shader).contains("float terminalTaper = 1.0 - smootherstep(terminalT);")
-      assertThat(shader).contains("return profile * terminalTaper;")
+      assertThat(shader).contains("return 1.0 - smootherstep(t * sqrt(t));")
+      assertThat(shader).doesNotContain("terminalT")
       assertThat(shader).contains("return squircleMap(t);")
     }
+  }
+
+  @Test
+  fun opticalShaders_useASeparateSquircleLightingGradient() {
+    val fused = GlassShaders.buildFused()
+    val optical = GlassShaders.buildOptical()
+
+    listOf(fused, optical).forEach { shader ->
+      assertThat(shader).contains("vec2 surfaceLightingGradient(vec2 localCoord, float sd)")
+      assertThat(shader).contains("float lightingSlope = 2.0 * (1.0 - smootherstep(t));")
+      assertThat(shader).contains("return surfaceGradient(localCoord);")
+    }
+    assertThat(fused).contains("surfaceLightingGradient(localCoord, outputSd)")
+    assertThat(optical).contains("surfaceLightingGradient(localCoord, sd)")
   }
 
   @Test

@@ -489,12 +489,100 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
         y = bounds.center.y,
         xRange = bounds.left until bounds.right,
       )
-      val refractionDelta = activeSignal.zip(disabledSignal).maxOf { (first, second) ->
+      val refractionDelta = activeSignal.zip(disabledSignal) { first, second ->
         abs(first - second)
       }
-      assertThat(refractionDelta).isGreaterThan(1f / 255f)
+      assertThat(refractionDelta.max()).isGreaterThan(1f / 255f)
+      val centerIndex = bounds.width / 2
+      listOf(
+        refractionDelta.subList(0, centerIndex).take(refractionHeightPx),
+        refractionDelta.subList(centerIndex, refractionDelta.size)
+          .takeLast(refractionHeightPx)
+          .reversed(),
+      ).forEachIndexed { edgeIndex, edgeToInterior ->
+        val peak = edgeToInterior.max()
+        val probeRadius = 3
+        val endpointInset = refractionHeightPx / 10
+        val maxLocalSlope = (
+          probeRadius + endpointInset until edgeToInterior.size - probeRadius - endpointInset
+          ).maxOf { sampleIndex ->
+          abs(
+            edgeToInterior[sampleIndex + probeRadius] -
+              edgeToInterior[sampleIndex - probeRadius],
+          ) / (probeRadius * 2f * peak)
+        }
+        val slopeConcentration = maxLocalSlope * (edgeToInterior.size - 1)
+        assertThat(slopeConcentration, "edge $edgeIndex refraction slope concentration")
+          .isLessThanOrEqualTo(3.5f)
+      }
       effect.updateAbsoluteOptics { copy(refractionStrength = 1f) }
     }
+  }
+}
+
+internal fun ScreenshotUiTest.assertGlassSquircleAmbientDoesNotGlowInside() {
+  val surfaceSize = DpSize(220.dp, 220.dp)
+  val shape = RoundedCornerShape(28.dp)
+  val effect = GlassTestConfiguration().apply {
+    tint = Color.Transparent
+    optics = GlassOptics.Absolute(
+      refractionStrength = 1f,
+      refractionHeightFraction = 0.25f,
+      refractionDisplacement = 48.dp,
+      depth = 0f,
+      blurRadius = 0.dp,
+    )
+    surfaceProfile = SurfaceProfile.Squircle
+    specularIntensity = 0f
+    ambientResponse = 1f
+    whitePoint = 0f
+    contrast = 0f
+    chromaMultiplier = 1f
+    contentNormalBlend = 0f
+    fresnelExponent = 3f
+    chromaticAberrationStrength = 0f
+    edgeSoftness = 0.dp
+    this.shape = shape
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        sampling = HazeSampling.FullResolution,
+        shape = shape,
+        surfaceSize = surfaceSize,
+        drawGridLines = false,
+      )
+    }
+  }
+
+  waitForIdle()
+  val withAmbient = captureInvariantPixels()
+  val bounds = withAmbient.centeredSurfaceBounds(surfaceSize)
+  val ambientSignal = withAmbient.scanlineLuminance(
+    y = bounds.center.y,
+    xRange = bounds.left until bounds.right,
+  )
+  effect.ambientResponse = 0f
+  waitForIdle()
+  val neutralSignal = captureInvariantPixels().scanlineLuminance(
+    y = bounds.center.y,
+    xRange = bounds.left until bounds.right,
+  )
+
+  val refractionHeightPx = (minOf(bounds.width, bounds.height) * 0.25f).roundToInt()
+  val glowDelta = ambientSignal.zip(neutralSignal) { ambient, neutral ->
+    (ambient - neutral).coerceAtLeast(0f)
+  }
+  listOf(
+    "left" to glowDelta.take(refractionHeightPx),
+    "right" to glowDelta.takeLast(refractionHeightPx).reversed(),
+  ).forEach { (edge, edgeToInterior) ->
+    val peak = edgeToInterior.max()
+    assertThat(peak, "$edge ambient response signal").isGreaterThan(1f / 1024f)
+    val peakIndex = edgeToInterior.indexOf(peak)
+    assertThat(peakIndex, "$edge ambient glow peak index")
+      .isLessThanOrEqualTo(refractionHeightPx / 4)
   }
 }
 
