@@ -20,6 +20,11 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_squircleAmbientDoesNotGlowInside() = runScreenshotTest {
+    assertGlassSquircleAmbientDoesNotGlowInside()
+  }
+
+  @Test
   fun glass_medialAxesAreContinuous() = runScreenshotTest {
     assertGlassMedialAxesContinuous()
   }

@@ -125,7 +125,7 @@ internal object GlassShaders {
         if (fresnelExponent == 0.0) {
           ambient = 1.0 + clampedAmbientResponse;
         } else {
-          vec2 gradient = surfaceGradient(localCoord);
+          vec2 gradient = surfaceLightingGradient(localCoord, outputSd);
           vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
           vec3 normal = shapeNormal;
           if (contentNormalBlend > 0.0) {
@@ -371,7 +371,7 @@ internal object GlassShaders {
         if (fresnelExponent == 0.0) {
           ambient = 1.0 + clampedAmbientResponse;
         } else {
-          vec2 gradient = surfaceGradient(localCoord);
+          vec2 gradient = surfaceLightingGradient(localCoord, sd);
           vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
           vec3 normal = shapeNormal;
           if (contentNormalBlend > 0.0) {
@@ -698,10 +698,7 @@ internal object GlassShaders {
     }
 
     float squircleMap(float t) {
-      float profile = pow(max(0.0, 1.0 - pow(t, 4.0)), 0.25);
-      float terminalT = clamp((t - 0.75) / 0.25, 0.0, 1.0);
-      float terminalTaper = 1.0 - smootherstep(terminalT);
-      return profile * terminalTaper;
+      return 1.0 - smootherstep(t * sqrt(t));
     }
 
     float evaluateProfile(float t) {
@@ -766,6 +763,22 @@ internal object GlassShaders {
       float up = surfaceHeight(clampMaterial(localCoord - vec2(0.0, sampleStep)));
       float down = surfaceHeight(clampMaterial(localCoord + vec2(0.0, sampleStep)));
       return vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
+    }
+
+    vec2 surfaceLightingGradient(vec2 localCoord, float sd) {
+      if (surfaceProfile == 1) {
+        float refractionZone = max(refractionHeight, 0.0001);
+        float t = clamp(max(-sd, 0.0) / refractionZone, 0.0, 1.0);
+        float lightingSlope = 2.0 * (1.0 - smootherstep(t));
+        float normalBlendWidth = max(refractionHeight, 1.0);
+        return gradSdRoundedRect(
+          localCoord,
+          materialSize,
+          cornerRadii,
+          normalBlendWidth
+        ) * lightingSlope;
+      }
+      return surfaceGradient(localCoord);
     }
 
     vec3 unpremultiply(vec4 color) {
