@@ -9,6 +9,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Shader
 
+/**
+ * Creates a separable progressive blur clipped to [size] at [offset].
+ *
+ * [mask] supplies the per-pixel blur intensity and [blurRadiusPx] supplies its maximum radius.
+ */
 @InternalHazeApi
 public fun createProgressiveBlurRenderEffect(
   blurRadiusPx: Float,

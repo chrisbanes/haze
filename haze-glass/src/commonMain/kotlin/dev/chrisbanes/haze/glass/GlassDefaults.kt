@@ -13,11 +13,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 
+/** Default values used by `hazeGlass` and [GlassStyle] resolution. */
 @ExperimentalHazeApi
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object GlassDefaults {
+  /** Default light radius as a fraction of the material's shortest side. */
   public const val interactionLightRadiusFraction: Float = 0.7f
 
+  /** Default animation used when the interaction light moves to a new position. */
   public val positionAnimationSpec: FiniteAnimationSpec<Offset> = spring(
     dampingRatio = 1f,
     stiffness = Spring.StiffnessMedium,

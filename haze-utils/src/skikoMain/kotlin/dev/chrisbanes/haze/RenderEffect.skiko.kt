@@ -129,6 +129,7 @@ private fun Rect.toIRect(): IRect = IRect.makeLTRB(
   b = bottom.toInt(),
 )
 
+/** Returns `true` because Skiko supports runtime-shader render effects. */
 @InternalHazeApi
 public actual fun isRuntimeShaderRenderEffectSupported(): Boolean = true
 

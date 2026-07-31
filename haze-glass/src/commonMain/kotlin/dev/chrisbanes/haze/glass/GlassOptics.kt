@@ -33,11 +33,14 @@ public sealed interface GlassOptics {
    * is capped at 38.5 physical pixels; this renderer quality bound does not limit accepted input
    * values.
    *
+   * @param refractionStrength Strength of the refraction response, in the range `0f..1f`.
    * @param refractionDisplacement Maximum distance that refraction displaces content.
    * @param refractionHeightFraction Fraction of the material's shortest side used by the
    * refraction profile, in the range `0f..1f`.
    * @param depth Depth perception factor. Values greater than `0f` require drawing an additional
    * blurred sample for the glass content, which has a rendering cost.
+   * @param blurRadius Maximum blur radius before the renderer's adaptive scale is applied.
+   * @param progressive Optional progressive intensity applied to the blur.
    */
   public data class Absolute(
     val refractionStrength: Float = 0.7f,

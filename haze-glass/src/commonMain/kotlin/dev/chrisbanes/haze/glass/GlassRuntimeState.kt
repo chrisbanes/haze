@@ -621,7 +621,7 @@ internal abstract class GlassRuntimeState {
    * There are precedence rules to how each styling property is applied. The order of precedence
    * for each property are as follows:
    *
-   *  - Property value set directly on this [GlassRuntimeConfiguration], if specified.
+   *  - Property value set directly on this runtime state, if specified.
    *  - Value set here in [style], if specified.
    *  - Value set in the [LocalGlassStyle] composition local.
    */

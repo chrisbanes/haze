@@ -43,6 +43,7 @@ public sealed interface HazeBlurStyle {
   public fun then(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
     then(HazeBlurStyle(block))
 
+  /** The empty Blur Style, which performs no writes. */
   public companion object : HazeBlurStyle
 }
 
@@ -86,15 +87,34 @@ internal fun HazeBlurStyle.replay(scope: HazeBlurStyleScope) {
  * Blur-specific property functions available while constructing a [HazeBlurStyle].
  */
 public sealed interface HazeBlurStyleScope {
+  /** Enables or disables the blur pass. */
   public fun blurEnabled(enabled: Boolean)
+
+  /** Sets the non-negative blur [radius]. */
   public fun blurRadius(radius: Dp)
+
+  /** Sets the noise opacity, coerced to the range `0f..1f`. */
   public fun noiseFactor(factor: Float)
+
+  /** Sets the background color composited behind the blurred input. */
   public fun backgroundColor(color: Color)
+
+  /** Replaces the ordered color effects applied to the blurred input. */
   public fun colorEffects(effects: List<HazeColorEffect>)
+
+  /** Sets the effect used when blur rendering is unavailable. */
   public fun fallbackColorEffect(effect: HazeColorEffect)
+
+  /** Sets the overall effect opacity, coerced to the range `0f..1f`. */
   public fun alpha(alpha: Float)
+
+  /** Sets the optional alpha [mask] applied to the complete effect. */
   public fun mask(mask: Brush?)
+
+  /** Sets the optional progressive effect intensity. */
   public fun progressive(progressive: HazeProgressive?)
+
+  /** Sets how content outside the input bounds contributes to the blur. */
   public fun blurredEdgeTreatment(treatment: BlurredEdgeTreatment)
 }
 
@@ -262,6 +282,9 @@ public sealed interface HazeColorEffect {
 
   /**
    * A color filter effect.
+   *
+   * @property colorFilter Color filter applied to the input.
+   * @property blendMode Blend mode used to composite the filtered input.
    */
   @Immutable
   public data class ColorFilter(
@@ -273,6 +296,9 @@ public sealed interface HazeColorEffect {
 
   /**
    * A color-based tint effect.
+   *
+   * @property color Tint color applied to the input.
+   * @property blendMode Blend mode used to composite the tint.
    */
   @Immutable
   public data class TintColor(
@@ -284,6 +310,9 @@ public sealed interface HazeColorEffect {
 
   /**
    * A brush-based tint effect.
+   *
+   * @property brush Tint brush applied to the input.
+   * @property blendMode Blend mode used to composite the tint.
    */
   @Immutable
   public data class TintBrush(
@@ -301,6 +330,7 @@ public sealed interface HazeColorEffect {
     override val isSpecified: Boolean = false
   }
 
+  /** Factories and defaults for [HazeColorEffect] values. */
   @Suppress("NOTHING_TO_INLINE")
   public companion object {
     /**

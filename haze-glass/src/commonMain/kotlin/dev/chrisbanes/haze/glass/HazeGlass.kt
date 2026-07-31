@@ -35,6 +35,11 @@ import dev.chrisbanes.haze.hazeEffect
  * @param sampling Input sampling policy. [HazeSampling.Default] preserves Glass's unscaled default.
  * @param expandLayerBounds Whether Glass may expand its capture layer for optical sampling.
  * @param interactionSource Optional external interaction source owned by this modifier node.
+ * @param interactionLightRadiusFraction Interaction-light radius as a fraction of the material's
+ * shortest side.
+ * @param interactionTransformTarget Visual layers that receive the interaction scale transform.
+ * @param interactionTransformPivot Pivot used by the interaction scale transform.
+ * @param interactionPositionAnimationSpec Animation used when the interaction light moves.
  * @param interactionReducedMotionPolicy Motion policy for this node's Style responses.
  */
 @Stable

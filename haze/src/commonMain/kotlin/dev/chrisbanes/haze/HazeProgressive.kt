@@ -89,10 +89,13 @@ public sealed interface HazeProgressive {
    * This allows custom effects driven from a brush. It could be using a bitmap shader, via
    * a [androidx.compose.ui.graphics.ShaderBrush] or something more complex. The RGB values from the brush's pixels will
    * be ignored, only the alpha values are used.
+   *
+   * @property brush Brush whose alpha channel controls the effect intensity.
    */
   @JvmInline
   public value class Brush(public val brush: androidx.compose.ui.graphics.Brush) : HazeProgressive
 
+  /** Convenience factories for common progressive effects. */
   public companion object {
     /**
      * A vertical gradient effect.
@@ -170,6 +173,7 @@ public sealed interface HazeProgressive {
   }
 }
 
+/** Converts this progressive effect into an alpha-mask [Brush] with [numStops] samples. */
 @InternalHazeApi
 public fun HazeProgressive.asBrush(numStops: Int = 20): Brush = when (this) {
   is HazeProgressive.LinearGradient -> asBrush(numStops)

@@ -6,39 +6,62 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.animation.core.FiniteAnimationSpec
 import dev.chrisbanes.haze.ExperimentalHazeApi
 
+/** Selects which visual layers receive the interaction scale transform. */
 @ExperimentalHazeApi
 public enum class GlassTransformTarget {
+  /** Scales the generated Glass material while leaving the composable content unchanged. */
   MaterialOnly,
+
+  /** Scales both the generated Glass material and the composable content. */
   MaterialAndContent,
 }
 
+/** Selects the pivot used by the interaction scale transform. */
 @ExperimentalHazeApi
 public enum class GlassTransformPivot {
+  /** Uses the current pointer or interaction position as the transform pivot. */
   Pointer,
+
+  /** Uses the center of the material as the transform pivot. */
   Center,
 }
 
+/** Controls whether interaction motion is reduced. */
 @ExperimentalHazeApi
 public enum class GlassReducedMotionPolicy {
+  /** Follows the current platform motion-duration scale. */
   System,
+
+  /** Disables interaction scale motion and snaps animated responses to their targets. */
   Reduced,
+
+  /** Preserves full interaction motion regardless of the platform motion-duration scale. */
   Full,
 }
 
+/** Declares the visual response for one Glass interaction state. */
 @ExperimentalHazeApi
 public interface GlassInteractionScope {
+  /** Sets the lighting multiplier in the range `0f..1f`. */
   public fun lightingIntensity(intensity: Float)
 
+  /** Sets the refraction multiplier in the range `0f..2f`. */
   public fun refractionMultiplier(multiplier: Float)
 
+  /** Sets the additive white-point adjustment in the range `-1f..1f`. */
   public fun whitePointDelta(delta: Float)
 
+  /** Sets a uniform positive scale no greater than `1f`. */
   public fun scale(scale: Float) {
     scale(scaleX = scale, scaleY = scale)
   }
 
+  /** Sets positive horizontal and vertical scales no greater than `1f`. */
   public fun scale(scaleX: Float, scaleY: Float)
 
+  /**
+   * Applies [toSpec] when entering and [fromSpec] when leaving the response declared by [block].
+   */
   public fun animate(
     toSpec: FiniteAnimationSpec<Float>,
     fromSpec: FiniteAnimationSpec<Float>,
