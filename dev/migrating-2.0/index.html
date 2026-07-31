@@ -770,10 +770,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#temporary-compatibility-boundary" class="md-nav__link">
+  <a href="#removed-compatibility-apis" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Temporary compatibility boundary
+        Removed compatibility APIs
       
     </span>
   </a>
@@ -1099,10 +1099,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#temporary-compatibility-boundary" class="md-nav__link">
+  <a href="#removed-compatibility-apis" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Temporary compatibility boundary
+        Removed compatibility APIs
       
     </span>
   </a>
@@ -1348,20 +1348,16 @@ through recomposition; do not mutate an effect, use sentinel patches, <code>copy
 <span class="p">)</span>
 </code></pre></div>
 <h3 id="position-and-geometry">Position and geometry<a class="headerlink" href="#position-and-geometry" title="Permanent link">¶</a></h3>
-<p><code>HazeArea.positionOnScreen</code> is replaced by <code>HazeArea.coordinates</code>. Read
-<code>coordinates.localPosition</code> or <code>coordinates.screenPosition</code> for the coordinate space you need.
-Custom <code>VisualEffect</code> implementations use <code>VisualEffectContext.position</code>, <code>rootBounds</code>,
-<code>positionOf(area)</code>, and <code>boundsOf(area)</code>.</p>
-<p><code>HazeState.positionStrategy</code> defaults to <code>HazePositionStrategy.Auto</code>. Override it with <code>Local</code> or
-<code>Screen</code> only when the host window arrangement requires a fixed coordinate space.</p>
-<p>The <code>VisualEffect.detach</code> lifecycle method now receives its attached <code>VisualEffectContext</code>.</p>
-<h2 id="temporary-compatibility-boundary">Temporary compatibility boundary<a class="headerlink" href="#temporary-compatibility-boundary" title="Permanent link">¶</a></h2>
-<p><code>BlurVisualEffect</code>, <code>HazeEffectScope.blurEffect</code>, and legacy lambda-based <code>hazeEffect</code> overloads
-remain temporarily available so migration can be staged. They are compatibility APIs, not the
-recommended 2.0 Blur interface, and are scheduled for contraction separately. The sentinel-based
-<code>HazeBlurStyle(...)</code> constructors and <code>HazeBlurDefaults.style(...)</code> builder are deprecated.
-<code>HazeBlurStyle.copy</code> and readable patch properties are removed; use replayable Style blocks and
-<code>then</code>.</p>
+<p>Source areas, coordinates, captured layers, windows, and position strategy are no longer public.
+Custom renderers receive semantic modifier bounds through <code>HazeEffectDrawScope</code> and
+<code>HazeEffectLayoutScope</code>, and draw the selected input with <code>drawInput()</code>.</p>
+<p>Source-selection predicates receive only <code>HazeSourceInfo.key</code> and <code>zIndex</code>. Cross-window coordinate
+selection is handled internally by Haze.</p>
+<h2 id="removed-compatibility-apis">Removed compatibility APIs<a class="headerlink" href="#removed-compatibility-apis" title="Permanent link">¶</a></h2>
+<p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, <code>BlurVisualEffect</code>,
+<code>HazeEffectScope.blurEffect</code>, and the lambda-based <code>hazeEffect</code> overloads are removed. The
+sentinel-based <code>HazeBlurStyle(...)</code> constructors, <code>HazeBlurStyle.Unspecified</code>, and the deprecated
+<code>HazeBlurDefaults.style(...)</code> builder are also removed. Use replayable Style blocks and <code>then</code>.</p>
 <h2 id="complete-api-mapping">Complete API mapping<a class="headerlink" href="#complete-api-mapping" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -1444,13 +1440,13 @@ recommended 2.0 Blur interface, and are scheduled for contraction separately. Th
 </tr>
 <tr>
 <td><code>HazeEffectScope.drawContentBehind</code></td>
-<td><code>HazeEffectScope.drawContentBehind</code></td>
-<td>Unchanged on the temporary lambda-based compatibility API.</td>
+<td>Removed</td>
+<td>Custom renderers control their own draw order inside <code>HazeEffectRenderer.draw</code>.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.clipToAreasBounds</code></td>
-<td><code>HazeEffectScope.clipToAreasBounds</code></td>
-<td>Unchanged on the temporary lambda-based compatibility API.</td>
+<td>Removed</td>
+<td>Source geometry is internal. Return required modifier-relative bounds from <code>calculateLayerBounds</code>.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.expandLayerBounds</code></td>
@@ -1459,8 +1455,8 @@ recommended 2.0 Blur interface, and are scheduled for contraction separately. Th
 </tr>
 <tr>
 <td><code>HazeEffectScope.forceInvalidateOnPreDraw</code></td>
-<td><code>HazeEffectScope.forceInvalidateOnPreDraw</code></td>
-<td>Unchanged on the temporary lambda-based compatibility API.</td>
+<td>Removed</td>
+<td>Haze owns source invalidation.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.canDrawArea</code></td>
@@ -1490,22 +1486,27 @@ recommended 2.0 Blur interface, and are scheduled for contraction separately. Th
 <tr>
 <td><code>HazeState.positionOnScreen</code></td>
 <td>Removed</td>
-<td>Use the position-strategy and coordinate APIs instead.</td>
+<td>Source geometry is internal.</td>
 </tr>
 <tr>
-<td><code>HazeArea.positionOnScreen</code></td>
-<td><code>HazeArea.coordinates.localPosition</code> or <code>.screenPosition</code></td>
-<td>Choose the coordinate space required by the caller.</td>
+<td><code>HazeEffectFactoryVisualEffect</code>, <code>HazeEffectVisualEffectFactory</code></td>
+<td>Removed</td>
+<td>Built-ins use capability-specific <code>@InternalHazeApi</code> renderer hooks; there is no third-party full-runtime replacement.</td>
+</tr>
+<tr>
+<td><code>HazeArea</code>, <code>HazeCoordinates</code>, <code>HazeSourceNode</code>, <code>HazeEffectNode</code></td>
+<td>Removed from the public API</td>
+<td>Haze owns source capture and modifier nodes.</td>
 </tr>
 <tr>
 <td><code>VisualEffectContext.positionOnScreen</code></td>
-<td><code>VisualEffectContext.position</code></td>
-<td>Renamed for the selected position strategy.</td>
+<td><code>HazeEffectDrawScope.modifierBounds</code></td>
+<td>Custom renderers receive only modifier-relative semantic bounds.</td>
 </tr>
 <tr>
 <td><code>VisualEffectContext.rootBoundsOnScreen</code></td>
-<td><code>VisualEffectContext.rootBounds</code></td>
-<td>Renamed.</td>
+<td>Removed</td>
+<td>Root and window geometry are internal.</td>
 </tr>
 <tr>
 <td><code>VisualEffectContext.visualEffect</code></td>
@@ -1514,38 +1515,23 @@ recommended 2.0 Blur interface, and are scheduled for contraction separately. Th
 </tr>
 <tr>
 <td><code>VisualEffect.calculateInputScaleFactor()</code></td>
-<td>Removed</td>
-<td>Use sampling and effect-specific policy.</td>
+<td><code>HazeSampling</code></td>
+<td>Choose default, adaptive, full-resolution, or fixed sampling.</td>
 </tr>
 <tr>
 <td><code>VisualEffect.requireInvalidation()</code></td>
+<td>Snapshot state read by <code>draw</code> or <code>calculateLayerBounds</code></td>
+<td>Haze observes reads in their rendering phase.</td>
+</tr>
+<tr>
+<td><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>InteractiveVisualEffect</code>, <code>RetainedOutputVisualEffect</code>, <code>VisualEffectRendererFactory</code>, <code>VisualEffectTransform</code></td>
+<td><code>HazeEffectFactory</code> and <code>HazeEffectRenderer</code></td>
+<td>Renderer lifecycle and input are opaque and node-owned.</td>
+</tr>
+<tr>
+<td><code>HazeState.positionStrategy</code>, <code>rememberHazeState(positionStrategy)</code></td>
 <td>Removed</td>
-<td>Call <code>VisualEffectContext.invalidateDraw()</code>.</td>
-</tr>
-<tr>
-<td><code>VisualEffect.detach()</code></td>
-<td><code>VisualEffect.detach(context)</code></td>
-<td>Detach receives the attached context.</td>
-</tr>
-<tr>
-<td>N/A</td>
-<td><code>HazeState.positionStrategy</code></td>
-<td>New; defaults to <code>HazePositionStrategy.Auto</code>.</td>
-</tr>
-<tr>
-<td>N/A</td>
-<td><code>rememberHazeState(positionStrategy)</code></td>
-<td>New optional state-construction parameter.</td>
-</tr>
-<tr>
-<td>N/A</td>
-<td><code>HazeCoordinates</code></td>
-<td>Stores local and screen positions for each source area.</td>
-</tr>
-<tr>
-<td>N/A</td>
-<td><code>VisualEffectContext.positionOf(area)</code> / <code>boundsOf(area)</code></td>
-<td>Preferred geometry helpers for custom effects.</td>
+<td>Cross-window position strategy is internal.</td>
 </tr>
 <tr>
 <td><code>HazeDefaults</code> Blur values</td>
@@ -1554,8 +1540,8 @@ recommended 2.0 Blur interface, and are scheduled for contraction separately. Th
 </tr>
 <tr>
 <td><code>HazeDefaults.drawContentBehind</code></td>
-<td><code>HazeEffectScope.drawContentBehind</code></td>
-<td>Set directly in the temporary <code>hazeEffect</code> compatibility block when needed.</td>
+<td>Removed</td>
+<td>Custom renderers own draw order; built-ins choose their internal composition.</td>
 </tr>
 <tr>
 <td><code>HazeStyle</code></td>
@@ -1594,8 +1580,6 @@ recommended 2.0 Blur interface, and are scheduled for contraction separately. Th
 </tr>
 </tbody>
 </table>
-<p>Legacy <code>HazeEffectScope</code> properties that are not represented above remain available only through
-the temporary lambda-based compatibility API.</p>
 <h2 id="step-by-step-migration">Step-by-step migration<a class="headerlink" href="#step-by-step-migration" title="Permanent link">¶</a></h2>
 <ol>
 <li>Add <code>haze-blur</code>, and replace <code>haze-materials</code> with <code>haze-blur-materials</code> if presets are used.</li>
@@ -1610,7 +1594,8 @@ the temporary lambda-based compatibility API.</p>
 <li>Move input scale, retention, source selection, and layer expansion to <code>HazeSampling</code>,
    <code>HazeSourceRetention</code>, <code>HazeSourceSelection</code>, and <code>expandLayerBounds</code>.</li>
 <li>Remove <code>blurEnabled</code> from <code>rememberHazeState</code>; write it in the Style for each effect instead.</li>
-<li>Update custom-effect geometry and <code>detach</code> overrides using the mappings above.</li>
+<li>Replace custom <code>VisualEffect</code> implementations with a stateless <code>HazeEffectFactory</code> and one
+   node-owned <code>HazeEffectRenderer</code> per modifier.</li>
 </ol>
 <p>For example:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeMaterials</span><span class="p">.</span><span class="na">thin</span><span class="p">().</span><span class="na">then</span><span class="w"> </span><span class="p">{</span>
@@ -1636,7 +1621,7 @@ the temporary lambda-based compatibility API.</p>
 <li>Every modifier node creates its own <code>HazeEffectRenderer&lt;Style&gt;</code>.</li>
 <li>Replacing a Style reuses that renderer.</li>
 <li>Replacing the factory or detaching the node disposes its renderer exactly once.</li>
-<li><code>VisualEffect</code> remains temporarily available for compatibility and built-in adapter plumbing.</li>
+<li>Source capture, node lifecycle, and built-in capabilities remain internal.</li>
 </ul>
 <p>Custom typed effects use the generic modifier rather than <code>hazeBlur</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>

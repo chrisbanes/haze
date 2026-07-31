@@ -413,10 +413,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#legacy-compatibility" class="md-nav__link">
+  <a href="#extension-boundary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Legacy compatibility
+        Extension boundary
       
     </span>
   </a>
@@ -999,10 +999,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#legacy-compatibility" class="md-nav__link">
+  <a href="#extension-boundary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Legacy compatibility
+        Extension boundary
       
     </span>
   </a>
@@ -1032,7 +1032,7 @@
 <div><h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">¶</a></h1>
 <p>Haze separates shareable effect configuration from modifier-node rendering state.</p>
 <h2 id="core-model">Core model<a class="headerlink" href="#core-model" title="Permanent link">¶</a></h2>
-<p>The preferred custom-effect path has three parts:</p>
+<p>The supported custom-effect path has three parts:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nc">HazeEffectFactory</span><span class="o">&lt;</span><span class="n">Style</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">createRenderer</span><span class="p">():</span><span class="w"> </span><span class="n">HazeEffectRenderer</span><span class="o">&lt;</span><span class="n">Style</span><span class="o">&gt;</span>
 <span class="p">}</span>
@@ -1090,10 +1090,9 @@ or captured layers.</p>
 </ul>
 <p>Those details are intentionally absent from the public typed renderer scopes.</p>
 <h2 id="built-in-blur">Built-in Blur<a class="headerlink" href="#built-in-blur" title="Permanent link">¶</a></h2>
-<p>Blur uses the same typed node lifecycle through a narrow internal full-<code>VisualEffect</code> bridge. The
-bridge preserves the existing platform Blur implementations without exposing <code>VisualEffectContext</code>,
-source geometry, captured layers, platform contexts, delegates, or caches in the public semantic
-renderer scopes.</p>
+<p>Blur uses the same typed node lifecycle plus narrow <code>@InternalHazeApi</code> capabilities for lifecycle,
+retained output, and semantic input drawing. Source geometry, captured layers, modifier nodes,
+delegates, and caches remain owned by their implementation modules.</p>
 <p><code>HazeBlurStyle</code> and the shared Blur factory are stateless. Each modifier node creates one
 <code>BlurVisualEffect</code> runtime that owns its resolved snapshot, invalidation state, adaptive-sampling
 history, delegate, retained output, render-effect cache, and platform resources. Style replacement
@@ -1108,8 +1107,7 @@ its interaction controller, delegate, caches, retained layers, and platform reso
 No renderer or lifecycle object can be shared between Glass nodes.</p>
 <h2 id="modules">Modules<a class="headerlink" href="#modules" title="Permanent link">¶</a></h2>
 <ul>
-<li><strong>haze</strong> — core state, source capture, typed custom-effect orchestration, and the temporary legacy
-  path</li>
+<li><strong>haze</strong> — core state, source capture, and typed custom-effect orchestration</li>
 <li><strong>haze-blur</strong> — blur effect implementation</li>
 <li><strong>haze-blur-materials</strong> — reusable blur presets</li>
 <li><strong>haze-glass</strong> — Glass effect implementation</li>
@@ -1117,12 +1115,10 @@ No renderer or lifecycle object can be shared between Glass nodes.</p>
 </ul>
 <p>Effect modules can keep platform-specific renderer internals behind their own <code>expect</code>/<code>actual</code>
 boundaries.</p>
-<h2 id="legacy-compatibility">Legacy compatibility<a class="headerlink" href="#legacy-compatibility" title="Permanent link">¶</a></h2>
-<p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, <code>BlurVisualEffect</code>,
-<code>HazeEffectScope.blurEffect</code>, and the lambda-based modifier overloads remain temporarily available
-for Blur and third-party migration. They expose more lifecycle and rendering internals and are no
-longer the recommended contract for new Blur or custom effects. New Blur code uses <code>hazeBlur</code>; new
-Glass code uses <code>hazeGlass</code>; new custom effects use <code>HazeEffectFactory</code>.</p>
+<h2 id="extension-boundary">Extension boundary<a class="headerlink" href="#extension-boundary" title="Permanent link">¶</a></h2>
+<p>The lambda-based effect API, mutable <code>VisualEffect</code> runtime, direct modifier nodes, source areas,
+coordinates, captured layers, and position strategies are internal or removed. New Blur code uses
+<code>hazeBlur</code>; new Glass code uses <code>hazeGlass</code>; custom effects use <code>HazeEffectFactory</code>.</p>
 <p>See <a href="../custom-effects/">Custom effects</a> for the preferred API.</p></div>
 
 

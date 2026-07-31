@@ -737,17 +737,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#deprecated" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deprecated
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4290,17 +4279,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#deprecated" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deprecated
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7682,9 +7660,19 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">¶</a></h3>
 <ul>
-<li><code>HazeInputScale.Default</code> is now backed by the new <code>HazeInputScale.EffectDefault</code> sealed subtype
-  so effects can distinguish an unspecified policy from explicit <code>None</code>. Exhaustive <code>when</code>
-  expressions over <code>HazeInputScale</code> must handle the new subtype or add an <code>else</code> branch.</li>
+<li>Custom effects now use only the typed <code>Modifier.hazeEffect</code>, <code>HazeEffectFactory</code>,
+  <code>HazeEffectRenderer</code>, <code>HazeEffectDrawScope</code>, and <code>HazeEffectLayoutScope</code> surface.
+  <code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, the lambda-based <code>hazeEffect</code>
+  overloads, and the legacy renderer capability interfaces are removed.</li>
+<li><code>HazeEffectNode</code>, <code>HazeSourceNode</code>, <code>HazeArea</code>, <code>HazeCoordinates</code>, <code>HazePositionStrategy</code>, and
+  the source records and position policy on <code>HazeState</code> are now internal implementation details.
+  Source-selection predicates receive only <code>HazeSourceInfo</code>.</li>
+<li><code>HazeInputScale</code> is removed. Use <code>HazeSampling</code> to choose default, adaptive, full-resolution, or
+  fixed input sampling for typed effects.</li>
+<li>Blur now exposes only <code>Modifier.hazeBlur</code>, immutable <code>HazeBlurStyle</code>, and
+  <code>HazeBlurDefaults.style</code>. The mutable <code>BlurVisualEffect</code> runtime, scope extension, sentinel
+  <code>HazeBlurStyle.Unspecified</code>, legacy singular-effect constructors, and deprecated defaults
+  builder are removed.</li>
 <li>Glass now exposes only the typed <code>Modifier.hazeGlass</code> and replayable <code>GlassStyle</code> surface.
   <code>GlassVisualEffect</code>, <code>glassEffect</code>, the old <code>hazeGlass</code> overload, <code>GlassRenderer</code>,
   <code>GlassRendererCache</code>, <code>GlassStyleConfiguration</code>, grouped <code>GlassLighting</code>/<code>GlassColor</code>/
@@ -7696,25 +7684,16 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Added declarative hover, focus, and press responses to <code>GlassStyle</code>, including localized lighting
   and optics plus configurable transforms and motion on <code>Modifier.hazeGlass</code>.</li>
 <li>Added progressive blur support to Glass.</li>
-<li><strong><code>HazeCoordinates</code></strong> — new value class on <code>HazeArea</code> exposing both <code>localPosition</code> and <code>screenPosition</code>, so custom <code>VisualEffect</code> implementations can read the geometry of an area in either coordinate space. A new <code>HazeCoordinates.isUnspecified</code> extension reports when either position has not yet been laid out.</li>
-<li><strong><code>VisualEffectContext</code> helpers</strong> (Experimental) — <code>positionOf(area)</code>, <code>boundsOf(area)</code>, and a <code>positionStrategy</code> property that read geometry in the effect's resolved coordinate space. Custom effects should prefer these over reading <code>HazeArea.position</code> / <code>HazeArea.coordinates</code> directly.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
-<li>Blur effects now adapt <code>HazeInputScale.Default</code> between <code>1.0</code>, <code>0.8</code>, and <code>0.5</code> using physical
+<li>Blur effects now adapt <code>HazeSampling.Default</code> between <code>1.0</code>, <code>0.8</code>, and <code>0.5</code> using physical
   blur radius and expanded capture-layer area, with hysteresis and a <code>0.8</code> progressive-blur cap.
-  Glass remains unscaled by default; explicit input-scale choices remain authoritative.</li>
+  Glass remains unscaled by default; explicit sampling choices remain authoritative.</li>
 <li>Changed Glass blur composition so blur participates in refracted content.</li>
 <li>Use one Android Glass output renderer per surface, independent of sibling count, while preserving
   semantic blur, progressive masks, Full chromatic aberration, and configured interactions.</li>
 <li>Moved <code>HazeProgressive</code> to the core <code>dev.chrisbanes.haze</code> package with a deprecated blur-package typealias.</li>
-</ul>
-<h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">¶</a></h3>
-<ul>
-<li><code>HazeArea.position</code> is deprecated in favour of <code>HazeArea.coordinates.localPosition</code> (or, inside a <code>VisualEffect</code>, <code>VisualEffectContext.positionOf(area)</code>). The setter now writes through to <code>coordinates.localPosition</code> for source compatibility.</li>
-<li>Direct <code>HazeEffectNode</code> construction is deprecated ahead of <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/1132" title="GitHub Issue chrisbanes/haze #1132">#1132</a>. Custom modifier extensions
-  should migrate to the typed <code>Modifier.hazeEffect</code> overload with a <code>HazeEffectFactory</code>; direct
-  nodes do not receive automatic Desktop or Web lifecycle trimming.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>

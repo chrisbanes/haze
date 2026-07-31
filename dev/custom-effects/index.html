@@ -649,17 +649,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#temporary-legacy-path" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Temporary legacy path
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -976,17 +965,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#temporary-legacy-path" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Temporary legacy path
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1121,16 +1099,11 @@ calculating bounds recalculate the bounds and then redraw.</p>
 effects. On Desktop and Web, an attached effect receives <code>TrimMemoryLevel.MODERATE</code> whenever its
 composition lifecycle reaches <code>ON_STOP</code>. Discard only resources that can be rebuilt: the next draw
 that needs them must recreate valid output.</p>
-<p>Direct <code>HazeEffectNode</code> construction is deprecated and does not receive automatic Desktop or Web
-lifecycle trimming. Custom modifier extensions should migrate to the typed <code>Modifier.hazeEffect</code>
-overload with a <code>HazeEffectFactory</code>; the node type will become internal in
-<a href="https://github.com/chrisbanes/haze/issues/1132">#1132</a>.</p>
+<p>The typed <code>Modifier.hazeEffect</code> overload is the only custom-effect extension seam.
+<code>HazeEffectNode</code>, <code>HazeSourceNode</code>, source areas, coordinates, captured layers, and built-in
+renderer capabilities are implementation details owned by Haze.</p>
 <p>Platform-specific renderer internals can use <code>expect</code>/<code>actual</code> declarations in the effect module.
 The public renderer contract intentionally does not expose platform delegates or captured layers.</p>
-<h2 id="temporary-legacy-path">Temporary legacy path<a class="headerlink" href="#temporary-legacy-path" title="Permanent link">¶</a></h2>
-<p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, and the lambda-based <code>hazeEffect</code>
-overloads remain available while built-in and existing third-party effects migrate. They are a
-temporary compatibility path, not the recommended extension seam for new effects.</p>
 <p>See
 <a href="https://github.com/chrisbanes/haze/blob/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample/CustomVisualEffectSample.kt"><code>CustomVisualEffectSample.kt</code></a>
 for a complete typed example.</p></div>
