@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import dev.chrisbanes.haze.blur.HazeBlurDefaults.tint
 
 /**
@@ -51,6 +52,45 @@ public object HazeBlurDefaults {
     mask(null)
     progressive(null)
     blurredEdgeTreatment(blurredEdgeTreatment)
+  }
+
+  /**
+   * Temporary source adapter for the former default Blur Style builder.
+   *
+   * The canonical [style] is replayed first, then specified legacy arguments are appended as
+   * overrides. This source-only shim will be removed before Haze 2.0 stable.
+   *
+   * @param backgroundColor color drawn behind the blurred content.
+   * @param tint color effect applied to the blurred content.
+   * @param blurRadius radius of the blur.
+   * @param noiseFactor amount of noise applied to the content.
+   */
+  @Deprecated(
+    message =
+    "Use HazeBlurDefaults.style.then { ... }. " +
+      "This source-only shim will be removed before Haze 2.0 stable.",
+    replaceWith = ReplaceWith(
+      expression = """HazeBlurDefaults.style.then {
+        if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
+        if (tint.isSpecified) colorEffects(listOf(tint))
+        if (blurRadius.isSpecified) blurRadius(blurRadius)
+        if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
+      }""",
+      "androidx.compose.ui.graphics.isSpecified",
+      "androidx.compose.ui.unit.isSpecified",
+    ),
+    level = DeprecationLevel.WARNING,
+  )
+  public fun style(
+    backgroundColor: Color,
+    tint: HazeColorEffect = tint(backgroundColor),
+    blurRadius: Dp = this.blurRadius,
+    noiseFactor: Float = this.noiseFactor,
+  ): HazeBlurStyle = style.then {
+    if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
+    if (tint.isSpecified) colorEffects(listOf(tint))
+    if (blurRadius.isSpecified) blurRadius(blurRadius)
+    if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
   }
 
   /**
