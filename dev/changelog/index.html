@@ -7669,10 +7669,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   Source-selection predicates receive only <code>HazeSourceInfo</code>.</li>
 <li><code>HazeInputScale</code> is removed. Use <code>HazeSampling</code> to choose default, adaptive, full-resolution, or
   fixed input sampling for typed effects.</li>
-<li>Blur now exposes only <code>Modifier.hazeBlur</code>, immutable <code>HazeBlurStyle</code>, and
-  <code>HazeBlurDefaults.style</code>. The mutable <code>BlurVisualEffect</code> runtime, scope extension, sentinel
-  <code>HazeBlurStyle.Unspecified</code>, legacy singular-effect constructors, and deprecated defaults
-  builder are removed.</li>
+<li>Blur now exposes <code>Modifier.hazeBlur</code>, opaque replayable <code>HazeBlurStyle</code>, and
+  <code>HazeBlurDefaults.style</code>. The mutable <code>BlurVisualEffect</code> runtime, scope extension, readable Style
+  properties, <code>copy</code>, and destructuring are removed permanently.</li>
 <li>Glass now exposes only the typed <code>Modifier.hazeGlass</code> and replayable <code>GlassStyle</code> surface.
   <code>GlassVisualEffect</code>, <code>glassEffect</code>, the old <code>hazeGlass</code> overload, <code>GlassRenderer</code>,
   <code>GlassRendererCache</code>, <code>GlassStyleConfiguration</code>, grouped <code>GlassLighting</code>/<code>GlassColor</code>/
@@ -7687,6 +7686,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
+<li>Temporarily retain the former plural and singular <code>HazeBlurStyle(...)</code> construction forms,
+  <code>HazeBlurStyle.Unspecified</code>, and <code>HazeBlurDefaults.style(...)</code> builder as warning-level,
+  source-only migration shims. They preserve legacy sentinel behavior and will be removed before
+  Haze 2.0 stable; they do not provide binary compatibility with the former Style class.</li>
 <li>Blur effects now adapt <code>HazeSampling.Default</code> between <code>1.0</code>, <code>0.8</code>, and <code>0.5</code> using physical
   blur radius and expanded capture-layer area, with hysteresis and a <code>0.8</code> progressive-blur cap.
   Glass remains unscaled by default; explicit sampling choices remain authoritative.</li>

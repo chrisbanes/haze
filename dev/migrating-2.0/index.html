@@ -695,6 +695,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Migrate Styles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#temporary-blur-construction-shims" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporary Blur construction shims
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1024,6 +1041,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Migrate Styles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#temporary-blur-construction-shims" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporary Blur construction shims
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1228,6 +1262,38 @@ wins. Replacing <code>compact</code> with <code>base</code> removes the 12 dp wr
 value is retained.</p>
 <p>An explicit <code>colorEffects(emptyList())</code> clears inherited effects. Caller-owned lists are
 snapshotted before replay.</p>
+<h3 id="temporary-blur-construction-shims">Temporary Blur construction shims<a class="headerlink" href="#temporary-blur-construction-shims" title="Permanent link">¶</a></h3>
+<p>During the remaining Haze 2 prereleases, the former <code>HazeBlurStyle(...)</code> construction forms,
+<code>HazeBlurStyle.Unspecified</code>, and <code>HazeBlurDefaults.style(...)</code> builder remain available as
+warning-level deprecations. They are source-migration aids only: code already compiled against the
+former <code>HazeBlurStyle</code> class is not binary compatible with the replayable Style interface. Every
+shim will be removed before Haze 2.0 stable.</p>
+<p>The plural construction form translates to guarded Style writes:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">migrated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">backgroundColor</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">backgroundColor</span><span class="p">(</span><span class="n">backgroundColor</span><span class="p">)</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">colorEffects</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="n">colorEffects</span><span class="p">(</span><span class="n">colorEffects</span><span class="p">)</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">blurRadius</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">(</span><span class="n">blurRadius</span><span class="p">)</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="m">0f</span><span class="p">))</span><span class="w"> </span><span class="n">noiseFactor</span><span class="p">(</span><span class="n">noiseFactor</span><span class="p">)</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fallbackColorEffect</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">fallbackColorEffect</span><span class="p">(</span><span class="n">fallbackColorEffect</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>For the singular form, replace the effects line with:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">colorEffect</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="n">colorEffects</span><span class="p">(</span><span class="n">listOf</span><span class="p">(</span><span class="n">colorEffect</span><span class="p">))</span>
+</code></pre></div>
+<p><code>null</code> omits the color-effects write and reveals a lower-precedence value. A non-null empty plural
+list explicitly clears inherited effects, and non-empty caller-owned lists are snapshotted. An
+unspecified color, dimension, or fallback effect also omits its write. Negative numeric noise is
+the legacy omission sentinel; other values use normal Style resolution, so values above <code>1f</code>
+clamp and <code>NaN</code> fails validation.</p>
+<p>Replace <code>HazeBlurStyle.Unspecified</code> with <code>HazeBlurStyle</code>. Migrate the defaults builder by replaying
+the canonical defaults first and guarding its overrides in the same way:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">migrated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurDefaults</span><span class="p">.</span><span class="na">style</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">backgroundColor</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">backgroundColor</span><span class="p">(</span><span class="n">backgroundColor</span><span class="p">)</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tint</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">colorEffects</span><span class="p">(</span><span class="n">listOf</span><span class="p">(</span><span class="n">tint</span><span class="p">))</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">blurRadius</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">(</span><span class="n">blurRadius</span><span class="p">)</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="m">0f</span><span class="p">))</span><span class="w"> </span><span class="n">noiseFactor</span><span class="p">(</span><span class="n">noiseFactor</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
 <h2 id="migrate-material-presets">Migrate material presets<a class="headerlink" href="#migrate-material-presets" title="Permanent link">¶</a></h2>
 <p>Before:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1355,9 +1421,10 @@ Custom renderers receive semantic modifier bounds through <code>HazeEffectDrawSc
 selection is handled internally by Haze.</p>
 <h2 id="removed-compatibility-apis">Removed compatibility APIs<a class="headerlink" href="#removed-compatibility-apis" title="Permanent link">¶</a></h2>
 <p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, <code>BlurVisualEffect</code>,
-<code>HazeEffectScope.blurEffect</code>, and the lambda-based <code>hazeEffect</code> overloads are removed. The
-sentinel-based <code>HazeBlurStyle(...)</code> constructors, <code>HazeBlurStyle.Unspecified</code>, and the deprecated
-<code>HazeBlurDefaults.style(...)</code> builder are also removed. Use replayable Style blocks and <code>then</code>.</p>
+<code>HazeEffectScope.blurEffect</code>, and the lambda-based <code>hazeEffect</code> overloads are removed. Readable
+<code>HazeBlurStyle</code> properties, <code>copy</code>, destructuring, and mutable runtime interfaces remain removed.
+Only the temporary source construction shims described above survive during the prerelease cycle;
+use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 <h2 id="complete-api-mapping">Complete API mapping<a class="headerlink" href="#complete-api-mapping" title="Permanent link">¶</a></h2>
 <table>
 <thead>
