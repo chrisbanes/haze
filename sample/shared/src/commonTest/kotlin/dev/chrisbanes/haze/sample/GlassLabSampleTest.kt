@@ -3,12 +3,16 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.foundation.interaction.Interaction
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -16,6 +20,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
@@ -26,13 +31,264 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isLessThanOrEqualTo
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassLabSampleTest : ContextTest() {
+  @Test
+  fun specimenFollowsDrag() = runComposeUiTest {
+    setContent {
+      GlassLabSampleContent(
+        state = GlassLabState(),
+        recordingMode = false,
+        onStateChanged = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+      )
+    }
+
+    val specimen = onNodeWithContentDescription("Glass specimen")
+    val initialCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+    specimen.performTouchInput { down(center) }
+    specimen.performTouchInput {
+      updatePointerTo(0, center + Offset(80f, 40f))
+      move()
+    }
+    waitForIdle()
+    val draggedCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+
+    assertThat(draggedCenter.x).isGreaterThan(initialCenter.x)
+    assertThat(draggedCenter.y).isGreaterThan(initialCenter.y)
+    specimen.performTouchInput { cancel() }
+  }
+
+  @Test
+  fun specimenSpringsBackToCenterAfterRelease() = runComposeUiTest {
+    setContent {
+      GlassLabSampleContent(
+        state = GlassLabState(),
+        recordingMode = false,
+        onStateChanged = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+      )
+    }
+
+    val specimen = onNodeWithContentDescription("Glass specimen")
+    val initialCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+    specimen.performTouchInput { down(center) }
+    specimen.performTouchInput {
+      updatePointerTo(0, center + Offset(80f, 40f))
+      move()
+    }
+    val autoAdvance = mainClock.autoAdvance
+    mainClock.autoAdvance = false
+    try {
+      specimen.performTouchInput { up() }
+      mainClock.advanceTimeUntil(timeoutMillis = 5_000) {
+        specimen.fetchSemanticsNode().boundsInRoot.center == initialCenter
+      }
+
+      assertThat(specimen.fetchSemanticsNode().boundsInRoot.center).isEqualTo(initialCenter)
+    } finally {
+      mainClock.autoAdvance = autoAdvance
+    }
+  }
+
+  @Test
+  fun specimenCenterIsClampedToViewportDuringDrag() = runComposeUiTest {
+    setContent {
+      GlassLabSampleContent(
+        state = GlassLabState(),
+        recordingMode = false,
+        onStateChanged = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+      )
+    }
+
+    val viewport = onNodeWithTag("glass_lab_specimen_viewport")
+    val specimen = onNodeWithContentDescription("Glass specimen")
+    specimen.performTouchInput { down(center) }
+    specimen.performTouchInput {
+      updatePointerTo(0, center + Offset(10_000f, 10_000f))
+      move()
+    }
+    waitForIdle()
+
+    assertThat(specimen.fetchSemanticsNode().boundsInRoot.center)
+      .isEqualTo(viewport.fetchSemanticsNode().boundsInRoot.bottomRight)
+    specimen.performTouchInput { cancel() }
+  }
+
+  @Test
+  fun specimenDragEmitsPressAndReleaseInteractions() = runComposeUiTest {
+    val interactionSource = MutableInteractionSource()
+    val interactions = mutableListOf<Interaction>()
+    val collectionScope = CoroutineScope(Dispatchers.Unconfined)
+    try {
+      collectionScope.launch {
+        interactionSource.interactions.collect(interactions::add)
+      }
+      setContent {
+        GlassLabSampleContent(
+          state = GlassLabState(),
+          recordingMode = false,
+          onStateChanged = {},
+          onRecordingModeChanged = {},
+          onBack = {},
+          specimenInteractionSource = interactionSource,
+        )
+      }
+
+      val specimen = onNodeWithContentDescription("Glass specimen")
+      specimen.performTouchInput { down(center) }
+      specimen.performTouchInput {
+        updatePointerTo(0, center + Offset(80f, 40f))
+        move()
+      }
+      specimen.performTouchInput { up() }
+      waitUntil { interactions.size >= 2 }
+
+      assertThat(interactions[0]).isInstanceOf<PressInteraction.Press>()
+      assertThat(interactions[1]).isInstanceOf<PressInteraction.Release>()
+      val press = interactions[0] as PressInteraction.Press
+      val release = interactions[1] as PressInteraction.Release
+      assertThat(release.press).isSameInstanceAs(press)
+    } finally {
+      collectionScope.cancel()
+    }
+  }
+
+  @Test
+  fun cancelledSpecimenDragEmitsPressAndCancelInteractions() = runComposeUiTest {
+    val interactionSource = MutableInteractionSource()
+    val interactions = mutableListOf<Interaction>()
+    val collectionScope = CoroutineScope(Dispatchers.Unconfined)
+    var showSpecimen by mutableStateOf(true)
+    try {
+      collectionScope.launch {
+        interactionSource.interactions.collect(interactions::add)
+      }
+      setContent {
+        if (showSpecimen) {
+          GlassLabSampleContent(
+            state = GlassLabState(),
+            recordingMode = false,
+            onStateChanged = {},
+            onRecordingModeChanged = {},
+            onBack = {},
+            specimenInteractionSource = interactionSource,
+          )
+        }
+      }
+
+      val specimen = onNodeWithContentDescription("Glass specimen")
+      specimen.performTouchInput { down(center) }
+      specimen.performTouchInput {
+        updatePointerTo(0, center + Offset(80f, 40f))
+        move()
+      }
+      showSpecimen = false
+      waitUntil { interactions.size >= 2 }
+
+      assertThat(interactions[0]).isInstanceOf<PressInteraction.Press>()
+      assertThat(interactions[1]).isInstanceOf<PressInteraction.Cancel>()
+      val press = interactions[0] as PressInteraction.Press
+      val cancel = interactions[1] as PressInteraction.Cancel
+      assertThat(cancel.press).isSameInstanceAs(press)
+    } finally {
+      collectionScope.cancel()
+    }
+  }
+
+  @Test
+  fun regrabbingSpecimenCancelsReturnAtCurrentPosition() = runComposeUiTest {
+    var showSpecimen by mutableStateOf(true)
+    setContent {
+      if (showSpecimen) {
+        GlassLabSampleContent(
+          state = GlassLabState(interaction = GlassLabInteractionMode.Off),
+          recordingMode = false,
+          onStateChanged = {},
+          onRecordingModeChanged = {},
+          onBack = {},
+        )
+      }
+    }
+
+    val specimen = onNodeWithContentDescription("Glass specimen")
+    val initialCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+    specimen.performTouchInput { down(center) }
+    specimen.performTouchInput {
+      updatePointerTo(0, center + Offset(120f, 0f))
+      move()
+    }
+    val autoAdvance = mainClock.autoAdvance
+    mainClock.autoAdvance = false
+    try {
+      specimen.performTouchInput { up() }
+      mainClock.advanceTimeByFrame()
+      mainClock.advanceTimeBy(64)
+      val returningCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+      specimen.performTouchInput { down(center) }
+      specimen.performTouchInput {
+        updatePointerTo(0, center + Offset(0f, 60f))
+        move()
+      }
+      mainClock.advanceTimeByFrame()
+      val regrabbedCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+
+      assertThat(regrabbedCenter.x).isGreaterThan(initialCenter.x)
+      assertThat(regrabbedCenter.x).isLessThanOrEqualTo(returningCenter.x)
+      assertThat(regrabbedCenter.y).isGreaterThan(returningCenter.y)
+      mainClock.advanceTimeBy(500)
+
+      assertThat(specimen.fetchSemanticsNode().boundsInRoot.center.x).isEqualTo(regrabbedCenter.x)
+    } finally {
+      showSpecimen = false
+      mainClock.autoAdvance = autoAdvance
+      waitForIdle()
+    }
+  }
+
+  @Test
+  fun recordingModeSpecimenRemainsDraggable() = runComposeUiTest {
+    setContent {
+      GlassLabSampleContent(
+        state = GlassLabState(),
+        recordingMode = true,
+        onStateChanged = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+      )
+    }
+
+    val specimen = onNodeWithContentDescription("Glass specimen")
+    val initialCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+    specimen.performTouchInput { down(center) }
+    specimen.performTouchInput {
+      updatePointerTo(0, center + Offset(80f, 40f))
+      move()
+    }
+
+    assertThat(specimen.fetchSemanticsNode().boundsInRoot.center.x)
+      .isGreaterThan(initialCenter.x)
+    specimen.performTouchInput { cancel() }
+  }
+
   @Test
   fun narrowLabShowsEveryPresetWithoutHorizontalScrolling() = runComposeUiTest {
     setContent {
