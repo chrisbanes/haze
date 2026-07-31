@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
@@ -308,7 +309,6 @@ private fun PlaygroundSurfaceScene(
         val center = resolvedPlaygroundSurfaceCenter(
           normalizedCenter = frame.position(id),
           sceneSize = IntSize(constraints.maxWidth, constraints.maxHeight),
-          surfaceSize = IntSize(placeable.width, placeable.height),
           dragOffset = dragOffsetProvider(id),
         )
         placeable.place(
@@ -323,20 +323,11 @@ private fun PlaygroundSurfaceScene(
 internal fun resolvedPlaygroundSurfaceCenter(
   normalizedCenter: Offset,
   sceneSize: IntSize,
-  surfaceSize: IntSize,
   dragOffset: Offset,
-): Offset {
-  val halfWidth = surfaceSize.width / 2f
-  val halfHeight = surfaceSize.height / 2f
-  val minCenterX = minOf(halfWidth, sceneSize.width / 2f)
-  val maxCenterX = maxOf(sceneSize.width - halfWidth, sceneSize.width / 2f)
-  val minCenterY = minOf(halfHeight, sceneSize.height / 2f)
-  val maxCenterY = maxOf(sceneSize.height - halfHeight, sceneSize.height / 2f)
-  return Offset(
-    x = (normalizedCenter.x * sceneSize.width).coerceIn(minCenterX, maxCenterX) + dragOffset.x,
-    y = (normalizedCenter.y * sceneSize.height).coerceIn(minCenterY, maxCenterY) + dragOffset.y,
-  )
-}
+): Offset = Offset(
+  x = (normalizedCenter.x * sceneSize.width) + dragOffset.x,
+  y = (normalizedCenter.y * sceneSize.height) + dragOffset.y,
+)
 
 internal fun resolvePlaygroundSurfaceLightPosition(
   normalizedLight: Offset,
@@ -348,7 +339,6 @@ internal fun resolvePlaygroundSurfaceLightPosition(
   val center = resolvedPlaygroundSurfaceCenter(
     normalizedCenter = normalizedCenter,
     sceneSize = sceneSize,
-    surfaceSize = surfaceSize,
     dragOffset = dragOffset,
   )
   val surfaceOrigin = center - Offset(surfaceSize.width / 2f, surfaceSize.height / 2f)
@@ -407,6 +397,7 @@ private fun PlaygroundSurface(
     modifier = Modifier
       .size(size)
       .hazeSource(hazeState, zIndex = 1f + id.ordinal)
+      .zIndex(1f + id.ordinal)
       .hazeGlass(
         input = HazeInput.Sources(hazeState),
         style = style,
@@ -442,10 +433,7 @@ private fun PlaygroundSurface(
 internal fun playgroundInteractionStyle() = dev.chrisbanes.haze.glass.GlassStyle {
   hovered {}
   pressed {
-    animate(
-      toSpec = DefaultGlassPressAnimationSpec,
-      fromSpec = DefaultGlassReleaseAnimationSpec,
-    ) {
+    animate(toSpec = DefaultGlassPressAnimationSpec, fromSpec = DefaultGlassReleaseAnimationSpec) {
       lightingIntensity(1f)
       refractionMultiplier(1.08f)
       scale(0.98f)
