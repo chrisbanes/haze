@@ -9,7 +9,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -73,6 +72,8 @@ internal class GlassPlaygroundState(
 ) {
   private val progressAnimation = Animatable(0f)
   private val dragOffsets = mutableStateMapOf<GlassPlaygroundSurfaceId, Offset>()
+  private val frozenProgress = mutableStateMapOf<GlassPlaygroundSurfaceId, Float>()
+  private val returnFractions = mutableStateMapOf<GlassPlaygroundSurfaceId, Float>()
 
   var isPlaying by mutableStateOf(true)
     private set
@@ -87,7 +88,12 @@ internal class GlassPlaygroundState(
 
   fun progress(): Float = progressAnimation.value
 
+  fun surfaceProgress(id: GlassPlaygroundSurfaceId): Float = frozenProgress[id] ?: progress()
+
   fun dragOffset(id: GlassPlaygroundSurfaceId): Offset = dragOffsets[id] ?: Offset.Zero
+
+  fun returnFraction(id: GlassPlaygroundSurfaceId): Float =
+    returnFractions[id] ?: if (id in frozenProgress) 1f else 0f
 
   fun togglePlayback() {
     isPlaying = !isPlaying
@@ -99,6 +105,8 @@ internal class GlassPlaygroundState(
 
   fun beginDrag(id: GlassPlaygroundSurfaceId) {
     activeSurface = id
+    frozenProgress[id] = progress()
+    returnFractions.remove(id)
     dragOffsets.getOrPut(id) { Offset.Zero }
   }
 
@@ -107,20 +115,21 @@ internal class GlassPlaygroundState(
   }
 
   suspend fun endDrag(id: GlassPlaygroundSurfaceId) {
-    val start = dragOffset(id)
-    Animatable(start, Offset.VectorConverter).animateTo(
-      targetValue = Offset.Zero,
+    Animatable(1f).animateTo(
+      targetValue = 0f,
       animationSpec = spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow),
     ) {
-      dragOffsets[id] = value
+      returnFractions[id] = value
     }
     dragOffsets.remove(id)
+    frozenProgress.remove(id)
+    returnFractions.remove(id)
     if (activeSurface == id) activeSurface = null
   }
 
   suspend fun runAutoplayLoop(loopLimit: Int = Int.MAX_VALUE) {
     var loops = 0
-    while (isPlaying && activeSurface == null && loops < loopLimit) {
+    while (isPlaying && loops < loopLimit) {
       val remaining = 1f - progressAnimation.value
       progressAnimation.animateTo(
         targetValue = 1f,
@@ -138,6 +147,8 @@ internal class GlassPlaygroundState(
   suspend fun reset() {
     activeSurface = null
     dragOffsets.clear()
+    frozenProgress.clear()
+    returnFractions.clear()
     progressAnimation.snapTo(0f)
     completedLoopCount = 0
     isPlaying = true
@@ -171,11 +182,11 @@ internal fun GlassPlaygroundSample(
   val scope = rememberCoroutineScope()
   val returnJobs = remember { mutableMapOf<GlassPlaygroundSurfaceId, Job>() }
 
-  LaunchedEffect(state.isPlaying, state.activeSurface, state.autoplayGeneration) {
+  LaunchedEffect(state.isPlaying, state.autoplayGeneration) {
     val animationsEnabled = (coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f) > 0f
     if (!animationsEnabled) {
       state.disableAutoplay()
-    } else if (state.isPlaying && state.activeSurface == null) {
+    } else if (state.isPlaying) {
       runAutoplay(state)
     }
   }
@@ -183,6 +194,8 @@ internal fun GlassPlaygroundSample(
   GlassPlaygroundSampleContent(
     progressProvider = state::progress,
     dragOffsetProvider = state::dragOffset,
+    surfaceProgressProvider = state::surfaceProgress,
+    returnFractionProvider = state::returnFraction,
     isPlaying = state.isPlaying,
     recordingMode = state.recordingMode,
     completedLoopCount = state.completedLoopCount,
@@ -221,6 +234,8 @@ public fun GlassPlaygroundSampleContent(
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
   interactionSourceProvider: (GlassPlaygroundSurfaceId) -> InteractionSource? = { null },
+  surfaceProgressProvider: (GlassPlaygroundSurfaceId) -> Float = { progressProvider() },
+  returnFractionProvider: (GlassPlaygroundSurfaceId) -> Float = { 1f },
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
@@ -248,6 +263,8 @@ public fun GlassPlaygroundSampleContent(
       hazeState = hazeState,
       progressProvider = progressProvider,
       dragOffsetProvider = dragOffsetProvider,
+      surfaceProgressProvider = surfaceProgressProvider,
+      returnFractionProvider = returnFractionProvider,
       sceneSizeProvider = { IntSize(constraints.maxWidth, constraints.maxHeight) },
       onDragStart = onDragStart,
       onDrag = onDrag,
@@ -277,6 +294,8 @@ private fun PlaygroundSurfaceScene(
   hazeState: HazeState,
   progressProvider: () -> Float,
   dragOffsetProvider: (GlassPlaygroundSurfaceId) -> Offset,
+  surfaceProgressProvider: (GlassPlaygroundSurfaceId) -> Float,
+  returnFractionProvider: (GlassPlaygroundSurfaceId) -> Float,
   sceneSizeProvider: () -> IntSize,
   onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
   onDrag: (GlassPlaygroundSurfaceId, Offset) -> Unit,
@@ -292,6 +311,8 @@ private fun PlaygroundSurfaceScene(
           id = id,
           hazeState = hazeState,
           progressProvider = progressProvider,
+          surfaceProgressProvider = surfaceProgressProvider,
+          returnFractionProvider = returnFractionProvider,
           sceneSizeProvider = sceneSizeProvider,
           dragOffsetProvider = dragOffsetProvider,
           onDragStart = onDragStart,
@@ -308,6 +329,8 @@ private fun PlaygroundSurfaceScene(
       GlassPlaygroundSurfaceId.entries.zip(placeables).forEach { (id, placeable) ->
         val center = resolvedPlaygroundSurfaceCenter(
           normalizedCenter = frame.position(id),
+          frozenNormalizedCenter = glassPlaygroundFrame(surfaceProgressProvider(id)).position(id),
+          returnFraction = returnFractionProvider(id),
           sceneSize = IntSize(constraints.maxWidth, constraints.maxHeight),
           dragOffset = dragOffsetProvider(id),
         )
@@ -322,22 +345,35 @@ private fun PlaygroundSurfaceScene(
 
 internal fun resolvedPlaygroundSurfaceCenter(
   normalizedCenter: Offset,
+  frozenNormalizedCenter: Offset = normalizedCenter,
+  returnFraction: Float = 1f,
   sceneSize: IntSize,
   dragOffset: Offset,
-): Offset = Offset(
-  x = (normalizedCenter.x * sceneSize.width) + dragOffset.x,
-  y = (normalizedCenter.y * sceneSize.height) + dragOffset.y,
-)
+): Offset {
+  val effectiveCenter = when (returnFraction) {
+    0f -> normalizedCenter
+    1f -> frozenNormalizedCenter
+    else -> normalizedCenter + (frozenNormalizedCenter - normalizedCenter) * returnFraction
+  }
+  return Offset(
+    x = (effectiveCenter.x * sceneSize.width) + dragOffset.x * returnFraction,
+    y = (effectiveCenter.y * sceneSize.height) + dragOffset.y * returnFraction,
+  )
+}
 
 internal fun resolvePlaygroundSurfaceLightPosition(
   normalizedLight: Offset,
   normalizedCenter: Offset,
+  frozenNormalizedCenter: Offset = normalizedCenter,
+  returnFraction: Float = 1f,
   sceneSize: IntSize,
   surfaceSize: IntSize,
   dragOffset: Offset,
 ): Offset {
   val center = resolvedPlaygroundSurfaceCenter(
     normalizedCenter = normalizedCenter,
+    frozenNormalizedCenter = frozenNormalizedCenter,
+    returnFraction = returnFraction,
     sceneSize = sceneSize,
     dragOffset = dragOffset,
   )
@@ -353,6 +389,8 @@ private fun PlaygroundSurface(
   id: GlassPlaygroundSurfaceId,
   hazeState: HazeState,
   progressProvider: () -> Float,
+  surfaceProgressProvider: (GlassPlaygroundSurfaceId) -> Float,
+  returnFractionProvider: (GlassPlaygroundSurfaceId) -> Float,
   sceneSizeProvider: () -> IntSize,
   dragOffsetProvider: (GlassPlaygroundSurfaceId) -> Offset,
   onDragStart: (GlassPlaygroundSurfaceId) -> Unit,
@@ -372,6 +410,8 @@ private fun PlaygroundSurface(
     lightPosition(lightPosition)
   }.then(playgroundInteractionStyle())
   val latestProgressProvider by rememberUpdatedState(progressProvider)
+  val latestSurfaceProgressProvider by rememberUpdatedState(surfaceProgressProvider)
+  val latestReturnFractionProvider by rememberUpdatedState(returnFractionProvider)
   val latestSceneSizeProvider by rememberUpdatedState(sceneSizeProvider)
   val latestDragOffsetProvider by rememberUpdatedState(dragOffsetProvider)
   val latestOnDragStart by rememberUpdatedState(onDragStart)
@@ -381,9 +421,12 @@ private fun PlaygroundSurface(
   LaunchedEffect(id, surfaceSize) {
     snapshotFlow {
       val frame = glassPlaygroundFrame(latestProgressProvider())
+      val frozenFrame = glassPlaygroundFrame(latestSurfaceProgressProvider(id))
       resolvePlaygroundSurfaceLightPosition(
         normalizedLight = frame.lightPosition,
         normalizedCenter = frame.position(id),
+        frozenNormalizedCenter = frozenFrame.position(id),
+        returnFraction = latestReturnFractionProvider(id),
         sceneSize = latestSceneSizeProvider(),
         surfaceSize = surfaceSize,
         dragOffset = latestDragOffsetProvider(id),

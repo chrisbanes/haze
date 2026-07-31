@@ -6,7 +6,6 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -39,31 +38,24 @@ class GlassPlaygroundTimelineTest {
   }
 
   @Test
-  fun choreographedSurfaceCentersKeepFixedSizesInsideCompactScene() {
+  fun choreographedSurfaceCentersMapDirectlyIntoScene() {
     val sceneSize = IntSize(320, 240)
-    val density = Density(1f)
 
     repeat(101) { step ->
       val frame = glassPlaygroundFrame(step / 100f)
       GlassPlaygroundSurfaceId.entries.forEach { id ->
-        val surfaceSize = with(density) {
-          val size = playgroundSurfaceSize(id)
-          IntSize(size.width.roundToPx(), size.height.roundToPx())
-        }
+        val normalizedCenter = frame.position(id)
         val center = resolvedPlaygroundSurfaceCenter(
-          normalizedCenter = frame.position(id),
+          normalizedCenter = normalizedCenter,
           sceneSize = sceneSize,
-          surfaceSize = surfaceSize,
           dragOffset = Offset.Zero,
         )
-        assertThat(center.x - surfaceSize.width / 2f, "$id left edge at $step")
-          .isGreaterThanOrEqualTo(0f)
-        assertThat(center.x + surfaceSize.width / 2f, "$id right edge at $step")
-          .isLessThanOrEqualTo(sceneSize.width.toFloat())
-        assertThat(center.y - surfaceSize.height / 2f, "$id top edge at $step")
-          .isGreaterThanOrEqualTo(0f)
-        assertThat(center.y + surfaceSize.height / 2f, "$id bottom edge at $step")
-          .isLessThanOrEqualTo(sceneSize.height.toFloat())
+        assertThat(center, "$id center at $step").isEqualTo(
+          Offset(
+            x = normalizedCenter.x * sceneSize.width,
+            y = normalizedCenter.y * sceneSize.height,
+          ),
+        )
       }
     }
   }
