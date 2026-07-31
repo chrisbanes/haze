@@ -6,9 +6,15 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,6 +25,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
@@ -33,20 +40,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.rememberHazeState
+import kotlin.math.roundToInt
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 @Composable
 public fun GlassLabSample(navController: NavHostController) {
@@ -69,9 +85,12 @@ internal fun GlassLabSampleContent(
   onStateChanged: (GlassLabState) -> Unit,
   onRecordingModeChanged: (Boolean) -> Unit,
   onBack: () -> Unit,
+  specimenInteractionSource: MutableInteractionSource? = null,
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
+  val defaultSpecimenInteractionSource = remember { MutableInteractionSource() }
+  val resolvedSpecimenInteractionSource = specimenInteractionSource ?: defaultSpecimenInteractionSource
   BoxWithConstraints(modifier = modifier.fillMaxSize()) {
     val landscape = maxWidth > maxHeight
     if (landscape) {
@@ -81,6 +100,7 @@ internal fun GlassLabSampleContent(
           state = state,
           recordingMode = recordingMode,
           onRevealChrome = { onRecordingModeChanged(false) },
+          interactionSource = resolvedSpecimenInteractionSource,
           modifier = Modifier.weight(0.6f).fillMaxHeight(),
         )
         LabControls(
@@ -97,6 +117,7 @@ internal fun GlassLabSampleContent(
           state = state,
           recordingMode = recordingMode,
           onRevealChrome = { onRecordingModeChanged(false) },
+          interactionSource = resolvedSpecimenInteractionSource,
           modifier = Modifier.weight(0.52f).fillMaxWidth(),
         )
         LabControls(
@@ -144,10 +165,42 @@ private fun LabSpecimen(
   state: GlassLabState,
   recordingMode: Boolean,
   onRevealChrome: () -> Unit,
+  interactionSource: MutableInteractionSource,
   modifier: Modifier = Modifier,
 ) {
-  val interactionSource = remember { MutableInteractionSource() }
-  Box(modifier = modifier) {
+  val scope = rememberCoroutineScope()
+  var dragOffset by remember { mutableStateOf(Offset.Zero) }
+  var viewportSize by remember { mutableStateOf(IntSize.Zero) }
+  var returnJob by remember { mutableStateOf<Job?>(null) }
+  var pressInteraction by remember { mutableStateOf<PressInteraction.Press?>(null) }
+  val returnToCenter = {
+    returnJob?.cancel()
+    returnJob = scope.launch {
+      Animatable(dragOffset, Offset.VectorConverter).animateTo(
+        targetValue = Offset.Zero,
+        animationSpec = spring(
+          dampingRatio = 0.78f,
+          stiffness = Spring.StiffnessMediumLow,
+        ),
+      ) {
+        dragOffset = value
+      }
+    }
+  }
+  val finishDrag = { cancelled: Boolean ->
+    pressInteraction?.let { press ->
+      interactionSource.tryEmit(
+        if (cancelled) PressInteraction.Cancel(press) else PressInteraction.Release(press),
+      )
+    }
+    pressInteraction = null
+    returnToCenter()
+  }
+  Box(
+    modifier = modifier
+      .onSizeChanged { viewportSize = it }
+      .testTag("glass_lab_specimen_viewport"),
+  ) {
     GalleryBackdrop(
       hazeState = hazeState,
       artworkIndex = 0,
@@ -168,9 +221,28 @@ private fun LabSpecimen(
       interactionStyle = state.interaction.style,
       modifier = Modifier
         .align(Alignment.Center)
+        .offset {
+          IntOffset(dragOffset.x.roundToInt(), dragOffset.y.roundToInt())
+        }
         .fillMaxWidth(0.85f)
         .sizeIn(maxWidth = 360.dp, maxHeight = 240.dp)
-        .pointerInput(Unit) { detectTapGestures {} }
+        .pointerInput(interactionSource) {
+          try {
+            detectDragGestures(
+              onDragStart = { position ->
+                returnJob?.cancel()
+                pressInteraction = PressInteraction.Press(position).also(interactionSource::tryEmit)
+              },
+              onDragEnd = { finishDrag(false) },
+              onDragCancel = { finishDrag(true) },
+            ) { change, amount ->
+              change.consume()
+              dragOffset = (dragOffset + amount).coerceCenterTo(viewportSize)
+            }
+          } finally {
+            if (pressInteraction != null) finishDrag(true)
+          }
+        }
         .focusable(interactionSource = interactionSource)
         .semantics { contentDescription = "Glass specimen" },
     ) {
@@ -183,6 +255,11 @@ private fun LabSpecimen(
     }
   }
 }
+
+private fun Offset.coerceCenterTo(viewportSize: IntSize): Offset = Offset(
+  x = x.coerceIn(-viewportSize.width / 2f, viewportSize.width / 2f),
+  y = y.coerceIn(-viewportSize.height / 2f, viewportSize.height / 2f),
+)
 
 @Composable
 internal fun LabControls(
