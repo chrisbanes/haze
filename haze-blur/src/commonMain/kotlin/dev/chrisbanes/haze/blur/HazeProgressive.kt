@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.blur
 
+/** Compatibility alias for [dev.chrisbanes.haze.HazeProgressive]. */
 @Deprecated(
   message = "Use dev.chrisbanes.haze.HazeProgressive",
   replaceWith = ReplaceWith("HazeProgressive", "dev.chrisbanes.haze.HazeProgressive"),

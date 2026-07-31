@@ -5,8 +5,10 @@ package dev.chrisbanes.haze
 
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 
+/** Platform-specific context required by built-in Haze renderers. */
 @InternalHazeApi
 public expect abstract class PlatformContext
 
+/** Returns the [PlatformContext] associated with this modifier node. */
 @InternalHazeApi
 public expect fun CompositionLocalConsumerModifierNode.requirePlatformContext(): PlatformContext

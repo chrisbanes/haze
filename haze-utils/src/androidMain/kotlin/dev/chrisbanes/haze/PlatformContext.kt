@@ -8,9 +8,11 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalContext
 
+/** Android [Context] used as the Haze platform context. */
 @InternalHazeApi
 public actual typealias PlatformContext = Context
 
+/** Returns the Android context associated with this modifier node. */
 @InternalHazeApi
 public actual fun CompositionLocalConsumerModifierNode.requirePlatformContext(): PlatformContext {
   return currentValueOf(LocalContext)

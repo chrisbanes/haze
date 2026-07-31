@@ -3,11 +3,13 @@
 
 package dev.chrisbanes.haze
 
+/** Runs [block] inside a synchronous Android trace section named [sectionName]. */
 @InternalHazeApi
 public actual inline fun <R> trace(sectionName: String, block: () -> R): R {
   return androidx.tracing.trace(sectionName, block)
 }
 
+/** Runs [block] inside an asynchronous Android trace section identified by [cookie]. */
 @InternalHazeApi
 public actual suspend inline fun <R> traceAsync(
   sectionName: String,

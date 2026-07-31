@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+/** Marks public declarations reserved for Haze's internal module-to-module implementation. */
 @RequiresOptIn(
   message = "This is an internal Haze API and should not be used outside of the library. " +
     "It may be changed or removed without notice.",

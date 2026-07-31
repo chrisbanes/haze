@@ -39,6 +39,7 @@ internal inline fun <T> wrapRuntimeShaderConstruction(block: () -> T): T = try {
 @InternalHazeApi
 public expect fun createRuntimeEffect(sksl: String): PlatformRuntimeEffect
 
+/** Returns whether runtime-shader render effects are supported on the current platform. */
 @InternalHazeApi
 public expect fun isRuntimeShaderRenderEffectSupported(): Boolean
 
@@ -61,6 +62,7 @@ public expect fun createRuntimeShaderRenderEffect(
 /** A runtime shader render effect whose uniforms can be updated without recompiling its source. */
 @InternalHazeApi
 public interface MutableRuntimeShaderRenderEffect {
+  /** Applies [uniforms] and returns the render effect containing the updated values. */
   public fun updateUniforms(
     uniforms: RuntimeShaderUniformProvider.() -> Unit,
   ): PlatformRenderEffect

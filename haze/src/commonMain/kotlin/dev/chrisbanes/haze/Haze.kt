@@ -25,9 +25,11 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 
+/** Creates and remembers a [HazeState] for coordinating Haze sources and effects. */
 @Composable
 public fun rememberHazeState(): HazeState = remember { HazeState() }
 
+/** Shared state that associates [hazeSource] content with source-backed Haze effects. */
 @Stable
 public class HazeState {
   internal var positionStrategy: HazePositionStrategy by mutableStateOf(HazePositionStrategy.Auto)

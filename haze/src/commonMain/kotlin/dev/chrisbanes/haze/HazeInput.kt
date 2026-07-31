@@ -12,6 +12,10 @@ public sealed interface HazeInput {
 
   /**
    * Content captured by [hazeSource] modifiers associated with [state].
+   *
+   * @property state Shared state that identifies the available sources.
+   * @property selection Policy that selects which associated sources are consumed.
+   * @property retention Policy for output retained while selected sources are unavailable.
    */
   @Stable
   public data class Sources(
@@ -30,6 +34,9 @@ public sealed interface HazeInput {
  * Stable source metadata exposed to [HazeSourceSelection] refinements.
  *
  * Renderer-owned geometry, content, and platform resources are intentionally not exposed.
+ *
+ * @property key Optional application key supplied to `hazeSource`.
+ * @property zIndex Source ordering value supplied to `hazeSource`.
  */
 public class HazeSourceInfo(
   public val key: Any?,

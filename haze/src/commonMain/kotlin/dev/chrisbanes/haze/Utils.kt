@@ -17,7 +17,7 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
  * detached); callers should always route through this helper rather than catching at the call
  * site, to keep error policy consistent.
  *
- * We catch [Exception] deliberately — not [Throwable] — so that [OutOfMemoryError] and other
+ * We catch [Exception] deliberately — not [Throwable] — so that `OutOfMemoryError` and other
  * JVM errors propagate rather than being silently swallowed as an "unspecified position".
  */
 internal fun LayoutCoordinates.safePositionOnScreen(): Offset = try {

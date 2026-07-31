@@ -24,6 +24,7 @@ public actual fun createRuntimeEffect(sksl: String): PlatformRuntimeEffect {
   return PlatformRuntimeEffect(sksl)
 }
 
+/** Returns whether the device supports Android runtime-shader render effects. */
 @ChecksSdkIntAtLeast(api = 33)
 @InternalHazeApi
 public actual fun isRuntimeShaderRenderEffectSupported(): Boolean = Build.VERSION.SDK_INT >= 33

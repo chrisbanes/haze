@@ -4,6 +4,7 @@
 
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.Copy
+import org.jetbrains.dokka.gradle.DokkaExtension
 
 plugins {
   id("dev.chrisbanes.root")
@@ -25,7 +26,34 @@ plugins {
   alias(libs.plugins.dokka)
 }
 
+val checkPublicApiDocumentation = tasks.register("checkPublicApiDocumentation") {
+  group = "verification"
+  description = "Checks that public API documentation generates without warnings."
+}
+
+tasks.named("check") {
+  dependsOn(checkPublicApiDocumentation)
+}
+
 subprojects {
+  pluginManager.withPlugin("org.jetbrains.dokka") {
+    extensions.configure<DokkaExtension> {
+      dokkaPublications.configureEach {
+        failOnWarning.set(true)
+      }
+      dokkaSourceSets.configureEach {
+        reportUndocumented.set(true)
+      }
+    }
+
+    pluginManager.withPlugin("dev.chrisbanes.metalava") {
+      val dokkaModuleTask = tasks.named("dokkaGenerateModuleHtml")
+      checkPublicApiDocumentation.configure {
+        dependsOn(dokkaModuleTask)
+      }
+    }
+  }
+
   tasks.withType<Copy>().configureEach {
     if (name.endsWith("TestDevelopmentExecutableCompileSync")) {
       // Kotlin/JS copies duplicate Skiko runtime files from main and test resources.

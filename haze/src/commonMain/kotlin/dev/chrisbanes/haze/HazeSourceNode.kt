@@ -27,6 +27,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+/** Marks Haze APIs that are experimental and may change without notice. */
 @RequiresOptIn(message = "Experimental Haze API", level = RequiresOptIn.Level.WARNING)
 public annotation class ExperimentalHazeApi
 

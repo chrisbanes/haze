@@ -42,6 +42,7 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
 @ExperimentalHazeApi
 @Immutable
 public sealed interface GlassStyle {
+  /** The empty Glass Style, which performs no writes. */
   public companion object : GlassStyle
 }
 
@@ -115,27 +116,33 @@ public class GlassStyleScope internal constructor(
     values.pressedInteraction = buildGlassInteractionResponse(block)
   }
 
+  /** Sets the rounded boundary used for refraction and masking. */
   public fun shape(value: RoundedCornerShape) {
     values.shape = value
   }
 
+  /** Sets the optical model used to refract and blur captured content. */
   public fun optics(value: GlassOptics) {
     values.optics = value
   }
 
+  /** Sets specular-highlight intensity, coerced to the range `0f..1f`. */
   public fun specularIntensity(value: Float) {
     values.specularIntensity = value.coerceIn(0f, 1f)
   }
 
+  /** Sets ambient-light response, coerced to the range `0f..1f`. */
   public fun ambientResponse(value: Float) {
     values.ambientResponse = value.coerceIn(0f, 1f)
   }
 
+  /** Sets the tint applied to refracted content. */
   public fun tint(value: Color) {
     require(value.isSpecified) { "tint must be specified" }
     values.tint = value
   }
 
+  /** Sets the non-negative softening distance around the material boundary. */
   public fun edgeSoftness(value: Dp) {
     require(value.isSpecified) { "edgeSoftness must be specified" }
     values.edgeSoftness = value.coerceAtLeast(0.dp)
@@ -154,42 +161,52 @@ public class GlassStyleScope internal constructor(
     values.lightPosition = value
   }
 
+  /** Sets chromatic dispersion strength, coerced to the range `0f..1f`. */
   public fun chromaticAberrationStrength(value: Float) {
     values.chromaticAberrationStrength = value.coerceIn(0f, 1f)
   }
 
+  /** Sets the cross-section profile used by the refraction bezel. */
   public fun surfaceProfile(value: SurfaceProfile) {
     values.surfaceProfile = value
   }
 
+  /** Sets the quality mode used to render chromatic aberration. */
   public fun chromaticAberrationMode(value: ChromaticAberrationMode) {
     values.chromaticAberrationMode = value
   }
 
+  /** Sets overall material opacity, coerced to the range `0f..1f`. */
   public fun alpha(value: Float) {
     values.alpha = value.coerceIn(0f, 1f)
   }
 
+  /** Sets contrast adjustment, coerced to the range `-1f..1f`. */
   public fun contrast(value: Float) {
     values.contrast = value.coerceIn(-1f, 1f)
   }
 
+  /** Sets white-point adjustment, coerced to the range `-1f..1f`. */
   public fun whitePoint(value: Float) {
     values.whitePoint = value.coerceIn(-1f, 1f)
   }
 
+  /** Sets the chroma multiplier, coerced to the range `0f..2f`. */
   public fun chromaMultiplier(value: Float) {
     values.chromaMultiplier = value.coerceIn(0f, 2f)
   }
 
+  /** Sets the blend between generated and captured normals, coerced to `0f..1f`. */
   public fun contentNormalBlend(value: Float) {
     values.contentNormalBlend = value.coerceIn(0f, 1f)
   }
 
+  /** Sets the non-negative exponent controlling specular highlight concentration. */
   public fun specularExponent(value: Float) {
     values.specularExponent = value.coerceAtLeast(0f)
   }
 
+  /** Sets the non-negative exponent controlling Fresnel response falloff. */
   public fun fresnelExponent(value: Float) {
     values.fresnelExponent = value.coerceAtLeast(0f)
   }

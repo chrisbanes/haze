@@ -27,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
  * independently owned renderer.
  */
 public fun interface HazeEffectFactory<Style> {
+  /** Creates renderer state owned by one `hazeEffect` modifier node. */
   public fun createRenderer(): HazeEffectRenderer<Style>
 }
 
@@ -104,57 +105,104 @@ public interface HazeEffectLayoutScope : Density {
  */
 @InternalHazeApi
 public interface HazeEffectRendererLifecycle<Style> {
+  /** Acquires node-owned resources when the renderer becomes attached. */
   public fun attach(scope: HazeEffectLifecycleScope): Unit = Unit
+
+  /** Applies the complete current [style] and [sampling] policy. */
   public fun update(
     scope: HazeEffectLifecycleScope,
     style: Style,
     sampling: HazeSampling,
   ): Unit = Unit
+
+  /** Releases resources that are valid only while the node is attached. */
   public fun detach(): Unit = Unit
 }
 
 /** Built-in-only resources used while a renderer is attached to one modifier node. */
 @InternalHazeApi
 public interface HazeEffectLifecycleScope {
+  /** Current size of the modifier carrying the effect. */
   public val modifierSize: Size
+
+  /** Coroutine scope cancelled when the modifier node detaches. */
   public val coroutineScope: CoroutineScope
+
+  /** Returns the platform context associated with the modifier node. */
   public fun requirePlatformContext(): PlatformContext
+
+  /** Returns the graphics context used to allocate and release graphics layers. */
   public fun requireGraphicsContext(): GraphicsContext
+
+  /** Returns the density currently associated with the modifier node. */
   public fun requireDensity(): Density
+
+  /** Returns the current value of [local] and observes it for lifecycle updates. */
   public fun <T> currentValueOf(local: CompositionLocal<T>): T
+
+  /** Schedules a redraw of the effect. */
   public fun invalidateDraw()
+
+  /** Schedules recalculation of the effect layer bounds. */
   public fun invalidateLayerBounds()
 }
 
 /** Built-in-only draw hooks which are not part of the third-party renderer contract. */
 @InternalHazeApi
 public interface HazeEffectRendererDrawHooks<Style> {
+  /** Prepares renderer state immediately before the effect is drawn. */
   public fun HazeEffectRuntimeDrawScope.prepareDraw(style: Style): Unit = Unit
+
+  /** Draws renderer output over the modifier's own content. */
   public fun HazeEffectRuntimeDrawScope.drawForeground(style: Style): Unit = Unit
+
+  /** Whether the modifier's content is drawn behind the effect output. */
   public fun shouldDrawContentBehind(): Boolean = false
+
+  /** Whether effect output is clipped to the modifier bounds. */
   public fun shouldClipToNodeBounds(): Boolean = false
+
+  /** Whether source-backed input bounds are preferred as the clipping region. */
   public fun shouldPreferClipToInputBounds(): Boolean = false
 }
 
 /** Built-in-only retained-output capability. */
 @InternalHazeApi
 public interface HazeEffectRendererRetainedOutput {
+  /** Whether the renderer currently owns output that can be drawn again. */
   public fun canDrawRetainedOutput(): Boolean
+
+  /** Whether retained output should be drawn for the current frame. */
   public fun shouldDrawRetainedOutput(): Boolean = canDrawRetainedOutput()
+
+  /** Releases and clears all retained output. */
   public fun clearRetainedOutput()
 }
 
 /** Built-in-only pointer and content-transform capability. */
 @InternalHazeApi
 public interface HazeEffectRendererInteraction {
+  /** Whether the modifier node should observe pointer events. */
   public val observesPointerEvents: Boolean
+
+  /** Handles an observed [event] without consuming application pointer input. */
   public fun onPointerEvent(event: PointerEvent, scope: HazeEffectLifecycleScope)
+
+  /** Cancels any pointer interaction currently tracked by the renderer. */
   public fun onCancelPointerInput(scope: HazeEffectLifecycleScope)
+
+  /** Returns the transform applied to the modifier's content for the current interaction state. */
   public fun currentContentTransform(): HazeEffectContentTransform =
     HazeEffectContentTransform.Identity
 }
 
-/** Built-in-only transform applied to a modifier's own content and effect output. */
+/**
+ * Built-in-only transform applied to a modifier's own content and effect output.
+ *
+ * @property scaleX Horizontal scale factor greater than zero.
+ * @property scaleY Vertical scale factor greater than zero.
+ * @property pivot Pivot in the modifier's local coordinate space.
+ */
 @InternalHazeApi
 public class HazeEffectContentTransform(
   public val scaleX: Float,
@@ -167,19 +215,23 @@ public class HazeEffectContentTransform(
     require(pivot.x.isFinite() && pivot.y.isFinite()) { "pivot must be finite" }
   }
 
+  /** Returns whether [other] describes the same scale and pivot. */
   override fun equals(other: Any?): Boolean =
     other is HazeEffectContentTransform &&
       scaleX == other.scaleX &&
       scaleY == other.scaleY &&
       pivot == other.pivot
 
+  /** Returns a hash code derived from the scale and pivot. */
   override fun hashCode(): Int {
     var result = scaleX.hashCode()
     result = 31 * result + scaleY.hashCode()
     return 31 * result + pivot.hashCode()
   }
 
+  /** Built-in transform constants. */
   public companion object {
+    /** A transform that leaves content unchanged. */
     public val Identity: HazeEffectContentTransform =
       HazeEffectContentTransform(1f, 1f, Offset.Zero)
   }
@@ -201,16 +253,37 @@ public interface HazeEffectInputSnapshot
  */
 @InternalHazeApi
 public interface HazeEffectRuntimeDrawScope : HazeEffectDrawScope {
+  /** Current size of the modifier carrying the effect. */
   public val modifierSize: Size
+
+  /** Current size of the expanded effect layer. */
   public val layerSize: Size
+
+  /** Offset from the effect layer origin to the modifier origin. */
   public val layerOffset: Offset
+
+  /** Whether the selected input currently contains drawable content. */
   public val hasDrawableInput: Boolean
+
+  /** Opaque identity of the current input capture, or `null` when no input is drawable. */
   public val inputSnapshot: HazeEffectInputSnapshot?
+
+  /** Coroutine scope cancelled when the modifier node detaches. */
   public val coroutineScope: CoroutineScope
+
+  /** Returns the platform context associated with the modifier node. */
   public fun requirePlatformContext(): PlatformContext
+
+  /** Returns the graphics context used to allocate and release graphics layers. */
   public fun requireGraphicsContext(): GraphicsContext
+
+  /** Returns the density currently associated with the modifier node. */
   public fun requireDensity(): Density = this
+
+  /** Schedules a redraw of the effect. */
   public fun invalidateDraw()
+
+  /** Draws the selected input into this [DrawScope]. */
   public fun DrawScope.drawInput()
 }
 
