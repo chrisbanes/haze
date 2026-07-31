@@ -46,6 +46,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
@@ -183,7 +185,7 @@ private fun LabSpecimen(
           stiffness = Spring.StiffnessMediumLow,
         ),
       ) {
-        dragOffset = value
+        dragOffset = value.coerceCenterTo(viewportSize)
       }
     }
   }
@@ -198,7 +200,10 @@ private fun LabSpecimen(
   }
   Box(
     modifier = modifier
-      .onSizeChanged { viewportSize = it }
+      .onSizeChanged {
+        viewportSize = it
+        dragOffset = dragOffset.coerceCenterTo(it)
+      }
       .testTag("glass_lab_specimen_viewport"),
   ) {
     GalleryBackdrop(
@@ -226,6 +231,16 @@ private fun LabSpecimen(
         }
         .fillMaxWidth(0.85f)
         .sizeIn(maxWidth = 360.dp, maxHeight = 240.dp)
+        .pointerInput(Unit) {
+          awaitPointerEventScope {
+            while (true) {
+              awaitPointerEvent(PointerEventPass.Initial)
+                .changes
+                .firstOrNull { it.changedToDown() }
+                ?.let { returnJob?.cancel() }
+            }
+          }
+        }
         .pointerInput(interactionSource) {
           try {
             detectDragGestures(
