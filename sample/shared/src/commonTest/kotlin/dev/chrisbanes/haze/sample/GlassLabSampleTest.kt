@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -134,6 +135,57 @@ class GlassLabSampleTest : ContextTest() {
   }
 
   @Test
+  fun specimenReturnIsClampedWhenViewportShrinks() = runComposeUiTest {
+    var labSize by mutableStateOf(800.dp)
+    setContent {
+      GlassLabSampleContent(
+        state = GlassLabState(),
+        recordingMode = false,
+        onStateChanged = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+        modifier = Modifier.size(labSize, labSize / 2),
+      )
+    }
+
+    val viewport = onNodeWithTag("glass_lab_specimen_viewport")
+    val specimen = onNodeWithContentDescription("Glass specimen")
+    specimen.performTouchInput { down(center) }
+    specimen.performTouchInput {
+      updatePointerTo(0, center + Offset(10_000f, 10_000f))
+      move()
+    }
+    waitForIdle()
+    assertThat(specimen.fetchSemanticsNode().boundsInRoot.center)
+      .isEqualTo(viewport.fetchSemanticsNode().boundsInRoot.bottomRight)
+    val autoAdvance = mainClock.autoAdvance
+    mainClock.autoAdvance = false
+    try {
+      specimen.performTouchInput { up() }
+      mainClock.advanceTimeBy(64)
+      val returningCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+      assertThat(returningCenter.x)
+        .isGreaterThan(viewport.fetchSemanticsNode().boundsInRoot.center.x)
+      labSize = 300.dp
+      mainClock.advanceTimeByFrame()
+
+      val specimenCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+      val viewportBounds = viewport.fetchSemanticsNode().boundsInRoot
+      assertThat(specimenCenter.x).isLessThanOrEqualTo(viewportBounds.right + 0.5f)
+      assertThat(specimenCenter.y).isLessThanOrEqualTo(viewportBounds.bottom + 0.5f)
+      val clampedOffsetX = specimenCenter.x - viewportBounds.center.x
+      labSize = 800.dp
+      mainClock.advanceTimeBy(64)
+
+      val expandedViewportCenterX = viewport.fetchSemanticsNode().boundsInRoot.center.x
+      assertThat(specimen.fetchSemanticsNode().boundsInRoot.center.x - expandedViewportCenterX)
+        .isLessThanOrEqualTo(clampedOffsetX + 0.5f)
+    } finally {
+      mainClock.autoAdvance = autoAdvance
+    }
+  }
+
+  @Test
   fun specimenDragEmitsPressAndReleaseInteractions() = runComposeUiTest {
     val interactionSource = MutableInteractionSource()
     val interactions = mutableListOf<Interaction>()
@@ -244,6 +296,8 @@ class GlassLabSampleTest : ContextTest() {
       mainClock.advanceTimeBy(64)
       val returningCenter = specimen.fetchSemanticsNode().boundsInRoot.center
       specimen.performTouchInput { down(center) }
+      mainClock.advanceTimeBy(500)
+      assertThat(specimen.fetchSemanticsNode().boundsInRoot.center).isEqualTo(returningCenter)
       specimen.performTouchInput {
         updatePointerTo(0, center + Offset(0f, 60f))
         move()
@@ -261,6 +315,42 @@ class GlassLabSampleTest : ContextTest() {
       showSpecimen = false
       mainClock.autoAdvance = autoAdvance
       waitForIdle()
+    }
+  }
+
+  @Test
+  fun tappingSpecimenDuringReturnResumesReturnToCenter() = runComposeUiTest {
+    setContent {
+      GlassLabSampleContent(
+        state = GlassLabState(interaction = GlassLabInteractionMode.Off),
+        recordingMode = false,
+        onStateChanged = {},
+        onRecordingModeChanged = {},
+        onBack = {},
+      )
+    }
+
+    val specimen = onNodeWithContentDescription("Glass specimen")
+    val initialCenter = specimen.fetchSemanticsNode().boundsInRoot.center
+    specimen.performTouchInput { down(center) }
+    specimen.performTouchInput {
+      updatePointerTo(0, center + Offset(120f, 0f))
+      move()
+    }
+    val autoAdvance = mainClock.autoAdvance
+    mainClock.autoAdvance = false
+    try {
+      specimen.performTouchInput { up() }
+      mainClock.advanceTimeBy(64)
+      specimen.performTouchInput { down(center) }
+      specimen.performTouchInput { up() }
+      mainClock.advanceTimeUntil(timeoutMillis = 5_000) {
+        specimen.fetchSemanticsNode().boundsInRoot.center == initialCenter
+      }
+
+      assertThat(specimen.fetchSemanticsNode().boundsInRoot.center).isEqualTo(initialCenter)
+    } finally {
+      mainClock.autoAdvance = autoAdvance
     }
   }
 
