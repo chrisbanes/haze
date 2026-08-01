@@ -276,6 +276,40 @@ internal interface RetainedOutputDelegate {
   fun clearRetainedOutput()
 }
 
+/** Tracks whether an asynchronously generated Blur output is still valid for presentation. */
+internal class BlurRetainedOutputState {
+  var generation: Int = 0
+    private set
+  var isAvailable: Boolean = false
+    private set
+  var isPending: Boolean = false
+    private set
+
+  fun beginOutputUpdate(): Int {
+    isPending = true
+    return generation
+  }
+
+  fun completeOutputUpdate(generationAtStart: Int): Boolean {
+    if (generation != generationAtStart) return false
+    isPending = false
+    isAvailable = true
+    return true
+  }
+
+  fun finishOutputUpdate(generationAtStart: Int) {
+    if (generation == generationAtStart) {
+      isPending = false
+    }
+  }
+
+  fun clear() {
+    generation++
+    isAvailable = false
+    isPending = false
+  }
+}
+
 internal expect fun BlurVisualEffect.updateDelegate(
   context: HazeEffectRuntimeDrawScope,
   drawScope: DrawScope,
