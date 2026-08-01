@@ -118,7 +118,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
   }
 
   override fun clearRetainedOutput() {
-    retainedOutputAvailable = false
+    releaseRetainedResources()
   }
 
   override fun detach() {

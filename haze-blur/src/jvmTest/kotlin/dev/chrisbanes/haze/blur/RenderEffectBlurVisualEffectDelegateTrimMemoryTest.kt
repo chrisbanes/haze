@@ -61,6 +61,22 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
     assertThat(delegate.getPrivateField<Size?>("lastScaledLayerSize")).isEqualTo(null)
     assertThat(context.invalidateDrawCalls).isEqualTo(1)
   }
+
+  @Test
+  fun clearRetainedOutput_releasesLayerMetadataAndAvailability() {
+    val delegate = RenderEffectBlurVisualEffectDelegate(
+      HazeBlurFactory.createRenderer() as BlurVisualEffect,
+    )
+    delegate.setPrivateField("retainedOutputAvailable", true)
+    delegate.setPrivateField("lastScaledLayerSize", Size(10f, 10f))
+
+    delegate.clearRetainedOutput()
+
+    assertThat(delegate.getPrivateField<Boolean>("retainedOutputAvailable")).isFalse()
+    assertThat(delegate.getPrivateField<Size?>("lastScaledLayerSize")).isEqualTo(null)
+    assertThat(delegate.getPrivateField<Any?>("scaledContentLayer")).isEqualTo(null)
+    assertThat(delegate.getPrivateField<Any?>("graphicsContext")).isEqualTo(null)
+  }
 }
 
 private fun Any.setPrivateField(name: String, value: Any?) {
