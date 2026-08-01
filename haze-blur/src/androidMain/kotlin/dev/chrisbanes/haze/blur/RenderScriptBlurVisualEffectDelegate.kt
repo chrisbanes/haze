@@ -73,6 +73,8 @@ internal class RenderScriptBlurVisualEffectDelegate(
   private var contentLayer: GraphicsLayer? = null
 
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
+    if (blurVisualEffect.alpha == 0f) return
+
     val density = context.requireDensity()
     val offset = context.layerOffset
     var scaleFactor = blurVisualEffect.resolveInputScaleFactor(context)

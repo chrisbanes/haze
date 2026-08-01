@@ -41,6 +41,7 @@ import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
@@ -65,24 +66,79 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     mutableMapOf<GlassRuntimeEffect, HazeEffectFactory<GlassNodeConfiguration>>()
 
   @Test
-  fun alphaZero_clearsRetainedOutputUntilVisibleFrameRefreshesIt() = runComposeUiTest {
-    val effect = activeDetailEffect().apply { alpha = 0.5f }
+  fun firstAlphaZeroFrame_skipsRuntimeShaderAndLayerGraphPreparation() = runComposeUiTest {
+    var creationAttempts = 0
+    val effect = activeDetailEffect().apply {
+      alpha = 0f
+      runtimeEffectFactory = GlassRuntimeEffectFactory { create ->
+        creationAttempts++
+        create()
+      }
+    }
+
     setContent { RuntimeGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 
+    assertThat(runtime(effect).preparedRender).isNull()
+    assertThat(runtime(effect).delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(runtime(effect).dirtyTracker).isEqualTo(Bitmask())
+    assertThat(creationAttempts).isEqualTo(0)
+
+    effect.alpha = 0.5f
+    waitForIdle()
+
     val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
-    val sourceRecordsBeforeZero = delegate.sourceRecordCount
+    assertThat(creationAttempts).isGreaterThan(0)
+    assertThat(delegate.sourceRecordCount).isGreaterThan(0)
+  }
+
+  @Test
+  fun alphaZero_retainsOutputAndDefersSourceRefreshUntilVisible() = runComposeUiTest {
+    val hazeState = HazeState()
+    val sourceColor = mutableStateOf(Color.Red)
+    val effect = activeDetailEffect().apply { alpha = 0.5f }
+    setContent {
+      Box(Modifier.size(120.dp)) {
+        Box(
+          Modifier
+            .fillMaxSize()
+            .background(sourceColor.value)
+            .hazeSource(hazeState),
+        )
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testTag("glass")
+            .testGlass(effect, input = HazeInput.Sources(hazeState)),
+        )
+      }
+    }
+    waitForIdle()
+
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    val recordsBeforeZero = delegate.stageRecordCounts
+    val sourceSnapshotBeforeZero = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
 
     effect.alpha = 0f
     waitForIdle()
 
-    assertThat(delegate.canDrawRetainedOutput()).isFalse()
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    assertThat(delegate.stageRecordCounts).isEqualTo(recordsBeforeZero)
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(sourceSnapshotBeforeZero)
+
+    sourceColor.value = Color.Blue
+    waitForIdle()
+
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    assertThat(delegate.stageRecordCounts).isEqualTo(recordsBeforeZero)
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isSameInstanceAs(sourceSnapshotBeforeZero)
 
     effect.alpha = 0.5f
     waitForIdle()
 
     assertThat(delegate.canDrawRetainedOutput()).isTrue()
-    assertThat(delegate.sourceRecordCount).isGreaterThan(sourceRecordsBeforeZero)
+    assertThat(delegate.sourceRecordCount).isGreaterThan(recordsBeforeZero.source)
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isNotSameInstanceAs(sourceSnapshotBeforeZero)
   }
 
   @Test

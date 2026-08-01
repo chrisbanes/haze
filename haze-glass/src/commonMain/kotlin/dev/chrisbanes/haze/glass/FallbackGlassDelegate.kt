@@ -32,6 +32,8 @@ internal class FallbackGlassDelegate(
   private var graphicsContext: GraphicsContext? = null
 
   override fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) {
+    if (effect.alpha == 0f) return
+
     val density = context.requireDensity()
     val layoutDirection = context.currentValueOf(LocalLayoutDirection)
     val style = resolveGlassStyle(effect, size, density, layoutDirection)

@@ -383,6 +383,12 @@ internal class GlassRuntimeEffect() :
     }
   }
 
+  override fun shouldPrepareDraw(style: GlassNodeConfiguration): Boolean {
+    if (alpha != 0f) return true
+    resetDirtyTracker()
+    return false
+  }
+
   private fun canReusePreparedDraw(context: HazeEffectRuntimeDrawScope): Boolean {
     val key = preparedDrawCacheKey ?: return false
     val style = resolvedStyleCache ?: return false

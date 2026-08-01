@@ -108,6 +108,12 @@ internal class BlurVisualEffect :
     }
   }
 
+  override fun shouldPrepareDraw(style: HazeBlurStyle): Boolean {
+    if (alpha != 0f) return true
+    resetDirtyTracker()
+    return false
+  }
+
   override fun HazeEffectDrawScope.draw(style: HazeBlurStyle) {
     val runtimeScope = this as HazeEffectRuntimeDrawScope
     try {
