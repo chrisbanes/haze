@@ -5,14 +5,19 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
@@ -27,6 +32,32 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class HazeEffectRendererCapabilitiesTest : ContextTest() {
+
+  @Test
+  fun closedPreparationGate_drawsContentWithoutInvokingRendererHooks() = runComposeUiTest {
+    val factory = RecordingCapabilityFactory(shouldPrepareDraw = false)
+
+    setContent {
+      Box(
+        Modifier
+          .size(10.dp)
+          .testTag("effect")
+          .hazeEffect(
+            factory = factory,
+            input = HazeInput.Content,
+            style = "transparent",
+          )
+          .background(Color.Red),
+      )
+    }
+    waitForIdle()
+
+    val renderer = factory.renderers.single()
+    assertThat(onNodeWithTag("effect").captureToImage().toPixelMap()[5, 5]).isEqualTo(Color.Red)
+    assertThat(renderer.prepareDrawCalls).isEqualTo(0)
+    assertThat(renderer.drawCalls).isEqualTo(0)
+    assertThat(renderer.drawForegroundCalls).isEqualTo(0)
+  }
 
   @Test
   fun nodeOwnedCapabilities_preserveExactLifecycleAndStyleOwnership() = runComposeUiTest {
@@ -87,14 +118,18 @@ class HazeEffectRendererCapabilitiesTest : ContextTest() {
   }
 }
 
-private class RecordingCapabilityFactory : HazeEffectFactory<String> {
+private class RecordingCapabilityFactory(
+  private val shouldPrepareDraw: Boolean = true,
+) : HazeEffectFactory<String> {
   val renderers = mutableListOf<RecordingCapabilityRenderer>()
 
   override fun createRenderer(): HazeEffectRenderer<String> =
-    RecordingCapabilityRenderer().also(renderers::add)
+    RecordingCapabilityRenderer(shouldPrepareDraw).also(renderers::add)
 }
 
-private class RecordingCapabilityRenderer :
+private class RecordingCapabilityRenderer(
+  private val shouldPrepareDraw: Boolean,
+) :
   HazeEffectRenderer<String>,
   HazeEffectRendererLifecycle<String>,
   HazeEffectRendererDrawHooks<String>,
@@ -126,6 +161,8 @@ private class RecordingCapabilityRenderer :
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: String) {
     prepareDrawCalls++
   }
+
+  override fun shouldPrepareDraw(style: String): Boolean = shouldPrepareDraw
 
   override fun HazeEffectDrawScope.draw(style: String) {
     drawCalls++

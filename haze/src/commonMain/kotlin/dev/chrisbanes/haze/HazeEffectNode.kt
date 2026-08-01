@@ -496,13 +496,14 @@ internal class HazeEffectNode(
       }
 
       if (this@HazeEffectNode.size.isSpecified && this@HazeEffectNode.layerSize.isSpecified) {
+        val shouldPrepareDraw = shouldPrepareEffectDraw()
         if (state != null) {
           val hasDrawableSourceLayers = hasDrawableSourceLayers()
           if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers) {
             clearRetainedOutput()
           }
 
-          val shouldDrawEffect = if (retainOutputWhenSourceUnavailable) {
+          val shouldDrawEffect = shouldPrepareDraw && if (retainOutputWhenSourceUnavailable) {
             areas.isNotEmpty() || shouldDrawRetainedOutput()
           } else {
             hasDrawableSourceLayers
@@ -522,7 +523,7 @@ internal class HazeEffectNode(
               drawEffectForeground()
             }
           }
-        } else {
+        } else if (shouldPrepareDraw) {
           // Else we're doing content (foreground) blurring, so we need to use our
           // contentDrawArea
           val contentLayer = contentDrawArea.contentLayer
@@ -550,6 +551,10 @@ internal class HazeEffectNode(
             drawEffect()
             drawEffectForeground()
           }
+        } else {
+          withVisualEffectTransform {
+            drawContentSafely()
+          }
         }
       } else {
         HazeLogger.d(TAG) { "-> State not valid, so no need to draw effect." }
@@ -560,6 +565,13 @@ internal class HazeEffectNode(
       onPostDraw()
       HazeLogger.d(TAG) { "-> end draw()" }
     }
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun shouldPrepareEffectDraw(): Boolean {
+    val renderer = typedEffectRenderer ?: return true
+    val hooks = renderer as? HazeEffectRendererDrawHooks<Any?> ?: return true
+    return hooks.shouldPrepareDraw(typedEffectStyle)
   }
 
   @OptIn(InternalHazeApi::class)

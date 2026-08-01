@@ -36,6 +36,8 @@ internal class RenderEffectBlurVisualEffectDelegate(
   private var retainedOutputAvailable: Boolean = false
 
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
+    if (blurVisualEffect.alpha == 0f) return
+
     // Calculate scaled layer size to detect size changes (needs re-allocation)
     val scaleFactor = blurVisualEffect.resolveInputScaleFactor(context)
     val currentScaledSize = (context.layerSize * scaleFactor).roundToIntSize().let {

@@ -150,6 +150,9 @@ public interface HazeEffectLifecycleScope {
 /** Built-in-only draw hooks which are not part of the third-party renderer contract. */
 @InternalHazeApi
 public interface HazeEffectRendererDrawHooks<Style> {
+  /** Whether the renderer should prepare and draw effect output for the current frame. */
+  public fun shouldPrepareDraw(style: Style): Boolean = true
+
   /** Prepares renderer state immediately before the effect is drawn. */
   public fun HazeEffectRuntimeDrawScope.prepareDraw(style: Style): Unit = Unit
 

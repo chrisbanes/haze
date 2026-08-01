@@ -76,18 +76,28 @@ class FallbackGlassDelegateTest {
   }
 
   @Test
-  fun alphaZero_releasesAndOwnsNoFallbackGroupLayer() {
-    val effect = GlassRuntimeEffect().apply { alpha = 0.5f }
+  fun alphaZero_skipsFirstPreparationAndRetainsExistingFallbackGroupLayer() {
+    val effect = GlassRuntimeEffect().apply { alpha = 0f }
     val delegate = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(100f, 100f))
+
+    delegate.prepare(context)
+
+    assertThat(delegate.preparedDrawForTest()).isNull()
+    assertThat(context.graphicsContext.createdLayers).isEqualTo(emptyList())
+
+    effect.alpha = 0.5f
     delegate.prepare(context)
     val groupLayer = checkNotNull(delegate.groupAlphaForTest().layer)
+    val prepared = checkNotNull(delegate.preparedDrawForTest())
 
     effect.alpha = 0f
     delegate.prepare(context)
 
-    assertThat(delegate.groupAlphaForTest().layer).isNull()
-    assertThat(groupLayer in context.graphicsContext.releasedLayers).isTrue()
+    assertThat(delegate.preparedDrawForTest()).isSameInstanceAs(prepared)
+    assertThat(delegate.groupAlphaForTest().layer).isSameInstanceAs(groupLayer)
+    assertThat(context.graphicsContext.createdLayers).isEqualTo(listOf(groupLayer))
+    assertThat(context.graphicsContext.releasedLayers).isEqualTo(emptyList())
   }
 
   @Test
@@ -300,6 +310,12 @@ class FallbackGlassDelegateTest {
     javaClass.getDeclaredField("groupAlpha").run {
       isAccessible = true
       get(this@groupAlphaForTest) as RetainedGlassGroupAlphaLayer
+    }
+
+  private fun FallbackGlassDelegate.preparedDrawForTest(): Any? =
+    javaClass.getDeclaredField("preparedDraw").run {
+      isAccessible = true
+      get(this@preparedDrawForTest)
     }
 
   private fun FallbackGlassDelegate.preparedResourcesForTest(): PreparedResourcesForTest {
