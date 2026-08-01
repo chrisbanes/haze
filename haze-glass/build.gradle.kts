@@ -9,7 +9,7 @@ plugins {
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
   id("org.jetbrains.dokka")
-  // Publishing is disabled until API and visual quality are finalized.
+  id("com.vanniktech.maven.publish")
   id("dev.chrisbanes.metalava")
   id("dev.drewhamilton.poko")
 }
