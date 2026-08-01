@@ -31,6 +31,10 @@
 - Done name: `Done`
 - Done option ID: `98236657`
 
+## Triage
+
+- Needs-triage label: `needs-triage`
+
 ## Priority
 
 - Field name: `Priority`
