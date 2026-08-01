@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.blur
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -16,10 +17,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 import kotlin.math.ceil
 import kotlin.math.max
@@ -34,6 +37,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
   private var lastScaledLayerSize: Size? = null
   private var graphicsContext: GraphicsContext? = null
   private var retainedOutputAvailable: Boolean = false
+  private var inputCaptureKey: InputCaptureKey? = null
 
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
     if (blurVisualEffect.alpha == 0f) return
@@ -47,7 +51,15 @@ internal class RenderEffectBlurVisualEffectDelegate(
 
     if (!hasDrawableSourceLayers) {
       val retainedLayer = scaledContentLayer
-        ?.takeUnless { it.isReleased }
+        ?.takeUnless {
+          if (it.isReleased) {
+            inputCaptureKey = null
+            retainedOutputAvailable = false
+            true
+          } else {
+            false
+          }
+        }
         ?.takeIf { retainedOutputAvailable }
         ?: return
 
@@ -60,29 +72,43 @@ internal class RenderEffectBlurVisualEffectDelegate(
       return
     }
 
-    // Allocate the scaled content layer once, re-recording into it each frame
+    val currentCaptureKey = InputCaptureKey(
+      inputSnapshot = context.inputSnapshot,
+      scaleFactor = scaleFactor,
+      scaledLayerSize = currentScaledSize,
+      layerOffset = context.layerOffset,
+      backgroundColor = blurVisualEffect.backgroundColor,
+    )
+
+    // Allocate the scaled content layer when its capture geometry changes.
     if (scaledContentLayer == null || scaledContentLayer!!.isReleased || lastScaledLayerSize != currentScaledSize) {
       graphicsContext = context.requireGraphicsContext()
       scaledContentLayer?.let { graphicsContext!!.releaseGraphicsLayer(it) }
       scaledContentLayer = graphicsContext!!.createGraphicsLayer()
       lastScaledLayerSize = currentScaledSize
       retainedOutputAvailable = false
+      inputCaptureKey = null
     }
 
     val layer = scaledContentLayer!!
 
-    // Always re-record — the source area layers change each frame during scrolling.
-    // Returns null when the scaled size is 0 (e.g., window minimized).
-    val resultLayer = createScaledContentLayer(
-      context = context,
-      scaleFactor = scaleFactor,
-      layerSize = context.layerSize,
-      layerOffset = context.layerOffset,
-      backgroundColor = blurVisualEffect.backgroundColor,
-      existingLayer = layer,
-    ) ?: return
-    retainedOutputAvailable = true
+    val resultLayer = if (inputCaptureKey == currentCaptureKey) {
+      layer
+    } else {
+      // Returns null when the scaled size is 0 (e.g., window minimized).
+      createScaledContentLayer(
+        context = context,
+        scaleFactor = scaleFactor,
+        layerSize = context.layerSize,
+        layerOffset = context.layerOffset,
+        backgroundColor = blurVisualEffect.backgroundColor,
+        existingLayer = layer,
+      )?.also {
+        inputCaptureKey = currentCaptureKey
+      } ?: return
+    }
 
+    retainedOutputAvailable = true
     drawRetainedLayer(resultLayer, context, scaleFactor)
   }
 
@@ -143,6 +169,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
     renderEffect = null
     graphicsContext = null
     retainedOutputAvailable = false
+    inputCaptureKey = null
   }
 
   private fun updateRenderEffectIfDirty(
@@ -155,6 +182,15 @@ internal class RenderEffectBlurVisualEffectDelegate(
     // the effect's local dirty flags only.
     renderEffect = blurVisualEffect.getOrCreateRenderEffect(context, inputScale = scaleFactor)
   }
+
+  @Poko
+  private class InputCaptureKey(
+    val inputSnapshot: HazeEffectInputSnapshot?,
+    val scaleFactor: Float,
+    val scaledLayerSize: Size,
+    val layerOffset: Offset,
+    val backgroundColor: Color,
+  )
 
   companion object {
     const val TAG = "RenderEffectBlurVisualEffectDelegate"
