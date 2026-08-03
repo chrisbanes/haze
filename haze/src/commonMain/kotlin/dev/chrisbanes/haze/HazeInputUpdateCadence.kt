@@ -15,6 +15,7 @@ public class HazeInputUpdateCadence(
   private var previousUpdateKey: Any? = UnsetUpdateKey
   private var lastUpdateMark: TimeMark? = null
 
+  /** Number of distinct updates observed in the current burst, capped at three. */
   public var multiplier: Int = 1
     private set
 
@@ -41,6 +42,7 @@ public class HazeInputUpdateCadence(
     return multiplier != previousMultiplier
   }
 
+  /** Clears the current update burst and restores [multiplier] to one. */
   public fun reset() {
     previousUpdateKey = UnsetUpdateKey
     lastUpdateMark = null

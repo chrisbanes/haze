@@ -20,6 +20,7 @@ import kotlin.jvm.JvmInline
  * Input-sampling policies used by the explicit-input [hazeEffect] overload.
  */
 public sealed interface HazeSampling {
+  /** Library-defined sampling defaults. */
   public companion object {
     /** Points to the library's current default sampling policy. */
     public val Default: HazeSampling = Adaptive
