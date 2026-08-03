@@ -835,6 +835,37 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun controller_inFlightPositionRestartsWhenAnimationSpecChanges() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      testPressResponse()
+      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+    }
+    setContent {
+      Box(Modifier.size(100.dp).testGlass(effect))
+    }
+    waitForIdle()
+    val controller = checkNotNull(runtime(effect).interactionControllerForTest)
+    mainClock.autoAdvance = false
+
+    controller.updatePosition(Offset(100f, 100f))
+    mainClock.advanceTimeBy(200)
+    val positionBeforeSpecChange = controller.renderState.position.x
+    assertThat(positionBeforeSpecChange).isGreaterThan(50f)
+    assertThat(positionBeforeSpecChange).isLessThan(100f)
+
+    controller.updateConfiguration(
+      controller.configurationForTest.copy(positionAnimationSpec = tween(100)),
+    )
+
+    assertThat(controller.renderState.position.x).isEqualTo(positionBeforeSpecChange)
+    mainClock.advanceTimeBy(50)
+    assertThat(controller.renderState.position.x).isGreaterThan(positionBeforeSpecChange)
+    assertThat(controller.renderState.position.x).isLessThan(100f)
+    mainClock.advanceTimeBy(70)
+    assertThat(controller.renderState.position.x).isEqualTo(100f)
+  }
+
+  @Test
   fun controller_inFlightSystemAnimationRestartsWhenPolicyChangesToFull() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       style = GlassStyle { interactionPositionAnimationSpec(tween(200)) }
