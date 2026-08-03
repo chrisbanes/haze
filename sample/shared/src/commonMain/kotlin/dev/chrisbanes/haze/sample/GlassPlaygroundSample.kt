@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -417,6 +418,7 @@ private fun PlaygroundSurface(
   val latestOnDragStart by rememberUpdatedState(onDragStart)
   val latestOnDrag by rememberUpdatedState(onDrag)
   val latestOnDragEnd by rememberUpdatedState(onDragEnd)
+  val zIndex = playgroundSurfaceZIndex(id, returnFractionProvider(id))
 
   LaunchedEffect(id, surfaceSize) {
     snapshotFlow {
@@ -439,8 +441,8 @@ private fun PlaygroundSurface(
   Box(
     modifier = Modifier
       .size(size)
-      .hazeSource(hazeState, zIndex = 1f + id.ordinal)
-      .zIndex(1f + id.ordinal)
+      .hazeSource(hazeState, zIndex = zIndex)
+      .zIndex(zIndex)
       .hazeGlass(
         input = HazeInput.Sources(hazeState),
         style = style,
@@ -489,6 +491,15 @@ internal fun playgroundSurfaceSize(id: GlassPlaygroundSurfaceId): DpSize = when 
   GlassPlaygroundSurfaceId.Pill -> DpSize(220.dp, 88.dp)
   GlassPlaygroundSurfaceId.Card -> DpSize(280.dp, 180.dp)
   GlassPlaygroundSurfaceId.Prism -> DpSize(180.dp, 112.dp)
+}
+
+internal fun playgroundSurfaceZIndex(
+  id: GlassPlaygroundSurfaceId,
+  dragReturnFraction: Float,
+): Float {
+  val restingZIndex = 1f + id.ordinal
+  val draggedZIndex = 1f + GlassPlaygroundSurfaceId.entries.size
+  return lerp(restingZIndex, draggedZIndex, dragReturnFraction.coerceIn(0f, 1f))
 }
 
 @Composable
