@@ -66,6 +66,20 @@ public interface MutableRuntimeShaderRenderEffect {
   public fun updateUniforms(
     uniforms: RuntimeShaderUniformProvider.() -> Unit,
   ): PlatformRenderEffect
+
+  /**
+   * Replaces the child [inputs], applies [uniforms], and returns the updated render effect.
+   *
+   * The compiled runtime shader is retained when the platform supports it.
+   *
+   * @throws UnsupportedOperationException if replacing child inputs is not supported.
+   */
+  public fun updateInputs(
+    inputs: Array<PlatformRenderEffect?>,
+    uniforms: RuntimeShaderUniformProvider.() -> Unit,
+  ): PlatformRenderEffect = throw UnsupportedOperationException(
+    "Updating runtime shader inputs is not supported by this implementation",
+  )
 }
 
 /**

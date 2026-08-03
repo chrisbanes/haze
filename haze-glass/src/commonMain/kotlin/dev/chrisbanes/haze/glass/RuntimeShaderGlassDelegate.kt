@@ -79,6 +79,7 @@ internal class RuntimeShaderGlassDelegate(
   internal var fusedShader: MutableRuntimeShaderRenderEffect? = null
     private set
   private var fusedInputKey: GlassDepthInputKey? = null
+  private var fusedDepthInputShaders: FusedDepthInputShaders? = null
   private var fusedEffect: PlatformRenderEffect? = null
   private var interactionOpticalEffect: MutableRuntimeShaderRenderEffect? = null
   private var interactionDetailEffect: MutableRuntimeShaderRenderEffect? = null
@@ -910,6 +911,7 @@ internal class RuntimeShaderGlassDelegate(
       rimShader = null
       fusedShader = null
       fusedInputKey = null
+      fusedDepthInputShaders = null
       interactionOpticalEffect = null
       interactionDetailEffect = null
       interactionDetailCoverageEffect = null
@@ -1656,27 +1658,46 @@ internal class RuntimeShaderGlassDelegate(
           interactionOptics = render.interactionTopology.hasOptics,
           sharpDetail = key.detail != null,
         )
-        if (fusedShader == null || fusedInputKey != nextInputKey) {
+        val previousInputKey = fusedInputKey
+        val inputChanged = previousInputKey != nextInputKey
+        val topologyChanged = previousInputKey == null ||
+          previousInputKey.interactionOptics != nextInputKey.interactionOptics ||
+          previousInputKey.sharpDetail != nextInputKey.sharpDetail
+        val nextInput = if (inputChanged) {
+          updateFusedDepthInputRenderEffect(
+            blur = key.blur,
+            depth = key.depth,
+            sampleSize = key.optical.coordinates.sampleSize,
+          )
+        } else {
+          null
+        }
+        val recreatedShader = fusedShader == null || topologyChanged
+        if (recreatedShader) {
           fusedShader = traceCreateRenderEffect {
             createFusedGlassRenderEffect(
-              input = createFusedDepthInputRenderEffect(
-                blur = key.blur,
-                depth = key.depth,
-                sampleSize = key.optical.coordinates.sampleSize,
-              ),
+              input = nextInput,
               interactionOptics = nextInputKey.interactionOptics,
               sharpDetail = nextInputKey.sharpDetail,
             )
           }
           refractionDetailShader = null
-          fusedInputKey = nextInputKey
         }
         val shader = checkNotNull(fusedShader)
-        val optical = shader.updateUniforms {
+        val updateUniforms: RuntimeShaderUniformProvider.() -> Unit = {
           setOpticalUniforms(key.optical)
-          key.detail?.let(::setRefractionDetailUniforms)
-          key.interaction?.let(::setFusedInteractionOpticalUniforms)
+          key.detail?.let { setRefractionDetailUniforms(it) }
+          key.interaction?.let { setFusedInteractionOpticalUniforms(it) }
         }
+        val optical = if (inputChanged && !recreatedShader) {
+          shader.updateInputs(
+            inputs = arrayOf(nextInput),
+            uniforms = updateUniforms,
+          )
+        } else {
+          shader.updateUniforms(updateUniforms)
+        }
+        fusedInputKey = nextInputKey
         val detailKey = key.detail ?: return@let optical
         val detailShader = refractionDetailShader ?: traceCreateRenderEffect {
           createRefractionDetailRenderEffect(
@@ -1721,7 +1742,7 @@ internal class RuntimeShaderGlassDelegate(
     }
   }
 
-  private fun createFusedDepthInputRenderEffect(
+  private fun updateFusedDepthInputRenderEffect(
     blur: GlassBlurEffectKey?,
     depth: Float,
     sampleSize: Size,
@@ -1739,40 +1760,67 @@ internal class RuntimeShaderGlassDelegate(
         tap.copy(offsetPx = tap.offsetPx * offsetScale)
       },
     )
+    val progressive = blur.progressive != null
+    val shaders = fusedDepthInputShaders
+      ?.takeIf {
+        it.progressive == progressive &&
+          it.prefilters.isNotEmpty() == plan.requiresPrefilter
+      }
+      ?: FusedDepthInputShaders(
+        progressive = progressive,
+        prefilters = if (plan.requiresPrefilter) {
+          List(FUSED_DOWNSAMPLE_PREFILTER_PASSES + 1) {
+            traceCreateRenderEffect {
+              createFusedGlassBlurPrefilterRenderEffect(input = null)
+            }
+          }
+        } else {
+          emptyList()
+        },
+        horizontal = traceCreateRenderEffect {
+          createGlassBlurRenderEffectWithInput(
+            horizontal = true,
+            progressive = progressive,
+            input = null,
+          )
+        },
+        vertical = traceCreateRenderEffect {
+          createGlassBlurRenderEffectWithInput(
+            horizontal = false,
+            progressive = progressive,
+            input = null,
+          )
+        },
+      ).also { fusedDepthInputShaders = it }
     val prefilter = if (plan.requiresPrefilter) {
       // The retained path gets additional low-pass energy from rasterizing at half resolution
       // and scaling back up. Reproduce that response inside the one-layer graph.
       var result: PlatformRenderEffect? = null
-      repeat(FUSED_DOWNSAMPLE_PREFILTER_PASSES) {
-        result = createFusedGlassBlurPrefilterRenderEffect(result).updateUniforms {
+      shaders.prefilters.forEachIndexed { index, shader ->
+        result = shader.updateInputs(inputs = arrayOf(result)) {
           setFloatUniform("sampleSize", sampleSize.width, sampleSize.height)
-          setFloatUniform("strength", 1f)
+          setFloatUniform(
+            "strength",
+            if (index < FUSED_DOWNSAMPLE_PREFILTER_PASSES) {
+              1f
+            } else {
+              FUSED_DOWNSAMPLE_FINAL_PREFILTER_STRENGTH
+            },
+          )
         }
-      }
-      result = createFusedGlassBlurPrefilterRenderEffect(result).updateUniforms {
-        setFloatUniform("sampleSize", sampleSize.width, sampleSize.height)
-        setFloatUniform("strength", FUSED_DOWNSAMPLE_FINAL_PREFILTER_STRENGTH)
       }
       result
     } else {
       null
     }
-    val progressive = blur.progressive != null
-    val horizontal = createGlassBlurRenderEffectWithInput(
-      horizontal = true,
-      progressive = progressive,
-      input = prefilter,
-    ).updateUniforms {
+    val progressiveMask = blur.progressive?.toShader(blur.maskSize)
+    val horizontal = shaders.horizontal.updateInputs(inputs = arrayOf(prefilter)) {
       setGlassBlurUniforms(blur, horizontalKernel, sampleSize.width, sampleSize.height)
-      blur.progressive?.toShader(blur.maskSize)?.let { setChildShader("mask", it) }
+      progressiveMask?.let { setChildShader("mask", it) }
     }
-    val vertical = createGlassBlurRenderEffectWithInput(
-      horizontal = false,
-      progressive = progressive,
-      input = horizontal,
-    ).updateUniforms {
+    val vertical = shaders.vertical.updateInputs(inputs = arrayOf(horizontal)) {
       setGlassBlurUniforms(blur, verticalKernel, sampleSize.width, sampleSize.height)
-      blur.progressive?.toShader(blur.maskSize)?.let { setChildShader("mask", it) }
+      progressiveMask?.let { setChildShader("mask", it) }
     }
     return createGlassDepthInputRenderEffect(vertical, depth)
   }
@@ -1912,6 +1960,13 @@ private class GlassDepthInputKey(
   val depth: Float,
   val interactionOptics: Boolean = false,
   val sharpDetail: Boolean = false,
+)
+
+private class FusedDepthInputShaders(
+  val progressive: Boolean,
+  val prefilters: List<MutableRuntimeShaderRenderEffect>,
+  val horizontal: MutableRuntimeShaderRenderEffect,
+  val vertical: MutableRuntimeShaderRenderEffect,
 )
 
 // RuntimeShader child sampling does not reproduce the retained graph's raster downscale/upscale

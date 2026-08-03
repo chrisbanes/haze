@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.test.AndroidComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runAndroidComposeUiTest
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -292,6 +293,38 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         height = 120,
       )
       assertThat(restoredDedicatedPixels).containsExactly(*dedicatedPixels)
+    }
+
+  @Test
+  fun sizeChange_reusesFusedShaderAndMatchesFreshOutput() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val resizedEffect = retainedBlurEffect()
+      val freshEffect = retainedBlurEffect()
+      val size = mutableStateOf(120.dp)
+      val showFresh = mutableStateOf(false)
+      setContent {
+        Row {
+          RuntimeGlassTestContent(resizedEffect, size = size.value)
+          if (showFresh.value) {
+            RuntimeGlassTestContent(freshEffect, size = 100.dp)
+          }
+        }
+      }
+      waitForIdle()
+      drawFrame()
+
+      val delegate = checkNotNull(runtime(resizedEffect).delegate as? RuntimeShaderGlassDelegate)
+      val fusedShader = checkNotNull(delegate.fusedShader)
+
+      size.value = 100.dp
+      showFresh.value = true
+      waitForIdle()
+      drawFrame()
+
+      assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
+      val resizedPixels = captureRegionPixels(left = 0, top = 0, width = 100, height = 100)
+      val freshPixels = captureRegionPixels(left = 100, top = 0, width = 100, height = 100)
+      assertThat(resizedPixels).containsExactly(*freshPixels)
     }
 
   @Test
@@ -702,7 +735,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     }
 
   @Test
-  fun fusedBlurChanges_replaceDepthInputGraph() =
+  fun fusedBlurChanges_reuseShaderAndReplaceDepthInputGraph() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = retainedBlurEffect()
       setContent { RuntimeGlassTestContent(effect) }
@@ -711,18 +744,20 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val delegate = checkNotNull(runtime(effect).delegate as? RuntimeShaderGlassDelegate)
 
       val fusedShader = checkNotNull(delegate.fusedShader)
+      val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
       effect.optics = (effect.optics as GlassOptics.Absolute).copy(blurRadius = 36.dp)
       waitForIdle()
       drawFrame()
 
-      assertThat(delegate.fusedShader).isNotSameInstanceAs(fusedShader)
+      assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
+      assertThat(delegate.layers.optical?.renderEffect).isNotSameInstanceAs(fusedEffect)
       assertThat(delegate.layers.blurHorizontal).isNull()
       assertThat(delegate.layers.blurred).isNull()
       assertThat(delegate.layers.refractionDetail).isNull()
     }
 
   @Test
-  fun progressiveBlurChanges_replaceComposedInputGraph() =
+  fun progressiveBlurChanges_reuseShaderAndReplaceComposedInputGraph() =
     runAndroidComposeUiTest<ComponentActivity> {
       val effect = retainedBlurEffect(
         progressive = HazeProgressive.verticalGradient(
@@ -748,7 +783,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
 
-      assertThat(delegate.fusedShader).isNotSameInstanceAs(fusedShader)
+      assertThat(delegate.fusedShader).isSameInstanceAs(fusedShader)
       assertThat(delegate.layers.source?.renderEffect).isNull()
       assertThat(delegate.layers.optical?.renderEffect).isNotSameInstanceAs(fusedEffect)
       assertThat(delegate.layers.blurHorizontal).isNull()
@@ -819,10 +854,11 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   private fun RuntimeGlassTestContent(
     effect: GlassRuntimeEffect,
     attachEffect: Boolean = true,
+    size: Dp = 120.dp,
   ) {
     Box(
       Modifier
-        .size(120.dp)
+        .size(size)
         .then(
           if (attachEffect) {
             Modifier.testGlassRuntime(effect, HazeInput.Content)
