@@ -1,12 +1,27 @@
 # Glass
 
-!!! danger "Not yet published"
-    The Glass module is currently under active development and is **not published to Maven Central**. It exists in the repository for experimentation and internal development only. Do not attempt to add it as a Gradle dependency.
-
 A refraction-driven Glass effect that combines refraction, depth blur, tint, Fresnel/ambient lift, and specular highlights with optional rounded shapes and dispersion.
 
 !!! warning "Experimental"
     This module is experimental and may change or be removed in future releases. APIs are gated behind `@ExperimentalHazeApi`.
+
+## Download
+
+Glass is published with Haze's [snapshot builds][glass-snap]. Add the Sonatype Central snapshot
+repository and use the same snapshot version for both artifacts:
+
+```kotlin
+repositories {
+    maven("https://central.sonatype.com/repository/maven-snapshots")
+}
+
+dependencies {
+    implementation("dev.chrisbanes.haze:haze:XXX-SNAPSHOT")
+    implementation("dev.chrisbanes.haze:haze-glass:XXX-SNAPSHOT")
+}
+```
+
+[glass-snap]: https://central.sonatype.com/service/rest/repository/browse/maven-snapshots/dev/chrisbanes/haze/haze-glass/
 
 ### Built-in material
 
