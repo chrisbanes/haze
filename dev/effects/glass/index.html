@@ -633,6 +633,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Download
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Download">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#built-in-material" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -640,6 +652,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1073,6 +1090,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Download
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Download">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#built-in-material" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1080,6 +1109,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1220,15 +1254,23 @@
 
 
 <div><h1 id="glass">Glass<a class="headerlink" href="#glass" title="Permanent link">¶</a></h1>
-<div class="admonition danger">
-<p class="admonition-title">Not yet published</p>
-<p>The Glass module is currently under active development and is <strong>not published to Maven Central</strong>. It exists in the repository for experimentation and internal development only. Do not attempt to add it as a Gradle dependency.</p>
-</div>
 <p>A refraction-driven Glass effect that combines refraction, depth blur, tint, Fresnel/ambient lift, and specular highlights with optional rounded shapes and dispersion.</p>
 <div class="admonition warning">
 <p class="admonition-title">Experimental</p>
 <p>This module is experimental and may change or be removed in future releases. APIs are gated behind <code>@ExperimentalHazeApi</code>.</p>
 </div>
+<h2 id="download">Download<a class="headerlink" href="#download" title="Permanent link">¶</a></h2>
+<p>Glass is published with Haze's <a href="https://central.sonatype.com/service/rest/repository/browse/maven-snapshots/dev/chrisbanes/haze/haze-glass/">snapshot builds</a>. Add the Sonatype Central snapshot
+repository and use the same snapshot version for both artifacts:</p>
+<div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">maven</span><span class="p">(</span><span class="s">"https://central.sonatype.com/repository/maven-snapshots"</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:XXX-SNAPSHOT"</span><span class="p">)</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-glass:XXX-SNAPSHOT"</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
 <h3 id="built-in-material">Built-in material<a class="headerlink" href="#built-in-material" title="Permanent link">¶</a></h3>
 <p>The default material uses Haze's geometry-aware Adaptive optics. Small surfaces retain a clearer,
 more refractive edge treatment, while larger surfaces converge toward a calmer base response.
