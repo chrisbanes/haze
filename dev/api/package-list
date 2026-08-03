@@ -5,6 +5,8 @@ module:haze
 dev.chrisbanes.haze
 module:haze-blur
 dev.chrisbanes.haze.blur
+module:haze-glass
+dev.chrisbanes.haze.glass
 module:haze-materials
 dev.chrisbanes.haze.blur.materials
 module:haze-utils
