@@ -79,17 +79,18 @@ internal sealed interface GlassRenderBudgetDecision {
 
 internal fun resolveGlassRenderBudget(
   requestedScale: Float,
+  requestedPlan: GlassRetainedLayerPlan? = null,
   buildPlan: (Float) -> GlassRetainedLayerPlan,
 ): GlassRenderBudgetDecision {
   if (!requestedScale.isFinite() || requestedScale <= 0f) {
     return GlassRenderBudgetDecision.Fallback(GlassRenderBudgetFallbackReason.InvalidGeometry)
   }
 
-  val requestedPlan = buildPlan(requestedScale)
-  if (requestedPlan.fitsGlassRenderBudget()) {
-    return GlassRenderBudgetDecision.Runtime(requestedScale, requestedPlan)
+  val resolvedRequestedPlan = requestedPlan ?: buildPlan(requestedScale)
+  if (resolvedRequestedPlan.fitsGlassRenderBudget()) {
+    return GlassRenderBudgetDecision.Runtime(requestedScale, resolvedRequestedPlan)
   }
-  if (requestedPlan.isInvalidGeometry()) {
+  if (resolvedRequestedPlan.isInvalidGeometry()) {
     return GlassRenderBudgetDecision.Fallback(GlassRenderBudgetFallbackReason.InvalidGeometry)
   }
 
@@ -97,13 +98,13 @@ internal fun resolveGlassRenderBudget(
   val minimumPlan = buildPlan(minimumScale)
 
   val crossesBlurDownsampleThreshold =
-    !minimumPlan.hasBlurPrefilter() && requestedPlan.hasBlurPrefilter()
+    !minimumPlan.hasBlurPrefilter() && resolvedRequestedPlan.hasBlurPrefilter()
   if (!crossesBlurDownsampleThreshold) {
     return searchSafeScaleInterval(
       safeScale = minimumScale,
       safePlan = minimumPlan,
       unsafeScale = requestedScale,
-      unsafePlan = requestedPlan,
+      unsafePlan = resolvedRequestedPlan,
       buildPlan = buildPlan,
     ) ?: minimumPlan.fallbackDecision()
   }
@@ -112,7 +113,7 @@ internal fun resolveGlassRenderBudget(
     belowScale = minimumScale,
     belowPlan = minimumPlan,
     aboveScale = requestedScale,
-    abovePlan = requestedPlan,
+    abovePlan = resolvedRequestedPlan,
     buildPlan = buildPlan,
   )
 
@@ -127,7 +128,7 @@ internal fun resolveGlassRenderBudget(
     safeScale = transition.aboveScale,
     safePlan = transition.abovePlan,
     unsafeScale = requestedScale,
-    unsafePlan = requestedPlan,
+    unsafePlan = resolvedRequestedPlan,
     buildPlan = buildPlan,
   )
   return listOfNotNull(belowDecision, aboveDecision)

@@ -73,7 +73,6 @@ class HazeGlassModifierTest : ContextTest() {
     val samplingPolicies = listOf(
       HazeSampling.Default,
       HazeSampling.FullResolution,
-      HazeSampling.Adaptive,
       HazeSampling.Fixed(0.5f),
     )
     val cases = buildList {

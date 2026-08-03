@@ -39,7 +39,7 @@ internal enum class GlassProfilingScenario(
   val prewarmsBeforeMeasurement: Boolean = false,
   val steadyDraw: Boolean = false,
   val rimEnabled: Boolean = true,
-  val fixedInputScale: Float? = null,
+  val fixedInputPixelFraction: Float? = null,
   val opticsOverride: GlassOptics.Absolute? = null,
   val fullChroma: Boolean = false,
 ) {
@@ -136,21 +136,26 @@ internal enum class GlassProfilingScenario(
     steadyDraw = true,
     opticsOverride = GlassOptics.Absolute(depth = 0.5f),
   ),
+  SteadyBalanced(
+    id = "steady_balanced",
+    steadyDraw = true,
+    fixedInputPixelFraction = 0.5f,
+  ),
   SteadyScale60(
     id = "steady_scale_60",
     steadyDraw = true,
-    fixedInputScale = 0.6f,
+    fixedInputPixelFraction = 0.36f,
   ),
   SteadyScale50(
     id = "steady_scale_50",
     steadyDraw = true,
-    fixedInputScale = 0.5f,
+    fixedInputPixelFraction = 0.25f,
   ),
   SteadyScale50Nine(
     id = "steady_scale_50_9",
     effectCount = 9,
     steadyDraw = true,
-    fixedInputScale = 0.5f,
+    fixedInputPixelFraction = 0.25f,
   ),
   SteadyNoGlass(
     id = "steady_no_glass",
@@ -210,6 +215,7 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.SteadyNoBlur,
     GlassProfilingScenario.SteadyNoBlur9,
     GlassProfilingScenario.SteadyDepth50,
+    GlassProfilingScenario.SteadyBalanced,
     GlassProfilingScenario.SteadyScale60,
     GlassProfilingScenario.SteadyScale50,
     GlassProfilingScenario.SteadyScale50Nine,

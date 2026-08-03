@@ -217,7 +217,7 @@ private fun GlassProfilingScene(
       GlassProfilingEffectGrid(
         hazeState = hazeState,
         styles = styles,
-        sampling = scenario.fixedInputScale?.let(HazeSampling::Fixed) ?: HazeSampling.Adaptive,
+        sampling = scenario.fixedInputPixelFraction?.let(HazeSampling::Fixed) ?: HazeSampling.Adaptive,
         interactionSource = interactionSource,
         drawProgress = if (scenario.steadyDraw) {
           { state.progress }
@@ -366,6 +366,7 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.SteadyNoBlur,
     GlassProfilingScenario.SteadyNoBlur9,
     GlassProfilingScenario.SteadyDepth50,
+    GlassProfilingScenario.SteadyBalanced,
     GlassProfilingScenario.SteadyScale60,
     GlassProfilingScenario.SteadyScale50,
     GlassProfilingScenario.SteadyScale50Nine,

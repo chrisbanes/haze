@@ -26,6 +26,7 @@ import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectDrawScope
+import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLayoutScope
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
@@ -37,6 +38,7 @@ import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.trace
@@ -71,6 +73,16 @@ private class GlassPreparedDrawCacheKey(
   val style: ResolvedGlassStyle?,
   val interactionState: GlassInteractionRenderState,
   val interactionTopology: GlassInteractionTopology,
+)
+
+@Poko
+private class GlassAdaptiveUpdateKey(
+  val inputSnapshot: HazeEffectInputSnapshot?,
+  val dirtyTrackerVersion: Int,
+  val materialSize: Size,
+  val layerSize: Size,
+  val layerOffset: Offset,
+  val interactionState: GlassInteractionRenderState,
 )
 
 private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): Boolean =
@@ -191,6 +203,8 @@ internal class GlassRuntimeEffect() :
 
   private var budgetCacheKey: GlassRenderBudgetCacheKey? = null
   private var budgetCacheDecision: GlassRenderBudgetDecision? = null
+  private val inputScalePolicy = GlassInputScalePolicy()
+  private var resolvedInputScale: Float = 1f
 
   private var preparedDrawCacheKey: GlassPreparedDrawCacheKey? = null
 
@@ -299,6 +313,8 @@ internal class GlassRuntimeEffect() :
     }
     runtimeShaderIncompatible = false
     needsDelegateSelection = true
+    inputScalePolicy.reset()
+    resolvedInputScale = GlassInputScalePolicy.FULL_RESOLUTION_SCALE
     preparedRender = null
     clearPreparedRenderCache()
   }
@@ -359,7 +375,22 @@ internal class GlassRuntimeEffect() :
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
     val context = this
     trace(GlassTraceSection.Prepare) {
-      if (canReusePreparedDraw(context)) return@trace
+      val workloadWeightChanged = if (context.sampling === HazeSampling.Adaptive) {
+        inputScalePolicy.observeUpdate(
+          GlassAdaptiveUpdateKey(
+            inputSnapshot = context.inputSnapshot,
+            dirtyTrackerVersion = dirtyTrackerVersion,
+            materialSize = context.modifierSize,
+            layerSize = context.layerSize,
+            layerOffset = context.layerOffset,
+            interactionState = interactionRenderState(context.modifierSize),
+          ),
+        )
+      } else {
+        inputScalePolicy.reset()
+        false
+      }
+      if (!workloadWeightChanged && canReusePreparedDraw(context)) return@trace
       val previousBudget = preparedRenderBudget
       trace(GlassTraceSection.PrepareBudget) {
         prepareRenderBudget(context, runtimeShaderSupported = isRuntimeShaderGlassSupported())
@@ -582,12 +613,6 @@ internal class GlassRuntimeEffect() :
     return shouldClipToNodeBoundsCache
   }
 
-  internal fun resolveInputScaleFactor(sampling: HazeSampling): Float = when {
-    sampling === HazeSampling.Adaptive -> 0.75f
-    sampling is HazeSampling.Fixed -> sampling.scale
-    else -> 1f
-  }
-
   internal fun resolveGlassRenderBudget(context: HazeEffectRuntimeDrawScope): GlassRenderBudgetDecision {
     return resolveGlassRenderPreparation(context, runtimeShaderSupported = true).decision
   }
@@ -667,9 +692,7 @@ internal class GlassRuntimeEffect() :
     context: HazeEffectRuntimeDrawScope,
     runtimeShaderSupported: Boolean,
   ): GlassRenderPreparation {
-    val requestedScale = resolveInputScaleFactor(context.sampling)
     if (
-      !requestedScale.isFinite() || requestedScale <= 0f ||
       !context.modifierSize.isDrawable() || !context.layerSize.isDrawable()
     ) {
       clearPreparedRenderCache()
@@ -682,6 +705,76 @@ internal class GlassRuntimeEffect() :
     val interaction = resolvePreparedInteraction(context)
     val interactionTopology = interactionTopologySnapshot
     val optics = style.resolvedOptics
+    val allowMultiscaleBlur = optics.progressive == null
+    val buildPlan: (Float) -> GlassRetainedLayerPlan = buildPlan@{ scaleFactor ->
+      val rawCoordinates = resolveGlassCoordinates(
+        layerSize = context.layerSize,
+        layerOffset = context.layerOffset,
+        materialSize = context.modifierSize,
+        scaleFactor = scaleFactor,
+      )
+      if (!rawCoordinates.materialSize.isDrawable() || !rawCoordinates.sampleSize.isDrawable()) {
+        return@buildPlan GlassRetainedLayerPlan(emptyList())
+      }
+      val coordinates = rawCoordinates.withRoundedSampleSize()
+      if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
+        return@buildPlan GlassRetainedLayerPlan(emptyList())
+      }
+      val outputSize = context.modifierSize.roundToIntSize()
+      val interactionPatchSize = calculateGlassInteractionPatchSize(
+        buildGlassRenderParams(style, coordinates),
+        radiusFraction = interaction.radiusFraction,
+        topology = interactionTopology,
+      )
+      val interactionLayersActive =
+        interactionPatchSize.width > 0 && interactionPatchSize.height > 0
+      buildGlassBudgetLayerPlan(
+        sampleSize = coordinates.sampleSize.roundToIntSize(),
+        groupCompositeSize = resolveGlassGroupCompositeSize(
+          outputSize = outputSize,
+          alpha = style.alpha,
+          interactionLayersActive = interactionLayersActive,
+          interactionTopology = interactionTopology,
+        ),
+        blurRadiusPx = optics.blurRadiusPx * scaleFactor,
+        depth = optics.depth,
+        allowMultiscaleBlur = allowMultiscaleBlur,
+        refractionDetailActive = isGlassRefractionDetailActive(
+          refractionStrength = optics.refractionStrength,
+          refractionScalePx = optics.refractionScalePx * scaleFactor,
+          refractionHeightPx = optics.refractionHeightPx * scaleFactor,
+          edgeSoftnessPx = style.edgeSoftnessPx * scaleFactor,
+          sampleStepPx = 2f * scaleFactor,
+          detailIntensity = optics.refractionDetailIntensity,
+        ),
+        rimActive = style.specularIntensity > 0f,
+        interactionPatchSize = interactionPatchSize,
+        interactionOpticsActive = interactionTopology.hasOptics,
+        interactionLightingActive = interactionTopology.hasLighting,
+      )
+    }
+    val balancedPlan = if (context.sampling === HazeSampling.Adaptive) {
+      buildPlan(GlassInputScalePolicy.BALANCED_SCALE)
+    } else {
+      null
+    }
+    val requestedScale = inputScalePolicy.resolve(
+      sampling = context.sampling,
+      balancedPlan = balancedPlan,
+    )
+    if (requestedScale != resolvedInputScale) {
+      HazeLogger.d(TAG) {
+        "Glass input scale changed from $resolvedInputScale to $requestedScale"
+      }
+    }
+    resolvedInputScale = requestedScale
+    if (!requestedScale.isFinite() || requestedScale <= 0f) {
+      clearPreparedRenderCache()
+      return updateRenderPreparation(
+        GlassRenderBudgetDecision.Fallback(GlassRenderBudgetFallbackReason.InvalidGeometry),
+        null,
+      )
+    }
     val budgetKey = budgetCacheKey
     val decision = if (
       budgetKey != null &&
@@ -694,54 +787,13 @@ internal class GlassRuntimeEffect() :
     ) {
       checkNotNull(budgetCacheDecision)
     } else {
-      val allowMultiscaleBlur = optics.progressive == null
-      resolveGlassRenderBudget(requestedScale) { scaleFactor ->
-        val rawCoordinates = resolveGlassCoordinates(
-          layerSize = context.layerSize,
-          layerOffset = context.layerOffset,
-          materialSize = context.modifierSize,
-          scaleFactor = scaleFactor,
-        )
-        if (!rawCoordinates.materialSize.isDrawable() || !rawCoordinates.sampleSize.isDrawable()) {
-          return@resolveGlassRenderBudget GlassRetainedLayerPlan(emptyList())
-        }
-        val coordinates = rawCoordinates.withRoundedSampleSize()
-        if (!coordinates.materialSize.isDrawable() || !coordinates.sampleSize.isDrawable()) {
-          return@resolveGlassRenderBudget GlassRetainedLayerPlan(emptyList())
-        }
-        val outputSize = context.modifierSize.roundToIntSize()
-        val interactionPatchSize = calculateGlassInteractionPatchSize(
-          buildGlassRenderParams(style, coordinates),
-          radiusFraction = interaction.radiusFraction,
-          topology = interactionTopology,
-        )
-        val interactionLayersActive =
-          interactionPatchSize.width > 0 && interactionPatchSize.height > 0
-        buildGlassBudgetLayerPlan(
-          sampleSize = coordinates.sampleSize.roundToIntSize(),
-          groupCompositeSize = resolveGlassGroupCompositeSize(
-            outputSize = outputSize,
-            alpha = style.alpha,
-            interactionLayersActive = interactionLayersActive,
-            interactionTopology = interactionTopology,
-          ),
-          blurRadiusPx = optics.blurRadiusPx * scaleFactor,
-          depth = optics.depth,
-          allowMultiscaleBlur = allowMultiscaleBlur,
-          refractionDetailActive = isGlassRefractionDetailActive(
-            refractionStrength = optics.refractionStrength,
-            refractionScalePx = optics.refractionScalePx * scaleFactor,
-            refractionHeightPx = optics.refractionHeightPx * scaleFactor,
-            edgeSoftnessPx = style.edgeSoftnessPx * scaleFactor,
-            sampleStepPx = 2f * scaleFactor,
-            detailIntensity = optics.refractionDetailIntensity,
-          ),
-          rimActive = style.specularIntensity > 0f,
-          interactionPatchSize = interactionPatchSize,
-          interactionOpticsActive = interactionTopology.hasOptics,
-          interactionLightingActive = interactionTopology.hasLighting,
-        )
-      }.also { resolvedDecision ->
+      resolveGlassRenderBudget(
+        requestedScale = requestedScale,
+        requestedPlan = balancedPlan.takeIf {
+          requestedScale == GlassInputScalePolicy.BALANCED_SCALE
+        },
+        buildPlan = buildPlan,
+      ).also { resolvedDecision ->
         budgetCacheKey = GlassRenderBudgetCacheKey(
           style = style,
           requestedScale = requestedScale,
@@ -867,10 +919,9 @@ internal class GlassRuntimeEffect() :
           "Glass render budget selected fallback: ${decision.reason}"
         }
         is GlassRenderBudgetDecision.Runtime -> {
-          val requestedScale = resolveInputScaleFactor(context.sampling)
-          if (decision.scaleFactor < requestedScale) {
+          if (decision.scaleFactor < resolvedInputScale) {
             HazeLogger.d(TAG) {
-              "Glass render budget reduced scale from $requestedScale to ${decision.scaleFactor}"
+              "Glass render budget reduced scale from $resolvedInputScale to ${decision.scaleFactor}"
             }
           }
         }

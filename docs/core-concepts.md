@@ -57,7 +57,7 @@ Blur has an ordinary typed modifier:
 Modifier.hazeBlur(
   input = HazeInput.Sources(hazeState),
   style = HazeMaterials.thin(),
-  sampling = HazeSampling.Default,
+  sampling = HazeSampling.Adaptive,
   expandLayerBounds = true,
 )
 ```
@@ -108,13 +108,14 @@ the existing renderer. Factory replacement and detachment dispose it exactly onc
 
 ## Sampling
 
-- `HazeSampling.Default` lets the effect choose.
+- `HazeSampling.Default` points to the library's current default policy, which is `Adaptive`.
+- `HazeSampling.Adaptive` uses the adaptive policy for built-in Blur and Glass effects.
 - `HazeSampling.FullResolution` uses the full input resolution.
-- `HazeSampling.Adaptive` requests the effect's adaptive policy.
-- `HazeSampling.Fixed(scale)` uses `0 < scale <= 1`.
+- `HazeSampling.Fixed(pixelFraction)` retains that fraction of the full-resolution input pixels,
+  with `0 < pixelFraction <= 1`. For example, `0.5` scales each dimension by approximately `0.707`.
 
-Blur's default policy is adaptive. It considers physical Blur radius and capture-layer area, with
-hysteresis between quality tiers.
+Blur and Glass use the same adaptive default mode while retaining effect-specific workload and
+quality policies. Both consider recent input-update cadence and use hysteresis between tiers.
 
 ## Layer bounds
 

@@ -7,28 +7,32 @@ import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
-import assertk.assertions.isNotEqualTo
+import assertk.assertions.isSameInstanceAs
 import kotlin.test.Test
 
 class HazeSamplingTest {
 
   @Test
-  fun policies_areDistinctAndFixedRetainsScale() {
-    assertThat(HazeSampling.Default).isNotEqualTo(HazeSampling.FullResolution)
-    assertThat(HazeSampling.Default).isNotEqualTo(HazeSampling.Adaptive)
-    assertThat(HazeSampling.Fixed(0.5f).scale).isEqualTo(0.5f)
+  fun default_pointsToAdaptive() {
+    assertThat(HazeSampling.Default).isSameInstanceAs(HazeSampling.Adaptive)
   }
 
   @Test
-  fun fixed_rejectsInvalidScales() {
+  fun fixed_retainsPixelFraction() {
+    assertThat(HazeSampling.Fixed(0.5f).pixelFraction).isEqualTo(0.5f)
+  }
+
+  @Test
+  fun fixed_rejectsInvalidPixelFractions() {
     listOf(
       0f,
       -0.1f,
       Float.NaN,
+      Float.NEGATIVE_INFINITY,
       Float.POSITIVE_INFINITY,
       1.1f,
-    ).forEach { scale ->
-      assertFailure { HazeSampling.Fixed(scale) }
+    ).forEach { pixelFraction ->
+      assertFailure { HazeSampling.Fixed(pixelFraction) }
         .isInstanceOf<IllegalArgumentException>()
     }
   }

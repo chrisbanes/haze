@@ -96,7 +96,7 @@ class Sample(
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
-        sampling = HazeSampling.Fixed(0.8f),
+        sampling = HazeSampling.Fixed(0.64f),
       )
     }
 

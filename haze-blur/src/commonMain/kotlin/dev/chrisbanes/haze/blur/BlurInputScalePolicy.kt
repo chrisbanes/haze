@@ -4,30 +4,39 @@
 package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.geometry.Size
+import dev.chrisbanes.haze.HazeInputUpdateCadence
 import dev.chrisbanes.haze.HazeSampling
+import kotlin.math.sqrt
+import kotlin.time.TimeSource
 
 /**
  * Resolves automatic blur input scaling while retaining the previous automatic tier for
  * hysteresis. Thresholds are expressed in physical pixels so the policy is density-independent.
  */
-internal class BlurInputScalePolicy {
+internal class BlurInputScalePolicy(
+  timeSource: TimeSource = TimeSource.Monotonic,
+) {
   private var previousAutomaticScale: Float = NONE_SCALE
   private var previousProgressive: Boolean? = null
+  private val inputUpdateCadence = HazeInputUpdateCadence(timeSource)
+
+  fun observeUpdate(updateKey: Any?): Boolean = inputUpdateCadence.observeUpdate(updateKey)
 
   fun resolve(
-    requestedScale: HazeSampling,
+    sampling: HazeSampling,
     blurRadiusPx: Float,
     layerSize: Size,
     progressive: Boolean = false,
   ): Float {
-    return when {
-      requestedScale === HazeSampling.Default || requestedScale === HazeSampling.Adaptive -> {
-        if (previousProgressive != progressive) {
+    return when (sampling) {
+      HazeSampling.Adaptive -> {
+        if (previousProgressive != null && previousProgressive != progressive) {
           previousAutomaticScale = NONE_SCALE
+          inputUpdateCadence.reset()
         }
         resolveAutomatic(
           blurRadiusPx = blurRadiusPx,
-          areaPx = layerSize.width * layerSize.height,
+          areaPx = layerSize.width * layerSize.height * inputUpdateCadence.multiplier,
           progressive = progressive,
         ).also {
           previousAutomaticScale = it
@@ -35,12 +44,12 @@ internal class BlurInputScalePolicy {
         }
       }
 
-      requestedScale is HazeSampling.Fixed -> {
+      is HazeSampling.Fixed -> {
         reset()
-        requestedScale.scale
+        sqrt(sampling.pixelFraction)
       }
 
-      else -> {
+      HazeSampling.FullResolution -> {
         reset()
         NONE_SCALE
       }
@@ -50,6 +59,7 @@ internal class BlurInputScalePolicy {
   fun reset() {
     previousAutomaticScale = NONE_SCALE
     previousProgressive = null
+    inputUpdateCadence.reset()
   }
 
   private fun resolveAutomatic(

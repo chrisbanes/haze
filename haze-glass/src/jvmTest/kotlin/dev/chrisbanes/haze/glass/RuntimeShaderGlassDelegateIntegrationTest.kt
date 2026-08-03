@@ -342,6 +342,36 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun adaptiveSampling_selectsTierFromPreparedRetainedWorkload() = runComposeUiTest {
+    val smallEffect = activeDetailEffect()
+    setContent {
+      RuntimeGlassTestContent(
+        effect = smallEffect,
+        tag = "small",
+        sampling = HazeSampling.Adaptive,
+      )
+    }
+    waitForIdle()
+
+    assertThat(
+      (runtime(smallEffect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
+    ).isEqualTo(GlassInputScalePolicy.BALANCED_SCALE)
+
+    val largeEffect = activeDetailEffect()
+    setContent {
+      RuntimeLargeGlassTestContent(
+        effect = largeEffect,
+        sampling = HazeSampling.Adaptive,
+      )
+    }
+    waitForIdle()
+
+    assertThat(
+      (runtime(largeEffect).preparedRenderBudget as GlassRenderBudgetDecision.Runtime).scaleFactor,
+    ).isEqualTo(0.5f)
+  }
+
+  @Test
   fun movingInteractionWithinSamePatchSize_doesNotRerecordLightingContent() = runComposeUiTest {
     val effect = runtimeInteractiveEffect().apply {
       interactionLightRadiusFraction = 0.25f
@@ -722,7 +752,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       RuntimeGlassTestContent(
         effect = effect,
         tag = "glass",
-        sampling = HazeSampling.Fixed(0.5f),
+        sampling = HazeSampling.Fixed(0.25f),
       )
     }
     waitForIdle()
@@ -964,14 +994,21 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Composable
-  private fun RuntimeLargeGlassTestContent(effect: GlassRuntimeEffect) {
+  private fun RuntimeLargeGlassTestContent(
+    effect: GlassRuntimeEffect,
+    sampling: HazeSampling = HazeSampling.FullResolution,
+  ) {
     val hazeState = remember { HazeState() }
-    Box(Modifier.size(1000.dp, 600.dp)) {
+    Box(Modifier.size(1100.dp, 650.dp)) {
       Box(Modifier.fillMaxSize().background(Color.Red).hazeSource(hazeState))
       Box(
         Modifier
           .fillMaxSize()
-          .testGlass(effect, input = HazeInput.Sources(hazeState)),
+          .testGlass(
+            effect = effect,
+            input = HazeInput.Sources(hazeState),
+            sampling = sampling,
+          ),
       )
     }
   }

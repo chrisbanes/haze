@@ -6,9 +6,13 @@ package dev.chrisbanes.haze.blur
 import androidx.compose.ui.geometry.Size
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.HazeSampling
+import kotlin.math.sqrt
 import kotlin.test.Test
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TestTimeSource
 
 class BlurInputScalePolicyTest {
 
@@ -25,36 +29,67 @@ class BlurInputScalePolicyTest {
     ).isEqualTo(1f)
     assertThat(
       policy.resolve(
-        HazeSampling.Fixed(0.67f),
+        HazeSampling.Fixed(0.25f),
         BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
         largeWorkload,
       ),
-    ).isEqualTo(0.67f)
+    ).isEqualTo(0.5f)
   }
 
   @Test
-  fun defaultAndAuto_useSameAdaptiveLadder() {
-    val defaultPolicy = BlurInputScalePolicy()
-    val autoPolicy = BlurInputScalePolicy()
-    val largeWorkload = Size(
-      width = BlurInputScalePolicy.AGGRESSIVE_AREA_PX,
-      height = 1f,
-    )
+  fun fixedHalfPixels_usesSquareRootPerDimension() {
+    assertThat(
+      BlurInputScalePolicy().resolve(
+        sampling = HazeSampling.Fixed(0.5f),
+        blurRadiusPx = BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
+        layerSize = Size(1000f, 1000f),
+      ),
+    ).isCloseTo(sqrt(0.5f), 0.0001f)
+  }
 
+  @Test
+  fun automatic_accumulatesRapidAreaUpdatesAndResetsAfterQuietPeriod() {
+    val timeSource = TestTimeSource()
+    val policy = BlurInputScalePolicy(timeSource)
+    val rapidWorkload = Size(width = 100_000f, height = 1f)
+
+    policy.observeUpdate("frame-1")
     assertThat(
-      defaultPolicy.resolve(
-        HazeSampling.Default,
-        BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
-        largeWorkload,
-      ),
-    ).isEqualTo(0.5f)
+      policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+    ).isEqualTo(1f)
+
+    timeSource += 16.milliseconds
+    policy.observeUpdate("frame-2")
     assertThat(
-      autoPolicy.resolve(
-        HazeSampling.Adaptive,
-        BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
-        largeWorkload,
-      ),
-    ).isEqualTo(0.5f)
+      policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+    ).isEqualTo(1f)
+
+    timeSource += 16.milliseconds
+    policy.observeUpdate("frame-3")
+    assertThat(
+      policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+    ).isEqualTo(0.8f)
+
+    timeSource += 250.milliseconds
+    policy.observeUpdate("settled")
+    assertThat(
+      policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+    ).isEqualTo(1f)
+  }
+
+  @Test
+  fun automatic_repeatedDrawsOfSameInputDoNotAccumulateWork() {
+    val timeSource = TestTimeSource()
+    val policy = BlurInputScalePolicy(timeSource)
+    val rapidWorkload = Size(width = 100_000f, height = 1f)
+
+    repeat(3) {
+      policy.observeUpdate("stable-input")
+      assertThat(
+        policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+      ).isEqualTo(1f)
+      timeSource += 16.milliseconds
+    }
   }
 
   @Test
@@ -170,7 +205,7 @@ class BlurInputScalePolicyTest {
       ),
     ).isEqualTo(0.5f)
     policy.resolve(
-      requestedScale = HazeSampling.FullResolution,
+      sampling = HazeSampling.FullResolution,
       blurRadiusPx = 0f,
       layerSize = Size.Zero,
     )
@@ -208,7 +243,7 @@ class BlurInputScalePolicyTest {
     areaPx: Float,
     progressive: Boolean = false,
   ): Float = resolve(
-    requestedScale = HazeSampling.Adaptive,
+    sampling = HazeSampling.Adaptive,
     blurRadiusPx = radiusPx,
     layerSize = Size(areaPx, 1f),
     progressive = progressive,

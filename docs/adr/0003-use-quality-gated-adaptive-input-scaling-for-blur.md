@@ -22,18 +22,25 @@ detail, and retained stages that have their own render budget.
 
 ## Decision
 
-`HazeInputScale.Default` is semantically distinct from `None` and lets each visual effect choose:
+`HazeSampling.Adaptive` is semantically distinct from `FullResolution` and uses the adaptive policy
+for both built-in effects:
 
 - Blur uses one cross-platform policy based on the fully resolved blur radius in physical pixels
-  and the expanded capture-layer pixel area.
-- Ordinary and non-progressive masked blur select only `1.0`, `0.8`, or `0.5`. Both radius and area
-  must cross the relevant workload boundary.
-- Progressive blur stays at `1.0` below the medium workload boundary and is capped at `0.8`.
+  and the expanded capture-layer pixel area, weighted by recent distinct input-update cadence.
+- Ordinary and non-progressive masked blur select only linear scales `1.0`, `0.8`, or `0.5`
+  (pixel fractions `1.0`, `0.64`, or `0.25`). Both radius and weighted area must cross the relevant
+  workload boundary.
+- Progressive blur stays at linear scale `1.0` below the medium workload boundary and is capped at
+  `0.8` (pixel fraction `0.64`).
+- Updates no more than 100ms apart form a burst. Area is multiplied by up to three distinct
+  updates; repeated draws of unchanged input do not accumulate work, and a quiet interval resets
+  the multiplier.
 - Tier exits have a 12.5% hysteresis margin, preventing small radius or size changes from repeatedly
   reallocating retained layers.
-- Glass remains at `1.0` for `Default`. Its explicit `Auto` policy is unchanged.
-- Explicit `None`, `Auto`, and `Fixed` choices remain authoritative. Paths that do not perform a
-  real blur, including scrim fallback, remain unscaled.
+- Glass uses the same adaptive default mode with its effect-specific policy defined separately in
+  [ADR-0004](0004-use-cadence-weighted-adaptive-input-scaling-for-glass.md).
+- Explicit `FullResolution`, `Adaptive`, and `Fixed` choices remain authoritative. Paths that do
+  not perform a real blur, including scrim fallback, remain unscaled.
 
 The physical-pixel boundaries preserve a substantial blur kernel after downsampling:
 `0.8` begins at a 32px radius and 300,000px layer, while `0.5` begins at a 60px radius and
@@ -71,7 +78,8 @@ On the measured Scaffold, the 24dp blur resolved to 63px. Its expanded 637,200px
 participate as intended.
 
 To verify that the aggressive tier earns its additional quality cost, three further interleaved
-Pixel 6 pairs compared the selected adaptive policy against explicit `Fixed(0.8)`. Adaptive
+Pixel 6 pairs compared the selected adaptive policy against explicit linear scale `0.8` (now
+expressed as `Fixed(0.64)`). Adaptive
 scaling improved app-layer actual-frame P90 in every pair:
 
 | Pair | CPU P90, fixed `0.8` → adaptive | Actual-frame P90, fixed `0.8` → adaptive |
@@ -112,13 +120,13 @@ is unnecessary for the measured improvement. Automatic scaling is therefore boun
 
 ## Consequences
 
-- `EffectDefault` extends the public sealed `HazeInputScale` hierarchy. Existing exhaustive `when`
-  expressions must handle it (or add an `else` branch), so this change requires a breaking release.
+- `Fixed` values express total input-pixel fractions, while the renderer converts them to an
+  aspect-preserving linear scale.
 - Unspecified blur output can be slightly softer on sufficiently large, strongly blurred surfaces.
 - The common policy is deterministic but stateful at tier boundaries because hysteresis depends on
   the previous automatic tier.
 - Crossing a tier intentionally resizes retained resources; small boundary noise does not.
-- Callers can restore full-resolution input with `HazeInputScale.None`.
+- Callers can restore full-resolution input with `HazeSampling.FullResolution`.
 - Threshold changes require paired performance evidence and representative screenshot/perceptual
   review across ordinary, progressive, and masked blur.
 
