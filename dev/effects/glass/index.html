@@ -1300,11 +1300,15 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 <li><strong>alpha</strong>: Overall opacity multiplier <code>0..1</code> (default 1).</li>
 </ul>
 <h2 id="glassstyle">GlassStyle<a class="headerlink" href="#glassstyle" title="Permanent link">¶</a></h2>
-<p><code>GlassStyle</code> is an opaque, replayable appearance program. Create it with a block and compose
-values with <code>then</code>; later writes win. A style can be shared by any number of <code>hazeGlass</code> nodes:
-each node evaluates defaults, <code>LocalGlassStyle</code>, and its explicit style into its own snapshot.
-Replacing a Style through recomposition also removes properties and interaction blocks omitted by
-the replacement.</p>
+<p><code>GlassStyle</code> is an opaque, immutable sequence of appearance writes. Its builder executes once when
+the Style is constructed, canonicalizing and recording each value. Compose Styles with the
+intrinsic <code>then</code> members; later writes win. A Style can be shared by any number of <code>hazeGlass</code>
+nodes: each node replays defaults, <code>LocalGlassStyle</code>, and its explicit Style into its own snapshot
+without rerunning caller code.</p>
+<p>Values captured while constructing a Style are frozen into those writes. Mutating captured state
+does not update attached nodes; construct and supply a replacement Style through recomposition to
+change their appearance. Replacement also removes properties and interaction blocks omitted by the
+new Style.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">baseStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">))</span>
@@ -1317,7 +1321,7 @@ the replacement.</p>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="default-style">Default style<a class="headerlink" href="#default-style" title="Permanent link">¶</a></h2>
-<p><code>GlassDefaults.style</code> uses the built-in Haze <code>GlassOptics.Adaptive</code> material and is evaluated
+<p><code>GlassDefaults.style</code> uses the built-in Haze <code>GlassOptics.Adaptive</code> material and is replayed
 before <code>LocalGlassStyle</code> and the modifier's explicit Style.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>

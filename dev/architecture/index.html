@@ -1211,8 +1211,10 @@ on that same runtime.</p>
 <h2 id="built-in-glass">Built-in Glass<a class="headerlink" href="#built-in-glass" title="Permanent link">¶</a></h2>
 <p>Glass exposes only the typed <code>hazeGlass</code> modifier, replayable <code>GlassStyle</code>, and structural modifier
 arguments. The shared factory is stateless. Each modifier creates one internal node-owned runtime
-which evaluates defaults, <code>LocalGlassStyle</code>, and the explicit Style into a fresh snapshot and owns
-its interaction controller, delegate, caches, retained layers, and platform resources.</p>
+which replays the immutable writes recorded by defaults, <code>LocalGlassStyle</code>, and the explicit Style
+into a fresh snapshot and owns its interaction controller, delegate, caches, retained layers, and
+platform resources. A Style builder executes only during Style construction; changing a captured
+input requires replacing the Style through recomposition.</p>
 <p>The old public effect, renderer, cache, grouped sentinel values, and <code>glassEffect</code> DSL are removed.
 No renderer or lifecycle object can be shared between Glass nodes.</p>
 <h2 id="modules">Modules<a class="headerlink" href="#modules" title="Permanent link">¶</a></h2>
