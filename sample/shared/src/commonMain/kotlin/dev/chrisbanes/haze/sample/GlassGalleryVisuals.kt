@@ -44,7 +44,6 @@ import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.hazeGlass
-import dev.chrisbanes.haze.glass.then
 import dev.chrisbanes.haze.hazeSource
 
 @Composable

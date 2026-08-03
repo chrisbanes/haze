@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -237,9 +238,9 @@ class HazeGlassModifierTest : ContextTest() {
   }
 
   @Test
-  fun reusedStateBackedStyle_replaysInEachNodeWhenSnapshotChanges() = runComposeUiTest {
+  fun capturedStateMutation_requiresReplacementStyleToUpdateSharedNodes() = runComposeUiTest {
     val alpha = mutableFloatStateOf(0.2f)
-    val sharedStyle = GlassStyle { alpha(alpha.floatValue) }
+    val sharedStyle = mutableStateOf(GlassStyle { alpha(alpha.floatValue) })
     val factory = RecordingGlassFactory()
 
     setContent {
@@ -251,7 +252,7 @@ class HazeGlassModifierTest : ContextTest() {
               .hazeGlass(
                 factory = factory,
                 input = HazeInput.Content,
-                style = sharedStyle,
+                style = sharedStyle.value,
                 sampling = HazeSampling.Default,
                 expandLayerBounds = true,
                 interactionSource = null,
@@ -272,8 +273,68 @@ class HazeGlassModifierTest : ContextTest() {
     waitForIdle()
 
     assertThat(factory.effects.size).isEqualTo(2)
+    assertThat(firstRuntime.alpha).isEqualTo(0.2f)
+    assertThat(secondRuntime.alpha).isEqualTo(0.2f)
+
+    sharedStyle.value = GlassStyle { alpha(alpha.floatValue) }
+    waitForIdle()
+
+    assertThat(factory.effects.size).isEqualTo(2)
     assertThat(firstRuntime.alpha).isEqualTo(0.8f)
     assertThat(secondRuntime.alpha).isEqualTo(0.8f)
+  }
+
+  @Test
+  fun stylePrecedence_reachesRuntimeWithAtomicCompoundWrites() = runComposeUiTest {
+    val localStyle = GlassStyle {
+      alpha(0.3f)
+      whitePoint(0.2f)
+      optics(GlassOptics.Absolute(depth = 0.2f, blurRadius = 12.dp))
+      pressed {
+        lightingIntensity(0.2f)
+        refractionMultiplier(1.2f)
+      }
+    }
+    val explicitStyle = GlassStyle {
+      alpha(0.6f)
+      specularIntensity(0.6f)
+      optics(GlassOptics.Absolute(depth = 0.5f, blurRadius = 16.dp))
+      pressed {
+        lightingIntensity(0.5f)
+        refractionMultiplier(1.5f)
+      }
+    }.then {
+      alpha(0.8f)
+      optics(GlassOptics.Absolute(depth = 0.7f))
+      pressed { lightingIntensity(0.9f) }
+    }
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      CompositionLocalProvider(LocalGlassStyle provides localStyle) {
+        Spacer(
+          Modifier.size(10.dp).hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = explicitStyle,
+            sampling = HazeSampling.Default,
+            expandLayerBounds = true,
+            interactionSource = null,
+          ),
+        )
+      }
+    }
+    waitForIdle()
+
+    val runtime = factory.effects.single().delegate
+    val pressed = runtime.resolvedInteractionSlots.pressed?.response
+    assertThat(runtime.contrast).isEqualTo(GlassDefaults.contrast)
+    assertThat(runtime.alpha).isEqualTo(0.8f)
+    assertThat(runtime.whitePoint).isEqualTo(0.2f)
+    assertThat(runtime.specularIntensity).isEqualTo(0.6f)
+    assertThat(runtime.optics).isEqualTo(GlassOptics.Absolute(depth = 0.7f))
+    assertThat(pressed?.lightingIntensity?.value).isEqualTo(0.9f)
+    assertThat(pressed?.refractionMultiplier).isNull()
   }
 
   @Test

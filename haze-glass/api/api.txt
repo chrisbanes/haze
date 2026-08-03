@@ -46,7 +46,7 @@ package dev.chrisbanes.haze.glass {
     field public static final float whitePoint = 0.0f;
   }
 
-  @dev.chrisbanes.haze.ExperimentalHazeApi public interface GlassInteractionScope {
+  @dev.chrisbanes.haze.ExperimentalHazeApi @dev.chrisbanes.haze.glass.GlassStyleDsl public interface GlassInteractionScope {
     method public void animate(androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> toSpec, androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> fromSpec, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> block);
     method public void lightingIntensity(float intensity);
     method public void refractionMultiplier(float multiplier);
@@ -91,41 +91,44 @@ package dev.chrisbanes.haze.glass {
   }
 
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public sealed nonexhaustive interface GlassStyle {
+    method public default infix dev.chrisbanes.haze.glass.GlassStyle then(dev.chrisbanes.haze.glass.GlassStyle other);
+    method public default dev.chrisbanes.haze.glass.GlassStyle then(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassStyleScope,kotlin.Unit> block);
     field public static final dev.chrisbanes.haze.glass.GlassStyle.Companion Companion;
   }
 
   public static final class GlassStyle.Companion implements dev.chrisbanes.haze.glass.GlassStyle {
   }
 
+  @dev.chrisbanes.haze.ExperimentalHazeApi @kotlin.DslMarker public @interface GlassStyleDsl {
+  }
+
   public final class GlassStyleKt {
     method @dev.chrisbanes.haze.ExperimentalHazeApi public static dev.chrisbanes.haze.glass.GlassStyle GlassStyle(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassStyleScope,kotlin.Unit> block);
     method @InaccessibleFromKotlin public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassStyle> getLocalGlassStyle();
-    method @dev.chrisbanes.haze.ExperimentalHazeApi public static infix dev.chrisbanes.haze.glass.GlassStyle then(dev.chrisbanes.haze.glass.GlassStyle, dev.chrisbanes.haze.glass.GlassStyle other);
-    method @dev.chrisbanes.haze.ExperimentalHazeApi public static dev.chrisbanes.haze.glass.GlassStyle then(dev.chrisbanes.haze.glass.GlassStyle, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassStyleScope,kotlin.Unit> block);
     property @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassStyle> LocalGlassStyle;
   }
 
-  @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassStyleScope {
-    method public void alpha(float value);
-    method public void ambientResponse(float value);
-    method public void chromaMultiplier(float value);
-    method public void chromaticAberrationMode(dev.chrisbanes.haze.glass.ChromaticAberrationMode value);
-    method public void chromaticAberrationStrength(float value);
-    method public void contentNormalBlend(float value);
-    method public void contrast(float value);
-    method @KotlinOnly public void edgeSoftness(androidx.compose.ui.unit.Dp value);
-    method public void focused(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> block);
-    method public void fresnelExponent(float value);
-    method public void hovered(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> block);
-    method @KotlinOnly public void lightPosition(androidx.compose.ui.geometry.Offset value);
-    method public void optics(dev.chrisbanes.haze.glass.GlassOptics value);
-    method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> block);
-    method public void shape(androidx.compose.foundation.shape.RoundedCornerShape value);
-    method public void specularExponent(float value);
-    method public void specularIntensity(float value);
-    method public void surfaceProfile(dev.chrisbanes.haze.glass.SurfaceProfile value);
-    method @KotlinOnly public void tint(androidx.compose.ui.graphics.Color value);
-    method public void whitePoint(float value);
+  @dev.chrisbanes.haze.ExperimentalHazeApi @dev.chrisbanes.haze.glass.GlassStyleDsl public final class GlassStyleScope {
+    method public void alpha(float alpha);
+    method public void ambientResponse(float response);
+    method public void chromaMultiplier(float multiplier);
+    method public void chromaticAberrationMode(dev.chrisbanes.haze.glass.ChromaticAberrationMode mode);
+    method public void chromaticAberrationStrength(float strength);
+    method public void contentNormalBlend(float blend);
+    method public void contrast(float contrast);
+    method @KotlinOnly public void edgeSoftness(androidx.compose.ui.unit.Dp softness);
+    method public void focused(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
+    method public void fresnelExponent(float exponent);
+    method public void hovered(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
+    method @KotlinOnly public void lightPosition(androidx.compose.ui.geometry.Offset position);
+    method public void optics(dev.chrisbanes.haze.glass.GlassOptics optics);
+    method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
+    method public void shape(androidx.compose.foundation.shape.RoundedCornerShape shape);
+    method public void specularExponent(float exponent);
+    method public void specularIntensity(float intensity);
+    method public void surfaceProfile(dev.chrisbanes.haze.glass.SurfaceProfile profile);
+    method @KotlinOnly public void tint(androidx.compose.ui.graphics.Color color);
+    method public void whitePoint(float whitePoint);
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public enum GlassTransformPivot {

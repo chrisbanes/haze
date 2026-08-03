@@ -21,10 +21,14 @@ import dev.chrisbanes.haze.hazeEffect
 /**
  * Draws a Glass material using an explicit Haze [input].
  *
- * [style] is a stateless, replayable appearance program. Haze evaluates
- * [GlassDefaults.style] → [LocalGlassStyle] → [style] into a fresh snapshot owned by this modifier
- * node. The same Style may therefore be shared by concurrent nodes. Its hover, focus, and press
- * response blocks are likewise evaluated and animated by each node independently.
+ * [style] is an immutable sequence of appearance writes recorded when its builder executes. Haze
+ * replays [GlassDefaults.style] → [LocalGlassStyle] → [style] into a fresh snapshot owned by this
+ * modifier node without invoking any Style builder. The same Style may therefore be shared by
+ * concurrent nodes. Each node independently owns and animates the recorded hover, focus, and press
+ * responses.
+ *
+ * Values captured by a previously constructed Style do not update when they are mutated. To update
+ * appearance, construct and supply a replacement Style through recomposition.
  *
  * [input], [sampling], [expandLayerBounds], and [interactionSource] are structural modifier
  * configuration rather than Style properties. Recomposition replaces each value completely,

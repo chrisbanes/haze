@@ -41,6 +41,7 @@ public enum class GlassReducedMotionPolicy {
 
 /** Declares the visual response for one Glass interaction state. */
 @ExperimentalHazeApi
+@GlassStyleDsl
 public interface GlassInteractionScope {
   /** Sets the lighting multiplier in the range `0f..1f`. */
   public fun lightingIntensity(intensity: Float)

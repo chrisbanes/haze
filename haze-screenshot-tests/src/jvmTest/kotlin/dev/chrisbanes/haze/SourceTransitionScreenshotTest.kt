@@ -18,7 +18,6 @@ import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
-import dev.chrisbanes.haze.glass.then
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest

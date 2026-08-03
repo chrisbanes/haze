@@ -90,8 +90,10 @@ on that same runtime.
 
 Glass exposes only the typed `hazeGlass` modifier, replayable `GlassStyle`, and structural modifier
 arguments. The shared factory is stateless. Each modifier creates one internal node-owned runtime
-which evaluates defaults, `LocalGlassStyle`, and the explicit Style into a fresh snapshot and owns
-its interaction controller, delegate, caches, retained layers, and platform resources.
+which replays the immutable writes recorded by defaults, `LocalGlassStyle`, and the explicit Style
+into a fresh snapshot and owns its interaction controller, delegate, caches, retained layers, and
+platform resources. A Style builder executes only during Style construction; changing a captured
+input requires replacing the Style through recomposition.
 
 The old public effect, renderer, cache, grouped sentinel values, and `glassEffect` DSL are removed.
 No renderer or lifecycle object can be shared between Glass nodes.
