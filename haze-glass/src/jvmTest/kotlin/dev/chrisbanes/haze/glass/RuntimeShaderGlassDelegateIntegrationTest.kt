@@ -305,7 +305,18 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
         RuntimeLargeGlassTestContent(effect)
       }
     }
-    waitForIdle()
+    waitUntil {
+      attachedRuntimes[effect]?.let { runtime ->
+        val delegate = runtime.delegate as? RuntimeShaderGlassDelegate
+        runtime.interactionControllerForTest != null &&
+          runtime.preparedRenderBudget is GlassRenderBudgetDecision.Runtime &&
+          runtime.preparedRender != null &&
+          delegate != null &&
+          delegate.layers.source != null &&
+          delegate.layers.optical != null &&
+          delegate.layers.refractionDetail != null
+      } == true
+    }
     mainClock.autoAdvance = false
 
     val controller = checkNotNull(runtime(effect).interactionControllerForTest)
@@ -346,7 +357,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     }
     mainClock.autoAdvance = true
     showContent.value = false
-    waitForIdle()
+    waitUntil { controller.isDisposedForTest }
     assertThat(controller.isDisposedForTest).isTrue()
   }
 
