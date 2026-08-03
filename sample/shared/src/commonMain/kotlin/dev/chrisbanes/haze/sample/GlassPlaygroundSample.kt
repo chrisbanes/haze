@@ -236,7 +236,9 @@ public fun GlassPlaygroundSampleContent(
   onDragEnd: (GlassPlaygroundSurfaceId) -> Unit,
   interactionSourceProvider: (GlassPlaygroundSurfaceId) -> InteractionSource? = { null },
   surfaceProgressProvider: (GlassPlaygroundSurfaceId) -> Float = { progressProvider() },
-  returnFractionProvider: (GlassPlaygroundSurfaceId) -> Float = { 1f },
+  returnFractionProvider: (GlassPlaygroundSurfaceId) -> Float = { id ->
+    if (dragOffsetProvider(id) == Offset.Zero) 0f else 1f
+  },
   modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
