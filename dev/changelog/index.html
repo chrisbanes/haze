@@ -7778,7 +7778,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   the source records and position policy on <code>HazeState</code> are now internal implementation details.
   Source-selection predicates receive only <code>HazeSourceInfo</code>.</li>
 <li><code>HazeInputScale</code> is removed. Use <code>HazeSampling</code> to choose default, adaptive, full-resolution, or
-  fixed input sampling for typed effects.</li>
+  fixed input sampling for typed effects. <code>HazeSampling.Default</code> is a pointer to <code>Adaptive</code>.</li>
 <li>Blur now exposes <code>Modifier.hazeBlur</code>, opaque replayable <code>HazeBlurStyle</code>, and
   <code>HazeBlurDefaults.style</code>. The mutable <code>BlurVisualEffect</code> runtime, scope extension, readable Style
   properties, <code>copy</code>, and destructuring are removed permanently.</li>
@@ -7800,9 +7800,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   <code>HazeBlurStyle.Unspecified</code>, and <code>HazeBlurDefaults.style(...)</code> builder as warning-level,
   source-only migration shims. They preserve legacy sentinel behavior and will be removed before
   Haze 2.0 stable; they do not provide binary compatibility with the former Style class.</li>
-<li>Blur effects now adapt <code>HazeSampling.Default</code> between <code>1.0</code>, <code>0.8</code>, and <code>0.5</code> using physical
-  blur radius and expanded capture-layer area, with hysteresis and a <code>0.8</code> progressive-blur cap.
-  Glass remains unscaled by default; explicit sampling choices remain authoritative.</li>
+<li>Blur effects now adapt <code>HazeSampling.Adaptive</code> between <code>1.0</code>, <code>0.8</code>, and <code>0.5</code> using physical
+  blur radius, expanded capture-layer area, and recent update cadence, with hysteresis and a <code>0.8</code>
+  progressive-blur cap. Glass now uses the same adaptive default mode with effect-specific tiers.</li>
 <li>Changed Glass blur composition so blur participates in refracted content.</li>
 <li>Use one Android Glass output renderer per surface, independent of sibling count, while preserving
   semantic blur, progressive masks, Full chromatic aberration, and configured interactions.</li>

@@ -1279,13 +1279,14 @@ clears inherited color effects:</p>
 <span class="p">)</span>
 </code></pre></div>
 <ul>
-<li><code>HazeSampling.Default</code> uses Blur's adaptive policy.</li>
+<li><code>HazeSampling.Default</code> points to the library's current default policy, which is <code>Adaptive</code>.</li>
+<li><code>HazeSampling.Adaptive</code> uses Blur's adaptive policy.</li>
 <li><code>HazeSampling.FullResolution</code> disables input downscaling.</li>
-<li><code>HazeSampling.Adaptive</code> explicitly requests the adaptive policy.</li>
-<li><code>HazeSampling.Fixed(scale)</code> uses a fixed scale in <code>0 &lt; scale &lt;= 1</code>.</li>
+<li><code>HazeSampling.Fixed(pixelFraction)</code> retains a fixed fraction of the full-resolution input pixels
+  in <code>0 &lt; pixelFraction &lt;= 1</code>; <code>0.5</code> scales each dimension by approximately <code>0.707</code>.</li>
 </ul>
-<p>Adaptive Blur considers the physical Blur radius and expanded capture-layer area, with hysteresis
-between its quality tiers.</p>
+<p>Adaptive Blur considers the physical Blur radius, expanded capture-layer area, and recent distinct
+input-update cadence, with hysteresis between its quality tiers.</p>
 <h2 id="temporary-legacy-boundary">Temporary legacy boundary<a class="headerlink" href="#temporary-legacy-boundary" title="Permanent link">¶</a></h2>
 <p><code>BlurVisualEffect</code>, <code>HazeEffectScope.blurEffect</code>, and the lambda-based <code>hazeEffect</code> overloads remain
 temporarily available for staged migration. New code should use <code>hazeBlur</code> and replayable Styles.</p></div>

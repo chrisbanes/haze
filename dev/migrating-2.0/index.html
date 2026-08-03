@@ -1431,8 +1431,10 @@ the canonical defaults first and guarding its overrides in the same way:</p>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>HazeSampling.Default</code> preserves Blur's adaptive default. Use <code>FullResolution</code>, <code>Adaptive</code>, or
-<code>Fixed(scale)</code> when the policy must be explicit.</p>
+<p><code>HazeSampling.Default</code> points to <code>Adaptive</code> for both Blur and Glass. Use <code>Adaptive</code> to pin that
+policy explicitly, or use <code>FullResolution</code> or <code>Fixed(pixelFraction)</code> to override it. A fixed value
+is a fraction of total input pixels rather than a per-dimension scale, so <code>Fixed(0.5f)</code> scales each
+dimension by approximately <code>0.707</code>.</p>
 <h2 id="lifecycle-and-sharing">Lifecycle and sharing<a class="headerlink" href="#lifecycle-and-sharing" title="Permanent link">¶</a></h2>
 <p>A Style can be shared by any number of modifiers. Each modifier creates its own Blur runtime,
 delegate, cache, retained layers, platform resources, and adaptive-sampling history. Recomposition
@@ -1522,7 +1524,7 @@ inert; construct and supply a replacement Style to reflect new inputs.</p>
 <span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">glassStyle</span><span class="p">,</span>
-<span class="w">  </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">Default</span><span class="p">,</span>
+<span class="w">  </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -1616,7 +1618,7 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 <tr>
 <td><code>HazeEffectScope.inputScale</code></td>
 <td><code>Modifier.hazeBlur(sampling = ...)</code></td>
-<td>Map <code>Default</code>, <code>None</code>, <code>Auto</code>, and <code>Fixed</code> to <code>Default</code>, <code>FullResolution</code>, <code>Adaptive</code>, and <code>Fixed</code>.</td>
+<td>Map <code>Default</code> to <code>Default</code>, <code>Auto</code> to <code>Adaptive</code>, <code>None</code> to <code>FullResolution</code>, and <code>Fixed</code> to <code>Fixed</code>; fixed values now express total pixel fraction.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.drawContentBehind</code></td>

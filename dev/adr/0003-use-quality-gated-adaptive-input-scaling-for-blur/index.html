@@ -1065,18 +1065,25 @@ from choosing an appropriate default. Blur and Glass also have different quality
 ordinary blur can hide conservative downsampling, while Glass combines refraction, fine optical
 detail, and retained stages that have their own render budget.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">¶</a></h2>
-<p><code>HazeInputScale.Default</code> is semantically distinct from <code>None</code> and lets each visual effect choose:</p>
+<p><code>HazeSampling.Adaptive</code> is semantically distinct from <code>FullResolution</code> and uses the adaptive policy
+for both built-in effects:</p>
 <ul>
 <li>Blur uses one cross-platform policy based on the fully resolved blur radius in physical pixels
-  and the expanded capture-layer pixel area.</li>
-<li>Ordinary and non-progressive masked blur select only <code>1.0</code>, <code>0.8</code>, or <code>0.5</code>. Both radius and area
-  must cross the relevant workload boundary.</li>
-<li>Progressive blur stays at <code>1.0</code> below the medium workload boundary and is capped at <code>0.8</code>.</li>
+  and the expanded capture-layer pixel area, weighted by recent distinct input-update cadence.</li>
+<li>Ordinary and non-progressive masked blur select only linear scales <code>1.0</code>, <code>0.8</code>, or <code>0.5</code>
+  (pixel fractions <code>1.0</code>, <code>0.64</code>, or <code>0.25</code>). Both radius and weighted area must cross the relevant
+  workload boundary.</li>
+<li>Progressive blur stays at linear scale <code>1.0</code> below the medium workload boundary and is capped at
+  <code>0.8</code> (pixel fraction <code>0.64</code>).</li>
+<li>Updates no more than 100ms apart form a burst. Area is multiplied by up to three distinct
+  updates; repeated draws of unchanged input do not accumulate work, and a quiet interval resets
+  the multiplier.</li>
 <li>Tier exits have a 12.5% hysteresis margin, preventing small radius or size changes from repeatedly
   reallocating retained layers.</li>
-<li>Glass remains at <code>1.0</code> for <code>Default</code>. Its explicit <code>Auto</code> policy is unchanged.</li>
-<li>Explicit <code>None</code>, <code>Auto</code>, and <code>Fixed</code> choices remain authoritative. Paths that do not perform a
-  real blur, including scrim fallback, remain unscaled.</li>
+<li>Glass uses the same adaptive default mode with its effect-specific policy defined separately in
+  <a href="../0004-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0004</a>.</li>
+<li>Explicit <code>FullResolution</code>, <code>Adaptive</code>, and <code>Fixed</code> choices remain authoritative. Paths that do
+  not perform a real blur, including scrim fallback, remain unscaled.</li>
 </ul>
 <p>The physical-pixel boundaries preserve a substantial blur kernel after downsampling:
 <code>0.8</code> begins at a 32px radius and 300,000px layer, while <code>0.5</code> begins at a 60px radius and
@@ -1131,7 +1138,8 @@ discarded and repeated; they are not included above.</p>
 <code>0.5</code>, while the smaller 362,880px bottom layer selected <code>0.8</code>, confirming that both workload gates
 participate as intended.</p>
 <p>To verify that the aggressive tier earns its additional quality cost, three further interleaved
-Pixel 6 pairs compared the selected adaptive policy against explicit <code>Fixed(0.8)</code>. Adaptive
+Pixel 6 pairs compared the selected adaptive policy against explicit linear scale <code>0.8</code> (now
+expressed as <code>Fixed(0.64)</code>). Adaptive
 scaling improved app-layer actual-frame P90 in every pair:</p>
 <table>
 <thead>
@@ -1185,13 +1193,13 @@ constraint.</p>
 is unnecessary for the measured improvement. Automatic scaling is therefore bounded at <code>0.5</code>.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h2>
 <ul>
-<li><code>EffectDefault</code> extends the public sealed <code>HazeInputScale</code> hierarchy. Existing exhaustive <code>when</code>
-  expressions must handle it (or add an <code>else</code> branch), so this change requires a breaking release.</li>
+<li><code>Fixed</code> values express total input-pixel fractions, while the renderer converts them to an
+  aspect-preserving linear scale.</li>
 <li>Unspecified blur output can be slightly softer on sufficiently large, strongly blurred surfaces.</li>
 <li>The common policy is deterministic but stateful at tier boundaries because hysteresis depends on
   the previous automatic tier.</li>
 <li>Crossing a tier intentionally resizes retained resources; small boundary noise does not.</li>
-<li>Callers can restore full-resolution input with <code>HazeInputScale.None</code>.</li>
+<li>Callers can restore full-resolution input with <code>HazeSampling.FullResolution</code>.</li>
 <li>Threshold changes require paired performance evidence and representative screenshot/perceptual
   review across ordinary, progressive, and masked blur.</li>
 </ul>
