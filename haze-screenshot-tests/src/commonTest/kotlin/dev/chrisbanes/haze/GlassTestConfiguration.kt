@@ -23,7 +23,6 @@ import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.glass.hazeGlass as typedHazeGlass
-import dev.chrisbanes.haze.glass.then
 
 /**
  * Mutable screenshot-test fixture which emits only the public, typed Glass API.

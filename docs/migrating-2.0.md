@@ -177,6 +177,9 @@ The typed Blur API does not change the other Haze 2 migrations.
 
 Glass also has a typed modifier and an opaque, replayable `GlassStyle`. Replace the complete Style
 through recomposition; do not mutate an effect, use sentinel patches, `copy`, or `clear*` calls.
+The `GlassStyle` builder executes once during construction and records immutable, canonicalized
+writes. Resolution never reruns the builder, so mutating state captured by an unchanged Style is
+inert; construct and supply a replacement Style to reflect new inputs.
 
 | Legacy | Typed replacement |
 | --- | --- |

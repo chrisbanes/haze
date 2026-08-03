@@ -21,7 +21,7 @@ import dev.chrisbanes.haze.Poko
 /**
  * A [ProvidableCompositionLocal] which provides inherited Glass appearance.
  *
- * A Glass node evaluates [GlassDefaults.style], this Style, and its explicit [GlassStyle] in that
+ * A Glass node replays [GlassDefaults.style], this Style, and its explicit [GlassStyle] in that
  * order. Each node uses a fresh accumulator, so a Style may be shared safely by concurrent nodes.
  */
 @ExperimentalHazeApi
@@ -29,72 +29,85 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
   compositionLocalOf { GlassStyle }
 
 /**
- * An opaque, stateless, replayable Glass appearance program.
+ * An opaque, immutable sequence of recorded Glass appearance writes.
  *
- * Create a Style with [GlassStyle] and combine Styles with [then]. Writes run in order and the last
- * write to a property wins. The companion object is the empty Style and performs no writes.
+ * The builder passed to [GlassStyle] executes once during construction. Each property is
+ * canonicalized and captured as an immutable write; resolving a Style only replays those captured
+ * values and never invokes caller code. Combine Styles with [then]. Writes run in order and the
+ * last write to a property wins. The companion object is the empty Style and performs no writes.
  *
- * A Style contains no renderer or mutable evaluation state. [GlassStyleScope.hovered],
+ * Mutating an input captured by a previously constructed Style has no effect. To update a node,
+ * construct and supply a replacement Style through recomposition.
+ *
+ * A Style contains no renderer or mutable runtime state. [GlassStyleScope.hovered],
  * [GlassStyleScope.focused], and [GlassStyleScope.pressed] record declarative responses only;
- * each `hazeGlass` node evaluates them into a fresh node-owned snapshot and owns its signals,
+ * each `hazeGlass` node replays them into a fresh node-owned snapshot and owns its signals,
  * animations, pointer observation, and renderer resources.
  */
 @ExperimentalHazeApi
 @Immutable
 public sealed interface GlassStyle {
+  /** Returns a Style which replays [other] after this Style. */
+  public infix fun then(other: GlassStyle): GlassStyle = combineGlassStyles(this, other)
+
+  /** Returns a Style which replays the writes recorded by [block] after this Style. */
+  public fun then(block: GlassStyleScope.() -> Unit): GlassStyle = then(GlassStyle(block))
+
   /** The empty Glass Style, which performs no writes. */
   public companion object : GlassStyle
 }
 
 /**
- * Creates a replayable [GlassStyle].
+ * Creates a recorded, replayable [GlassStyle].
  *
- * The [block] is retained as immutable configuration and replayed into fresh node-local state.
+ * [block] executes exactly once during this call. Its canonicalized property values are captured
+ * as immutable writes which can later be replayed into fresh node-local state without invoking
+ * [block] again.
  */
 @ExperimentalHazeApi
-public fun GlassStyle(block: GlassStyleScope.() -> Unit): GlassStyle = BlockGlassStyle(block)
+public fun GlassStyle(block: GlassStyleScope.() -> Unit): GlassStyle =
+  RecordedGlassStyle(recordGlassStyleWrites(block))
 
-/**
- * Returns a Style which evaluates this Style followed by [other].
- *
- * When both Styles write the same property, [other] wins.
- */
-@ExperimentalHazeApi
-public infix fun GlassStyle.then(other: GlassStyle): GlassStyle = when {
-  this === GlassStyle -> other
-  other === GlassStyle -> this
-  else -> CombinedGlassStyle(this, other)
+@Immutable
+private class RecordedGlassStyle(
+  private val writes: List<GlassStyleValues.() -> Unit>,
+) : GlassStyle {
+  fun replay(values: GlassStyleValues) {
+    for (write in writes) {
+      values.write()
+    }
+  }
+
+  fun then(other: RecordedGlassStyle): GlassStyle =
+    RecordedGlassStyle(writes + other.writes)
 }
 
-/**
- * Returns a Style which evaluates this Style followed by [block].
- *
- * Writes in [block] take precedence over earlier writes.
- */
+private fun combineGlassStyles(
+  first: GlassStyle,
+  second: GlassStyle,
+): GlassStyle = when (first) {
+  GlassStyle -> second
+  is RecordedGlassStyle -> when (second) {
+    GlassStyle -> first
+    is RecordedGlassStyle -> first.then(second)
+  }
+}
+
+/** Marks the nested receiver scopes used while constructing a [GlassStyle]. */
+@DslMarker
 @ExperimentalHazeApi
-public fun GlassStyle.then(block: GlassStyleScope.() -> Unit): GlassStyle =
-  this then GlassStyle(block)
-
-@Immutable
-private class BlockGlassStyle(
-  val block: GlassStyleScope.() -> Unit,
-) : GlassStyle
-
-@Immutable
-private class CombinedGlassStyle(
-  val first: GlassStyle,
-  val second: GlassStyle,
-) : GlassStyle
+public annotation class GlassStyleDsl
 
 /**
  * Receiver for Glass appearance property writes.
  *
- * Property functions canonicalize values as they are written. Calling a function again replaces
- * its previous value in the current evaluation.
+ * Property functions canonicalize values while the Style is constructed and record them for later
+ * replay. Calling a function again records a later write which takes precedence.
  */
 @ExperimentalHazeApi
+@GlassStyleDsl
 public class GlassStyleScope internal constructor(
-  private val values: GlassStyleValues,
+  private val writes: MutableList<GlassStyleValues.() -> Unit>,
 ) {
   /**
    * Declares the response evaluated by each node while it is hovered.
@@ -102,114 +115,134 @@ public class GlassStyleScope internal constructor(
    * The last declaration for this state wins. Pointer observation is installed only when hover or
    * press has a declaration, and observes without consuming application input.
    */
-  public fun hovered(block: GlassInteractionScope.() -> Unit) {
-    values.hoveredInteraction = buildGlassInteractionResponse(block)
+  public fun hovered(response: GlassInteractionScope.() -> Unit) {
+    val recorded = buildGlassInteractionResponse(response)
+    writes += { hoveredInteraction = recorded }
   }
 
   /** Declares the response evaluated by each node while it is focused. */
-  public fun focused(block: GlassInteractionScope.() -> Unit) {
-    values.focusedInteraction = buildGlassInteractionResponse(block)
+  public fun focused(response: GlassInteractionScope.() -> Unit) {
+    val recorded = buildGlassInteractionResponse(response)
+    writes += { focusedInteraction = recorded }
   }
 
   /** Declares the response evaluated by each node while it is pressed. */
-  public fun pressed(block: GlassInteractionScope.() -> Unit) {
-    values.pressedInteraction = buildGlassInteractionResponse(block)
+  public fun pressed(response: GlassInteractionScope.() -> Unit) {
+    val recorded = buildGlassInteractionResponse(response)
+    writes += { pressedInteraction = recorded }
   }
 
   /** Sets the rounded boundary used for refraction and masking. */
-  public fun shape(value: RoundedCornerShape) {
-    values.shape = value
+  public fun shape(shape: RoundedCornerShape) {
+    writes += { this.shape = shape }
   }
 
   /** Sets the optical model used to refract and blur captured content. */
-  public fun optics(value: GlassOptics) {
-    values.optics = value
+  public fun optics(optics: GlassOptics) {
+    writes += { this.optics = optics }
   }
 
   /** Sets specular-highlight intensity, coerced to the range `0f..1f`. */
-  public fun specularIntensity(value: Float) {
-    values.specularIntensity = value.coerceIn(0f, 1f)
+  public fun specularIntensity(intensity: Float) {
+    val canonical = intensity.coerceIn(0f, 1f)
+    writes += { specularIntensity = canonical }
   }
 
   /** Sets ambient-light response, coerced to the range `0f..1f`. */
-  public fun ambientResponse(value: Float) {
-    values.ambientResponse = value.coerceIn(0f, 1f)
+  public fun ambientResponse(response: Float) {
+    val canonical = response.coerceIn(0f, 1f)
+    writes += { ambientResponse = canonical }
   }
 
   /** Sets the tint applied to refracted content. */
-  public fun tint(value: Color) {
-    require(value.isSpecified) { "tint must be specified" }
-    values.tint = value
+  public fun tint(color: Color) {
+    require(color.isSpecified) { "tint must be specified" }
+    writes += { tint = color }
   }
 
   /** Sets the non-negative softening distance around the material boundary. */
-  public fun edgeSoftness(value: Dp) {
-    require(value.isSpecified) { "edgeSoftness must be specified" }
-    values.edgeSoftness = value.coerceAtLeast(0.dp)
+  public fun edgeSoftness(softness: Dp) {
+    require(softness.isSpecified) { "edgeSoftness must be specified" }
+    val canonical = softness.coerceAtLeast(0.dp)
+    writes += { edgeSoftness = canonical }
   }
 
   /**
    * Sets the virtual light position. [Offset.Unspecified] keeps the automatic material center.
    */
-  public fun lightPosition(value: Offset) {
+  public fun lightPosition(position: Offset) {
     require(
-      value == Offset.Unspecified ||
-        (value.x.isFinite() && value.y.isFinite()),
+      position == Offset.Unspecified ||
+        (position.x.isFinite() && position.y.isFinite()),
     ) {
       "lightPosition must be finite or Offset.Unspecified"
     }
-    values.lightPosition = value
+    writes += { lightPosition = position }
   }
 
   /** Sets chromatic dispersion strength, coerced to the range `0f..1f`. */
-  public fun chromaticAberrationStrength(value: Float) {
-    values.chromaticAberrationStrength = value.coerceIn(0f, 1f)
+  public fun chromaticAberrationStrength(strength: Float) {
+    val canonical = strength.coerceIn(0f, 1f)
+    writes += { chromaticAberrationStrength = canonical }
   }
 
   /** Sets the cross-section profile used by the refraction bezel. */
-  public fun surfaceProfile(value: SurfaceProfile) {
-    values.surfaceProfile = value
+  public fun surfaceProfile(profile: SurfaceProfile) {
+    writes += { surfaceProfile = profile }
   }
 
   /** Sets the quality mode used to render chromatic aberration. */
-  public fun chromaticAberrationMode(value: ChromaticAberrationMode) {
-    values.chromaticAberrationMode = value
+  public fun chromaticAberrationMode(mode: ChromaticAberrationMode) {
+    writes += { chromaticAberrationMode = mode }
   }
 
   /** Sets overall material opacity, coerced to the range `0f..1f`. */
-  public fun alpha(value: Float) {
-    values.alpha = value.coerceIn(0f, 1f)
+  public fun alpha(alpha: Float) {
+    val canonical = alpha.coerceIn(0f, 1f)
+    writes += { this.alpha = canonical }
   }
 
   /** Sets contrast adjustment, coerced to the range `-1f..1f`. */
-  public fun contrast(value: Float) {
-    values.contrast = value.coerceIn(-1f, 1f)
+  public fun contrast(contrast: Float) {
+    val canonical = contrast.coerceIn(-1f, 1f)
+    writes += { this.contrast = canonical }
   }
 
   /** Sets white-point adjustment, coerced to the range `-1f..1f`. */
-  public fun whitePoint(value: Float) {
-    values.whitePoint = value.coerceIn(-1f, 1f)
+  public fun whitePoint(whitePoint: Float) {
+    val canonical = whitePoint.coerceIn(-1f, 1f)
+    writes += { this.whitePoint = canonical }
   }
 
   /** Sets the chroma multiplier, coerced to the range `0f..2f`. */
-  public fun chromaMultiplier(value: Float) {
-    values.chromaMultiplier = value.coerceIn(0f, 2f)
+  public fun chromaMultiplier(multiplier: Float) {
+    val canonical = multiplier.coerceIn(0f, 2f)
+    writes += { chromaMultiplier = canonical }
   }
 
   /** Sets the blend between generated and captured normals, coerced to `0f..1f`. */
-  public fun contentNormalBlend(value: Float) {
-    values.contentNormalBlend = value.coerceIn(0f, 1f)
+  public fun contentNormalBlend(blend: Float) {
+    val canonical = blend.coerceIn(0f, 1f)
+    writes += { contentNormalBlend = canonical }
   }
 
   /** Sets the non-negative exponent controlling specular highlight concentration. */
-  public fun specularExponent(value: Float) {
-    values.specularExponent = value.coerceAtLeast(0f)
+  public fun specularExponent(exponent: Float) {
+    val canonical = exponent.coerceAtLeast(0f)
+    writes += { specularExponent = canonical }
   }
 
   /** Sets the non-negative exponent controlling Fresnel response falloff. */
-  public fun fresnelExponent(value: Float) {
-    values.fresnelExponent = value.coerceAtLeast(0f)
+  public fun fresnelExponent(exponent: Float) {
+    val canonical = exponent.coerceAtLeast(0f)
+    writes += { fresnelExponent = canonical }
   }
+}
+
+private fun recordGlassStyleWrites(
+  block: GlassStyleScope.() -> Unit,
+): List<GlassStyleValues.() -> Unit> = buildList {
+  GlassStyleScope(this).block()
 }
 
 @Poko
@@ -240,19 +273,14 @@ internal fun resolveGlassStyleValues(
   localStyle: GlassStyle,
   explicitStyle: GlassStyle,
 ): GlassStyleValues = GlassStyleValues().also { values ->
-  val scope = GlassStyleScope(values)
-  GlassDefaults.style.applyTo(scope)
-  localStyle.applyTo(scope)
-  explicitStyle.applyTo(scope)
+  GlassDefaults.style.replay(values)
+  localStyle.replay(values)
+  explicitStyle.replay(values)
 }
 
-private fun GlassStyle.applyTo(scope: GlassStyleScope) {
+private fun GlassStyle.replay(values: GlassStyleValues) {
   when (this) {
     GlassStyle -> Unit
-    is BlockGlassStyle -> scope.block()
-    is CombinedGlassStyle -> {
-      first.applyTo(scope)
-      second.applyTo(scope)
-    }
+    is RecordedGlassStyle -> replay(values)
   }
 }

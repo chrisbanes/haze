@@ -55,11 +55,16 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 
 ## GlassStyle
 
-`GlassStyle` is an opaque, replayable appearance program. Create it with a block and compose
-values with `then`; later writes win. A style can be shared by any number of `hazeGlass` nodes:
-each node evaluates defaults, `LocalGlassStyle`, and its explicit style into its own snapshot.
-Replacing a Style through recomposition also removes properties and interaction blocks omitted by
-the replacement.
+`GlassStyle` is an opaque, immutable sequence of appearance writes. Its builder executes once when
+the Style is constructed, canonicalizing and recording each value. Compose Styles with the
+intrinsic `then` members; later writes win. A Style can be shared by any number of `hazeGlass`
+nodes: each node replays defaults, `LocalGlassStyle`, and its explicit Style into its own snapshot
+without rerunning caller code.
+
+Values captured while constructing a Style are frozen into those writes. Mutating captured state
+does not update attached nodes; construct and supply a replacement Style through recomposition to
+change their appearance. Replacement also removes properties and interaction blocks omitted by the
+new Style.
 
 ```kotlin
 val baseStyle = GlassStyle {
@@ -76,7 +81,7 @@ CompositionLocalProvider(LocalGlassStyle provides baseStyle) {
 
 ## Default style
 
-`GlassDefaults.style` uses the built-in Haze `GlassOptics.Adaptive` material and is evaluated
+`GlassDefaults.style` uses the built-in Haze `GlassOptics.Adaptive` material and is replayed
 before `LocalGlassStyle` and the modifier's explicit Style.
 
 ```kotlin

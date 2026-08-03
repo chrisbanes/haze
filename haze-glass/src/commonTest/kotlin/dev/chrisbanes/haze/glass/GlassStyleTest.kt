@@ -12,6 +12,8 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
@@ -19,6 +21,70 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class)
 class GlassStyleTest {
+
+  @Test
+  fun construction_recordsWritesOnceAndResolutionCreatesFreshValues() {
+    var styleExecutions = 0
+    var interactionExecutions = 0
+    val style = GlassStyle {
+      styleExecutions++
+      alpha(0.4f)
+      pressed {
+        interactionExecutions++
+        lightingIntensity(0.6f)
+      }
+    }
+
+    assertThat(styleExecutions).isEqualTo(1)
+    assertThat(interactionExecutions).isEqualTo(1)
+
+    val first = resolveGlassStyleValues(GlassStyle, style)
+    val second = resolveGlassStyleValues(GlassStyle, style)
+
+    assertThat(styleExecutions).isEqualTo(1)
+    assertThat(interactionExecutions).isEqualTo(1)
+    assertThat(first).isNotSameInstanceAs(second)
+    assertThat(first.alpha).isEqualTo(0.4f)
+    assertThat(second.alpha).isEqualTo(0.4f)
+    assertThat(first.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.6f)
+    assertThat(second.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.6f)
+  }
+
+  @Test
+  fun then_composesRecordedStylesWithoutRerunningBuilders() {
+    var baseExecutions = 0
+    var overrideExecutions = 0
+    var appendedExecutions = 0
+    val base = GlassStyle {
+      baseExecutions++
+      optics(GlassOptics.Absolute(depth = 0.2f))
+      pressed {
+        lightingIntensity(0.2f)
+        refractionMultiplier(1.2f)
+      }
+    }
+    val override = GlassStyle {
+      overrideExecutions++
+      optics(GlassOptics.Absolute(depth = 0.6f))
+      pressed { lightingIntensity(0.7f) }
+    }
+    val combined = base.then(override).then {
+      appendedExecutions++
+      alpha(0.5f)
+    }
+
+    val first = resolveGlassStyleValues(GlassStyle, combined)
+    val second = resolveGlassStyleValues(GlassStyle, combined)
+
+    assertThat(baseExecutions).isEqualTo(1)
+    assertThat(overrideExecutions).isEqualTo(1)
+    assertThat(appendedExecutions).isEqualTo(1)
+    assertThat(first.optics).isEqualTo(GlassOptics.Absolute(depth = 0.6f))
+    assertThat(first.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.7f)
+    assertThat(first.pressedInteraction?.refractionMultiplier).isNull()
+    assertThat(first.alpha).isEqualTo(0.5f)
+    assertThat(second).isEqualTo(first)
+  }
 
   @Test
   fun interactionBlocks_chainAndReplacePerState() {
