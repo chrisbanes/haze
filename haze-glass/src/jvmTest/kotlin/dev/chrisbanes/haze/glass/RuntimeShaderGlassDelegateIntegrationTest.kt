@@ -299,10 +299,16 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       }
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
     }
-    setContent { RuntimeLargeGlassTestContent(effect) }
+    val showContent = mutableStateOf(true)
+    setContent {
+      if (showContent.value) {
+        RuntimeLargeGlassTestContent(effect)
+      }
+    }
     waitForIdle()
     mainClock.autoAdvance = false
 
+    val controller = checkNotNull(runtime(effect).interactionControllerForTest)
     val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val source = checkNotNull(delegate.layers.source)
     val optical = checkNotNull(delegate.layers.optical)
@@ -339,8 +345,9 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       assertThat(checkNotNull(runtime(effect).preparedRender).plan.layers.map { it.kind }).isEqualTo(plannedKinds)
     }
     mainClock.autoAdvance = true
-    setContent {}
+    showContent.value = false
     waitForIdle()
+    assertThat(controller.isDisposedForTest).isTrue()
   }
 
   @Test
