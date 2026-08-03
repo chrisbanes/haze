@@ -32,7 +32,9 @@ import dev.chrisbanes.haze.hazeEffect
  *
  * @param input Source-backed content or this modifier's own content.
  * @param style Explicit appearance applied after defaults and [LocalGlassStyle].
- * @param sampling Input sampling policy. [HazeSampling.Default] preserves Glass's unscaled default.
+ * @param sampling Input sampling policy. [HazeSampling.Default] currently points to
+ * [HazeSampling.Adaptive], which selects approximately 50% or 25% of full-resolution input pixels
+ * from retained-layer work and recent update cadence.
  * @param expandLayerBounds Whether Glass may expand its capture layer for optical sampling.
  * @param interactionSource Optional external interaction source owned by this modifier node.
  * @param interactionLightRadiusFraction Interaction-light radius as a fraction of the material's

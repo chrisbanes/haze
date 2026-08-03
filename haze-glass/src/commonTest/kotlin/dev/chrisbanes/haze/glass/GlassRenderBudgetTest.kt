@@ -91,6 +91,25 @@ class GlassRenderBudgetTest {
   }
 
   @Test
+  fun suppliedRequestedPlan_isNotRebuilt() {
+    val plan = GlassRetainedLayerPlan(
+      listOf(GlassRetainedLayer(GlassRetainedLayerKind.Source, IntSize(100, 100))),
+    )
+    var buildCount = 0
+
+    assertThat(
+      resolveGlassRenderBudget(
+        requestedScale = 0.5f,
+        requestedPlan = plan,
+      ) {
+        buildCount += 1
+        plan
+      },
+    ).isEqualTo(GlassRenderBudgetDecision.Runtime(scaleFactor = 0.5f, plan = plan))
+    assertThat(buildCount).isEqualTo(0)
+  }
+
+  @Test
   fun everyActiveStage_contributesItsActualPixelCount() {
     val plan = GlassRetainedLayerPlan(
       listOf(

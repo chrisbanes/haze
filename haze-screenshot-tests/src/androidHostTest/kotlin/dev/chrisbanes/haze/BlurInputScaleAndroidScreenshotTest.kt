@@ -76,7 +76,7 @@ class BlurInputScaleAndroidScreenshotTest : ScreenshotTest() {
     }
 
     val unscaled = captureRootPixels().snapshot()
-    sampling = HazeSampling.Fixed(0.5f)
+    sampling = HazeSampling.Fixed(0.25f)
     waitForIdle()
     val scaled = captureRootPixels().snapshot()
 

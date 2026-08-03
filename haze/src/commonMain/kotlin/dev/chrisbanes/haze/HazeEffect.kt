@@ -20,11 +20,10 @@ import kotlin.jvm.JvmInline
  * Input-sampling policies used by the explicit-input [hazeEffect] overload.
  */
 public sealed interface HazeSampling {
-
-  /**
-   * Lets the configured renderer choose its input-sampling policy.
-   */
-  public data object Default : HazeSampling
+  public companion object {
+    /** Points to the library's current default sampling policy. */
+    public val Default: HazeSampling = Adaptive
+  }
 
   /**
    * Samples the effect input at full resolution.
@@ -37,15 +36,19 @@ public sealed interface HazeSampling {
   public data object Adaptive : HazeSampling
 
   /**
-   * An input scale which uses a fixed scale factor.
+   * Retains a fixed fraction of the full-resolution input pixels while preserving aspect ratio.
    *
-   * @param scale The scale factor, in the range 0 < x <= 1.
+   * For example, `0.5f` targets half the total input pixels by scaling each dimension by
+   * `sqrt(0.5)` (approximately `0.707`). Integer raster dimensions can make the realized fraction
+   * differ slightly for very small inputs.
+   *
+   * @param pixelFraction The total input-pixel fraction, in the range 0 < x <= 1.
    */
   @JvmInline
-  public value class Fixed(public val scale: Float) : HazeSampling {
+  public value class Fixed(public val pixelFraction: Float) : HazeSampling {
     init {
-      require(scale > 0f && scale <= 1f) {
-        "scale needs to be in the range 0 < x <= 1f"
+      require(pixelFraction.isFinite() && pixelFraction > 0f && pixelFraction <= 1f) {
+        "pixelFraction needs to be finite and in the range 0 < x <= 1f"
       }
     }
   }

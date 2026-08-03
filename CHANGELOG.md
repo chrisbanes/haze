@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the source records and position policy on `HazeState` are now internal implementation details.
   Source-selection predicates receive only `HazeSourceInfo`.
 - `HazeInputScale` is removed. Use `HazeSampling` to choose default, adaptive, full-resolution, or
-  fixed input sampling for typed effects.
+  fixed input sampling for typed effects. `HazeSampling.Default` is a pointer to `Adaptive`.
 - Blur now exposes `Modifier.hazeBlur`, opaque replayable `HazeBlurStyle`, and
   `HazeBlurDefaults.style`. The mutable `BlurVisualEffect` runtime, scope extension, readable Style
   properties, `copy`, and destructuring are removed permanently.
@@ -39,9 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `HazeBlurStyle.Unspecified`, and `HazeBlurDefaults.style(...)` builder as warning-level,
   source-only migration shims. They preserve legacy sentinel behavior and will be removed before
   Haze 2.0 stable; they do not provide binary compatibility with the former Style class.
-- Blur effects now adapt `HazeSampling.Default` between `1.0`, `0.8`, and `0.5` using physical
-  blur radius and expanded capture-layer area, with hysteresis and a `0.8` progressive-blur cap.
-  Glass remains unscaled by default; explicit sampling choices remain authoritative.
+- Blur effects now adapt `HazeSampling.Adaptive` between `1.0`, `0.8`, and `0.5` using physical
+  blur radius, expanded capture-layer area, and recent update cadence, with hysteresis and a `0.8`
+  progressive-blur cap. Glass now uses the same adaptive default mode with effect-specific tiers.
 - Changed Glass blur composition so blur participates in refracted content.
 - Use one Android Glass output renderer per surface, independent of sibling count, while preserving
   semantic blur, progressive masks, Full chromatic aberration, and configured interactions.

@@ -159,8 +159,10 @@ Modifier.hazeBlur(
 )
 ```
 
-`HazeSampling.Default` preserves Blur's adaptive default. Use `FullResolution`, `Adaptive`, or
-`Fixed(scale)` when the policy must be explicit.
+`HazeSampling.Default` points to `Adaptive` for both Blur and Glass. Use `Adaptive` to pin that
+policy explicitly, or use `FullResolution` or `Fixed(pixelFraction)` to override it. A fixed value
+is a fraction of total input pixels rather than a per-dimension scale, so `Fixed(0.5f)` scales each
+dimension by approximately `0.707`.
 
 ## Lifecycle and sharing
 
@@ -213,7 +215,7 @@ val glassStyle = GlassStyle {
 Modifier.hazeGlass(
   input = HazeInput.Sources(hazeState),
   style = glassStyle,
-  sampling = HazeSampling.Default,
+  sampling = HazeSampling.Adaptive,
   expandLayerBounds = true,
 )
 ```
@@ -252,7 +254,7 @@ use replayable Style blocks and `then` before Haze 2.0 stable.
 | `HazeEffectScope.fallbackTint` | `HazeBlurStyle { fallbackColorEffect(...) }` | The effect type is unchanged. |
 | `HazeEffectScope.alpha` | `HazeBlurStyle { alpha(...) }` | Values are clamped to `0f..1f`. |
 | `HazeEffectScope.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | State-level Blur enablement is removed. |
-| `HazeEffectScope.inputScale` | `Modifier.hazeBlur(sampling = ...)` | Map `Default`, `None`, `Auto`, and `Fixed` to `Default`, `FullResolution`, `Adaptive`, and `Fixed`. |
+| `HazeEffectScope.inputScale` | `Modifier.hazeBlur(sampling = ...)` | Map `Default` to `Default`, `Auto` to `Adaptive`, `None` to `FullResolution`, and `Fixed` to `Fixed`; fixed values now express total pixel fraction. |
 | `HazeEffectScope.drawContentBehind` | Removed | Custom renderers control their own draw order inside `HazeEffectRenderer.draw`. |
 | `HazeEffectScope.clipToAreasBounds` | Removed | Source geometry is internal. Return required modifier-relative bounds from `calculateLayerBounds`. |
 | `HazeEffectScope.expandLayerBounds` | `Modifier.hazeBlur(expandLayerBounds = ...)` | Non-null and `true` by default. |

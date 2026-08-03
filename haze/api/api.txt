@@ -74,6 +74,7 @@ package dev.chrisbanes.haze {
     method public default boolean shouldClipToNodeBounds();
     method public default boolean shouldDrawContentBehind();
     method public default boolean shouldPreferClipToInputBounds();
+    method public default boolean shouldPrepareDraw(Style style);
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererInteraction {
@@ -136,6 +137,15 @@ package dev.chrisbanes.haze {
 
   public final class HazeInputKt {
     method public static dev.chrisbanes.haze.HazeSourceSelection where(dev.chrisbanes.haze.HazeSourceSelection, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.HazeSourceInfo,java.lang.Boolean> predicate);
+  }
+
+  @dev.chrisbanes.haze.InternalHazeApi public final class HazeInputUpdateCadence {
+    ctor public HazeInputUpdateCadence();
+    ctor public HazeInputUpdateCadence(optional kotlin.time.TimeSource timeSource);
+    method @InaccessibleFromKotlin public int getMultiplier();
+    method public boolean observeUpdate(Object? updateKey);
+    method public void reset();
+    property public int multiplier;
   }
 
   public final class HazeKt {
@@ -209,20 +219,22 @@ package dev.chrisbanes.haze {
   }
 
   public sealed exhaustive interface HazeSampling {
+    field public static final dev.chrisbanes.haze.HazeSampling.Companion Companion;
   }
 
   public static final class HazeSampling.Adaptive implements dev.chrisbanes.haze.HazeSampling {
     field public static final dev.chrisbanes.haze.HazeSampling.Adaptive INSTANCE;
   }
 
-  public static final class HazeSampling.Default implements dev.chrisbanes.haze.HazeSampling {
-    field public static final dev.chrisbanes.haze.HazeSampling.Default INSTANCE;
+  public static final class HazeSampling.Companion {
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeSampling getDefault();
+    property public dev.chrisbanes.haze.HazeSampling Default;
   }
 
   @kotlin.jvm.JvmInline public static final value class HazeSampling.Fixed implements dev.chrisbanes.haze.HazeSampling {
-    ctor @KotlinOnly public HazeSampling.Fixed(float scale);
-    method @InaccessibleFromKotlin public float getScale();
-    property public float scale;
+    ctor @KotlinOnly public HazeSampling.Fixed(float pixelFraction);
+    method @InaccessibleFromKotlin public float getPixelFraction();
+    property public float pixelFraction;
   }
 
   public static final class HazeSampling.FullResolution implements dev.chrisbanes.haze.HazeSampling {

@@ -163,13 +163,14 @@ Modifier.hazeBlur(
 )
 ```
 
-- `HazeSampling.Default` uses Blur's adaptive policy.
+- `HazeSampling.Default` points to the library's current default policy, which is `Adaptive`.
+- `HazeSampling.Adaptive` uses Blur's adaptive policy.
 - `HazeSampling.FullResolution` disables input downscaling.
-- `HazeSampling.Adaptive` explicitly requests the adaptive policy.
-- `HazeSampling.Fixed(scale)` uses a fixed scale in `0 < scale <= 1`.
+- `HazeSampling.Fixed(pixelFraction)` retains a fixed fraction of the full-resolution input pixels
+  in `0 < pixelFraction <= 1`; `0.5` scales each dimension by approximately `0.707`.
 
-Adaptive Blur considers the physical Blur radius and expanded capture-layer area, with hysteresis
-between its quality tiers.
+Adaptive Blur considers the physical Blur radius, expanded capture-layer area, and recent distinct
+input-update cadence, with hysteresis between its quality tiers.
 
 ## Temporary legacy boundary
 

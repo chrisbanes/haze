@@ -40,6 +40,7 @@ class GlassProfilingScenarioTest {
         "steady_no_blur",
         "steady_no_blur_9",
         "steady_depth_50",
+        "steady_balanced",
         "steady_scale_60",
         "steady_scale_50",
         "steady_scale_50_9",

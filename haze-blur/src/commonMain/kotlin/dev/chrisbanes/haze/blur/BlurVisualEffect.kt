@@ -9,7 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
@@ -18,6 +20,7 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.HazeEffectDrawScope
+import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLayoutScope
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
@@ -29,7 +32,17 @@ import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
+
+@Poko
+private class BlurAdaptiveUpdateKey(
+  val inputSnapshot: HazeEffectInputSnapshot?,
+  val style: ResolvedHazeBlurStyle,
+  val materialSize: Size,
+  val layerSize: Size,
+  val layerOffset: Offset,
+)
 
 /** Node-owned Blur renderer configured exclusively by [HazeBlurStyle]. */
 @Stable
@@ -103,6 +116,19 @@ internal class BlurVisualEffect :
   }
 
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: HazeBlurStyle) {
+    if (sampling === HazeSampling.Adaptive) {
+      inputScalePolicy.observeUpdate(
+        BlurAdaptiveUpdateKey(
+          inputSnapshot = inputSnapshot,
+          style = resolvedStyle,
+          materialSize = modifierSize,
+          layerSize = layerSize,
+          layerOffset = layerOffset,
+        ),
+      )
+    } else {
+      inputScalePolicy.reset()
+    }
     with(this as DrawScope) {
       selectDelegateForDraw(this@prepareDraw)
     }
@@ -179,7 +205,7 @@ internal class BlurVisualEffect :
   internal fun resolveInputScaleFactor(context: HazeEffectRuntimeDrawScope): Float {
     val blurRadiusPx = with(context) { blurRadius.toPx() }
     return inputScalePolicy.resolve(
-      requestedScale = context.sampling,
+      sampling = context.sampling,
       blurRadiusPx = blurRadiusPx,
       layerSize = context.layerSize,
       progressive = progressive != null,

@@ -32,7 +32,7 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
     }
 
     val balancedReference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Default
+    sampling = HazeSampling.Adaptive
     waitForIdle()
     val balancedAdaptive = captureRootPixels().snapshot()
     captureRoot("balanced")
@@ -46,7 +46,7 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
     sampling = HazeSampling.FullResolution
     waitForIdle()
     val aggressiveReference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Default
+    sampling = HazeSampling.Adaptive
     waitForIdle()
     val aggressiveAdaptive = captureRootPixels().snapshot()
     captureRoot("aggressive")
@@ -72,7 +72,7 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
     }
 
     val reference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Default
+    sampling = HazeSampling.Adaptive
     waitForIdle()
     val adaptive = captureRootPixels().snapshot()
     captureRoot()
@@ -101,7 +101,7 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
     }
 
     val gradientReference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Default
+    sampling = HazeSampling.Adaptive
     waitForIdle()
     val gradientAdaptive = captureRootPixels().snapshot()
     gradientReference.assertPerceptuallyCloseTo(
@@ -123,7 +123,7 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
     sampling = HazeSampling.FullResolution
     waitForIdle()
     val hardEdgeReference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Default
+    sampling = HazeSampling.Adaptive
     waitForIdle()
     val hardEdgeAdaptive = captureRootPixels().snapshot()
     captureRoot()
@@ -140,7 +140,7 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(effect, sampling = HazeSampling.Default)
+        CreditCardContentBlurring(effect, sampling = HazeSampling.Adaptive)
       }
     }
 

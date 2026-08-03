@@ -301,10 +301,3 @@ internal fun Modifier.hazeGlass(
   interactionPositionAnimationSpec = configuration.interactionPositionAnimationSpec,
   interactionReducedMotionPolicy = configuration.interactionReducedMotionPolicy,
 )
-
-internal fun HazeSampling.toHazeSampling(): HazeSampling = when (this) {
-  HazeSampling.Default -> HazeSampling.Default
-  HazeSampling.FullResolution -> HazeSampling.FullResolution
-  HazeSampling.Adaptive -> HazeSampling.Adaptive
-  is HazeSampling.Fixed -> HazeSampling.Fixed(scale)
-}

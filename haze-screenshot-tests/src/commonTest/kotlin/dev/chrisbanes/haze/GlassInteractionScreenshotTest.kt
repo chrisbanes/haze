@@ -114,7 +114,12 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
     }
     setContent {
       ScreenshotTheme {
-        GlassInteractionScene("local_patch", "LOCAL PATCH", effect)
+        GlassInteractionScene(
+          tag = "local_patch",
+          label = "LOCAL PATCH",
+          effect = effect,
+          sampling = HazeSampling.FullResolution,
+        )
       }
     }
 
@@ -167,7 +172,12 @@ private fun androidx.compose.ui.test.TouchInjectionScope.lowerRightPosition(): O
 )
 
 @Composable
-internal fun GlassInteractionScene(tag: String, label: String, effect: GlassTestConfiguration) {
+internal fun GlassInteractionScene(
+  tag: String,
+  label: String,
+  effect: GlassTestConfiguration,
+  sampling: HazeSampling = HazeSampling.Default,
+) {
   val hazeState = remember { HazeState() }
   Box(Modifier.size(320.dp, 320.dp)) {
     Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
@@ -192,6 +202,7 @@ internal fun GlassInteractionScene(tag: String, label: String, effect: GlassTest
           .hazeGlass(
             input = HazeInput.Sources(hazeState),
             configuration = effect,
+            sampling = sampling,
           ),
         contentAlignment = Alignment.Center,
       ) {

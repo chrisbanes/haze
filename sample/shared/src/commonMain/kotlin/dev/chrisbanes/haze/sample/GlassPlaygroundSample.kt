@@ -51,7 +51,6 @@ import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
@@ -449,9 +448,6 @@ private fun PlaygroundSurface(
       .hazeGlass(
         input = HazeInput.Sources(hazeState),
         style = style,
-        // Use half-resolution sampling across platforms; four large overlapping surfaces are
-        // otherwise fill-rate bound on Android.
-        sampling = HazeSampling.Fixed(0.5f),
         interactionSource = interactionSource,
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
         interactionTransformPivot = GlassTransformPivot.Pointer,
