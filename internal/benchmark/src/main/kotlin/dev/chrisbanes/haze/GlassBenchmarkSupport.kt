@@ -34,7 +34,7 @@ internal fun requireGlassBenchmarkDevice() {
 internal fun glassMetrics(
   includeMemory: Boolean,
   requireRuntimeMarker: Boolean = true,
-  includeColdInitializationMetrics: Boolean = false,
+  includePreparationMetrics: Boolean = false,
 ): List<Metric> = buildList {
   add(FrameTimingMetric())
   if (requireRuntimeMarker) {
@@ -49,7 +49,7 @@ internal fun glassMetrics(
   if (includeMemory) {
     add(MemoryUsageMetric(MemoryUsageMetric.Mode.Max))
   }
-  if (includeColdInitializationMetrics) {
+  if (includePreparationMetrics) {
     add(
       TraceSectionMetric(
         sectionName = GLASS_CREATE_RENDER_EFFECT_SECTION,
