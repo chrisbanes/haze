@@ -53,7 +53,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
@@ -454,7 +453,6 @@ private fun PlaygroundSurface(
         interactionSource = interactionSource,
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
         interactionTransformPivot = GlassTransformPivot.Pointer,
-        interactionPositionAnimationSpec = GlassDefaults.positionAnimationSpec,
         interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
       )
       .pointerInput(id) {

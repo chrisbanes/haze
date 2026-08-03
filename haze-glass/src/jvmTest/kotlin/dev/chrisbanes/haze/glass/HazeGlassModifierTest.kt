@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -25,10 +26,13 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectContentTransform
 import dev.chrisbanes.haze.HazeEffectDrawScope
@@ -338,8 +342,92 @@ class HazeGlassModifierTest : ContextTest() {
   }
 
   @Test
+  fun sharedInteractionStyle_preservesPerNodeMechanicsAndRuntimeState() = runComposeUiTest {
+    val positionSpec = tween<androidx.compose.ui.geometry.Offset>(300)
+    val sharedStyle = GlassStyle {
+      hovered { lightingIntensity(0.2f) }
+      focused { whitePointDelta(0.1f) }
+      pressed { refractionMultiplier(1.4f) }
+      interactionLightRadiusFraction(0.9f)
+      interactionPositionAnimationSpec(positionSpec)
+    }
+    val firstSource = MutableInteractionSource()
+    val secondSource = MutableInteractionSource()
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      Box {
+        Spacer(
+          Modifier.size(20.dp).hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = sharedStyle,
+            sampling = HazeSampling.Default,
+            expandLayerBounds = true,
+            interactionSource = firstSource,
+            interactionTransformTarget = GlassTransformTarget.MaterialOnly,
+            interactionTransformPivot = GlassTransformPivot.Pointer,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
+          ),
+        )
+        Spacer(
+          Modifier.size(30.dp).hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = sharedStyle,
+            sampling = HazeSampling.Default,
+            expandLayerBounds = true,
+            interactionSource = secondSource,
+            interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
+            interactionTransformPivot = GlassTransformPivot.Center,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+          ),
+        )
+      }
+    }
+    waitForIdle()
+
+    val first = factory.effects[0].delegate
+    val second = factory.effects[1].delegate
+    assertThat(first.resolvedInteractionSlots).isEqualTo(second.resolvedInteractionSlots)
+    assertThat(first.interactionLightRadiusFraction).isEqualTo(0.9f)
+    assertThat(second.interactionLightRadiusFraction).isEqualTo(0.9f)
+    assertThat(first.interactionPositionAnimationSpec).isEqualTo(positionSpec)
+    assertThat(second.interactionPositionAnimationSpec).isEqualTo(positionSpec)
+    assertThat(first.interactionSource).isSameInstanceAs(firstSource)
+    assertThat(second.interactionSource).isSameInstanceAs(secondSource)
+    assertThat(first.interactionTransformTarget).isEqualTo(GlassTransformTarget.MaterialOnly)
+    assertThat(second.interactionTransformTarget)
+      .isEqualTo(GlassTransformTarget.MaterialAndContent)
+    assertThat(first.interactionTransformPivot).isEqualTo(GlassTransformPivot.Pointer)
+    assertThat(second.interactionTransformPivot).isEqualTo(GlassTransformPivot.Center)
+    assertThat(first.interactionReducedMotionPolicy).isEqualTo(GlassReducedMotionPolicy.System)
+    assertThat(second.interactionReducedMotionPolicy).isEqualTo(GlassReducedMotionPolicy.Full)
+    assertThat(first.attachedContextForTest?.modifierSize)
+      .isNotEqualTo(second.attachedContextForTest?.modifierSize)
+    assertThat(first.interactionControllerForTest)
+      .isNotSameInstanceAs(second.interactionControllerForTest)
+    assertThat(first.currentInteractionState).isNotSameInstanceAs(second.currentInteractionState)
+    assertThat(first.delegate).isNotSameInstanceAs(second.delegate)
+
+    runOnIdle { first.setPressedForTest(androidx.compose.ui.geometry.Offset(5f, 5f)) }
+    waitForIdle()
+
+    assertThat(first.currentInteractionSignals.rawPressed).isTrue()
+    assertThat(second.currentInteractionSignals.rawPressed).isFalse()
+  }
+
+  @Test
   fun typedStyle_responseReplacement_updatesPointerTopologyWithoutReplacingRenderer() = runComposeUiTest {
-    val style = mutableStateOf(GlassStyle { focused { lightingIntensity(0.2f) } })
+    val initialPositionSpec = tween<androidx.compose.ui.geometry.Offset>(100)
+    val replacementPositionSpec = tween<androidx.compose.ui.geometry.Offset>(200)
+    val style = mutableStateOf(
+      GlassStyle {
+        focused { lightingIntensity(0.2f) }
+        interactionLightRadiusFraction(0.8f)
+        interactionPositionAnimationSpec(initialPositionSpec)
+      },
+    )
     val factory = RecordingGlassFactory()
 
     setContent {
@@ -357,17 +445,110 @@ class HazeGlassModifierTest : ContextTest() {
     waitForIdle()
 
     val effect = factory.effects.single()
+    val renderer = effect.delegate.delegate
     assertThat(effect.delegate.observesPointerEvents).isEqualTo(false)
+    assertThat(effect.delegate.interactionLightRadiusFraction).isEqualTo(0.8f)
+    assertThat(effect.delegate.interactionPositionAnimationSpec).isEqualTo(initialPositionSpec)
 
-    style.value = GlassStyle { pressed { lightingIntensity(0.8f) } }
+    style.value = GlassStyle {
+      pressed { lightingIntensity(0.8f) }
+      interactionLightRadiusFraction(1.2f)
+      interactionPositionAnimationSpec(replacementPositionSpec)
+    }
     waitForIdle()
 
+    assertThat(factory.effects.single()).isSameInstanceAs(effect)
+    assertThat(effect.delegate.delegate).isSameInstanceAs(renderer)
     assertThat(effect.delegate.observesPointerEvents).isEqualTo(true)
+    assertThat(effect.delegate.interactionLightRadiusFraction).isEqualTo(1.2f)
+    assertThat(effect.delegate.interactionPositionAnimationSpec)
+      .isEqualTo(replacementPositionSpec)
 
     style.value = GlassStyle
     waitForIdle()
 
+    assertThat(factory.effects.single()).isSameInstanceAs(effect)
+    assertThat(effect.delegate.delegate).isSameInstanceAs(renderer)
     assertThat(effect.delegate.observesPointerEvents).isEqualTo(false)
+    assertThat(effect.delegate.interactionLightRadiusFraction)
+      .isEqualTo(GlassDefaults.interactionLightRadiusFraction)
+    assertThat(effect.delegate.interactionPositionAnimationSpec)
+      .isEqualTo(GlassDefaults.positionAnimationSpec)
+  }
+
+  @Test
+  fun modifierMechanicsReplacement_updatesOnlyAffectedNode() = runComposeUiTest {
+    val style = GlassStyle { focused { lightingIntensity(0.2f) } }
+    val firstSource = mutableStateOf<InteractionSource?>(MutableInteractionSource())
+    val firstTarget = mutableStateOf(GlassTransformTarget.MaterialOnly)
+    val firstPivot = mutableStateOf(GlassTransformPivot.Pointer)
+    val firstMotionPolicy = mutableStateOf(GlassReducedMotionPolicy.System)
+    val secondSource = MutableInteractionSource()
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      Box {
+        Spacer(
+          Modifier.size(20.dp).hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = style,
+            sampling = HazeSampling.Default,
+            expandLayerBounds = true,
+            interactionSource = firstSource.value,
+            interactionTransformTarget = firstTarget.value,
+            interactionTransformPivot = firstPivot.value,
+            interactionReducedMotionPolicy = firstMotionPolicy.value,
+          ),
+        )
+        Spacer(
+          Modifier.size(30.dp).hazeGlass(
+            factory = factory,
+            input = HazeInput.Content,
+            style = style,
+            sampling = HazeSampling.Default,
+            expandLayerBounds = true,
+            interactionSource = secondSource,
+            interactionTransformTarget = GlassTransformTarget.MaterialOnly,
+            interactionTransformPivot = GlassTransformPivot.Pointer,
+            interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
+          ),
+        )
+      }
+    }
+    waitForIdle()
+
+    val first = factory.effects[0]
+    val second = factory.effects[1]
+    val firstRenderer = first.delegate.delegate
+    val secondRenderer = second.delegate.delegate
+    val firstController = first.delegate.interactionControllerForTest
+    val secondController = second.delegate.interactionControllerForTest
+    val replacementSource = MutableInteractionSource()
+
+    firstSource.value = replacementSource
+    firstTarget.value = GlassTransformTarget.MaterialAndContent
+    firstPivot.value = GlassTransformPivot.Center
+    firstMotionPolicy.value = GlassReducedMotionPolicy.Full
+    waitForIdle()
+
+    assertThat(factory.effects[0]).isSameInstanceAs(first)
+    assertThat(factory.effects[1]).isSameInstanceAs(second)
+    assertThat(first.delegate.delegate).isSameInstanceAs(firstRenderer)
+    assertThat(second.delegate.delegate).isSameInstanceAs(secondRenderer)
+    assertThat(first.delegate.interactionControllerForTest).isSameInstanceAs(firstController)
+    assertThat(second.delegate.interactionControllerForTest).isSameInstanceAs(secondController)
+    assertThat(first.delegate.interactionSource).isSameInstanceAs(replacementSource)
+    assertThat(first.delegate.interactionTransformTarget)
+      .isEqualTo(GlassTransformTarget.MaterialAndContent)
+    assertThat(first.delegate.interactionTransformPivot).isEqualTo(GlassTransformPivot.Center)
+    assertThat(first.delegate.interactionReducedMotionPolicy).isEqualTo(GlassReducedMotionPolicy.Full)
+    assertThat(second.delegate.interactionSource).isSameInstanceAs(secondSource)
+    assertThat(second.delegate.interactionTransformTarget)
+      .isEqualTo(GlassTransformTarget.MaterialOnly)
+    assertThat(second.delegate.interactionTransformPivot).isEqualTo(GlassTransformPivot.Pointer)
+    assertThat(second.delegate.interactionReducedMotionPolicy)
+      .isEqualTo(GlassReducedMotionPolicy.System)
   }
 }
 

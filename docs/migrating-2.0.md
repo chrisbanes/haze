@@ -190,9 +190,13 @@ inert; construct and supply a replacement Style to reflect new inputs.
 | mutable effect properties | replace `GlassStyle` through recomposition |
 | sentinel patches and `copy` | `GlassStyle { … }`, `then`, and `LocalGlassStyle` |
 | interaction mutation and `clear*` | declarative `hovered`, `focused`, and `pressed` blocks; omit blocks in a replacement Style |
+| `Modifier.hazeGlass(interactionLightRadiusFraction = value)` | `GlassStyle { interactionLightRadiusFraction(value) }` |
+| `Modifier.hazeGlass(interactionPositionAnimationSpec = spec)` | `GlassStyle { interactionPositionAnimationSpec(spec) }` |
 | `GlassDefaults.hoverAnimationSpec`, `pressAnimationSpec`, `releaseAnimationSpec` | explicit `animate(toSpec, fromSpec) { … }` declarations |
+| consumer implementation of `GlassInteractionScope` | removed; the sealed receiver is implemented by Haze and used only as the interaction-response DSL |
 | `GlassStyleConfiguration`, `GlassRenderer`, `GlassRendererCache`, retained-output methods, delegate and lifecycle hooks | no public replacement; each `hazeGlass` node owns and disposes these internal resources |
-| effect-owned interaction controls | typed modifier arguments |
+| effect-owned hover, focus, press, light-radius, and light-position animation presentation | property writes inside `GlassStyle { … }` |
+| effect-owned interaction source, transform target/pivot, and reduced-motion policy | explicit `Modifier.hazeGlass` arguments owned by each node |
 | implicit source/content | explicit `HazeInput.Sources` or `HazeInput.Content` |
 | raw optical displacement/caps | semantic `GlassOptics` and `Dp` controls |
 
@@ -211,6 +215,8 @@ val glassStyle = GlassStyle {
   specularIntensity(0.4f)
   edgeSoftness(12.dp)
   pressed { scale(0.98f) }
+  interactionLightRadiusFraction(0.7f)
+  interactionPositionAnimationSpec(spring())
 }
 
 Modifier.hazeGlass(
@@ -218,8 +224,18 @@ Modifier.hazeGlass(
   style = glassStyle,
   sampling = HazeSampling.Default,
   expandLayerBounds = true,
+  interactionSource = interactionSource,
+  interactionTransformTarget = GlassTransformTarget.MaterialOnly,
+  interactionTransformPivot = GlassTransformPivot.Pointer,
+  interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
 )
 ```
+
+Interaction presentation composes with the rest of `GlassStyle` and can be shared. The modifier
+arguments above remain per-node mechanics: sharing a Style never shares signals, geometry,
+animation state, controllers, renderers, retained layers, or platform resources. Replacing a Style
+updates presentation on the existing renderer; replacing mechanics updates only that modifier
+node.
 
 ### Position and geometry
 

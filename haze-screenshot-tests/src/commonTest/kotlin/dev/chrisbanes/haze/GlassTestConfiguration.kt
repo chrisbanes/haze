@@ -236,7 +236,11 @@ internal class GlassTestConfiguration {
         specularExponentOverride.takeIf { hasSpecularExponentOverride }
       val resolvedFresnelExponentOverride =
         fresnelExponentOverride.takeIf { hasFresnelExponentOverride }
+      val resolvedInteractionLightRadiusFraction = interactionLightRadiusFraction
+      val resolvedInteractionPositionAnimationSpec = interactionPositionAnimationSpec
       return baseStyle.then {
+        interactionLightRadiusFraction(resolvedInteractionLightRadiusFraction)
+        interactionPositionAnimationSpec(resolvedInteractionPositionAnimationSpec)
         resolvedOpticsOverride?.let(::optics)
         resolvedSpecularIntensityOverride?.let(::specularIntensity)
         resolvedAmbientResponseOverride?.let(::ambientResponse)
@@ -294,10 +298,8 @@ internal fun Modifier.hazeGlass(
   style = configuration.resolvedStyle,
   sampling = sampling,
   interactionSource = configuration.interactionSource,
-  interactionLightRadiusFraction = configuration.interactionLightRadiusFraction,
   interactionTransformTarget = configuration.interactionTransformTarget,
   interactionTransformPivot = configuration.interactionTransformPivot,
-  interactionPositionAnimationSpec = configuration.interactionPositionAnimationSpec,
   interactionReducedMotionPolicy = configuration.interactionReducedMotionPolicy,
 )
 

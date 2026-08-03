@@ -35,7 +35,7 @@ class FallbackGlassInteractionTest : ContextTest() {
   fun fallback_pressedLighting_isLocalizedAtPointer() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       pressed { lightingIntensity(1f) }
-      interactionLightRadiusFraction = 0.4f
+      style = GlassStyle { interactionLightRadiusFraction(0.4f) }
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
       tint = Color.Transparent
       specularIntensity = 0f
@@ -58,10 +58,8 @@ class FallbackGlassInteractionTest : ContextTest() {
             sampling = HazeSampling.Default,
             expandLayerBounds = true,
             interactionSource = effect.interactionSource,
-            interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
             interactionTransformTarget = effect.interactionTransformTarget,
             interactionTransformPivot = effect.interactionTransformPivot,
-            interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
             interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
           )
           .background(Color.Black),

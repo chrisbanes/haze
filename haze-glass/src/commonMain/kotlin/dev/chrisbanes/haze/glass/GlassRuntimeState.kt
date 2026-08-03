@@ -3,7 +3,6 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Stable
@@ -85,22 +84,8 @@ internal abstract class GlassRuntimeState {
       }
     }
 
-  internal var _interactionLightRadiusFraction: Float by mutableStateOf(
-    GlassDefaults.interactionLightRadiusFraction,
-  )
-
-  public var interactionLightRadiusFraction: Float
-    get() = _interactionLightRadiusFraction
-    set(value) {
-      require(value.isFinite() && value in 0f..2f) {
-        "interactionLightRadiusFraction must be finite and in range"
-      }
-      if (_interactionLightRadiusFraction != value) {
-        HazeLogger.d(TAG) { "interactionLightRadiusFraction changed. Current: $_interactionLightRadiusFraction. New: $value" }
-        _interactionLightRadiusFraction = value
-        onInteractionConfigurationChanged()
-      }
-    }
+  internal val interactionLightRadiusFraction: Float
+    get() = inheritedStyleValues.interactionLightRadiusFraction
 
   internal var _interactionTransformTarget: GlassTransformTarget by mutableStateOf(
     GlassTransformTarget.MaterialOnly,
@@ -130,19 +115,8 @@ internal abstract class GlassRuntimeState {
       }
     }
 
-  internal var _interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> by mutableStateOf(
-    GlassDefaults.positionAnimationSpec,
-  )
-
-  public var interactionPositionAnimationSpec: FiniteAnimationSpec<Offset>
-    get() = _interactionPositionAnimationSpec
-    set(value) {
-      if (_interactionPositionAnimationSpec != value) {
-        HazeLogger.d(TAG) { "interactionPositionAnimationSpec changed. Current: $_interactionPositionAnimationSpec. New: $value" }
-        _interactionPositionAnimationSpec = value
-        onInteractionConfigurationChanged()
-      }
-    }
+  internal val interactionPositionAnimationSpec
+    get() = inheritedStyleValues.interactionPositionAnimationSpec
 
   internal var _interactionReducedMotionPolicy: GlassReducedMotionPolicy by mutableStateOf(
     GlassReducedMotionPolicy.System,
@@ -659,6 +633,13 @@ internal abstract class GlassRuntimeState {
   }
 
   private fun onStyleChanged(old: GlassStyleValues, new: GlassStyleValues) {
+    if (old.interactionLightRadiusFraction != new.interactionLightRadiusFraction) {
+      markDirty(GlassDirtyFields.Interaction)
+      markDirty(GlassDirtyFields.InteractionLayerBounds)
+    }
+    if (old.interactionPositionAnimationSpec != new.interactionPositionAnimationSpec) {
+      markDirty(GlassDirtyFields.Interaction)
+    }
     if (old.optics != new.optics) {
       markDirty(GlassDirtyFields.Optics)
     }

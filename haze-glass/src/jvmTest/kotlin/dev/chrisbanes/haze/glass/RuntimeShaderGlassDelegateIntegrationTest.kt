@@ -293,8 +293,10 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           whitePointDelta(0.04f)
         }
       }
-      interactionLightRadiusFraction = 0.25f
-      interactionPositionAnimationSpec = tween(1)
+      style = GlassStyle {
+        interactionLightRadiusFraction(0.25f)
+        interactionPositionAnimationSpec(tween(1))
+      }
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
     }
     setContent { RuntimeLargeGlassTestContent(effect) }
@@ -344,8 +346,10 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   @Test
   fun movingInteractionWithinSamePatchSize_doesNotRerecordLightingContent() = runComposeUiTest {
     val effect = runtimeInteractiveEffect().apply {
-      interactionLightRadiusFraction = 0.25f
-      interactionPositionAnimationSpec = tween(1)
+      style = GlassStyle {
+        interactionLightRadiusFraction(0.25f)
+        interactionPositionAnimationSpec(tween(1))
+      }
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
     }
     setContent { RuntimeLargeGlassTestContent(effect) }
@@ -366,8 +370,10 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   @Test
   fun movingInteractionWithinSamePatchSize_rerecordsLocalizedContent() = runComposeUiTest {
     val effect = runtimeInteractiveEffect().apply {
-      interactionLightRadiusFraction = 0.25f
-      interactionPositionAnimationSpec = tween(1)
+      style = GlassStyle {
+        interactionLightRadiusFraction(0.25f)
+        interactionPositionAnimationSpec(tween(1))
+      }
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
     }
     setContent { RuntimeLargeGlassTestContent(effect) }
@@ -849,7 +855,6 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       refractionMultiplier(1.08f)
       whitePointDelta(0.04f)
     }
-    interactionLightRadiusFraction = 0.7f
     interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
   }
 
@@ -893,10 +898,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     sampling = sampling,
     expandLayerBounds = true,
     interactionSource = effect.interactionSource,
-    interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
     interactionTransformTarget = effect.interactionTransformTarget,
     interactionTransformPivot = effect.interactionTransformPivot,
-    interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
     interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
   )
 

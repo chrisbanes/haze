@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ProvidableCompositionLocal
@@ -40,9 +41,11 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  * construct and supply a replacement Style through recomposition.
  *
  * A Style contains no renderer or mutable runtime state. [GlassStyleScope.hovered],
- * [GlassStyleScope.focused], and [GlassStyleScope.pressed] record declarative responses only;
- * each `hazeGlass` node replays them into a fresh node-owned snapshot and owns its signals,
- * animations, pointer observation, and renderer resources.
+ * [GlassStyleScope.focused], [GlassStyleScope.pressed],
+ * [GlassStyleScope.interactionLightRadiusFraction], and
+ * [GlassStyleScope.interactionPositionAnimationSpec] record reusable interaction presentation;
+ * each `hazeGlass` node replays it into a fresh node-owned snapshot and owns its signals,
+ * geometry, animations, pointer observation, and renderer resources.
  */
 @ExperimentalHazeApi
 @Immutable
@@ -130,6 +133,27 @@ public class GlassStyleScope internal constructor(
   public fun pressed(response: GlassInteractionScope.() -> Unit) {
     val recorded = buildGlassInteractionResponse(response)
     writes += { pressedInteraction = recorded }
+  }
+
+  /**
+   * Sets the interaction-light radius as a fraction of the material's shortest side.
+   *
+   * The value must be finite and in the range `0f..2f`.
+   */
+  public fun interactionLightRadiusFraction(radiusFraction: Float) {
+    require(radiusFraction.isFinite() && radiusFraction in 0f..2f) {
+      "interactionLightRadiusFraction must be finite and in range"
+    }
+    writes += { interactionLightRadiusFraction = radiusFraction }
+  }
+
+  /**
+   * Sets the animation used when the interaction light moves to a new position.
+   *
+   * This presentation is replayed into fresh animation state owned by each consuming node.
+   */
+  public fun interactionPositionAnimationSpec(animationSpec: FiniteAnimationSpec<Offset>) {
+    writes += { interactionPositionAnimationSpec = animationSpec }
   }
 
   /** Sets the rounded boundary used for refraction and masking. */
@@ -267,6 +291,9 @@ internal class GlassStyleValues(
   var hoveredInteraction: GlassInteractionResponse? = null,
   var focusedInteraction: GlassInteractionResponse? = null,
   var pressedInteraction: GlassInteractionResponse? = null,
+  var interactionLightRadiusFraction: Float = GlassDefaults.interactionLightRadiusFraction,
+  var interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> =
+    GlassDefaults.positionAnimationSpec,
 )
 
 internal fun resolveGlassStyleValues(

@@ -5,11 +5,9 @@
 
 package dev.chrisbanes.haze.glass
 
-import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
@@ -30,8 +28,9 @@ import dev.chrisbanes.haze.hazeEffect
  * Values captured by a previously constructed Style do not update when they are mutated. To update
  * appearance, construct and supply a replacement Style through recomposition.
  *
- * [input], [sampling], [expandLayerBounds], and [interactionSource] are structural modifier
- * configuration rather than Style properties. Recomposition replaces each value completely,
+ * [input], [sampling], [expandLayerBounds], [interactionSource], [interactionTransformTarget],
+ * [interactionTransformPivot], and [interactionReducedMotionPolicy] are node-owned modifier
+ * mechanics rather than Style presentation. Recomposition replaces each value completely,
  * including a `null` interaction source.
  *
  * @param input Source-backed content or this modifier's own content.
@@ -39,11 +38,8 @@ import dev.chrisbanes.haze.hazeEffect
  * @param sampling Input sampling policy. [HazeSampling.Default] preserves Glass's unscaled default.
  * @param expandLayerBounds Whether Glass may expand its capture layer for optical sampling.
  * @param interactionSource Optional external interaction source owned by this modifier node.
- * @param interactionLightRadiusFraction Interaction-light radius as a fraction of the material's
- * shortest side.
  * @param interactionTransformTarget Visual layers that receive the interaction scale transform.
  * @param interactionTransformPivot Pivot used by the interaction scale transform.
- * @param interactionPositionAnimationSpec Animation used when the interaction light moves.
  * @param interactionReducedMotionPolicy Motion policy for this node's Style responses.
  */
 @Stable
@@ -54,10 +50,8 @@ public fun Modifier.hazeGlass(
   sampling: HazeSampling = HazeSampling.Default,
   expandLayerBounds: Boolean = true,
   interactionSource: InteractionSource? = null,
-  interactionLightRadiusFraction: Float = GlassDefaults.interactionLightRadiusFraction,
   interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
-  interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> = GlassDefaults.positionAnimationSpec,
   interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
 ): Modifier = hazeGlass(
   factory = GlassHazeEffectFactory,
@@ -66,10 +60,8 @@ public fun Modifier.hazeGlass(
   sampling = sampling,
   expandLayerBounds = expandLayerBounds,
   interactionSource = interactionSource,
-  interactionLightRadiusFraction = interactionLightRadiusFraction,
   interactionTransformTarget = interactionTransformTarget,
   interactionTransformPivot = interactionTransformPivot,
-  interactionPositionAnimationSpec = interactionPositionAnimationSpec,
   interactionReducedMotionPolicy = interactionReducedMotionPolicy,
 )
 
@@ -80,10 +72,8 @@ internal fun Modifier.hazeGlass(
   sampling: HazeSampling,
   expandLayerBounds: Boolean,
   interactionSource: InteractionSource?,
-  interactionLightRadiusFraction: Float = GlassDefaults.interactionLightRadiusFraction,
   interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
-  interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> = GlassDefaults.positionAnimationSpec,
   interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
 ): Modifier = hazeEffect(
   factory = factory,
@@ -91,10 +81,8 @@ internal fun Modifier.hazeGlass(
   style = GlassNodeConfiguration(
     style = style,
     interactionSource = interactionSource,
-    interactionLightRadiusFraction = interactionLightRadiusFraction,
     interactionTransformTarget = interactionTransformTarget,
     interactionTransformPivot = interactionTransformPivot,
-    interactionPositionAnimationSpec = interactionPositionAnimationSpec,
     interactionReducedMotionPolicy = interactionReducedMotionPolicy,
   ),
   sampling = sampling,
@@ -105,10 +93,8 @@ internal fun Modifier.hazeGlass(
 internal class GlassNodeConfiguration(
   val style: GlassStyle,
   val interactionSource: InteractionSource?,
-  val interactionLightRadiusFraction: Float = GlassDefaults.interactionLightRadiusFraction,
   val interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   val interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,
-  val interactionPositionAnimationSpec: FiniteAnimationSpec<Offset> = GlassDefaults.positionAnimationSpec,
   val interactionReducedMotionPolicy: GlassReducedMotionPolicy = GlassReducedMotionPolicy.System,
 )
 
