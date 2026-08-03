@@ -104,7 +104,10 @@ class GlassProfilingBenchmark {
   fun opticalUpdate() = measureScenario("optical_update")
 
   @Test
-  fun depthUpdate() = measureScenario("depth_update")
+  fun depthUpdate() = measureScenario(
+    scenarioId = "depth_update",
+    includePreparationMetrics = true,
+  )
 
   @Test
   fun blurUpdate() = measureScenario("blur_update")
@@ -125,7 +128,7 @@ class GlassProfilingBenchmark {
     measureScenario(
       scenarioId = scenarioId,
       includeMemory = true,
-      includeColdInitializationMetrics = true,
+      includePreparationMetrics = true,
     )
   }
 
@@ -133,14 +136,14 @@ class GlassProfilingBenchmark {
     scenarioId: String,
     includeMemory: Boolean = false,
     requireRuntimeMarker: Boolean = true,
-    includeColdInitializationMetrics: Boolean = false,
+    includePreparationMetrics: Boolean = false,
   ) {
     benchmarkRule.measureRepeated(
       packageName = GLASS_TARGET_PACKAGE,
       metrics = glassMetrics(
         includeMemory = includeMemory,
         requireRuntimeMarker = requireRuntimeMarker,
-        includeColdInitializationMetrics = includeColdInitializationMetrics,
+        includePreparationMetrics = includePreparationMetrics,
       ),
       compilationMode = CompilationMode.Full(),
       startupMode = StartupMode.WARM,

@@ -63,14 +63,15 @@ Repeat with `effectAttach3` and `effectAttach9`, allowing the device to return t
 state between runs. Running all three in one instrumentation session is useful for automation
 validation, but later cases may be frequency-throttled.
 
-The reports include `HazeGlass.createRenderEffect` count and total duration, plus total
-`HazeGlass.prepareEffects` and `HazeGlass.prepareLayers` durations. Compare creation counts across
-1, 3, and 9 effects rather than assuming a fixed count: blur-plan topology and optional interaction
-or rim stages affect the number of composed effects. Linear duration growth points to per-effect
-shader/delegate construction; a mostly fixed cost points to shared process or renderer
-initialization. Also inspect RenderThread `DrawFrames`, `flush layers`, and `Vulkan finish frame`
-slices: independent Glass nodes can add render-graph submission work even when their combined
-visible area is constant.
+The cold-initialization scenarios, `depthUpdate`, and `playgroundTimeline` reports include
+`HazeGlass.createRenderEffect` count and total duration, plus total `HazeGlass.prepareEffects` and
+`HazeGlass.prepareLayers` durations. Compare creation counts across 1, 3, and 9 effects rather than
+assuming a fixed count: blur-plan topology and optional interaction or rim stages affect the
+number of composed effects. Linear duration growth points to per-effect shader/delegate
+construction; a mostly fixed cost points to shared process or renderer initialization. Also
+inspect RenderThread `DrawFrames`, `flush layers`, and `Vulkan finish frame` slices: independent
+Glass nodes can add render-graph submission work even when their combined visible area is
+constant.
 
 Full tracing adds composable function slices to Perfetto traces and is intended for diagnostic
 profiling. Omit `androidx.benchmark.fullTracing.enable` from runs used for comparable benchmark
