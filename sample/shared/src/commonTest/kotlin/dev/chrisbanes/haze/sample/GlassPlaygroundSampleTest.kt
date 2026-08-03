@@ -171,6 +171,18 @@ class GlassPlaygroundSampleTest : ContextTest() {
   }
 
   @Test
+  fun draggedSurfaceZIndex_returnsFromAboveAllSurfacesToItsRestingOrder() {
+    val id = GlassPlaygroundSurfaceId.Card
+
+    assertThat(playgroundSurfaceZIndex(id, dragReturnFraction = 1f))
+      .isEqualTo(5f)
+    assertThat(playgroundSurfaceZIndex(id, dragReturnFraction = 0.5f))
+      .isEqualTo(4f)
+    assertThat(playgroundSurfaceZIndex(id, dragReturnFraction = 0f))
+      .isEqualTo(3f)
+  }
+
+  @Test
   fun localLightSubtractsResolvedSurfaceOriginIncludingDrag() {
     val light = resolvePlaygroundSurfaceLightPosition(
       normalizedLight = Offset(0.75f, 0.25f),
