@@ -30,6 +30,7 @@ package dev.chrisbanes.haze {
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public interface MutableRuntimeShaderRenderEffect {
+    method public default dev.chrisbanes.haze.PlatformRenderEffect updateInputs(dev.chrisbanes.haze.PlatformRenderEffect?[] inputs, kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.RuntimeShaderUniformProvider,kotlin.Unit> uniforms);
     method public dev.chrisbanes.haze.PlatformRenderEffect updateUniforms(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.RuntimeShaderUniformProvider,kotlin.Unit> uniforms);
   }
 

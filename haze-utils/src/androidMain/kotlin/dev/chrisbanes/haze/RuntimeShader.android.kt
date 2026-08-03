@@ -64,10 +64,12 @@ public actual fun createMutableRuntimeShaderRenderEffect(
 private class AndroidMutableRuntimeShaderRenderEffect(
   effect: PlatformRuntimeEffect,
   private val shaderNames: Array<String>,
-  private val inputs: Array<PlatformRenderEffect?>,
+  inputs: Array<PlatformRenderEffect?>,
 ) : MutableRuntimeShaderRenderEffect {
   private val shader = RuntimeShader(effect.sksl)
   private val provider = AndroidRuntimeShaderUniformProvider(shader)
+  private var inputs = inputs.copyOf()
+
   override fun updateUniforms(
     uniforms: RuntimeShaderUniformProvider.() -> Unit,
   ): PlatformRenderEffect {
@@ -75,6 +77,14 @@ private class AndroidMutableRuntimeShaderRenderEffect(
     // mutations. Callers retaining an earlier effect must replace or re-record that layer first.
     uniforms(provider)
     return createAndroidRuntimeShaderRenderEffect(shader, shaderNames, inputs)
+  }
+
+  override fun updateInputs(
+    inputs: Array<PlatformRenderEffect?>,
+    uniforms: RuntimeShaderUniformProvider.() -> Unit,
+  ): PlatformRenderEffect {
+    this.inputs = inputs.copyOf()
+    return updateUniforms(uniforms)
   }
 }
 
