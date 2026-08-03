@@ -35,13 +35,6 @@
 
 - Needs-triage label: `needs-triage`
 
-## Work Roles
-
-- Epic label: `epic`
-- Epic label ID: `LA_kwDOKlhej88AAAACupcs_Q`
-- Human-work label: `ready-for-human`
-- Human-work label ID: `LA_kwDOKlhej88AAAACs_Rx-w`
-
 ## Priority
 
 - Field name: `Priority`
@@ -56,6 +49,6 @@
 - Method: `squash`
 - Issue closure: `closing-keyword`
 - Required reviews: `none`
-- Required checks: `build_docs`, `emulator_tests`, `linux_build`, `mac_build`, `Greptile Review`, `Screenshot tests (android)`
+- Required checks: `build_docs`, `emulator_tests`, `linux_build`, `mac_build`, `Greptile Review`, `Screenshot tests (android)`, `Screenshot tests (jvm)`
 - Done automation: `set-status`
 - Automation description: Enabled `Item closed` and `Pull request merged` workflows set Status to `Done`; `Auto-close issue` is enabled; Done items are not automatically archived.
