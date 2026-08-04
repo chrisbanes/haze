@@ -37,6 +37,25 @@ Run all Glass benchmarks without meaningful measurements:
   -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassGalleryBenchmark,dev.chrisbanes.haze.GlassProfilingBenchmark
 ```
 
+## Run comparable Glass measurements
+
+Run the Glass Gallery and controlled Glass profiling suites together when recording the current
+local baseline. This is the 34-test Glass suite: two realistic Gallery journeys and 32 controlled
+profiling scenarios. It deliberately excludes `BaselineProfileGenerator` and `BenchmarkTest`,
+which cover baseline-profile generation and the older Blur samples respectively.
+
+```shell
+adb shell cmd power set-fixed-performance-mode-enabled true
+./gradlew :internal:benchmark:connectedCheck \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassGalleryBenchmark,dev.chrisbanes.haze.GlassProfilingBenchmark
+adb shell cmd power set-fixed-performance-mode-enabled false
+```
+
+`connectedCheck` without a class filter runs all 45 instrumentation tests, including
+`BaselineProfileGenerator`, and executes both the non-minified and benchmark-release variants.
+Use the filtered command above for Glass measurements so those workloads do not mix with the
+recorded results.
+
 ## Run a profile
 
 Run one controlled scenario:
