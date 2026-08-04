@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
@@ -214,16 +215,13 @@ public class GlassStyleScope internal constructor(
   }
 
   /**
-   * Sets the virtual light position. [Offset.Unspecified] keeps the automatic material center.
+   * Aligns the virtual light within each material's measured bounds.
+   *
+   * The default is [Alignment.Center]. Logical start and end alignments use the node's current
+   * layout direction, and a shared Style is resolved independently for each consuming node's size.
    */
-  public fun lightPosition(position: Offset) {
-    require(
-      position == Offset.Unspecified ||
-        (position.x.isFinite() && position.y.isFinite()),
-    ) {
-      "lightPosition must be finite or Offset.Unspecified"
-    }
-    writes += { lightPosition = position }
+  public fun lightPosition(alignment: Alignment) {
+    writes += { lightPosition = alignment }
   }
 
   /** Sets chromatic dispersion strength, coerced to the range `0f..1f`. */
@@ -299,7 +297,7 @@ internal class GlassStyleValues(
   var ambientResponse: Float = GlassDefaults.ambientResponse,
   var tint: Color = GlassDefaults.tint,
   var edgeSoftness: Dp = GlassDefaults.edgeSoftness,
-  var lightPosition: Offset = Offset.Unspecified,
+  var lightPosition: Alignment = Alignment.Center,
   var chromaticAberrationStrength: Float = GlassDefaults.chromaticAberrationStrength,
   var surfaceProfile: SurfaceProfile = GlassDefaults.surfaceProfile,
   var chromaticAberrationMode: ChromaticAberrationMode = GlassDefaults.chromaticAberrationMode,

@@ -10,8 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.unit.Dp
@@ -322,7 +322,8 @@ internal abstract class GlassRuntimeState {
     }
 
   /**
-   * Position of the virtual light source. When unspecified, the center of the layer is used.
+   * Alignment of the virtual light source within the material's measured bounds. Resolution to a
+   * renderer pixel [Offset] happens once the current size and layout direction are known.
    *
    * There are precedence rules to how this styling property is applied:
    *
@@ -330,13 +331,11 @@ internal abstract class GlassRuntimeState {
    *  - [GlassStyleScope.lightPosition] value set in [style], if specified.
    *  - [GlassStyleScope.lightPosition] value set in [LocalGlassStyle], if specified.
    *
-   * If no value is specified through any of the above, the delegate falls back to the
-   * center of the layer at draw time.
+   * If no value is specified through any of the above, [Alignment.Center] is used.
    */
-  internal var _lightPosition: Offset = Offset.Unspecified
-  internal var lightPosition: Offset
-    get() = _lightPosition
-      .takeOrElse { inheritedStyleValues.lightPosition }
+  internal var _lightPosition: Alignment? = null
+  internal var lightPosition: Alignment
+    get() = _lightPosition ?: inheritedStyleValues.lightPosition
     set(value) {
       if (_lightPosition != value) {
         HazeLogger.d(TAG) { "lightPosition changed. Current: $_lightPosition. New: $value" }

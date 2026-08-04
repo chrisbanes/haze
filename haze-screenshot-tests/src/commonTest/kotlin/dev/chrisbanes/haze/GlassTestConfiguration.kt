@@ -9,10 +9,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassInteractionScope
@@ -78,12 +82,10 @@ internal class GlassTestConfiguration {
       edgeSoftnessOverride = value
     }
 
-  private var hasLightPositionOverride by mutableStateOf(false)
-  private var lightPositionOverride by mutableStateOf(Offset.Unspecified)
-  var lightPosition: Offset
-    get() = lightPositionOverride
+  private var lightPositionOverride by mutableStateOf<Alignment?>(null)
+  var lightPosition: Alignment
+    get() = lightPositionOverride ?: Alignment.Center
     set(value) {
-      hasLightPositionOverride = true
       lightPositionOverride = value
     }
 
@@ -217,7 +219,7 @@ internal class GlassTestConfiguration {
         ambientResponseOverride.takeIf { hasAmbientResponseOverride }
       val resolvedTintOverride = tintOverride.takeIf { hasTintOverride }
       val resolvedEdgeSoftnessOverride = edgeSoftnessOverride.takeIf { hasEdgeSoftnessOverride }
-      val resolvedLightPositionOverride = lightPositionOverride.takeIf { hasLightPositionOverride }
+      val resolvedLightPositionOverride = lightPositionOverride
       val resolvedChromaticAberrationStrengthOverride =
         chromaticAberrationStrengthOverride.takeIf { hasChromaticAberrationStrengthOverride }
       val resolvedSurfaceProfileOverride =
@@ -272,6 +274,18 @@ internal class GlassTestConfiguration {
   fun pressed(block: GlassInteractionScope.() -> Unit) {
     style = style.then { pressed(block) }
   }
+}
+
+internal fun exactLightAlignment(x: Int, y: Int): Alignment = ExactLightAlignment(IntOffset(x, y))
+
+private class ExactLightAlignment(
+  private val position: IntOffset,
+) : Alignment {
+  override fun align(
+    size: IntSize,
+    space: IntSize,
+    layoutDirection: LayoutDirection,
+  ): IntOffset = position
 }
 
 internal fun GlassTestConfiguration.applyTestHoverAndPressResponses() {

@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
@@ -128,7 +129,6 @@ private fun GlassProfilingScene(
       profilingGlassStyle(
         scenario,
         styleFrame ?: glassProfilingFrame(scenario, progress = 0f),
-        effectSurfaceSizePx,
       )
     }
   }
@@ -321,7 +321,6 @@ private fun GlassProfilingEffectGrid(
 internal fun profilingGlassStyle(
   scenario: GlassProfilingScenario,
   frame: GlassProfilingFrame,
-  surfaceSize: Size,
 ): GlassStyle = GlassDefaults.style.then {
   scenario.opticsOverride?.let(::optics)
   if (scenario.fullChroma) {
@@ -332,9 +331,9 @@ internal fun profilingGlassStyle(
   when (scenario) {
     GlassProfilingScenario.OpticalUpdate -> {
       lightPosition(
-        Offset(
-          x = surfaceSize.width * frame.lightPosition.x,
-          y = surfaceSize.height * frame.lightPosition.y,
+        BiasAlignment(
+          horizontalBias = frame.lightPosition.x * 2f - 1f,
+          verticalBias = frame.lightPosition.y * 2f - 1f,
         ),
       )
     }

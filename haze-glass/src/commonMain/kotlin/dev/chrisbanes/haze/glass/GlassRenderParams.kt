@@ -333,6 +333,7 @@ internal data class GlassRenderParams(
   val geometryToneGain: Float,
   val geometryNeutralLift: Float,
   val cornerRadii: CornerRadii,
+  /** Light position resolved from authored Alignment into material-local pixels. */
   val lightPosition: Offset,
   val sampleStepPx: Float,
   val refractionDetailIntensity: Float = GLASS_REFRACTION_DETAIL_INTENSITY,
@@ -582,7 +583,11 @@ internal fun resolveGlassStyle(
     defaultRadii.isFiniteAndNonNegative() -> defaultRadii
     else -> CornerRadii.zero
   }
-  val materialCenter = materialSizePx.center
+  val alignedLightPosition = effect.lightPosition.align(
+    size = IntSize.Zero,
+    space = materialSizePx.roundToIntSize(),
+    layoutDirection = layoutDirection,
+  )
   return ResolvedGlassStyle(
     resolvedOptics = resolveGlassOptics(effect.optics, materialSizePx, density, cornerRadii),
     specularIntensity = effect.specularIntensity
@@ -593,9 +598,10 @@ internal fun resolveGlassStyle(
     edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() }
       .finiteOr(defaultEdgeSoftnessPx)
       .coerceAtLeast(0f),
-    lightPosition = effect.lightPosition
-      .takeIf { it.x.isFinite() && it.y.isFinite() }
-      ?: materialCenter,
+    lightPosition = Offset(
+      x = alignedLightPosition.x.toFloat(),
+      y = alignedLightPosition.y.toFloat(),
+    ),
     chromaticAberrationStrength = effect.chromaticAberrationStrength
       .finiteOr(GlassDefaults.chromaticAberrationStrength).coerceIn(0f, 1f),
     surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),

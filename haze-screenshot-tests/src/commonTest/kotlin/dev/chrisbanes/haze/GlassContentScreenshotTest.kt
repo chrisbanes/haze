@@ -8,7 +8,6 @@ package dev.chrisbanes.haze
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
@@ -96,11 +95,11 @@ class GlassContentScreenshotTest : ScreenshotTest() {
 
     captureRoot("center")
 
-    style = style.then { lightPosition(Offset(-96f, -64f)) }
+    style = style.then { lightPosition(exactLightAlignment(-96, -64)) }
     waitForIdle()
     captureRoot("topLeft")
 
-    style = style.then { lightPosition(Offset(120f, 80f)) }
+    style = style.then { lightPosition(exactLightAlignment(120, 80)) }
     waitForIdle()
     captureRoot("bottomRight")
   }
@@ -254,7 +253,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
       )
       specularIntensity(0.75f)
       ambientResponse(0.75f)
-      lightPosition(Offset(48f, -32f))
+      lightPosition(exactLightAlignment(48, -32))
       edgeSoftness(12.dp)
     }
   }

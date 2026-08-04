@@ -49,7 +49,8 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 - **edgeSoftness**: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.
 - **shape** (`RoundedCornerShape`): Rounded-rect boundary for refraction and masking (default 16.dp corners).
 - **surfaceProfile**: Cross-section profile for the refraction bezel. Options: `Circle` (default), `Squircle`, `Lip`, `Concave`.
-- **lightPosition**: Optional light source; defaults to the layer center.
+- **lightPosition**: `Alignment` of the light within the material's measured bounds (default
+  `Alignment.Center`). Logical start and end follow the node's layout direction.
 - **chromaticAberrationStrength**: Dispersion strength `0..1` (default 0). Higher values produce prismatic color splitting at edges.
 - **chromaticAberrationMode**: Quality mode for chromatic aberration. `Simple` (default, fast) or `Full` (spectral, more expensive).
 - **alpha**: Overall opacity multiplier `0..1` (default 1).
@@ -77,6 +78,30 @@ val emphasizedStyle = baseStyle.then { specularIntensity(0.7f) }
 
 CompositionLocalProvider(LocalGlassStyle provides baseStyle) {
   // Each node gets a fresh snapshot; an explicit Style is applied last.
+}
+```
+
+### Light alignment
+
+Light position is authored semantically with Compose `Alignment` and resolved independently for
+each node. A shared Style therefore places `Alignment.Center` at the center of every consuming
+material, even when their measured sizes differ. Logical alignments such as `Alignment.TopStart`,
+`Alignment.CenterStart`, and `Alignment.CenterEnd` automatically follow LTR or RTL layout direction;
+use physical alignments only when that is the intended semantic.
+
+```kotlin
+val sharedLighting = GlassStyle {
+  lightPosition(Alignment.CenterStart)
+}
+```
+
+Use `BiasAlignment` for a continuously moving proportional light. Biases `-1f`, `0f`, and `1f`
+represent the start/top edge, center, and end/bottom edge respectively, and values outside that
+range place the virtual light beyond the material bounds.
+
+```kotlin
+val movingLighting = GlassStyle {
+  lightPosition(BiasAlignment(horizontalBias = 0.4f, verticalBias = -0.6f))
 }
 ```
 

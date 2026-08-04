@@ -7,6 +7,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -28,6 +29,58 @@ import kotlin.math.sqrt
 import kotlin.test.Test
 
 class GlassRenderParamsTest {
+
+  @Test
+  fun lightAlignment_resolvesForEachSizeAndLayoutDirectionAndScalesOnce() {
+    val alignments = listOf(
+      LightAlignmentCase(Alignment.Center, 0.5f, 0.5f, 0.5f),
+      LightAlignmentCase(Alignment.TopStart, 0f, 1f, 0f),
+      LightAlignmentCase(Alignment.TopEnd, 1f, 0f, 0f),
+      LightAlignmentCase(Alignment.BottomStart, 0f, 1f, 1f),
+      LightAlignmentCase(Alignment.BottomEnd, 1f, 0f, 1f),
+      LightAlignmentCase(Alignment.CenterStart, 0f, 1f, 0.5f),
+      LightAlignmentCase(Alignment.CenterEnd, 1f, 0f, 0.5f),
+    )
+    val sizes = listOf(Size(100f, 80f), Size(240f, 120f))
+
+    sizes.forEach { size ->
+      LayoutDirection.entries.forEach { layoutDirection ->
+        alignments.forEach { case ->
+          val effect = GlassRuntimeEffect().apply {
+            style = GlassStyle { lightPosition(case.alignment) }
+          }
+          val resolved = resolveGlassStyle(
+            effect = effect,
+            materialSizePx = size,
+            density = Density(1f),
+            layoutDirection = layoutDirection,
+          )
+          val expected = Offset(
+            x = size.width * case.xFraction(layoutDirection),
+            y = size.height * case.yFraction,
+          )
+          val rendered = buildGlassRenderParams(
+            style = resolved,
+            coordinates = GlassCoordinates(
+              sampleSize = size * 0.5f,
+              materialOrigin = Offset.Zero,
+              materialSize = size * 0.5f,
+              scaleFactor = 0.5f,
+            ),
+          )
+
+          assertThat(
+            resolved.lightPosition,
+            name = "$size/$layoutDirection/${case.alignment}",
+          ).isEqualTo(expected)
+          assertThat(
+            rendered.lightPosition,
+            name = "$size/$layoutDirection/${case.alignment}/scaled",
+          ).isEqualTo(expected * 0.5f)
+        }
+      }
+    }
+  }
 
   @Test
   fun interactionTopology_usesConfiguredWorstCaseInsteadOfAnimatedValues() {
@@ -1270,5 +1323,17 @@ class GlassRenderParamsTest {
     first.values().zip(second.values()).forEach { (firstValue, secondValue) ->
       assertThat(abs(firstValue - secondValue)).isLessThan(maximumDelta)
     }
+  }
+}
+
+private class LightAlignmentCase(
+  val alignment: Alignment,
+  val ltrXFraction: Float,
+  val rtlXFraction: Float,
+  val yFraction: Float,
+) {
+  fun xFraction(layoutDirection: LayoutDirection): Float = when (layoutDirection) {
+    LayoutDirection.Ltr -> ltrXFraction
+    LayoutDirection.Rtl -> rtlXFraction
   }
 }

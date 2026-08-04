@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -23,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
@@ -104,16 +102,9 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
   }
 
   @Test
-  fun fallback_unspecifiedLightPositionMatchesExplicitCenter() = runScreenshotTest {
+  fun fallback_defaultLightPositionMatchesExplicitCenter() = runScreenshotTest {
     val effect = fallbackEffect(specularIntensity = 1f)
-    var materialCenter = Offset.Unspecified
     setContent {
-      val density = LocalDensity.current
-      SideEffect {
-        materialCenter = with(density) {
-          Offset(FallbackSurfaceSize.width.toPx() / 2f, FallbackSurfaceSize.height.toPx() / 2f)
-        }
-      }
       ScreenshotTheme {
         GlassInvariantSample(
           effect = effect,
@@ -126,8 +117,7 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
     }
 
     val unspecified = captureRootPixels().snapshot()
-    check(materialCenter != Offset.Unspecified)
-    effect.lightPosition = materialCenter
+    effect.lightPosition = Alignment.Center
     waitForIdle()
     val explicitCenter = captureRootPixels().snapshot()
 

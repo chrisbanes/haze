@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -40,7 +41,7 @@ class FallbackGlassInteractionTest : ContextTest() {
       tint = Color.Transparent
       specularIntensity = 0f
       ambientResponse = 0f
-      lightPosition = Offset(80f, 80f)
+      lightPosition = BiasAlignment(0.6f, 0.6f)
     }
     lateinit var runtime: GlassRuntimeEffect
     val factory = HazeEffectFactory<GlassNodeConfiguration> {

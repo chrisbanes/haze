@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -181,7 +182,7 @@ class FallbackGlassDelegateTest {
         tint = Color.Transparent
         specularIntensity = 1f
         edgeSoftness = 0.dp
-        lightPosition = Offset(60f, 60f)
+        lightPosition = Alignment.Center
       },
       sample = Offset(60f, 60f),
     )
@@ -213,7 +214,7 @@ class FallbackGlassDelegateTest {
       specularIntensity = 1f
       ambientResponse = 0f
       edgeSoftness = 0.dp
-      lightPosition = Offset(60f, 60f)
+      lightPosition = Alignment.Center
     }
     val fallback = FallbackGlassDelegate(effect)
     val context = FallbackRecordingContext(size = Size(120f, 120f))
@@ -259,7 +260,7 @@ class FallbackGlassDelegateTest {
     assertThat(stable.edgeBrush).isSameInstanceAs(first.edgeBrush)
     assertThat(stable.edgeStroke).isSameInstanceAs(first.edgeStroke)
 
-    effect.lightPosition = Offset(24f, 36f)
+    effect.lightPosition = exactLightAlignment(Offset(24f, 36f))
     delegate.prepare(context)
     val movedLight = delegate.preparedResourcesForTest()
 

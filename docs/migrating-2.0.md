@@ -202,10 +202,30 @@ inert; construct and supply a replacement Style to reflect new inputs.
 | implicit source/content | explicit `HazeInput.Sources` or `HazeInput.Content` |
 | raw optical displacement/caps | semantic `GlassOptics` and `Dp` controls |
 | `GlassOptics.Absolute` | `GlassOptics.Fixed`; this is a hard rename with no alias or compatibility bridge |
+| `lightPosition(Offset)` and `Offset.Unspecified` | `lightPosition(Alignment)`; omit the write or use `Alignment.Center` for the former automatic center |
 
 For ordinary inline fixed Style authoring, pass the complete fixed parameter set directly to
 `optics(...)`. The complete-value overload remains available for `GlassOptics.Adaptive`, reusable
 fixed values, copies, storage, and programmatic selection.
+
+Glass light position is now an intentional source break from pixel `Offset` to semantic
+`Alignment`, with no compatibility overload. The Alignment is resolved inside each node's current
+measured bounds and layout direction. Use `Alignment.Center` (or omit the write) for the former
+`Offset.Unspecified` behavior, logical start/end alignments for directional intent, and
+`BiasAlignment` for continuous proportional positions:
+
+```kotlin
+val normalizedX = 0.7f
+val normalizedY = 0.2f
+val style = GlassStyle {
+  lightPosition(
+    BiasAlignment(
+      horizontalBias = normalizedX * 2f - 1f,
+      verticalBias = normalizedY * 2f - 1f,
+    ),
+  )
+}
+```
 
 Write each property through the Style scope, then pass the Style and structural policies to
 `hazeGlass`:
