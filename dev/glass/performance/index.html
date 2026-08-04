@@ -813,6 +813,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#reference-measurements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference measurements
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1088,6 +1099,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#reference-measurements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference measurements
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1124,8 +1146,8 @@ choices, and measurement advice. This page focuses on the decisions that are spe
 <li><strong>Surface size:</strong> Large Glass surfaces process more content and optical detail.</li>
 <li><strong>Number of surfaces:</strong> Several independent Glass elements add work even when they share a Style.</li>
 <li><strong>Changing content:</strong> Scrolling or animation behind Glass costs more than a stable background.</li>
-<li><strong>Optical complexity:</strong> Progressive blur and Full chromatic aberration are more expensive than
-  the default material.</li>
+<li><strong>Optical complexity:</strong> Progressive blur and Full chromatic aberration can add work relative to
+  the default material. Measure them with the surfaces and content your application uses.</li>
 <li><strong>Interaction:</strong> Animated lighting, refraction, and transforms add a changing workload while the
   user hovers, focuses, or presses the element.</li>
 </ul>
@@ -1145,8 +1167,55 @@ choices, and measurement advice. This page focuses on the decisions that are spe
 <li>resizing, orientation changes, and other layout transitions;</li>
 <li>the lowest-performance devices and highest display resolutions you support.</li>
 </ul>
-<p>Repository contributors can use the complete <a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md">Glass benchmark runbook</a>. The
-adaptive-sampling rationale and supporting measurements are recorded in <a href="../../adr/0004-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0004</a>.</p></div>
+<h2 id="reference-measurements">Reference measurements<a class="headerlink" href="#reference-measurements" title="Permanent link">¶</a></h2>
+<p>The following Haze reference run is a reproducible comparison point, not a performance target or
+promise. It used the <code>benchmarkRelease</code> build at commit <code>334557df</code> on 2026-08-04: Pixel 6,
+Android 17/API 37, 1080×2400, locked 60 Hz render rate, locked CPU frequency, and eight
+Macrobenchmark iterations per scenario. The metric is P90 CPU frame duration in milliseconds.</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Workload</th>
+<th style="text-align: right;">P90 CPU frame duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>productPager</code></td>
+<td>Gallery paging journey</td>
+<td style="text-align: right;">7.5 ms</td>
+</tr>
+<tr>
+<td><code>playgroundTimeline</code></td>
+<td>Gallery animated timeline journey</td>
+<td style="text-align: right;">11.2 ms</td>
+</tr>
+<tr>
+<td><code>steadyFull</code></td>
+<td>Controlled steady state, 1 Glass effect</td>
+<td style="text-align: right;">5.6 ms</td>
+</tr>
+<tr>
+<td><code>steadyFull3</code></td>
+<td>Controlled steady state, 3 Glass effects</td>
+<td style="text-align: right;">5.2 ms</td>
+</tr>
+<tr>
+<td><code>steadyFull9</code></td>
+<td>Controlled steady state, 9 Glass effects</td>
+<td style="text-align: right;">8.1 ms</td>
+</tr>
+</tbody>
+</table>
+<p>The Gallery journeys are closest to the sample's visible user work. The <code>steadyFull*</code> controls
+characterize the baseline at different effect counts. Cold-initialization <code>effectAttach*</code> results
+are deliberately omitted: they attach new effects at the measurement boundary and diagnose
+delegate/shader creation rather than representative interaction performance. They remain covered
+by the internal <a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md">Glass benchmark runbook</a>. Compare the interactions, content,
+and device classes that your application supports.</p>
+<p>The adaptive-sampling rationale and supporting measurements are recorded in
+<a href="../../adr/0004-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0004</a>.</p></div>
 
 
 
