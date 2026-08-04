@@ -47,3 +47,12 @@ or layout are useful context, not a guarantee for your application.
 
 For Android, [Macrobenchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
 is a good starting point for repeatable frame measurements.
+
+### A reference point, not a target
+
+In Haze's 2026-08-04 Glass reference run on a Pixel 6 (Android 17/API 37, 1080×2400 at
+60 Hz), the Gallery's `productPager` journey measured 7.5 ms P90 CPU frame duration and its
+`playgroundTimeline` journey measured 11.2 ms. These are one workload on one device, not a
+performance budget or promise for other devices and layouts. See the
+[Glass reference measurements](glass/performance.md#reference-measurements) for the setup and
+controlled scenarios.
