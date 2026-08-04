@@ -183,6 +183,11 @@ The `GlassStyle` builder executes once during construction and records immutable
 writes. Resolution never reruns the builder, so mutating state captured by an unchanged Style is
 inert; construct and supply a replacement Style to reflect new inputs.
 
+Keep one final `GlassStyle` for all platforms. Remove renderer-capability checks, platform-specific
+Style variants, and secondary fallback Styles: `hazeGlass` selects its private renderer
+automatically, replaying the same Style while limited renderers approximate supported appearance
+and omit unsupported optics.
+
 | Legacy | Typed replacement |
 | --- | --- |
 | `hazeEffect { glassEffect { … } }` | `hazeGlass(input, style, sampling, expandLayerBounds, …)` |
