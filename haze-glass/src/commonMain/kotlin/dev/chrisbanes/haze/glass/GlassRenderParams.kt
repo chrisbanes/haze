@@ -3,6 +3,9 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAbsoluteAlignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
@@ -583,9 +586,8 @@ internal fun resolveGlassStyle(
     defaultRadii.isFiniteAndNonNegative() -> defaultRadii
     else -> CornerRadii.zero
   }
-  val alignedLightPosition = effect.lightPosition.align(
-    size = IntSize.Zero,
-    space = materialSizePx.roundToIntSize(),
+  val alignedLightPosition = effect.lightPosition.resolveLightPosition(
+    materialSizePx = materialSizePx,
     layoutDirection = layoutDirection,
   )
   return ResolvedGlassStyle(
@@ -598,10 +600,7 @@ internal fun resolveGlassStyle(
     edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() }
       .finiteOr(defaultEdgeSoftnessPx)
       .coerceAtLeast(0f),
-    lightPosition = Offset(
-      x = alignedLightPosition.x.toFloat(),
-      y = alignedLightPosition.y.toFloat(),
-    ),
+    lightPosition = alignedLightPosition,
     chromaticAberrationStrength = effect.chromaticAberrationStrength
       .finiteOr(GlassDefaults.chromaticAberrationStrength).coerceIn(0f, 1f),
     surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),
@@ -620,6 +619,40 @@ internal fun resolveGlassStyle(
     cornerRadii = cornerRadii,
   )
 }
+
+private fun Alignment.resolveLightPosition(
+  materialSizePx: Size,
+  layoutDirection: LayoutDirection,
+): Offset = when (this) {
+  is BiasAlignment -> resolveBiasPosition(
+    center = materialSizePx.center,
+    horizontalBias = if (layoutDirection == LayoutDirection.Ltr) {
+      horizontalBias
+    } else {
+      -horizontalBias
+    },
+    verticalBias = verticalBias,
+  )
+  is BiasAbsoluteAlignment -> resolveBiasPosition(
+    center = materialSizePx.center,
+    horizontalBias = horizontalBias,
+    verticalBias = verticalBias,
+  )
+  else -> align(
+    size = IntSize.Zero,
+    space = materialSizePx.roundToIntSize(),
+    layoutDirection = layoutDirection,
+  ).let { Offset(it.x.toFloat(), it.y.toFloat()) }
+}
+
+private fun resolveBiasPosition(
+  center: Offset,
+  horizontalBias: Float,
+  verticalBias: Float,
+): Offset = Offset(
+  x = center.x * (1f + horizontalBias),
+  y = center.y * (1f + verticalBias),
+)
 
 internal fun buildGlassRenderParams(
   style: ResolvedGlassStyle,
