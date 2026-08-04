@@ -1281,8 +1281,9 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 <li><strong>tint</strong>: Glass tint (defaults to transparent).</li>
 <li><strong>optics</strong>: Optical material configuration. <code>GlassOptics.Adaptive</code> (the default) is the
   built-in Haze material; it responds to the material's size, aspect ratio, and
-  rounded geometry. Use <code>GlassOptics.Absolute(...)</code> when you need a complete literal optical
-  configuration. Its <code>refractionStrength</code>, <code>refractionHeightFraction</code>,
+  rounded geometry. Call <code>optics(...)</code> directly for an inline fixed optical configuration, or use
+  <code>GlassOptics.Fixed(...)</code> when you need to store, reuse, copy, or select the complete value. Its
+  <code>refractionStrength</code>, <code>refractionHeightFraction</code>,
   <code>refractionDisplacement</code>, <code>depth</code>, <code>blurRadius</code>, and optional <code>progressive</code> values are used
   without geometry-dependent adjustment. <code>refractionDisplacement</code> and <code>blurRadius</code> are
   density-independent <code>Dp</code>, while <code>refractionHeightFraction</code> is a unitless fraction of the
@@ -1311,7 +1312,7 @@ change their appearance. Replacement also removes properties and interaction blo
 new Style.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">baseStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
-<span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">))</span>
+<span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">)</span>
 <span class="w">  </span><span class="n">shape</span><span class="p">(</span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">))</span>
 <span class="p">}</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">emphasizedStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">baseStyle</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
@@ -1331,24 +1332,33 @@ before <code>LocalGlassStyle</code> and the modifier's explicit Style.</p>
 </code></pre></div>
 <h3 id="choosing-optics">Choosing optics<a class="headerlink" href="#choosing-optics" title="Permanent link">¶</a></h3>
 <p>Use <code>GlassOptics.Adaptive</code> for the built-in Haze material, which adapts its optical response to the
-material's size, aspect ratio, and roundness. Use <code>GlassOptics.Absolute</code> when your design needs a
-complete literal configuration instead:</p>
+material's size, aspect ratio, and roundness. For ordinary inline fixed Style authoring, call the
+direct <code>optics(...)</code> function:</p>
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
+<span class="w">  </span><span class="n">optics</span><span class="p">(</span>
 <span class="w">    </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="p">,</span>
 <span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
 <span class="w">    </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span><span class="p">,</span>
 <span class="w">    </span><span class="n">refractionDisplacement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">18.</span><span class="n">dp</span><span class="p">,</span>
 <span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">,</span>
-<span class="w">  </span><span class="p">))</span>
+<span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Absolute values are not geometry-adjusted. <code>refractionDisplacement</code> and <code>blurRadius</code> describe
-logical distances, while <code>refractionHeightFraction</code> remains relative to the material's shortest
-side. Backend sampling and kernel construction remain rendering details. <code>shape</code> and <code>tint</code> stay
-independent of the selected optics. The <code>shape</code>
+<p>The direct function constructs <code>GlassOptics.Fixed</code>. Fixed values are not geometry-adjusted:
+<code>refractionStrength</code>, <code>refractionHeightFraction</code>, and <code>depth</code> must be finite values in <code>0f..1f</code>;
+<code>refractionDisplacement</code> and <code>blurRadius</code> must be specified, finite, non-negative <code>Dp</code>; and
+<code>progressive</code> is optional. Large logical displacement and blur distances remain valid even when a
+renderer caps effective sampling or kernel work. <code>refractionHeightFraction</code> remains relative to the
+material's shortest side.</p>
+<p>Keep a complete value when it is reused, stored, copied, or selected programmatically:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">reusableOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">reusableOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<p>Backend sampling and kernel construction remain rendering details. <code>GlassOptics.Fixed</code> is distinct
+from <code>HazeSampling.Fixed(pixelFraction)</code>, which selects a sampling policy rather than optical
+values. <code>shape</code> and <code>tint</code> stay independent of the selected optics. The <code>shape</code>
 supplied to Glass is the authoritative material boundary. An outer <code>Modifier.clip()</code> is not visible
 to Glass and does not define its optical boundary; add one with the same shape only when child
 content also needs clipping.</p>
@@ -1379,12 +1389,12 @@ of retaining pixels when the source disappears:</p>
 <p>You can select a literal optical configuration when the built-in material does not fit the design:</p>
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.20f</span><span class="p">))</span>
-<span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
+<span class="w">  </span><span class="n">optics</span><span class="p">(</span>
 <span class="w">    </span><span class="n">progressive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span>
 <span class="w">      </span><span class="n">startIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span>
 <span class="w">      </span><span class="n">endIntensity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.25f</span><span class="p">,</span>
 <span class="w">    </span><span class="p">),</span>
-<span class="w">  </span><span class="p">))</span>
+<span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="fallbacks">Fallbacks<a class="headerlink" href="#fallbacks" title="Permanent link">¶</a></h2>
@@ -1491,11 +1501,11 @@ consumer implementation point.</p>
 <span class="w">      </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
-<span class="w">        </span><span class="n">optics</span><span class="p">(</span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
+<span class="w">        </span><span class="n">optics</span><span class="p">(</span>
 <span class="w">          </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
 <span class="w">          </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.32f</span><span class="p">,</span>
 <span class="w">          </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">,</span>
-<span class="w">        </span><span class="p">))</span>
+<span class="w">        </span><span class="p">)</span>
 <span class="w">        </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span>
 <span class="w">        </span><span class="n">ambientResponse</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span>
 <span class="w">        </span><span class="n">edgeSoftness</span><span class="p">(</span><span class="m">14.</span><span class="n">dp</span><span class="p">)</span>
@@ -1509,8 +1519,8 @@ consumer implementation point.</p>
 <h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">¶</a></h2>
 <ul>
 <li><code>GlassOptics.Adaptive</code> is the right starting point for material-like glass that should respond
-  naturally to its geometry. Use <code>GlassOptics.Absolute</code> only when you need to control the whole
-  optical configuration.</li>
+  naturally to its geometry. Use direct <code>optics(...)</code> for inline fixed authoring and
+  <code>GlassOptics.Fixed</code> when the complete value needs to be reused or selected programmatically.</li>
 <li>Keep <code>chromaticAberrationStrength</code> modest; start at 0.1-0.25 to avoid rainbow artifacts.</li>
 <li>Combine <code>edgeSoftness</code> with rounded shapes for smooth clipping; set <code>edgeSoftness = 0.dp</code> to rely purely on the shape.</li>
 <li>Use <code>SurfaceProfile.Concave</code> for an inward-curving bezel or <code>SurfaceProfile.Lip</code> for a raised rim effect.</li>

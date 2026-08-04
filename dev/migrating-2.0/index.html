@@ -1520,17 +1520,22 @@ inert; construct and supply a replacement Style to reflect new inputs.</p>
 <td>raw optical displacement/caps</td>
 <td>semantic <code>GlassOptics</code> and <code>Dp</code> controls</td>
 </tr>
+<tr>
+<td><code>GlassOptics.Absolute</code></td>
+<td><code>GlassOptics.Fixed</code>; this is a hard rename with no alias or compatibility bridge</td>
+</tr>
 </tbody>
 </table>
+<p>For ordinary inline fixed Style authoring, pass the complete fixed parameter set directly to
+<code>optics(...)</code>. The complete-value overload remains available for <code>GlassOptics.Adaptive</code>, reusable
+fixed values, copies, storage, and programmatic selection.</p>
 <p>Write each property through the Style scope, then pass the Style and structural policies to
 <code>hazeGlass</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">glassStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">))</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span>
-<span class="w">    </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Absolute</span><span class="p">(</span>
-<span class="w">      </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span>
-<span class="w">      </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
-<span class="w">    </span><span class="p">),</span>
+<span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span><span class="p">,</span>
+<span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span>
 <span class="w">  </span><span class="p">)</span>
 <span class="w">  </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.4f</span><span class="p">)</span>
 <span class="w">  </span><span class="n">edgeSoftness</span><span class="p">(</span><span class="m">12.</span><span class="n">dp</span><span class="p">)</span>
