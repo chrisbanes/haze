@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -27,6 +28,33 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class)
 class GlassStyleTest {
+
+  @Test
+  fun lightPosition_defaultsToCenter() {
+    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).lightPosition)
+      .isEqualTo(Alignment.Center)
+  }
+
+  @Test
+  fun lightPosition_recordsAlignment() {
+    val values = resolveGlassStyleValues(
+      GlassStyle,
+      GlassStyle { lightPosition(Alignment.BottomEnd) },
+    )
+
+    assertThat(values.lightPosition).isEqualTo(Alignment.BottomEnd)
+  }
+
+  @Test
+  fun lightPosition_followsStylePrecedence() {
+    val local = GlassStyle { lightPosition(Alignment.TopStart) }
+    val explicit = GlassStyle { lightPosition(Alignment.CenterEnd) }
+      .then { lightPosition(Alignment.BottomCenter) }
+
+    val values = resolveGlassStyleValues(local, explicit)
+
+    assertThat(values.lightPosition).isEqualTo(Alignment.BottomCenter)
+  }
 
   @Test
   fun directOptics_constructsTheCompleteFixedValue() {
@@ -286,7 +314,7 @@ class GlassStyleTest {
       ambientResponse(-1f)
       tint(Color.Blue)
       edgeSoftness(6.dp)
-      lightPosition(Offset(4f, 8f))
+      lightPosition(Alignment.BottomEnd)
       chromaticAberrationStrength(2f)
       surfaceProfile(SurfaceProfile.Concave)
       chromaticAberrationMode(ChromaticAberrationMode.Full)
@@ -306,7 +334,7 @@ class GlassStyleTest {
     assertThat(resolved.ambientResponse).isEqualTo(0f)
     assertThat(resolved.tint).isEqualTo(Color.Blue)
     assertThat(resolved.edgeSoftness).isEqualTo(6.dp)
-    assertThat(resolved.lightPosition).isEqualTo(Offset(4f, 8f))
+    assertThat(resolved.lightPosition).isEqualTo(Alignment.BottomEnd)
     assertThat(resolved.chromaticAberrationStrength).isEqualTo(1f)
     assertThat(resolved.surfaceProfile).isEqualTo(SurfaceProfile.Concave)
     assertThat(resolved.chromaticAberrationMode).isEqualTo(ChromaticAberrationMode.Full)

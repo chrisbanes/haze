@@ -14,17 +14,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
@@ -57,6 +61,64 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class HazeGlassModifierTest : ContextTest() {
+
+  @Test
+  fun sharedLightAlignmentStyles_resolvePerNodeSizeAndLayoutDirection() = runComposeUiTest {
+    val alignmentCases = listOf(
+      ModifierLightAlignmentCase(Alignment.Center, 0.5f, 0.5f, 0.5f),
+      ModifierLightAlignmentCase(Alignment.TopStart, 0f, 1f, 0f),
+      ModifierLightAlignmentCase(Alignment.TopEnd, 1f, 0f, 0f),
+      ModifierLightAlignmentCase(Alignment.BottomStart, 0f, 1f, 1f),
+      ModifierLightAlignmentCase(Alignment.BottomEnd, 1f, 0f, 1f),
+      ModifierLightAlignmentCase(Alignment.CenterStart, 0f, 1f, 0.5f),
+      ModifierLightAlignmentCase(Alignment.CenterEnd, 1f, 0f, 0.5f),
+    )
+    val nodeCases = buildList {
+      alignmentCases.forEach { alignmentCase ->
+        val sharedStyle = GlassStyle { lightPosition(alignmentCase.alignment) }
+        listOf(20.dp to 10.dp, 30.dp to 20.dp).forEach { (width, height) ->
+          LayoutDirection.entries.forEach { layoutDirection ->
+            add(ModifierLightNodeCase(sharedStyle, alignmentCase, width, height, layoutDirection))
+          }
+        }
+      }
+    }
+    val factory = RecordingGlassFactory()
+
+    setContent {
+      Box {
+        nodeCases.forEach { case ->
+          CompositionLocalProvider(LocalLayoutDirection provides case.layoutDirection) {
+            Spacer(
+              Modifier.size(case.width, case.height).hazeGlass(
+                factory = factory,
+                input = HazeInput.Content,
+                style = case.style,
+                sampling = HazeSampling.FullResolution,
+                expandLayerBounds = true,
+                interactionSource = null,
+              ),
+            )
+          }
+        }
+      }
+    }
+    waitForIdle()
+    onRoot().captureToImage()
+
+    assertThat(factory.effects).hasSize(nodeCases.size)
+    factory.effects.zip(nodeCases).forEach { (effect, case) ->
+      val size = checkNotNull(effect.delegate.attachedContextForTest).modifierSize
+      val expected = androidx.compose.ui.geometry.Offset(
+        x = size.width * case.alignment.xFraction(case.layoutDirection),
+        y = size.height * case.alignment.yFraction,
+      )
+      assertThat(
+        checkNotNull(effect.delegate.preparedRender).params.lightPosition,
+        name = "$size/${case.layoutDirection}/${case.alignment.alignment}",
+      ).isEqualTo(expected)
+    }
+  }
 
   @Test
   fun structuralPolicies_reachTypedGlassRuntime() = runComposeUiTest {
@@ -559,6 +621,26 @@ class HazeGlassModifierTest : ContextTest() {
       .isEqualTo(GlassReducedMotionPolicy.System)
   }
 }
+
+private class ModifierLightAlignmentCase(
+  val alignment: Alignment,
+  val ltrXFraction: Float,
+  val rtlXFraction: Float,
+  val yFraction: Float,
+) {
+  fun xFraction(layoutDirection: LayoutDirection): Float = when (layoutDirection) {
+    LayoutDirection.Ltr -> ltrXFraction
+    LayoutDirection.Rtl -> rtlXFraction
+  }
+}
+
+private class ModifierLightNodeCase(
+  val style: GlassStyle,
+  val alignment: ModifierLightAlignmentCase,
+  val width: androidx.compose.ui.unit.Dp,
+  val height: androidx.compose.ui.unit.Dp,
+  val layoutDirection: LayoutDirection,
+)
 
 private class StructuralCase(
   val input: HazeInput,

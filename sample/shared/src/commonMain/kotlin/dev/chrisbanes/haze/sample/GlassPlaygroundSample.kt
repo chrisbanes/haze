@@ -33,6 +33,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Offset
@@ -405,7 +406,7 @@ private fun PlaygroundSurface(
     IntSize(size.width.roundToPx(), size.height.roundToPx())
   }
   val interactionSource = interactionSourceProvider(id)
-  var lightPosition by remember(id) { mutableStateOf(Offset.Unspecified) }
+  var lightPosition by remember(id) { mutableStateOf<Alignment>(Alignment.Center) }
   val style = glassPlaygroundStyle(id).then {
     shape(glassPlaygroundShape(id))
     lightPosition(lightPosition)
@@ -435,7 +436,12 @@ private fun PlaygroundSurface(
       )
     }
       .distinctUntilChanged()
-      .collect { lightPosition = it }
+      .collect { position ->
+        lightPosition = BiasAlignment(
+          horizontalBias = (position.x / surfaceSize.width) * 2f - 1f,
+          verticalBias = (position.y / surfaceSize.height) * 2f - 1f,
+        )
+      }
   }
 
   Box(

@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -518,7 +519,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val rimShader = delegate.rimShader
       val rimEffect = delegate.rimEffect
       val rimLayerEffect = checkNotNull(delegate.layers.rim?.renderEffect)
-      effect.lightPosition = Offset(10f, 20f)
+      effect.lightPosition = exactLightAlignment(Offset(10f, 20f))
       waitForIdle()
       drawFrame()
 
@@ -801,7 +802,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     )
     specularIntensity = 1f
     ambientResponse = 0.5f
-    lightPosition = Offset(60f, 60f)
+    lightPosition = Alignment.Center
   }
 
   private fun interactiveEffect() = GlassRuntimeEffect().apply {

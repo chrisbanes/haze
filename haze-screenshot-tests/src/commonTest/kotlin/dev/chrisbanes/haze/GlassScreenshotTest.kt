@@ -333,7 +333,7 @@ class GlassScreenshotTest : ScreenshotTest() {
     var style by mutableStateOf(
       GlassStyle {
         tint(DefaultTint)
-        lightPosition(Offset.Unspecified)
+        lightPosition(Alignment.Center)
         specularIntensity(0.55f)
       },
     )
@@ -346,11 +346,11 @@ class GlassScreenshotTest : ScreenshotTest() {
 
     captureRoot("center")
 
-    style = style.then { lightPosition(Offset(-120f, -80f)) }
+    style = style.then { lightPosition(exactLightAlignment(-120, -80)) }
     waitForIdle()
     captureRoot("topLeft")
 
-    style = style.then { lightPosition(Offset(140f, 120f)) }
+    style = style.then { lightPosition(exactLightAlignment(140, 120)) }
     waitForIdle()
     captureRoot("bottomRight")
   }
@@ -554,7 +554,7 @@ class GlassScreenshotTest : ScreenshotTest() {
       )
       specularIntensity(0.75f)
       ambientResponse(0.8f)
-      lightPosition(Offset(64f, -48f))
+      lightPosition(exactLightAlignment(64, -48))
       edgeSoftness(14.dp)
     }
   }

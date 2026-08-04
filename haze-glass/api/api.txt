@@ -122,7 +122,7 @@ package dev.chrisbanes.haze.glass {
     method public void hovered(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
     method public void interactionLightRadiusFraction(float radiusFraction);
     method public void interactionPositionAnimationSpec(androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> animationSpec);
-    method @KotlinOnly public void lightPosition(androidx.compose.ui.geometry.Offset position);
+    method public void lightPosition(androidx.compose.ui.Alignment alignment);
     method public void optics(dev.chrisbanes.haze.glass.GlassOptics optics);
     method @KotlinOnly public void optics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
     method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);

@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -799,7 +800,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
 
     val beforeRim = delegate.rimRecordCount
     val rimShader = delegate.rimShader
-    effect.lightPosition = Offset(10f, 20f)
+    effect.lightPosition = exactLightAlignment(Offset(10f, 20f))
     waitForIdle()
 
     assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
@@ -897,7 +898,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     )
     specularIntensity = 1f
     ambientResponse = 0.5f
-    lightPosition = Offset(60f, 60f)
+    lightPosition = Alignment.Center
   }
 
   private fun retainedBlurEffect(
