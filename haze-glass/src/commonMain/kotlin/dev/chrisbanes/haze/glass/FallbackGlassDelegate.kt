@@ -290,7 +290,7 @@ private fun DrawScope.drawFallbackEdge(
   }
 }
 
-internal fun fallbackEdgeAlpha(ambientResponse: Float): Float = 0.18f * ambientResponse.coerceIn(0f, 1f)
+internal fun fallbackEdgeAlpha(ambientResponse: Float): Float = 0.18f * ambientResponse
 
 private data class FallbackGlassPreparedDraw(
   val size: Size,

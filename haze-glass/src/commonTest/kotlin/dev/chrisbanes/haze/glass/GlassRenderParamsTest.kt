@@ -370,19 +370,19 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun resolvedStyle_canonicalizesAllScalarsEquallyAcrossPrecedenceLevels() {
+  fun resolvedStyle_propagatesValidBoundariesEquallyAcrossPrecedenceLevels() {
     val inheritedStyle = GlassStyle {
-      specularIntensity(2f)
-      ambientResponse(-1f)
-      specularExponent(-1f)
-      fresnelExponent(-1f)
-      alpha(2f)
-      contrast(2f)
-      whitePoint(-2f)
-      chromaMultiplier(3f)
-      edgeSoftness(Float.POSITIVE_INFINITY.dp)
-      contentNormalBlend(2f)
-      chromaticAberrationStrength(-1f)
+      specularIntensity(1f)
+      ambientResponse(0f)
+      specularExponent(Float.MAX_VALUE)
+      fresnelExponent(0f)
+      alpha(1f)
+      contrast(1f)
+      whitePoint(-1f)
+      chromaMultiplier(2f)
+      edgeSoftness(Float.MAX_VALUE.dp)
+      contentNormalBlend(1f)
+      chromaticAberrationStrength(0f)
     }
     val effects = listOf(
       GlassRuntimeEffect().apply { style = inheritedStyle },
@@ -395,12 +395,39 @@ class GlassRenderParamsTest {
     }
 
     assertThat(resolved[1]).isEqualTo(resolved[0])
+    assertThat(resolved[0].specularIntensity).isEqualTo(1f)
+    assertThat(resolved[0].ambientResponse).isEqualTo(0f)
+    assertThat(resolved[0].specularExponent).isEqualTo(Float.MAX_VALUE)
+    assertThat(resolved[0].fresnelExponent).isEqualTo(0f)
+    assertThat(resolved[0].alpha).isEqualTo(1f)
+    assertThat(resolved[0].contrast).isEqualTo(1f)
+    assertThat(resolved[0].whitePoint).isEqualTo(-1f)
+    assertThat(resolved[0].chromaMultiplier).isEqualTo(2f)
+    assertThat(resolved[0].edgeSoftnessPx).isEqualTo(Float.MAX_VALUE)
+    assertThat(resolved[0].contentNormalBlend).isEqualTo(1f)
     assertThat(resolved[0].chromaticAberrationStrength).isEqualTo(0f)
-    assertThat(resolved[0].edgeSoftnessPx).isEqualTo(GlassDefaults.edgeSoftness.value)
 
     val rect = Rect(0f, 0f, size.width, size.height)
     val bounds = effects.map { it.calculateLayerBounds(rect, density) }
     assertThat(bounds[1]).isEqualTo(bounds[0])
+  }
+
+  @Test
+  fun resolvedStyle_densityOverflowUsesSafeDefaultEdgeSoftness() {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle { edgeSoftness(Float.MAX_VALUE.dp) }
+    }
+    val density = Density(2f)
+
+    val resolved = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(100f, 80f),
+      density = density,
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    assertThat(resolved.edgeSoftnessPx)
+      .isEqualTo(with(density) { GlassDefaults.edgeSoftness.toPx() })
   }
 
   @Test
@@ -455,9 +482,9 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun preparedRender_carriesCanonicalAlphaForRuntimeDrawing() {
+  fun preparedRender_carriesValidatedAlphaForRuntimeDrawing() {
     val effect = GlassRuntimeEffect().apply {
-      style = GlassStyle { alpha(Float.POSITIVE_INFINITY) }
+      style = GlassStyle { alpha(1f) }
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -482,7 +509,7 @@ class GlassRenderParamsTest {
       outputSize = coordinates.materialSize.roundToIntSize(),
     )
 
-    assertThat(prepared.alpha).isEqualTo(GlassDefaults.alpha)
+    assertThat(prepared.alpha).isEqualTo(1f)
   }
 
   @Test
@@ -601,7 +628,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun fallbackInteractionLighting_usesRuntimeCanonicalization() {
+  fun fallbackInteractionLighting_preservesRadiusAndCanonicalizesAnimatedState() {
     val uniforms = resolveFallbackGlassInteraction(
       state = GlassInteractionRenderState(
         position = Offset(Float.NaN, Float.POSITIVE_INFINITY),
@@ -609,14 +636,12 @@ class GlassRenderParamsTest {
         refractionMultiplier = Float.POSITIVE_INFINITY,
         whitePointDelta = Float.NaN,
       ),
-      radiusFraction = Float.NaN,
+      radiusFraction = 2f,
       size = Size(100f, 80f),
     )
 
     assertThat(uniforms.position).isEqualTo(Offset(50f, 40f))
-    assertThat(uniforms.radiusPx).isEqualTo(
-      80f * GlassDefaults.interactionLightRadiusFraction,
-    )
+    assertThat(uniforms.radiusPx).isEqualTo(160f)
     assertThat(uniforms.lightingIntensity).isEqualTo(1f)
     assertThat(uniforms.refractionMultiplier).isEqualTo(1f)
     assertThat(uniforms.whitePointDelta).isEqualTo(0f)
