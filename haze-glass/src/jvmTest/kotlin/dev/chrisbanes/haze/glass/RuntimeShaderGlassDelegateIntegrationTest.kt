@@ -205,7 +205,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   @Test
   fun maximumRefraction_foregroundContentSelectsFallbackDelegate() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics.Absolute(
+      optics = GlassOptics.Fixed(
         refractionStrength = 1f,
         refractionDisplacement = 16_384.dp,
         blurRadius = 0.dp,
@@ -472,7 +472,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       mainClock.advanceTimeBy(16)
       waitForIdle()
       effect.ambientResponse = 0.6f
-      effect.optics = (effect.optics as GlassOptics.Absolute).copy(refractionDisplacement = 18.dp)
+      effect.optics = (effect.optics as GlassOptics.Fixed).copy(refractionDisplacement = 18.dp)
       waitForIdle()
 
       assertThat(delegate.interactionShaderHandle("interactionOpticalEffect"))
@@ -641,7 +641,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
     val beforeDetail = delegate.detailRecordCount
 
-    effect.optics = (effect.optics as GlassOptics.Absolute).copy(refractionDisplacement = 18.dp)
+    effect.optics = (effect.optics as GlassOptics.Fixed).copy(refractionDisplacement = 18.dp)
     waitForIdle()
 
     assertThat(delegate.detailRecordCount).isEqualTo(beforeDetail + 3)
@@ -651,7 +651,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   fun zeroRefractionScale_doesNotAllocateOrRecordDetail() = runComposeUiTest {
     val hazeState = HazeState()
     val effect = activeDetailEffect().apply {
-      optics = (optics as GlassOptics.Absolute).copy(refractionDisplacement = 0.dp)
+      optics = (optics as GlassOptics.Fixed).copy(refractionDisplacement = 0.dp)
     }
 
     setContent {
@@ -681,7 +681,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   fun epsilonRefractionStrength_doesNotAllocateOrRecordDetail() = runComposeUiTest {
     val hazeState = HazeState()
     val effect = activeDetailEffect().apply {
-      optics = (optics as GlassOptics.Absolute).copy(refractionStrength = 1e-6f)
+      optics = (optics as GlassOptics.Fixed).copy(refractionStrength = 1e-6f)
     }
 
     setContent {
@@ -704,7 +704,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   fun lowVisibleRefractionStrength_allocatesAndRecordsDetail() = runComposeUiTest {
     val hazeState = HazeState()
     val effect = activeDetailEffect().apply {
-      optics = (optics as GlassOptics.Absolute).copy(refractionStrength = .1f)
+      optics = (optics as GlassOptics.Fixed).copy(refractionStrength = .1f)
     }
 
     setContent {
@@ -822,7 +822,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val prefilterEffect = checkNotNull(delegate.layers.blurPrefiltered?.renderEffect)
     val detailEffect = checkNotNull(delegate.layers.refractionDetail?.renderEffect)
 
-    effect.optics = (effect.optics as GlassOptics.Absolute).copy(
+    effect.optics = (effect.optics as GlassOptics.Fixed).copy(
       blurRadius = 36.dp,
       refractionDisplacement = 18.dp,
     )
@@ -855,7 +855,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val horizontalEffect = checkNotNull(delegate.layers.blurHorizontal?.renderEffect)
     val verticalEffect = checkNotNull(delegate.layers.blurred?.renderEffect)
 
-    effect.optics = (effect.optics as GlassOptics.Absolute).copy(
+    effect.optics = (effect.optics as GlassOptics.Fixed).copy(
       blurRadius = 34.dp,
       progressive = HazeProgressive.verticalGradient(
         startIntensity = 0.1f,
@@ -871,7 +871,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   private fun activeDetailEffect() = GlassRuntimeEffect().apply {
-    optics = GlassOptics.Absolute(
+    optics = GlassOptics.Fixed(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
       blurRadius = 0.dp,
@@ -889,7 +889,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   private fun animatedStageEffect() = GlassRuntimeEffect().apply {
-    optics = GlassOptics.Absolute(
+    optics = GlassOptics.Fixed(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
       depth = 0.5f,
@@ -903,7 +903,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   private fun retainedBlurEffect(
     progressive: HazeProgressive? = null,
   ) = GlassRuntimeEffect().apply {
-    optics = GlassOptics.Absolute(
+    optics = GlassOptics.Fixed(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
       depth = 0.5f,

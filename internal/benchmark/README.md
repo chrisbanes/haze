@@ -17,9 +17,9 @@ Controlled Glass scenarios start from the unmodified `GlassDefaults.style`. The 
 `steadyFull3`, and `steadyFull9` benchmarks therefore use adaptive optics, the default shape, and
 all default lighting, color, and rendering values.
 
-Scenarios named after an optical change install an explicit `GlassOptics.Absolute` override for
+Scenarios named after an optical change install an explicit `GlassOptics.Fixed` override for
 that change. For example, `steadyNoBlur` disables depth and blur, while `steadyDepth50` fixes depth
-at `0.5`. `steadyProgressive` and `steadyProgressive9` use the default absolute optical values
+at `0.5`. `steadyProgressive` and `steadyProgressive9` use the default fixed optical values
 with a vertical progressive mask because adaptive optics does not expose a progressive property.
 `steadyFullChroma` and `steadyFullChroma9` retain adaptive optics and set Full chromatic aberration
 with a non-zero `0.3` strength. Other style groups remain at their defaults.

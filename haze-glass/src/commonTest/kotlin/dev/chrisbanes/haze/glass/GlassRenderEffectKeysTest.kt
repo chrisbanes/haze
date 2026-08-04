@@ -301,7 +301,7 @@ class GlassRenderEffectKeysTest {
 
   @Test
   fun defaultRefractionDetailVisibility_isFullySaturated() {
-    val regularBaseline = GlassOptics.Absolute()
+    val regularBaseline = GlassOptics.Fixed()
     assertThat(
       calculateRefractionDetailVisibility(
         refractionStrength = regularBaseline.refractionStrength,

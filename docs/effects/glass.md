@@ -35,8 +35,9 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 - **tint**: Glass tint (defaults to transparent).
 - **optics**: Optical material configuration. `GlassOptics.Adaptive` (the default) is the
   built-in Haze material; it responds to the material's size, aspect ratio, and
-  rounded geometry. Use `GlassOptics.Absolute(...)` when you need a complete literal optical
-  configuration. Its `refractionStrength`, `refractionHeightFraction`,
+  rounded geometry. Call `optics(...)` directly for an inline fixed optical configuration, or use
+  `GlassOptics.Fixed(...)` when you need to store, reuse, copy, or select the complete value. Its
+  `refractionStrength`, `refractionHeightFraction`,
   `refractionDisplacement`, `depth`, `blurRadius`, and optional `progressive` values are used
   without geometry-dependent adjustment. `refractionDisplacement` and `blurRadius` are
   density-independent `Dp`, while `refractionHeightFraction` is a unitless fraction of the
@@ -69,7 +70,7 @@ new Style.
 ```kotlin
 val baseStyle = GlassStyle {
   tint(Color.White.copy(alpha = 0.16f))
-  optics(GlassOptics.Absolute(refractionStrength = 0.8f))
+  optics(refractionStrength = 0.8f)
   shape(RoundedCornerShape(20.dp))
 }
 val emphasizedStyle = baseStyle.then { specularIntensity(0.7f) }
@@ -95,8 +96,8 @@ Box(
 ### Choosing optics
 
 Use `GlassOptics.Adaptive` for the built-in Haze material, which adapts its optical response to the
-material's size, aspect ratio, and roundness. Use `GlassOptics.Absolute` when your design needs a
-complete literal configuration instead:
+material's size, aspect ratio, and roundness. For ordinary inline fixed Style authoring, call the
+direct `optics(...)` function:
 
 ```kotlin
 GlassStyle { optics(GlassOptics.Adaptive) }
@@ -104,20 +105,33 @@ GlassStyle { optics(GlassOptics.Adaptive) }
 
 ```kotlin
 GlassStyle {
-  optics(GlassOptics.Absolute(
+  optics(
     blurRadius = 20.dp,
     refractionStrength = 0.8f,
     refractionHeightFraction = 0.3f,
     refractionDisplacement = 18.dp,
     depth = 0.5f,
-  ))
+  )
 }
 ```
 
-Absolute values are not geometry-adjusted. `refractionDisplacement` and `blurRadius` describe
-logical distances, while `refractionHeightFraction` remains relative to the material's shortest
-side. Backend sampling and kernel construction remain rendering details. `shape` and `tint` stay
-independent of the selected optics. The `shape`
+The direct function constructs `GlassOptics.Fixed`. Fixed values are not geometry-adjusted:
+`refractionStrength`, `refractionHeightFraction`, and `depth` must be finite values in `0f..1f`;
+`refractionDisplacement` and `blurRadius` must be specified, finite, non-negative `Dp`; and
+`progressive` is optional. Large logical displacement and blur distances remain valid even when a
+renderer caps effective sampling or kernel work. `refractionHeightFraction` remains relative to the
+material's shortest side.
+
+Keep a complete value when it is reused, stored, copied, or selected programmatically:
+
+```kotlin
+val reusableOptics = GlassOptics.Fixed(blurRadius = 20.dp)
+val style = GlassStyle { optics(reusableOptics) }
+```
+
+Backend sampling and kernel construction remain rendering details. `GlassOptics.Fixed` is distinct
+from `HazeSampling.Fixed(pixelFraction)`, which selects a sampling policy rather than optical
+values. `shape` and `tint` stay independent of the selected optics. The `shape`
 supplied to Glass is the authoritative material boundary. An outer `Modifier.clip()` is not visible
 to Glass and does not define its optical boundary; add one with the same shape only when child
 content also needs clipping.
@@ -158,12 +172,12 @@ You can select a literal optical configuration when the built-in material does n
 ```kotlin
 GlassStyle {
   tint(Color.White.copy(alpha = 0.20f))
-  optics(GlassOptics.Absolute(
+  optics(
     progressive = HazeProgressive.verticalGradient(
       startIntensity = 1f,
       endIntensity = 0.25f,
     ),
-  ))
+  )
 }
 ```
 
@@ -287,11 +301,11 @@ Box(
       input = HazeInput.Sources(hazeState),
       style = GlassStyle {
         tint(Color.White.copy(alpha = 0.16f))
-        optics(GlassOptics.Absolute(
+        optics(
           refractionStrength = 0.8f,
           refractionHeightFraction = 0.32f,
           depth = 0.5f,
-        ))
+        )
         specularIntensity(0.7f)
         ambientResponse(0.7f)
         edgeSoftness(14.dp)
@@ -306,8 +320,8 @@ Box(
 ## Tips
 
 - `GlassOptics.Adaptive` is the right starting point for material-like glass that should respond
-  naturally to its geometry. Use `GlassOptics.Absolute` only when you need to control the whole
-  optical configuration.
+  naturally to its geometry. Use direct `optics(...)` for inline fixed authoring and
+  `GlassOptics.Fixed` when the complete value needs to be reused or selected programmatically.
 - Keep `chromaticAberrationStrength` modest; start at 0.1-0.25 to avoid rainbow artifacts.
 - Combine `edgeSoftness` with rounded shapes for smooth clipping; set `edgeSoftness = 0.dp` to rely purely on the shape.
 - Use `SurfaceProfile.Concave` for an inward-curving bezel or `SurfaceProfile.Lip` for a raised rim effect.

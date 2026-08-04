@@ -478,12 +478,12 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun absoluteOptics_resolveSemanticValuesAcrossDensities() {
+  fun fixedOptics_resolveSemanticValuesAcrossDensities() {
     val progressive = dev.chrisbanes.haze.HazeProgressive.verticalGradient(
       startIntensity = 0f,
       endIntensity = 1f,
     )
-    val optics = GlassOptics.Absolute(
+    val optics = GlassOptics.Fixed(
       refractionStrength = 0.4f,
       refractionHeightFraction = 0.25f,
       refractionDisplacement = 15.dp,
@@ -526,7 +526,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun absoluteOptics_blurRadiusUsesCurrentPhysicalPixelCapAcrossDensities() {
+  fun fixedOptics_blurRadiusUsesCurrentPhysicalPixelCapAcrossDensities() {
     val cases = listOf(
       Triple(20.dp, Density(1f), 20f),
       Triple(14.dp, Density(2.75f), 38.5f),
@@ -536,7 +536,7 @@ class GlassRenderParamsTest {
 
     cases.forEach { (radius, density, expectedRadiusPx) ->
       val resolved = resolveGlassOptics(
-        optics = GlassOptics.Absolute(blurRadius = radius),
+        optics = GlassOptics.Fixed(blurRadius = radius),
         materialSizePx = Size(200f, 100f),
         density = density,
         cornerRadiiPx = CornerRadii.zero,
@@ -751,18 +751,18 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun absoluteLayerPadding_usesLiteralValues() {
-    val absolute = GlassOptics.Absolute(
+  fun fixedLayerPadding_usesLiteralValues() {
+    val fixed = GlassOptics.Fixed(
       blurRadius = 32.dp,
       refractionDisplacement = 15.dp,
     )
     val effect = GlassRuntimeEffect().apply {
-      optics = absolute
+      optics = fixed
     }
     val rect = Rect(0f, 0f, 200f, 100f)
 
     assertThat(effect.calculateLayerBounds(rect, Density(1f))).isEqualTo(
-      rect.inflate(32f + 15f * absolute.refractionStrength + 2f),
+      rect.inflate(32f + 15f * fixed.refractionStrength + 2f),
     )
   }
 
@@ -797,7 +797,7 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_deriveBlurSigmaFromScaledRadius() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics.Absolute(blurRadius = 20.dp)
+      optics = GlassOptics.Fixed(blurRadius = 20.dp)
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -827,7 +827,7 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_scaleResolvedOpticalDistancesExactlyOnce() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics.Absolute(
+      optics = GlassOptics.Fixed(
         refractionHeightFraction = 0.25f,
         refractionDisplacement = 12.dp,
         blurRadius = 10.dp,
@@ -860,7 +860,7 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_applyInputScaleAfterInternalOpticalClamping() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics.Absolute(refractionDisplacement = Float.MAX_VALUE.dp)
+      optics = GlassOptics.Fixed(refractionDisplacement = Float.MAX_VALUE.dp)
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -886,7 +886,7 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_zeroBlurHasZeroRadiusAndSigma() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics.Absolute(blurRadius = 0.dp)
+      optics = GlassOptics.Fixed(blurRadius = 0.dp)
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -999,7 +999,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun defaultCircleProfile_sourceDetailSupportMapsToNarrowerInBoundsOutputBand() {
-    val regularBaseline = GlassOptics.Absolute()
+    val regularBaseline = GlassOptics.Fixed()
     val detailWidthPx = calculateRefractionDetailWidthPx(
       refractionHeightPx = 100f,
       edgeSoftnessPx = 3f,
@@ -1060,14 +1060,14 @@ class GlassRenderParamsTest {
       cornerRadiiPx = CornerRadii.zero,
     )
 
-    assertThat(resolved.blurRadiusPx).isGreaterThan(GlassOptics.Absolute().blurRadius.value)
+    assertThat(resolved.blurRadiusPx).isGreaterThan(GlassOptics.Fixed().blurRadius.value)
     assertThat(padding).isEqualTo(expectedLayerPadding(effect, rect, density))
   }
 
   @Test
   fun calculateLayerBounds_zeroRefractionUsesEffectiveSemanticBlurRadiusExactly() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics.Absolute(
+      optics = GlassOptics.Fixed(
         blurRadius = 32.dp,
         refractionStrength = 0f,
         refractionDisplacement = 0.dp,
@@ -1091,7 +1091,7 @@ class GlassRenderParamsTest {
     }
     val rect = Rect(0f, 0f, 240f, 80f)
     val density = Density(1f)
-    val effectiveBlurRadius = effectiveSemanticBlurRadiusPx(GlassOptics.Absolute().blurRadius.value)
+    val effectiveBlurRadius = effectiveSemanticBlurRadiusPx(GlassOptics.Fixed().blurRadius.value)
     val expectedPadding = expectedLayerPadding(effect, rect, density)
     val cornerRadii = effect.shape.toCornerRadiiPx(
       rect.size,
@@ -1144,7 +1144,7 @@ class GlassRenderParamsTest {
   @Test
   fun calculateLayerBounds_invalidGeometryProducesFiniteInflatedBounds() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics.Absolute(
+      optics = GlassOptics.Fixed(
         blurRadius = 32.dp,
         refractionStrength = 1f,
         refractionDisplacement = 0.dp,

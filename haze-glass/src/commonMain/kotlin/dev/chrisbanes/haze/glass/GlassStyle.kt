@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.Poko
 
 /**
@@ -159,6 +160,27 @@ public class GlassStyleScope internal constructor(
   /** Sets the rounded boundary used for refraction and masking. */
   public fun shape(shape: RoundedCornerShape) {
     writes += { this.shape = shape }
+  }
+
+  /** Sets a complete fixed optical model used to refract and blur captured content. */
+  public fun optics(
+    refractionStrength: Float = 0.7f,
+    refractionHeightFraction: Float = 0.25f,
+    refractionDisplacement: Dp = 15.dp,
+    depth: Float = 1f,
+    blurRadius: Dp = 14.dp,
+    progressive: HazeProgressive? = null,
+  ) {
+    optics(
+      GlassOptics.Fixed(
+        refractionStrength = refractionStrength,
+        refractionHeightFraction = refractionHeightFraction,
+        refractionDisplacement = refractionDisplacement,
+        depth = depth,
+        blurRadius = blurRadius,
+        progressive = progressive,
+      ),
+    )
   }
 
   /** Sets the optical model used to refract and blur captured content. */

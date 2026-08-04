@@ -248,7 +248,7 @@ internal fun resolveAdaptiveGeometryOptics(
   )
 }
 
-private val AdaptiveOpticsBaseline = GlassOptics.Absolute()
+private val AdaptiveOpticsBaseline = GlassOptics.Fixed()
 
 internal data class ResolvedGlassOptics(
   val refractionStrength: Float,
@@ -269,9 +269,9 @@ internal fun resolveGlassOptics(
   density: Density,
   cornerRadiiPx: CornerRadii,
 ): ResolvedGlassOptics {
-  val absolute = when (optics) {
+  val fixed = when (optics) {
     GlassOptics.Adaptive -> AdaptiveOpticsBaseline
-    is GlassOptics.Absolute -> optics
+    is GlassOptics.Fixed -> optics
   }
   val response = when (optics) {
     GlassOptics.Adaptive -> calculateAdaptiveGeometryResponse(
@@ -279,31 +279,31 @@ internal fun resolveGlassOptics(
       density = density,
       cornerRadiiPx = cornerRadiiPx,
     )
-    is GlassOptics.Absolute -> AdaptiveGeometryResponse.Identity
+    is GlassOptics.Fixed -> AdaptiveGeometryResponse.Identity
   }
   val resolved = resolveAdaptiveGeometryOptics(
     response = response,
-    refractionStrength = absolute.refractionStrength,
+    refractionStrength = fixed.refractionStrength,
     shortestSidePx = materialSizePx.minDimension,
-    blurRadiusPx = effectiveSemanticBlurRadiusPx(with(density) { absolute.blurRadius.toPx() }),
-    refractionScalePx = with(density) { absolute.refractionDisplacement.toPx() },
-    refractionHeight = absolute.refractionHeightFraction,
+    blurRadiusPx = effectiveSemanticBlurRadiusPx(with(density) { fixed.blurRadius.toPx() }),
+    refractionScalePx = with(density) { fixed.refractionDisplacement.toPx() },
+    refractionHeight = fixed.refractionHeightFraction,
   )
   return ResolvedGlassOptics(
-    refractionStrength = absolute.refractionStrength,
+    refractionStrength = fixed.refractionStrength,
     refractionHeightPx = resolved.refractionHeightPx,
     refractionScalePx = resolved.refractionScalePx
       .coerceIn(0f, MAX_REFRACTION_DISPLACEMENT_PX)
       .finiteOrZero(),
-    depth = absolute.depth,
+    depth = fixed.depth,
     blurRadiusPx = resolved.blurRadiusPx,
     blurSigmaPx = resolved.blurSigmaPx,
-    progressive = absolute.progressive,
+    progressive = fixed.progressive,
     toneGain = resolved.toneGain,
     neutralLiftWeight = resolved.neutralLiftWeight,
     refractionDetailIntensity = when (optics) {
       GlassOptics.Adaptive -> 0f
-      is GlassOptics.Absolute -> GLASS_REFRACTION_DETAIL_INTENSITY
+      is GlassOptics.Fixed -> GLASS_REFRACTION_DETAIL_INTENSITY
     },
   )
 }

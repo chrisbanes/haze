@@ -22,14 +22,14 @@ import dev.chrisbanes.haze.glass.GlassOptics
 internal const val GLASS_PROFILING_DURATION_MILLIS: Int = 3_000
 internal const val GLASS_PROFILING_SETTLING_FRAMES: Int = 8
 
-private val ProfilingProgressiveOptics = GlassOptics.Absolute(
+private val ProfilingProgressiveOptics = GlassOptics.Fixed(
   progressive = HazeProgressive.verticalGradient(
     startIntensity = 0f,
     endIntensity = 1f,
   ),
 )
-private val ProfilingNoRefractionOptics = GlassOptics.Absolute(refractionStrength = 0f)
-private val ProfilingNoBlurOptics = GlassOptics.Absolute(depth = 0f, blurRadius = 0.dp)
+private val ProfilingNoRefractionOptics = GlassOptics.Fixed(refractionStrength = 0f)
+private val ProfilingNoBlurOptics = GlassOptics.Fixed(depth = 0f, blurRadius = 0.dp)
 
 internal enum class GlassProfilingScenario(
   val id: String,
@@ -40,7 +40,7 @@ internal enum class GlassProfilingScenario(
   val steadyDraw: Boolean = false,
   val rimEnabled: Boolean = true,
   val fixedInputPixelFraction: Float? = null,
-  val opticsOverride: GlassOptics.Absolute? = null,
+  val opticsOverride: GlassOptics.Fixed? = null,
   val fullChroma: Boolean = false,
 ) {
   EffectAttach(
@@ -134,7 +134,7 @@ internal enum class GlassProfilingScenario(
   SteadyDepth50(
     id = "steady_depth_50",
     steadyDraw = true,
-    opticsOverride = GlassOptics.Absolute(depth = 0.5f),
+    opticsOverride = GlassOptics.Fixed(depth = 0.5f),
   ),
   SteadyBalanced(
     id = "steady_balanced",
@@ -166,8 +166,8 @@ internal enum class GlassProfilingScenario(
   InteractionUpdate("interaction_update"),
   InteractionUpdate9("interaction_update_9", effectCount = 9),
   OpticalUpdate("optical_update"),
-  DepthUpdate("depth_update", opticsOverride = GlassOptics.Absolute()),
-  BlurUpdate("blur_update", opticsOverride = GlassOptics.Absolute()),
+  DepthUpdate("depth_update", opticsOverride = GlassOptics.Fixed()),
+  BlurUpdate("blur_update", opticsOverride = GlassOptics.Fixed()),
   SourceUpdate("source_update"),
   SourceUpdate9("source_update_9", effectCount = 9),
   SourceUpdateNoGlass("source_update_no_glass", glassEnabled = false),

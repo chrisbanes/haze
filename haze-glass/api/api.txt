@@ -58,16 +58,20 @@ package dev.chrisbanes.haze.glass {
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public sealed exhaustive interface GlassOptics {
   }
 
-  public static final class GlassOptics.Absolute implements dev.chrisbanes.haze.glass.GlassOptics {
-    ctor public GlassOptics.Absolute();
-    ctor @KotlinOnly public GlassOptics.Absolute(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
+  public static final class GlassOptics.Adaptive implements dev.chrisbanes.haze.glass.GlassOptics {
+    field public static final dev.chrisbanes.haze.glass.GlassOptics.Adaptive INSTANCE;
+  }
+
+  public static final class GlassOptics.Fixed implements dev.chrisbanes.haze.glass.GlassOptics {
+    ctor public GlassOptics.Fixed();
+    ctor @KotlinOnly public GlassOptics.Fixed(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
     method public float component1();
     method public float component2();
     method @KotlinOnly public operator androidx.compose.ui.unit.Dp component3();
     method public float component4();
     method @KotlinOnly public operator androidx.compose.ui.unit.Dp component5();
     method public dev.chrisbanes.haze.HazeProgressive? component6();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics.Absolute copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
+    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics.Fixed copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
     method @InaccessibleFromKotlin public float getDepth();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeProgressive? getProgressive();
     method @InaccessibleFromKotlin public float getRefractionHeightFraction();
@@ -78,10 +82,6 @@ package dev.chrisbanes.haze.glass {
     property public androidx.compose.ui.unit.Dp refractionDisplacement;
     property public float refractionHeightFraction;
     property public float refractionStrength;
-  }
-
-  public static final class GlassOptics.Adaptive implements dev.chrisbanes.haze.glass.GlassOptics {
-    field public static final dev.chrisbanes.haze.glass.GlassOptics.Adaptive INSTANCE;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public enum GlassReducedMotionPolicy {
@@ -124,6 +124,7 @@ package dev.chrisbanes.haze.glass {
     method public void interactionPositionAnimationSpec(androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> animationSpec);
     method @KotlinOnly public void lightPosition(androidx.compose.ui.geometry.Offset position);
     method public void optics(dev.chrisbanes.haze.glass.GlassOptics optics);
+    method @KotlinOnly public void optics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
     method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
     method public void shape(androidx.compose.foundation.shape.RoundedCornerShape shape);
     method public void specularExponent(float exponent);

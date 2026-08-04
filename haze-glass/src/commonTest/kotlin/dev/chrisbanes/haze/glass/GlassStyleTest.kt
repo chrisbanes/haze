@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
@@ -16,13 +17,77 @@ import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
+import assertk.assertions.messageContains
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class)
 class GlassStyleTest {
+
+  @Test
+  fun directOptics_constructsTheCompleteFixedValue() {
+    val progressive = HazeProgressive.verticalGradient()
+    val style = GlassStyle {
+      optics(
+        refractionStrength = 0.8f,
+        refractionHeightFraction = 0.4f,
+        refractionDisplacement = 24.dp,
+        depth = 0.6f,
+        blurRadius = 20.dp,
+        progressive = progressive,
+      )
+    }
+
+    assertThat(resolveGlassStyleValues(GlassStyle, style).optics).isEqualTo(
+      GlassOptics.Fixed(
+        refractionStrength = 0.8f,
+        refractionHeightFraction = 0.4f,
+        refractionDisplacement = 24.dp,
+        depth = 0.6f,
+        blurRadius = 20.dp,
+        progressive = progressive,
+      ),
+    )
+  }
+
+  @Test
+  fun directOptics_usesFixedValidation() {
+    val invalidWrites = listOf<Pair<String, GlassStyleScope.() -> Unit>>(
+      "refractionStrength" to { optics(refractionStrength = Float.NaN) },
+      "refractionHeightFraction" to { optics(refractionHeightFraction = 1.1f) },
+      "refractionDisplacement" to { optics(refractionDisplacement = Dp.Unspecified) },
+      "depth" to { optics(depth = Float.NEGATIVE_INFINITY) },
+      "blurRadius" to { optics(blurRadius = (-1).dp) },
+    )
+
+    invalidWrites.forEach { (property, write) ->
+      val failure = assertFailure { GlassStyle(write) }
+      failure.isInstanceOf<IllegalArgumentException>()
+      failure.messageContains(property)
+    }
+  }
+
+  @Test
+  fun completeOptics_preservesAdaptiveAndProgrammaticValues() {
+    val sharedFixed = GlassOptics.Fixed(depth = 0.4f)
+    val programmaticallySelected: GlassOptics = listOf(GlassOptics.Adaptive, sharedFixed).last()
+
+    val adaptive = resolveGlassStyleValues(
+      GlassStyle,
+      GlassStyle { optics(GlassOptics.Adaptive) },
+    )
+    val selected = resolveGlassStyleValues(
+      GlassStyle,
+      GlassStyle { optics(programmaticallySelected) },
+    )
+
+    assertThat(adaptive.optics).isSameInstanceAs(GlassOptics.Adaptive)
+    assertThat(selected.optics).isSameInstanceAs(sharedFixed)
+  }
 
   @Test
   fun interactionPresentation_recordsAndComposesPerProperty() {
@@ -102,7 +167,7 @@ class GlassStyleTest {
     var appendedExecutions = 0
     val base = GlassStyle {
       baseExecutions++
-      optics(GlassOptics.Absolute(depth = 0.2f))
+      optics(depth = 0.2f)
       pressed {
         lightingIntensity(0.2f)
         refractionMultiplier(1.2f)
@@ -110,7 +175,7 @@ class GlassStyleTest {
     }
     val override = GlassStyle {
       overrideExecutions++
-      optics(GlassOptics.Absolute(depth = 0.6f))
+      optics(depth = 0.6f)
       pressed { lightingIntensity(0.7f) }
     }
     val combined = base.then(override).then {
@@ -124,7 +189,7 @@ class GlassStyleTest {
     assertThat(baseExecutions).isEqualTo(1)
     assertThat(overrideExecutions).isEqualTo(1)
     assertThat(appendedExecutions).isEqualTo(1)
-    assertThat(first.optics).isEqualTo(GlassOptics.Absolute(depth = 0.6f))
+    assertThat(first.optics).isEqualTo(GlassOptics.Fixed(depth = 0.6f))
     assertThat(first.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.7f)
     assertThat(first.pressedInteraction?.refractionMultiplier).isNull()
     assertThat(first.alpha).isEqualTo(0.5f)
@@ -212,7 +277,7 @@ class GlassStyleTest {
 
   @Test
   fun staticPropertyWrites_preserveCanonicalization() {
-    val optics = GlassOptics.Absolute(refractionStrength = 0.3f)
+    val optics = GlassOptics.Fixed(refractionStrength = 0.3f)
     val shape = RoundedCornerShape(12.dp)
     val style = GlassStyle {
       shape(shape)

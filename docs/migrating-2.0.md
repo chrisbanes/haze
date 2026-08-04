@@ -201,6 +201,11 @@ inert; construct and supply a replacement Style to reflect new inputs.
 | effect-owned interaction source, transform target/pivot, and reduced-motion policy | explicit `Modifier.hazeGlass` arguments owned by each node |
 | implicit source/content | explicit `HazeInput.Sources` or `HazeInput.Content` |
 | raw optical displacement/caps | semantic `GlassOptics` and `Dp` controls |
+| `GlassOptics.Absolute` | `GlassOptics.Fixed`; this is a hard rename with no alias or compatibility bridge |
+
+For ordinary inline fixed Style authoring, pass the complete fixed parameter set directly to
+`optics(...)`. The complete-value overload remains available for `GlassOptics.Adaptive`, reusable
+fixed values, copies, storage, and programmatic selection.
 
 Write each property through the Style scope, then pass the Style and structural policies to
 `hazeGlass`:
@@ -209,10 +214,8 @@ Write each property through the Style scope, then pass the Style and structural 
 val glassStyle = GlassStyle {
   tint(Color.White.copy(alpha = 0.12f))
   optics(
-    GlassOptics.Absolute(
-      refractionStrength = 0.7f,
-      depth = 0.4f,
-    ),
+    refractionStrength = 0.7f,
+    depth = 0.4f,
   )
   specularIntensity(0.4f)
   edgeSoftness(12.dp)
