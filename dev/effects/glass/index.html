@@ -1422,24 +1422,42 @@ not add click handling, focusability, semantics, or keyboard/D-pad activation.</
 <p>Declare only the states and response channels the material needs. To make focus and keyboard/D-pad
 activation useful, retain one <code>MutableInteractionSource</code> and share it with both the glass effect
 and your behavior modifiers:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">MutableInteractionSource</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">interactionStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">hovered</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">0.35f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="n">focused</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">0.35f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">1f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">refractionMultiplier</span><span class="p">(</span><span class="m">1.08f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">whitePointDelta</span><span class="p">(</span><span class="m">0.04f</span><span class="p">)</span>
+<span class="w">    </span><span class="n">scale</span><span class="p">(</span><span class="m">0.98f</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">interactionLightRadiusFraction</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span>
+<span class="w">  </span><span class="n">interactionPositionAnimationSpec</span><span class="p">(</span>
+<span class="w">    </span><span class="n">spring</span><span class="p">(</span><span class="n">dampingRatio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span><span class="w"> </span><span class="n">stiffness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Spring</span><span class="p">.</span><span class="na">StiffnessMedium</span><span class="p">),</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="kd">val</span><span class="w"> </span><span class="nv">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">remember</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">MutableInteractionSource</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 
 <span class="n">Modifier</span>
 <span class="w">  </span><span class="p">.</span><span class="na">clickable</span><span class="p">(</span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span><span class="w"> </span><span class="n">indication</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">onClick</span><span class="p">()</span><span class="w"> </span><span class="p">}</span>
 <span class="w">  </span><span class="p">.</span><span class="na">focusable</span><span class="p">(</span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">)</span>
 <span class="w">  </span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionStyle</span><span class="p">,</span>
 <span class="w">    </span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span>
-<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">hovered</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">0.35f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
-<span class="w">      </span><span class="n">focused</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">0.35f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
-<span class="w">      </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">lightingIntensity</span><span class="p">(</span><span class="m">1f</span><span class="p">)</span>
-<span class="w">        </span><span class="n">scale</span><span class="p">(</span><span class="m">0.98f</span><span class="p">)</span>
-<span class="w">      </span><span class="p">}</span>
-<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="n">interactionTransformTarget</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassTransformTarget</span><span class="p">.</span><span class="na">MaterialAndContent</span><span class="p">,</span>
+<span class="w">    </span><span class="n">interactionTransformPivot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassTransformPivot</span><span class="p">.</span><span class="na">Pointer</span><span class="p">,</span>
+<span class="w">    </span><span class="n">interactionReducedMotionPolicy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassReducedMotionPolicy</span><span class="p">.</span><span class="na">System</span><span class="p">,</span>
 <span class="w">  </span><span class="p">)</span>
 </code></pre></div>
+<p>Hover, focus, and press responses, the localized-light radius, and light-position animation are
+presentation. They travel with <code>GlassStyle</code>, compose through <code>LocalGlassStyle</code> and <code>then</code>, and can
+be reused across nodes. Each consuming node still owns its <code>InteractionSource</code>, transform target,
+transform pivot, reduced-motion policy, geometry, animation state, controller, renderer, and
+platform resources. Sharing <code>interactionStyle</code> therefore shares appearance without coupling
+interaction signals or runtime state. Replace the Style to update presentation on the existing
+renderer; replace modifier mechanics to reconfigure only that node.</p>
 <p>Custom blocks replace that state's preset from identity. Resolve each property with fixed
 precedence: focused, then hovered, then pressed. Use <code>animate(toSpec, fromSpec)</code> inside a custom
 block to own the arrival and departure animation specs respectively; entering or replacement uses
@@ -1458,11 +1476,13 @@ block to own the arrival and departure animation specs respectively; entering or
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>The <code>interactionTransformTarget</code> argument selects whether a response transforms only the material
-or the material and content. <code>interactionTransformPivot</code> selects <code>Pointer</code> or <code>Center</code>. Omit a
-state block from a replacement Style to remove it. <code>GlassReducedMotionPolicy.System</code> follows the
-available system duration scale, <code>Reduced</code> snaps lighting and optics while suppressing transforms,
-and <code>Full</code> forces motion.</p>
+<p>The node-owned <code>interactionTransformTarget</code> argument selects whether a response transforms only
+the material or the material and content. <code>interactionTransformPivot</code> selects <code>Pointer</code> or
+<code>Center</code>. Omit a state block from a replacement Style to remove it.
+<code>GlassReducedMotionPolicy.System</code> follows the available system duration scale, <code>Reduced</code> snaps
+lighting and optics while suppressing transforms, and <code>Full</code> forces motion. The
+<code>GlassInteractionScope</code> receiver is sealed and implemented by Haze; it is a declaration DSL, not a
+consumer implementation point.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>

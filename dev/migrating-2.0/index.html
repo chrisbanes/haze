@@ -1485,16 +1485,32 @@ inert; construct and supply a replacement Style to reflect new inputs.</p>
 <td>declarative <code>hovered</code>, <code>focused</code>, and <code>pressed</code> blocks; omit blocks in a replacement Style</td>
 </tr>
 <tr>
+<td><code>Modifier.hazeGlass(interactionLightRadiusFraction = value)</code></td>
+<td><code>GlassStyle { interactionLightRadiusFraction(value) }</code></td>
+</tr>
+<tr>
+<td><code>Modifier.hazeGlass(interactionPositionAnimationSpec = spec)</code></td>
+<td><code>GlassStyle { interactionPositionAnimationSpec(spec) }</code></td>
+</tr>
+<tr>
 <td><code>GlassDefaults.hoverAnimationSpec</code>, <code>pressAnimationSpec</code>, <code>releaseAnimationSpec</code></td>
 <td>explicit <code>animate(toSpec, fromSpec) { … }</code> declarations</td>
+</tr>
+<tr>
+<td>consumer implementation of <code>GlassInteractionScope</code></td>
+<td>removed; the sealed receiver is implemented by Haze and used only as the interaction-response DSL</td>
 </tr>
 <tr>
 <td><code>GlassStyleConfiguration</code>, <code>GlassRenderer</code>, <code>GlassRendererCache</code>, retained-output methods, delegate and lifecycle hooks</td>
 <td>no public replacement; each <code>hazeGlass</code> node owns and disposes these internal resources</td>
 </tr>
 <tr>
-<td>effect-owned interaction controls</td>
-<td>typed modifier arguments</td>
+<td>effect-owned hover, focus, press, light-radius, and light-position animation presentation</td>
+<td>property writes inside <code>GlassStyle { … }</code></td>
+</tr>
+<tr>
+<td>effect-owned interaction source, transform target/pivot, and reduced-motion policy</td>
+<td>explicit <code>Modifier.hazeGlass</code> arguments owned by each node</td>
 </tr>
 <tr>
 <td>implicit source/content</td>
@@ -1519,6 +1535,8 @@ inert; construct and supply a replacement Style to reflect new inputs.</p>
 <span class="w">  </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.4f</span><span class="p">)</span>
 <span class="w">  </span><span class="n">edgeSoftness</span><span class="p">(</span><span class="m">12.</span><span class="n">dp</span><span class="p">)</span>
 <span class="w">  </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">scale</span><span class="p">(</span><span class="m">0.98f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="n">interactionLightRadiusFraction</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span>
+<span class="w">  </span><span class="n">interactionPositionAnimationSpec</span><span class="p">(</span><span class="n">spring</span><span class="p">())</span>
 <span class="p">}</span>
 
 <span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
@@ -1526,8 +1544,17 @@ inert; construct and supply a replacement Style to reflect new inputs.</p>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">glassStyle</span><span class="p">,</span>
 <span class="w">  </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span>
+<span class="w">  </span><span class="n">interactionTransformTarget</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassTransformTarget</span><span class="p">.</span><span class="na">MaterialOnly</span><span class="p">,</span>
+<span class="w">  </span><span class="n">interactionTransformPivot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassTransformPivot</span><span class="p">.</span><span class="na">Pointer</span><span class="p">,</span>
+<span class="w">  </span><span class="n">interactionReducedMotionPolicy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassReducedMotionPolicy</span><span class="p">.</span><span class="na">System</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
+<p>Interaction presentation composes with the rest of <code>GlassStyle</code> and can be shared. The modifier
+arguments above remain per-node mechanics: sharing a Style never shares signals, geometry,
+animation state, controllers, renderers, retained layers, or platform resources. Replacing a Style
+updates presentation on the existing renderer; replacing mechanics updates only that modifier
+node.</p>
 <h3 id="position-and-geometry">Position and geometry<a class="headerlink" href="#position-and-geometry" title="Permanent link">¶</a></h3>
 <p>Source areas, coordinates, captured layers, windows, and position strategy are no longer public.
 Custom renderers receive semantic modifier bounds through <code>HazeEffectDrawScope</code> and
