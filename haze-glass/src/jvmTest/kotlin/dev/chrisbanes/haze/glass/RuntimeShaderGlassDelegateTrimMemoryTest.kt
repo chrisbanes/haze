@@ -767,10 +767,8 @@ private fun GlassRuntimeEffect.configuration(): GlassNodeConfiguration =
   GlassNodeConfiguration(
     style = style,
     interactionSource = interactionSource,
-    interactionLightRadiusFraction = interactionLightRadiusFraction,
     interactionTransformTarget = interactionTransformTarget,
     interactionTransformPivot = interactionTransformPivot,
-    interactionPositionAnimationSpec = interactionPositionAnimationSpec,
     interactionReducedMotionPolicy = interactionReducedMotionPolicy,
   )
 

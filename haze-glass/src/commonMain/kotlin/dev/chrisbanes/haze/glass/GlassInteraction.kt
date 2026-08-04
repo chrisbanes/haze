@@ -39,10 +39,15 @@ public enum class GlassReducedMotionPolicy {
   Full,
 }
 
-/** Declares the visual response for one Glass interaction state. */
+/**
+ * Declares the visual response for one Glass interaction state.
+ *
+ * This sealed receiver is implemented by Haze and is a declaration DSL, not a consumer
+ * implementation point. Each node evaluates recorded declarations into node-owned runtime state.
+ */
 @ExperimentalHazeApi
 @GlassStyleDsl
-public interface GlassInteractionScope {
+public sealed interface GlassInteractionScope {
   /** Sets the lighting multiplier in the range `0f..1f`. */
   public fun lightingIntensity(intensity: Float)
 

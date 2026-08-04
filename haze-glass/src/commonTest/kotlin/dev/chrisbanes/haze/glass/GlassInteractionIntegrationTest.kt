@@ -220,10 +220,8 @@ class GlassInteractionIntegrationTest : ContextTest() {
     sampling = HazeSampling.Default,
     expandLayerBounds = true,
     interactionSource = effect.interactionSource,
-    interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
     interactionTransformTarget = effect.interactionTransformTarget,
     interactionTransformPivot = effect.interactionTransformPivot,
-    interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
     interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
   )
 

@@ -337,7 +337,9 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val effect = animatedStageEffect().apply {
         interactionSource = callerInteractionSource
         shape = callerShape
-        interactionPositionAnimationSpec = callerPositionAnimationSpec
+        style = GlassStyle {
+          interactionPositionAnimationSpec(callerPositionAnimationSpec)
+        }
       }
       val attached = mutableStateOf(true)
       setContent {
@@ -831,8 +833,10 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
         whitePointDelta(0.04f)
       }
     }
-    interactionLightRadiusFraction = 0.25f
-    interactionPositionAnimationSpec = tween(1)
+    style = GlassStyle {
+      interactionLightRadiusFraction(0.25f)
+      interactionPositionAnimationSpec(tween(1))
+    }
     interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
   }
 
@@ -981,14 +985,12 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     return hazeGlass(
       factory = factory,
       input = input,
-      style = GlassStyle,
+      style = effect.style,
       sampling = HazeSampling.FullResolution,
       expandLayerBounds = true,
       interactionSource = effect.interactionSource,
-      interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
       interactionTransformTarget = effect.interactionTransformTarget,
       interactionTransformPivot = effect.interactionTransformPivot,
-      interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
       interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
     )
   }

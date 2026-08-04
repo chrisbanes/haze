@@ -147,10 +147,8 @@ internal class GlassRuntimeEffect() :
   private fun applyConfiguration(configuration: GlassNodeConfiguration) {
     style = configuration.style
     interactionSource = configuration.interactionSource
-    interactionLightRadiusFraction = configuration.interactionLightRadiusFraction
     interactionTransformTarget = configuration.interactionTransformTarget
     interactionTransformPivot = configuration.interactionTransformPivot
-    interactionPositionAnimationSpec = configuration.interactionPositionAnimationSpec
     interactionReducedMotionPolicy = configuration.interactionReducedMotionPolicy
   }
 

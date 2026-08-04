@@ -245,6 +245,8 @@ internal class GlassInteractionController(
     val previous = this.configuration
     this.configuration = configuration
     val forceFullMotionChanged = previous.forceFullMotion != configuration.forceFullMotion
+    val positionAnimationSpecChanged =
+      previous.positionAnimationSpec != configuration.positionAnimationSpec
     retarget(
       previousSlots = previous.slots,
       nextSlots = configuration.slots,
@@ -252,7 +254,7 @@ internal class GlassInteractionController(
       nextSignals = signals,
       restartForMotionPolicy = forceFullMotionChanged,
     )
-    if (forceFullMotionChanged && positionJob?.isActive == true) {
+    if ((forceFullMotionChanged || positionAnimationSpecChanged) && positionJob?.isActive == true) {
       retargetPosition(positionTarget, force = true)
     }
     if (!previous.reducedMotion && configuration.reducedMotion) {

@@ -17,10 +17,10 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 @ExperimentalHazeApi
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object GlassDefaults {
-  /** Default light radius as a fraction of the material's shortest side. */
+  /** Default light radius recorded by [style] as a fraction of the material's shortest side. */
   public const val interactionLightRadiusFraction: Float = 0.7f
 
-  /** Default animation used when the interaction light moves to a new position. */
+  /** Default animation recorded by [style] when the interaction light moves to a new position. */
   public val positionAnimationSpec: FiniteAnimationSpec<Offset> = spring(
     dampingRatio = 1f,
     stiffness = Spring.StiffnessMedium,
@@ -80,6 +80,8 @@ public object GlassDefaults {
    * Glass evaluates this Style before [LocalGlassStyle] and an explicit modifier Style.
    */
   public val style: GlassStyle = GlassStyle {
+    interactionLightRadiusFraction(interactionLightRadiusFraction)
+    interactionPositionAnimationSpec(positionAnimationSpec)
     tint(tint)
     shape(shape)
     optics(optics)

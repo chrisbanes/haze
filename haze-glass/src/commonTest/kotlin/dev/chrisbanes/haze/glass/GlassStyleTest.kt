@@ -9,9 +9,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
@@ -21,6 +23,49 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class)
 class GlassStyleTest {
+
+  @Test
+  fun interactionPresentation_recordsAndComposesPerProperty() {
+    val localPositionSpec = tween<Offset>(100)
+    val explicitPositionSpec = tween<Offset>(200)
+    val local = GlassStyle {
+      hovered { lightingIntensity(0.1f) }
+      focused { lightingIntensity(0.2f) }
+      pressed { lightingIntensity(0.3f) }
+      interactionLightRadiusFraction(0.8f)
+      interactionPositionAnimationSpec(localPositionSpec)
+    }
+    val explicit = GlassStyle {
+      hovered { lightingIntensity(0.4f) }
+      interactionLightRadiusFraction(0.9f)
+    }.then {
+      focused { lightingIntensity(0.5f) }
+      interactionPositionAnimationSpec(explicitPositionSpec)
+    }
+
+    val defaults = resolveGlassStyleValues(GlassStyle, GlassStyle)
+    val resolved = resolveGlassStyleValues(local, explicit)
+
+    assertThat(defaults.interactionLightRadiusFraction)
+      .isEqualTo(GlassDefaults.interactionLightRadiusFraction)
+    assertThat(defaults.interactionPositionAnimationSpec)
+      .isEqualTo(GlassDefaults.positionAnimationSpec)
+    assertThat(resolved.hoveredInteraction?.lightingIntensity?.value).isEqualTo(0.4f)
+    assertThat(resolved.focusedInteraction?.lightingIntensity?.value).isEqualTo(0.5f)
+    assertThat(resolved.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.3f)
+    assertThat(resolved.interactionLightRadiusFraction).isEqualTo(0.9f)
+    assertThat(resolved.interactionPositionAnimationSpec).isEqualTo(explicitPositionSpec)
+  }
+
+  @Test
+  fun interactionLightRadiusFraction_rejectsInvalidValues() {
+    listOf(Float.NaN, Float.NEGATIVE_INFINITY, -0.1f, 2.1f, Float.POSITIVE_INFINITY)
+      .forEach { invalid ->
+        assertFailure {
+          GlassStyle { interactionLightRadiusFraction(invalid) }
+        }.isInstanceOf<IllegalArgumentException>()
+      }
+  }
 
   @Test
   fun construction_recordsWritesOnceAndResolutionCreatesFreshValues() {

@@ -84,7 +84,7 @@ class GlassInteractionControllerTest : ContextTest() {
     mainClock.autoAdvance = false
     val effect = GlassRuntimeEffect().apply {
       testPressResponse()
-      interactionPositionAnimationSpec = tween(1_000)
+      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
     }
     setContent {
       Box(Modifier.size(100.dp).testGlass(effect))
@@ -835,9 +835,40 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun controller_inFlightPositionRestartsWhenAnimationSpecChanges() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      testPressResponse()
+      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+    }
+    setContent {
+      Box(Modifier.size(100.dp).testGlass(effect))
+    }
+    waitForIdle()
+    val controller = checkNotNull(runtime(effect).interactionControllerForTest)
+    mainClock.autoAdvance = false
+
+    controller.updatePosition(Offset(100f, 100f))
+    mainClock.advanceTimeBy(200)
+    val positionBeforeSpecChange = controller.renderState.position.x
+    assertThat(positionBeforeSpecChange).isGreaterThan(50f)
+    assertThat(positionBeforeSpecChange).isLessThan(100f)
+
+    controller.updateConfiguration(
+      controller.configurationForTest.copy(positionAnimationSpec = tween(100)),
+    )
+
+    assertThat(controller.renderState.position.x).isEqualTo(positionBeforeSpecChange)
+    mainClock.advanceTimeBy(50)
+    assertThat(controller.renderState.position.x).isGreaterThan(positionBeforeSpecChange)
+    assertThat(controller.renderState.position.x).isLessThan(100f)
+    mainClock.advanceTimeBy(70)
+    assertThat(controller.renderState.position.x).isEqualTo(100f)
+  }
+
+  @Test
   fun controller_inFlightSystemAnimationRestartsWhenPolicyChangesToFull() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
-      interactionPositionAnimationSpec = tween(200)
+      style = GlassStyle { interactionPositionAnimationSpec(tween(200)) }
       pressed {
         animate(tween(200), tween(200)) { lightingIntensity(1f) }
       }
@@ -871,7 +902,7 @@ class GlassInteractionControllerTest : ContextTest() {
   fun controller_inFlightFullAnimationRestartsWhenPolicyChangesToSystem() = runComposeUiTest {
     val effect = GlassRuntimeEffect().apply {
       interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
-      interactionPositionAnimationSpec = tween(200)
+      style = GlassStyle { interactionPositionAnimationSpec(tween(200)) }
       pressed {
         animate(tween(200), tween(200)) { lightingIntensity(1f) }
       }
@@ -929,10 +960,8 @@ class GlassInteractionControllerTest : ContextTest() {
       GlassNodeConfiguration(
         style = effect.style,
         interactionSource = effect.interactionSource,
-        interactionLightRadiusFraction = effect.interactionLightRadiusFraction,
         interactionTransformTarget = effect.interactionTransformTarget,
         interactionTransformPivot = effect.interactionTransformPivot,
-        interactionPositionAnimationSpec = effect.interactionPositionAnimationSpec,
         interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
       )
     }
@@ -947,10 +976,8 @@ class GlassInteractionControllerTest : ContextTest() {
       sampling = HazeSampling.Default,
       expandLayerBounds = true,
       interactionSource = configuration.interactionSource,
-      interactionLightRadiusFraction = configuration.interactionLightRadiusFraction,
       interactionTransformTarget = configuration.interactionTransformTarget,
       interactionTransformPivot = configuration.interactionTransformPivot,
-      interactionPositionAnimationSpec = configuration.interactionPositionAnimationSpec,
       interactionReducedMotionPolicy = configuration.interactionReducedMotionPolicy,
     )
   }
@@ -959,10 +986,8 @@ class GlassInteractionControllerTest : ContextTest() {
     val configuration = GlassNodeConfiguration(
       style = this.style,
       interactionSource = this.interactionSource,
-      interactionLightRadiusFraction = this.interactionLightRadiusFraction,
       interactionTransformTarget = this.interactionTransformTarget,
       interactionTransformPivot = this.interactionTransformPivot,
-      interactionPositionAnimationSpec = this.interactionPositionAnimationSpec,
       interactionReducedMotionPolicy = this.interactionReducedMotionPolicy,
     )
     update(

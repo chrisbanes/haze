@@ -210,6 +210,21 @@ activation useful, retain one `MutableInteractionSource` and share it with both 
 and your behavior modifiers:
 
 ```kotlin
+val interactionStyle = GlassStyle {
+  hovered { lightingIntensity(0.35f) }
+  focused { lightingIntensity(0.35f) }
+  pressed {
+    lightingIntensity(1f)
+    refractionMultiplier(1.08f)
+    whitePointDelta(0.04f)
+    scale(0.98f)
+  }
+  interactionLightRadiusFraction(0.7f)
+  interactionPositionAnimationSpec(
+    spring(dampingRatio = 1f, stiffness = Spring.StiffnessMedium),
+  )
+}
+
 val interactionSource = remember { MutableInteractionSource() }
 
 Modifier
@@ -217,17 +232,21 @@ Modifier
   .focusable(interactionSource = interactionSource)
   .hazeGlass(
     input = HazeInput.Sources(hazeState),
+    style = interactionStyle,
     interactionSource = interactionSource,
-    style = GlassStyle {
-      hovered { lightingIntensity(0.35f) }
-      focused { lightingIntensity(0.35f) }
-      pressed {
-        lightingIntensity(1f)
-        scale(0.98f)
-      }
-    },
+    interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
+    interactionTransformPivot = GlassTransformPivot.Pointer,
+    interactionReducedMotionPolicy = GlassReducedMotionPolicy.System,
   )
 ```
+
+Hover, focus, and press responses, the localized-light radius, and light-position animation are
+presentation. They travel with `GlassStyle`, compose through `LocalGlassStyle` and `then`, and can
+be reused across nodes. Each consuming node still owns its `InteractionSource`, transform target,
+transform pivot, reduced-motion policy, geometry, animation state, controller, renderer, and
+platform resources. Sharing `interactionStyle` therefore shares appearance without coupling
+interaction signals or runtime state. Replace the Style to update presentation on the existing
+renderer; replace modifier mechanics to reconfigure only that node.
 
 Custom blocks replace that state's preset from identity. Resolve each property with fixed
 precedence: focused, then hovered, then pressed. Use `animate(toSpec, fromSpec)` inside a custom
@@ -250,11 +269,13 @@ GlassStyle {
 }
 ```
 
-The `interactionTransformTarget` argument selects whether a response transforms only the material
-or the material and content. `interactionTransformPivot` selects `Pointer` or `Center`. Omit a
-state block from a replacement Style to remove it. `GlassReducedMotionPolicy.System` follows the
-available system duration scale, `Reduced` snaps lighting and optics while suppressing transforms,
-and `Full` forces motion.
+The node-owned `interactionTransformTarget` argument selects whether a response transforms only
+the material or the material and content. `interactionTransformPivot` selects `Pointer` or
+`Center`. Omit a state block from a replacement Style to remove it.
+`GlassReducedMotionPolicy.System` follows the available system duration scale, `Reduced` snaps
+lighting and optics while suppressing transforms, and `Full` forces motion. The
+`GlassInteractionScope` receiver is sealed and implemented by Haze; it is a declaration DSL, not a
+consumer implementation point.
 
 ## Usage
 
