@@ -107,10 +107,8 @@ val compact = HazeMaterials.thin().then {
 }
 ```
 
-Every evaluation starts from fresh defaults. If a replacement Style omits `blurRadius`, the local
-or default value becomes visible immediately; the previous explicit value cannot stick. A Style
-can be shared by concurrent modifiers because it contains no renderer, delegate, cache, retained
-layer, or lifecycle state.
+If a replacement Style omits `blurRadius`, the local or default value becomes visible again. Styles
+are immutable and safe to share; create a replacement Style when the appearance needs to change.
 
 Caller-owned color-effect lists are snapshotted when the Style is created. An explicit empty list
 clears inherited color effects:
@@ -163,16 +161,10 @@ Modifier.hazeBlur(
 )
 ```
 
-- `HazeSampling.Default` points to the library's current default policy, which is `Adaptive`.
-- `HazeSampling.Adaptive` uses Blur's adaptive policy.
+- `HazeSampling.Default` and `Adaptive` let Blur balance quality and cost automatically.
 - `HazeSampling.FullResolution` disables input downscaling.
 - `HazeSampling.Fixed(pixelFraction)` retains a fixed fraction of the full-resolution input pixels
-  in `0 < pixelFraction <= 1`; `0.5` scales each dimension by approximately `0.707`.
+  when you need a predictable trade-off.
 
-Adaptive Blur considers the physical Blur radius, expanded capture-layer area, and recent distinct
-input-update cadence, with hysteresis between its quality tiers.
-
-## Temporary legacy boundary
-
-`BlurVisualEffect`, `HazeEffectScope.blurEffect`, and the lambda-based `hazeEffect` overloads remain
-temporarily available for staged migration. New code should use `hazeBlur` and replayable Styles.
+Start with the default. Override it only after comparing visual quality and performance on the
+devices you support.

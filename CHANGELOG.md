@@ -26,12 +26,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GlassRendererCache`, `GlassStyleConfiguration`, grouped `GlassLighting`/`GlassColor`/
   `GlassRendering` values, `GlassStyle.Unspecified`, and the public hover/press/release animation
   defaults are removed. Declare response channels and animation specs explicitly in `GlassStyle`.
+  `GlassOptics.Absolute` is renamed to `GlassOptics.Fixed`, `lightPosition` now accepts semantic
+  `Alignment` rather than pixel `Offset`, and interaction-light radius and position animation move
+  from modifier arguments into the Style.
 
 ### Added
 
 - Added declarative hover, focus, and press responses to `GlassStyle`, including localized lighting
   and optics plus configurable transforms and motion on `Modifier.hazeGlass`.
 - Added progressive blur support to Glass.
+- Added direct fixed-optics authoring through `GlassStyle { optics(...) }`; keep
+  `GlassOptics.Fixed` for reusable or programmatically selected values in
+  [#1192](https://github.com/chrisbanes/haze/pull/1192).
 
 ### Changed
 
@@ -39,12 +45,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `HazeBlurStyle.Unspecified`, and `HazeBlurDefaults.style(...)` builder as warning-level,
   source-only migration shims. They preserve legacy sentinel behavior and will be removed before
   Haze 2.0 stable; they do not provide binary compatibility with the former Style class.
-- Blur effects now adapt `HazeSampling.Adaptive` between `1.0`, `0.8`, and `0.5` using physical
-  blur radius, expanded capture-layer area, and recent update cadence, with hysteresis and a `0.8`
-  progressive-blur cap. Glass now uses the same adaptive default mode with effect-specific tiers.
+- Blur and Glass now use workload-aware adaptive sampling by default. Explicit sampling choices
+  still take precedence in
+  [#1189](https://github.com/chrisbanes/haze/pull/1189).
+- `GlassStyle` is now immutable, composable with `then`, and reusable across modifiers. Interaction
+  appearance now belongs to the Style, while interaction behavior remains on the modifier in
+  [#1190](https://github.com/chrisbanes/haze/pull/1190) and
+  [#1191](https://github.com/chrisbanes/haze/pull/1191).
+- Glass light positions now use semantic `Alignment` in
+  [#1193](https://github.com/chrisbanes/haze/pull/1193).
+- One portable Glass Style now works across platforms, with graceful fallback for unsupported
+  optics in
+  [#1194](https://github.com/chrisbanes/haze/pull/1194).
+- Invalid Glass configuration now fails when the Style or fixed optics are created in
+  [#1195](https://github.com/chrisbanes/haze/pull/1195).
 - Changed Glass blur composition so blur participates in refracted content.
-- Use one Android Glass output renderer per surface, independent of sibling count, while preserving
-  semantic blur, progressive masks, Full chromatic aberration, and configured interactions.
+- Improved Android Glass performance for screens with multiple effects without changing configured
+  appearance or interaction.
 - Moved `HazeProgressive` to the core `dev.chrisbanes.haze` package with a deprecated blur-package typealias.
 
 ### Fixed

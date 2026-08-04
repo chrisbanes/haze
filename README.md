@@ -34,11 +34,22 @@ dependencies {
 ## Quick start
 
 ```kotlin
-Modifier.hazeEffect(state = hazeState) {
-    blurEffect {
-        blurRadius = 20.dp
-        colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.5f)))
-    }
+val hazeState = rememberHazeState()
+
+Box {
+    Image(
+        painter = painter,
+        contentDescription = null,
+        modifier = Modifier.hazeSource(hazeState),
+    )
+    Box(
+        modifier = Modifier
+            .matchParentSize()
+            .hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                style = HazeBlurStyle { blurRadius(20.dp) },
+            ),
+    )
 }
 ```
 
