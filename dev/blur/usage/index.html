@@ -549,17 +549,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#temporary-legacy-boundary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Temporary legacy boundary
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -735,34 +724,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../glass/performance/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Performance
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -803,9 +764,20 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../performance/" class="md-nav__link">
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
@@ -819,7 +791,79 @@
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../glass/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1122,17 +1166,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#temporary-legacy-boundary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Temporary legacy boundary
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1238,10 +1271,8 @@ override that decision, write <code>blurEnabled</code> in a Style:</p>
 <span class="w">  </span><span class="n">noiseFactor</span><span class="p">(</span><span class="m">0f</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Every evaluation starts from fresh defaults. If a replacement Style omits <code>blurRadius</code>, the local
-or default value becomes visible immediately; the previous explicit value cannot stick. A Style
-can be shared by concurrent modifiers because it contains no renderer, delegate, cache, retained
-layer, or lifecycle state.</p>
+<p>If a replacement Style omits <code>blurRadius</code>, the local or default value becomes visible again. Styles
+are immutable and safe to share; create a replacement Style when the appearance needs to change.</p>
 <p>Caller-owned color-effect lists are snapshotted when the Style is created. An explicit empty list
 clears inherited color effects:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">noColorEffects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
@@ -1279,17 +1310,13 @@ clears inherited color effects:</p>
 <span class="p">)</span>
 </code></pre></div>
 <ul>
-<li><code>HazeSampling.Default</code> points to the library's current default policy, which is <code>Adaptive</code>.</li>
-<li><code>HazeSampling.Adaptive</code> uses Blur's adaptive policy.</li>
+<li><code>HazeSampling.Default</code> and <code>Adaptive</code> let Blur balance quality and cost automatically.</li>
 <li><code>HazeSampling.FullResolution</code> disables input downscaling.</li>
 <li><code>HazeSampling.Fixed(pixelFraction)</code> retains a fixed fraction of the full-resolution input pixels
-  in <code>0 &lt; pixelFraction &lt;= 1</code>; <code>0.5</code> scales each dimension by approximately <code>0.707</code>.</li>
+  when you need a predictable trade-off.</li>
 </ul>
-<p>Adaptive Blur considers the physical Blur radius, expanded capture-layer area, and recent distinct
-input-update cadence, with hysteresis between its quality tiers.</p>
-<h2 id="temporary-legacy-boundary">Temporary legacy boundary<a class="headerlink" href="#temporary-legacy-boundary" title="Permanent link">¶</a></h2>
-<p><code>BlurVisualEffect</code>, <code>HazeEffectScope.blurEffect</code>, and the lambda-based <code>hazeEffect</code> overloads remain
-temporarily available for staged migration. New code should use <code>hazeBlur</code> and replayable Styles.</p></div>
+<p>Start with the default. Override it only after comparing visual quality and performance on the
+devices you support.</p></div>
 
 
 

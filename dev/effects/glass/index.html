@@ -18,7 +18,7 @@
         <link rel="prev" href="../../blur/platforms/">
       
       
-        <link rel="next" href="../../glass/performance/">
+        <link rel="next" href="../../custom-effects/">
       
       
         
@@ -726,7 +726,7 @@
   <a href="#retained-output" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Retained Output
+        Retained output
       
     </span>
   </a>
@@ -802,34 +802,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../glass/performance/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Performance
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -870,9 +842,20 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../../performance/" class="md-nav__link">
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
@@ -886,7 +869,79 @@
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../glass/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1200,7 +1255,7 @@
   <a href="#retained-output" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Retained Output
+        Retained output
       
     </span>
   </a>
@@ -1306,24 +1361,15 @@ repository and use the same snapshot version for both artifacts:</p>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="built-in-material">Built-in material<a class="headerlink" href="#built-in-material" title="Permanent link">¶</a></h3>
-<p>The default material uses Haze's geometry-aware Adaptive optics. Small surfaces retain a clearer,
-more refractive edge treatment, while larger surfaces converge toward a calmer base response.
-Aspect ratio and roundness make small bounded adjustments without changing the material boundary.
-Adaptive content behavior, interaction-driven deformation, and morphing are unsupported.</p>
+<p>Start with the default <code>GlassOptics.Adaptive</code> material. It adjusts to the surface's size and shape,
+which makes it a good fit for reusable components. Choose fixed optics only when the design needs
+the same values at every size.</p>
 <h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>tint</strong>: Glass tint (defaults to transparent).</li>
 <li><strong>optics</strong>: Optical material configuration. <code>GlassOptics.Adaptive</code> (the default) is the
-  built-in Haze material; it responds to the material's size, aspect ratio, and
-  rounded geometry. Call <code>optics(...)</code> directly for an inline fixed optical configuration, or use
-  <code>GlassOptics.Fixed(...)</code> when you need to store, reuse, copy, or select the complete value. Its
-  <code>refractionStrength</code>, <code>refractionHeightFraction</code>,
-  <code>refractionDisplacement</code>, <code>depth</code>, <code>blurRadius</code>, and optional <code>progressive</code> values are used
-  without geometry-dependent adjustment. <code>refractionDisplacement</code> and <code>blurRadius</code> are
-  density-independent <code>Dp</code>, while <code>refractionHeightFraction</code> is a unitless fraction of the
-  material's shortest side. <code>progressive</code> accepts
-  <code>HazeProgressive.verticalGradient</code>, <code>horizontalGradient</code>, <code>HazeProgressive.RadialGradient</code>,
-  or <code>forShader</code> to vary blur radius across the glass surface.</li>
+  recommended starting point. Call <code>optics(...)</code> for an inline fixed configuration, or keep a
+  <code>GlassOptics.Fixed</code> value when it needs to be reused or selected programmatically.</li>
 <li><strong>specularIntensity</strong>: Highlight strength <code>0..1</code> (default 0.4).</li>
 <li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.46).</li>
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.</li>
@@ -1335,79 +1381,15 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 <li><strong>chromaticAberrationMode</strong>: Quality mode for chromatic aberration. <code>Simple</code> (default, fast) or <code>Full</code> (spectral, more expensive).</li>
 <li><strong>alpha</strong>: Overall opacity multiplier <code>0..1</code> (default 1).</li>
 </ul>
-<p>All direct Glass numbers fail fast at value or Style construction. Invalid inputs throw
-<code>IllegalArgumentException</code> with a message shaped as <code>&lt;property&gt; must be &lt;accepted domain&gt;</code>; they
-are not clamped by Style resolution or a renderer.</p>
-<table>
-<thead>
-<tr>
-<th>Public input</th>
-<th>Accepted domain and sentinel policy</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>refractionStrength</code>, <code>refractionHeightFraction</code>, <code>depth</code></td>
-<td>finite <code>0f..1f</code></td>
-</tr>
-<tr>
-<td><code>refractionDisplacement</code>, <code>blurRadius</code></td>
-<td>specified, finite, non-negative <code>Dp</code>; no authored upper limit</td>
-</tr>
-<tr>
-<td><code>specularIntensity</code>, <code>ambientResponse</code>, <code>chromaticAberrationStrength</code>, <code>alpha</code>, <code>contentNormalBlend</code></td>
-<td>finite <code>0f..1f</code></td>
-</tr>
-<tr>
-<td><code>contrast</code>, <code>whitePoint</code></td>
-<td>finite <code>-1f..1f</code></td>
-</tr>
-<tr>
-<td><code>chromaMultiplier</code>, <code>interactionLightRadiusFraction</code></td>
-<td>finite <code>0f..2f</code></td>
-</tr>
-<tr>
-<td><code>edgeSoftness</code></td>
-<td>specified, finite, non-negative <code>Dp</code>; no authored upper limit</td>
-</tr>
-<tr>
-<td><code>specularExponent</code>, <code>fresnelExponent</code></td>
-<td>finite and non-negative; no authored upper limit</td>
-</tr>
-<tr>
-<td><code>tint</code></td>
-<td>any specified <code>Color</code>, including transparent; <code>Color.Unspecified</code> is rejected</td>
-</tr>
-<tr>
-<td>known <code>lightPosition</code> biases</td>
-<td>finite horizontal and vertical axes; finite values outside <code>-1f..1f</code> are accepted</td>
-</tr>
-<tr>
-<td>interaction <code>lightingIntensity</code>, <code>refractionMultiplier</code>, <code>whitePointDelta</code></td>
-<td>finite <code>0f..1f</code>, <code>0f..2f</code>, and <code>-1f..1f</code>, respectively</td>
-</tr>
-<tr>
-<td>interaction <code>scale</code>, <code>scaleX</code>, <code>scaleY</code></td>
-<td>finite <code>0f &lt; value &lt;= 1f</code></td>
-</tr>
-</tbody>
-</table>
-<p>The direct six-parameter <code>optics(...)</code> function constructs <code>GlassOptics.Fixed</code>, so both routes have
-identical failures. <code>progressive = null</code> intentionally means no progressive blur. <code>GlassOptics</code>,
-<code>RoundedCornerShape</code>, <code>FiniteAnimationSpec</code>, <code>HazeProgressive</code>, arbitrary custom <code>Alignment</code>, and
-<code>HazeSampling</code> otherwise retain their owning contracts; Glass does not inspect opaque
-implementations. In particular, <code>HazeSampling.Fixed</code> already validates its finite
-<code>0f &lt; pixelFraction &lt;= 1f</code> value before the modifier receives it.</p>
+<p>Glass validates configuration when a Style or <code>GlassOptics.Fixed</code> value is created instead of
+silently correcting it later. Validate or clamp values from user input and remote data before
+building the Style. The generated API reference documents the accepted range for each property.</p>
 <h2 id="glassstyle">GlassStyle<a class="headerlink" href="#glassstyle" title="Permanent link">¶</a></h2>
-<p><code>GlassStyle</code> is an opaque, immutable sequence of appearance writes. Its builder executes once when
-the Style is constructed, validating and recording each value. Compose Styles with the
-intrinsic <code>then</code> members; later writes win. A Style can be shared by any number of <code>hazeGlass</code>
-nodes: each node replays defaults, <code>LocalGlassStyle</code>, and its explicit Style into its own snapshot
-without rerunning caller code.</p>
-<p>Values captured while constructing a Style are frozen into those writes. Mutating captured state
-does not update attached nodes; construct and supply a replacement Style through recomposition to
-change their appearance. Replacement also removes properties and interaction blocks omitted by the
-new Style.</p>
+<p><code>GlassStyle</code> is immutable and safe to share. Build a base Style, use <code>then</code> for variations, and
+provide a replacement Style through recomposition when the appearance changes. Values omitted by
+the replacement fall back to <code>LocalGlassStyle</code> and then <code>GlassDefaults.style</code>.</p>
+<p>A Style captures its inputs when it is constructed. Changing captured state does not update an
+existing Style; construct and provide a replacement instead.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">baseStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">)</span>
@@ -1416,31 +1398,25 @@ new Style.</p>
 <span class="kd">val</span><span class="w"> </span><span class="nv">emphasizedStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">baseStyle</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">specularIntensity</span><span class="p">(</span><span class="m">0.7f</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 
 <span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalGlassStyle</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">baseStyle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// Each node gets a fresh snapshot; an explicit Style is applied last.</span>
+<span class="w">  </span><span class="c1">// Use baseStyle as the default for Glass in this subtree.</span>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="light-alignment">Light alignment<a class="headerlink" href="#light-alignment" title="Permanent link">¶</a></h3>
-<p>Light position is authored semantically with Compose <code>Alignment</code> and resolved independently for
-each node. A shared Style therefore places <code>Alignment.Center</code> at the center of every consuming
-material, even when their measured sizes differ. Logical alignments such as <code>Alignment.TopStart</code>,
-<code>Alignment.CenterStart</code>, and <code>Alignment.CenterEnd</code> automatically follow LTR or RTL layout direction;
-use physical alignments only when that is the intended semantic.</p>
+<p>Use Compose <code>Alignment</code> values so lighting adapts to each surface. Logical alignments such as
+<code>Alignment.CenterStart</code> and <code>Alignment.CenterEnd</code> also follow LTR or RTL layout direction.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">sharedLighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">lightPosition</span><span class="p">(</span><span class="n">Alignment</span><span class="p">.</span><span class="na">CenterStart</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Use <code>BiasAlignment</code> for a continuously moving proportional light. Biases <code>-1f</code>, <code>0f</code>, and <code>1f</code>
-represent the start/top edge, center, and end/bottom edge respectively, and values outside that
-range place the virtual light beyond the material bounds. Both bias axes must be finite.
-<code>BiasAbsoluteAlignment</code> follows the same finite-axis rule without RTL mirroring. Arbitrary custom
-<code>Alignment</code> implementations are accepted unchanged and evaluated only at layout resolution.</p>
+<p>Use <code>BiasAlignment</code> when the light needs a continuous proportional position rather than a named
+alignment.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">movingLighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">lightPosition</span><span class="p">(</span><span class="n">BiasAlignment</span><span class="p">(</span><span class="n">horizontalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span><span class="w"> </span><span class="n">verticalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="m">0.6f</span><span class="p">))</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="default-style">Default style<a class="headerlink" href="#default-style" title="Permanent link">¶</a></h2>
-<p><code>GlassDefaults.style</code> uses the built-in Haze <code>GlassOptics.Adaptive</code> material and is replayed
-before <code>LocalGlassStyle</code> and the modifier's explicit Style.</p>
+<p><code>GlassDefaults.style</code> uses <code>GlassOptics.Adaptive</code>. Use <code>LocalGlassStyle</code> to set a default for a
+subtree, and pass an explicit Style when one element needs to differ.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
@@ -1463,27 +1439,20 @@ direct <code>optics(...)</code> function:</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>The direct function constructs <code>GlassOptics.Fixed</code>. Fixed values are not geometry-adjusted:
-<code>refractionStrength</code>, <code>refractionHeightFraction</code>, and <code>depth</code> must be finite values in <code>0f..1f</code>;
-<code>refractionDisplacement</code> and <code>blurRadius</code> must be specified, finite, non-negative <code>Dp</code>; and
-<code>progressive</code> is optional. Large logical displacement and blur distances remain valid even when a
-renderer caps effective sampling or kernel work. <code>refractionHeightFraction</code> remains relative to the
-material's shortest side.</p>
+<p>Fixed optics use the values you provide at every surface size. This is useful for art-directed
+components, but Adaptive is usually the better default for reusable layouts.</p>
 <p>Keep a complete value when it is reused, stored, copied, or selected programmatically:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">reusableOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">reusableOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
-<p>Backend sampling and kernel construction remain rendering details. <code>GlassOptics.Fixed</code> is distinct
-from <code>HazeSampling.Fixed(pixelFraction)</code>, which selects a sampling policy rather than optical
-values. <code>shape</code> and <code>tint</code> stay independent of the selected optics. The <code>shape</code>
-supplied to Glass is the authoritative material boundary. An outer <code>Modifier.clip()</code> is not visible
-to Glass and does not define its optical boundary; add one with the same shape only when child
-content also needs clipping.</p>
-<h3 id="retained-output">Retained Output<a class="headerlink" href="#retained-output" title="Permanent link">¶</a></h3>
+<p><code>GlassOptics.Fixed</code> controls the appearance; <code>HazeSampling.Fixed</code> controls the rendering trade-off.
+The <code>shape</code> supplied to Glass defines its material boundary. Add an outer <code>Modifier.clip()</code> with
+the same shape only when child content also needs clipping.</p>
+<h3 id="retained-output">Retained output<a class="headerlink" href="#retained-output" title="Permanent link">¶</a></h3>
 <p>Glass can retain and redraw its last captured output when all source areas disappear. This
 keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.
-The typed modifier preserves Glass's default retained-output policy. Keep source ownership explicit
-with <code>HazeInput.Sources</code> so transitions are visible at the call site:</p>
+Keep the default for smooth transitions, and keep source ownership explicit with
+<code>HazeInput.Sources</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>
 <span class="w">    </span><span class="p">.</span><span class="na">size</span><span class="p">(</span><span class="m">180.</span><span class="n">dp</span><span class="p">)</span>
@@ -1515,18 +1484,15 @@ of retaining pixels when the source disappears:</p>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="fallbacks">Fallbacks<a class="headerlink" href="#fallbacks" title="Permanent link">¶</a></h2>
-<p>Author one final <code>GlassStyle</code> for every platform. Haze replays that same Style unchanged into the
-private renderer it selects. Selection is automatic when preferred rendering is unavailable,
-cannot be constructed, or exceeds the render budget; application code does not query capabilities
-or provide a second fallback Style.</p>
-<p>The full runtime renderer consumes every supported authored channel. The limited fallback has this
-deterministic degradation contract:</p>
+<p>Use one <code>GlassStyle</code> on every platform. Haze chooses the available implementation automatically, so
+applications do not need capability checks or a second fallback Style.</p>
+<p>Fallback rendering keeps the material recognizable but may simplify advanced optics:</p>
 <table>
 <thead>
 <tr>
 <th>Authored behavior</th>
-<th>Full runtime renderer</th>
-<th>Limited fallback renderer</th>
+<th>Preferred rendering</th>
+<th>Fallback</th>
 </tr>
 </thead>
 <tbody>
@@ -1546,9 +1512,9 @@ deterministic degradation contract:</p>
 <td>Approximated as an aligned radial highlight</td>
 </tr>
 <tr>
-<td>Interaction lighting and node transform</td>
+<td>Interaction lighting and transforms</td>
 <td>Preserved</td>
-<td>Preserved, with localized foreground lighting and the shared transform</td>
+<td>Preserved</td>
 </tr>
 <tr>
 <td>Fixed or Adaptive refraction, blur, and progressive optics</td>
@@ -1556,7 +1522,7 @@ deterministic degradation contract:</p>
 <td>Omitted</td>
 </tr>
 <tr>
-<td>Chromatic aberration, surface profile, and full color-adjustment math</td>
+<td>Chromatic aberration, surface profile, and advanced color adjustments</td>
 <td>Preserved</td>
 <td>Omitted</td>
 </tr>
@@ -1567,18 +1533,12 @@ deterministic degradation contract:</p>
 </tr>
 </tbody>
 </table>
-<p>On Android API 33 and newer, the full single-output renderer handles single and multiple effects,
-semantic and progressive blur, Full chromatic aberration, sharp-source refraction detail, and
-configured interaction optics. Unsupported fallback channels are safe no-ops; supported tint,
-aligned lighting, interaction lighting, and transforms remain observable.</p>
+<p>Do not make essential meaning depend on refraction or chromatic aberration alone, because those
+details may be omitted by a fallback.</p>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">¶</a></h2>
-<p>On the modern Android path, every Glass effect composes a blurred optical branch and sharp-source
-detail branch into one retained output per surface. Renderer selection does not depend on sibling
-count. Progressive blur and Full chromatic aberration remain in the same native effect graph,
-while live interaction values update locally weighted math without allocating retained detail
-layers. See
-<a href="../../glass/performance/">Glass performance</a> for the physical-device benchmark setup, results, and
-Perfetto interpretation.</p>
+<p>Start with adaptive sampling and tune only after measuring a representative screen. The
+<a href="../../glass/performance/">Glass performance guide</a> explains which Glass-specific workloads and
+interactions to test.</p>
 <h2 id="interaction">Interaction<a class="headerlink" href="#interaction" title="Permanent link">¶</a></h2>
 <p>Glass interaction is default-disabled and entirely opt-in. It adds a visual response only: it does
 not add click handling, focusability, semantics, or keyboard/D-pad activation.</p>
@@ -1626,17 +1586,10 @@ and your behavior modifiers:</p>
 <span class="w">    </span><span class="n">interactionReducedMotionPolicy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassReducedMotionPolicy</span><span class="p">.</span><span class="na">System</span><span class="p">,</span>
 <span class="w">  </span><span class="p">)</span>
 </code></pre></div>
-<p>Hover, focus, and press responses, the localized-light radius, and light-position animation are
-presentation. They travel with <code>GlassStyle</code>, compose through <code>LocalGlassStyle</code> and <code>then</code>, and can
-be reused across nodes. Each consuming node still owns its <code>InteractionSource</code>, transform target,
-transform pivot, reduced-motion policy, geometry, animation state, controller, renderer, and
-platform resources. Sharing <code>interactionStyle</code> therefore shares appearance without coupling
-interaction signals or runtime state. Replace the Style to update presentation on the existing
-renderer; replace modifier mechanics to reconfigure only that node.</p>
-<p>Custom blocks replace that state's preset from identity. Resolve each property with fixed
-precedence: focused, then hovered, then pressed. Use <code>animate(toSpec, fromSpec)</code> inside a custom
-block to own the arrival and departure animation specs respectively; entering or replacement uses
-<code>toSpec</code>, while departing uses <code>fromSpec</code>.</p>
+<p>Keep the visual response in <code>GlassStyle</code>, and pass each element's interaction source and behavior
+options to <code>hazeGlass</code>. The same Style can be reused without sharing interaction state.</p>
+<p>When states overlap, pressed takes priority over hovered, which takes priority over focused. Use
+<code>animate(toSpec, fromSpec)</code> when arrival and departure need different motion.</p>
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">pressed</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">animate</span><span class="p">(</span>
@@ -1651,13 +1604,11 @@ block to own the arrival and departure animation specs respectively; entering or
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>The node-owned <code>interactionTransformTarget</code> argument selects whether a response transforms only
-the material or the material and content. <code>interactionTransformPivot</code> selects <code>Pointer</code> or
-<code>Center</code>. Omit a state block from a replacement Style to remove it.
+<p><code>interactionTransformTarget</code> selects whether a response transforms only the material or also its
+content. <code>interactionTransformPivot</code> selects <code>Pointer</code> or <code>Center</code>. Omit a state block from a
+replacement Style to remove it.
 <code>GlassReducedMotionPolicy.System</code> follows the available system duration scale, <code>Reduced</code> snaps
-lighting and optics while suppressing transforms, and <code>Full</code> forces motion. The
-<code>GlassInteractionScope</code> receiver is sealed and implemented by Haze; it is a declaration DSL, not a
-consumer implementation point.</p>
+lighting and optics while suppressing transforms, and <code>Full</code> forces motion.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">¶</a></h2>
 <div class="highlight"><pre><span></span><code><span class="n">Box</span><span class="p">(</span>
 <span class="w">  </span><span class="n">Modifier</span>

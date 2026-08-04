@@ -592,34 +592,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../glass/performance/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Performance
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -660,9 +632,20 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../performance/" class="md-nav__link">
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
@@ -676,7 +659,79 @@
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glass/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -7786,13 +7841,19 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   <code>GlassVisualEffect</code>, <code>glassEffect</code>, the old <code>hazeGlass</code> overload, <code>GlassRenderer</code>,
   <code>GlassRendererCache</code>, <code>GlassStyleConfiguration</code>, grouped <code>GlassLighting</code>/<code>GlassColor</code>/
   <code>GlassRendering</code> values, <code>GlassStyle.Unspecified</code>, and the public hover/press/release animation
-  defaults are removed. Declare response channels and animation specs explicitly in <code>GlassStyle</code>.</li>
+  defaults are removed. Declare response channels and animation specs explicitly in <code>GlassStyle</code>.
+  <code>GlassOptics.Absolute</code> is renamed to <code>GlassOptics.Fixed</code>, <code>lightPosition</code> now accepts semantic
+  <code>Alignment</code> rather than pixel <code>Offset</code>, and interaction-light radius and position animation move
+  from modifier arguments into the Style.</li>
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
 <li>Added declarative hover, focus, and press responses to <code>GlassStyle</code>, including localized lighting
   and optics plus configurable transforms and motion on <code>Modifier.hazeGlass</code>.</li>
 <li>Added progressive blur support to Glass.</li>
+<li>Added direct fixed-optics authoring through <code>GlassStyle { optics(...) }</code>; keep
+  <code>GlassOptics.Fixed</code> for reusable or programmatically selected values in
+  <a href="https://github.com/chrisbanes/haze/pull/1192">#1192</a>.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">¶</a></h3>
 <ul>
@@ -7800,12 +7861,23 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   <code>HazeBlurStyle.Unspecified</code>, and <code>HazeBlurDefaults.style(...)</code> builder as warning-level,
   source-only migration shims. They preserve legacy sentinel behavior and will be removed before
   Haze 2.0 stable; they do not provide binary compatibility with the former Style class.</li>
-<li>Blur effects now adapt <code>HazeSampling.Adaptive</code> between <code>1.0</code>, <code>0.8</code>, and <code>0.5</code> using physical
-  blur radius, expanded capture-layer area, and recent update cadence, with hysteresis and a <code>0.8</code>
-  progressive-blur cap. Glass now uses the same adaptive default mode with effect-specific tiers.</li>
+<li>Blur and Glass now use workload-aware adaptive sampling by default. Explicit sampling choices
+  still take precedence in
+  <a href="https://github.com/chrisbanes/haze/pull/1189">#1189</a>.</li>
+<li><code>GlassStyle</code> is now immutable, composable with <code>then</code>, and reusable across modifiers. Interaction
+  appearance now belongs to the Style, while interaction behavior remains on the modifier in
+  <a href="https://github.com/chrisbanes/haze/pull/1190">#1190</a> and
+  <a href="https://github.com/chrisbanes/haze/pull/1191">#1191</a>.</li>
+<li>Glass light positions now use semantic <code>Alignment</code> in
+  <a href="https://github.com/chrisbanes/haze/pull/1193">#1193</a>.</li>
+<li>One portable Glass Style now works across platforms, with graceful fallback for unsupported
+  optics in
+  <a href="https://github.com/chrisbanes/haze/pull/1194">#1194</a>.</li>
+<li>Invalid Glass configuration now fails when the Style or fixed optics are created in
+  <a href="https://github.com/chrisbanes/haze/pull/1195">#1195</a>.</li>
 <li>Changed Glass blur composition so blur participates in refracted content.</li>
-<li>Use one Android Glass output renderer per surface, independent of sibling count, while preserving
-  semantic blur, progressive masks, Full chromatic aberration, and configured interactions.</li>
+<li>Improved Android Glass performance for screens with multiple effects without changing configured
+  appearance or interaction.</li>
 <li>Moved <code>HazeProgressive</code> to the core <code>dev.chrisbanes.haze</code> package with a deprecated blur-package typealias.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>

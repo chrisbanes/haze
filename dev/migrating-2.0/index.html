@@ -592,34 +592,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../glass/performance/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Performance
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -660,9 +632,20 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../performance/" class="md-nav__link">
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
@@ -676,7 +659,79 @@
   
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glass/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1432,48 +1487,23 @@ the canonical defaults first and guarding its overrides in the same way:</p>
 <span class="p">)</span>
 </code></pre></div>
 <p><code>HazeSampling.Default</code> points to <code>Adaptive</code> for both Blur and Glass. Use <code>Adaptive</code> to pin that
-policy explicitly, or use <code>FullResolution</code> or <code>Fixed(pixelFraction)</code> to override it. A fixed value
-is a fraction of total input pixels rather than a per-dimension scale, so <code>Fixed(0.5f)</code> scales each
-dimension by approximately <code>0.707</code>.</p>
+policy explicitly, <code>FullResolution</code> when fidelity is the priority, or <code>Fixed(pixelFraction)</code> for an
+explicit trade-off.</p>
 <h2 id="lifecycle-and-sharing">Lifecycle and sharing<a class="headerlink" href="#lifecycle-and-sharing" title="Permanent link">¶</a></h2>
-<p>A Style can be shared by any number of modifiers. Each modifier creates its own Blur runtime,
-delegate, cache, retained layers, platform resources, and adaptive-sampling history. Recomposition
-replaces the complete Style on the existing runtime; detachment releases only that node's
-resources.</p>
+<p>Styles are immutable and safe to share. Supply a replacement Style through recomposition when the
+appearance changes.</p>
 <h2 id="other-haze-2-migrations">Other Haze 2 migrations<a class="headerlink" href="#other-haze-2-migrations" title="Permanent link">¶</a></h2>
 <p>The typed Blur API does not change the other Haze 2 migrations.</p>
 <h3 id="glass-migration">Glass migration<a class="headerlink" href="#glass-migration" title="Permanent link">¶</a></h3>
-<p>Glass also has a typed modifier and an opaque, replayable <code>GlassStyle</code>. Replace the complete Style
-through recomposition; do not mutate an effect, use sentinel patches, <code>copy</code>, or <code>clear*</code> calls.
-The <code>GlassStyle</code> builder executes once during construction and records immutable, validated
-writes. Resolution never reruns the builder, so mutating state captured by an unchanged Style is
-inert; construct and supply a replacement Style to reflect new inputs.</p>
+<p>Glass also has a typed modifier and an immutable <code>GlassStyle</code>. Replace the Style through
+recomposition instead of mutating an effect or using sentinel patches, <code>copy</code>, or <code>clear*</code> calls.
+Use <code>then</code> to build variations from a shared base Style.</p>
 <p>Keep one final <code>GlassStyle</code> for all platforms. Remove renderer-capability checks, platform-specific
-Style variants, and secondary fallback Styles: <code>hazeGlass</code> selects its private renderer
-automatically, replaying the same Style while limited renderers approximate supported appearance
-and omit unsupported optics.</p>
-<p>Glass numeric authoring now fails fast. Values that older Style or renderer paths clamped,
-normalized, or replaced now throw <code>IllegalArgumentException</code> when <code>GlassOptics.Fixed</code> or
-<code>GlassStyle</code> is constructed. This includes non-finite values; out-of-domain ratios, adjustments,
-multipliers, exponents, and scales; negative or unspecified distances; <code>Color.Unspecified</code>; and
-non-finite axes on <code>BiasAlignment</code> or <code>BiasAbsoluteAlignment</code>. Direct <code>optics(...)</code> uses the same
-<code>GlassOptics.Fixed</code> validation and messages as complete-value construction.</p>
-<p>If an application intentionally wants clamping, make that policy explicit before authoring the
-Style:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">safeAlpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">requestedAlpha</span><span class="p">.</span><span class="na">coerceIn</span><span class="p">(</span><span class="m">0f</span><span class="p">,</span><span class="w"> </span><span class="m">1f</span><span class="p">)</span>
-<span class="n">require</span><span class="p">(</span><span class="n">requestedEdgeSoftness</span><span class="p">.</span><span class="na">isSpecified</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">requestedEdgeSoftness</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">isFinite</span><span class="p">())</span>
-<span class="kd">val</span><span class="w"> </span><span class="nv">safeEdgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">requestedEdgeSoftness</span><span class="p">.</span><span class="na">coerceAtLeast</span><span class="p">(</span><span class="m">0.</span><span class="n">dp</span><span class="p">)</span>
-
-<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">alpha</span><span class="p">(</span><span class="n">safeAlpha</span><span class="p">)</span>
-<span class="w">  </span><span class="n">edgeSoftness</span><span class="p">(</span><span class="n">safeEdgeSoftness</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
-<p>Otherwise validate upstream and surface the invalid configuration. Large finite non-negative
-distances and exponents remain valid; renderer physical caps do not become authoring limits.
-<code>progressive = null</code> remains intentional, arbitrary custom <code>Alignment</code> and opaque shape/animation/
-progressive implementations keep their owning contracts, and modifier sampling continues to be
-validated by <code>HazeSampling.Fixed</code> (<code>0f &lt; pixelFraction &lt;= 1f</code>).</p>
+Style variants, and secondary fallback Styles. Haze selects the available implementation and
+gracefully simplifies unsupported optics.</p>
+<p>Invalid Glass values now fail when the Style or <code>GlassOptics.Fixed</code> value is created instead of
+being corrected later. Validate or clamp external values before building the Style. See the
+generated API reference for property-specific ranges.</p>
 <table>
 <thead>
 <tr>
@@ -1524,11 +1554,11 @@ validated by <code>HazeSampling.Fixed</code> (<code>0f &lt; pixelFraction &lt;= 
 </tr>
 <tr>
 <td>consumer implementation of <code>GlassInteractionScope</code></td>
-<td>removed; the sealed receiver is implemented by Haze and used only as the interaction-response DSL</td>
+<td>removed; it is now a sealed declaration DSL implemented by Haze</td>
 </tr>
 <tr>
-<td><code>GlassStyleConfiguration</code>, <code>GlassRenderer</code>, <code>GlassRendererCache</code>, retained-output methods, delegate and lifecycle hooks</td>
-<td>no public replacement; each <code>hazeGlass</code> node owns and disposes these internal resources</td>
+<td><code>GlassStyleConfiguration</code>, <code>GlassRenderer</code>, <code>GlassRendererCache</code>, and lifecycle or retention hooks</td>
+<td>removed with no public replacement</td>
 </tr>
 <tr>
 <td>effect-owned hover, focus, press, light-radius, and light-position animation presentation</td>
@@ -1543,10 +1573,6 @@ validated by <code>HazeSampling.Fixed</code> (<code>0f &lt; pixelFraction &lt;= 
 <td>explicit <code>HazeInput.Sources</code> or <code>HazeInput.Content</code></td>
 </tr>
 <tr>
-<td>raw optical displacement/caps</td>
-<td>semantic <code>GlassOptics</code> and <code>Dp</code> controls</td>
-</tr>
-<tr>
 <td><code>GlassOptics.Absolute</code></td>
 <td><code>GlassOptics.Fixed</code>; this is a hard rename with no alias or compatibility bridge</td>
 </tr>
@@ -1556,25 +1582,12 @@ validated by <code>HazeSampling.Fixed</code> (<code>0f &lt; pixelFraction &lt;= 
 </tr>
 </tbody>
 </table>
-<p>For ordinary inline fixed Style authoring, pass the complete fixed parameter set directly to
-<code>optics(...)</code>. The complete-value overload remains available for <code>GlassOptics.Adaptive</code>, reusable
-fixed values, copies, storage, and programmatic selection.</p>
+<p>Use <code>optics(...)</code> for inline fixed values. Keep a <code>GlassOptics.Fixed</code> value when the configuration
+needs to be reused or selected programmatically.</p>
 <p>Glass light position is now an intentional source break from pixel <code>Offset</code> to semantic
-<code>Alignment</code>, with no compatibility overload. The Alignment is resolved inside each node's current
-measured bounds and layout direction. Use <code>Alignment.Center</code> (or omit the write) for the former
-<code>Offset.Unspecified</code> behavior, logical start/end alignments for directional intent, and
-<code>BiasAlignment</code> for continuous proportional positions:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">normalizedX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span>
-<span class="kd">val</span><span class="w"> </span><span class="nv">normalizedY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span>
-<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">lightPosition</span><span class="p">(</span>
-<span class="w">    </span><span class="n">BiasAlignment</span><span class="p">(</span>
-<span class="w">      </span><span class="n">horizontalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalizedX</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="m">2f</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span>
-<span class="w">      </span><span class="n">verticalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalizedY</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="m">2f</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span>
-<span class="w">    </span><span class="p">),</span>
-<span class="w">  </span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
+<code>Alignment</code>, with no compatibility overload. Use <code>Alignment.Center</code> (or omit the write) for the
+former <code>Offset.Unspecified</code> behavior, logical start/end alignments for directional intent, and
+<code>BiasAlignment</code> for continuous proportional positions.</p>
 <p>Write each property through the Style scope, then pass the Style and structural policies to
 <code>hazeGlass</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">glassStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
@@ -1601,17 +1614,12 @@ measured bounds and layout direction. Use <code>Alignment.Center</code> (or omit
 <span class="w">  </span><span class="n">interactionReducedMotionPolicy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassReducedMotionPolicy</span><span class="p">.</span><span class="na">System</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Interaction presentation composes with the rest of <code>GlassStyle</code> and can be shared. The modifier
-arguments above remain per-node mechanics: sharing a Style never shares signals, geometry,
-animation state, controllers, renderers, retained layers, or platform resources. Replacing a Style
-updates presentation on the existing renderer; replacing mechanics updates only that modifier
-node.</p>
+<p>Interaction appearance belongs in the Style and can be shared. Each element still supplies its own
+interaction source and behavior options to the modifier.</p>
 <h3 id="position-and-geometry">Position and geometry<a class="headerlink" href="#position-and-geometry" title="Permanent link">¶</a></h3>
-<p>Source areas, coordinates, captured layers, windows, and position strategy are no longer public.
-Custom renderers receive semantic modifier bounds through <code>HazeEffectDrawScope</code> and
-<code>HazeEffectLayoutScope</code>, and draw the selected input with <code>drawInput()</code>.</p>
-<p>Source-selection predicates receive only <code>HazeSourceInfo.key</code> and <code>zIndex</code>. Cross-window coordinate
-selection is handled internally by Haze.</p>
+<p>Position handling is now automatic. Source-selection predicates receive only
+<code>HazeSourceInfo.key</code> and <code>zIndex</code>; custom renderers work with modifier-relative bounds and draw the
+selected input with <code>drawInput()</code>.</p>
 <h2 id="removed-compatibility-apis">Removed compatibility APIs<a class="headerlink" href="#removed-compatibility-apis" title="Permanent link">¶</a></h2>
 <p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, <code>BlurVisualEffect</code>,
 <code>HazeEffectScope.blurEffect</code>, and the lambda-based <code>hazeEffect</code> overloads are removed. Readable
@@ -1875,14 +1883,8 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 <span class="p">)</span>
 </code></pre></div>
 <h2 id="custom-effects-and-architecture">Custom effects and architecture<a class="headerlink" href="#custom-effects-and-architecture" title="Permanent link">¶</a></h2>
-<p>Haze 2 separates typed, shareable configuration from node-owned rendering resources:</p>
-<ul>
-<li><code>HazeEffectFactory&lt;Style&gt;</code> is stateless and may be shared.</li>
-<li>Every modifier node creates its own <code>HazeEffectRenderer&lt;Style&gt;</code>.</li>
-<li>Replacing a Style reuses that renderer.</li>
-<li>Replacing the factory or detaching the node disposes its renderer exactly once.</li>
-<li>Source capture, node lifecycle, and built-in capabilities remain internal.</li>
-</ul>
+<p>Custom effects now pair a shareable <code>HazeEffectFactory&lt;Style&gt;</code> with a renderer created for each
+modifier. Keep configuration in the Style and mutable resources in the renderer.</p>
 <p>Custom typed effects use the generic modifier rather than <code>hazeBlur</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span>
 <span class="w">  </span><span class="n">factory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">myFactory</span><span class="p">,</span>
@@ -1890,6 +1892,7 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">myStyle</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
+<p>See <a href="../custom-effects/">Custom effects</a> for lifecycle and ownership guidance.</p>
 <h2 id="getting-help">Getting help<a class="headerlink" href="#getting-help" title="Permanent link">¶</a></h2>
 <ul>
 <li>Read the <a href="../blur/usage/">Blur usage guide</a>.</li>
