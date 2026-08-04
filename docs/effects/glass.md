@@ -208,12 +208,28 @@ GlassStyle {
 
 ## Fallbacks
 
-- Runtime shader path: rounded SDF refraction, tint/specular/Fresnel, chromatic aberration, and
-  edge softness. On Android API 33 and newer, one single-output renderer handles single and
-  multiple effects, semantic and progressive blur, Full chromatic aberration, sharp-source
-  refraction detail, and configured interaction optics. Interaction lighting uses a localized
-  foreground patch so that it remains above content.
-- Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable. Interaction lighting and transforms work on this path, but interactive optics, white-point adjustment, and refraction are no-ops.
+Author one final `GlassStyle` for every platform. Haze replays that same Style unchanged into the
+private renderer it selects. Selection is automatic when preferred rendering is unavailable,
+cannot be constructed, or exceeds the render budget; application code does not query capabilities
+or provide a second fallback Style.
+
+The full runtime renderer consumes every supported authored channel. The limited fallback has this
+deterministic degradation contract:
+
+| Authored behavior | Full runtime renderer | Limited fallback renderer |
+| --- | --- | --- |
+| Tint, alpha, and rounded shape | Preserved | Preserved |
+| Ambient edge response and edge softness | Preserved | Approximated as a soft rim |
+| Specular intensity and resolved light `Alignment` | Preserved | Approximated as an aligned radial highlight |
+| Interaction lighting and node transform | Preserved | Preserved, with localized foreground lighting and the shared transform |
+| Fixed or Adaptive refraction, blur, and progressive optics | Preserved | Omitted |
+| Chromatic aberration, surface profile, and full color-adjustment math | Preserved | Omitted |
+| Interaction refraction and white-point deltas | Preserved | Omitted |
+
+On Android API 33 and newer, the full single-output renderer handles single and multiple effects,
+semantic and progressive blur, Full chromatic aberration, sharp-source refraction detail, and
+configured interaction optics. Unsupported fallback channels are safe no-ops; supported tint,
+aligned lighting, interaction lighting, and transforms remain observable.
 
 ## Performance
 

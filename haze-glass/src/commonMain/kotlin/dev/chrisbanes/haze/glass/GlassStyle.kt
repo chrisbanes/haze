@@ -48,6 +48,11 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  * [GlassStyleScope.interactionPositionAnimationSpec] record reusable interaction presentation;
  * each `hazeGlass` node replays it into a fresh node-owned snapshot and owns its signals,
  * geometry, animations, pointer observation, and renderer resources.
+ *
+ * The same final Style is replayed unchanged into whichever private renderer Haze selects. Full
+ * renderers consume every supported authored channel. Limited renderers preserve supported
+ * channels, approximate supported lighting, and omit unsupported base and interaction optics.
+ * Selection is automatic; callers do not need a capability check or a second fallback Style.
  */
 @ExperimentalHazeApi
 @Immutable

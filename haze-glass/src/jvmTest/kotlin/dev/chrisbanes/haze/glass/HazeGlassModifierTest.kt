@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -32,7 +33,9 @@ import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
@@ -54,6 +57,7 @@ import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeSourceRetention
 import dev.chrisbanes.haze.HazeSourceSelection
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.TrimMemoryLevel
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.test.ContextTest
@@ -61,6 +65,103 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class HazeGlassModifierTest : ContextTest() {
+
+  @Test
+  fun portableStyle_flowsUnchangedThroughFullAndAutomaticFallbackSelection() =
+    runComposeUiTest {
+      val fixedOptics = GlassOptics.Fixed(
+        refractionStrength = 0.63f,
+        refractionHeightFraction = 0.31f,
+        refractionDisplacement = 9.dp,
+        depth = 0.72f,
+        blurRadius = 7.dp,
+      )
+      val tint = Color(0x6655AAFF)
+      val sharedStyle = GlassStyle {
+        optics(fixedOptics)
+        tint(tint)
+        specularIntensity(0.71f)
+        ambientResponse(0.23f)
+        lightPosition(Alignment.TopStart)
+        pressed {
+          lightingIntensity(0.81f)
+          refractionMultiplier(1.4f)
+          whitePointDelta(0.12f)
+          scale(0.96f)
+        }
+      }
+      var failedRuntimeCreationAttempts = 0
+      val fullFactory = RecordingGlassFactory()
+      val fallbackFactory = RecordingGlassFactory { effect ->
+        effect.runtimeEffectFactory = GlassRuntimeEffectFactory {
+          failedRuntimeCreationAttempts++
+          throw RuntimeShaderRenderEffectException(
+            IllegalArgumentException("broken runtime effect"),
+          )
+        }
+      }
+
+      setContent {
+        Box {
+          listOf(fullFactory, fallbackFactory).forEach { factory ->
+            Spacer(
+              Modifier.size(40.dp).hazeGlass(
+                factory = factory,
+                input = HazeInput.Content,
+                style = sharedStyle,
+                sampling = HazeSampling.FullResolution,
+                expandLayerBounds = true,
+                interactionSource = null,
+              ),
+            )
+          }
+        }
+      }
+      waitForIdle()
+      onRoot().captureToImage()
+
+      val full = fullFactory.effects.single().delegate
+      val fallback = fallbackFactory.effects.single().delegate
+      assertThat(full.style).isSameInstanceAs(sharedStyle)
+      assertThat(fallback.style).isSameInstanceAs(sharedStyle)
+      assertThat(full.optics).isSameInstanceAs(fixedOptics)
+      assertThat(fallback.optics).isSameInstanceAs(fixedOptics)
+      assertThat(full.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+      assertThat(fallback.delegate).isInstanceOf<FallbackGlassDelegate>()
+
+      assertThat(full.attachedContextForTest).isNotNull().given { context ->
+        assertThat(full.preparedRender?.params).isNotNull().given { params ->
+          assertThat(params.refractionStrength).isEqualTo(0.63f)
+          assertThat(params.refractionHeightPx)
+            .isEqualTo(context.modifierSize.minDimension * 0.31f)
+          assertThat(params.refractionScalePx)
+            .isEqualTo(with(context.requireDensity()) { 9.dp.toPx() })
+          assertThat(params.depth).isEqualTo(0.72f)
+          assertThat(params.blurRadiusPx)
+            .isEqualTo(with(context.requireDensity()) { 7.dp.toPx() })
+          assertThat(params.tint).isEqualTo(tint)
+          assertThat(params.specularIntensity).isEqualTo(0.71f)
+          assertThat(params.ambientResponse).isEqualTo(0.23f)
+          assertThat(params.lightPosition).isEqualTo(Offset.Zero)
+        }
+      }
+      assertThat(full.resolvedInteractionTopology)
+        .isEqualTo(
+          GlassInteractionTopology(
+            hasOptics = true,
+            hasLighting = true,
+            maxRefractionMultiplier = 1.4f,
+          ),
+        )
+      assertThat(fallback.resolvedInteractionTopology)
+        .isEqualTo(full.resolvedInteractionTopology)
+      assertThat(failedRuntimeCreationAttempts).isEqualTo(1)
+
+      onRoot().captureToImage()
+
+      assertThat(fallback.delegate).isInstanceOf<FallbackGlassDelegate>()
+      assertThat(failedRuntimeCreationAttempts).isEqualTo(1)
+    }
 
   @Test
   fun sharedLightAlignmentStyles_resolvePerNodeSizeAndLayoutDirection() = runComposeUiTest {
@@ -650,11 +751,13 @@ private class StructuralCase(
   val factory = RecordingGlassFactory()
 }
 
-private class RecordingGlassFactory : HazeEffectFactory<GlassNodeConfiguration> {
+private class RecordingGlassFactory(
+  private val configure: (GlassRuntimeEffect) -> Unit = {},
+) : HazeEffectFactory<GlassNodeConfiguration> {
   val effects = mutableListOf<RecordingGlassRuntimeEffect>()
 
   override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> {
-    return RecordingGlassRuntimeEffect(GlassRuntimeEffect()).also(effects::add)
+    return RecordingGlassRuntimeEffect(GlassRuntimeEffect().also(configure)).also(effects::add)
   }
 }
 
