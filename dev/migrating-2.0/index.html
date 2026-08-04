@@ -1524,11 +1524,31 @@ inert; construct and supply a replacement Style to reflect new inputs.</p>
 <td><code>GlassOptics.Absolute</code></td>
 <td><code>GlassOptics.Fixed</code>; this is a hard rename with no alias or compatibility bridge</td>
 </tr>
+<tr>
+<td><code>lightPosition(Offset)</code> and <code>Offset.Unspecified</code></td>
+<td><code>lightPosition(Alignment)</code>; omit the write or use <code>Alignment.Center</code> for the former automatic center</td>
+</tr>
 </tbody>
 </table>
 <p>For ordinary inline fixed Style authoring, pass the complete fixed parameter set directly to
 <code>optics(...)</code>. The complete-value overload remains available for <code>GlassOptics.Adaptive</code>, reusable
 fixed values, copies, storage, and programmatic selection.</p>
+<p>Glass light position is now an intentional source break from pixel <code>Offset</code> to semantic
+<code>Alignment</code>, with no compatibility overload. The Alignment is resolved inside each node's current
+measured bounds and layout direction. Use <code>Alignment.Center</code> (or omit the write) for the former
+<code>Offset.Unspecified</code> behavior, logical start/end alignments for directional intent, and
+<code>BiasAlignment</code> for continuous proportional positions:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">normalizedX</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">normalizedY</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.2f</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">lightPosition</span><span class="p">(</span>
+<span class="w">    </span><span class="n">BiasAlignment</span><span class="p">(</span>
+<span class="w">      </span><span class="n">horizontalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalizedX</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="m">2f</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span>
+<span class="w">      </span><span class="n">verticalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">normalizedY</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="m">2f</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="m">1f</span><span class="p">,</span>
+<span class="w">    </span><span class="p">),</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Write each property through the Style scope, then pass the Style and structural policies to
 <code>hazeGlass</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">glassStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>

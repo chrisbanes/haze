@@ -680,6 +680,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="GlassStyle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#light-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Light alignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1137,6 +1154,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="GlassStyle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#light-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Light alignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1295,7 +1329,8 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.</li>
 <li><strong>shape</strong> (<code>RoundedCornerShape</code>): Rounded-rect boundary for refraction and masking (default 16.dp corners).</li>
 <li><strong>surfaceProfile</strong>: Cross-section profile for the refraction bezel. Options: <code>Circle</code> (default), <code>Squircle</code>, <code>Lip</code>, <code>Concave</code>.</li>
-<li><strong>lightPosition</strong>: Optional light source; defaults to the layer center.</li>
+<li><strong>lightPosition</strong>: <code>Alignment</code> of the light within the material's measured bounds (default
+  <code>Alignment.Center</code>). Logical start and end follow the node's layout direction.</li>
 <li><strong>chromaticAberrationStrength</strong>: Dispersion strength <code>0..1</code> (default 0). Higher values produce prismatic color splitting at edges.</li>
 <li><strong>chromaticAberrationMode</strong>: Quality mode for chromatic aberration. <code>Simple</code> (default, fast) or <code>Full</code> (spectral, more expensive).</li>
 <li><strong>alpha</strong>: Overall opacity multiplier <code>0..1</code> (default 1).</li>
@@ -1319,6 +1354,23 @@ new Style.</p>
 
 <span class="n">CompositionLocalProvider</span><span class="p">(</span><span class="n">LocalGlassStyle</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">baseStyle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Each node gets a fresh snapshot; an explicit Style is applied last.</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="light-alignment">Light alignment<a class="headerlink" href="#light-alignment" title="Permanent link">¶</a></h3>
+<p>Light position is authored semantically with Compose <code>Alignment</code> and resolved independently for
+each node. A shared Style therefore places <code>Alignment.Center</code> at the center of every consuming
+material, even when their measured sizes differ. Logical alignments such as <code>Alignment.TopStart</code>,
+<code>Alignment.CenterStart</code>, and <code>Alignment.CenterEnd</code> automatically follow LTR or RTL layout direction;
+use physical alignments only when that is the intended semantic.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">sharedLighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">lightPosition</span><span class="p">(</span><span class="n">Alignment</span><span class="p">.</span><span class="na">CenterStart</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Use <code>BiasAlignment</code> for a continuously moving proportional light. Biases <code>-1f</code>, <code>0f</code>, and <code>1f</code>
+represent the start/top edge, center, and end/bottom edge respectively, and values outside that
+range place the virtual light beyond the material bounds.</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">movingLighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">lightPosition</span><span class="p">(</span><span class="n">BiasAlignment</span><span class="p">(</span><span class="n">horizontalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span><span class="w"> </span><span class="n">verticalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="m">0.6f</span><span class="p">))</span>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="default-style">Default style<a class="headerlink" href="#default-style" title="Permanent link">¶</a></h2>
