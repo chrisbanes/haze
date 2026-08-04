@@ -1450,14 +1450,62 @@ of retaining pixels when the source disappears:</p>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="fallbacks">Fallbacks<a class="headerlink" href="#fallbacks" title="Permanent link">¶</a></h2>
-<ul>
-<li>Runtime shader path: rounded SDF refraction, tint/specular/Fresnel, chromatic aberration, and
-  edge softness. On Android API 33 and newer, one single-output renderer handles single and
-  multiple effects, semantic and progressive blur, Full chromatic aberration, sharp-source
-  refraction detail, and configured interaction optics. Interaction lighting uses a localized
-  foreground patch so that it remains above content.</li>
-<li>Fallback path: an approximation using tinted fill, radial highlight, and a soft rim; it respects rounded shapes and alpha when runtime shader render effects are unavailable. Interaction lighting and transforms work on this path, but interactive optics, white-point adjustment, and refraction are no-ops.</li>
-</ul>
+<p>Author one final <code>GlassStyle</code> for every platform. Haze replays that same Style unchanged into the
+private renderer it selects. Selection is automatic when preferred rendering is unavailable,
+cannot be constructed, or exceeds the render budget; application code does not query capabilities
+or provide a second fallback Style.</p>
+<p>The full runtime renderer consumes every supported authored channel. The limited fallback has this
+deterministic degradation contract:</p>
+<table>
+<thead>
+<tr>
+<th>Authored behavior</th>
+<th>Full runtime renderer</th>
+<th>Limited fallback renderer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tint, alpha, and rounded shape</td>
+<td>Preserved</td>
+<td>Preserved</td>
+</tr>
+<tr>
+<td>Ambient edge response and edge softness</td>
+<td>Preserved</td>
+<td>Approximated as a soft rim</td>
+</tr>
+<tr>
+<td>Specular intensity and resolved light <code>Alignment</code></td>
+<td>Preserved</td>
+<td>Approximated as an aligned radial highlight</td>
+</tr>
+<tr>
+<td>Interaction lighting and node transform</td>
+<td>Preserved</td>
+<td>Preserved, with localized foreground lighting and the shared transform</td>
+</tr>
+<tr>
+<td>Fixed or Adaptive refraction, blur, and progressive optics</td>
+<td>Preserved</td>
+<td>Omitted</td>
+</tr>
+<tr>
+<td>Chromatic aberration, surface profile, and full color-adjustment math</td>
+<td>Preserved</td>
+<td>Omitted</td>
+</tr>
+<tr>
+<td>Interaction refraction and white-point deltas</td>
+<td>Preserved</td>
+<td>Omitted</td>
+</tr>
+</tbody>
+</table>
+<p>On Android API 33 and newer, the full single-output renderer handles single and multiple effects,
+semantic and progressive blur, Full chromatic aberration, sharp-source refraction detail, and
+configured interaction optics. Unsupported fallback channels are safe no-ops; supported tint,
+aligned lighting, interaction lighting, and transforms remain observable.</p>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">¶</a></h2>
 <p>On the modern Android path, every Glass effect composes a blurred optical branch and sharp-source
 detail branch into one retained output per surface. Renderer selection does not depend on sibling
