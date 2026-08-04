@@ -25,25 +25,16 @@ dependencies {
 
 ### Built-in material
 
-The default material uses Haze's geometry-aware Adaptive optics. Small surfaces retain a clearer,
-more refractive edge treatment, while larger surfaces converge toward a calmer base response.
-Aspect ratio and roundness make small bounded adjustments without changing the material boundary.
-Adaptive content behavior, interaction-driven deformation, and morphing are unsupported.
+Start with the default `GlassOptics.Adaptive` material. It adjusts to the surface's size and shape,
+which makes it a good fit for reusable components. Choose fixed optics only when the design needs
+the same values at every size.
 
 ## Parameters
 
 - **tint**: Glass tint (defaults to transparent).
 - **optics**: Optical material configuration. `GlassOptics.Adaptive` (the default) is the
-  built-in Haze material; it responds to the material's size, aspect ratio, and
-  rounded geometry. Call `optics(...)` directly for an inline fixed optical configuration, or use
-  `GlassOptics.Fixed(...)` when you need to store, reuse, copy, or select the complete value. Its
-  `refractionStrength`, `refractionHeightFraction`,
-  `refractionDisplacement`, `depth`, `blurRadius`, and optional `progressive` values are used
-  without geometry-dependent adjustment. `refractionDisplacement` and `blurRadius` are
-  density-independent `Dp`, while `refractionHeightFraction` is a unitless fraction of the
-  material's shortest side. `progressive` accepts
-  `HazeProgressive.verticalGradient`, `horizontalGradient`, `HazeProgressive.RadialGradient`,
-  or `forShader` to vary blur radius across the glass surface.
+  recommended starting point. Call `optics(...)` for an inline fixed configuration, or keep a
+  `GlassOptics.Fixed` value when it needs to be reused or selected programmatically.
 - **specularIntensity**: Highlight strength `0..1` (default 0.4).
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.46).
 - **edgeSoftness**: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.
@@ -55,43 +46,18 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 - **chromaticAberrationMode**: Quality mode for chromatic aberration. `Simple` (default, fast) or `Full` (spectral, more expensive).
 - **alpha**: Overall opacity multiplier `0..1` (default 1).
 
-All direct Glass numbers fail fast at value or Style construction. Invalid inputs throw
-`IllegalArgumentException` with a message shaped as `<property> must be <accepted domain>`; they
-are not clamped by Style resolution or a renderer.
-
-| Public input | Accepted domain and sentinel policy |
-| --- | --- |
-| `refractionStrength`, `refractionHeightFraction`, `depth` | finite `0f..1f` |
-| `refractionDisplacement`, `blurRadius` | specified, finite, non-negative `Dp`; no authored upper limit |
-| `specularIntensity`, `ambientResponse`, `chromaticAberrationStrength`, `alpha`, `contentNormalBlend` | finite `0f..1f` |
-| `contrast`, `whitePoint` | finite `-1f..1f` |
-| `chromaMultiplier`, `interactionLightRadiusFraction` | finite `0f..2f` |
-| `edgeSoftness` | specified, finite, non-negative `Dp`; no authored upper limit |
-| `specularExponent`, `fresnelExponent` | finite and non-negative; no authored upper limit |
-| `tint` | any specified `Color`, including transparent; `Color.Unspecified` is rejected |
-| known `lightPosition` biases | finite horizontal and vertical axes; finite values outside `-1f..1f` are accepted |
-| interaction `lightingIntensity`, `refractionMultiplier`, `whitePointDelta` | finite `0f..1f`, `0f..2f`, and `-1f..1f`, respectively |
-| interaction `scale`, `scaleX`, `scaleY` | finite `0f < value <= 1f` |
-
-The direct six-parameter `optics(...)` function constructs `GlassOptics.Fixed`, so both routes have
-identical failures. `progressive = null` intentionally means no progressive blur. `GlassOptics`,
-`RoundedCornerShape`, `FiniteAnimationSpec`, `HazeProgressive`, arbitrary custom `Alignment`, and
-`HazeSampling` otherwise retain their owning contracts; Glass does not inspect opaque
-implementations. In particular, `HazeSampling.Fixed` already validates its finite
-`0f < pixelFraction <= 1f` value before the modifier receives it.
+Glass validates configuration when a Style or `GlassOptics.Fixed` value is created instead of
+silently correcting it later. Validate or clamp values from user input and remote data before
+building the Style. The generated API reference documents the accepted range for each property.
 
 ## GlassStyle
 
-`GlassStyle` is an opaque, immutable sequence of appearance writes. Its builder executes once when
-the Style is constructed, validating and recording each value. Compose Styles with the
-intrinsic `then` members; later writes win. A Style can be shared by any number of `hazeGlass`
-nodes: each node replays defaults, `LocalGlassStyle`, and its explicit Style into its own snapshot
-without rerunning caller code.
+`GlassStyle` is immutable and safe to share. Build a base Style, use `then` for variations, and
+provide a replacement Style through recomposition when the appearance changes. Values omitted by
+the replacement fall back to `LocalGlassStyle` and then `GlassDefaults.style`.
 
-Values captured while constructing a Style are frozen into those writes. Mutating captured state
-does not update attached nodes; construct and supply a replacement Style through recomposition to
-change their appearance. Replacement also removes properties and interaction blocks omitted by the
-new Style.
+A Style captures its inputs when it is constructed. Changing captured state does not update an
+existing Style; construct and provide a replacement instead.
 
 ```kotlin
 val baseStyle = GlassStyle {
@@ -102,17 +68,14 @@ val baseStyle = GlassStyle {
 val emphasizedStyle = baseStyle.then { specularIntensity(0.7f) }
 
 CompositionLocalProvider(LocalGlassStyle provides baseStyle) {
-  // Each node gets a fresh snapshot; an explicit Style is applied last.
+  // Use baseStyle as the default for Glass in this subtree.
 }
 ```
 
 ### Light alignment
 
-Light position is authored semantically with Compose `Alignment` and resolved independently for
-each node. A shared Style therefore places `Alignment.Center` at the center of every consuming
-material, even when their measured sizes differ. Logical alignments such as `Alignment.TopStart`,
-`Alignment.CenterStart`, and `Alignment.CenterEnd` automatically follow LTR or RTL layout direction;
-use physical alignments only when that is the intended semantic.
+Use Compose `Alignment` values so lighting adapts to each surface. Logical alignments such as
+`Alignment.CenterStart` and `Alignment.CenterEnd` also follow LTR or RTL layout direction.
 
 ```kotlin
 val sharedLighting = GlassStyle {
@@ -120,11 +83,8 @@ val sharedLighting = GlassStyle {
 }
 ```
 
-Use `BiasAlignment` for a continuously moving proportional light. Biases `-1f`, `0f`, and `1f`
-represent the start/top edge, center, and end/bottom edge respectively, and values outside that
-range place the virtual light beyond the material bounds. Both bias axes must be finite.
-`BiasAbsoluteAlignment` follows the same finite-axis rule without RTL mirroring. Arbitrary custom
-`Alignment` implementations are accepted unchanged and evaluated only at layout resolution.
+Use `BiasAlignment` when the light needs a continuous proportional position rather than a named
+alignment.
 
 ```kotlin
 val movingLighting = GlassStyle {
@@ -134,8 +94,8 @@ val movingLighting = GlassStyle {
 
 ## Default style
 
-`GlassDefaults.style` uses the built-in Haze `GlassOptics.Adaptive` material and is replayed
-before `LocalGlassStyle` and the modifier's explicit Style.
+`GlassDefaults.style` uses `GlassOptics.Adaptive`. Use `LocalGlassStyle` to set a default for a
+subtree, and pass an explicit Style when one element needs to differ.
 
 ```kotlin
 Box(
@@ -167,12 +127,8 @@ GlassStyle {
 }
 ```
 
-The direct function constructs `GlassOptics.Fixed`. Fixed values are not geometry-adjusted:
-`refractionStrength`, `refractionHeightFraction`, and `depth` must be finite values in `0f..1f`;
-`refractionDisplacement` and `blurRadius` must be specified, finite, non-negative `Dp`; and
-`progressive` is optional. Large logical displacement and blur distances remain valid even when a
-renderer caps effective sampling or kernel work. `refractionHeightFraction` remains relative to the
-material's shortest side.
+Fixed optics use the values you provide at every surface size. This is useful for art-directed
+components, but Adaptive is usually the better default for reusable layouts.
 
 Keep a complete value when it is reused, stored, copied, or selected programmatically:
 
@@ -181,19 +137,16 @@ val reusableOptics = GlassOptics.Fixed(blurRadius = 20.dp)
 val style = GlassStyle { optics(reusableOptics) }
 ```
 
-Backend sampling and kernel construction remain rendering details. `GlassOptics.Fixed` is distinct
-from `HazeSampling.Fixed(pixelFraction)`, which selects a sampling policy rather than optical
-values. `shape` and `tint` stay independent of the selected optics. The `shape`
-supplied to Glass is the authoritative material boundary. An outer `Modifier.clip()` is not visible
-to Glass and does not define its optical boundary; add one with the same shape only when child
-content also needs clipping.
+`GlassOptics.Fixed` controls the appearance; `HazeSampling.Fixed` controls the rendering trade-off.
+The `shape` supplied to Glass defines its material boundary. Add an outer `Modifier.clip()` with
+the same shape only when child content also needs clipping.
 
-### Retained Output
+### Retained output
 
 Glass can retain and redraw its last captured output when all source areas disappear. This
 keeps source transitions smooth, but can briefly preserve stale pixels from removed source content.
-The typed modifier preserves Glass's default retained-output policy. Keep source ownership explicit
-with `HazeInput.Sources` so transitions are visible at the call site:
+Keep the default for smooth transitions, and keep source ownership explicit with
+`HazeInput.Sources`:
 
 ```kotlin
 Box(
@@ -235,38 +188,29 @@ GlassStyle {
 
 ## Fallbacks
 
-Author one final `GlassStyle` for every platform. Haze replays that same Style unchanged into the
-private renderer it selects. Selection is automatic when preferred rendering is unavailable,
-cannot be constructed, or exceeds the render budget; application code does not query capabilities
-or provide a second fallback Style.
+Use one `GlassStyle` on every platform. Haze chooses the available implementation automatically, so
+applications do not need capability checks or a second fallback Style.
 
-The full runtime renderer consumes every supported authored channel. The limited fallback has this
-deterministic degradation contract:
+Fallback rendering keeps the material recognizable but may simplify advanced optics:
 
-| Authored behavior | Full runtime renderer | Limited fallback renderer |
+| Authored behavior | Preferred rendering | Fallback |
 | --- | --- | --- |
 | Tint, alpha, and rounded shape | Preserved | Preserved |
 | Ambient edge response and edge softness | Preserved | Approximated as a soft rim |
 | Specular intensity and resolved light `Alignment` | Preserved | Approximated as an aligned radial highlight |
-| Interaction lighting and node transform | Preserved | Preserved, with localized foreground lighting and the shared transform |
+| Interaction lighting and transforms | Preserved | Preserved |
 | Fixed or Adaptive refraction, blur, and progressive optics | Preserved | Omitted |
-| Chromatic aberration, surface profile, and full color-adjustment math | Preserved | Omitted |
+| Chromatic aberration, surface profile, and advanced color adjustments | Preserved | Omitted |
 | Interaction refraction and white-point deltas | Preserved | Omitted |
 
-On Android API 33 and newer, the full single-output renderer handles single and multiple effects,
-semantic and progressive blur, Full chromatic aberration, sharp-source refraction detail, and
-configured interaction optics. Unsupported fallback channels are safe no-ops; supported tint,
-aligned lighting, interaction lighting, and transforms remain observable.
+Do not make essential meaning depend on refraction or chromatic aberration alone, because those
+details may be omitted by a fallback.
 
 ## Performance
 
-On the modern Android path, every Glass effect composes a blurred optical branch and sharp-source
-detail branch into one retained output per surface. Renderer selection does not depend on sibling
-count. Progressive blur and Full chromatic aberration remain in the same native effect graph,
-while live interaction values update locally weighted math without allocating retained detail
-layers. See
-[Glass performance](../glass/performance.md) for the physical-device benchmark setup, results, and
-Perfetto interpretation.
+Start with adaptive sampling and tune only after measuring a representative screen. The
+[Glass performance guide](../glass/performance.md) explains which Glass-specific workloads and
+interactions to test.
 
 ## Interaction
 
@@ -322,18 +266,11 @@ Modifier
   )
 ```
 
-Hover, focus, and press responses, the localized-light radius, and light-position animation are
-presentation. They travel with `GlassStyle`, compose through `LocalGlassStyle` and `then`, and can
-be reused across nodes. Each consuming node still owns its `InteractionSource`, transform target,
-transform pivot, reduced-motion policy, geometry, animation state, controller, renderer, and
-platform resources. Sharing `interactionStyle` therefore shares appearance without coupling
-interaction signals or runtime state. Replace the Style to update presentation on the existing
-renderer; replace modifier mechanics to reconfigure only that node.
+Keep the visual response in `GlassStyle`, and pass each element's interaction source and behavior
+options to `hazeGlass`. The same Style can be reused without sharing interaction state.
 
-Custom blocks replace that state's preset from identity. Resolve each property with fixed
-precedence: focused, then hovered, then pressed. Use `animate(toSpec, fromSpec)` inside a custom
-block to own the arrival and departure animation specs respectively; entering or replacement uses
-`toSpec`, while departing uses `fromSpec`.
+When states overlap, pressed takes priority over hovered, which takes priority over focused. Use
+`animate(toSpec, fromSpec)` when arrival and departure need different motion.
 
 ```kotlin
 GlassStyle {
@@ -351,13 +288,11 @@ GlassStyle {
 }
 ```
 
-The node-owned `interactionTransformTarget` argument selects whether a response transforms only
-the material or the material and content. `interactionTransformPivot` selects `Pointer` or
-`Center`. Omit a state block from a replacement Style to remove it.
+`interactionTransformTarget` selects whether a response transforms only the material or also its
+content. `interactionTransformPivot` selects `Pointer` or `Center`. Omit a state block from a
+replacement Style to remove it.
 `GlassReducedMotionPolicy.System` follows the available system duration scale, `Reduced` snaps
-lighting and optics while suppressing transforms, and `Full` forces motion. The
-`GlassInteractionScope` receiver is sealed and implemented by Haze; it is a declaration DSL, not a
-consumer implementation point.
+lighting and optics while suppressing transforms, and `Full` forces motion.
 
 ## Usage
 

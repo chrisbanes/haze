@@ -29,9 +29,10 @@ nav:
     - "Platforms": blur/platforms.md
   - "Glass":
     - "Overview": effects/glass.md
-    - "Performance": glass/performance.md
   - "Custom Effects": custom-effects.md
-  - "Performance": performance.md
+  - "Performance":
+    - "Overview": performance.md
+    - "Glass": glass/performance.md
   - "Recipes": recipes.md
   - "Migrating to Haze 2.0": migrating-2.0.md
   - "Changelog": changelog.md

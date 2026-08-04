@@ -160,16 +160,13 @@ Modifier.hazeBlur(
 ```
 
 `HazeSampling.Default` points to `Adaptive` for both Blur and Glass. Use `Adaptive` to pin that
-policy explicitly, or use `FullResolution` or `Fixed(pixelFraction)` to override it. A fixed value
-is a fraction of total input pixels rather than a per-dimension scale, so `Fixed(0.5f)` scales each
-dimension by approximately `0.707`.
+policy explicitly, `FullResolution` when fidelity is the priority, or `Fixed(pixelFraction)` for an
+explicit trade-off.
 
 ## Lifecycle and sharing
 
-A Style can be shared by any number of modifiers. Each modifier creates its own Blur runtime,
-delegate, cache, retained layers, platform resources, and adaptive-sampling history. Recomposition
-replaces the complete Style on the existing runtime; detachment releases only that node's
-resources.
+Styles are immutable and safe to share. Supply a replacement Style through recomposition when the
+appearance changes.
 
 ## Other Haze 2 migrations
 
@@ -177,43 +174,17 @@ The typed Blur API does not change the other Haze 2 migrations.
 
 ### Glass migration
 
-Glass also has a typed modifier and an opaque, replayable `GlassStyle`. Replace the complete Style
-through recomposition; do not mutate an effect, use sentinel patches, `copy`, or `clear*` calls.
-The `GlassStyle` builder executes once during construction and records immutable, validated
-writes. Resolution never reruns the builder, so mutating state captured by an unchanged Style is
-inert; construct and supply a replacement Style to reflect new inputs.
+Glass also has a typed modifier and an immutable `GlassStyle`. Replace the Style through
+recomposition instead of mutating an effect or using sentinel patches, `copy`, or `clear*` calls.
+Use `then` to build variations from a shared base Style.
 
 Keep one final `GlassStyle` for all platforms. Remove renderer-capability checks, platform-specific
-Style variants, and secondary fallback Styles: `hazeGlass` selects its private renderer
-automatically, replaying the same Style while limited renderers approximate supported appearance
-and omit unsupported optics.
+Style variants, and secondary fallback Styles. Haze selects the available implementation and
+gracefully simplifies unsupported optics.
 
-Glass numeric authoring now fails fast. Values that older Style or renderer paths clamped,
-normalized, or replaced now throw `IllegalArgumentException` when `GlassOptics.Fixed` or
-`GlassStyle` is constructed. This includes non-finite values; out-of-domain ratios, adjustments,
-multipliers, exponents, and scales; negative or unspecified distances; `Color.Unspecified`; and
-non-finite axes on `BiasAlignment` or `BiasAbsoluteAlignment`. Direct `optics(...)` uses the same
-`GlassOptics.Fixed` validation and messages as complete-value construction.
-
-If an application intentionally wants clamping, make that policy explicit before authoring the
-Style:
-
-```kotlin
-val safeAlpha = requestedAlpha.coerceIn(0f, 1f)
-require(requestedEdgeSoftness.isSpecified && requestedEdgeSoftness.value.isFinite())
-val safeEdgeSoftness = requestedEdgeSoftness.coerceAtLeast(0.dp)
-
-val style = GlassStyle {
-  alpha(safeAlpha)
-  edgeSoftness(safeEdgeSoftness)
-}
-```
-
-Otherwise validate upstream and surface the invalid configuration. Large finite non-negative
-distances and exponents remain valid; renderer physical caps do not become authoring limits.
-`progressive = null` remains intentional, arbitrary custom `Alignment` and opaque shape/animation/
-progressive implementations keep their owning contracts, and modifier sampling continues to be
-validated by `HazeSampling.Fixed` (`0f < pixelFraction <= 1f`).
+Invalid Glass values now fail when the Style or `GlassOptics.Fixed` value is created instead of
+being corrected later. Validate or clamp external values before building the Style. See the
+generated API reference for property-specific ranges.
 
 | Legacy | Typed replacement |
 | --- | --- |
@@ -227,37 +198,21 @@ validated by `HazeSampling.Fixed` (`0f < pixelFraction <= 1f`).
 | `Modifier.hazeGlass(interactionLightRadiusFraction = value)` | `GlassStyle { interactionLightRadiusFraction(value) }` |
 | `Modifier.hazeGlass(interactionPositionAnimationSpec = spec)` | `GlassStyle { interactionPositionAnimationSpec(spec) }` |
 | `GlassDefaults.hoverAnimationSpec`, `pressAnimationSpec`, `releaseAnimationSpec` | explicit `animate(toSpec, fromSpec) { … }` declarations |
-| consumer implementation of `GlassInteractionScope` | removed; the sealed receiver is implemented by Haze and used only as the interaction-response DSL |
-| `GlassStyleConfiguration`, `GlassRenderer`, `GlassRendererCache`, retained-output methods, delegate and lifecycle hooks | no public replacement; each `hazeGlass` node owns and disposes these internal resources |
+| consumer implementation of `GlassInteractionScope` | removed; it is now a sealed declaration DSL implemented by Haze |
+| `GlassStyleConfiguration`, `GlassRenderer`, `GlassRendererCache`, and lifecycle or retention hooks | removed with no public replacement |
 | effect-owned hover, focus, press, light-radius, and light-position animation presentation | property writes inside `GlassStyle { … }` |
 | effect-owned interaction source, transform target/pivot, and reduced-motion policy | explicit `Modifier.hazeGlass` arguments owned by each node |
 | implicit source/content | explicit `HazeInput.Sources` or `HazeInput.Content` |
-| raw optical displacement/caps | semantic `GlassOptics` and `Dp` controls |
 | `GlassOptics.Absolute` | `GlassOptics.Fixed`; this is a hard rename with no alias or compatibility bridge |
 | `lightPosition(Offset)` and `Offset.Unspecified` | `lightPosition(Alignment)`; omit the write or use `Alignment.Center` for the former automatic center |
 
-For ordinary inline fixed Style authoring, pass the complete fixed parameter set directly to
-`optics(...)`. The complete-value overload remains available for `GlassOptics.Adaptive`, reusable
-fixed values, copies, storage, and programmatic selection.
+Use `optics(...)` for inline fixed values. Keep a `GlassOptics.Fixed` value when the configuration
+needs to be reused or selected programmatically.
 
 Glass light position is now an intentional source break from pixel `Offset` to semantic
-`Alignment`, with no compatibility overload. The Alignment is resolved inside each node's current
-measured bounds and layout direction. Use `Alignment.Center` (or omit the write) for the former
-`Offset.Unspecified` behavior, logical start/end alignments for directional intent, and
-`BiasAlignment` for continuous proportional positions:
-
-```kotlin
-val normalizedX = 0.7f
-val normalizedY = 0.2f
-val style = GlassStyle {
-  lightPosition(
-    BiasAlignment(
-      horizontalBias = normalizedX * 2f - 1f,
-      verticalBias = normalizedY * 2f - 1f,
-    ),
-  )
-}
-```
+`Alignment`, with no compatibility overload. Use `Alignment.Center` (or omit the write) for the
+former `Offset.Unspecified` behavior, logical start/end alignments for directional intent, and
+`BiasAlignment` for continuous proportional positions.
 
 Write each property through the Style scope, then pass the Style and structural policies to
 `hazeGlass`:
@@ -288,20 +243,14 @@ Modifier.hazeGlass(
 )
 ```
 
-Interaction presentation composes with the rest of `GlassStyle` and can be shared. The modifier
-arguments above remain per-node mechanics: sharing a Style never shares signals, geometry,
-animation state, controllers, renderers, retained layers, or platform resources. Replacing a Style
-updates presentation on the existing renderer; replacing mechanics updates only that modifier
-node.
+Interaction appearance belongs in the Style and can be shared. Each element still supplies its own
+interaction source and behavior options to the modifier.
 
 ### Position and geometry
 
-Source areas, coordinates, captured layers, windows, and position strategy are no longer public.
-Custom renderers receive semantic modifier bounds through `HazeEffectDrawScope` and
-`HazeEffectLayoutScope`, and draw the selected input with `drawInput()`.
-
-Source-selection predicates receive only `HazeSourceInfo.key` and `zIndex`. Cross-window coordinate
-selection is handled internally by Haze.
+Position handling is now automatic. Source-selection predicates receive only
+`HazeSourceInfo.key` and `zIndex`; custom renderers work with modifier-relative bounds and draw the
+selected input with `drawInput()`.
 
 ## Removed compatibility APIs
 
@@ -397,13 +346,8 @@ Modifier.hazeBlur(
 
 ## Custom effects and architecture
 
-Haze 2 separates typed, shareable configuration from node-owned rendering resources:
-
-- `HazeEffectFactory<Style>` is stateless and may be shared.
-- Every modifier node creates its own `HazeEffectRenderer<Style>`.
-- Replacing a Style reuses that renderer.
-- Replacing the factory or detaching the node disposes its renderer exactly once.
-- Source capture, node lifecycle, and built-in capabilities remain internal.
+Custom effects now pair a shareable `HazeEffectFactory<Style>` with a renderer created for each
+modifier. Keep configuration in the Style and mutable resources in the renderer.
 
 Custom typed effects use the generic modifier rather than `hazeBlur`:
 
@@ -414,6 +358,8 @@ Modifier.hazeEffect(
   style = myStyle,
 )
 ```
+
+See [Custom effects](custom-effects.md) for lifecycle and ownership guidance.
 
 ## Getting help
 

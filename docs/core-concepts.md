@@ -108,90 +108,18 @@ the existing renderer. Factory replacement and detachment dispose it exactly onc
 
 ## Sampling
 
-- `HazeSampling.Default` points to the library's current default policy, which is `Adaptive`.
-- `HazeSampling.Adaptive` uses the adaptive policy for built-in Blur and Glass effects.
+- `HazeSampling.Default` and `Adaptive` let built-in effects balance quality and cost automatically.
 - `HazeSampling.FullResolution` uses the full input resolution.
-- `HazeSampling.Fixed(pixelFraction)` retains that fraction of the full-resolution input pixels,
-  with `0 < pixelFraction <= 1`. For example, `0.5` scales each dimension by approximately `0.707`.
+- `HazeSampling.Fixed(pixelFraction)` uses an explicit fraction of the full-resolution input pixels.
 
-Blur and Glass use the same adaptive default mode while retaining effect-specific workload and
-quality policies. Both consider recent input-update cadence and use hysteresis between tiers.
+Start with the default. Choose `FullResolution` only when visual comparison shows that you need it,
+or `Fixed` when you deliberately want a stable quality and performance trade-off.
 
 ## Layer bounds
 
 `expandLayerBounds` lets an effect request a larger capture layer. Blur normally expands by its
 resolved radius to avoid edge artifacts. Disable it only when the surrounding pixels must not be
 captured.
-
-## Legacy effect scope
-
-Lambda-based `Modifier.hazeEffect` receives a `HazeEffectScope`. It remains available while
-existing custom effects and Blur callers migrate:
-
-```kotlin
-Modifier.hazeEffect(state = hazeState) {
-  inputScale = HazeInputScale.Auto
-  drawContentBehind = true
-  canDrawArea = { area -> area.key != "excluded" }
-  retainOutputWhenSourceUnavailable = true
-
-  blurEffect {
-    // Legacy Blur configuration
-  }
-}
-```
-
-### Input scale
-
-`inputScale` controls the resolution used to render source content:
-
-- `HazeInputScale.Default` lets the visual effect choose. Blur uses its adaptive policy; Glass
-  remains unscaled.
-- `HazeInputScale.None` disables scaling.
-- `HazeInputScale.Auto` requests the effect's automatic policy.
-- `HazeInputScale.Fixed(value)` uses an exact value greater than `0f` and at most `1f`.
-
-Typed effects express the same choice through `HazeSampling`.
-
-### Drawing content behind
-
-`drawContentBehind` draws the original source content before the effect. It defaults to `false`.
-Built-in typed effects select the required behavior themselves.
-
-### Filtering source areas
-
-`canDrawArea` filters legacy `HazeArea` instances:
-
-```kotlin
-canDrawArea = { area -> area.key != "excluded" }
-```
-
-Typed source input uses `HazeSourceSelection.where`, which intentionally exposes only immutable
-`key` and `zIndex` metadata.
-
-### Retained output
-
-Some effects can redraw their last output while source areas are temporarily unavailable.
-`retainOutputWhenSourceUnavailable` defaults to `true` for the legacy API. Set it to `false` when
-stale source pixels must be cleared immediately:
-
-```kotlin
-Modifier.hazeEffect(state = hazeState) {
-  retainOutputWhenSourceUnavailable = false
-  blurEffect {
-    // Legacy Blur configuration
-  }
-}
-```
-
-Typed source input expresses this policy with `HazeSourceRetention.KeepLastFrame` or
-`ClearWhenUnavailable`.
-
-## Temporary legacy APIs
-
-The `VisualEffect`, `HazeEffectScope`, and lambda-based `hazeEffect` APIs remain during the staged
-2.0 migration. Blur code should move to `hazeBlur`; custom effects should use
-`HazeEffectFactory`.
 
 ## Background and foreground effects
 
@@ -307,28 +235,7 @@ Box {
 }
 ```
 
-## Position strategy
-
-`HazePositionStrategy.Auto` is the default. It uses root-relative coordinates when source and
-effect share a window, and screen coordinates for cross-window arrangements such as dialogs and
-popups.
-
-```kotlin
-val hazeState = rememberHazeState()
-```
-
-Override the strategy only when the host window arrangement requires a fixed coordinate space:
-
-```kotlin
-val localState = rememberHazeState(positionStrategy = HazePositionStrategy.Local)
-val screenState = rememberHazeState(positionStrategy = HazePositionStrategy.Screen)
-```
-
-| Strategy | Coordinates | Use case |
-| --- | --- | --- |
-| `Auto` | Adapts automatically | Default for same- and cross-window layouts |
-| `Local` | Root-relative | Same-window layouts |
-| `Screen` | Screen-relative | Explicit cross-window layouts |
+Haze handles alignment between the dialog and its source automatically.
 
 ## Screenshot testing
 
