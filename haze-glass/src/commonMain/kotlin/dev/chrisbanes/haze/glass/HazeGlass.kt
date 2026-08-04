@@ -37,7 +37,8 @@ import dev.chrisbanes.haze.hazeEffect
  * @param style Explicit appearance applied after defaults and [LocalGlassStyle].
  * @param sampling Input sampling policy. [HazeSampling.Default] currently points to
  * [HazeSampling.Adaptive], which selects approximately 50% or 25% of full-resolution input pixels
- * from retained-layer work and recent update cadence.
+ * from retained-layer work and recent update cadence. [HazeSampling.Fixed] owns validation of its
+ * finite `0f < pixelFraction <= 1f` value; Glass does not add another sampling contract.
  * @param expandLayerBounds Whether Glass may expand its capture layer for optical sampling.
  * @param interactionSource Optional external interaction source owned by this modifier node.
  * @param interactionTransformTarget Visual layers that receive the interaction scale transform.

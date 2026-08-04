@@ -55,10 +55,35 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 - **chromaticAberrationMode**: Quality mode for chromatic aberration. `Simple` (default, fast) or `Full` (spectral, more expensive).
 - **alpha**: Overall opacity multiplier `0..1` (default 1).
 
+All direct Glass numbers fail fast at value or Style construction. Invalid inputs throw
+`IllegalArgumentException` with a message shaped as `<property> must be <accepted domain>`; they
+are not clamped by Style resolution or a renderer.
+
+| Public input | Accepted domain and sentinel policy |
+| --- | --- |
+| `refractionStrength`, `refractionHeightFraction`, `depth` | finite `0f..1f` |
+| `refractionDisplacement`, `blurRadius` | specified, finite, non-negative `Dp`; no authored upper limit |
+| `specularIntensity`, `ambientResponse`, `chromaticAberrationStrength`, `alpha`, `contentNormalBlend` | finite `0f..1f` |
+| `contrast`, `whitePoint` | finite `-1f..1f` |
+| `chromaMultiplier`, `interactionLightRadiusFraction` | finite `0f..2f` |
+| `edgeSoftness` | specified, finite, non-negative `Dp`; no authored upper limit |
+| `specularExponent`, `fresnelExponent` | finite and non-negative; no authored upper limit |
+| `tint` | any specified `Color`, including transparent; `Color.Unspecified` is rejected |
+| known `lightPosition` biases | finite horizontal and vertical axes; finite values outside `-1f..1f` are accepted |
+| interaction `lightingIntensity`, `refractionMultiplier`, `whitePointDelta` | finite `0f..1f`, `0f..2f`, and `-1f..1f`, respectively |
+| interaction `scale`, `scaleX`, `scaleY` | finite `0f < value <= 1f` |
+
+The direct six-parameter `optics(...)` function constructs `GlassOptics.Fixed`, so both routes have
+identical failures. `progressive = null` intentionally means no progressive blur. `GlassOptics`,
+`RoundedCornerShape`, `FiniteAnimationSpec`, `HazeProgressive`, arbitrary custom `Alignment`, and
+`HazeSampling` otherwise retain their owning contracts; Glass does not inspect opaque
+implementations. In particular, `HazeSampling.Fixed` already validates its finite
+`0f < pixelFraction <= 1f` value before the modifier receives it.
+
 ## GlassStyle
 
 `GlassStyle` is an opaque, immutable sequence of appearance writes. Its builder executes once when
-the Style is constructed, canonicalizing and recording each value. Compose Styles with the
+the Style is constructed, validating and recording each value. Compose Styles with the
 intrinsic `then` members; later writes win. A Style can be shared by any number of `hazeGlass`
 nodes: each node replays defaults, `LocalGlassStyle`, and its explicit Style into its own snapshot
 without rerunning caller code.
@@ -97,7 +122,9 @@ val sharedLighting = GlassStyle {
 
 Use `BiasAlignment` for a continuously moving proportional light. Biases `-1f`, `0f`, and `1f`
 represent the start/top edge, center, and end/bottom edge respectively, and values outside that
-range place the virtual light beyond the material bounds.
+range place the virtual light beyond the material bounds. Both bias axes must be finite.
+`BiasAbsoluteAlignment` follows the same finite-axis rule without RTL mirroring. Arbitrary custom
+`Alignment` implementations are accepted unchanged and evaluated only at layout resolution.
 
 ```kotlin
 val movingLighting = GlassStyle {

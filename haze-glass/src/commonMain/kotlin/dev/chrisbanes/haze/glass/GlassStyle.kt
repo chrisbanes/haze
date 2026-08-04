@@ -11,12 +11,13 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAbsoluteAlignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isSpecified
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.Poko
@@ -35,7 +36,7 @@ public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
  * An opaque, immutable sequence of recorded Glass appearance writes.
  *
  * The builder passed to [GlassStyle] executes once during construction. Each property is
- * canonicalized and captured as an immutable write; resolving a Style only replays those captured
+ * validated and captured as an immutable write; resolving a Style only replays those captured
  * values and never invokes caller code. Combine Styles with [then]. Writes run in order and the
  * last write to a property wins. The companion object is the empty Style and performs no writes.
  *
@@ -70,7 +71,7 @@ public sealed interface GlassStyle {
 /**
  * Creates a recorded, replayable [GlassStyle].
  *
- * [block] executes exactly once during this call. Its canonicalized property values are captured
+ * [block] executes exactly once during this call. Its validated property values are captured
  * as immutable writes which can later be replayed into fresh node-local state without invoking
  * [block] again.
  */
@@ -111,8 +112,9 @@ public annotation class GlassStyleDsl
 /**
  * Receiver for Glass appearance property writes.
  *
- * Property functions canonicalize values while the Style is constructed and record them for later
- * replay. Calling a function again records a later write which takes precedence.
+ * Property functions validate values while the Style is constructed and record them for later
+ * replay. Invalid direct Glass numbers throw [IllegalArgumentException]. Calling a function again
+ * records a later write which takes precedence.
  */
 @ExperimentalHazeApi
 @GlassStyleDsl
@@ -145,13 +147,16 @@ public class GlassStyleScope internal constructor(
   /**
    * Sets the interaction-light radius as a fraction of the material's shortest side.
    *
-   * The value must be finite and in the range `0f..2f`.
+   * The value must be finite and in the inclusive range `0f..2f`.
    */
   public fun interactionLightRadiusFraction(radiusFraction: Float) {
-    require(radiusFraction.isFinite() && radiusFraction in 0f..2f) {
-      "interactionLightRadiusFraction must be finite and in range"
-    }
-    writes += { interactionLightRadiusFraction = radiusFraction }
+    val validated = requireFiniteInRange(
+      "interactionLightRadiusFraction",
+      radiusFraction,
+      0f..2f,
+      DOUBLE_INTERVAL_DOMAIN,
+    )
+    writes += { interactionLightRadiusFraction = validated }
   }
 
   /**
@@ -168,7 +173,11 @@ public class GlassStyleScope internal constructor(
     writes += { this.shape = shape }
   }
 
-  /** Sets a complete fixed optical model used to refract and blur captured content. */
+  /**
+   * Sets a complete fixed optical model used to refract and blur captured content.
+   *
+   * This constructs [GlassOptics.Fixed] and enforces its same fail-fast domains.
+   */
   public fun optics(
     refractionStrength: Float = 0.7f,
     refractionHeightFraction: Float = 0.25f,
@@ -189,34 +198,40 @@ public class GlassStyleScope internal constructor(
     )
   }
 
-  /** Sets the optical model used to refract and blur captured content. */
+  /**
+   * Sets the optical model used to refract and blur captured content.
+   *
+   * Complete optics values retain the contracts enforced by their concrete [GlassOptics] type.
+   */
   public fun optics(optics: GlassOptics) {
     writes += { this.optics = optics }
   }
 
-  /** Sets specular-highlight intensity, coerced to the range `0f..1f`. */
+  /** Sets finite specular-highlight intensity in the inclusive range `0f..1f`. */
   public fun specularIntensity(intensity: Float) {
-    val canonical = intensity.coerceIn(0f, 1f)
-    writes += { specularIntensity = canonical }
+    val validated = requireFiniteInRange("specularIntensity", intensity, 0f..1f, UNIT_INTERVAL_DOMAIN)
+    writes += { specularIntensity = validated }
   }
 
-  /** Sets ambient-light response, coerced to the range `0f..1f`. */
+  /** Sets finite ambient-light response in the inclusive range `0f..1f`. */
   public fun ambientResponse(response: Float) {
-    val canonical = response.coerceIn(0f, 1f)
-    writes += { ambientResponse = canonical }
+    val validated = requireFiniteInRange("ambientResponse", response, 0f..1f, UNIT_INTERVAL_DOMAIN)
+    writes += { ambientResponse = validated }
   }
 
-  /** Sets the tint applied to refracted content. */
+  /** Sets any specified tint, including transparent, applied to refracted content. */
   public fun tint(color: Color) {
     require(color.isSpecified) { "tint must be specified" }
     writes += { tint = color }
   }
 
-  /** Sets the non-negative softening distance around the material boundary. */
+  /**
+   * Sets a specified, finite, non-negative softening distance around the material boundary.
+   * There is no authored upper limit.
+   */
   public fun edgeSoftness(softness: Dp) {
-    require(softness.isSpecified) { "edgeSoftness must be specified" }
-    val canonical = softness.coerceAtLeast(0.dp)
-    writes += { edgeSoftness = canonical }
+    val validated = requireSpecifiedFiniteNonNegative("edgeSoftness", softness)
+    writes += { edgeSoftness = validated }
   }
 
   /**
@@ -224,15 +239,35 @@ public class GlassStyleScope internal constructor(
    *
    * The default is [Alignment.Center]. Logical start and end alignments use the node's current
    * layout direction, and a shared Style is resolved independently for each consuming node's size.
+   * [BiasAlignment] and [BiasAbsoluteAlignment] require finite horizontal and vertical biases;
+   * finite values outside `-1f..1f` intentionally place the light beyond the material. Other
+   * [Alignment] implementations retain their own contract and are not evaluated during Style
+   * construction.
    */
   public fun lightPosition(alignment: Alignment) {
+    when (alignment) {
+      is BiasAlignment -> validateLightPositionBiases(
+        horizontalBias = alignment.horizontalBias,
+        verticalBias = alignment.verticalBias,
+      )
+      is BiasAbsoluteAlignment -> validateLightPositionBiases(
+        horizontalBias = alignment.horizontalBias,
+        verticalBias = alignment.verticalBias,
+      )
+      else -> Unit
+    }
     writes += { lightPosition = alignment }
   }
 
-  /** Sets chromatic dispersion strength, coerced to the range `0f..1f`. */
+  /** Sets finite chromatic dispersion strength in the inclusive range `0f..1f`. */
   public fun chromaticAberrationStrength(strength: Float) {
-    val canonical = strength.coerceIn(0f, 1f)
-    writes += { chromaticAberrationStrength = canonical }
+    val validated = requireFiniteInRange(
+      "chromaticAberrationStrength",
+      strength,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
+    writes += { chromaticAberrationStrength = validated }
   }
 
   /** Sets the cross-section profile used by the refraction bezel. */
@@ -245,47 +280,63 @@ public class GlassStyleScope internal constructor(
     writes += { chromaticAberrationMode = mode }
   }
 
-  /** Sets overall material opacity, coerced to the range `0f..1f`. */
+  /** Sets finite overall material opacity in the inclusive range `0f..1f`. */
   public fun alpha(alpha: Float) {
-    val canonical = alpha.coerceIn(0f, 1f)
-    writes += { this.alpha = canonical }
+    val validated = requireFiniteInRange("alpha", alpha, 0f..1f, UNIT_INTERVAL_DOMAIN)
+    writes += { this.alpha = validated }
   }
 
-  /** Sets contrast adjustment, coerced to the range `-1f..1f`. */
+  /** Sets finite contrast adjustment in the inclusive range `-1f..1f`. */
   public fun contrast(contrast: Float) {
-    val canonical = contrast.coerceIn(-1f, 1f)
-    writes += { this.contrast = canonical }
+    val validated = requireFiniteInRange("contrast", contrast, -1f..1f, SIGNED_UNIT_INTERVAL_DOMAIN)
+    writes += { this.contrast = validated }
   }
 
-  /** Sets white-point adjustment, coerced to the range `-1f..1f`. */
+  /** Sets finite white-point adjustment in the inclusive range `-1f..1f`. */
   public fun whitePoint(whitePoint: Float) {
-    val canonical = whitePoint.coerceIn(-1f, 1f)
-    writes += { this.whitePoint = canonical }
+    val validated = requireFiniteInRange(
+      "whitePoint",
+      whitePoint,
+      -1f..1f,
+      SIGNED_UNIT_INTERVAL_DOMAIN,
+    )
+    writes += { this.whitePoint = validated }
   }
 
-  /** Sets the chroma multiplier, coerced to the range `0f..2f`. */
+  /** Sets the finite chroma multiplier in the inclusive range `0f..2f`. */
   public fun chromaMultiplier(multiplier: Float) {
-    val canonical = multiplier.coerceIn(0f, 2f)
-    writes += { chromaMultiplier = canonical }
+    val validated = requireFiniteInRange("chromaMultiplier", multiplier, 0f..2f, DOUBLE_INTERVAL_DOMAIN)
+    writes += { chromaMultiplier = validated }
   }
 
-  /** Sets the blend between generated and captured normals, coerced to `0f..1f`. */
+  /** Sets the finite blend between generated and captured normals in inclusive `0f..1f`. */
   public fun contentNormalBlend(blend: Float) {
-    val canonical = blend.coerceIn(0f, 1f)
-    writes += { contentNormalBlend = canonical }
+    val validated = requireFiniteInRange("contentNormalBlend", blend, 0f..1f, UNIT_INTERVAL_DOMAIN)
+    writes += { contentNormalBlend = validated }
   }
 
-  /** Sets the non-negative exponent controlling specular highlight concentration. */
+  /**
+   * Sets a finite, non-negative exponent controlling specular highlight concentration.
+   * There is no authored upper limit.
+   */
   public fun specularExponent(exponent: Float) {
-    val canonical = exponent.coerceAtLeast(0f)
-    writes += { specularExponent = canonical }
+    val validated = requireFiniteNonNegative("specularExponent", exponent)
+    writes += { specularExponent = validated }
   }
 
-  /** Sets the non-negative exponent controlling Fresnel response falloff. */
+  /**
+   * Sets a finite, non-negative exponent controlling Fresnel response falloff.
+   * There is no authored upper limit.
+   */
   public fun fresnelExponent(exponent: Float) {
-    val canonical = exponent.coerceAtLeast(0f)
-    writes += { fresnelExponent = canonical }
+    val validated = requireFiniteNonNegative("fresnelExponent", exponent)
+    writes += { fresnelExponent = validated }
   }
+}
+
+private fun validateLightPositionBiases(horizontalBias: Float, verticalBias: Float) {
+  requireFinite("lightPosition.horizontalBias", horizontalBias)
+  requireFinite("lightPosition.verticalBias", verticalBias)
 }
 
 private fun recordGlassStyleWrites(

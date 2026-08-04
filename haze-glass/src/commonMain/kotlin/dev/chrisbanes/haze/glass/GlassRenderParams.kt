@@ -533,9 +533,7 @@ internal fun resolveGlassInteraction(
   radiusFraction: Float,
 ): ResolvedGlassInteraction = ResolvedGlassInteraction(
   position = state.position,
-  radiusFraction = radiusFraction
-    .finiteOr(GlassDefaults.interactionLightRadiusFraction)
-    .coerceIn(0f, 2f),
+  radiusFraction = radiusFraction,
   lightingIntensity = state.lightingIntensity.finiteOr(0f).coerceIn(0f, 1f),
   refractionMultiplier = state.refractionMultiplier.finiteOr(1f).coerceIn(0f, 2f),
   whitePointDelta = state.whitePointDelta.finiteOr(0f).coerceIn(-1f, 1f),
@@ -592,30 +590,23 @@ internal fun resolveGlassStyle(
   )
   return ResolvedGlassStyle(
     resolvedOptics = resolveGlassOptics(effect.optics, materialSizePx, density, cornerRadii),
-    specularIntensity = effect.specularIntensity
-      .finiteOr(GlassDefaults.specularIntensity).coerceIn(0f, 1f),
-    ambientResponse = effect.ambientResponse
-      .finiteOr(GlassDefaults.ambientResponse).coerceIn(0f, 1f),
+    specularIntensity = effect.specularIntensity,
+    ambientResponse = effect.ambientResponse,
     tint = effect.tint,
     edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() }
       .finiteOr(defaultEdgeSoftnessPx)
       .coerceAtLeast(0f),
     lightPosition = alignedLightPosition,
-    chromaticAberrationStrength = effect.chromaticAberrationStrength
-      .finiteOr(GlassDefaults.chromaticAberrationStrength).coerceIn(0f, 1f),
+    chromaticAberrationStrength = effect.chromaticAberrationStrength,
     surfaceProfile = effect.surfaceProfile.ordinal.toFloat(),
     chromaticAberrationMode = effect.chromaticAberrationMode.ordinal.toFloat(),
-    alpha = effect.alpha.finiteOr(GlassDefaults.alpha).coerceIn(0f, 1f),
-    contrast = effect.contrast.finiteOr(GlassDefaults.contrast).coerceIn(-1f, 1f),
-    whitePoint = effect.whitePoint.finiteOr(GlassDefaults.whitePoint).coerceIn(-1f, 1f),
-    chromaMultiplier = effect.chromaMultiplier
-      .finiteOr(GlassDefaults.chromaMultiplier).coerceIn(0f, 2f),
-    contentNormalBlend = effect.contentNormalBlend
-      .finiteOr(GlassDefaults.contentNormalBlend).coerceIn(0f, 1f),
-    specularExponent = effect.specularExponent
-      .finiteOr(GlassDefaults.specularExponent).coerceAtLeast(0f),
-    fresnelExponent = effect.fresnelExponent
-      .finiteOr(GlassDefaults.fresnelExponent).coerceAtLeast(0f),
+    alpha = effect.alpha,
+    contrast = effect.contrast,
+    whitePoint = effect.whitePoint,
+    chromaMultiplier = effect.chromaMultiplier,
+    contentNormalBlend = effect.contentNormalBlend,
+    specularExponent = effect.specularExponent,
+    fresnelExponent = effect.fresnelExponent,
     cornerRadii = cornerRadii,
   )
 }

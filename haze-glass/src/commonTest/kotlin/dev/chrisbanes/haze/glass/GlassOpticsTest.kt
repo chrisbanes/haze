@@ -7,10 +7,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
-import assertk.assertions.messageContains
 import kotlin.test.Test
 
 class GlassOpticsTest {
@@ -78,8 +78,7 @@ private fun assertInvalidFixedFraction(property: String, create: (Float) -> Unit
     .forEach { invalid ->
       val failure = assertFailure { create(invalid) }
       failure.isInstanceOf<IllegalArgumentException>()
-      failure.messageContains(property)
-      failure.messageContains("0f..1f")
+      failure.hasMessage("$property must be finite and in 0f..1f")
     }
 }
 
@@ -93,7 +92,6 @@ private fun assertInvalidFixedDistance(property: String, create: (Dp) -> Unit) {
   ).forEach { invalid ->
     val failure = assertFailure { create(invalid) }
     failure.isInstanceOf<IllegalArgumentException>()
-    failure.messageContains(property)
-    failure.messageContains("specified, finite, and non-negative")
+    failure.hasMessage("$property must be specified, finite, and non-negative")
   }
 }

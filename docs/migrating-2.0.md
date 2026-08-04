@@ -179,7 +179,7 @@ The typed Blur API does not change the other Haze 2 migrations.
 
 Glass also has a typed modifier and an opaque, replayable `GlassStyle`. Replace the complete Style
 through recomposition; do not mutate an effect, use sentinel patches, `copy`, or `clear*` calls.
-The `GlassStyle` builder executes once during construction and records immutable, canonicalized
+The `GlassStyle` builder executes once during construction and records immutable, validated
 writes. Resolution never reruns the builder, so mutating state captured by an unchanged Style is
 inert; construct and supply a replacement Style to reflect new inputs.
 
@@ -187,6 +187,33 @@ Keep one final `GlassStyle` for all platforms. Remove renderer-capability checks
 Style variants, and secondary fallback Styles: `hazeGlass` selects its private renderer
 automatically, replaying the same Style while limited renderers approximate supported appearance
 and omit unsupported optics.
+
+Glass numeric authoring now fails fast. Values that older Style or renderer paths clamped,
+normalized, or replaced now throw `IllegalArgumentException` when `GlassOptics.Fixed` or
+`GlassStyle` is constructed. This includes non-finite values; out-of-domain ratios, adjustments,
+multipliers, exponents, and scales; negative or unspecified distances; `Color.Unspecified`; and
+non-finite axes on `BiasAlignment` or `BiasAbsoluteAlignment`. Direct `optics(...)` uses the same
+`GlassOptics.Fixed` validation and messages as complete-value construction.
+
+If an application intentionally wants clamping, make that policy explicit before authoring the
+Style:
+
+```kotlin
+val safeAlpha = requestedAlpha.coerceIn(0f, 1f)
+require(requestedEdgeSoftness.isSpecified && requestedEdgeSoftness.value.isFinite())
+val safeEdgeSoftness = requestedEdgeSoftness.coerceAtLeast(0.dp)
+
+val style = GlassStyle {
+  alpha(safeAlpha)
+  edgeSoftness(safeEdgeSoftness)
+}
+```
+
+Otherwise validate upstream and surface the invalid configuration. Large finite non-negative
+distances and exponents remain valid; renderer physical caps do not become authoring limits.
+`progressive = null` remains intentional, arbitrary custom `Alignment` and opaque shape/animation/
+progressive implementations keep their owning contracts, and modifier sampling continues to be
+validated by `HazeSampling.Fixed` (`0f < pixelFraction <= 1f`).
 
 | Legacy | Typed replacement |
 | --- | --- |

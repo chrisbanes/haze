@@ -80,14 +80,19 @@ class HazeGlassModifierTest : ContextTest() {
       val sharedStyle = GlassStyle {
         optics(fixedOptics)
         tint(tint)
-        specularIntensity(0.71f)
-        ambientResponse(0.23f)
+        specularIntensity(1f)
+        ambientResponse(0f)
+        edgeSoftness(Float.MAX_VALUE.dp)
+        chromaMultiplier(2f)
+        specularExponent(Float.MAX_VALUE)
+        fresnelExponent(0f)
+        interactionLightRadiusFraction(2f)
         lightPosition(Alignment.TopStart)
         pressed {
-          lightingIntensity(0.81f)
-          refractionMultiplier(1.4f)
-          whitePointDelta(0.12f)
-          scale(0.96f)
+          lightingIntensity(1f)
+          refractionMultiplier(2f)
+          whitePointDelta(-1f)
+          scale(Float.MIN_VALUE)
         }
       }
       var failedRuntimeCreationAttempts = 0
@@ -140,8 +145,8 @@ class HazeGlassModifierTest : ContextTest() {
           assertThat(params.blurRadiusPx)
             .isEqualTo(with(context.requireDensity()) { 7.dp.toPx() })
           assertThat(params.tint).isEqualTo(tint)
-          assertThat(params.specularIntensity).isEqualTo(0.71f)
-          assertThat(params.ambientResponse).isEqualTo(0.23f)
+          assertThat(params.specularIntensity).isEqualTo(1f)
+          assertThat(params.ambientResponse).isEqualTo(0f)
           assertThat(params.lightPosition).isEqualTo(Offset.Zero)
         }
       }
@@ -150,11 +155,16 @@ class HazeGlassModifierTest : ContextTest() {
           GlassInteractionTopology(
             hasOptics = true,
             hasLighting = true,
-            maxRefractionMultiplier = 1.4f,
+            maxRefractionMultiplier = 2f,
           ),
         )
       assertThat(fallback.resolvedInteractionTopology)
         .isEqualTo(full.resolvedInteractionTopology)
+      assertThat(full.edgeSoftness).isEqualTo(Float.MAX_VALUE.dp)
+      assertThat(full.chromaMultiplier).isEqualTo(2f)
+      assertThat(full.specularExponent).isEqualTo(Float.MAX_VALUE)
+      assertThat(full.fresnelExponent).isEqualTo(0f)
+      assertThat(full.interactionLightRadiusFraction).isEqualTo(2f)
       assertThat(failedRuntimeCreationAttempts).isEqualTo(1)
 
       onRoot().captureToImage()

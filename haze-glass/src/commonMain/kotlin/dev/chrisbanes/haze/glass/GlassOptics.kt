@@ -6,7 +6,6 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isSpecified
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeProgressive
 
@@ -33,13 +32,20 @@ public sealed interface GlassOptics {
    * is capped at 38.5 physical pixels; this renderer quality bound does not limit accepted input
    * values.
    *
-   * @param refractionStrength Strength of the refraction response, in the range `0f..1f`.
-   * @param refractionDisplacement Maximum distance that refraction displaces content.
+   * Invalid numeric values throw [IllegalArgumentException] when this value is constructed.
+   * [progressive] is optional and retains the contract of its owning [HazeProgressive] type.
+   *
+   * @param refractionStrength Finite strength of the refraction response, in the inclusive range
+   * `0f..1f`.
+   * @param refractionDisplacement Specified, finite, non-negative maximum distance that refraction
+   * displaces content. There is no authored upper limit.
    * @param refractionHeightFraction Fraction of the material's shortest side used by the
-   * refraction profile, in the range `0f..1f`.
-   * @param depth Depth perception factor. Values greater than `0f` require drawing an additional
-   * blurred sample for the glass content, which has a rendering cost.
-   * @param blurRadius Maximum blur radius before the renderer's adaptive scale is applied.
+   * refraction profile, as a finite value in the inclusive range `0f..1f`.
+   * @param depth Finite depth perception factor in the inclusive range `0f..1f`. Values greater
+   * than `0f` require drawing an additional blurred sample for the glass content, which has a
+   * rendering cost.
+   * @param blurRadius Specified, finite, non-negative maximum blur radius before the renderer's
+   * adaptive scale is applied. There is no authored upper limit.
    * @param progressive Optional progressive intensity applied to the blur.
    */
   public data class Fixed(
@@ -51,27 +57,16 @@ public sealed interface GlassOptics {
     val progressive: HazeProgressive? = null,
   ) : GlassOptics {
     init {
-      require(refractionStrength.isFinite() && refractionStrength in 0f..1f) {
-        "refractionStrength must be finite and in 0f..1f"
-      }
-      require(
-        refractionHeightFraction.isFinite() && refractionHeightFraction in 0f..1f,
-      ) {
-        "refractionHeightFraction must be finite and in 0f..1f"
-      }
-      require(
-        refractionDisplacement.isSpecified &&
-          refractionDisplacement.value.isFinite() &&
-          refractionDisplacement >= 0.dp,
-      ) {
-        "refractionDisplacement must be specified, finite, and non-negative"
-      }
-      require(depth.isFinite() && depth in 0f..1f) {
-        "depth must be finite and in 0f..1f"
-      }
-      require(blurRadius.isSpecified && blurRadius.value.isFinite() && blurRadius >= 0.dp) {
-        "blurRadius must be specified, finite, and non-negative"
-      }
+      requireFiniteInRange("refractionStrength", refractionStrength, 0f..1f, UNIT_INTERVAL_DOMAIN)
+      requireFiniteInRange(
+        "refractionHeightFraction",
+        refractionHeightFraction,
+        0f..1f,
+        UNIT_INTERVAL_DOMAIN,
+      )
+      requireSpecifiedFiniteNonNegative("refractionDisplacement", refractionDisplacement)
+      requireFiniteInRange("depth", depth, 0f..1f, UNIT_INTERVAL_DOMAIN)
+      requireSpecifiedFiniteNonNegative("blurRadius", blurRadius)
     }
   }
 }

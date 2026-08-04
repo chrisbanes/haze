@@ -48,25 +48,26 @@ public enum class GlassReducedMotionPolicy {
 @ExperimentalHazeApi
 @GlassStyleDsl
 public sealed interface GlassInteractionScope {
-  /** Sets the lighting multiplier in the range `0f..1f`. */
+  /** Sets the finite lighting multiplier in the inclusive range `0f..1f`. */
   public fun lightingIntensity(intensity: Float)
 
-  /** Sets the refraction multiplier in the range `0f..2f`. */
+  /** Sets the finite refraction multiplier in the inclusive range `0f..2f`. */
   public fun refractionMultiplier(multiplier: Float)
 
-  /** Sets the additive white-point adjustment in the range `-1f..1f`. */
+  /** Sets the finite additive white-point adjustment in the inclusive range `-1f..1f`. */
   public fun whitePointDelta(delta: Float)
 
-  /** Sets a uniform positive scale no greater than `1f`. */
+  /** Sets a finite uniform scale in `0f < scale <= 1f`. */
   public fun scale(scale: Float) {
     scale(scaleX = scale, scaleY = scale)
   }
 
-  /** Sets positive horizontal and vertical scales no greater than `1f`. */
+  /** Sets finite horizontal and vertical scales in `0f < value <= 1f`. */
   public fun scale(scaleX: Float, scaleY: Float)
 
   /**
    * Applies [toSpec] when entering and [fromSpec] when leaving the response declared by [block].
+   * Animation specs retain the contract of their owning [FiniteAnimationSpec] type.
    */
   public fun animate(
     toSpec: FiniteAnimationSpec<Float>,
@@ -104,25 +105,28 @@ internal class GlassInteractionScopeImpl : GlassInteractionScope {
   private var yScale: GlassResponseValue? = null
 
   override fun lightingIntensity(intensity: Float) {
-    requireFiniteInRange("lightingIntensity", intensity, 0f..1f)
-    lighting = value(intensity)
+    lighting = value(
+      requireFiniteInRange("lightingIntensity", intensity, 0f..1f, UNIT_INTERVAL_DOMAIN),
+    )
   }
 
   override fun refractionMultiplier(multiplier: Float) {
-    requireFiniteInRange("refractionMultiplier", multiplier, 0f..2f)
-    refraction = value(multiplier)
+    refraction = value(
+      requireFiniteInRange("refractionMultiplier", multiplier, 0f..2f, DOUBLE_INTERVAL_DOMAIN),
+    )
   }
 
   override fun whitePointDelta(delta: Float) {
-    requireFiniteInRange("whitePointDelta", delta, -1f..1f)
-    whitePoint = value(delta)
+    whitePoint = value(
+      requireFiniteInRange("whitePointDelta", delta, -1f..1f, SIGNED_UNIT_INTERVAL_DOMAIN),
+    )
   }
 
   override fun scale(scaleX: Float, scaleY: Float) {
-    requireFiniteScale("scaleX", scaleX)
-    requireFiniteScale("scaleY", scaleY)
-    xScale = value(scaleX)
-    yScale = value(scaleY)
+    val validatedX = requirePositiveAtMostOne("scaleX", scaleX)
+    val validatedY = requirePositiveAtMostOne("scaleY", scaleY)
+    xScale = value(validatedX)
+    yScale = value(validatedY)
   }
 
   override fun animate(
@@ -158,17 +162,3 @@ internal class GlassInteractionScopeImpl : GlassInteractionScope {
 internal fun buildGlassInteractionResponse(
   block: GlassInteractionScope.() -> Unit,
 ): GlassInteractionResponse = GlassInteractionScopeImpl().apply(block).build()
-
-private fun requireFiniteInRange(
-  name: String,
-  value: Float,
-  range: ClosedFloatingPointRange<Float>,
-) {
-  require(value.isFinite() && value in range) { "$name must be finite and in range" }
-}
-
-private fun requireFiniteScale(name: String, value: Float) {
-  require(value.isFinite() && value > 0f && value <= 1f) {
-    "$name must be finite, greater than zero, and at most one"
-  }
-}
