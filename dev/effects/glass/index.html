@@ -1335,9 +1335,72 @@ Adaptive content behavior, interaction-driven deformation, and morphing are unsu
 <li><strong>chromaticAberrationMode</strong>: Quality mode for chromatic aberration. <code>Simple</code> (default, fast) or <code>Full</code> (spectral, more expensive).</li>
 <li><strong>alpha</strong>: Overall opacity multiplier <code>0..1</code> (default 1).</li>
 </ul>
+<p>All direct Glass numbers fail fast at value or Style construction. Invalid inputs throw
+<code>IllegalArgumentException</code> with a message shaped as <code>&lt;property&gt; must be &lt;accepted domain&gt;</code>; they
+are not clamped by Style resolution or a renderer.</p>
+<table>
+<thead>
+<tr>
+<th>Public input</th>
+<th>Accepted domain and sentinel policy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>refractionStrength</code>, <code>refractionHeightFraction</code>, <code>depth</code></td>
+<td>finite <code>0f..1f</code></td>
+</tr>
+<tr>
+<td><code>refractionDisplacement</code>, <code>blurRadius</code></td>
+<td>specified, finite, non-negative <code>Dp</code>; no authored upper limit</td>
+</tr>
+<tr>
+<td><code>specularIntensity</code>, <code>ambientResponse</code>, <code>chromaticAberrationStrength</code>, <code>alpha</code>, <code>contentNormalBlend</code></td>
+<td>finite <code>0f..1f</code></td>
+</tr>
+<tr>
+<td><code>contrast</code>, <code>whitePoint</code></td>
+<td>finite <code>-1f..1f</code></td>
+</tr>
+<tr>
+<td><code>chromaMultiplier</code>, <code>interactionLightRadiusFraction</code></td>
+<td>finite <code>0f..2f</code></td>
+</tr>
+<tr>
+<td><code>edgeSoftness</code></td>
+<td>specified, finite, non-negative <code>Dp</code>; no authored upper limit</td>
+</tr>
+<tr>
+<td><code>specularExponent</code>, <code>fresnelExponent</code></td>
+<td>finite and non-negative; no authored upper limit</td>
+</tr>
+<tr>
+<td><code>tint</code></td>
+<td>any specified <code>Color</code>, including transparent; <code>Color.Unspecified</code> is rejected</td>
+</tr>
+<tr>
+<td>known <code>lightPosition</code> biases</td>
+<td>finite horizontal and vertical axes; finite values outside <code>-1f..1f</code> are accepted</td>
+</tr>
+<tr>
+<td>interaction <code>lightingIntensity</code>, <code>refractionMultiplier</code>, <code>whitePointDelta</code></td>
+<td>finite <code>0f..1f</code>, <code>0f..2f</code>, and <code>-1f..1f</code>, respectively</td>
+</tr>
+<tr>
+<td>interaction <code>scale</code>, <code>scaleX</code>, <code>scaleY</code></td>
+<td>finite <code>0f &lt; value &lt;= 1f</code></td>
+</tr>
+</tbody>
+</table>
+<p>The direct six-parameter <code>optics(...)</code> function constructs <code>GlassOptics.Fixed</code>, so both routes have
+identical failures. <code>progressive = null</code> intentionally means no progressive blur. <code>GlassOptics</code>,
+<code>RoundedCornerShape</code>, <code>FiniteAnimationSpec</code>, <code>HazeProgressive</code>, arbitrary custom <code>Alignment</code>, and
+<code>HazeSampling</code> otherwise retain their owning contracts; Glass does not inspect opaque
+implementations. In particular, <code>HazeSampling.Fixed</code> already validates its finite
+<code>0f &lt; pixelFraction &lt;= 1f</code> value before the modifier receives it.</p>
 <h2 id="glassstyle">GlassStyle<a class="headerlink" href="#glassstyle" title="Permanent link">¶</a></h2>
 <p><code>GlassStyle</code> is an opaque, immutable sequence of appearance writes. Its builder executes once when
-the Style is constructed, canonicalizing and recording each value. Compose Styles with the
+the Style is constructed, validating and recording each value. Compose Styles with the
 intrinsic <code>then</code> members; later writes win. A Style can be shared by any number of <code>hazeGlass</code>
 nodes: each node replays defaults, <code>LocalGlassStyle</code>, and its explicit Style into its own snapshot
 without rerunning caller code.</p>
@@ -1368,7 +1431,9 @@ use physical alignments only when that is the intended semantic.</p>
 </code></pre></div>
 <p>Use <code>BiasAlignment</code> for a continuously moving proportional light. Biases <code>-1f</code>, <code>0f</code>, and <code>1f</code>
 represent the start/top edge, center, and end/bottom edge respectively, and values outside that
-range place the virtual light beyond the material bounds.</p>
+range place the virtual light beyond the material bounds. Both bias axes must be finite.
+<code>BiasAbsoluteAlignment</code> follows the same finite-axis rule without RTL mirroring. Arbitrary custom
+<code>Alignment</code> implementations are accepted unchanged and evaluated only at layout resolution.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">movingLighting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">lightPosition</span><span class="p">(</span><span class="n">BiasAlignment</span><span class="p">(</span><span class="n">horizontalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span><span class="p">,</span><span class="w"> </span><span class="n">verticalBias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="m">0.6f</span><span class="p">))</span>
 <span class="p">}</span>

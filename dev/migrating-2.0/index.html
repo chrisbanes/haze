@@ -1445,13 +1445,35 @@ resources.</p>
 <h3 id="glass-migration">Glass migration<a class="headerlink" href="#glass-migration" title="Permanent link">¶</a></h3>
 <p>Glass also has a typed modifier and an opaque, replayable <code>GlassStyle</code>. Replace the complete Style
 through recomposition; do not mutate an effect, use sentinel patches, <code>copy</code>, or <code>clear*</code> calls.
-The <code>GlassStyle</code> builder executes once during construction and records immutable, canonicalized
+The <code>GlassStyle</code> builder executes once during construction and records immutable, validated
 writes. Resolution never reruns the builder, so mutating state captured by an unchanged Style is
 inert; construct and supply a replacement Style to reflect new inputs.</p>
 <p>Keep one final <code>GlassStyle</code> for all platforms. Remove renderer-capability checks, platform-specific
 Style variants, and secondary fallback Styles: <code>hazeGlass</code> selects its private renderer
 automatically, replaying the same Style while limited renderers approximate supported appearance
 and omit unsupported optics.</p>
+<p>Glass numeric authoring now fails fast. Values that older Style or renderer paths clamped,
+normalized, or replaced now throw <code>IllegalArgumentException</code> when <code>GlassOptics.Fixed</code> or
+<code>GlassStyle</code> is constructed. This includes non-finite values; out-of-domain ratios, adjustments,
+multipliers, exponents, and scales; negative or unspecified distances; <code>Color.Unspecified</code>; and
+non-finite axes on <code>BiasAlignment</code> or <code>BiasAbsoluteAlignment</code>. Direct <code>optics(...)</code> uses the same
+<code>GlassOptics.Fixed</code> validation and messages as complete-value construction.</p>
+<p>If an application intentionally wants clamping, make that policy explicit before authoring the
+Style:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">safeAlpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">requestedAlpha</span><span class="p">.</span><span class="na">coerceIn</span><span class="p">(</span><span class="m">0f</span><span class="p">,</span><span class="w"> </span><span class="m">1f</span><span class="p">)</span>
+<span class="n">require</span><span class="p">(</span><span class="n">requestedEdgeSoftness</span><span class="p">.</span><span class="na">isSpecified</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">requestedEdgeSoftness</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">isFinite</span><span class="p">())</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">safeEdgeSoftness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">requestedEdgeSoftness</span><span class="p">.</span><span class="na">coerceAtLeast</span><span class="p">(</span><span class="m">0.</span><span class="n">dp</span><span class="p">)</span>
+
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">alpha</span><span class="p">(</span><span class="n">safeAlpha</span><span class="p">)</span>
+<span class="w">  </span><span class="n">edgeSoftness</span><span class="p">(</span><span class="n">safeEdgeSoftness</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Otherwise validate upstream and surface the invalid configuration. Large finite non-negative
+distances and exponents remain valid; renderer physical caps do not become authoring limits.
+<code>progressive = null</code> remains intentional, arbitrary custom <code>Alignment</code> and opaque shape/animation/
+progressive implementations keep their owning contracts, and modifier sampling continues to be
+validated by <code>HazeSampling.Fixed</code> (<code>0f &lt; pixelFraction &lt;= 1f</code>).</p>
 <table>
 <thead>
 <tr>
