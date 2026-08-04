@@ -95,7 +95,7 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
   fun glassInteraction_localPatchPreservesPixelsOutsideInteractionRegion() = runScreenshotTest {
     val radiusFraction = 0.22f
     val effect = GlassTestConfiguration().apply {
-      optics = GlassOptics.Absolute(
+      optics = GlassOptics.Fixed(
         refractionStrength = 0.7f,
         refractionDisplacement = 28.dp,
         depth = 0.5f,

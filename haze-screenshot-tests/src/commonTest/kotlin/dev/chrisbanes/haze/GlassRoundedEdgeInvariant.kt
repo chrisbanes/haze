@@ -43,7 +43,7 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
   val style = GlassStyle {
     tint(Color.White.copy(alpha = 0.8f))
     optics(
-      GlassOptics.Absolute(
+      GlassOptics.Fixed(
         refractionStrength = 0f,
         depth = 0f,
         blurRadius = 0.dp,

@@ -75,9 +75,9 @@ class GlassPlaygroundTimelineTest {
     assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Pill))
       .isEqualTo(GlassOptics.Adaptive)
     assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Card))
-      .isInstanceOf<GlassOptics.Absolute>()
+      .isInstanceOf<GlassOptics.Fixed>()
     assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Prism))
-      .isInstanceOf<GlassOptics.Absolute>()
+      .isInstanceOf<GlassOptics.Fixed>()
   }
 
   @Test

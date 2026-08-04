@@ -8,7 +8,6 @@ package dev.chrisbanes.haze
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -154,7 +153,7 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
     val shape = RoundedCornerShape(48.dp)
     val style = GlassStyle {
       tint(Color.White.copy(alpha = 0.28f))
-      optics(GlassOptics.Absolute(refractionStrength = 0f, depth = 0f, blurRadius = 32.dp))
+      optics(refractionStrength = 0f, depth = 0f, blurRadius = 32.dp)
       specularIntensity(0f)
       ambientResponse(0f)
       edgeSoftness(16.dp)

@@ -5,8 +5,8 @@ package dev.chrisbanes.haze
 
 import dev.chrisbanes.haze.glass.GlassOptics
 
-internal fun GlassTestConfiguration.updateAbsoluteOptics(
-  transform: GlassOptics.Absolute.() -> GlassOptics.Absolute,
+internal fun GlassTestConfiguration.updateFixedOptics(
+  transform: GlassOptics.Fixed.() -> GlassOptics.Fixed,
 ) {
-  optics = (optics as GlassOptics.Absolute).transform()
+  optics = (optics as GlassOptics.Fixed).transform()
 }

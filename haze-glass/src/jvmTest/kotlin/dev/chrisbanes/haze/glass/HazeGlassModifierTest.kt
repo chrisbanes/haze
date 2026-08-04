@@ -292,7 +292,7 @@ class HazeGlassModifierTest : ContextTest() {
     val localStyle = GlassStyle {
       alpha(0.3f)
       whitePoint(0.2f)
-      optics(GlassOptics.Absolute(depth = 0.2f, blurRadius = 12.dp))
+      optics(depth = 0.2f, blurRadius = 12.dp)
       pressed {
         lightingIntensity(0.2f)
         refractionMultiplier(1.2f)
@@ -301,41 +301,50 @@ class HazeGlassModifierTest : ContextTest() {
     val explicitStyle = GlassStyle {
       alpha(0.6f)
       specularIntensity(0.6f)
-      optics(GlassOptics.Absolute(depth = 0.5f, blurRadius = 16.dp))
+      optics(GlassOptics.Adaptive)
       pressed {
         lightingIntensity(0.5f)
         refractionMultiplier(1.5f)
       }
     }.then {
       alpha(0.8f)
-      optics(GlassOptics.Absolute(depth = 0.7f))
+      optics(depth = 0.7f)
       pressed { lightingIntensity(0.9f) }
     }
+    val completeFinalOptics = GlassOptics.Fixed(refractionStrength = 0.4f)
+    val completeFinalStyle = explicitStyle.then { optics(completeFinalOptics) }
+    val directFinalStyle = completeFinalStyle.then { optics(depth = 0.9f) }
     val factory = RecordingGlassFactory()
 
     setContent {
       CompositionLocalProvider(LocalGlassStyle provides localStyle) {
-        Spacer(
-          Modifier.size(10.dp).hazeGlass(
-            factory = factory,
-            input = HazeInput.Content,
-            style = explicitStyle,
-            sampling = HazeSampling.Default,
-            expandLayerBounds = true,
-            interactionSource = null,
-          ),
-        )
+        Box {
+          listOf(completeFinalStyle, directFinalStyle).forEach { style ->
+            Spacer(
+              Modifier.size(10.dp).hazeGlass(
+                factory = factory,
+                input = HazeInput.Content,
+                style = style,
+                sampling = HazeSampling.Default,
+                expandLayerBounds = true,
+                interactionSource = null,
+              ),
+            )
+          }
+        }
       }
     }
     waitForIdle()
 
-    val runtime = factory.effects.single().delegate
-    val pressed = runtime.resolvedInteractionSlots.pressed?.response
-    assertThat(runtime.contrast).isEqualTo(GlassDefaults.contrast)
-    assertThat(runtime.alpha).isEqualTo(0.8f)
-    assertThat(runtime.whitePoint).isEqualTo(0.2f)
-    assertThat(runtime.specularIntensity).isEqualTo(0.6f)
-    assertThat(runtime.optics).isEqualTo(GlassOptics.Absolute(depth = 0.7f))
+    val completeRuntime = factory.effects[0].delegate
+    val directRuntime = factory.effects[1].delegate
+    val pressed = completeRuntime.resolvedInteractionSlots.pressed?.response
+    assertThat(completeRuntime.contrast).isEqualTo(GlassDefaults.contrast)
+    assertThat(completeRuntime.alpha).isEqualTo(0.8f)
+    assertThat(completeRuntime.whitePoint).isEqualTo(0.2f)
+    assertThat(completeRuntime.specularIntensity).isEqualTo(0.6f)
+    assertThat(completeRuntime.optics).isSameInstanceAs(completeFinalOptics)
+    assertThat(directRuntime.optics).isEqualTo(GlassOptics.Fixed(depth = 0.9f))
     assertThat(pressed?.lightingIntensity?.value).isEqualTo(0.9f)
     assertThat(pressed?.refractionMultiplier).isNull()
   }

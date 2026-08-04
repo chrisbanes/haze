@@ -50,11 +50,11 @@ class GlassGalleryModelsTest {
   @Test
   fun editingAdaptiveStyle_changesSelectionToCustomAndLiteralOptics() {
     val edited = GlassLabState().editStyle { values ->
-      values.copy(optics = GlassOptics.Absolute(refractionStrength = 0.6f))
+      values.copy(optics = GlassOptics.Fixed(refractionStrength = 0.6f))
     }
 
     assertThat(edited.preset).isEqualTo(GlassLabPresetId.Custom)
-    assertThat(edited.styleValues.optics).isInstanceOf<GlassOptics.Absolute>()
+    assertThat(edited.styleValues.optics).isInstanceOf<GlassOptics.Fixed>()
   }
 
   @Test
@@ -73,15 +73,15 @@ class GlassGalleryModelsTest {
       backdrop = GlassGalleryBackdropId.Grid,
       interaction = GlassLabInteractionMode.Off,
       advancedExpanded = true,
-      styleValues = GlassLabStyleValues(optics = GlassOptics.Absolute()),
+      styleValues = GlassLabStyleValues(optics = GlassOptics.Fixed()),
     )
 
     assertThat(changed.reset()).isEqualTo(GlassLabState())
   }
 }
 
-private fun absoluteOpticsFor(id: GlassLabPresetId): GlassOptics.Absolute {
+private fun absoluteOpticsFor(id: GlassLabPresetId): GlassOptics.Fixed {
   val optics = GlassLabState(preset = id).styleValues.optics
-  assertThat(optics).isInstanceOf<GlassOptics.Absolute>()
-  return optics as GlassOptics.Absolute
+  assertThat(optics).isInstanceOf<GlassOptics.Fixed>()
+  return optics as GlassOptics.Fixed
 }

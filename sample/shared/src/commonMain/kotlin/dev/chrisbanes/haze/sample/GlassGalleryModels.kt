@@ -134,7 +134,7 @@ internal fun glassLabPresetValues(id: GlassLabPresetId): GlassLabStyleValues = w
   GlassLabPresetId.Adaptive -> GlassLabStyleValues()
   GlassLabPresetId.Clear -> GlassLabStyleValues(
     tint = Color.White.copy(alpha = 0.06f),
-    optics = GlassOptics.Absolute(
+    optics = GlassOptics.Fixed(
       refractionStrength = 0.85f,
       refractionHeightFraction = 0.22f,
       refractionDisplacement = 18.dp,
@@ -149,7 +149,7 @@ internal fun glassLabPresetValues(id: GlassLabPresetId): GlassLabStyleValues = w
   )
   GlassLabPresetId.Frosted -> GlassLabStyleValues(
     tint = Color.White.copy(alpha = 0.18f),
-    optics = GlassOptics.Absolute(
+    optics = GlassOptics.Fixed(
       refractionStrength = 0.45f,
       refractionHeightFraction = 0.18f,
       refractionDisplacement = 10.dp,
@@ -166,7 +166,7 @@ internal fun glassLabPresetValues(id: GlassLabPresetId): GlassLabStyleValues = w
   )
   GlassLabPresetId.Deep -> GlassLabStyleValues(
     tint = Color.White.copy(alpha = 0.1f),
-    optics = GlassOptics.Absolute(
+    optics = GlassOptics.Fixed(
       refractionStrength = 0.9f,
       refractionHeightFraction = 0.32f,
       refractionDisplacement = 20.dp,
@@ -184,7 +184,7 @@ internal fun glassLabPresetValues(id: GlassLabPresetId): GlassLabStyleValues = w
   )
   GlassLabPresetId.Prism -> GlassLabStyleValues(
     tint = Color.White.copy(alpha = 0.08f),
-    optics = GlassOptics.Absolute(
+    optics = GlassOptics.Fixed(
       refractionStrength = 0.82f,
       refractionHeightFraction = 0.28f,
       refractionDisplacement = 18.dp,
