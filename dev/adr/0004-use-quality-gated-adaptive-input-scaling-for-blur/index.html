@@ -12,7 +12,7 @@
         <meta name="author" content="Chris Banes">
       
       
-        <link rel="canonical" href="https://chribanes.github.io/haze/dev/adr/0003-use-quality-gated-adaptive-input-scaling-for-blur/">
+        <link rel="canonical" href="https://chribanes.github.io/haze/dev/adr/0004-use-quality-gated-adaptive-input-scaling-for-blur/">
       
       
       
@@ -25,7 +25,7 @@
     
     
       
-        <title>ADR-0003: Use quality-gated adaptive input scaling for blur - Haze</title>
+        <title>ADR-0004: Use quality-gated adaptive input scaling for blur - Haze</title>
       
     
     
@@ -59,17 +59,17 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="ADR-0003: Use quality-gated adaptive input scaling for blur - Haze" />
+<meta property="og:title" content="ADR-0004: Use quality-gated adaptive input scaling for blur - Haze" />
 <meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="og:image" content="https://chribanes.github.io/haze/dev/assets/images/social/adr/0003-use-quality-gated-adaptive-input-scaling-for-blur.png" />
+<meta property="og:image" content="https://chribanes.github.io/haze/dev/assets/images/social/adr/0004-use-quality-gated-adaptive-input-scaling-for-blur.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://chribanes.github.io/haze/dev/adr/0003-use-quality-gated-adaptive-input-scaling-for-blur/" />
+<meta property="og:url" content="https://chribanes.github.io/haze/dev/adr/0004-use-quality-gated-adaptive-input-scaling-for-blur/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="ADR-0003: Use quality-gated adaptive input scaling for blur - Haze" />
+<meta property="twitter:title" content="ADR-0004: Use quality-gated adaptive input scaling for blur - Haze" />
 <meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="twitter:image" content="https://chribanes.github.io/haze/dev/assets/images/social/adr/0003-use-quality-gated-adaptive-input-scaling-for-blur.png" />
+<meta property="twitter:image" content="https://chribanes.github.io/haze/dev/assets/images/social/adr/0004-use-quality-gated-adaptive-input-scaling-for-blur.png" />
 </head>
   
   
@@ -87,7 +87,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0003-use-quality-gated-adaptive-input-scaling-for-blur" class="md-skip">
+        <a href="#adr-0004-use-quality-gated-adaptive-input-scaling-for-blur" class="md-skip">
           Skip to content
         </a>
       
@@ -126,7 +126,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ADR-0003: Use quality-gated adaptive input scaling for blur
+              ADR-0004: Use quality-gated adaptive input scaling for blur
             
           </span>
         </div>
@@ -1105,7 +1105,7 @@
   
 
 
-<div><h1 id="adr-0003-use-quality-gated-adaptive-input-scaling-for-blur">ADR-0003: Use quality-gated adaptive input scaling for blur<a class="headerlink" href="#adr-0003-use-quality-gated-adaptive-input-scaling-for-blur" title="Permanent link">¶</a></h1>
+<div><h1 id="adr-0004-use-quality-gated-adaptive-input-scaling-for-blur">ADR-0004: Use quality-gated adaptive input scaling for blur<a class="headerlink" href="#adr-0004-use-quality-gated-adaptive-input-scaling-for-blur" title="Permanent link">¶</a></h1>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">¶</a></h2>
 <p>Accepted</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">¶</a></h2>
@@ -1136,7 +1136,7 @@ for both built-in effects:</p>
 <li>Tier exits have a 12.5% hysteresis margin, preventing small radius or size changes from repeatedly
   reallocating retained layers.</li>
 <li>Glass uses the same adaptive default mode with its effect-specific policy defined separately in
-  <a href="../0004-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0004</a>.</li>
+  <a href="../0005-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0005</a>.</li>
 <li>Explicit <code>FullResolution</code>, <code>Adaptive</code>, and <code>Fixed</code> choices remain authoritative. Paths that do
   not perform a real blur, including scrim fallback, remain unscaled.</li>
 </ul>

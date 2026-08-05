@@ -1349,17 +1349,15 @@
 <p>This module is experimental and may change or be removed in future releases. APIs are gated behind <code>@ExperimentalHazeApi</code>.</p>
 </div>
 <h2 id="download">Download<a class="headerlink" href="#download" title="Permanent link">¶</a></h2>
-<p>Glass is published with Haze's <a href="https://central.sonatype.com/service/rest/repository/browse/maven-snapshots/dev/chrisbanes/haze/haze-glass/">snapshot builds</a>. Add the Sonatype Central snapshot
-repository and use the same snapshot version for both artifacts:</p>
-<div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">maven</span><span class="p">(</span><span class="s">"https://central.sonatype.com/repository/maven-snapshots"</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:XXX-SNAPSHOT"</span><span class="p">)</span>
-<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-glass:XXX-SNAPSHOT"</span><span class="p">)</span>
+<p>Glass is published to Maven Central starting with Haze <code>2.0.0-alpha04</code>. Use the same version for
+the core and Glass artifacts:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:&lt;version&gt;"</span><span class="p">)</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-glass:&lt;version&gt;"</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>For unreleased changes, follow the <a href="../../using-snapshot-version/">snapshot build instructions</a> and
+use the same snapshot version for both artifacts.</p>
 <h3 id="built-in-material">Built-in material<a class="headerlink" href="#built-in-material" title="Permanent link">¶</a></h3>
 <p>Start with the default <code>GlassOptics.Adaptive</code> material. It adjusts to the surface's size and shape,
 which makes it a good fit for reusable components. Choose fixed optics only when the design needs

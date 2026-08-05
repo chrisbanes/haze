@@ -869,6 +869,34 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#highlights" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Highlights
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Highlights">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-haze-glass-library-experimental" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New haze-glass Library (Experimental)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#breaking-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -978,34 +1006,6 @@
   
     <nav class="md-nav" aria-label="2.0.0-alpha02 2026-05-08">
       <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#highlights" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Highlights
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Highlights">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#new-haze-glass-module-experimental" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        New haze-glass Module (Experimental)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
         
           <li class="md-nav__item">
   <a href="#breaking-changes_2" class="md-nav__link">
@@ -4411,6 +4411,34 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#highlights" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Highlights
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Highlights">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-haze-glass-library-experimental" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New haze-glass Library (Experimental)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#breaking-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4520,34 +4548,6 @@
   
     <nav class="md-nav" aria-label="2.0.0-alpha02 2026-05-08">
       <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#highlights" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Highlights
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Highlights">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#new-haze-glass-module-experimental" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        New haze-glass Module (Experimental)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
         
           <li class="md-nav__item">
   <a href="#breaking-changes_2" class="md-nav__link">
@@ -7823,6 +7823,23 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
+<h3 id="highlights">Highlights<a class="headerlink" href="#highlights" title="Permanent link">¶</a></h3>
+<h4 id="new-haze-glass-library-experimental">New <code>haze-glass</code> Library (Experimental)<a class="headerlink" href="#new-haze-glass-library-experimental" title="Permanent link">¶</a></h4>
+<p>This release introduces <code>haze-glass</code>, a new multiplatform library for building refraction-driven
+Glass effects with Haze. It combines refraction, depth blur, tint, Fresnel and ambient lighting,
+specular highlights, dispersion, progressive blur, and interactive hover, focus, and press
+responses behind one portable API.</p>
+<p><code>2.0.0-alpha04</code> is the library's first public release on Maven Central. Add the core Haze library
+and <code>haze-glass</code> with the same version:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:2.0.0-alpha04"</span><span class="p">)</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-glass:2.0.0-alpha04"</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Start with <code>Modifier.hazeGlass</code> and <code>GlassStyle</code>. The library uses the same API across supported
+platforms and gracefully falls back when a platform cannot provide a requested optical effect.
+<code>haze-glass</code> is experimental, is gated by <code>@ExperimentalHazeApi</code>, and may change before Haze 2.0
+is stable.</p>
 <h3 id="breaking-changes">Breaking Changes<a class="headerlink" href="#breaking-changes" title="Permanent link">¶</a></h3>
 <ul>
 <li>Custom effects now use only the typed <code>Modifier.hazeEffect</code>, <code>HazeEffectFactory</code>,
@@ -7848,6 +7865,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">¶</a></h3>
 <ul>
+<li>Published the experimental <code>haze-glass</code> library to Maven Central, starting with
+  <code>2.0.0-alpha04</code>, in
+  <a href="https://github.com/chrisbanes/haze/pull/1171">#1171</a>.</li>
 <li>Added declarative hover, focus, and press responses to <code>GlassStyle</code>, including localized lighting
   and optics plus configurable transforms and motion on <code>Modifier.hazeGlass</code>.</li>
 <li>Added progressive blur support to Glass.</li>
@@ -7882,22 +7902,38 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
-<li>Release rebuildable Desktop and Web effect resources when their composition lifecycle stops.</li>
-<li>Bound and reuse Glass group-alpha composition surfaces, including allocation-free zero-alpha drawing and predictable fallback for oversized output in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/1062" title="GitHub Issue chrisbanes/haze #1062">#1062</a>.</li>
-<li>Reuse retained Glass stages, prepared render data, and runtime shaders during animation in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/1045" title="GitHub Issue chrisbanes/haze #1045">#1045</a>.</li>
-<li><strong>Fix cross-window recomposition livelock</strong> in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/974" title="GitHub Issue chrisbanes/haze #974">#974</a>. When a <code>HazeState</code> is shared between effects in different windows (e.g. a host composable and a <code>Dialog</code>), the previously-shared <code>HazeState.resolvedStrategy</code> oscillated between <code>Local</code> and <code>Screen</code>, causing an infinite recomposition loop. The resolved position strategy is now per-effect (<code>HazeEffectNode.resolvedPositionStrategy</code>), so effects in different windows no longer stomp on each other.</li>
-<li>Fix sticky header haze scroll sync in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/994" title="GitHub Issue chrisbanes/haze #994">#994</a>. <code>HazeSourceNode</code> now refreshes local coordinates from every <code>onPlaced</code>, and observed area-position reads dirty <code>HazeEffectNode</code> area offsets so sticky headers blur the currently visible content while scrolling.</li>
+<li>Release rebuildable Desktop and Web effect resources when their composition lifecycle stops in
+  <a href="https://github.com/chrisbanes/haze/pull/1156">#1156</a>.</li>
+<li>Bound and reuse Glass group-alpha composition surfaces, including allocation-free zero-alpha
+  drawing and predictable fallback for oversized output in
+  <a href="https://github.com/chrisbanes/haze/pull/1064">#1064</a>.</li>
+<li>Reuse retained Glass stages, prepared render data, and runtime shaders during animation in
+  <a href="https://github.com/chrisbanes/haze/pull/1057">#1057</a>.</li>
+<li><strong>Fix cross-window recomposition livelock</strong> in
+  <a href="https://github.com/chrisbanes/haze/pull/975">#975</a>. When a <code>HazeState</code> is shared between effects
+  in different windows (e.g. a host composable and a <code>Dialog</code>), the previously-shared
+  <code>HazeState.resolvedStrategy</code> oscillated between <code>Local</code> and <code>Screen</code>, causing an infinite
+  recomposition loop. The resolved position strategy is now per-effect
+  (<code>HazeEffectNode.resolvedPositionStrategy</code>), so effects in different windows no longer stomp on
+  each other.</li>
+<li>Fix sticky header haze scroll sync in
+  <a href="https://github.com/chrisbanes/haze/pull/996">#996</a>. <code>HazeSourceNode</code> now refreshes local
+  coordinates from every <code>onPlaced</code>, and observed area-position reads dirty <code>HazeEffectNode</code> area
+  offsets so sticky headers blur the currently visible content while scrolling.</li>
 </ul>
+<p>Thanks to <a href="https://github.com/ardakazanci">Arda K.</a> for
+<a href="https://github.com/chrisbanes/haze/pull/1093">#1093</a> and
+<a href="https://github.com/chrisbanes/haze/pull/1114">#1114</a>, and to
+<a href="https://github.com/Goooler">Zongle Wang</a> for
+<a href="https://github.com/chrisbanes/haze/pull/971">#971</a>.</p>
 <h2 id="2.0.0-alpha03">2.0.0-alpha03 <small>2026-06-08</small><a class="headerlink" href="#2.0.0-alpha03" title="Permanent link">¶</a></h2>
 <h3 id="breaking-changes_1">Breaking Changes<a class="headerlink" href="#breaking-changes_1" title="Permanent link">¶</a></h3>
 <ul>
 <li><strong>Removed APIs:</strong> Delete all v1 migration aliases, including <code>HazeStyle</code>, <code>HazeTint</code>, <code>LocalHazeStyle</code>, and the <code>HazeTint(...)</code> factory function in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/963" title="GitHub Issue chrisbanes/haze #963">#963</a></li>
 <li><strong>Changed:</strong> <code>HazeBlurStyle</code> is now an immutable class rather than a data class. The constructor and <code>copy()</code> parameter for <code>colorEffects</code> is nullable (<code>null</code> = unspecified, <code>emptyList()</code> = explicitly empty); the public property remains non-null and returns an empty list when unspecified in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/963" title="GitHub Issue chrisbanes/haze #963">#963</a></li>
-<li><strong>Changed:</strong> <code>GlassStyle</code> is restructured into grouped value types: <code>GlassOptics</code>, <code>GlassLighting</code>, <code>GlassColor</code>, and <code>GlassRendering</code> in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/963" title="GitHub Issue chrisbanes/haze #963">#963</a></li>
 </ul>
 <h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">¶</a></h3>
 <ul>
-<li>Glass shader performance, realism, configurability, and sample refactoring in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/839" title="GitHub Issue chrisbanes/haze #839">#839</a></li>
 <li>Update Jetpack Compose to 1.11.2 in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/938" title="GitHub Issue chrisbanes/haze #938">#938</a></li>
 <li>Update Compose Multiplatform to 1.11.1 in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/956" title="GitHub Issue chrisbanes/haze #956">#956</a></li>
 <li>Upgrade AGP to 9.2.1 in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/955" title="GitHub Issue chrisbanes/haze #955">#955</a></li>
@@ -7910,39 +7946,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Include resolved <code>CornerRadii</code> in fallback path cache invalidation in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/954" title="GitHub Issue chrisbanes/haze #954">#954</a></li>
 <li>Guard <code>VisualEffect</code> attach/detach until <code>HazeEffectNode</code> is attached in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/953" title="GitHub Issue chrisbanes/haze #953">#953</a></li>
 <li>Exclude <code>VisualEffect.Empty</code> from single-owner registration in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/949" title="GitHub Issue chrisbanes/haze #949">#949</a></li>
-<li>Fix Android API 33+ Glass runtime shader not binding <code>blurredContent</code>. The
-  <code>RuntimeShaderGlassDelegate</code> now uses an <code>expect</code>/<code>actual</code> factory so that
-  Android receives a single-input shader, avoiding the single-content-input limitation
-  of <code>RenderEffect.createRuntimeShaderEffect</code>. The depth-based blur mixing is skipped
-  on Android; all other effects (refraction, specular, Fresnel, chromatic aberration,
-  edge softness, tinting, and color grading) are preserved in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/951" title="GitHub Issue chrisbanes/haze #951">#951</a></li>
 </ul>
 <h2 id="2.0.0-alpha02">2.0.0-alpha02 <small>2026-05-08</small><a class="headerlink" href="#2.0.0-alpha02" title="Permanent link">¶</a></h2>
 <p>Changes since 2.0.0-alpha01.</p>
-<h3 id="highlights">Highlights<a class="headerlink" href="#highlights" title="Permanent link">¶</a></h3>
-<h4 id="new-haze-glass-module-experimental">New <code>haze-glass</code> Module (Experimental)<a class="headerlink" href="#new-haze-glass-module-experimental" title="Permanent link">¶</a></h4>
-<p>A new <code>haze-glass</code> module adds a Glass refraction effect calibrated against Apple's iOS Liquid Glass material. It renders refraction, depth blur, specular highlights, Fresnel ambient lift, chromatic aberration, and soft tinted glass through a custom AGSL runtime shader, with a Canvas-based fallback for platforms without runtime shader support.</p>
-<p>The module is gated behind <code>@ExperimentalHazeApi</code> and <strong>is not yet published to Maven Central</strong>. It exists in the repository for internal development and testing only.</p>
-<p>Usage:</p>
-<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">glassEffect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">)</span>
-<span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.7f</span>
-<span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.4f</span>
-<span class="w">    </span><span class="n">shape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="m">16.</span><span class="n">dp</span><span class="p">)</span>
-<span class="w">    </span><span class="n">surfaceProfile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SurfaceProfile</span><span class="p">.</span><span class="na">Circle</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
-<p>Key features:</p>
-<ul>
-<li><strong>Refraction</strong> with configurable strength, height, and surface profile (Circle, Squircle, Lip, Concave)</li>
-<li><strong>Depth blur</strong> mixing original and blurred content</li>
-<li><strong>Specular highlights</strong> and <strong>Fresnel ambient response</strong> driven by a virtual light source</li>
-<li><strong>Chromatic aberration</strong> in Simple (fast) or Full (spectral) modes</li>
-<li><strong><code>GlassStyle</code></strong> container with <code>LocalGlassStyle</code> composition local for scoped defaults</li>
-<li>All properties follow the standard three-tier precedence: direct → style → composition local → defaults</li>
-</ul>
 <h3 id="breaking-changes_2">Breaking Changes<a class="headerlink" href="#breaking-changes_2" title="Permanent link">¶</a></h3>
 <ul>
 <li><strong>Removed APIs:</strong> <code>VisualEffectContext.visualEffect</code> property removed. Custom <code>VisualEffect</code> implementations should access their own state directly through class members or captured references. Inside <code>override fun DrawScope.draw(...)</code>, bare <code>this</code> refers to the <code>DrawScope</code>, not the <code>VisualEffect</code> instance.</li>
@@ -7968,7 +7974,6 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">¶</a></h3>
 <ul>
 <li>Add recomposition testing (count + loop detection + instrumentation) in <a class="gh-link gh-issue" href="https://github.com/chrisbanes/haze/issues/919" title="GitHub Issue chrisbanes/haze #919">#919</a></li>
-<li>Add <code>haze-glass</code> module with Glass refraction effect — see <a href="#highlights">Highlights</a> above</li>
 </ul>
 <h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">¶</a></h3>
 <ul>
