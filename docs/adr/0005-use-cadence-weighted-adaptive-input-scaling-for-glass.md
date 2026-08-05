@@ -1,4 +1,4 @@
-# ADR-0004: Use cadence-weighted adaptive input scaling for Glass
+# ADR-0005: Use cadence-weighted adaptive input scaling for Glass
 
 ## Status
 

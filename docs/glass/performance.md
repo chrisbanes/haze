@@ -63,7 +63,7 @@ by the internal [Glass benchmark runbook][benchmark-runbook]. Compare the intera
 and device classes that your application supports.
 
 The adaptive-sampling rationale and supporting measurements are recorded in
-[ADR-0004][sampling-adr].
+[ADR-0005][sampling-adr].
 
 [benchmark-runbook]: https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md
-[sampling-adr]: ../adr/0004-use-cadence-weighted-adaptive-input-scaling-for-glass.md
+[sampling-adr]: ../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass.md

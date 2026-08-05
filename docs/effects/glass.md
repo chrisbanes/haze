@@ -7,21 +7,18 @@ A refraction-driven Glass effect that combines refraction, depth blur, tint, Fre
 
 ## Download
 
-Glass is published with Haze's [snapshot builds][glass-snap]. Add the Sonatype Central snapshot
-repository and use the same snapshot version for both artifacts:
+Glass is published to Maven Central starting with Haze `2.0.0-alpha04`. Use the same version for
+the core and Glass artifacts:
 
 ```kotlin
-repositories {
-    maven("https://central.sonatype.com/repository/maven-snapshots")
-}
-
 dependencies {
-    implementation("dev.chrisbanes.haze:haze:XXX-SNAPSHOT")
-    implementation("dev.chrisbanes.haze:haze-glass:XXX-SNAPSHOT")
+    implementation("dev.chrisbanes.haze:haze:<version>")
+    implementation("dev.chrisbanes.haze:haze-glass:<version>")
 }
 ```
 
-[glass-snap]: https://central.sonatype.com/service/rest/repository/browse/maven-snapshots/dev/chrisbanes/haze/haze-glass/
+For unreleased changes, follow the [snapshot build instructions](../using-snapshot-version.md) and
+use the same snapshot version for both artifacts.
 
 ### Built-in material
 
