@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Highlights
+
+#### New `haze-glass` Library (Experimental)
+
+This release introduces `haze-glass`, a new multiplatform library for building refraction-driven
+Glass effects with Haze. It combines refraction, depth blur, tint, Fresnel and ambient lighting,
+specular highlights, dispersion, progressive blur, and interactive hover, focus, and press
+responses behind one portable API.
+
+`2.0.0-alpha04` is the library's first public release on Maven Central. Add the core Haze library
+and `haze-glass` with the same version:
+
+```kotlin
+dependencies {
+    implementation("dev.chrisbanes.haze:haze:2.0.0-alpha04")
+    implementation("dev.chrisbanes.haze:haze-glass:2.0.0-alpha04")
+}
+```
+
+Start with `Modifier.hazeGlass` and `GlassStyle`. The library uses the same API across supported
+platforms and gracefully falls back when a platform cannot provide a requested optical effect.
+`haze-glass` is experimental, is gated by `@ExperimentalHazeApi`, and may change before Haze 2.0
+is stable.
+
 ### Breaking Changes
 
 - Custom effects now use only the typed `Modifier.hazeEffect`, `HazeEffectFactory`,
@@ -32,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Published the experimental `haze-glass` library to Maven Central, starting with
+  `2.0.0-alpha04`, in
+  [#1171](https://github.com/chrisbanes/haze/pull/1171).
 - Added declarative hover, focus, and press responses to `GlassStyle`, including localized lighting
   and optics plus configurable transforms and motion on `Modifier.hazeGlass`.
 - Added progressive blur support to Glass.
@@ -66,11 +93,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Release rebuildable Desktop and Web effect resources when their composition lifecycle stops.
-- Bound and reuse Glass group-alpha composition surfaces, including allocation-free zero-alpha drawing and predictable fallback for oversized output in #1062.
-- Reuse retained Glass stages, prepared render data, and runtime shaders during animation in #1045.
-- **Fix cross-window recomposition livelock** in #974. When a `HazeState` is shared between effects in different windows (e.g. a host composable and a `Dialog`), the previously-shared `HazeState.resolvedStrategy` oscillated between `Local` and `Screen`, causing an infinite recomposition loop. The resolved position strategy is now per-effect (`HazeEffectNode.resolvedPositionStrategy`), so effects in different windows no longer stomp on each other.
-- Fix sticky header haze scroll sync in #994. `HazeSourceNode` now refreshes local coordinates from every `onPlaced`, and observed area-position reads dirty `HazeEffectNode` area offsets so sticky headers blur the currently visible content while scrolling.
+- Release rebuildable Desktop and Web effect resources when their composition lifecycle stops in
+  [#1156](https://github.com/chrisbanes/haze/pull/1156).
+- Bound and reuse Glass group-alpha composition surfaces, including allocation-free zero-alpha
+  drawing and predictable fallback for oversized output in
+  [#1064](https://github.com/chrisbanes/haze/pull/1064).
+- Reuse retained Glass stages, prepared render data, and runtime shaders during animation in
+  [#1057](https://github.com/chrisbanes/haze/pull/1057).
+- **Fix cross-window recomposition livelock** in
+  [#975](https://github.com/chrisbanes/haze/pull/975). When a `HazeState` is shared between effects
+  in different windows (e.g. a host composable and a `Dialog`), the previously-shared
+  `HazeState.resolvedStrategy` oscillated between `Local` and `Screen`, causing an infinite
+  recomposition loop. The resolved position strategy is now per-effect
+  (`HazeEffectNode.resolvedPositionStrategy`), so effects in different windows no longer stomp on
+  each other.
+- Fix sticky header haze scroll sync in
+  [#996](https://github.com/chrisbanes/haze/pull/996). `HazeSourceNode` now refreshes local
+  coordinates from every `onPlaced`, and observed area-position reads dirty `HazeEffectNode` area
+  offsets so sticky headers blur the currently visible content while scrolling.
+
+Thanks to [Arda K.](https://github.com/ardakazanci) for
+[#1093](https://github.com/chrisbanes/haze/pull/1093) and
+[#1114](https://github.com/chrisbanes/haze/pull/1114), and to
+[Zongle Wang](https://github.com/Goooler) for
+[#971](https://github.com/chrisbanes/haze/pull/971).
 
 ## 2.0.0-alpha03 <small>2026-06-08</small> { id="2.0.0-alpha03" }
 
@@ -78,11 +124,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Removed APIs:** Delete all v1 migration aliases, including `HazeStyle`, `HazeTint`, `LocalHazeStyle`, and the `HazeTint(...)` factory function in #963
 - **Changed:** `HazeBlurStyle` is now an immutable class rather than a data class. The constructor and `copy()` parameter for `colorEffects` is nullable (`null` = unspecified, `emptyList()` = explicitly empty); the public property remains non-null and returns an empty list when unspecified in #963
-- **Changed:** `GlassStyle` is restructured into grouped value types: `GlassOptics`, `GlassLighting`, `GlassColor`, and `GlassRendering` in #963
 
 ### Changed
 
-- Glass shader performance, realism, configurability, and sample refactoring in #839
 - Update Jetpack Compose to 1.11.2 in #938
 - Update Compose Multiplatform to 1.11.1 in #956
 - Upgrade AGP to 9.2.1 in #955
@@ -95,47 +139,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Include resolved `CornerRadii` in fallback path cache invalidation in #954
 - Guard `VisualEffect` attach/detach until `HazeEffectNode` is attached in #953
 - Exclude `VisualEffect.Empty` from single-owner registration in #949
-- Fix Android API 33+ Glass runtime shader not binding `blurredContent`. The
-  `RuntimeShaderGlassDelegate` now uses an `expect`/`actual` factory so that
-  Android receives a single-input shader, avoiding the single-content-input limitation
-  of `RenderEffect.createRuntimeShaderEffect`. The depth-based blur mixing is skipped
-  on Android; all other effects (refraction, specular, Fresnel, chromatic aberration,
-  edge softness, tinting, and color grading) are preserved in #951
 
 ## 2.0.0-alpha02 <small>2026-05-08</small> { id="2.0.0-alpha02" }
 
 Changes since 2.0.0-alpha01.
-
-### Highlights
-
-#### New `haze-glass` Module (Experimental)
-
-A new `haze-glass` module adds a Glass refraction effect calibrated against Apple's iOS Liquid Glass material. It renders refraction, depth blur, specular highlights, Fresnel ambient lift, chromatic aberration, and soft tinted glass through a custom AGSL runtime shader, with a Canvas-based fallback for platforms without runtime shader support.
-
-The module is gated behind `@ExperimentalHazeApi` and **is not yet published to Maven Central**. It exists in the repository for internal development and testing only.
-
-Usage:
-
-```kotlin
-Modifier.hazeEffect(state = hazeState) {
-  glassEffect {
-    tint = Color.White.copy(alpha = 0.12f)
-    refractionStrength = 0.7f
-    depth = 0.4f
-    shape = RoundedCornerShape(16.dp)
-    surfaceProfile = SurfaceProfile.Circle
-  }
-}
-```
-
-Key features:
-
-- **Refraction** with configurable strength, height, and surface profile (Circle, Squircle, Lip, Concave)
-- **Depth blur** mixing original and blurred content
-- **Specular highlights** and **Fresnel ambient response** driven by a virtual light source
-- **Chromatic aberration** in Simple (fast) or Full (spectral) modes
-- **`GlassStyle`** container with `LocalGlassStyle` composition local for scoped defaults
-- All properties follow the standard three-tier precedence: direct → style → composition local → defaults
 
 ### Breaking Changes
 
@@ -160,7 +167,6 @@ Key features:
 
 ### Added
 * Add recomposition testing (count + loop detection + instrumentation) in #919
-* Add `haze-glass` module with Glass refraction effect — see [Highlights](#highlights) above
 
 ### Fixed
 * Fix `IllegalStateException` from `currentValueOf` on unattached node in #921

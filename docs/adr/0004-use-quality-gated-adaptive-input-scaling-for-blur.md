@@ -1,4 +1,4 @@
-# ADR-0003: Use quality-gated adaptive input scaling for blur
+# ADR-0004: Use quality-gated adaptive input scaling for blur
 
 ## Status
 
@@ -38,7 +38,7 @@ for both built-in effects:
 - Tier exits have a 12.5% hysteresis margin, preventing small radius or size changes from repeatedly
   reallocating retained layers.
 - Glass uses the same adaptive default mode with its effect-specific policy defined separately in
-  [ADR-0004](0004-use-cadence-weighted-adaptive-input-scaling-for-glass.md).
+  [ADR-0005](0005-use-cadence-weighted-adaptive-input-scaling-for-glass.md).
 - Explicit `FullResolution`, `Adaptive`, and `Fixed` choices remain authoritative. Paths that do
   not perform a real blur, including scrim fallback, remain unscaled.
 
