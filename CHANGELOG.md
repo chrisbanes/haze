@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
+#### Revamped Effect APIs
+
+Alpha04 replaces the mutable, nested effect DSL with typed modifiers and explicit rendering
+policies. Blur now uses `Modifier.hazeBlur`, while Glass uses `Modifier.hazeGlass`. Each modifier
+declares its input (`HazeInput.Sources` or `HazeInput.Content`), Style, sampling policy, and layer
+behavior directly:
+
+```kotlin
+Modifier.hazeBlur(
+    input = HazeInput.Sources(hazeState),
+    style = HazeBlurStyle {
+        blurRadius(20.dp)
+    },
+    sampling = HazeSampling.Adaptive,
+)
+```
+
+`HazeBlurStyle` and `GlassStyle` are now immutable, replayable configurations that can be shared
+between modifiers and extended with `then`. Custom effects use a typed `HazeEffectFactory` with a
+renderer owned by each modifier node, keeping mutable rendering resources out of shareable Style
+objects. See the [Haze 2.0 migration guide](https://chrisbanes.github.io/haze/migrating-2.0/) for
+before-and-after examples.
+
 #### New `haze-glass` Library (Experimental)
 
 This release introduces `haze-glass`, a new multiplatform library for building refraction-driven
