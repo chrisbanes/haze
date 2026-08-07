@@ -881,6 +881,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#revamped-effect-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revamped Effect APIs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#new-haze-glass-library-experimental" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4423,6 +4434,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#revamped-effect-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revamped Effect APIs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#new-haze-glass-library-experimental" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7824,6 +7846,24 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">¶</a></h2>
 <h3 id="highlights">Highlights<a class="headerlink" href="#highlights" title="Permanent link">¶</a></h3>
+<h4 id="revamped-effect-apis">Revamped Effect APIs<a class="headerlink" href="#revamped-effect-apis" title="Permanent link">¶</a></h4>
+<p>Alpha04 replaces the mutable, nested effect DSL with typed modifiers and explicit rendering
+policies. Blur now uses <code>Modifier.hazeBlur</code>, while Glass uses <code>Modifier.hazeGlass</code>. Each modifier
+declares its input (<code>HazeInput.Sources</code> or <code>HazeInput.Content</code>), Style, sampling policy, and layer
+behavior directly:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
+<span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">blurRadius</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><code>HazeBlurStyle</code> and <code>GlassStyle</code> are now immutable, replayable configurations that can be shared
+between modifiers and extended with <code>then</code>. Custom effects use a typed <code>HazeEffectFactory</code> with a
+renderer owned by each modifier node, keeping mutable rendering resources out of shareable Style
+objects. See the <a href="https://chrisbanes.github.io/haze/migrating-2.0/">Haze 2.0 migration guide</a> for
+before-and-after examples.</p>
 <h4 id="new-haze-glass-library-experimental">New <code>haze-glass</code> Library (Experimental)<a class="headerlink" href="#new-haze-glass-library-experimental" title="Permanent link">¶</a></h4>
 <p>This release introduces <code>haze-glass</code>, a new multiplatform library for building refraction-driven
 Glass effects with Haze. It combines refraction, depth blur, tint, Fresnel and ambient lighting,
