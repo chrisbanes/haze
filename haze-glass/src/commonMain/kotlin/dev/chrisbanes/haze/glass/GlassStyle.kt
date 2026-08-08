@@ -219,6 +219,12 @@ public class GlassStyleScope internal constructor(
     writes += { ambientResponse = validated }
   }
 
+  /** Sets any specified color, including transparent, composited behind the captured input. */
+  public fun backgroundColor(color: Color) {
+    require(color.isSpecified) { "backgroundColor must be specified" }
+    writes += { backgroundColor = color }
+  }
+
   /** Sets any specified tint, including transparent, applied to refracted content. */
   public fun tint(color: Color) {
     require(color.isSpecified) { "tint must be specified" }
@@ -351,6 +357,7 @@ internal class GlassStyleValues(
   var optics: GlassOptics = GlassDefaults.optics,
   var specularIntensity: Float = GlassDefaults.specularIntensity,
   var ambientResponse: Float = GlassDefaults.ambientResponse,
+  var backgroundColor: Color = GlassDefaults.backgroundColor,
   var tint: Color = GlassDefaults.tint,
   var edgeSoftness: Dp = GlassDefaults.edgeSoftness,
   var lightPosition: Alignment = Alignment.Center,

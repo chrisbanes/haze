@@ -171,6 +171,15 @@ class FallbackGlassDelegateTest {
 
     assertDirectAlphaHalvesContribution(
       effect = GlassRuntimeEffect().apply {
+        backgroundColor = Color.Red
+        tint = Color.Transparent
+        specularIntensity = 0f
+        edgeSoftness = 0.dp
+      },
+      sample = Offset(60f, 60f),
+    )
+    assertDirectAlphaHalvesContribution(
+      effect = GlassRuntimeEffect().apply {
         tint = Color.Red
         specularIntensity = 0f
         edgeSoftness = 0.dp

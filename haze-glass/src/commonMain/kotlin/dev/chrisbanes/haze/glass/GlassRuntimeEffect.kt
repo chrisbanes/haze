@@ -89,6 +89,7 @@ private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): B
   resolvedOptics == other.resolvedOptics &&
     specularIntensity == other.specularIntensity &&
     ambientResponse == other.ambientResponse &&
+    backgroundColor == other.backgroundColor &&
     tint == other.tint &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     lightPosition == other.lightPosition &&

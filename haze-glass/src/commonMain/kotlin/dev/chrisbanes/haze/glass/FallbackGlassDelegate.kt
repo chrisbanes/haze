@@ -153,19 +153,29 @@ internal class FallbackGlassDelegate(
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
     val prepared = preparedDraw ?: return
     val style = prepared.style
+    val backgroundColor = style.backgroundColor
     val tint = style.tint
-    if (!tint.isSpecified) return
+    if (!backgroundColor.isSpecified || !tint.isSpecified) return
     if (style.alpha <= 0f) return
     trace(GlassTraceSection.FallbackDraw) {
       val shapePath = prepared.shapePath
 
       fun DrawScope.drawFallback(alphaMultiplier: Float) {
-        if (shapePath != null) {
-          clipPath(shapePath) {
+        fun DrawScope.drawBase() {
+          if (backgroundColor.alpha > 0f) {
+            drawRect(
+              color = backgroundColor.copy(alpha = backgroundColor.alpha * alphaMultiplier),
+            )
+          }
+          if (tint.alpha > 0f) {
             drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
           }
+        }
+
+        if (shapePath != null) {
+          clipPath(shapePath) { drawBase() }
         } else {
-          drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))
+          drawBase()
         }
 
         // The edge falloff is part of the base material and remains behind child content.

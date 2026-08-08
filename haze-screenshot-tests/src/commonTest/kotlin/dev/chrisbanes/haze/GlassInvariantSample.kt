@@ -48,6 +48,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
+import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -594,6 +595,56 @@ internal fun ScreenshotUiTest.assertGlassBlurInvariant() {
   setContent {
     ScreenshotTheme {
       GlassInvariantSample(effect, HazeSampling.FullResolution, shape)
+    }
+  }
+
+  val sharp = captureInvariantSnapshot()
+  effect.updateFixedOptics { copy(blurRadius = 32.dp) }
+  waitForIdle()
+  val blurred = captureInvariantSnapshot()
+
+  assertBlurReducesHighFrequencyEnergy(sharp, blurred, sharp.invariantGeometry().interiorBounds)
+}
+
+internal fun ScreenshotUiTest.assertGlassBackgroundColorBlurInvariant() {
+  val effect = GlassTestConfiguration().apply {
+    style = GlassStyle { backgroundColor(Color.White) }
+    optics = GlassOptics.Fixed(refractionStrength = 0f, depth = 1f, blurRadius = 0.dp)
+    tint = Color.Transparent
+    specularIntensity = 0f
+    ambientResponse = 0f
+    edgeSoftness = 0.dp
+    shape = RoundedCornerShape(0.dp)
+  }
+  setContent {
+    ScreenshotTheme {
+      val hazeState = rememberHazeState()
+      Box(Modifier.fillMaxSize().background(Color.White)) {
+        Canvas(
+          Modifier
+            .align(Alignment.Center)
+            .size(280.dp, 180.dp)
+            .hazeSource(hazeState),
+        ) {
+          for (x in 0 until size.width.toInt() step 12) {
+            drawRect(
+              color = Color.Black,
+              topLeft = Offset(x.toFloat(), 0f),
+              size = Size(6f, size.height),
+            )
+          }
+        }
+        Box(
+          Modifier
+            .align(Alignment.Center)
+            .size(280.dp, 180.dp)
+            .hazeGlass(
+              input = HazeInput.Sources(hazeState),
+              configuration = effect,
+              sampling = HazeSampling.FullResolution,
+            ),
+        )
+      }
     }
   }
 

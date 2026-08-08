@@ -15,6 +15,7 @@ package dev.chrisbanes.haze.glass {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SurfaceProfile getSurfaceProfile();
     property public static float alpha;
     property public static float ambientResponse;
+    property public androidx.compose.ui.graphics.Color backgroundColor;
     property public static float chromaMultiplier;
     property public dev.chrisbanes.haze.glass.ChromaticAberrationMode chromaticAberrationMode;
     property public static float chromaticAberrationStrength;
@@ -111,6 +112,7 @@ package dev.chrisbanes.haze.glass {
   @dev.chrisbanes.haze.ExperimentalHazeApi @dev.chrisbanes.haze.glass.GlassStyleDsl public final class GlassStyleScope {
     method public void alpha(float alpha);
     method public void ambientResponse(float response);
+    method @KotlinOnly public void backgroundColor(androidx.compose.ui.graphics.Color color);
     method public void chromaMultiplier(float multiplier);
     method public void chromaticAberrationMode(dev.chrisbanes.haze.glass.ChromaticAberrationMode mode);
     method public void chromaticAberrationStrength(float strength);

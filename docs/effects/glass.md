@@ -28,6 +28,9 @@ the same values at every size.
 
 ## Parameters
 
+- **backgroundColor**: Color composited behind captured content before refraction and blur
+  (defaults to transparent). Use an opaque color when transparent captured content must fully
+  obscure the original sharp source.
 - **tint**: Glass tint (defaults to transparent).
 - **optics**: Optical material configuration. `GlassOptics.Adaptive` (the default) is the
   recommended starting point. Call `optics(...)` for an inline fixed configuration, or keep a
@@ -58,6 +61,7 @@ existing Style; construct and provide a replacement instead.
 
 ```kotlin
 val baseStyle = GlassStyle {
+  backgroundColor(Color.White)
   tint(Color.White.copy(alpha = 0.16f))
   optics(refractionStrength = 0.8f)
   shape(RoundedCornerShape(20.dp))

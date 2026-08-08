@@ -35,6 +35,9 @@ public object GlassDefaults {
   /** Default strength of the ambient lighting response and Fresnel accent, in `0f..1f`. */
   public const val ambientResponse: Float = 0.46f
 
+  /** Default color composited behind captured content before Glass optics are applied. */
+  public val backgroundColor: Color = Color.Transparent
+
   /** Default tint applied to refracted content. */
   public val tint: Color = Color.Transparent
 
@@ -82,6 +85,7 @@ public object GlassDefaults {
   public val style: GlassStyle = GlassStyle {
     interactionLightRadiusFraction(interactionLightRadiusFraction)
     interactionPositionAnimationSpec(positionAnimationSpec)
+    backgroundColor(backgroundColor)
     tint(tint)
     shape(shape)
     optics(optics)
