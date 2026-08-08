@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 2.0.0-alpha04 <small>2026-08-08</small> { id="2.0.0-alpha04" }
+
 ### Highlights
 
 #### Revamped Effect APIs
