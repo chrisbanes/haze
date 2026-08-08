@@ -1364,6 +1364,9 @@ which makes it a good fit for reusable components. Choose fixed optics only when
 the same values at every size.</p>
 <h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">¶</a></h2>
 <ul>
+<li><strong>backgroundColor</strong>: Color composited behind captured content before refraction and blur
+  (defaults to transparent). Use an opaque color when transparent captured content must fully
+  obscure the original sharp source.</li>
 <li><strong>tint</strong>: Glass tint (defaults to transparent).</li>
 <li><strong>optics</strong>: Optical material configuration. <code>GlassOptics.Adaptive</code> (the default) is the
   recommended starting point. Call <code>optics(...)</code> for an inline fixed configuration, or keep a
@@ -1389,6 +1392,7 @@ the replacement fall back to <code>LocalGlassStyle</code> and then <code>GlassDe
 <p>A Style captures its inputs when it is constructed. Changing captured state does not update an
 existing Style; construct and provide a replacement instead.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">baseStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">backgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">)</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
 <span class="w">  </span><span class="n">optics</span><span class="p">(</span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">)</span>
 <span class="w">  </span><span class="n">shape</span><span class="p">(</span><span class="n">RoundedCornerShape</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">))</span>
