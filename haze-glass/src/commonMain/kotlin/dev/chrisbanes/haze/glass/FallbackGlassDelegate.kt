@@ -166,7 +166,7 @@ internal class FallbackGlassDelegate(
             drawRect(
               color = backgroundColor.copy(alpha = backgroundColor.alpha * alphaMultiplier),
             )
-            with(context) { this@drawBase.drawInput() }
+            this@drawBase.drawInputWithAlpha(context, alphaMultiplier)
           }
           if (tint.alpha > 0f) {
             drawRect(color = tint.copy(alpha = tint.alpha * alphaMultiplier))

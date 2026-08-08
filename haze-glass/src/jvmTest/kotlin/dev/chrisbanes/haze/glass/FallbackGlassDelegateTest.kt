@@ -243,6 +243,34 @@ class FallbackGlassDelegateTest {
   }
 
   @Test
+  fun directAlphaDegradation_appliesAlphaToReplayedInput() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      backgroundColor = Color.White
+      tint = Color.Transparent
+      specularIntensity = 0f
+      ambientResponse = 0f
+      edgeSoftness = 0.dp
+      shape = RoundedCornerShape(0.dp)
+    }
+    val fallback = FallbackGlassDelegate(effect)
+    val visualEffect = FallbackOnlyVisualEffect(effect, fallback)
+
+    setContent {
+      FallbackTestContent(visualEffect) {
+        Box(Modifier.size(40.dp).background(Color.Red.copy(alpha = 0.5f)))
+      }
+    }
+    waitForIdle()
+
+    effect.alpha = 0.5f
+    visualEffect.disableGroupPreparation()
+    waitForIdle()
+
+    val pixel = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()[60, 60]
+    assertThat(pixel.alpha).isLessThan(0.85f)
+  }
+
+  @Test
   fun foregroundLighting_drawsOverOpaqueContent() {
     val effect = GlassRuntimeEffect().apply {
       tint = Color.Transparent
