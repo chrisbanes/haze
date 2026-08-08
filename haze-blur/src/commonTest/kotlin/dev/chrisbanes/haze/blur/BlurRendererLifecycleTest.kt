@@ -18,6 +18,7 @@ import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.TrimMemoryLevel
@@ -32,19 +33,38 @@ class BlurRendererLifecycleTest {
     val renderer = HazeBlurFactory.createRenderer() as BlurVisualEffect
     renderer.update(
       BlurTestLifecycleScope,
-      HazeBlurStyle { blurRadius(12.dp) },
+      BlurConfiguration(HazeBlurStyle { blurRadius(12.dp) }, HazePerformanceMode.Default),
       HazeSampling.Default,
     )
 
     val original = renderer
     renderer.update(
       BlurTestLifecycleScope,
-      HazeBlurStyle { blurRadius(24.dp) },
+      BlurConfiguration(HazeBlurStyle { blurRadius(24.dp) }, HazePerformanceMode.Quality),
       HazeSampling.FullResolution,
     )
 
     assertThat(renderer).isSameInstanceAs(original)
     assertThat(renderer.blurRadius).isEqualTo(24.dp)
+  }
+
+  @Test
+  fun performanceModeReplacement_reusesRenderer() {
+    val renderer = HazeBlurFactory.createRenderer() as BlurVisualEffect
+    renderer.update(
+      BlurTestLifecycleScope,
+      BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Adaptive),
+      HazeSampling.Default,
+    )
+
+    val original = renderer
+    renderer.update(
+      BlurTestLifecycleScope,
+      BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Performance),
+      HazeSampling.Default,
+    )
+
+    assertThat(renderer).isSameInstanceAs(original)
   }
 
   @Test

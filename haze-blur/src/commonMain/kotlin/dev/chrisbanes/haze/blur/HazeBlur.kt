@@ -8,7 +8,8 @@ import androidx.compose.ui.Modifier
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.hazeEffect
 
 /**
@@ -20,23 +21,28 @@ import dev.chrisbanes.haze.hazeEffect
  *
  * @param input Source-backed content or this modifier's own content.
  * @param style Explicit Blur Style replayed after [LocalHazeBlurStyle].
- * @param sampling Input-sampling policy for the Blur runtime.
+ * @param performanceMode Rendering-fidelity policy for the Blur runtime.
  * @param expandLayerBounds Whether Blur may expand its capture layer by the resolved radius.
  */
 @Stable
 public fun Modifier.hazeBlur(
   input: HazeInput,
   style: HazeBlurStyle = HazeBlurStyle,
-  sampling: HazeSampling = HazeSampling.Default,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   expandLayerBounds: Boolean = true,
 ): Modifier = hazeEffect(
   factory = HazeBlurFactory,
   input = input,
-  style = style,
-  sampling = sampling,
+  style = BlurConfiguration(style, performanceMode),
   expandLayerBounds = expandLayerBounds,
 )
 
-internal object HazeBlurFactory : HazeEffectFactory<HazeBlurStyle> {
-  override fun createRenderer(): HazeEffectRenderer<HazeBlurStyle> = BlurVisualEffect()
+@Poko
+internal class BlurConfiguration(
+  val style: HazeBlurStyle,
+  val performanceMode: HazePerformanceMode,
+)
+
+internal object HazeBlurFactory : HazeEffectFactory<BlurConfiguration> {
+  override fun createRenderer(): HazeEffectRenderer<BlurConfiguration> = BlurVisualEffect()
 }

@@ -35,7 +35,7 @@ import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.blur.HazeBlurDefaults
 
 expect val Samples: List<Sample>
@@ -80,23 +80,23 @@ class Sample(
 
     val ScaffoldUnscaled = Sample(
       route = "scaffold-unscaled",
-      title = "Scaffold (input unscaled)",
+      title = "Scaffold (quality)",
     ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
-        sampling = HazeSampling.FullResolution,
+        performanceMode = HazePerformanceMode.Quality,
       )
     }
 
     val ScaffoldBalanced = Sample(
       route = "scaffold-balanced",
-      title = "Scaffold (input fixed 0.8)",
+      title = "Scaffold (balanced)",
     ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
-        sampling = HazeSampling.Fixed(0.64f),
+        performanceMode = HazePerformanceMode.Balanced,
       )
     }
 
@@ -113,13 +113,13 @@ class Sample(
 
     val ScaffoldProgressiveUnscaled = Sample(
       route = "scaffold-progressive-unscaled",
-      title = "Scaffold (progressive blur, input unscaled)",
+      title = "Scaffold (progressive blur, quality)",
     ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Progressive,
-        sampling = HazeSampling.FullResolution,
+        performanceMode = HazePerformanceMode.Quality,
       )
     }
 
@@ -136,13 +136,13 @@ class Sample(
 
     val ScaffoldMaskedUnscaled = Sample(
       route = "scaffold-masked-unscaled",
-      title = "Scaffold (masked, input unscaled)",
+      title = "Scaffold (masked, quality)",
     ) { navController, blurEnabled ->
       ScaffoldSample(
         navController = navController,
         blurEnabled = blurEnabled,
         mode = ScaffoldSampleMode.Mask,
-        sampling = HazeSampling.FullResolution,
+        performanceMode = HazePerformanceMode.Quality,
       )
     }
 

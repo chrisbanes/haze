@@ -27,6 +27,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
@@ -177,7 +178,11 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
     context.render { with(delegate) { draw(context) } }
     context.inputSnapshot = DifferentCaptureSnapshot
     context.render { with(delegate) { draw(context) } }
-    context.sampling = HazeSampling.Fixed(0.8f)
+    effect.update(
+      BlurLifecycleScope,
+      BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Performance),
+      HazeSampling.Fixed(0.8f),
+    )
     context.render { with(delegate) { draw(context) } }
     context.layerSize = Size(11f, 10f)
     context.render { with(delegate) { draw(context) } }
@@ -186,7 +191,10 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
 
     effect.update(
       BlurLifecycleScope,
-      HazeBlurStyle { backgroundColor(Color.Blue) },
+      BlurConfiguration(
+        HazeBlurStyle { backgroundColor(Color.Blue) },
+        HazePerformanceMode.Performance,
+      ),
       HazeSampling.Fixed(0.8f),
     )
     context.render { with(delegate) { draw(context) } }
@@ -203,7 +211,7 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
     context.render { with(delegate) { draw(context) } }
     effect.update(
       BlurLifecycleScope,
-      HazeBlurStyle { alpha(0.5f) },
+      BlurConfiguration(HazeBlurStyle { alpha(0.5f) }, HazePerformanceMode.Quality),
       HazeSampling.FullResolution,
     )
     context.render { with(delegate) { draw(context) } }

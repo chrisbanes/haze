@@ -57,13 +57,13 @@ Blur has an ordinary typed modifier:
 Modifier.hazeBlur(
   input = HazeInput.Sources(hazeState),
   style = HazeMaterials.thin(),
-  sampling = HazeSampling.Adaptive,
+  performanceMode = HazePerformanceMode.Adaptive,
   expandLayerBounds = true,
 )
 ```
 
-Use `HazeInput.Content` for own-content Blur. The structural input, retention, sampling, and layer
-expansion policies do not live in `HazeBlurStyle`.
+Use `HazeInput.Content` for own-content Blur. The structural input, retention, performance-mode,
+and layer-expansion policies do not live in `HazeBlurStyle`.
 
 `HazeBlurStyle` is an opaque replayable program:
 
@@ -106,14 +106,20 @@ Modifier.hazeEffect(
 The renderer can own mutable resources and releases them in `dispose`. Style replacement updates
 the existing renderer. Factory replacement and detachment dispose it exactly once.
 
-## Sampling
+## Blur performance mode
 
-- `HazeSampling.Default` and `Adaptive` let built-in effects balance quality and cost automatically.
-- `HazeSampling.FullResolution` uses the full input resolution.
-- `HazeSampling.Fixed(pixelFraction)` uses an explicit fraction of the full-resolution input pixels.
+- `HazePerformanceMode.Default` and `Adaptive` let Blur balance quality and cost automatically.
+- `HazePerformanceMode.Quality`, `Balanced`, and `Performance` select Blur's named profiles.
+- `HazePerformanceMode.Fixed(qualityFraction)` selects a normalized, deterministic Blur profile.
 
-Start with the default. Choose `FullResolution` only when visual comparison shows that you need it,
-or `Fixed` when you deliberately want a stable quality and performance trade-off.
+Start with the default. Choose a fixed profile only when visual comparison shows that you need a
+stable quality and performance trade-off.
+
+## Generic sampling
+
+`HazeSampling` remains the generic input-sampling contract for Glass and custom effects. Its
+`Default`, `Adaptive`, `FullResolution`, and `Fixed(pixelFraction)` policies control the fraction
+of full-resolution input pixels those effects receive.
 
 ## Layer bounds
 

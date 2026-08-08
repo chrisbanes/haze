@@ -154,14 +154,15 @@ Modifier.hazeBlur(
     retention = HazeSourceRetention.ClearWhenUnavailable,
   ),
   style = style,
-  sampling = HazeSampling.FullResolution,
+  performanceMode = HazePerformanceMode.Quality,
   expandLayerBounds = false,
 )
 ```
 
-`HazeSampling.Default` points to `Adaptive` for both Blur and Glass. Use `Adaptive` to pin that
-policy explicitly, `FullResolution` when fidelity is the priority, or `Fixed(pixelFraction)` for an
-explicit trade-off.
+`HazePerformanceMode.Default` points to `Adaptive` for Blur. Use `Adaptive` to pin that policy,
+`Quality`, `Balanced`, or `Performance` for its named profiles, or `Fixed(qualityFraction)` for an
+explicit normalized trade-off. `HazeSampling` remains the generic policy used by Glass and custom
+effects.
 
 ## Lifecycle and sharing
 
@@ -277,7 +278,7 @@ use replayable Style blocks and `then` before Haze 2.0 stable.
 | `HazeEffectScope.fallbackTint` | `HazeBlurStyle { fallbackColorEffect(...) }` | The effect type is unchanged. |
 | `HazeEffectScope.alpha` | `HazeBlurStyle { alpha(...) }` | Values are clamped to `0f..1f`. |
 | `HazeEffectScope.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | State-level Blur enablement is removed. |
-| `HazeEffectScope.inputScale` | `Modifier.hazeBlur(sampling = ...)` | Map `Default` to `Default`, `Auto` to `Adaptive`, `None` to `FullResolution`, and `Fixed` to `Fixed`; fixed values now express total pixel fraction. |
+| `HazeEffectScope.inputScale` | `Modifier.hazeBlur(performanceMode = ...)` | Map `Default` to `Default`, `Auto` to `Adaptive`, `None` to `Quality`, and choose `Balanced`, `Performance`, or `Fixed(qualityFraction)` for an explicit Blur profile. |
 | `HazeEffectScope.drawContentBehind` | Removed | Custom renderers control their own draw order inside `HazeEffectRenderer.draw`. |
 | `HazeEffectScope.clipToAreasBounds` | Removed | Source geometry is internal. Return required modifier-relative bounds from `calculateLayerBounds`. |
 | `HazeEffectScope.expandLayerBounds` | `Modifier.hazeBlur(expandLayerBounds = ...)` | Non-null and `true` by default. |
@@ -293,7 +294,7 @@ use replayable Style blocks and `then` before Haze 2.0 stable.
 | `VisualEffectContext.positionOnScreen` | `HazeEffectDrawScope.modifierBounds` | Custom renderers receive only modifier-relative semantic bounds. |
 | `VisualEffectContext.rootBoundsOnScreen` | Removed | Root and window geometry are internal. |
 | `VisualEffectContext.visualEffect` | Removed | Custom effects read their own properties directly. |
-| `VisualEffect.calculateInputScaleFactor()` | `HazeSampling` | Choose default, adaptive, full-resolution, or fixed sampling. |
+| `VisualEffect.calculateInputScaleFactor()` | `HazePerformanceMode` for Blur, `HazeSampling` for Glass and custom effects | Blur chooses default, adaptive, named, or fixed performance profiles; generic effects retain sampling. |
 | `VisualEffect.requireInvalidation()` | Snapshot state read by `draw` or `calculateLayerBounds` | Haze observes reads in their rendering phase. |
 | `VisualEffect`, `VisualEffectContext`, `InteractiveVisualEffect`, `RetainedOutputVisualEffect`, `VisualEffectRendererFactory`, `VisualEffectTransform` | `HazeEffectFactory` and `HazeEffectRenderer` | Renderer lifecycle and input are opaque and node-owned. |
 | `HazeState.positionStrategy`, `rememberHazeState(positionStrategy)` | Removed | Cross-window position strategy is internal. |
@@ -318,8 +319,8 @@ use replayable Style blocks and `then` before Haze 2.0 stable.
    `HazeInput.Sources(state)` or `HazeInput.Content`.
 5. Move Blur properties into `HazeBlurStyle { ... }`, changing property assignments into Style
    functions. Use `then` instead of `copy` when customizing a preset.
-6. Move input scale, retention, source selection, and layer expansion to `HazeSampling`,
-   `HazeSourceRetention`, `HazeSourceSelection`, and `expandLayerBounds`.
+6. Move Blur input scale to `HazePerformanceMode`; move retention, source selection, and layer
+   expansion to `HazeSourceRetention`, `HazeSourceSelection`, and `expandLayerBounds`.
 7. Remove `blurEnabled` from `rememberHazeState`; write it in the Style for each effect instead.
 8. Replace custom `VisualEffect` implementations with a stateless `HazeEffectFactory` and one
    node-owned `HazeEffectRenderer` per modifier.
@@ -339,7 +340,7 @@ Modifier.hazeBlur(
     retention = HazeSourceRetention.ClearWhenUnavailable,
   ),
   style = style,
-  sampling = HazeSampling.FullResolution,
+  performanceMode = HazePerformanceMode.Quality,
   expandLayerBounds = false,
 )
 ```

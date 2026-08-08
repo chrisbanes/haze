@@ -35,7 +35,7 @@ Blur and Glass adapt differently, so compare the result on the effect and layout
 
 ## Effect-specific guidance
 
-For Blur, see [Sampling and layer expansion](blur/usage.md#sampling-and-layer-expansion). For Glass,
+For Blur, see [Performance mode and layer expansion](blur/usage.md#performance-mode-and-layer-expansion). For Glass,
 see the [Glass performance guide](glass/performance.md), which covers optical and interaction
 choices specific to that effect.
 
