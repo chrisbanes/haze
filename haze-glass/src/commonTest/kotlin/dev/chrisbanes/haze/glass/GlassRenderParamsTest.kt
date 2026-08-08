@@ -1384,6 +1384,7 @@ class GlassRenderParamsTest {
     specularIntensity = 1f,
     depth = depth,
     ambientResponse = 1f,
+    backgroundColor = GlassDefaults.backgroundColor,
     tint = GlassDefaults.tint,
     edgeSoftnessPx = 1f,
     blurRadiusPx = blurRadiusPx,

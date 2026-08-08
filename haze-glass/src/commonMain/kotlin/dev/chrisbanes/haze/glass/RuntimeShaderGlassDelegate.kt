@@ -410,6 +410,7 @@ internal class RuntimeShaderGlassDelegate(
         )
         val sourceState = context.resolveGlassRuntimeSourceState(
           captureScale = params.coordinates.scaleFactor,
+          backgroundColor = params.backgroundColor,
           previousSnapshot = lastSuccessfulSourceSnapshot,
         )
         val shouldRecordSource = sourceState.hasDrawableSource && (
@@ -994,7 +995,7 @@ internal class RuntimeShaderGlassDelegate(
       layerSize = context.layerSize,
       layerOffset = context.layerOffset,
       existingLayer = layers.source,
-      backgroundColor = Color.Transparent,
+      backgroundColor = params.backgroundColor,
     )?.also {
       layers.source = it
       sourceRecordCount++

@@ -40,6 +40,11 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_backgroundColorBlursTransparentSource() = runScreenshotTest {
+    assertGlassBackgroundColorBlurInvariant()
+  }
+
+  @Test
   fun glass_refractionDetailPreservesSharpSource() = runScreenshotTest {
     assertGlassRefractionDetailPreservesSharpSourceInvariant()
   }

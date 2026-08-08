@@ -337,9 +337,11 @@ class GlassStyleTest {
   @Test
   fun styleChain_appliesWritesInOrder() {
     val style = GlassStyle {
+      backgroundColor(Color.Red)
       tint(Color.Red)
       alpha(0.25f)
     }.then {
+      backgroundColor(Color.Green)
       tint(Color.Blue)
       alpha(0.75f)
     }
@@ -349,6 +351,7 @@ class GlassStyleTest {
       explicitStyle = style,
     )
 
+    assertThat(resolved.backgroundColor).isEqualTo(Color.Green)
     assertThat(resolved.tint).isEqualTo(Color.Blue)
     assertThat(resolved.alpha).isEqualTo(0.75f)
   }
@@ -485,11 +488,20 @@ class GlassStyleTest {
   }
 
   @Test
+  fun backgroundColor_rejectsUnspecifiedAtConstruction() {
+    assertFailure { GlassStyle { backgroundColor(Color.Unspecified) } }.apply {
+      isInstanceOf<IllegalArgumentException>()
+      hasMessage("backgroundColor must be specified")
+    }
+  }
+
+  @Test
   fun defaults_constructThroughTheValidatedStyleSurface() {
     val values = resolveGlassStyleValues(GlassStyle, GlassDefaults.style)
 
     assertThat(values.specularIntensity).isEqualTo(GlassDefaults.specularIntensity)
     assertThat(values.ambientResponse).isEqualTo(GlassDefaults.ambientResponse)
+    assertThat(values.backgroundColor).isEqualTo(GlassDefaults.backgroundColor)
     assertThat(values.tint).isEqualTo(GlassDefaults.tint)
     assertThat(values.edgeSoftness).isEqualTo(GlassDefaults.edgeSoftness)
     assertThat(values.chromaticAberrationStrength)
