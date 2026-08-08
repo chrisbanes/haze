@@ -306,11 +306,11 @@ internal fun GlassTestConfiguration.applyTestHoverAndPressResponses() {
 internal fun Modifier.hazeGlass(
   input: HazeInput,
   configuration: GlassTestConfiguration,
-  sampling: HazeSampling = HazeSampling.Default,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
 ): Modifier = typedHazeGlass(
   input = input,
   style = configuration.resolvedStyle,
-  sampling = sampling,
+  performanceMode = performanceMode,
   interactionSource = configuration.interactionSource,
   interactionTransformTarget = configuration.interactionTransformTarget,
   interactionTransformPivot = configuration.interactionTransformPivot,

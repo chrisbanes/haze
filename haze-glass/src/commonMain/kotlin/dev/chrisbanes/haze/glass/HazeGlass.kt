@@ -12,7 +12,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.hazeEffect
 
@@ -28,17 +28,16 @@ import dev.chrisbanes.haze.hazeEffect
  * Values captured by a previously constructed Style do not update when they are mutated. To update
  * appearance, construct and supply a replacement Style through recomposition.
  *
- * [input], [sampling], [expandLayerBounds], [interactionSource], [interactionTransformTarget],
+ * [input], [performanceMode], [expandLayerBounds], [interactionSource], [interactionTransformTarget],
  * [interactionTransformPivot], and [interactionReducedMotionPolicy] are node-owned modifier
  * mechanics rather than Style presentation. Recomposition replaces each value completely,
  * including a `null` interaction source.
  *
  * @param input Source-backed content or this modifier's own content.
  * @param style Explicit appearance applied after defaults and [LocalGlassStyle].
- * @param sampling Input sampling policy. [HazeSampling.Default] currently points to
- * [HazeSampling.Adaptive], which selects approximately 50% or 25% of full-resolution input pixels
- * from retained-layer work and recent update cadence. [HazeSampling.Fixed] owns validation of its
- * finite `0f < pixelFraction <= 1f` value; Glass does not add another sampling contract.
+ * @param performanceMode Rendering-fidelity policy for this Glass runtime. The default adaptive
+ * policy selects one of Glass's validated input-resolution profiles from retained work and recent
+ * update cadence. Named and fixed modes select a normalized, deterministic profile.
  * @param expandLayerBounds Whether Glass may expand its capture layer for optical sampling.
  * @param interactionSource Optional external interaction source owned by this modifier node.
  * @param interactionTransformTarget Visual layers that receive the interaction scale transform.
@@ -50,7 +49,7 @@ import dev.chrisbanes.haze.hazeEffect
 public fun Modifier.hazeGlass(
   input: HazeInput,
   style: GlassStyle = GlassStyle,
-  sampling: HazeSampling = HazeSampling.Default,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   expandLayerBounds: Boolean = true,
   interactionSource: InteractionSource? = null,
   interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
@@ -60,7 +59,7 @@ public fun Modifier.hazeGlass(
   factory = GlassHazeEffectFactory,
   input = input,
   style = style,
-  sampling = sampling,
+  performanceMode = performanceMode,
   expandLayerBounds = expandLayerBounds,
   interactionSource = interactionSource,
   interactionTransformTarget = interactionTransformTarget,
@@ -72,7 +71,7 @@ internal fun Modifier.hazeGlass(
   factory: HazeEffectFactory<GlassNodeConfiguration>,
   input: HazeInput,
   style: GlassStyle,
-  sampling: HazeSampling,
+  performanceMode: HazePerformanceMode,
   expandLayerBounds: Boolean,
   interactionSource: InteractionSource?,
   interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
@@ -83,18 +82,19 @@ internal fun Modifier.hazeGlass(
   input = input,
   style = GlassNodeConfiguration(
     style = style,
+    performanceMode = performanceMode,
     interactionSource = interactionSource,
     interactionTransformTarget = interactionTransformTarget,
     interactionTransformPivot = interactionTransformPivot,
     interactionReducedMotionPolicy = interactionReducedMotionPolicy,
   ),
-  sampling = sampling,
   expandLayerBounds = expandLayerBounds,
 )
 
 @Poko
 internal class GlassNodeConfiguration(
   val style: GlassStyle,
+  val performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   val interactionSource: InteractionSource?,
   val interactionTransformTarget: GlassTransformTarget = GlassTransformTarget.MaterialOnly,
   val interactionTransformPivot: GlassTransformPivot = GlassTransformPivot.Pointer,

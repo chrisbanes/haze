@@ -86,17 +86,17 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
           RoundedEdgeClipPlacement.InternalMaskOnly -> effectModifier.hazeGlass(
             input = HazeInput.Sources(hazeState),
             style = style,
-            sampling = HazeSampling.FullResolution,
+            performanceMode = HazePerformanceMode.Quality,
           )
           RoundedEdgeClipPlacement.AroundEffect -> effectModifier.clip(shape).hazeGlass(
             input = HazeInput.Sources(hazeState),
             style = style,
-            sampling = HazeSampling.FullResolution,
+            performanceMode = HazePerformanceMode.Quality,
           )
           RoundedEdgeClipPlacement.AroundContent -> effectModifier.hazeGlass(
             input = HazeInput.Sources(hazeState),
             style = style,
-            sampling = HazeSampling.FullResolution,
+            performanceMode = HazePerformanceMode.Quality,
           ).clip(shape)
         },
       )

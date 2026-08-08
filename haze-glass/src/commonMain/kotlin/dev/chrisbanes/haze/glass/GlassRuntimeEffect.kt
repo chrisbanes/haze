@@ -36,6 +36,7 @@ import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
@@ -55,7 +56,7 @@ private class GlassPreparedRenderCacheKey(
 
 private class GlassRenderBudgetCacheKey(
   val style: ResolvedGlassStyle,
-  val requestedScale: Float,
+  val inputScale: Float,
   val layerSize: Size,
   val materialSize: Size,
   val interactionTopology: GlassInteractionTopology,
@@ -67,7 +68,7 @@ private class GlassPreparedDrawCacheKey(
   val size: Size,
   val layerSize: Size,
   val layerOffset: Offset,
-  val sampling: HazeSampling,
+  val inputScale: Float,
   val density: Density,
   val layoutDirection: LayoutDirection,
   val style: ResolvedGlassStyle?,
@@ -147,6 +148,7 @@ internal class GlassRuntimeEffect() :
 
   private fun applyConfiguration(configuration: GlassNodeConfiguration) {
     style = configuration.style
+    performanceMode = configuration.performanceMode
     interactionSource = configuration.interactionSource
     interactionTransformTarget = configuration.interactionTransformTarget
     interactionTransformPivot = configuration.interactionTransformPivot
@@ -203,7 +205,20 @@ internal class GlassRuntimeEffect() :
   private var budgetCacheKey: GlassRenderBudgetCacheKey? = null
   private var budgetCacheDecision: GlassRenderBudgetDecision? = null
   private val inputScalePolicy = GlassInputScalePolicy()
-  private var resolvedInputScale: Float = 1f
+  private var resolvedInputScale: Float = GlassInputScalePolicy.FULL_RESOLUTION_SCALE
+
+  private var performanceMode: HazePerformanceMode = HazePerformanceMode.Default
+    set(value) {
+      if (field != value) {
+        HazeLogger.d(TAG) { "performanceMode changed. Current: $field. New: $value" }
+        field = value
+        inputScalePolicy.reset()
+        markDirty(GlassDirtyFields.PerformanceMode)
+      }
+    }
+
+  internal val performanceModeForTest: HazePerformanceMode
+    get() = performanceMode
 
   private var preparedDrawCacheKey: GlassPreparedDrawCacheKey? = null
 
@@ -374,7 +389,7 @@ internal class GlassRuntimeEffect() :
   override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
     val context = this
     trace(GlassTraceSection.Prepare) {
-      val workloadWeightChanged = if (context.sampling === HazeSampling.Adaptive) {
+      val workloadWeightChanged = if (performanceMode === HazePerformanceMode.Adaptive) {
         inputScalePolicy.observeUpdate(
           GlassAdaptiveUpdateKey(
             inputSnapshot = context.inputSnapshot,
@@ -386,7 +401,6 @@ internal class GlassRuntimeEffect() :
           ),
         )
       } else {
-        inputScalePolicy.reset()
         false
       }
       if (!workloadWeightChanged && canReusePreparedDraw(context)) return@trace
@@ -429,7 +443,7 @@ internal class GlassRuntimeEffect() :
       key.size == context.modifierSize &&
       key.layerSize == context.layerSize &&
       key.layerOffset == context.layerOffset &&
-      key.sampling == context.sampling &&
+      key.inputScale == resolvedInputScale &&
       key.density == context.requireDensity() &&
       key.layoutDirection == context.currentValueOf(LocalLayoutDirection) &&
       key.style === style &&
@@ -443,7 +457,7 @@ internal class GlassRuntimeEffect() :
       size = context.modifierSize,
       layerSize = context.layerSize,
       layerOffset = context.layerOffset,
-      sampling = context.sampling,
+      inputScale = resolvedInputScale,
       density = context.requireDensity(),
       layoutDirection = context.currentValueOf(LocalLayoutDirection),
       style = resolvedStyleCache,
@@ -752,13 +766,13 @@ internal class GlassRuntimeEffect() :
         interactionLightingActive = interactionTopology.hasLighting,
       )
     }
-    val balancedPlan = if (context.sampling === HazeSampling.Adaptive) {
+    val balancedPlan = if (performanceMode === HazePerformanceMode.Adaptive) {
       buildPlan(GlassInputScalePolicy.BALANCED_SCALE)
     } else {
       null
     }
     val requestedScale = inputScalePolicy.resolve(
-      sampling = context.sampling,
+      performanceMode = performanceMode,
       balancedPlan = balancedPlan,
     )
     if (requestedScale != resolvedInputScale) {
@@ -778,7 +792,7 @@ internal class GlassRuntimeEffect() :
     val decision = if (
       budgetKey != null &&
       budgetKey.style.hasSameBudgetParams(style) &&
-      budgetKey.requestedScale == requestedScale &&
+      budgetKey.inputScale == requestedScale &&
       budgetKey.layerSize == context.layerSize &&
       budgetKey.materialSize == context.modifierSize &&
       budgetKey.interactionTopology === interactionTopology &&
@@ -795,7 +809,7 @@ internal class GlassRuntimeEffect() :
       ).also { resolvedDecision ->
         budgetCacheKey = GlassRenderBudgetCacheKey(
           style = style,
-          requestedScale = requestedScale,
+          inputScale = requestedScale,
           layerSize = context.layerSize,
           materialSize = context.modifierSize,
           interactionTopology = interactionTopology,

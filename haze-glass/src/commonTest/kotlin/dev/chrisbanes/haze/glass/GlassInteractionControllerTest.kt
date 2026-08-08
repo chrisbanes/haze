@@ -43,6 +43,7 @@ import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRendererInteraction
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.test.ContextTest
@@ -973,7 +974,7 @@ class GlassInteractionControllerTest : ContextTest() {
       },
       input = HazeInput.Content,
       style = configuration.style,
-      sampling = HazeSampling.Default,
+      performanceMode = HazePerformanceMode.Default,
       expandLayerBounds = true,
       interactionSource = configuration.interactionSource,
       interactionTransformTarget = configuration.interactionTransformTarget,

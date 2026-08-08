@@ -117,9 +117,10 @@ stable quality and performance trade-off.
 
 ## Generic sampling
 
-`HazeSampling` remains the generic input-sampling contract for Glass and custom effects. Its
-`Default`, `Adaptive`, `FullResolution`, and `Fixed(pixelFraction)` policies control the fraction
-of full-resolution input pixels those effects receive.
+`HazeSampling` remains the generic input-sampling contract for custom effects. Built-in Glass uses
+`HazePerformanceMode` instead. `HazeSampling`'s `Default`, `Adaptive`, `FullResolution`, and
+`Fixed(pixelFraction)` policies control the fraction of full-resolution input pixels custom
+effects receive.
 
 ## Layer bounds
 

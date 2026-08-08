@@ -118,7 +118,7 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
           tag = "local_patch",
           label = "LOCAL PATCH",
           effect = effect,
-          sampling = HazeSampling.FullResolution,
+          performanceMode = HazePerformanceMode.Quality,
         )
       }
     }
@@ -176,7 +176,7 @@ internal fun GlassInteractionScene(
   tag: String,
   label: String,
   effect: GlassTestConfiguration,
-  sampling: HazeSampling = HazeSampling.Default,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
 ) {
   val hazeState = remember { HazeState() }
   Box(Modifier.size(320.dp, 320.dp)) {
@@ -202,7 +202,7 @@ internal fun GlassInteractionScene(
           .hazeGlass(
             input = HazeInput.Sources(hazeState),
             configuration = effect,
-            sampling = sampling,
+            performanceMode = performanceMode,
           ),
         contentAlignment = Alignment.Center,
       ) {

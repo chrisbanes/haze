@@ -138,7 +138,8 @@ val reusableOptics = GlassOptics.Fixed(blurRadius = 20.dp)
 val style = GlassStyle { optics(reusableOptics) }
 ```
 
-`GlassOptics.Fixed` controls the appearance; `HazeSampling.Fixed` controls the rendering trade-off.
+`GlassOptics.Fixed` controls the appearance; `HazePerformanceMode.Fixed` controls the normalized
+rendering trade-off.
 The `shape` supplied to Glass defines its material boundary. Add an outer `Modifier.clip()` with
 the same shape only when child content also needs clipping.
 
@@ -209,9 +210,9 @@ details may be omitted by a fallback.
 
 ## Performance
 
-Start with adaptive sampling and tune only after measuring a representative screen. The
-[Glass performance guide](../glass/performance.md) explains which Glass-specific workloads and
-interactions to test.
+Start with `HazePerformanceMode.Default` (the adaptive performance mode) and tune only after
+measuring a representative screen. The [Glass performance guide](../glass/performance.md) explains
+which Glass-specific workloads and interactions to test.
 
 ## Interaction
 

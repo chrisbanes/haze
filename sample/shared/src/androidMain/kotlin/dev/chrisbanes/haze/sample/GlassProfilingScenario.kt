@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.glass.GlassOptics
 
@@ -39,7 +40,7 @@ internal enum class GlassProfilingScenario(
   val prewarmsBeforeMeasurement: Boolean = false,
   val steadyDraw: Boolean = false,
   val rimEnabled: Boolean = true,
-  val fixedInputPixelFraction: Float? = null,
+  val performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   val opticsOverride: GlassOptics.Fixed? = null,
   val fullChroma: Boolean = false,
 ) {
@@ -139,23 +140,18 @@ internal enum class GlassProfilingScenario(
   SteadyBalanced(
     id = "steady_balanced",
     steadyDraw = true,
-    fixedInputPixelFraction = 0.5f,
-  ),
-  SteadyScale60(
-    id = "steady_scale_60",
-    steadyDraw = true,
-    fixedInputPixelFraction = 0.36f,
+    performanceMode = HazePerformanceMode.Balanced,
   ),
   SteadyScale50(
     id = "steady_scale_50",
     steadyDraw = true,
-    fixedInputPixelFraction = 0.25f,
+    performanceMode = HazePerformanceMode.Performance,
   ),
   SteadyScale50Nine(
     id = "steady_scale_50_9",
     effectCount = 9,
     steadyDraw = true,
-    fixedInputPixelFraction = 0.25f,
+    performanceMode = HazePerformanceMode.Performance,
   ),
   SteadyNoGlass(
     id = "steady_no_glass",
@@ -216,7 +212,6 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.SteadyNoBlur9,
     GlassProfilingScenario.SteadyDepth50,
     GlassProfilingScenario.SteadyBalanced,
-    GlassProfilingScenario.SteadyScale60,
     GlassProfilingScenario.SteadyScale50,
     GlassProfilingScenario.SteadyScale50Nine,
     GlassProfilingScenario.SteadyNoGlass,

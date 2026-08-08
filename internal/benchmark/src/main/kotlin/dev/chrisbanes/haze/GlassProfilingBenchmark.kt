@@ -80,9 +80,6 @@ class GlassProfilingBenchmark {
   fun steadyBalanced() = measureScenario("steady_balanced")
 
   @Test
-  fun steadyScale60() = measureScenario("steady_scale_60")
-
-  @Test
   fun steadyScale50() = measureScenario("steady_scale_50")
 
   @Test

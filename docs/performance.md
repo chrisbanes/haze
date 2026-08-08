@@ -6,7 +6,8 @@ their input changes.
 
 ## Recommended workflow
 
-1. Start with the default Style and `HazeSampling.Default`.
+1. Start built-in effects with the default Style and `HazePerformanceMode.Default`; custom effects
+   continue to use `HazeSampling.Default`.
 2. Build the real screen, including its scrolling, transitions, and interactions.
 3. Measure a release-like build on representative physical devices.
 4. Change one setting at a time and compare both frame timing and visual quality.
@@ -14,16 +15,16 @@ their input changes.
 
 ## Input scale
 
-Sampling controls how much input an effect processes:
+`HazePerformanceMode` controls the quality and cost trade-off for built-in effects:
 
 - **`Default` or `Adaptive`**: Recommended for most applications. Built-in effects adjust the
   quality and cost trade-off automatically.
-- **`FullResolution`**: Use when target-device comparisons show that adaptive sampling loses
-  important detail.
-- **`Fixed(pixelFraction)`**: Use when you want an explicit, stable pixel budget. Higher values
-  preserve more detail and cost more to render.
+- **`Quality`**, **`Balanced`**, or **`Performance`**: Select a named, deterministic profile.
+- **`Fixed(qualityFraction)`**: Select a normalized, deterministic profile when the named
+  profiles are not the right fit.
 
 Blur and Glass adapt differently, so compare the result on the effect and layout you actually use.
+Custom effects instead use `HazeSampling` to control how much input they process.
 
 ## Common cost drivers
 

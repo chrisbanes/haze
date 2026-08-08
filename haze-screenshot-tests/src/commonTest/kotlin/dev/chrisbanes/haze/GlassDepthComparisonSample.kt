@@ -133,7 +133,7 @@ internal fun GlassDepthComparisonSample(
             .hazeGlass(
               input = HazeInput.Sources(hazeState),
               style = visualEffect.resolvedStyle,
-              sampling = HazeSampling.FullResolution,
+              performanceMode = HazePerformanceMode.Quality,
             )
             .border(width = 1.dp, color = Color(0x66000000), shape = shape),
         )

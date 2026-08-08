@@ -33,13 +33,13 @@ class GlassInputScaleScreenshotTest : ScreenshotTest() {
       tint = Color.White.copy(alpha = 0.08f)
       this.shape = shape
     }
-    var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
+    var performanceMode by mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Quality)
 
     setContent {
       ScreenshotTheme {
         GlassInvariantSample(
           effect = effect,
-          sampling = sampling,
+          performanceMode = performanceMode,
           shape = shape,
         )
       }
@@ -47,19 +47,25 @@ class GlassInputScaleScreenshotTest : ScreenshotTest() {
 
     val reference = captureRootPixels().snapshot()
 
-    sampling = HazeSampling.Fixed(0.5f)
+    performanceMode = HazePerformanceMode.Balanced
     waitForIdle()
     val balanced = captureRootPixels().snapshot()
     captureRoot("balanced")
     reference.assertRepresentativeGlassQuality(balanced, "balanced tier", maximumDifference = 0.03f)
 
-    sampling = HazeSampling.Fixed(0.25f)
+    performanceMode = HazePerformanceMode.Performance
     waitForIdle()
     val aggressive = captureRootPixels().snapshot()
     captureRoot("aggressive")
     reference.assertRepresentativeGlassQuality(aggressive, "aggressive tier", maximumDifference = 0.05f)
 
-    sampling = HazeSampling.Fixed(0.5f)
+    performanceMode = HazePerformanceMode.Adaptive
+    waitForIdle()
+    val adaptive = captureRootPixels().snapshot()
+    captureRoot("adaptive")
+    reference.assertRepresentativeGlassQuality(adaptive, "adaptive tier", maximumDifference = 0.05f)
+
+    performanceMode = HazePerformanceMode.Balanced
     waitForIdle()
     val returned = captureRootPixels().snapshot()
     captureRoot("returned")

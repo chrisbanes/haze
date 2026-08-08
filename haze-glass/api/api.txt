@@ -147,7 +147,7 @@ package dev.chrisbanes.haze.glass {
   }
 
   public final class HazeGlassKt {
-    method @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.ui.Modifier hazeGlass(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.glass.GlassStyle style, optional dev.chrisbanes.haze.HazeSampling sampling, optional boolean expandLayerBounds, optional androidx.compose.foundation.interaction.InteractionSource? interactionSource, optional dev.chrisbanes.haze.glass.GlassTransformTarget interactionTransformTarget, optional dev.chrisbanes.haze.glass.GlassTransformPivot interactionTransformPivot, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy interactionReducedMotionPolicy);
+    method @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.ui.Modifier hazeGlass(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.glass.GlassStyle style, optional dev.chrisbanes.haze.HazePerformanceMode performanceMode, optional boolean expandLayerBounds, optional androidx.compose.foundation.interaction.InteractionSource? interactionSource, optional dev.chrisbanes.haze.glass.GlassTransformTarget interactionTransformTarget, optional dev.chrisbanes.haze.glass.GlassTransformPivot interactionTransformPivot, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy interactionReducedMotionPolicy);
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public enum SurfaceProfile {
