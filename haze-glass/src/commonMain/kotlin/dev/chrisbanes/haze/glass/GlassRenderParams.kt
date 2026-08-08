@@ -317,6 +317,7 @@ internal data class GlassRenderParams(
   val specularIntensity: Float,
   val depth: Float,
   val ambientResponse: Float,
+  val backgroundColor: Color,
   val tint: Color,
   val edgeSoftnessPx: Float,
   val blurRadiusPx: Float,
@@ -548,6 +549,7 @@ internal data class ResolvedGlassStyle(
   val resolvedOptics: ResolvedGlassOptics,
   val specularIntensity: Float,
   val ambientResponse: Float,
+  val backgroundColor: Color,
   val tint: Color,
   val edgeSoftnessPx: Float,
   val lightPosition: Offset,
@@ -592,6 +594,7 @@ internal fun resolveGlassStyle(
     resolvedOptics = resolveGlassOptics(effect.optics, materialSizePx, density, cornerRadii),
     specularIntensity = effect.specularIntensity,
     ambientResponse = effect.ambientResponse,
+    backgroundColor = effect.backgroundColor,
     tint = effect.tint,
     edgeSoftnessPx = with(density) { effect.edgeSoftness.toPx() }
       .finiteOr(defaultEdgeSoftnessPx)
@@ -658,6 +661,7 @@ internal fun buildGlassRenderParams(
     specularIntensity = style.specularIntensity,
     depth = resolvedOptics.depth.finiteOr(0f).coerceIn(0f, 1f),
     ambientResponse = style.ambientResponse,
+    backgroundColor = style.backgroundColor,
     tint = style.tint,
     edgeSoftnessPx = style.edgeSoftnessPx * scaleFactor,
     blurRadiusPx = blurRadiusPx,

@@ -590,6 +590,27 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun backgroundColorStyleChangeRecordsSource() = runComposeUiTest {
+    val effect = activeDetailEffect()
+    val style = mutableStateOf<GlassStyle>(GlassStyle)
+    setContent { RuntimeGlassTestContent(effect, tag = "glass", style = style.value) }
+    waitForIdle()
+
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+    val sourceRecordsBeforeChange = delegate.sourceRecordCount
+    val snapshotBeforeChange = checkNotNull(delegate.lastSuccessfulSourceSnapshot)
+
+    style.value = GlassStyle { backgroundColor(Color.White) }
+    waitForIdle()
+
+    assertThat(delegate.sourceRecordCount).isGreaterThan(sourceRecordsBeforeChange)
+    assertThat(checkNotNull(delegate.lastSuccessfulSourceSnapshot).backgroundColor)
+      .isEqualTo(Color.White)
+    assertThat(checkNotNull(delegate.lastSuccessfulSourceSnapshot))
+      .isNotEqualTo(snapshotBeforeChange)
+  }
+
+  @Test
   fun activeDetail_recordsAndSurvivesRetainedSourceGap() = runComposeUiTest {
     val hazeState = HazeState()
     val showSource = mutableStateOf(true)
@@ -918,6 +939,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     effect: GlassRuntimeEffect,
     input: HazeInput = HazeInput.Content,
     sampling: HazeSampling = HazeSampling.FullResolution,
+    style: GlassStyle = effect.style,
   ): Modifier = hazeGlass(
     factory = rendererFactories.getOrPut(effect) {
       HazeEffectFactory {
@@ -925,7 +947,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       }
     },
     input = input,
-    style = effect.style,
+    style = style,
     sampling = sampling,
     expandLayerBounds = true,
     interactionSource = effect.interactionSource,
@@ -980,6 +1002,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     effect: GlassRuntimeEffect,
     tag: String,
     sampling: HazeSampling = HazeSampling.FullResolution,
+    style: GlassStyle = effect.style,
   ) {
     val hazeState = remember { HazeState() }
     Box(Modifier.size(120.dp)) {
@@ -992,6 +1015,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
             effect = effect,
             input = HazeInput.Sources(hazeState),
             sampling = sampling,
+            style = style,
           ),
       )
     }

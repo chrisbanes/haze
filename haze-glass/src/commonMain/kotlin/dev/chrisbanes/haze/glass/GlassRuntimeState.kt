@@ -280,6 +280,29 @@ internal abstract class GlassRuntimeState {
     }
 
   /**
+   * Color composited behind captured content before Glass optics are applied.
+   *
+   * There are precedence rules to how this styling property is applied:
+   *
+   *  - This property value, if specified.
+   *  - [GlassStyleScope.backgroundColor] value set in [style], if specified.
+   *  - [GlassStyleScope.backgroundColor] value set in [LocalGlassStyle], if specified.
+   */
+  internal var _backgroundColor: Color = Color.Unspecified
+  internal var backgroundColor: Color
+    get() = _backgroundColor
+      .takeOrElse { inheritedStyleValues.backgroundColor }
+    set(value) {
+      if (_backgroundColor != value) {
+        HazeLogger.d(TAG) {
+          "backgroundColor changed. Current: $_backgroundColor. New: $value"
+        }
+        _backgroundColor = value
+        markDirty(GlassDirtyFields.BackgroundColor)
+      }
+    }
+
+  /**
    * Glass tint applied to the refracted content.
    *
    * There are precedence rules to how this styling property is applied:
@@ -656,6 +679,9 @@ internal abstract class GlassRuntimeState {
     }
     if (old.fresnelExponent != new.fresnelExponent) {
       markDirty(GlassDirtyFields.FresnelExponent)
+    }
+    if (old.backgroundColor != new.backgroundColor) {
+      markDirty(GlassDirtyFields.BackgroundColor)
     }
     if (old.tint != new.tint) {
       markDirty(GlassDirtyFields.Tint)

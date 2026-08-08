@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 
@@ -81,19 +82,22 @@ internal class GlassRuntimeSourceSnapshot(
   val layerSize: Size,
   val layerOffset: Offset,
   val inputSnapshot: HazeEffectInputSnapshot,
+  val backgroundColor: Color = Color.Transparent,
 ) {
   override fun equals(other: Any?): Boolean =
     other is GlassRuntimeSourceSnapshot &&
       captureScale == other.captureScale &&
       layerSize == other.layerSize &&
       layerOffset == other.layerOffset &&
-      inputSnapshot == other.inputSnapshot
+      inputSnapshot == other.inputSnapshot &&
+      backgroundColor == other.backgroundColor
 
   override fun hashCode(): Int {
     var result = captureScale.hashCode()
     result = 31 * result + layerSize.hashCode()
     result = 31 * result + layerOffset.hashCode()
-    return 31 * result + inputSnapshot.hashCode()
+    result = 31 * result + inputSnapshot.hashCode()
+    return 31 * result + backgroundColor.hashCode()
   }
 }
 
@@ -104,6 +108,7 @@ internal data class GlassRuntimeSourceState(
 
 internal fun HazeEffectRuntimeDrawScope.resolveGlassRuntimeSourceState(
   captureScale: Float,
+  backgroundColor: Color,
   previousSnapshot: GlassRuntimeSourceSnapshot? = null,
 ): GlassRuntimeSourceState = resolveGlassRuntimeSourceState(
   captureScale = captureScale,
@@ -111,6 +116,7 @@ internal fun HazeEffectRuntimeDrawScope.resolveGlassRuntimeSourceState(
   layerOffset = layerOffset,
   hasDrawableInput = hasDrawableInput,
   inputSnapshot = inputSnapshot,
+  backgroundColor = backgroundColor,
   previousSnapshot = previousSnapshot,
 )
 
@@ -120,6 +126,7 @@ internal fun resolveGlassRuntimeSourceState(
   layerOffset: Offset,
   hasDrawableInput: Boolean,
   inputSnapshot: HazeEffectInputSnapshot?,
+  backgroundColor: Color = Color.Transparent,
   previousSnapshot: GlassRuntimeSourceSnapshot? = null,
 ): GlassRuntimeSourceState {
   if (!hasDrawableInput) return GlassRuntimeSourceState(false, null)
@@ -129,6 +136,7 @@ internal fun resolveGlassRuntimeSourceState(
     layerSize = layerSize,
     layerOffset = layerOffset,
     inputSnapshot = currentInputSnapshot,
+    backgroundColor = backgroundColor,
   )
   return GlassRuntimeSourceState(
     hasDrawableSource = true,

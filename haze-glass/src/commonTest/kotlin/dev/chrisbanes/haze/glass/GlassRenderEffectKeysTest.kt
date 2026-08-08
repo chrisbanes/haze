@@ -317,6 +317,7 @@ class GlassRenderEffectKeysTest {
     specularIntensity = 0.5f,
     depth = 1f,
     ambientResponse = 0.5f,
+    backgroundColor = Color.Transparent,
     tint = Color.Transparent,
     edgeSoftnessPx = 4f,
     blurRadiusPx = 20f,

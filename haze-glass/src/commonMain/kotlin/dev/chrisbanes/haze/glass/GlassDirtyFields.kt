@@ -12,7 +12,8 @@ internal object GlassDirtyFields {
   const val Optics: Int = 0b1
   const val SpecularIntensity: Int = Optics shl 1
   const val AmbientResponse: Int = SpecularIntensity shl 1
-  const val Tint: Int = AmbientResponse shl 1
+  const val BackgroundColor: Int = AmbientResponse shl 1
+  const val Tint: Int = BackgroundColor shl 1
   const val EdgeSoftness: Int = Tint shl 1
   const val LightPosition: Int = EdgeSoftness shl 1
   const val ChromaticAberration: Int = LightPosition shl 1
@@ -35,6 +36,7 @@ internal object GlassDirtyFields {
     Optics or
       SpecularIntensity or
       AmbientResponse or
+      BackgroundColor or
       Tint or
       EdgeSoftness or
       LightPosition or
@@ -66,6 +68,7 @@ internal object GlassDirtyFields {
       if (Optics in dirtyTracker) add("Optics")
       if (SpecularIntensity in dirtyTracker) add("SpecularIntensity")
       if (AmbientResponse in dirtyTracker) add("AmbientResponse")
+      if (BackgroundColor in dirtyTracker) add("BackgroundColor")
       if (Tint in dirtyTracker) add("Tint")
       if (EdgeSoftness in dirtyTracker) add("EdgeSoftness")
       if (LightPosition in dirtyTracker) add("LightPosition")

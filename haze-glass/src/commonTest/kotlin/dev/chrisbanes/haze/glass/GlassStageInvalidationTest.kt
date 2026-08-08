@@ -5,6 +5,7 @@ package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -323,6 +324,7 @@ class GlassStageInvalidationTest {
     assertThat(snapshot(layerSize = Size(120f, 80f))).isNotEqualTo(base)
     assertThat(snapshot(layerOffset = Offset(8f, 2f))).isNotEqualTo(base)
     assertThat(snapshot(inputSnapshot = TestInputSnapshot(2))).isNotEqualTo(base)
+    assertThat(snapshot(backgroundColor = Color.White)).isNotEqualTo(base)
   }
 
   @Test
@@ -377,12 +379,14 @@ class GlassStageInvalidationTest {
     layerSize: Size = Size(100f, 80f),
     layerOffset: Offset = Offset.Zero,
     inputSnapshot: HazeEffectInputSnapshot = TestInputSnapshot(1),
+    backgroundColor: Color = Color.Transparent,
   ) = resolveGlassRuntimeSourceState(
     captureScale = captureScale,
     layerSize = layerSize,
     layerOffset = layerOffset,
     hasDrawableInput = true,
     inputSnapshot = inputSnapshot,
+    backgroundColor = backgroundColor,
   ).snapshot!!
 
   private data class TestInputSnapshot(val value: Int) : HazeEffectInputSnapshot
