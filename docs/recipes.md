@@ -58,7 +58,7 @@ LazyColumn {
       modifier = Modifier.hazeBlur(
         input = HazeInput.Sources(hazeState),
         style = style,
-        sampling = HazeSampling.Adaptive,
+        performanceMode = HazePerformanceMode.Adaptive,
       ),
     )
   }

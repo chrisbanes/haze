@@ -6,10 +6,8 @@ package dev.chrisbanes.haze.blur
 import androidx.compose.ui.geometry.Size
 import assertk.assertThat
 import assertk.assertions.containsExactly
-import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
-import dev.chrisbanes.haze.HazeSampling
-import kotlin.math.sqrt
+import dev.chrisbanes.haze.HazePerformanceMode
 import kotlin.test.Test
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TestTimeSource
@@ -17,7 +15,39 @@ import kotlin.time.TestTimeSource
 class BlurInputScalePolicyTest {
 
   @Test
-  fun explicitScales_areAuthoritative() {
+  fun fixedModes_resolveDeterministicProfiles() {
+    val policy = BlurInputScalePolicy()
+    val smallWorkload = Size(1f, 1f)
+    val largeWorkload = Size(
+      width = BlurInputScalePolicy.AGGRESSIVE_AREA_PX,
+      height = 1f,
+    )
+
+    assertThat(
+      policy.resolve(
+        HazePerformanceMode.Quality,
+        blurRadiusPx = 1f,
+        layerSize = smallWorkload,
+      ),
+    ).isEqualTo(1f)
+    assertThat(
+      policy.resolve(
+        HazePerformanceMode.Balanced,
+        blurRadiusPx = BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
+        layerSize = largeWorkload,
+      ),
+    ).isEqualTo(0.8f)
+    assertThat(
+      policy.resolve(
+        HazePerformanceMode.Performance,
+        blurRadiusPx = 1f,
+        layerSize = smallWorkload,
+      ),
+    ).isEqualTo(0.5f)
+  }
+
+  @Test
+  fun fixedModes_areIndependentOfWorkload() {
     val policy = BlurInputScalePolicy()
     val largeWorkload = Size(
       width = BlurInputScalePolicy.AGGRESSIVE_AREA_PX,
@@ -25,11 +55,11 @@ class BlurInputScalePolicyTest {
     )
 
     assertThat(
-      policy.resolve(HazeSampling.FullResolution, BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX, largeWorkload),
+      policy.resolve(HazePerformanceMode.Quality, BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX, largeWorkload),
     ).isEqualTo(1f)
     assertThat(
       policy.resolve(
-        HazeSampling.Fixed(0.25f),
+        HazePerformanceMode.Performance,
         BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
         largeWorkload,
       ),
@@ -37,14 +67,71 @@ class BlurInputScalePolicyTest {
   }
 
   @Test
-  fun fixedHalfPixels_usesSquareRootPerDimension() {
+  fun fixedQualityFraction_usesTheCorrespondingProfile() {
     assertThat(
       BlurInputScalePolicy().resolve(
-        sampling = HazeSampling.Fixed(0.5f),
+        performanceMode = HazePerformanceMode.Fixed(0.5f),
         blurRadiusPx = BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
         layerSize = Size(1000f, 1000f),
       ),
-    ).isCloseTo(sqrt(0.5f), 0.0001f)
+    ).isEqualTo(0.8f)
+  }
+
+  @Test
+  fun increasingFixedQuality_neverLowersTheResolvedProfile() {
+    val policy = BlurInputScalePolicy()
+    val profiles = listOf(0f, 0.25f, 0.5f, 0.75f, 1f).map { qualityFraction ->
+      policy.resolve(
+        performanceMode = HazePerformanceMode.Fixed(qualityFraction),
+        blurRadiusPx = BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
+        layerSize = Size(BlurInputScalePolicy.AGGRESSIVE_AREA_PX, 1f),
+      )
+    }
+
+    assertThat(profiles).containsExactly(0.5f, 0.8f, 0.8f, 1f, 1f)
+  }
+
+  @Test
+  fun adaptiveTiers_resolveThroughTheSameFixedProfiles() {
+    val small = Size(1f, 1f)
+    val balanced = Size(BlurInputScalePolicy.BALANCED_AREA_PX, 1f)
+    val aggressive = Size(BlurInputScalePolicy.AGGRESSIVE_AREA_PX, 1f)
+
+    assertThat(
+      BlurInputScalePolicy().resolve(
+        HazePerformanceMode.Adaptive,
+        blurRadiusPx = 1f,
+        layerSize = small,
+      ),
+    ).isEqualTo(
+      BlurInputScalePolicy().resolve(HazePerformanceMode.Quality, 1f, small),
+    )
+    assertThat(
+      BlurInputScalePolicy().resolve(
+        HazePerformanceMode.Adaptive,
+        blurRadiusPx = BlurInputScalePolicy.BALANCED_RADIUS_PX,
+        layerSize = balanced,
+      ),
+    ).isEqualTo(
+      BlurInputScalePolicy().resolve(
+        HazePerformanceMode.Balanced,
+        BlurInputScalePolicy.BALANCED_RADIUS_PX,
+        balanced,
+      ),
+    )
+    assertThat(
+      BlurInputScalePolicy().resolve(
+        HazePerformanceMode.Adaptive,
+        blurRadiusPx = BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
+        layerSize = aggressive,
+      ),
+    ).isEqualTo(
+      BlurInputScalePolicy().resolve(
+        HazePerformanceMode.Performance,
+        BlurInputScalePolicy.AGGRESSIVE_RADIUS_PX,
+        aggressive,
+      ),
+    )
   }
 
   @Test
@@ -55,25 +142,25 @@ class BlurInputScalePolicyTest {
 
     policy.observeUpdate("frame-1")
     assertThat(
-      policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+      policy.resolve(HazePerformanceMode.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
     ).isEqualTo(1f)
 
     timeSource += 16.milliseconds
     policy.observeUpdate("frame-2")
     assertThat(
-      policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+      policy.resolve(HazePerformanceMode.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
     ).isEqualTo(1f)
 
     timeSource += 16.milliseconds
     policy.observeUpdate("frame-3")
     assertThat(
-      policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+      policy.resolve(HazePerformanceMode.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
     ).isEqualTo(0.8f)
 
     timeSource += 250.milliseconds
     policy.observeUpdate("settled")
     assertThat(
-      policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+      policy.resolve(HazePerformanceMode.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
     ).isEqualTo(1f)
   }
 
@@ -86,7 +173,7 @@ class BlurInputScalePolicyTest {
     repeat(3) {
       policy.observeUpdate("stable-input")
       assertThat(
-        policy.resolve(HazeSampling.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
+        policy.resolve(HazePerformanceMode.Adaptive, BlurInputScalePolicy.BALANCED_RADIUS_PX, rapidWorkload),
       ).isEqualTo(1f)
       timeSource += 16.milliseconds
     }
@@ -205,7 +292,7 @@ class BlurInputScalePolicyTest {
       ),
     ).isEqualTo(0.5f)
     policy.resolve(
-      sampling = HazeSampling.FullResolution,
+      performanceMode = HazePerformanceMode.Quality,
       blurRadiusPx = 0f,
       layerSize = Size.Zero,
     )
@@ -243,7 +330,7 @@ class BlurInputScalePolicyTest {
     areaPx: Float,
     progressive: Boolean = false,
   ): Float = resolve(
-    sampling = HazeSampling.Adaptive,
+    performanceMode = HazePerformanceMode.Adaptive,
     blurRadiusPx = radiusPx,
     layerSize = Size(areaPx, 1f),
     progressive = progressive,

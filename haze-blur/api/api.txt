@@ -17,7 +17,7 @@ package dev.chrisbanes.haze.blur {
   }
 
   public final class HazeBlurKt {
-    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeBlur(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.blur.HazeBlurStyle style, optional dev.chrisbanes.haze.HazeSampling sampling, optional boolean expandLayerBounds);
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier hazeBlur(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.blur.HazeBlurStyle style, optional dev.chrisbanes.haze.HazePerformanceMode performanceMode, optional boolean expandLayerBounds);
   }
 
   @androidx.compose.runtime.Immutable public sealed nonexhaustive interface HazeBlurStyle {

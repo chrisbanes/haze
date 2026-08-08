@@ -162,6 +162,31 @@ package dev.chrisbanes.haze {
     field public static final dev.chrisbanes.haze.HazeLogger INSTANCE;
   }
 
+  public sealed exhaustive interface HazePerformanceMode {
+    field public static final dev.chrisbanes.haze.HazePerformanceMode.Companion Companion;
+  }
+
+  public static final class HazePerformanceMode.Adaptive implements dev.chrisbanes.haze.HazePerformanceMode {
+    field public static final dev.chrisbanes.haze.HazePerformanceMode.Adaptive INSTANCE;
+  }
+
+  public static final class HazePerformanceMode.Companion {
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazePerformanceMode getBalanced();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazePerformanceMode getDefault();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazePerformanceMode getPerformance();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazePerformanceMode getQuality();
+    property public dev.chrisbanes.haze.HazePerformanceMode Balanced;
+    property public dev.chrisbanes.haze.HazePerformanceMode Default;
+    property public dev.chrisbanes.haze.HazePerformanceMode Performance;
+    property public dev.chrisbanes.haze.HazePerformanceMode Quality;
+  }
+
+  @kotlin.jvm.JvmInline public static final value class HazePerformanceMode.Fixed implements dev.chrisbanes.haze.HazePerformanceMode {
+    ctor @KotlinOnly public HazePerformanceMode.Fixed(float qualityFraction);
+    method @InaccessibleFromKotlin public float getQualityFraction();
+    property public float qualityFraction;
+  }
+
   @androidx.compose.runtime.Immutable public sealed exhaustive interface HazeProgressive {
     field public static final dev.chrisbanes.haze.HazeProgressive.Companion Companion;
   }

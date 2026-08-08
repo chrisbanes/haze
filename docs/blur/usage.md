@@ -146,25 +146,26 @@ val maskedStyle = HazeBlurStyle {
 }
 ```
 
-## Input scale
+## Performance mode
 
-### Sampling and layer expansion
+### Performance mode and layer expansion
 
-Sampling and layer expansion are structural modifier policies, not Style properties:
+Performance mode and layer expansion are structural modifier policies, not Style properties:
 
 ```kotlin
 Modifier.hazeBlur(
   input = HazeInput.Sources(hazeState),
   style = style,
-  sampling = HazeSampling.Adaptive,
+  performanceMode = HazePerformanceMode.Adaptive,
   expandLayerBounds = true,
 )
 ```
 
-- `HazeSampling.Default` and `Adaptive` let Blur balance quality and cost automatically.
-- `HazeSampling.FullResolution` disables input downscaling.
-- `HazeSampling.Fixed(pixelFraction)` retains a fixed fraction of the full-resolution input pixels
-  when you need a predictable trade-off.
+- `HazePerformanceMode.Default` and `Adaptive` let Blur balance quality and cost automatically.
+- `HazePerformanceMode.Quality`, `Balanced`, and `Performance` select named fixed fidelity
+  profiles.
+- `HazePerformanceMode.Fixed(qualityFraction)` selects a deterministic fidelity profile for a
+  normalized quality fraction from `0f` through `1f`.
 
 Start with the default. Override it only after comparing visual quality and performance on the
 devices you support.

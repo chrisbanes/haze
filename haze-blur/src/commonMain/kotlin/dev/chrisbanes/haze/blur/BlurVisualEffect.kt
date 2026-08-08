@@ -29,6 +29,7 @@ import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeLogger
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
@@ -44,13 +45,13 @@ private class BlurAdaptiveUpdateKey(
   val layerOffset: Offset,
 )
 
-/** Node-owned Blur renderer configured exclusively by [HazeBlurStyle]. */
+/** Node-owned Blur renderer configured by [BlurConfiguration]. */
 @Stable
 @OptIn(InternalHazeApi::class)
 internal class BlurVisualEffect :
-  HazeEffectRenderer<HazeBlurStyle>,
-  HazeEffectRendererLifecycle<HazeBlurStyle>,
-  HazeEffectRendererDrawHooks<HazeBlurStyle>,
+  HazeEffectRenderer<BlurConfiguration>,
+  HazeEffectRendererLifecycle<BlurConfiguration>,
+  HazeEffectRendererDrawHooks<BlurConfiguration>,
   HazeEffectRendererRetainedOutput {
 
   private var isAttached: Boolean = false
@@ -99,10 +100,11 @@ internal class BlurVisualEffect :
 
   override fun update(
     scope: HazeEffectLifecycleScope,
-    style: HazeBlurStyle,
+    style: BlurConfiguration,
     sampling: HazeSampling,
   ) {
-    this.style = style
+    this.style = style.style
+    performanceMode = style.performanceMode
     compositionLocalStyle = scope.currentValueOf(LocalHazeBlurStyle)
     if (dirtyTracker.any(BlurDirtyFields.InvalidateFlags)) {
       needsDelegateSelection = true
@@ -115,8 +117,8 @@ internal class BlurVisualEffect :
     }
   }
 
-  override fun HazeEffectRuntimeDrawScope.prepareDraw(style: HazeBlurStyle) {
-    if (sampling === HazeSampling.Adaptive) {
+  override fun HazeEffectRuntimeDrawScope.prepareDraw(style: BlurConfiguration) {
+    if (performanceMode === HazePerformanceMode.Adaptive) {
       inputScalePolicy.observeUpdate(
         BlurAdaptiveUpdateKey(
           inputSnapshot = inputSnapshot,
@@ -134,13 +136,13 @@ internal class BlurVisualEffect :
     }
   }
 
-  override fun shouldPrepareDraw(style: HazeBlurStyle): Boolean {
+  override fun shouldPrepareDraw(style: BlurConfiguration): Boolean {
     if (alpha != 0f) return true
     resetDirtyTracker()
     return false
   }
 
-  override fun HazeEffectDrawScope.draw(style: HazeBlurStyle) {
+  override fun HazeEffectDrawScope.draw(style: BlurConfiguration) {
     val runtimeScope = this as HazeEffectRuntimeDrawScope
     try {
       with(runtimeScope as DrawScope) {
@@ -205,7 +207,7 @@ internal class BlurVisualEffect :
   internal fun resolveInputScaleFactor(context: HazeEffectRuntimeDrawScope): Float {
     val blurRadiusPx = with(context) { blurRadius.toPx() }
     return inputScalePolicy.resolve(
-      sampling = context.sampling,
+      performanceMode = performanceMode,
       blurRadiusPx = blurRadiusPx,
       layerSize = context.layerSize,
       progressive = progressive != null,
@@ -230,6 +232,15 @@ internal class BlurVisualEffect :
       }
     }
 
+  private var performanceMode: HazePerformanceMode = HazePerformanceMode.Default
+    set(value) {
+      if (field != value) {
+        HazeLogger.d(TAG) { "performanceMode changed. Current: $field. New: $value" }
+        field = value
+        inputScalePolicy.reset()
+      }
+    }
+
   private fun resolveStyle() {
     val previous = resolvedStyle
     val next = resolveHazeBlurStyle(compositionLocalStyle, style)
@@ -243,7 +254,7 @@ internal class BlurVisualEffect :
     return backgroundColor.prefersClipToAreaBounds()
   }
 
-  override fun HazeEffectLayoutScope.calculateLayerBounds(style: HazeBlurStyle): Rect {
+  override fun HazeEffectLayoutScope.calculateLayerBounds(style: BlurConfiguration): Rect {
     val blurRadiusPx = blurRadius.toPx()
     return if (blurRadiusPx >= 1f) modifierBounds.inflate(blurRadiusPx) else modifierBounds
   }

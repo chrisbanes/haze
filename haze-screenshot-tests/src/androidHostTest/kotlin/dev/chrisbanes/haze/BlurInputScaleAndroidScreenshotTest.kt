@@ -38,7 +38,7 @@ class BlurInputScaleAndroidScreenshotTest : ScreenshotTest() {
       noiseFactor(0f)
       progressive(HazeProgressive.verticalGradient())
     }
-    var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
+    var performanceMode by mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Quality)
 
     setContent {
       ScreenshotTheme {
@@ -68,7 +68,7 @@ class BlurInputScaleAndroidScreenshotTest : ScreenshotTest() {
               .hazeBlur(
                 input = HazeInput.Sources(hazeState),
                 style = effect,
-                sampling = sampling,
+                performanceMode = performanceMode,
               ),
           )
         }
@@ -76,7 +76,7 @@ class BlurInputScaleAndroidScreenshotTest : ScreenshotTest() {
     }
 
     val unscaled = captureRootPixels().snapshot()
-    sampling = HazeSampling.Fixed(0.25f)
+    performanceMode = HazePerformanceMode.Performance
     waitForIdle()
     val scaled = captureRootPixels().snapshot()
 

@@ -42,8 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.hazeSource
@@ -64,7 +64,7 @@ fun ScaffoldSample(
   navController: NavHostController,
   blurEnabled: Boolean,
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
-  sampling: HazeSampling = HazeSampling.Default,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
 ) {
   val hazeState = rememberHazeState()
   val gridState = rememberLazyGridState()
@@ -93,7 +93,7 @@ fun ScaffoldSample(
         modifier = Modifier
           .hazeBlur(
             input = HazeInput.Sources(hazeState),
-            sampling = sampling,
+            performanceMode = performanceMode,
             style = style.then {
               blurEnabled(blurEnabled)
               when (mode) {
@@ -129,7 +129,7 @@ fun ScaffoldSample(
           modifier = Modifier
             .hazeBlur(
               input = HazeInput.Sources(hazeState),
-              sampling = sampling,
+              performanceMode = performanceMode,
               style = style.then { blurEnabled(blurEnabled) },
             )
             .fillMaxWidth(),

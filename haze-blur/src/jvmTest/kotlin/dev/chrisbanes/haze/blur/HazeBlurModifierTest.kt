@@ -47,6 +47,7 @@ import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeSourceRetention
 import dev.chrisbanes.haze.HazeState
@@ -225,22 +226,22 @@ class HazeBlurModifierTest {
 
     effect.update(
       TestLifecycleScope,
-      HazeBlurStyle { alpha(0f) },
+      BlurConfiguration(HazeBlurStyle { alpha(0f) }, HazePerformanceMode.Default),
       HazeSampling.Default,
     )
 
-    assertThat(effect.shouldPrepareDraw(HazeBlurStyle)).isFalse()
+    assertThat(effect.shouldPrepareDraw(BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Default))).isFalse()
     assertThat(effect.dirtyTracker).isEqualTo(Bitmask())
     assertThat(effect.canDrawRetainedOutput()).isTrue()
     assertThat(delegate.clearCount).isEqualTo(0)
 
     effect.update(
       TestLifecycleScope,
-      HazeBlurStyle { alpha(0.5f) },
+      BlurConfiguration(HazeBlurStyle { alpha(0.5f) }, HazePerformanceMode.Default),
       HazeSampling.Default,
     )
 
-    assertThat(effect.shouldPrepareDraw(HazeBlurStyle)).isTrue()
+    assertThat(effect.shouldPrepareDraw(BlurConfiguration(HazeBlurStyle, HazePerformanceMode.Default))).isTrue()
     assertThat(effect.canDrawRetainedOutput()).isTrue()
     assertThat(delegate.clearCount).isEqualTo(0)
   }
@@ -250,7 +251,7 @@ class HazeBlurModifierTest {
     val effect = BlurVisualEffect()
     effect.update(
       TestLifecycleScope,
-      HazeBlurStyle { alpha(0f) },
+      BlurConfiguration(HazeBlurStyle { alpha(0f) }, HazePerformanceMode.Default),
       HazeSampling.Default,
     )
     val delegate = RenderEffectBlurVisualEffectDelegate(effect)
@@ -323,7 +324,7 @@ class HazeBlurModifierTest {
             .hazeBlur(
               input = HazeInput.Sources(state),
               style = style,
-              sampling = HazeSampling.FullResolution,
+              performanceMode = HazePerformanceMode.Quality,
               expandLayerBounds = false,
             ),
         )
@@ -341,17 +342,20 @@ class HazeBlurModifierTest {
     }
     val first = HazeBlurFactory.createRenderer() as BlurVisualEffect
     val second = HazeBlurFactory.createRenderer() as BlurVisualEffect
-    first.update(TestLifecycleScope, sharedStyle, HazeSampling.Default)
-    second.update(TestLifecycleScope, sharedStyle, HazeSampling.Default)
+    first.update(TestLifecycleScope, BlurConfiguration(sharedStyle, HazePerformanceMode.Default), HazeSampling.Default)
+    second.update(TestLifecycleScope, BlurConfiguration(sharedStyle, HazePerformanceMode.Default), HazeSampling.Default)
 
     assertThat(first).isNotSameInstanceAs(second)
 
     val firstRuntime = first
     first.update(
       scope = TestLifecycleScope,
-      style = HazeBlurStyle {
-        blurRadius(24.dp)
-      },
+      style = BlurConfiguration(
+        HazeBlurStyle {
+          blurRadius(24.dp)
+        },
+        HazePerformanceMode.Quality,
+      ),
       sampling = HazeSampling.FullResolution,
     )
 
@@ -365,8 +369,8 @@ class HazeBlurModifierTest {
     val style = HazeBlurStyle
     val first = HazeBlurFactory.createRenderer() as BlurVisualEffect
     val second = HazeBlurFactory.createRenderer() as BlurVisualEffect
-    first.update(TestLifecycleScope, style, HazeSampling.Default)
-    second.update(TestLifecycleScope, style, HazeSampling.Default)
+    first.update(TestLifecycleScope, BlurConfiguration(style, HazePerformanceMode.Default), HazeSampling.Default)
+    second.update(TestLifecycleScope, BlurConfiguration(style, HazePerformanceMode.Default), HazeSampling.Default)
     val firstDelegate = ModifierTrackingDelegate()
     val secondDelegate = ModifierTrackingDelegate()
     first.delegate = firstDelegate
@@ -410,10 +414,10 @@ private class RecordingBlurRenderer :
     scope: HazeEffectLifecycleScope,
     style: HazeBlurStyle,
     sampling: HazeSampling,
-  ) = effect.update(scope, style, sampling)
+  ) = effect.update(scope, BlurConfiguration(style, HazePerformanceMode.Default), sampling)
 
   override fun shouldPrepareDraw(style: HazeBlurStyle): Boolean =
-    effect.shouldPrepareDraw(style)
+    effect.shouldPrepareDraw(BlurConfiguration(style, HazePerformanceMode.Default))
 
   override fun HazeEffectDrawScope.draw(style: HazeBlurStyle) {
     drawCount++
@@ -529,7 +533,7 @@ private fun everyTypedBlurPolicyCompiles(
       retention = HazeSourceRetention.KeepLastFrame,
     ),
     style = style,
-    sampling = HazeSampling.Default,
+    performanceMode = HazePerformanceMode.Default,
     expandLayerBounds = true,
   )
   .hazeBlur(
@@ -537,9 +541,9 @@ private fun everyTypedBlurPolicyCompiles(
       state = state,
       retention = HazeSourceRetention.ClearWhenUnavailable,
     ),
-    sampling = HazeSampling.Adaptive,
+    performanceMode = HazePerformanceMode.Adaptive,
   )
   .hazeBlur(
     input = HazeInput.Content,
-    sampling = HazeSampling.Fixed(0.6f),
+    performanceMode = HazePerformanceMode.Fixed(0.6f),
   )

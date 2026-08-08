@@ -143,7 +143,7 @@ internal fun CreditCardGlassSample(
 internal fun CreditCardContentBlurring(
   visualEffect: HazeBlurStyle,
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
-  sampling: HazeSampling = HazeSampling.Default,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
 ) {
   Box(Modifier.background(backgroundColors.first())) {
     // Background content
@@ -154,7 +154,7 @@ internal fun CreditCardContentBlurring(
         .hazeBlur(
           input = HazeInput.Content,
           style = visualEffect,
-          sampling = sampling,
+          performanceMode = performanceMode,
         ),
     )
   }
@@ -283,7 +283,7 @@ internal fun StickyHeaderListSample(
           .hazeBlur(
             input = HazeInput.Sources(hazeState),
             style = visualEffect,
-            sampling = HazeSampling.Adaptive,
+            performanceMode = HazePerformanceMode.Adaptive,
           ),
       ) {
         Text(

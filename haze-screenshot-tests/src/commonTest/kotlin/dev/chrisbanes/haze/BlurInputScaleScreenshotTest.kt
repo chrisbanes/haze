@@ -21,18 +21,42 @@ import kotlin.test.Test
 class BlurInputScaleScreenshotTest : ScreenshotTest() {
 
   @Test
-  fun adaptiveTiers_preserveRepresentativeBlurQuality() = runScreenshotTest {
-    var effect by mutableStateOf(HazeBlurStyle { blurRadius(12.dp) })
-    var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
+  fun fixedModes_preserveRepresentativeBlurFeatures() = runScreenshotTest {
+    val effect = HazeBlurStyle {
+      blurRadius(24.dp)
+      mask(Brush.verticalGradient(listOf(Color.Black, Color.Transparent)))
+      progressive(HazeProgressive.verticalGradient())
+    }
+    var performanceMode by mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Quality)
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(effect, sampling = sampling)
+        CreditCardContentBlurring(effect, performanceMode = performanceMode)
+      }
+    }
+
+    captureRoot("quality")
+    performanceMode = HazePerformanceMode.Balanced
+    waitForIdle()
+    captureRoot("balanced")
+    performanceMode = HazePerformanceMode.Performance
+    waitForIdle()
+    captureRoot("performance")
+  }
+
+  @Test
+  fun adaptiveTiers_preserveRepresentativeBlurQuality() = runScreenshotTest {
+    var effect by mutableStateOf(HazeBlurStyle { blurRadius(12.dp) })
+    var performanceMode by mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Quality)
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardContentBlurring(effect, performanceMode = performanceMode)
       }
     }
 
     val balancedReference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Adaptive
+    performanceMode = HazePerformanceMode.Adaptive
     waitForIdle()
     val balancedAdaptive = captureRootPixels().snapshot()
     captureRoot("balanced")
@@ -43,10 +67,10 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
     )
 
     effect = effect.then { blurRadius(24.dp) }
-    sampling = HazeSampling.FullResolution
+    performanceMode = HazePerformanceMode.Quality
     waitForIdle()
     val aggressiveReference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Adaptive
+    performanceMode = HazePerformanceMode.Adaptive
     waitForIdle()
     val aggressiveAdaptive = captureRootPixels().snapshot()
     captureRoot("aggressive")
@@ -63,16 +87,16 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
       blurRadius(24.dp)
       progressive(HazeProgressive.verticalGradient())
     }
-    var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
+    var performanceMode by mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Quality)
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(effect, sampling = sampling)
+        CreditCardContentBlurring(effect, performanceMode = performanceMode)
       }
     }
 
     val reference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Adaptive
+    performanceMode = HazePerformanceMode.Adaptive
     waitForIdle()
     val adaptive = captureRootPixels().snapshot()
     captureRoot()
@@ -92,16 +116,16 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
         mask(Brush.verticalGradient(listOf(Color.Black, Color.Transparent)))
       },
     )
-    var sampling by mutableStateOf<HazeSampling>(HazeSampling.FullResolution)
+    var performanceMode by mutableStateOf<HazePerformanceMode>(HazePerformanceMode.Quality)
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(effect, sampling = sampling)
+        CreditCardContentBlurring(effect, performanceMode = performanceMode)
       }
     }
 
     val gradientReference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Adaptive
+    performanceMode = HazePerformanceMode.Adaptive
     waitForIdle()
     val gradientAdaptive = captureRootPixels().snapshot()
     gradientReference.assertPerceptuallyCloseTo(
@@ -120,10 +144,10 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
         ),
       )
     }
-    sampling = HazeSampling.FullResolution
+    performanceMode = HazePerformanceMode.Quality
     waitForIdle()
     val hardEdgeReference = captureRootPixels().snapshot()
-    sampling = HazeSampling.Adaptive
+    performanceMode = HazePerformanceMode.Adaptive
     waitForIdle()
     val hardEdgeAdaptive = captureRootPixels().snapshot()
     captureRoot()
@@ -140,7 +164,7 @@ class BlurInputScaleScreenshotTest : ScreenshotTest() {
 
     setContent {
       ScreenshotTheme {
-        CreditCardContentBlurring(effect, sampling = HazeSampling.Adaptive)
+        CreditCardContentBlurring(effect, performanceMode = HazePerformanceMode.Adaptive)
       }
     }
 
