@@ -78,6 +78,16 @@ private inline fun DrawScope.withLayerPaint(
 }
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
+internal fun DrawScope.drawInputWithAlpha(
+  context: HazeEffectRuntimeDrawScope,
+  alpha: Float,
+) {
+  withLayerPaint(alpha = alpha, blendMode = BlendMode.SrcOver) {
+    with(context) { this@drawInputWithAlpha.drawInput() }
+  }
+}
+
+@OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal fun DrawScope.createAndDrawScaledContentLayer(
   context: HazeEffectRuntimeDrawScope,
   scaleFactor: Float,
