@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -217,6 +218,31 @@ class FallbackGlassDelegateTest {
   }
 
   @Test
+  fun backgroundColor_compositesBehindCapturedContent() = runComposeUiTest {
+    val effect = GlassRuntimeEffect().apply {
+      backgroundColor = Color.White
+      tint = Color.Transparent
+      specularIntensity = 0f
+      ambientResponse = 0f
+      edgeSoftness = 0.dp
+      shape = RoundedCornerShape(0.dp)
+    }
+    val fallback = FallbackGlassDelegate(effect)
+    val visualEffect = FallbackOnlyVisualEffect(effect, fallback)
+
+    setContent {
+      FallbackTestContent(visualEffect) {
+        Box(Modifier.size(40.dp).background(Color.Red))
+      }
+    }
+    waitForIdle()
+
+    val pixels = onNodeWithTag(FALLBACK_TAG).captureToImage().toPixelMap()
+    assertThat(pixels[60, 60]).isEqualTo(Color.Red)
+    assertThat(pixels[10, 10]).isEqualTo(Color.White)
+  }
+
+  @Test
   fun foregroundLighting_drawsOverOpaqueContent() {
     val effect = GlassRuntimeEffect().apply {
       tint = Color.Transparent
@@ -350,7 +376,10 @@ class FallbackGlassDelegateTest {
   }
 
   @Composable
-  private fun FallbackTestContent(fallbackVisualEffect: FallbackOnlyVisualEffect) {
+  private fun FallbackTestContent(
+    fallbackVisualEffect: FallbackOnlyVisualEffect,
+    content: @Composable () -> Unit = {},
+  ) {
     val factory = remember(fallbackVisualEffect) {
       HazeEffectFactory<Unit> { fallbackVisualEffect }
     }
@@ -364,7 +393,10 @@ class FallbackGlassDelegateTest {
           style = Unit,
           sampling = HazeSampling.FullResolution,
         ),
-    )
+      contentAlignment = Alignment.Center,
+    ) {
+      content()
+    }
   }
 }
 
