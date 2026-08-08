@@ -1482,13 +1482,14 @@ the canonical defaults first and guarding its overrides in the same way:</p>
 <span class="w">    </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
 <span class="w">  </span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
-<span class="w">  </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">FullResolution</span><span class="p">,</span>
+<span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Quality</span><span class="p">,</span>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>HazeSampling.Default</code> points to <code>Adaptive</code> for both Blur and Glass. Use <code>Adaptive</code> to pin that
-policy explicitly, <code>FullResolution</code> when fidelity is the priority, or <code>Fixed(pixelFraction)</code> for an
-explicit trade-off.</p>
+<p><code>HazePerformanceMode.Default</code> points to <code>Adaptive</code> for Blur. Use <code>Adaptive</code> to pin that policy,
+<code>Quality</code>, <code>Balanced</code>, or <code>Performance</code> for its named profiles, or <code>Fixed(qualityFraction)</code> for an
+explicit normalized trade-off. <code>HazeSampling</code> remains the generic policy used by Glass and custom
+effects.</p>
 <h2 id="lifecycle-and-sharing">Lifecycle and sharing<a class="headerlink" href="#lifecycle-and-sharing" title="Permanent link">¶</a></h2>
 <p>Styles are immutable and safe to share. Supply a replacement Style through recomposition when the
 appearance changes.</p>
@@ -1703,8 +1704,8 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 </tr>
 <tr>
 <td><code>HazeEffectScope.inputScale</code></td>
-<td><code>Modifier.hazeBlur(sampling = ...)</code></td>
-<td>Map <code>Default</code> to <code>Default</code>, <code>Auto</code> to <code>Adaptive</code>, <code>None</code> to <code>FullResolution</code>, and <code>Fixed</code> to <code>Fixed</code>; fixed values now express total pixel fraction.</td>
+<td><code>Modifier.hazeBlur(performanceMode = ...)</code></td>
+<td>Map <code>Default</code> to <code>Default</code>, <code>Auto</code> to <code>Adaptive</code>, <code>None</code> to <code>Quality</code>, and choose <code>Balanced</code>, <code>Performance</code>, or <code>Fixed(qualityFraction)</code> for an explicit Blur profile.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.drawContentBehind</code></td>
@@ -1783,8 +1784,8 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 </tr>
 <tr>
 <td><code>VisualEffect.calculateInputScaleFactor()</code></td>
-<td><code>HazeSampling</code></td>
-<td>Choose default, adaptive, full-resolution, or fixed sampling.</td>
+<td><code>HazePerformanceMode</code> for Blur, <code>HazeSampling</code> for Glass and custom effects</td>
+<td>Blur chooses default, adaptive, named, or fixed performance profiles; generic effects retain sampling.</td>
 </tr>
 <tr>
 <td><code>VisualEffect.requireInvalidation()</code></td>
@@ -1859,8 +1860,8 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
    <code>HazeInput.Sources(state)</code> or <code>HazeInput.Content</code>.</li>
 <li>Move Blur properties into <code>HazeBlurStyle { ... }</code>, changing property assignments into Style
    functions. Use <code>then</code> instead of <code>copy</code> when customizing a preset.</li>
-<li>Move input scale, retention, source selection, and layer expansion to <code>HazeSampling</code>,
-   <code>HazeSourceRetention</code>, <code>HazeSourceSelection</code>, and <code>expandLayerBounds</code>.</li>
+<li>Move Blur input scale to <code>HazePerformanceMode</code>; move retention, source selection, and layer
+   expansion to <code>HazeSourceRetention</code>, <code>HazeSourceSelection</code>, and <code>expandLayerBounds</code>.</li>
 <li>Remove <code>blurEnabled</code> from <code>rememberHazeState</code>; write it in the Style for each effect instead.</li>
 <li>Replace custom <code>VisualEffect</code> implementations with a stateless <code>HazeEffectFactory</code> and one
    node-owned <code>HazeEffectRenderer</code> per modifier.</li>
@@ -1878,7 +1879,7 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 <span class="w">    </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
 <span class="w">  </span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
-<span class="w">  </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">FullResolution</span><span class="p">,</span>
+<span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Quality</span><span class="p">,</span>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>

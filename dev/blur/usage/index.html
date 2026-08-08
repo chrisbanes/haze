@@ -522,22 +522,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#input-scale" class="md-nav__link">
+  <a href="#performance-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Input scale
+        Performance mode
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Input scale">
+    <nav class="md-nav" aria-label="Performance mode">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sampling-and-layer-expansion" class="md-nav__link">
+  <a href="#performance-mode-and-layer-expansion" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sampling and layer expansion
+        Performance mode and layer expansion
       
     </span>
   </a>
@@ -1139,22 +1139,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#input-scale" class="md-nav__link">
+  <a href="#performance-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Input scale
+        Performance mode
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Input scale">
+    <nav class="md-nav" aria-label="Performance mode">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sampling-and-layer-expansion" class="md-nav__link">
+  <a href="#performance-mode-and-layer-expansion" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sampling and layer expansion
+        Performance mode and layer expansion
       
     </span>
   </a>
@@ -1299,21 +1299,22 @@ clears inherited color effects:</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<h2 id="input-scale">Input scale<a class="headerlink" href="#input-scale" title="Permanent link">¶</a></h2>
-<h3 id="sampling-and-layer-expansion">Sampling and layer expansion<a class="headerlink" href="#sampling-and-layer-expansion" title="Permanent link">¶</a></h3>
-<p>Sampling and layer expansion are structural modifier policies, not Style properties:</p>
+<h2 id="performance-mode">Performance mode<a class="headerlink" href="#performance-mode" title="Permanent link">¶</a></h2>
+<h3 id="performance-mode-and-layer-expansion">Performance mode and layer expansion<a class="headerlink" href="#performance-mode-and-layer-expansion" title="Permanent link">¶</a></h3>
+<p>Performance mode and layer expansion are structural modifier policies, not Style properties:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">style</span><span class="p">,</span>
-<span class="w">  </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
+<span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
 <ul>
-<li><code>HazeSampling.Default</code> and <code>Adaptive</code> let Blur balance quality and cost automatically.</li>
-<li><code>HazeSampling.FullResolution</code> disables input downscaling.</li>
-<li><code>HazeSampling.Fixed(pixelFraction)</code> retains a fixed fraction of the full-resolution input pixels
-  when you need a predictable trade-off.</li>
+<li><code>HazePerformanceMode.Default</code> and <code>Adaptive</code> let Blur balance quality and cost automatically.</li>
+<li><code>HazePerformanceMode.Quality</code>, <code>Balanced</code>, and <code>Performance</code> select named fixed fidelity
+  profiles.</li>
+<li><code>HazePerformanceMode.Fixed(qualityFraction)</code> selects a deterministic fidelity profile for a
+  normalized quality fraction from <code>0f</code> through <code>1f</code>.</li>
 </ul>
 <p>Start with the default. Override it only after comparing visual quality and performance on the
 devices you support.</p></div>
