@@ -611,6 +611,56 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun backgroundColorStyleChangeDuringSourceGapClearsRetainedOutput() = runComposeUiTest {
+    val hazeState = HazeState()
+    val showSource = mutableStateOf(true)
+    val style = mutableStateOf(GlassStyle { backgroundColor(Color.Red) })
+    val effect = activeDetailEffect()
+
+    setContent {
+      Box(Modifier.size(120.dp)) {
+        if (showSource.value) {
+          Box(
+            Modifier
+              .fillMaxSize()
+              .background(Color.Red)
+              .hazeSource(hazeState),
+          )
+        }
+        Box(
+          Modifier
+            .fillMaxSize()
+            .testGlass(
+              effect = effect,
+              input = HazeInput.Sources(hazeState),
+              style = style.value,
+            ),
+        )
+      }
+    }
+
+    waitForIdle()
+    val delegate = runtime(effect).delegate as RuntimeShaderGlassDelegate
+
+    showSource.value = false
+    waitForIdle()
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+
+    style.value = GlassStyle { backgroundColor(Color.Blue) }
+    waitForIdle()
+
+    assertThat(delegate.canDrawRetainedOutput()).isFalse()
+    assertThat(delegate.lastSuccessfulSourceSnapshot).isNull()
+
+    showSource.value = true
+    waitForIdle()
+
+    assertThat(delegate.canDrawRetainedOutput()).isTrue()
+    assertThat(checkNotNull(delegate.lastSuccessfulSourceSnapshot).backgroundColor)
+      .isEqualTo(Color.Blue)
+  }
+
+  @Test
   fun activeDetail_recordsAndSurvivesRetainedSourceGap() = runComposeUiTest {
     val hazeState = HazeState()
     val showSource = mutableStateOf(true)

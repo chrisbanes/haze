@@ -413,6 +413,13 @@ internal class RuntimeShaderGlassDelegate(
           backgroundColor = params.backgroundColor,
           previousSnapshot = lastSuccessfulSourceSnapshot,
         )
+        if (
+          !sourceState.hasDrawableSource &&
+          lastSuccessfulSourceSnapshot?.backgroundColor != params.backgroundColor
+        ) {
+          clearRetainedOutput()
+          return
+        }
         val shouldRecordSource = sourceState.hasDrawableSource && (
           sourceState.snapshot == null ||
             sourceState.snapshot != lastSuccessfulSourceSnapshot ||
