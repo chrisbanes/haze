@@ -407,10 +407,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#blur-performance-mode" class="md-nav__link">
+  <a href="#built-in-performance-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Blur performance mode
+        Built-in performance mode
       
     </span>
   </a>
@@ -1175,10 +1175,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#blur-performance-mode" class="md-nav__link">
+  <a href="#built-in-performance-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Blur performance mode
+        Built-in performance mode
       
     </span>
   </a>
@@ -1361,17 +1361,22 @@ platform state and can be shared by concurrent modifiers.</p>
 </code></pre></div>
 <p>The renderer can own mutable resources and releases them in <code>dispose</code>. Style replacement updates
 the existing renderer. Factory replacement and detachment dispose it exactly once.</p>
-<h2 id="blur-performance-mode">Blur performance mode<a class="headerlink" href="#blur-performance-mode" title="Permanent link">¶</a></h2>
+<h2 id="built-in-performance-mode">Built-in performance mode<a class="headerlink" href="#built-in-performance-mode" title="Permanent link">¶</a></h2>
 <ul>
-<li><code>HazePerformanceMode.Default</code> and <code>Adaptive</code> let Blur balance quality and cost automatically.</li>
-<li><code>HazePerformanceMode.Quality</code>, <code>Balanced</code>, and <code>Performance</code> select Blur's named profiles.</li>
-<li><code>HazePerformanceMode.Fixed(qualityFraction)</code> selects a normalized, deterministic Blur profile.</li>
+<li><code>HazePerformanceMode.Default</code> is <code>Adaptive</code> and lets built-in Blur and Glass balance quality and
+  cost automatically.</li>
+<li><code>HazePerformanceMode.Quality</code>, <code>Balanced</code>, and <code>Performance</code> select effect-owned named profiles.</li>
+<li><code>HazePerformanceMode.Fixed(qualityFraction)</code> selects a normalized, deterministic profile for a
+  built-in effect.</li>
 </ul>
 <p>Start with the default. Choose a fixed profile only when visual comparison shows that you need a
 stable quality and performance trade-off.</p>
+<p><code>Quality</code> replaces the previous built-in full-resolution choice. Previous built-in fixed
+input-pixel fractions have no direct equivalent: remeasure an explicit <code>Fixed(qualityFraction)</code>
+choice on the effect and layout you support.</p>
 <h2 id="generic-sampling">Generic sampling<a class="headerlink" href="#generic-sampling" title="Permanent link">¶</a></h2>
-<p><code>HazeSampling</code> remains the generic input-sampling contract for custom effects. Built-in Glass uses
-<code>HazePerformanceMode</code> instead. <code>HazeSampling</code>'s <code>Default</code>, <code>Adaptive</code>, <code>FullResolution</code>, and
+<p><code>HazeSampling</code> remains the generic input-sampling contract for custom effects. Built-in Blur and
+Glass use <code>HazePerformanceMode</code> instead. <code>HazeSampling</code>'s <code>Default</code>, <code>Adaptive</code>, <code>FullResolution</code>, and
 <code>Fixed(pixelFraction)</code> policies control the fraction of full-resolution input pixels custom
 effects receive.</p>
 <h2 id="layer-bounds">Layer bounds<a class="headerlink" href="#layer-bounds" title="Permanent link">¶</a></h2>

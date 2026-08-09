@@ -544,6 +544,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#controlled-calibration-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controlled calibration reference
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1161,6 +1172,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#controlled-calibration-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controlled calibration reference
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1317,7 +1339,46 @@ clears inherited color effects:</p>
   normalized quality fraction from <code>0f</code> through <code>1f</code>.</li>
 </ul>
 <p>Start with the default. Override it only after comparing visual quality and performance on the
-devices you support.</p></div>
+devices you support. <code>Default</code> is <code>Adaptive</code>, and <code>Quality</code> replaces the previous built-in
+full-resolution choice. Remeasure any previous built-in fixed input-pixel fraction before choosing
+an explicit <code>Fixed(qualityFraction)</code> value.</p>
+<h3 id="controlled-calibration-reference">Controlled calibration reference<a class="headerlink" href="#controlled-calibration-reference" title="Permanent link">¶</a></h3>
+<p>The following Android Macrobenchmark reference is a comparison point, not a performance target or
+promise. It was captured on 2026-08-09 with the <code>benchmarkRelease</code> variant on a Pixel 6 (Android
+17/API 37, 1080×2400), with the display locked to 60 Hz and Android fixed-performance mode enabled.
+Each row contains 16 fixed-duration iterations of the controlled Blur sample. Values are <strong>P90 CPU
+frame duration / P90 frame overrun</strong>, in milliseconds; a negative overrun is margin below the
+60 Hz frame budget.</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th style="text-align: right;">Adaptive</th>
+<th style="text-align: right;">Quality</th>
+<th style="text-align: right;">Balanced</th>
+<th style="text-align: right;">Performance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stable source</td>
+<td style="text-align: right;">10.0 / -3.2</td>
+<td style="text-align: right;">10.2 / -3.0</td>
+<td style="text-align: right;">10.1 / -3.1</td>
+<td style="text-align: right;">10.0 / -2.7</td>
+</tr>
+<tr>
+<td>Continuously changing source</td>
+<td style="text-align: right;">10.0 / -2.9</td>
+<td style="text-align: right;">10.2 / -2.7</td>
+<td style="text-align: right;">10.1 / -1.8</td>
+<td style="text-align: right;">10.1 / -3.0</td>
+</tr>
+</tbody>
+</table>
+<p>The controlled sample holds all other style choices fixed. It is useful for comparing the named
+profiles, but measure the layout, content, and interaction patterns of your application before
+choosing an override.</p></div>
 
 
 

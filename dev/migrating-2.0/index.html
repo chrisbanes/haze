@@ -1488,7 +1488,9 @@ the canonical defaults first and guarding its overrides in the same way:</p>
 </code></pre></div>
 <p><code>HazePerformanceMode.Default</code> points to <code>Adaptive</code> for built-in Blur and Glass. Use <code>Adaptive</code> to pin that policy,
 <code>Quality</code>, <code>Balanced</code>, or <code>Performance</code> for its named profiles, or <code>Fixed(qualityFraction)</code> for an
-explicit normalized trade-off. <code>HazeSampling</code> remains the generic policy used by custom effects.</p>
+explicit normalized trade-off. <code>Quality</code> replaces the previous built-in full-resolution choice;
+remeasure a previous built-in fixed input-pixel fraction before choosing <code>Fixed</code>. <code>HazeSampling</code>
+remains the generic policy used by custom effects.</p>
 <h2 id="lifecycle-and-sharing">Lifecycle and sharing<a class="headerlink" href="#lifecycle-and-sharing" title="Permanent link">¶</a></h2>
 <p>Styles are immutable and safe to share. Supply a replacement Style through recomposition when the
 appearance changes.</p>
@@ -1859,8 +1861,11 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
    <code>HazeInput.Sources(state)</code> or <code>HazeInput.Content</code>.</li>
 <li>Move Blur properties into <code>HazeBlurStyle { ... }</code>, changing property assignments into Style
    functions. Use <code>then</code> instead of <code>copy</code> when customizing a preset.</li>
-<li>Move Blur input scale to <code>HazePerformanceMode</code>; move retention, source selection, and layer
-   expansion to <code>HazeSourceRetention</code>, <code>HazeSourceSelection</code>, and <code>expandLayerBounds</code>.</li>
+<li>Move built-in Blur input-scale choices to <code>HazePerformanceMode</code>: map the previous default to
+   <code>Default</code>, automatic selection to <code>Adaptive</code>, and full resolution to <code>Quality</code>. Remeasure old
+   fixed input-pixel fractions before choosing <code>Fixed(qualityFraction)</code>. Move retention, source
+   selection, and layer expansion to <code>HazeSourceRetention</code>, <code>HazeSourceSelection</code>, and
+   <code>expandLayerBounds</code>.</li>
 <li>Remove <code>blurEnabled</code> from <code>rememberHazeState</code>; write it in the Style for each effect instead.</li>
 <li>Replace custom <code>VisualEffect</code> implementations with a stateless <code>HazeEffectFactory</code> and one
    node-owned <code>HazeEffectRenderer</code> per modifier.</li>

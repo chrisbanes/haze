@@ -822,6 +822,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Reference measurements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-performance-mode-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current performance-mode calibration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1108,6 +1125,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Reference measurements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-performance-mode-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current performance-mode calibration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1217,8 +1251,44 @@ are deliberately omitted: they attach new effects at the measurement boundary an
 delegate/shader creation rather than representative interaction performance. They remain covered
 by the internal <a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md">Glass benchmark runbook</a>. Compare the interactions, content,
 and device classes that your application supports.</p>
-<p>The adaptive-sampling rationale and supporting measurements are recorded in
-<a href="../../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0005</a>.</p></div>
+<h3 id="current-performance-mode-calibration">Current performance-mode calibration<a class="headerlink" href="#current-performance-mode-calibration" title="Permanent link">¶</a></h3>
+<p>On 2026-08-09, the controlled Glass matrix ran in the <code>benchmarkRelease</code> variant on a Pixel 6
+(Android 17/API 37, 1080×2400), locked to 60 Hz with Android fixed-performance mode enabled. Each
+row contains 16 fixed-duration iterations. Values are <strong>P90 CPU frame duration / P90 frame
+overrun</strong>, in milliseconds; a negative overrun is margin below the 60 Hz frame budget.</p>
+<table>
+<thead>
+<tr>
+<th>Workload</th>
+<th style="text-align: right;">Adaptive</th>
+<th style="text-align: right;">Quality</th>
+<th style="text-align: right;">Balanced</th>
+<th style="text-align: right;">Performance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stable source</td>
+<td style="text-align: right;">6.6 / -7.1</td>
+<td style="text-align: right;">8.2 / -1.7</td>
+<td style="text-align: right;">8.9 / -4.0</td>
+<td style="text-align: right;">7.2 / -6.5</td>
+</tr>
+<tr>
+<td>Continuously changing source</td>
+<td style="text-align: right;">6.5 / -7.3</td>
+<td style="text-align: right;">8.2 / -1.6</td>
+<td style="text-align: right;">8.3 / -4.5</td>
+<td style="text-align: right;">6.9 / -6.9</td>
+</tr>
+</tbody>
+</table>
+<p>The calibration keeps the rest of <code>GlassDefaults.style</code> unchanged. It compares the named built-in
+profiles under controlled input; it is not a guarantee for another layout, device, or visual
+configuration.</p>
+<p>The adaptive performance rationale and supporting measurements are recorded in
+<a href="../../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0005</a> and reconciled with the current public terminology by
+<a href="../../adr/0006-reconcile-built-in-performance-mode-terminology/">ADR-0006</a>.</p></div>
 
 
 
