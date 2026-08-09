@@ -4,46 +4,47 @@
 package dev.chrisbanes.haze.glass
 
 import dev.chrisbanes.haze.HazeInputUpdateCadence
-import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.HazePerformanceMode
 import kotlin.math.sqrt
 import kotlin.time.TimeSource
 
-/** Resolves Glass's adaptive input scale from retained work and its recent update cadence. */
+/** Resolves Glass's validated input scale from a normalized quality fraction. */
 internal class GlassInputScalePolicy(
   timeSource: TimeSource = TimeSource.Monotonic,
 ) {
-  private var previousAdaptiveScale: Float = BALANCED_SCALE
+  private var previousAdaptiveQualityFraction: Float = BALANCED_FRACTION
   private val inputUpdateCadence = HazeInputUpdateCadence(timeSource)
 
   /** Returns whether the weighted workload changed enough to require scale reevaluation. */
   fun observeUpdate(updateKey: Any?): Boolean = inputUpdateCadence.observeUpdate(updateKey)
 
   fun resolve(
-    sampling: HazeSampling,
+    performanceMode: HazePerformanceMode,
     balancedPlan: GlassRetainedLayerPlan? = null,
-  ): Float = when (sampling) {
-    HazeSampling.Adaptive -> {
+  ): Float = when (performanceMode) {
+    HazePerformanceMode.Adaptive -> {
       val retainedPixels = balancedPlan?.retainedPixelCountOrNull()
       val retainedPixelUpdates = retainedPixels?.saturatedTimes(inputUpdateCadence.multiplier)
-      if (
+      val qualityFraction = if (
         retainedPixelUpdates != null &&
         (
           retainedPixelUpdates >= AGGRESSIVE_RETAINED_PIXEL_UPDATES ||
-            previousAdaptiveScale == AGGRESSIVE_SCALE &&
+            previousAdaptiveQualityFraction == PERFORMANCE_FRACTION &&
             retainedPixelUpdates >= AGGRESSIVE_RETAINED_PIXEL_UPDATES_EXIT
           )
       ) {
-        AGGRESSIVE_SCALE
+        PERFORMANCE_FRACTION
       } else {
-        BALANCED_SCALE
-      }.also { previousAdaptiveScale = it }
+        BALANCED_FRACTION
+      }
+      previousAdaptiveQualityFraction = qualityFraction
+      resolveFixedScale(qualityFraction)
     }
-    is HazeSampling.Fixed -> sqrt(sampling.pixelFraction).also { reset() }
-    HazeSampling.FullResolution -> FULL_RESOLUTION_SCALE.also { reset() }
+    is HazePerformanceMode.Fixed -> resolveFixedScale(performanceMode.qualityFraction).also { reset() }
   }
 
   fun reset() {
-    previousAdaptiveScale = BALANCED_SCALE
+    previousAdaptiveQualityFraction = BALANCED_FRACTION
     inputUpdateCadence.reset()
   }
 
@@ -52,11 +53,23 @@ internal class GlassInputScalePolicy(
     const val AGGRESSIVE_SCALE: Float = 0.5f
     const val FULL_RESOLUTION_SCALE: Float = 1f
 
+    const val BALANCED_FRACTION: Float = 0.5f
+    const val PERFORMANCE_FRACTION: Float = 0f
+
+    const val QUALITY_THRESHOLD: Float = 0.75f
+    const val BALANCED_THRESHOLD: Float = 0.25f
+
     // This is a cost-rate proxy: retained pixels multiplied by up to three rapid updates.
     const val AGGRESSIVE_RETAINED_PIXEL_UPDATES: Long = 1_500_000L
 
     // A 12.5% exit margin absorbs geometry and cadence noise without reallocating layers.
     const val AGGRESSIVE_RETAINED_PIXEL_UPDATES_EXIT: Long = 1_312_500L
+  }
+
+  private fun resolveFixedScale(qualityFraction: Float): Float = when {
+    qualityFraction >= QUALITY_THRESHOLD -> FULL_RESOLUTION_SCALE
+    qualityFraction >= BALANCED_THRESHOLD -> BALANCED_SCALE
+    else -> AGGRESSIVE_SCALE
   }
 }
 

@@ -29,7 +29,7 @@ import assertk.assertions.isInstanceOf
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.test.ContextTest
@@ -79,7 +79,7 @@ class FallbackGlassInteractionTest : ContextTest() {
             factory = factory,
             input = HazeInput.Content,
             style = style.value,
-            sampling = HazeSampling.FullResolution,
+            performanceMode = HazePerformanceMode.Quality,
             expandLayerBounds = true,
             interactionSource = interactionSource,
             interactionTransformTarget = GlassTransformTarget.MaterialOnly,

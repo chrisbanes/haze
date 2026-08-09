@@ -1,13 +1,14 @@
 # Glass performance
 
-Read the [general performance guide](../performance.md) first for the shared workflow, sampling
-choices, and measurement advice. This page focuses on the decisions that are specific to Glass.
+Read the [general performance guide](../performance.md) first for the shared workflow,
+performance-mode choices, and measurement advice. This page focuses on the decisions that are
+specific to Glass.
 
 For styling and API guidance, see the [Glass overview](../effects/glass.md).
 
 ## Start here
 
-- Use `HazeSampling.Default` with `GlassOptics.Adaptive`.
+- Use `HazePerformanceMode.Default` with `GlassOptics.Adaptive`.
 - Build the complete screen before tuning; isolated effects do not represent a real workload.
 - Profile the slowest devices you support with realistic content and interactions.
 - Override one setting at a time and keep it only when the benefit is visible or measurable.
@@ -22,13 +23,15 @@ For styling and API guidance, see the [Glass overview](../effects/glass.md).
 - **Interaction:** Animated lighting, refraction, and transforms add a changing workload while the
   user hovers, focuses, or presses the element.
 
-## When to change sampling
+## When to change performance mode
 
-Keep adaptive sampling unless a target-device comparison gives you a reason to override it:
+Keep the adaptive mode unless a target-device comparison gives you a reason to override it:
 
-- Choose `FullResolution` when fine source detail is visibly important.
-- Choose `Fixed(pixelFraction)` when you need a deliberate, stable trade-off for a known layout.
-- Return to `Default` when the override does not produce a meaningful improvement.
+- Choose `Quality` when fine source detail is visibly important.
+- Choose `Balanced` or `Performance` for a named, deterministic trade-off.
+- Choose `Fixed(qualityFraction)` when you need a normalized, deterministic profile for a known
+  layout.
+- Return to `Default` when an override does not produce a meaningful improvement.
 
 ## What to test
 

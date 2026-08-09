@@ -53,6 +53,7 @@ import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeSourceRetention
 import dev.chrisbanes.haze.HazeSourceSelection
@@ -114,7 +115,7 @@ class HazeGlassModifierTest : ContextTest() {
                 factory = factory,
                 input = HazeInput.Content,
                 style = sharedStyle,
-                sampling = HazeSampling.FullResolution,
+                performanceMode = HazePerformanceMode.Quality,
                 expandLayerBounds = true,
                 interactionSource = null,
               ),
@@ -205,7 +206,7 @@ class HazeGlassModifierTest : ContextTest() {
                 factory = factory,
                 input = HazeInput.Content,
                 style = case.style,
-                sampling = HazeSampling.FullResolution,
+                performanceMode = HazePerformanceMode.Quality,
                 expandLayerBounds = true,
                 interactionSource = null,
               ),
@@ -247,16 +248,18 @@ class HazeGlassModifierTest : ContextTest() {
         retention = HazeSourceRetention.ClearWhenUnavailable,
       ),
     )
-    val samplingPolicies = listOf(
-      HazeSampling.Default,
-      HazeSampling.FullResolution,
-      HazeSampling.Fixed(0.5f),
+    val performanceModes = listOf(
+      HazePerformanceMode.Default,
+      HazePerformanceMode.Quality,
+      HazePerformanceMode.Balanced,
+      HazePerformanceMode.Performance,
+      HazePerformanceMode.Fixed(0.6f),
     )
     val cases = buildList {
       inputs.forEach { input ->
-        samplingPolicies.forEach { sampling ->
+        performanceModes.forEach { performanceMode ->
           listOf(true, false).forEach { expandLayerBounds ->
-            add(StructuralCase(input, sampling, expandLayerBounds))
+            add(StructuralCase(input, performanceMode, expandLayerBounds))
           }
         }
       }
@@ -274,7 +277,7 @@ class HazeGlassModifierTest : ContextTest() {
                 factory = case.factory,
                 input = case.input,
                 style = GlassStyle,
-                sampling = case.sampling,
+                performanceMode = case.performanceMode,
                 expandLayerBounds = case.expandLayerBounds,
                 interactionSource = null,
               ),
@@ -287,10 +290,10 @@ class HazeGlassModifierTest : ContextTest() {
 
     cases.forEach { case ->
       val effect = case.factory.effects.single()
-      assertThat(effect.sampling).isEqualTo(case.sampling)
+      assertThat(effect.performanceMode).isEqualTo(case.performanceMode)
       val boundsCalls = assertThat(
         effect.calculateLayerBoundsCalls,
-        name = "${case.input}/${case.sampling}/expand=${case.expandLayerBounds}",
+        name = "${case.input}/${case.performanceMode}/expand=${case.expandLayerBounds}",
       )
       if (case.input is HazeInput.Sources && case.expandLayerBounds) {
         boundsCalls.isGreaterThan(0)
@@ -323,7 +326,7 @@ class HazeGlassModifierTest : ContextTest() {
                 retention = retention.value,
               ),
               style = GlassStyle,
-              sampling = HazeSampling.Default,
+              performanceMode = HazePerformanceMode.Default,
               expandLayerBounds = true,
               interactionSource = null,
             ),
@@ -381,7 +384,7 @@ class HazeGlassModifierTest : ContextTest() {
                 factory = factory,
                 input = HazeInput.Content,
                 style = sharedStyle.value,
-                sampling = HazeSampling.Default,
+                performanceMode = HazePerformanceMode.Default,
                 expandLayerBounds = true,
                 interactionSource = interactionSource.value,
               ),
@@ -429,7 +432,7 @@ class HazeGlassModifierTest : ContextTest() {
                 factory = factory,
                 input = HazeInput.Content,
                 style = sharedStyle.value,
-                sampling = HazeSampling.Default,
+                performanceMode = HazePerformanceMode.Default,
                 expandLayerBounds = true,
                 interactionSource = null,
               ),
@@ -498,7 +501,7 @@ class HazeGlassModifierTest : ContextTest() {
                 factory = factory,
                 input = HazeInput.Content,
                 style = style,
-                sampling = HazeSampling.Default,
+                performanceMode = HazePerformanceMode.Default,
                 expandLayerBounds = true,
                 interactionSource = null,
               ),
@@ -543,7 +546,7 @@ class HazeGlassModifierTest : ContextTest() {
             factory = factory,
             input = HazeInput.Content,
             style = sharedStyle,
-            sampling = HazeSampling.Default,
+            performanceMode = HazePerformanceMode.Default,
             expandLayerBounds = true,
             interactionSource = firstSource,
             interactionTransformTarget = GlassTransformTarget.MaterialOnly,
@@ -556,7 +559,7 @@ class HazeGlassModifierTest : ContextTest() {
             factory = factory,
             input = HazeInput.Content,
             style = sharedStyle,
-            sampling = HazeSampling.Default,
+            performanceMode = HazePerformanceMode.Default,
             expandLayerBounds = true,
             interactionSource = secondSource,
             interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
@@ -617,7 +620,7 @@ class HazeGlassModifierTest : ContextTest() {
           factory = factory,
           input = HazeInput.Content,
           style = style.value,
-          sampling = HazeSampling.Default,
+          performanceMode = HazePerformanceMode.Default,
           expandLayerBounds = true,
           interactionSource = null,
         ),
@@ -674,7 +677,7 @@ class HazeGlassModifierTest : ContextTest() {
             factory = factory,
             input = HazeInput.Content,
             style = style,
-            sampling = HazeSampling.Default,
+            performanceMode = HazePerformanceMode.Default,
             expandLayerBounds = true,
             interactionSource = firstSource.value,
             interactionTransformTarget = firstTarget.value,
@@ -687,7 +690,7 @@ class HazeGlassModifierTest : ContextTest() {
             factory = factory,
             input = HazeInput.Content,
             style = style,
-            sampling = HazeSampling.Default,
+            performanceMode = HazePerformanceMode.Default,
             expandLayerBounds = true,
             interactionSource = secondSource,
             interactionTransformTarget = GlassTransformTarget.MaterialOnly,
@@ -755,7 +758,7 @@ private class ModifierLightNodeCase(
 
 private class StructuralCase(
   val input: HazeInput,
-  val sampling: HazeSampling,
+  val performanceMode: HazePerformanceMode,
   val expandLayerBounds: Boolean,
 ) {
   val factory = RecordingGlassFactory()
@@ -779,8 +782,8 @@ private class RecordingGlassRuntimeEffect(
   HazeEffectRendererDrawHooks<GlassNodeConfiguration>,
   HazeEffectRendererRetainedOutput,
   HazeEffectRendererInteraction {
-  var sampling: HazeSampling = HazeSampling.Default
-    private set
+  val performanceMode: HazePerformanceMode
+    get() = delegate.performanceModeForTest
 
   var calculateLayerBoundsCalls = 0
   var clearRetainedOutputCalls = 0
@@ -806,7 +809,6 @@ private class RecordingGlassRuntimeEffect(
     style: GlassNodeConfiguration,
     sampling: HazeSampling,
   ) {
-    this.sampling = sampling
     delegate.update(scope, style, sampling)
   }
 

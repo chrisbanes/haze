@@ -46,8 +46,8 @@ import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
@@ -351,7 +351,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       RuntimeGlassTestContent(
         effect = smallEffect,
         tag = "small",
-        sampling = HazeSampling.Adaptive,
+        performanceMode = HazePerformanceMode.Adaptive,
       )
     }
     waitForIdle()
@@ -364,7 +364,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     setContent {
       RuntimeLargeGlassTestContent(
         effect = largeEffect,
-        sampling = HazeSampling.Adaptive,
+        performanceMode = HazePerformanceMode.Adaptive,
       )
     }
     waitForIdle()
@@ -830,7 +830,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       RuntimeGlassTestContent(
         effect = effect,
         tag = "glass",
-        sampling = HazeSampling.Fixed(0.25f),
+        performanceMode = HazePerformanceMode.Fixed(0.25f),
       )
     }
     waitForIdle()
@@ -988,7 +988,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   private fun Modifier.testGlass(
     effect: GlassRuntimeEffect,
     input: HazeInput = HazeInput.Content,
-    sampling: HazeSampling = HazeSampling.FullResolution,
+    performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
     style: GlassStyle = effect.style,
   ): Modifier = hazeGlass(
     factory = rendererFactories.getOrPut(effect) {
@@ -998,7 +998,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     },
     input = input,
     style = style,
-    sampling = sampling,
+    performanceMode = performanceMode,
     expandLayerBounds = true,
     interactionSource = effect.interactionSource,
     interactionTransformTarget = effect.interactionTransformTarget,
@@ -1051,7 +1051,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   private fun RuntimeGlassTestContent(
     effect: GlassRuntimeEffect,
     tag: String,
-    sampling: HazeSampling = HazeSampling.FullResolution,
+    performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
     style: GlassStyle = effect.style,
   ) {
     val hazeState = remember { HazeState() }
@@ -1064,7 +1064,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           .testGlass(
             effect = effect,
             input = HazeInput.Sources(hazeState),
-            sampling = sampling,
+            performanceMode = performanceMode,
             style = style,
           ),
       )
@@ -1074,7 +1074,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   @Composable
   private fun RuntimeLargeGlassTestContent(
     effect: GlassRuntimeEffect,
-    sampling: HazeSampling = HazeSampling.FullResolution,
+    performanceMode: HazePerformanceMode = HazePerformanceMode.Quality,
   ) {
     val hazeState = remember { HazeState() }
     Box(Modifier.size(1100.dp, 650.dp)) {
@@ -1085,7 +1085,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
           .testGlass(
             effect = effect,
             input = HazeInput.Sources(hazeState),
-            sampling = sampling,
+            performanceMode = performanceMode,
           ),
       )
     }

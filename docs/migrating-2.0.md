@@ -17,7 +17,7 @@ dependencies {
 
 ```kotlin
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
@@ -159,10 +159,9 @@ Modifier.hazeBlur(
 )
 ```
 
-`HazePerformanceMode.Default` points to `Adaptive` for Blur. Use `Adaptive` to pin that policy,
+`HazePerformanceMode.Default` points to `Adaptive` for built-in Blur and Glass. Use `Adaptive` to pin that policy,
 `Quality`, `Balanced`, or `Performance` for its named profiles, or `Fixed(qualityFraction)` for an
-explicit normalized trade-off. `HazeSampling` remains the generic policy used by Glass and custom
-effects.
+explicit normalized trade-off. `HazeSampling` remains the generic policy used by custom effects.
 
 ## Lifecycle and sharing
 
@@ -189,7 +188,7 @@ generated API reference for property-specific ranges.
 
 | Legacy | Typed replacement |
 | --- | --- |
-| `hazeEffect { glassEffect { … } }` | `hazeGlass(input, style, sampling, expandLayerBounds, …)` |
+| `hazeEffect { glassEffect { … } }` | `hazeGlass(input, style, performanceMode, expandLayerBounds, …)` |
 | `GlassVisualEffect` | `GlassStyle` plus `Modifier.hazeGlass` |
 | `GlassLighting`, `GlassColor`, `GlassRendering` | property writes inside `GlassStyle { … }` |
 | `GlassStyle.Unspecified` | `GlassStyle`, the empty replayable Style |
@@ -235,7 +234,7 @@ val glassStyle = GlassStyle {
 Modifier.hazeGlass(
   input = HazeInput.Sources(hazeState),
   style = glassStyle,
-  sampling = HazeSampling.Adaptive,
+  performanceMode = HazePerformanceMode.Adaptive,
   expandLayerBounds = true,
   interactionSource = interactionSource,
   interactionTransformTarget = GlassTransformTarget.MaterialOnly,
@@ -294,7 +293,7 @@ use replayable Style blocks and `then` before Haze 2.0 stable.
 | `VisualEffectContext.positionOnScreen` | `HazeEffectDrawScope.modifierBounds` | Custom renderers receive only modifier-relative semantic bounds. |
 | `VisualEffectContext.rootBoundsOnScreen` | Removed | Root and window geometry are internal. |
 | `VisualEffectContext.visualEffect` | Removed | Custom effects read their own properties directly. |
-| `VisualEffect.calculateInputScaleFactor()` | `HazePerformanceMode` for Blur, `HazeSampling` for Glass and custom effects | Blur chooses default, adaptive, named, or fixed performance profiles; generic effects retain sampling. |
+| `VisualEffect.calculateInputScaleFactor()` | `HazePerformanceMode` for built-in Blur and Glass, `HazeSampling` for custom effects | Built-in effects choose default, adaptive, named, or fixed performance profiles; generic effects retain sampling. |
 | `VisualEffect.requireInvalidation()` | Snapshot state read by `draw` or `calculateLayerBounds` | Haze observes reads in their rendering phase. |
 | `VisualEffect`, `VisualEffectContext`, `InteractiveVisualEffect`, `RetainedOutputVisualEffect`, `VisualEffectRendererFactory`, `VisualEffectTransform` | `HazeEffectFactory` and `HazeEffectRenderer` | Renderer lifecycle and input are opaque and node-owned. |
 | `HazeState.positionStrategy`, `rememberHazeState(positionStrategy)` | Removed | Cross-window position strategy is internal. |

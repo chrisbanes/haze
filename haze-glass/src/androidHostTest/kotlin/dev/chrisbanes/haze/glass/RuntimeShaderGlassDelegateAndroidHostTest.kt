@@ -47,8 +47,8 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
 import dev.chrisbanes.haze.hazeSource
@@ -987,7 +987,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       factory = factory,
       input = input,
       style = effect.style,
-      sampling = HazeSampling.FullResolution,
+      performanceMode = HazePerformanceMode.Quality,
       expandLayerBounds = true,
       interactionSource = effect.interactionSource,
       interactionTransformTarget = effect.interactionTransformTarget,

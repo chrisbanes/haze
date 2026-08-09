@@ -36,7 +36,7 @@ import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.hazeSource
@@ -217,7 +217,7 @@ class GlassInteractionIntegrationTest : ContextTest() {
     },
     input = HazeInput.Sources(hazeState),
     style = effect.style,
-    sampling = HazeSampling.Default,
+    performanceMode = HazePerformanceMode.Default,
     expandLayerBounds = true,
     interactionSource = effect.interactionSource,
     interactionTransformTarget = effect.interactionTransformTarget,

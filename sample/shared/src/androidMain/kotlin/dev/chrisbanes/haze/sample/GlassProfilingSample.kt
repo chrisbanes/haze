@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeSampling
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
@@ -217,7 +217,7 @@ private fun GlassProfilingScene(
       GlassProfilingEffectGrid(
         hazeState = hazeState,
         styles = styles,
-        sampling = scenario.fixedInputPixelFraction?.let(HazeSampling::Fixed) ?: HazeSampling.Adaptive,
+        performanceMode = scenario.performanceMode,
         interactionSource = interactionSource,
         drawProgress = if (scenario.steadyDraw) {
           { state.progress }
@@ -283,7 +283,7 @@ private fun GlassProfilingScene(
 private fun GlassProfilingEffectGrid(
   hazeState: dev.chrisbanes.haze.HazeState,
   styles: List<GlassStyle>,
-  sampling: HazeSampling,
+  performanceMode: HazePerformanceMode,
   interactionSource: MutableInteractionSource,
   drawProgress: (() -> Float)?,
   modifier: Modifier = Modifier,
@@ -306,7 +306,7 @@ private fun GlassProfilingEffectGrid(
               .hazeGlass(
                 input = HazeInput.Sources(hazeState),
                 style = styles[effectIndex],
-                sampling = sampling,
+                performanceMode = performanceMode,
                 interactionSource = interactionSource,
                 interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
               )
@@ -366,7 +366,6 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.SteadyNoBlur9,
     GlassProfilingScenario.SteadyDepth50,
     GlassProfilingScenario.SteadyBalanced,
-    GlassProfilingScenario.SteadyScale60,
     GlassProfilingScenario.SteadyScale50,
     GlassProfilingScenario.SteadyScale50Nine,
     GlassProfilingScenario.SteadyNoGlass,

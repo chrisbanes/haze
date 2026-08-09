@@ -52,7 +52,7 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
       ScreenshotTheme {
         GlassInvariantSample(
           effect = effect,
-          sampling = HazeSampling.FullResolution,
+          performanceMode = HazePerformanceMode.Quality,
           shape = FallbackShape,
           enabled = enabled,
           surfaceSize = FallbackSurfaceSize,
@@ -77,7 +77,7 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
       ScreenshotTheme {
         GlassInvariantSample(
           effect = effect,
-          sampling = HazeSampling.FullResolution,
+          performanceMode = HazePerformanceMode.Quality,
           shape = FallbackShape,
           surfaceSize = FallbackSurfaceSize,
           drawGridLines = false,
@@ -108,7 +108,7 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
       ScreenshotTheme {
         GlassInvariantSample(
           effect = effect,
-          sampling = HazeSampling.FullResolution,
+          performanceMode = HazePerformanceMode.Quality,
           shape = FallbackShape,
           surfaceSize = FallbackSurfaceSize,
           drawGridLines = false,
@@ -184,7 +184,7 @@ private fun FallbackOpaqueContentSample(effect: GlassTestConfiguration) {
         .hazeGlass(
           input = HazeInput.Sources(hazeState),
           configuration = effect,
-          sampling = HazeSampling.FullResolution,
+          performanceMode = HazePerformanceMode.Quality,
         )
         .clip(shape)
         .background(Color.Black),
