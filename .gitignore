@@ -55,6 +55,7 @@ site/
 docs/api
 docs/sample
 docs/changelog.md
+docs/javascripts/snapshot-metadata.xml
 
 # Ignore baseline profile files in samples
 sample/**/generated

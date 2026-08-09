@@ -107,6 +107,9 @@ extra:
     provider: mike
     alias: true
 
+extra_javascript:
+  - javascripts/snapshot-version.js
+
 validation:
   unrecognized_links: warn
   anchors: warn

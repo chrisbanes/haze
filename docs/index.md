@@ -68,4 +68,3 @@ limitations under the License.
 ```
 
 [compose]: https://developer.android.com/jetpack/compose
-[snap]: https://oss.sonatype.org/content/repositories/snapshots/dev/chrisbanes/haze/
