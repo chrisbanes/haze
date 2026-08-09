@@ -13,7 +13,9 @@ their input changes.
 4. Change one setting at a time and compare both frame timing and visual quality.
 5. Keep an override only when it provides clear value on the devices you support.
 
-## Input scale
+<a id="input-scale"></a>
+
+## Performance mode
 
 `HazePerformanceMode` controls the quality and cost trade-off for built-in effects:
 
@@ -23,8 +25,11 @@ their input changes.
 - **`Fixed(qualityFraction)`**: Select a normalized, deterministic profile when the named
   profiles are not the right fit.
 
-Blur and Glass adapt differently, so compare the result on the effect and layout you actually use.
-Custom effects instead use `HazeSampling` to control how much input they process.
+`Default` is `Adaptive`, and `Quality` replaces the previous built-in full-resolution choice.
+There is no formula for translating a previous built-in fixed input-pixel fraction: remeasure an
+explicit `Fixed(qualityFraction)` choice on the effect and layout you actually use. Blur and Glass
+adapt differently, so compare their results independently. Custom effects instead use
+`HazeSampling` to control how much input they process.
 
 ## Common cost drivers
 

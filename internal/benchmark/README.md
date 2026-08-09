@@ -1,6 +1,6 @@
 # Android benchmarks
 
-## Glass profiling requirements
+## Performance-mode benchmark requirements
 
 - Physical Android device on API 33 or newer.
 - Release-like, non-debuggable target build.
@@ -11,11 +11,28 @@
 
 Record the device model, API level, and selected refresh rate with saved results.
 
+## Calibration matrix
+
+The controlled Blur and Glass calibration suites measure every built-in
+`HazePerformanceMode` under the same two workloads:
+
+| Workload | Modes |
+| --- | --- |
+| Stable input | `Adaptive`, `Quality`, `Balanced`, `Performance` |
+| Continuously changing source input | `Adaptive`, `Quality`, `Balanced`, `Performance` |
+
+`BenchmarkTest` owns the eight Blur rows and `GlassProfilingBenchmark` owns the eight Glass rows.
+Each test selects a tagged scenario, waits for it to settle, then starts its fixed-duration run;
+the UI navigation is part of the measurement contract. Glass calibration rows record frame timing,
+frame overrun, and peak memory; Blur rows record frame timing and frame overrun.
+
 ## Controlled scenario baseline
 
-Controlled Glass scenarios start from the unmodified `GlassDefaults.style`. The `steadyFull`,
-`steadyFull3`, and `steadyFull9` benchmarks therefore use adaptive optics, the default shape, and
-all default lighting, color, and rendering values.
+Controlled Glass calibration scenarios start from the unmodified `GlassDefaults.style`.
+`stable_adaptive`, `stable_quality`, `stable_balanced`, and `stable_performance` therefore differ
+only in `HazePerformanceMode`; they use adaptive optics, the default shape, and all default
+lighting, color, and rendering values. `steady_full_3` and `steady_full_9` retain the historical
+adaptive controls at three and nine effects.
 
 Scenarios named after an optical change install an explicit `GlassOptics.Fixed` override for
 that change. For example, `steadyNoBlur` disables depth and blur, while `steadyDepth50` fixes depth
@@ -25,36 +42,36 @@ with a vertical progressive mask because adaptive optics does not expose a progr
 with a non-zero `0.3` strength. Other style groups remain at their defaults.
 
 The progressive, Full chroma, interaction-update, and source-update scenarios each have one- and
-nine-effect variants. The default steady scenario additionally has a three-effect variant.
+nine-effect variants. `source_update_adaptive`, `source_update_quality`,
+`source_update_balanced`, and `source_update_performance` are the controlled changing-input
+calibration rows. The default steady scenario additionally has a three-effect variant.
 
 ## Validate automation
 
-Run all Glass benchmarks without meaningful measurements:
+Run the Blur and Glass calibration automation without meaningful measurements:
 
 ```shell
-./gradlew :internal:benchmark:connectedCheck \
+./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassGalleryBenchmark,dev.chrisbanes.haze.GlassProfilingBenchmark
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest,dev.chrisbanes.haze.GlassProfilingBenchmark
 ```
 
-## Run comparable Glass measurements
+## Run comparable performance-mode measurements
 
-Run the Glass Gallery and controlled Glass profiling suites together when recording the current
-local baseline. This is the 34-test Glass suite: two realistic Gallery journeys and 32 controlled
-profiling scenarios. It deliberately excludes `BaselineProfileGenerator` and `BenchmarkTest`,
-which cover baseline-profile generation and the older Blur samples respectively.
+Run the sixteen controlled calibration methods together after a successful dry run. This excludes
+`BaselineProfileGenerator` and unrelated sample benchmarks; each result remains labeled with its
+individual Blur or Glass scenario.
 
 ```shell
 adb shell cmd power set-fixed-performance-mode-enabled true
-./gradlew :internal:benchmark:connectedCheck \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassGalleryBenchmark,dev.chrisbanes.haze.GlassProfilingBenchmark
+./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableAdaptive,dev.chrisbanes.haze.BenchmarkTest#blurStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurStableBalanced,dev.chrisbanes.haze.BenchmarkTest#blurStablePerformance,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateAdaptive,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateQuality,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateBalanced,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdatePerformance,dev.chrisbanes.haze.GlassProfilingBenchmark#stableAdaptive,dev.chrisbanes.haze.GlassProfilingBenchmark#stableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#stableBalanced,dev.chrisbanes.haze.GlassProfilingBenchmark#stablePerformance,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptive,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateBalanced,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdatePerformance
 adb shell cmd power set-fixed-performance-mode-enabled false
 ```
 
-`connectedCheck` without a class filter runs all 45 instrumentation tests, including
-`BaselineProfileGenerator`, and executes both the non-minified and benchmark-release variants.
-Use the filtered command above for Glass measurements so those workloads do not mix with the
-recorded results.
+`connectedBenchmarkReleaseAndroidTest` runs only this module's release benchmark variant. Do not
+use `connectedCheck` for calibration: it also schedules the non-minified and baseline-profile
+instrumentation work, which can change device state or mix artifact output with the recorded run.
 
 ## Run a profile
 
@@ -62,9 +79,9 @@ Run one controlled scenario:
 
 ```shell
 adb shell cmd power set-fixed-performance-mode-enabled true
-./gradlew :internal:benchmark:connectedCheck \
+./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.fullTracing.enable=true \
-  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdate
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateAdaptive
 adb shell cmd power set-fixed-performance-mode-enabled false
 ```
 
@@ -74,7 +91,7 @@ The cold-initialization scenarios attach 1, 3, or 9 independent Glass effects wh
 combined surface area constant. Run each method separately from the same initial thermal state:
 
 ```shell
-./gradlew :internal:benchmark:connectedCheck \
+./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassProfilingBenchmark#effectAttach
 ```
 
@@ -103,7 +120,7 @@ ordinary benchmark tracing remains available on API 37.
 Run the realistic journeys:
 
 ```shell
-./gradlew :internal:benchmark:connectedCheck \
+./gradlew --no-scan :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.GlassGalleryBenchmark
 ```
 

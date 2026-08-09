@@ -7,11 +7,15 @@ import kotlin.jvm.JvmInline
 
 /**
  * Rendering-fidelity policies used by built-in Haze effects.
+ *
+ * [Default] is [Adaptive]. [Quality] replaces the previous built-in full-resolution choice.
+ * Previous built-in fixed input-pixel fractions do not have a direct performance-mode equivalent;
+ * remeasure an explicit [Fixed] choice for the effect and layout that you support.
  */
 public sealed interface HazePerformanceMode {
   /** Library-defined performance defaults. */
   public companion object {
-    /** Points to the library's current default performance policy. */
+    /** Points to the library's current adaptive performance policy. */
     public val Default: HazePerformanceMode = Adaptive
 
     /** Requests the highest rendering fidelity. */

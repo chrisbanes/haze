@@ -35,8 +35,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -65,6 +67,8 @@ fun ScaffoldSample(
   blurEnabled: Boolean,
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
   performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
+  sourceOffset: (() -> Float)? = null,
+  profilingDrawProgress: (() -> Float)? = null,
 ) {
   val hazeState = rememberHazeState()
   val gridState = rememberLazyGridState()
@@ -91,6 +95,10 @@ fun ScaffoldSample(
           scrolledContainerColor = Color.Transparent,
         ),
         modifier = Modifier
+          .drawWithContent {
+            profilingDrawProgress?.invoke()
+            drawContent()
+          }
           .hazeBlur(
             input = HazeInput.Sources(hazeState),
             performanceMode = performanceMode,
@@ -127,6 +135,10 @@ fun ScaffoldSample(
           selectedIndex = selectedIndex,
           onItemClicked = { selectedIndex = it },
           modifier = Modifier
+            .drawWithContent {
+              profilingDrawProgress?.invoke()
+              drawContent()
+            }
             .hazeBlur(
               input = HazeInput.Sources(hazeState),
               performanceMode = performanceMode,
@@ -147,7 +159,8 @@ fun ScaffoldSample(
       modifier = Modifier
         .fillMaxSize()
         .testTag("lazy_grid")
-        .hazeSource(state = hazeState),
+        .hazeSource(state = hazeState)
+        .graphicsLayer { translationY = sourceOffset?.invoke() ?: 0f },
     ) {
       items(50) { index ->
         ImageItem(

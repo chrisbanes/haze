@@ -15,6 +15,17 @@ internal val AndroidGlassProfiling = Sample(
   )
 }
 
+internal val AndroidBlurProfiling = Sample(
+  route = "blur-profiling",
+  title = "Blur — Profiling",
+) { navController, _ ->
+  BlurProfilingSampleContent(
+    state = remember { BlurProfilingState() },
+    navController = navController,
+    onBack = navController::navigateUp,
+  )
+}
+
 val AndroidExoPlayer = Sample("exo-player", "ExoPlayer") { _, blurEnabled ->
   ExoPlayerSample(blurEnabled)
 }
@@ -22,5 +33,6 @@ val AndroidExoPlayer = Sample("exo-player", "ExoPlayer") { _, blurEnabled ->
 actual val Samples: List<Sample> = buildList {
   addAll(CommonSamples)
   add(AndroidExoPlayer)
+  add(AndroidBlurProfiling)
   add(AndroidGlassProfiling)
 }

@@ -14,10 +14,55 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import kotlin.test.Test
 
 class GlassProfilingScenarioTest {
+  @Test
+  fun calibrationMatrix_exposesEachNamedModeForStableAndSourceChangingWorkloads() {
+    val matrixIds = setOf(
+      "stable_adaptive",
+      "stable_quality",
+      "stable_balanced",
+      "stable_performance",
+      "source_update_adaptive",
+      "source_update_quality",
+      "source_update_balanced",
+      "source_update_performance",
+    )
+    val matrix = GlassProfilingScenario.entries.filter { it.id in matrixIds }
+
+    assertThat(matrix.map(GlassProfilingScenario::id)).isEqualTo(
+      listOf(
+        "stable_adaptive",
+        "stable_quality",
+        "stable_balanced",
+        "stable_performance",
+        "source_update_adaptive",
+        "source_update_quality",
+        "source_update_balanced",
+        "source_update_performance",
+      ),
+    )
+    assertThat(matrix.take(4).map(GlassProfilingScenario::performanceMode)).isEqualTo(
+      listOf(
+        HazePerformanceMode.Adaptive,
+        HazePerformanceMode.Quality,
+        HazePerformanceMode.Balanced,
+        HazePerformanceMode.Performance,
+      ),
+    )
+    assertThat(matrix.drop(4).map(GlassProfilingScenario::performanceMode)).isEqualTo(
+      listOf(
+        HazePerformanceMode.Adaptive,
+        HazePerformanceMode.Quality,
+        HazePerformanceMode.Balanced,
+        HazePerformanceMode.Performance,
+      ),
+    )
+  }
+
   @Test
   fun scenarioIds_areStableAndUnique() {
     assertThat(GlassProfilingScenario.entries.map(GlassProfilingScenario::id)).isEqualTo(
@@ -26,7 +71,10 @@ class GlassProfilingScenarioTest {
         "effect_attach_3",
         "effect_attach_9",
         "effect_reattach",
-        "steady_full",
+        "stable_adaptive",
+        "stable_quality",
+        "stable_balanced",
+        "stable_performance",
         "steady_full_3",
         "steady_full_9",
         "steady_progressive",
@@ -40,9 +88,7 @@ class GlassProfilingScenarioTest {
         "steady_no_blur",
         "steady_no_blur_9",
         "steady_depth_50",
-        "steady_balanced",
-        "steady_scale_50",
-        "steady_scale_50_9",
+        "steady_performance_9",
         "steady_no_glass",
         "retained_reuse",
         "interaction_update",
@@ -50,7 +96,10 @@ class GlassProfilingScenarioTest {
         "optical_update",
         "depth_update",
         "blur_update",
-        "source_update",
+        "source_update_adaptive",
+        "source_update_quality",
+        "source_update_balanced",
+        "source_update_performance",
         "source_update_9",
         "source_update_no_glass",
       ),
@@ -81,7 +130,10 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.OpticalUpdate -> setOf("lightPosition")
         GlassProfilingScenario.DepthUpdate -> setOf("depth")
         GlassProfilingScenario.BlurUpdate -> setOf("blurRadius")
-        GlassProfilingScenario.SourceUpdate,
+        GlassProfilingScenario.SourceUpdateAdaptive,
+        GlassProfilingScenario.SourceUpdateQuality,
+        GlassProfilingScenario.SourceUpdateBalanced,
+        GlassProfilingScenario.SourceUpdatePerformance,
         GlassProfilingScenario.SourceUpdate9,
         GlassProfilingScenario.SourceUpdateNoGlass,
         -> setOf("sourceOffset")
@@ -107,7 +159,10 @@ class GlassProfilingScenarioTest {
   @Test
   fun fullScenarios_useDefaultGlassStyleWithoutOpticsOverrides() {
     listOf(
-      GlassProfilingScenario.SteadyFull,
+      GlassProfilingScenario.StableAdaptive,
+      GlassProfilingScenario.StableQuality,
+      GlassProfilingScenario.StableBalanced,
+      GlassProfilingScenario.StablePerformance,
       GlassProfilingScenario.SteadyFull3,
       GlassProfilingScenario.SteadyFull9,
     ).forEach { scenario ->
@@ -154,7 +209,10 @@ class GlassProfilingScenarioTest {
         readCount++
         0.75f
       }
-      val updatesSource = scenario == GlassProfilingScenario.SourceUpdate ||
+      val updatesSource = scenario == GlassProfilingScenario.SourceUpdateAdaptive ||
+        scenario == GlassProfilingScenario.SourceUpdateQuality ||
+        scenario == GlassProfilingScenario.SourceUpdateBalanced ||
+        scenario == GlassProfilingScenario.SourceUpdatePerformance ||
         scenario == GlassProfilingScenario.SourceUpdate9 ||
         scenario == GlassProfilingScenario.SourceUpdateNoGlass
 
@@ -169,7 +227,7 @@ class GlassProfilingScenarioTest {
     assertThat(state.phase).isEqualTo(GlassProfilingPhase.Selecting)
     assertThat(state.start()).isFalse()
 
-    state.select(GlassProfilingScenario.SourceUpdate)
+    state.select(GlassProfilingScenario.SourceUpdateAdaptive)
     assertThat(state.phase).isEqualTo(GlassProfilingPhase.Settling)
     assertThat(state.start()).isFalse()
 

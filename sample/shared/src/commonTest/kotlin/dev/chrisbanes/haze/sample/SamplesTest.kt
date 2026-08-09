@@ -32,6 +32,25 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
+  fun scaffoldProfiles_haveExplicitNamedPerformanceModes() {
+    assertThat(
+      listOf(
+        Sample.ScaffoldAdaptive,
+        Sample.ScaffoldQuality,
+        Sample.ScaffoldBalanced,
+        Sample.ScaffoldPerformance,
+      ).map(Sample::title),
+    ).isEqualTo(
+      listOf(
+        "Scaffold (adaptive)",
+        "Scaffold (quality)",
+        "Scaffold (balanced)",
+        "Scaffold (performance)",
+      ),
+    )
+  }
+
+  @Test
   fun samplesList_replacesOldGlassEntriesWithShowcaseSuite() = runComposeUiTest {
     setContent {
       Samples(

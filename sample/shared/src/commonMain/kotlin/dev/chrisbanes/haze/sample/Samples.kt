@@ -45,12 +45,14 @@ private const val SAMPLES_ROUTE = "samples"
 @OptIn(ExperimentalHazeApi::class)
 val CommonSamples: List<Sample> = listOf(
   Sample.Scaffold,
-  Sample.ScaffoldUnscaled,
+  Sample.ScaffoldAdaptive,
+  Sample.ScaffoldQuality,
   Sample.ScaffoldBalanced,
+  Sample.ScaffoldPerformance,
   Sample.ScaffoldProgressive,
-  Sample.ScaffoldProgressiveUnscaled,
+  Sample.ScaffoldProgressiveQuality,
   Sample.ScaffoldMasked,
-  Sample.ScaffoldMaskedUnscaled,
+  Sample.ScaffoldMaskedQuality,
   Sample.CreditCard,
   Sample.ImageList,
   Sample.ListOverImage,
@@ -78,8 +80,19 @@ class Sample(
       ScaffoldSample(navController = navController, blurEnabled = blurEnabled)
     }
 
-    val ScaffoldUnscaled = Sample(
-      route = "scaffold-unscaled",
+    val ScaffoldAdaptive = Sample(
+      route = "scaffold-adaptive",
+      title = "Scaffold (adaptive)",
+    ) { navController, blurEnabled ->
+      ScaffoldSample(
+        navController = navController,
+        blurEnabled = blurEnabled,
+        performanceMode = HazePerformanceMode.Adaptive,
+      )
+    }
+
+    val ScaffoldQuality = Sample(
+      route = "scaffold-quality",
       title = "Scaffold (quality)",
     ) { navController, blurEnabled ->
       ScaffoldSample(
@@ -100,6 +113,17 @@ class Sample(
       )
     }
 
+    val ScaffoldPerformance = Sample(
+      route = "scaffold-performance",
+      title = "Scaffold (performance)",
+    ) { navController, blurEnabled ->
+      ScaffoldSample(
+        navController = navController,
+        blurEnabled = blurEnabled,
+        performanceMode = HazePerformanceMode.Performance,
+      )
+    }
+
     val ScaffoldProgressive = Sample(
       route = "scaffold-progressive",
       title = "Scaffold (progressive blur)",
@@ -111,8 +135,8 @@ class Sample(
       )
     }
 
-    val ScaffoldProgressiveUnscaled = Sample(
-      route = "scaffold-progressive-unscaled",
+    val ScaffoldProgressiveQuality = Sample(
+      route = "scaffold-progressive-quality",
       title = "Scaffold (progressive blur, quality)",
     ) { navController, blurEnabled ->
       ScaffoldSample(
@@ -134,8 +158,8 @@ class Sample(
       )
     }
 
-    val ScaffoldMaskedUnscaled = Sample(
-      route = "scaffold-masked-unscaled",
+    val ScaffoldMaskedQuality = Sample(
+      route = "scaffold-masked-quality",
       title = "Scaffold (masked, quality)",
     ) { navController, blurEnabled ->
       ScaffoldSample(

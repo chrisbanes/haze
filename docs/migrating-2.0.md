@@ -161,7 +161,9 @@ Modifier.hazeBlur(
 
 `HazePerformanceMode.Default` points to `Adaptive` for built-in Blur and Glass. Use `Adaptive` to pin that policy,
 `Quality`, `Balanced`, or `Performance` for its named profiles, or `Fixed(qualityFraction)` for an
-explicit normalized trade-off. `HazeSampling` remains the generic policy used by custom effects.
+explicit normalized trade-off. `Quality` replaces the previous built-in full-resolution choice;
+remeasure a previous built-in fixed input-pixel fraction before choosing `Fixed`. `HazeSampling`
+remains the generic policy used by custom effects.
 
 ## Lifecycle and sharing
 
@@ -318,8 +320,11 @@ use replayable Style blocks and `then` before Haze 2.0 stable.
    `HazeInput.Sources(state)` or `HazeInput.Content`.
 5. Move Blur properties into `HazeBlurStyle { ... }`, changing property assignments into Style
    functions. Use `then` instead of `copy` when customizing a preset.
-6. Move Blur input scale to `HazePerformanceMode`; move retention, source selection, and layer
-   expansion to `HazeSourceRetention`, `HazeSourceSelection`, and `expandLayerBounds`.
+6. Move built-in Blur input-scale choices to `HazePerformanceMode`: map the previous default to
+   `Default`, automatic selection to `Adaptive`, and full resolution to `Quality`. Remeasure old
+   fixed input-pixel fractions before choosing `Fixed(qualityFraction)`. Move retention, source
+   selection, and layer expansion to `HazeSourceRetention`, `HazeSourceSelection`, and
+   `expandLayerBounds`.
 7. Remove `blurEnabled` from `rememberHazeState`; write it in the Style for each effect instead.
 8. Replace custom `VisualEffect` implementations with a stateless `HazeEffectFactory` and one
    node-owned `HazeEffectRenderer` per modifier.
