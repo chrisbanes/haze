@@ -23,4 +23,4 @@ curl --fail --location --silent --show-error \
   --output docs/javascripts/snapshot-metadata.xml \
   https://central.sonatype.com/repository/maven-snapshots/dev/chrisbanes/haze/haze/maven-metadata.xml
 
-mkdocs $@
+mkdocs "$@"
