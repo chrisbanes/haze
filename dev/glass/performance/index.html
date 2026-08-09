@@ -792,10 +792,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#when-to-change-sampling" class="md-nav__link">
+  <a href="#when-to-change-performance-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        When to change sampling
+        When to change performance mode
       
     </span>
   </a>
@@ -1078,10 +1078,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#when-to-change-sampling" class="md-nav__link">
+  <a href="#when-to-change-performance-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        When to change sampling
+        When to change performance mode
       
     </span>
   </a>
@@ -1131,12 +1131,13 @@
 
 
 <div><h1 id="glass-performance">Glass performance<a class="headerlink" href="#glass-performance" title="Permanent link">¶</a></h1>
-<p>Read the <a href="../../performance/">general performance guide</a> first for the shared workflow, sampling
-choices, and measurement advice. This page focuses on the decisions that are specific to Glass.</p>
+<p>Read the <a href="../../performance/">general performance guide</a> first for the shared workflow,
+performance-mode choices, and measurement advice. This page focuses on the decisions that are
+specific to Glass.</p>
 <p>For styling and API guidance, see the <a href="../../effects/glass/">Glass overview</a>.</p>
 <h2 id="start-here">Start here<a class="headerlink" href="#start-here" title="Permanent link">¶</a></h2>
 <ul>
-<li>Use <code>HazeSampling.Default</code> with <code>GlassOptics.Adaptive</code>.</li>
+<li>Use <code>HazePerformanceMode.Default</code> with <code>GlassOptics.Adaptive</code>.</li>
 <li>Build the complete screen before tuning; isolated effects do not represent a real workload.</li>
 <li>Profile the slowest devices you support with realistic content and interactions.</li>
 <li>Override one setting at a time and keep it only when the benefit is visible or measurable.</li>
@@ -1151,12 +1152,14 @@ choices, and measurement advice. This page focuses on the decisions that are spe
 <li><strong>Interaction:</strong> Animated lighting, refraction, and transforms add a changing workload while the
   user hovers, focuses, or presses the element.</li>
 </ul>
-<h2 id="when-to-change-sampling">When to change sampling<a class="headerlink" href="#when-to-change-sampling" title="Permanent link">¶</a></h2>
-<p>Keep adaptive sampling unless a target-device comparison gives you a reason to override it:</p>
+<h2 id="when-to-change-performance-mode">When to change performance mode<a class="headerlink" href="#when-to-change-performance-mode" title="Permanent link">¶</a></h2>
+<p>Keep the adaptive mode unless a target-device comparison gives you a reason to override it:</p>
 <ul>
-<li>Choose <code>FullResolution</code> when fine source detail is visibly important.</li>
-<li>Choose <code>Fixed(pixelFraction)</code> when you need a deliberate, stable trade-off for a known layout.</li>
-<li>Return to <code>Default</code> when the override does not produce a meaningful improvement.</li>
+<li>Choose <code>Quality</code> when fine source detail is visibly important.</li>
+<li>Choose <code>Balanced</code> or <code>Performance</code> for a named, deterministic trade-off.</li>
+<li>Choose <code>Fixed(qualityFraction)</code> when you need a normalized, deterministic profile for a known
+  layout.</li>
+<li>Return to <code>Default</code> when an override does not produce a meaningful improvement.</li>
 </ul>
 <h2 id="what-to-test">What to test<a class="headerlink" href="#what-to-test" title="Permanent link">¶</a></h2>
 <p>Exercise the states that represent the real screen:</p>

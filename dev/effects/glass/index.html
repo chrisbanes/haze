@@ -1447,7 +1447,8 @@ components, but Adaptive is usually the better default for reusable layouts.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">reusableOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">reusableOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
-<p><code>GlassOptics.Fixed</code> controls the appearance; <code>HazeSampling.Fixed</code> controls the rendering trade-off.
+<p><code>GlassOptics.Fixed</code> controls the appearance; <code>HazePerformanceMode.Fixed</code> controls the normalized
+rendering trade-off.
 The <code>shape</code> supplied to Glass defines its material boundary. Add an outer <code>Modifier.clip()</code> with
 the same shape only when child content also needs clipping.</p>
 <h3 id="retained-output">Retained output<a class="headerlink" href="#retained-output" title="Permanent link">¶</a></h3>
@@ -1538,9 +1539,9 @@ applications do not need capability checks or a second fallback Style.</p>
 <p>Do not make essential meaning depend on refraction or chromatic aberration alone, because those
 details may be omitted by a fallback.</p>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">¶</a></h2>
-<p>Start with adaptive sampling and tune only after measuring a representative screen. The
-<a href="../../glass/performance/">Glass performance guide</a> explains which Glass-specific workloads and
-interactions to test.</p>
+<p>Start with <code>HazePerformanceMode.Default</code> (the adaptive performance mode) and tune only after
+measuring a representative screen. The <a href="../../glass/performance/">Glass performance guide</a> explains
+which Glass-specific workloads and interactions to test.</p>
 <h2 id="interaction">Interaction<a class="headerlink" href="#interaction" title="Permanent link">¶</a></h2>
 <p>Glass interaction is default-disabled and entirely opt-in. It adds a visual response only: it does
 not add click handling, focusability, semantics, or keyboard/D-pad activation.</p>

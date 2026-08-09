@@ -1370,9 +1370,10 @@ the existing renderer. Factory replacement and detachment dispose it exactly onc
 <p>Start with the default. Choose a fixed profile only when visual comparison shows that you need a
 stable quality and performance trade-off.</p>
 <h2 id="generic-sampling">Generic sampling<a class="headerlink" href="#generic-sampling" title="Permanent link">¶</a></h2>
-<p><code>HazeSampling</code> remains the generic input-sampling contract for Glass and custom effects. Its
-<code>Default</code>, <code>Adaptive</code>, <code>FullResolution</code>, and <code>Fixed(pixelFraction)</code> policies control the fraction
-of full-resolution input pixels those effects receive.</p>
+<p><code>HazeSampling</code> remains the generic input-sampling contract for custom effects. Built-in Glass uses
+<code>HazePerformanceMode</code> instead. <code>HazeSampling</code>'s <code>Default</code>, <code>Adaptive</code>, <code>FullResolution</code>, and
+<code>Fixed(pixelFraction)</code> policies control the fraction of full-resolution input pixels custom
+effects receive.</p>
 <h2 id="layer-bounds">Layer bounds<a class="headerlink" href="#layer-bounds" title="Permanent link">¶</a></h2>
 <p><code>expandLayerBounds</code> lets an effect request a larger capture layer. Blur normally expands by its
 resolved radius to avoid edge artifacts. Disable it only when the surrounding pixels must not be

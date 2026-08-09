@@ -1384,7 +1384,7 @@ The preferred Blur API is now the typed <code>Modifier.hazeBlur</code>.</p>
 <span class="p">}</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.HazeInput</span>
-<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.HazeSampling</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.HazePerformanceMode</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeBlurStyle</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.HazeColorEffect</span>
 <span class="k">import</span><span class="w"> </span><span class="nn">dev.chrisbanes.haze.blur.hazeBlur</span>
@@ -1486,10 +1486,9 @@ the canonical defaults first and guarding its overrides in the same way:</p>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>HazePerformanceMode.Default</code> points to <code>Adaptive</code> for Blur. Use <code>Adaptive</code> to pin that policy,
+<p><code>HazePerformanceMode.Default</code> points to <code>Adaptive</code> for built-in Blur and Glass. Use <code>Adaptive</code> to pin that policy,
 <code>Quality</code>, <code>Balanced</code>, or <code>Performance</code> for its named profiles, or <code>Fixed(qualityFraction)</code> for an
-explicit normalized trade-off. <code>HazeSampling</code> remains the generic policy used by Glass and custom
-effects.</p>
+explicit normalized trade-off. <code>HazeSampling</code> remains the generic policy used by custom effects.</p>
 <h2 id="lifecycle-and-sharing">Lifecycle and sharing<a class="headerlink" href="#lifecycle-and-sharing" title="Permanent link">¶</a></h2>
 <p>Styles are immutable and safe to share. Supply a replacement Style through recomposition when the
 appearance changes.</p>
@@ -1515,7 +1514,7 @@ generated API reference for property-specific ranges.</p>
 <tbody>
 <tr>
 <td><code>hazeEffect { glassEffect { … } }</code></td>
-<td><code>hazeGlass(input, style, sampling, expandLayerBounds, …)</code></td>
+<td><code>hazeGlass(input, style, performanceMode, expandLayerBounds, …)</code></td>
 </tr>
 <tr>
 <td><code>GlassVisualEffect</code></td>
@@ -1607,7 +1606,7 @@ former <code>Offset.Unspecified</code> behavior, logical start/end alignments fo
 <span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">glassStyle</span><span class="p">,</span>
-<span class="w">  </span><span class="n">sampling</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSampling</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
+<span class="w">  </span><span class="n">performanceMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazePerformanceMode</span><span class="p">.</span><span class="na">Adaptive</span><span class="p">,</span>
 <span class="w">  </span><span class="n">expandLayerBounds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 <span class="w">  </span><span class="n">interactionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">interactionSource</span><span class="p">,</span>
 <span class="w">  </span><span class="n">interactionTransformTarget</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassTransformTarget</span><span class="p">.</span><span class="na">MaterialOnly</span><span class="p">,</span>
@@ -1784,8 +1783,8 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 </tr>
 <tr>
 <td><code>VisualEffect.calculateInputScaleFactor()</code></td>
-<td><code>HazePerformanceMode</code> for Blur, <code>HazeSampling</code> for Glass and custom effects</td>
-<td>Blur chooses default, adaptive, named, or fixed performance profiles; generic effects retain sampling.</td>
+<td><code>HazePerformanceMode</code> for built-in Blur and Glass, <code>HazeSampling</code> for custom effects</td>
+<td>Built-in effects choose default, adaptive, named, or fixed performance profiles; generic effects retain sampling.</td>
 </tr>
 <tr>
 <td><code>VisualEffect.requireInvalidation()</code></td>

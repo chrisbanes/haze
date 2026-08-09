@@ -1170,23 +1170,24 @@ The impact depends on the device, the affected area, how many effects are visibl
 their input changes.</p>
 <h2 id="recommended-workflow">Recommended workflow<a class="headerlink" href="#recommended-workflow" title="Permanent link">¶</a></h2>
 <ol>
-<li>Start with the default Style and <code>HazeSampling.Default</code>.</li>
+<li>Start built-in effects with the default Style and <code>HazePerformanceMode.Default</code>; custom effects
+   continue to use <code>HazeSampling.Default</code>.</li>
 <li>Build the real screen, including its scrolling, transitions, and interactions.</li>
 <li>Measure a release-like build on representative physical devices.</li>
 <li>Change one setting at a time and compare both frame timing and visual quality.</li>
 <li>Keep an override only when it provides clear value on the devices you support.</li>
 </ol>
 <h2 id="input-scale">Input scale<a class="headerlink" href="#input-scale" title="Permanent link">¶</a></h2>
-<p>Sampling controls how much input an effect processes:</p>
+<p><code>HazePerformanceMode</code> controls the quality and cost trade-off for built-in effects:</p>
 <ul>
 <li><strong><code>Default</code> or <code>Adaptive</code></strong>: Recommended for most applications. Built-in effects adjust the
   quality and cost trade-off automatically.</li>
-<li><strong><code>FullResolution</code></strong>: Use when target-device comparisons show that adaptive sampling loses
-  important detail.</li>
-<li><strong><code>Fixed(pixelFraction)</code></strong>: Use when you want an explicit, stable pixel budget. Higher values
-  preserve more detail and cost more to render.</li>
+<li><strong><code>Quality</code></strong>, <strong><code>Balanced</code></strong>, or <strong><code>Performance</code></strong>: Select a named, deterministic profile.</li>
+<li><strong><code>Fixed(qualityFraction)</code></strong>: Select a normalized, deterministic profile when the named
+  profiles are not the right fit.</li>
 </ul>
-<p>Blur and Glass adapt differently, so compare the result on the effect and layout you actually use.</p>
+<p>Blur and Glass adapt differently, so compare the result on the effect and layout you actually use.
+Custom effects instead use <code>HazeSampling</code> to control how much input they process.</p>
 <h2 id="common-cost-drivers">Common cost drivers<a class="headerlink" href="#common-cost-drivers" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>Affected area:</strong> Larger effects process more content.</li>
