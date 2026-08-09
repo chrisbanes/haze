@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Built-in Blur and Glass now document the shared `HazePerformanceMode` contract: `Default` is
+  `Adaptive`, `Quality` replaces the former full-resolution choice, and prior built-in fixed
+  input-pixel fractions must be remeasured before selecting `Fixed(qualityFraction)`.
+  `HazeSampling` remains the generic contract for custom effects
+  ([#1206](https://github.com/chrisbanes/haze/issues/1206)).
+
 ### Fixed
 
 - Glass can now composite transparent captured content onto an explicit background before

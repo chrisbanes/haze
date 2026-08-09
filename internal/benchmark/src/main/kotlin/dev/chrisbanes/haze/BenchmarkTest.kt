@@ -13,7 +13,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 private const val DEFAULT_ITERATIONS = 16
-private const val HYPOTHESIS_ITERATIONS = 5
 private const val APP_PACKAGE = "dev.chrisbanes.haze.sample.android"
 
 @RunWith(AndroidJUnit4::class)
@@ -30,84 +29,28 @@ class BenchmarkTest {
   }
 
   @Test
-  fun scaffold() {
-    measureScaffold { navigateToScaffold() }
-  }
+  fun blurStableAdaptive() = measureBlurProfilingScenario("stable_adaptive")
 
   @Test
-  fun scaffoldUnscaled() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToScaffoldUnscaled()
-      },
-    ) {
-      device.repeatedScrolls("lazy_grid")
-    }
-  }
+  fun blurStableQuality() = measureBlurProfilingScenario("stable_quality")
 
   @Test
-  fun scaffoldBalanced() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToScaffoldBalanced()
-      },
-    ) {
-      device.repeatedScrolls("lazy_grid")
-    }
-  }
+  fun blurStableBalanced() = measureBlurProfilingScenario("stable_balanced")
 
   @Test
-  fun scaffoldBlurDisabled() {
-    measureScaffold(
-      iterations = HYPOTHESIS_ITERATIONS,
-      blurEnabled = false,
-      navigate = { navigateToScaffold() },
-    )
-  }
+  fun blurStablePerformance() = measureBlurProfilingScenario("stable_performance")
 
   @Test
-  fun scaffoldProgressive() {
-    measureScaffold { navigateToScaffoldWithProgressive() }
-  }
+  fun blurSourceUpdateAdaptive() = measureBlurProfilingScenario("source_update_adaptive")
 
   @Test
-  fun scaffoldProgressiveUnscaled() {
-    measureScaffold { navigateToScaffoldWithProgressiveUnscaled() }
-  }
+  fun blurSourceUpdateQuality() = measureBlurProfilingScenario("source_update_quality")
 
   @Test
-  fun scaffoldMask() {
-    measureScaffold { navigateToScaffoldWithMask() }
-  }
+  fun blurSourceUpdateBalanced() = measureBlurProfilingScenario("source_update_balanced")
 
   @Test
-  fun scaffoldMaskUnscaled() {
-    benchmarkRule.measureRepeated(
-      packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
-      startupMode = StartupMode.WARM,
-      iterations = DEFAULT_ITERATIONS,
-      setupBlock = {
-        startActivityAndWait()
-        device.setBlurEnabled(true)
-        device.navigateToScaffoldWithMaskUnscaled()
-      },
-    ) {
-      device.repeatedScrolls("lazy_grid")
-    }
-  }
+  fun blurSourceUpdatePerformance() = measureBlurProfilingScenario("source_update_performance")
 
   @Test
   fun creditCard() {
@@ -117,22 +60,23 @@ class BenchmarkTest {
     )
   }
 
-  private fun measureScaffold(
-    iterations: Int = DEFAULT_ITERATIONS,
-    blurEnabled: Boolean = true,
-    navigate: UiDevice.() -> Unit,
-  ) {
-    measureSample(
-      iterations = iterations,
-      blurEnabled = blurEnabled,
-      navigate = navigate,
-      measure = { repeatedScrolls("lazy_grid") },
-    )
+  private fun measureBlurProfilingScenario(scenarioId: String) {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.navigateToBlurProfiling(scenarioId)
+      },
+    ) {
+      device.runBlurProfilingScenario(scenarioId)
+    }
   }
 
   private fun measureSample(
     iterations: Int = DEFAULT_ITERATIONS,
-    blurEnabled: Boolean = true,
     navigate: UiDevice.() -> Unit,
     measure: UiDevice.() -> Unit,
   ) {
@@ -143,7 +87,6 @@ class BenchmarkTest {
       iterations = iterations,
       setupBlock = {
         startActivityAndWait()
-        device.setBlurEnabled(blurEnabled)
         device.navigate()
       },
     ) {

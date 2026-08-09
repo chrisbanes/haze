@@ -35,7 +35,28 @@ class GlassProfilingBenchmark {
   fun effectReattach() = measureColdInitializationScenario("effect_reattach")
 
   @Test
-  fun steadyFull() = measureScenario("steady_full")
+  fun stableAdaptive() = measureCalibrationScenario("stable_adaptive")
+
+  @Test
+  fun stableQuality() = measureCalibrationScenario("stable_quality")
+
+  @Test
+  fun stableBalanced() = measureCalibrationScenario("stable_balanced")
+
+  @Test
+  fun stablePerformance() = measureCalibrationScenario("stable_performance")
+
+  @Test
+  fun sourceUpdateAdaptive() = measureCalibrationScenario("source_update_adaptive")
+
+  @Test
+  fun sourceUpdateQuality() = measureCalibrationScenario("source_update_quality")
+
+  @Test
+  fun sourceUpdateBalanced() = measureCalibrationScenario("source_update_balanced")
+
+  @Test
+  fun sourceUpdatePerformance() = measureCalibrationScenario("source_update_performance")
 
   @Test
   fun steadyFull3() = measureScenario("steady_full_3")
@@ -77,13 +98,7 @@ class GlassProfilingBenchmark {
   fun steadyDepth50() = measureScenario("steady_depth_50")
 
   @Test
-  fun steadyBalanced() = measureScenario("steady_balanced")
-
-  @Test
-  fun steadyScale50() = measureScenario("steady_scale_50")
-
-  @Test
-  fun steadyScale50_9() = measureScenario("steady_scale_50_9")
+  fun steadyPerformance9() = measureScenario("steady_performance_9")
 
   @Test
   fun steadyNoGlass() = measureScenario(
@@ -113,9 +128,6 @@ class GlassProfilingBenchmark {
   fun blurUpdate() = measureScenario("blur_update")
 
   @Test
-  fun sourceUpdate() = measureScenario("source_update", includeMemory = true)
-
-  @Test
   fun sourceUpdate9() = measureScenario("source_update_9", includeMemory = true)
 
   @Test
@@ -130,6 +142,10 @@ class GlassProfilingBenchmark {
       includeMemory = true,
       includePreparationMetrics = true,
     )
+  }
+
+  private fun measureCalibrationScenario(scenarioId: String) {
+    measureScenario(scenarioId = scenarioId, includeMemory = true)
   }
 
   private fun measureScenario(

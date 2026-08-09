@@ -106,19 +106,25 @@ Modifier.hazeEffect(
 The renderer can own mutable resources and releases them in `dispose`. Style replacement updates
 the existing renderer. Factory replacement and detachment dispose it exactly once.
 
-## Blur performance mode
+## Built-in performance mode
 
-- `HazePerformanceMode.Default` and `Adaptive` let Blur balance quality and cost automatically.
-- `HazePerformanceMode.Quality`, `Balanced`, and `Performance` select Blur's named profiles.
-- `HazePerformanceMode.Fixed(qualityFraction)` selects a normalized, deterministic Blur profile.
+- `HazePerformanceMode.Default` is `Adaptive` and lets built-in Blur and Glass balance quality and
+  cost automatically.
+- `HazePerformanceMode.Quality`, `Balanced`, and `Performance` select effect-owned named profiles.
+- `HazePerformanceMode.Fixed(qualityFraction)` selects a normalized, deterministic profile for a
+  built-in effect.
 
 Start with the default. Choose a fixed profile only when visual comparison shows that you need a
 stable quality and performance trade-off.
 
+`Quality` replaces the previous built-in full-resolution choice. Previous built-in fixed
+input-pixel fractions have no direct equivalent: remeasure an explicit `Fixed(qualityFraction)`
+choice on the effect and layout you support.
+
 ## Generic sampling
 
-`HazeSampling` remains the generic input-sampling contract for custom effects. Built-in Glass uses
-`HazePerformanceMode` instead. `HazeSampling`'s `Default`, `Adaptive`, `FullResolution`, and
+`HazeSampling` remains the generic input-sampling contract for custom effects. Built-in Blur and
+Glass use `HazePerformanceMode` instead. `HazeSampling`'s `Default`, `Adaptive`, `FullResolution`, and
 `Fixed(pixelFraction)` policies control the fraction of full-resolution input pixels custom
 effects receive.
 

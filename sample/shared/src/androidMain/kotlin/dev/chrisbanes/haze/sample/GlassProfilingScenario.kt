@@ -63,9 +63,25 @@ internal enum class GlassProfilingScenario(
     attachesDuringMeasurement = true,
     prewarmsBeforeMeasurement = true,
   ),
-  SteadyFull(
-    id = "steady_full",
+  StableAdaptive(
+    id = "stable_adaptive",
     steadyDraw = true,
+    performanceMode = HazePerformanceMode.Adaptive,
+  ),
+  StableQuality(
+    id = "stable_quality",
+    steadyDraw = true,
+    performanceMode = HazePerformanceMode.Quality,
+  ),
+  StableBalanced(
+    id = "stable_balanced",
+    steadyDraw = true,
+    performanceMode = HazePerformanceMode.Balanced,
+  ),
+  StablePerformance(
+    id = "stable_performance",
+    steadyDraw = true,
+    performanceMode = HazePerformanceMode.Performance,
   ),
   SteadyFull3(
     id = "steady_full_3",
@@ -137,18 +153,8 @@ internal enum class GlassProfilingScenario(
     steadyDraw = true,
     opticsOverride = GlassOptics.Fixed(depth = 0.5f),
   ),
-  SteadyBalanced(
-    id = "steady_balanced",
-    steadyDraw = true,
-    performanceMode = HazePerformanceMode.Balanced,
-  ),
-  SteadyScale50(
-    id = "steady_scale_50",
-    steadyDraw = true,
-    performanceMode = HazePerformanceMode.Performance,
-  ),
-  SteadyScale50Nine(
-    id = "steady_scale_50_9",
+  SteadyPerformanceNine(
+    id = "steady_performance_9",
     effectCount = 9,
     steadyDraw = true,
     performanceMode = HazePerformanceMode.Performance,
@@ -164,7 +170,22 @@ internal enum class GlassProfilingScenario(
   OpticalUpdate("optical_update"),
   DepthUpdate("depth_update", opticsOverride = GlassOptics.Fixed()),
   BlurUpdate("blur_update", opticsOverride = GlassOptics.Fixed()),
-  SourceUpdate("source_update"),
+  SourceUpdateAdaptive(
+    id = "source_update_adaptive",
+    performanceMode = HazePerformanceMode.Adaptive,
+  ),
+  SourceUpdateQuality(
+    id = "source_update_quality",
+    performanceMode = HazePerformanceMode.Quality,
+  ),
+  SourceUpdateBalanced(
+    id = "source_update_balanced",
+    performanceMode = HazePerformanceMode.Balanced,
+  ),
+  SourceUpdatePerformance(
+    id = "source_update_performance",
+    performanceMode = HazePerformanceMode.Performance,
+  ),
   SourceUpdate9("source_update_9", effectCount = 9),
   SourceUpdateNoGlass("source_update_no_glass", glassEnabled = false),
 }
@@ -197,7 +218,10 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.EffectAttach3,
     GlassProfilingScenario.EffectAttach9,
     GlassProfilingScenario.EffectReattach,
-    GlassProfilingScenario.SteadyFull,
+    GlassProfilingScenario.StableAdaptive,
+    GlassProfilingScenario.StableQuality,
+    GlassProfilingScenario.StableBalanced,
+    GlassProfilingScenario.StablePerformance,
     GlassProfilingScenario.SteadyFull3,
     GlassProfilingScenario.SteadyFull9,
     GlassProfilingScenario.SteadyProgressive,
@@ -211,9 +235,7 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.SteadyNoBlur,
     GlassProfilingScenario.SteadyNoBlur9,
     GlassProfilingScenario.SteadyDepth50,
-    GlassProfilingScenario.SteadyBalanced,
-    GlassProfilingScenario.SteadyScale50,
-    GlassProfilingScenario.SteadyScale50Nine,
+    GlassProfilingScenario.SteadyPerformanceNine,
     GlassProfilingScenario.SteadyNoGlass,
     GlassProfilingScenario.InteractionUpdate,
     GlassProfilingScenario.InteractionUpdate9,
@@ -230,7 +252,10 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.BlurUpdate -> base.copy(
       blurRadius = lerp(4f, 28f, progress).dp,
     )
-    GlassProfilingScenario.SourceUpdate,
+    GlassProfilingScenario.SourceUpdateAdaptive,
+    GlassProfilingScenario.SourceUpdateQuality,
+    GlassProfilingScenario.SourceUpdateBalanced,
+    GlassProfilingScenario.SourceUpdatePerformance,
     GlassProfilingScenario.SourceUpdate9,
     GlassProfilingScenario.SourceUpdateNoGlass,
     -> base.copy(sourceOffset = lerp(-0.08f, 0.08f, progress))
@@ -241,7 +266,10 @@ internal inline fun glassProfilingSourceProgress(
   scenario: GlassProfilingScenario,
   progress: () -> Float,
 ): Float = when (scenario) {
-  GlassProfilingScenario.SourceUpdate,
+  GlassProfilingScenario.SourceUpdateAdaptive,
+  GlassProfilingScenario.SourceUpdateQuality,
+  GlassProfilingScenario.SourceUpdateBalanced,
+  GlassProfilingScenario.SourceUpdatePerformance,
   GlassProfilingScenario.SourceUpdate9,
   GlassProfilingScenario.SourceUpdateNoGlass,
   -> progress()

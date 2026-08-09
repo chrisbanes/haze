@@ -81,7 +81,7 @@ retained output, and semantic input drawing. Source geometry, captured layers, m
 delegates, and caches remain owned by their implementation modules.
 
 `HazeBlurStyle` and the shared Blur factory are stateless. Each modifier node creates one
-`BlurVisualEffect` runtime that owns its resolved snapshot, invalidation state, adaptive-sampling
+`BlurVisualEffect` runtime that owns its resolved snapshot, invalidation state, adaptive-performance
 history, delegate, retained output, render-effect cache, and platform resources. Style replacement
 replays defaults, the current composition-local Style, and the explicit Style into a fresh snapshot
 on that same runtime.

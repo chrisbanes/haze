@@ -35,9 +35,9 @@ import dev.chrisbanes.haze.hazeEffect
  *
  * @param input Source-backed content or this modifier's own content.
  * @param style Explicit appearance applied after defaults and [LocalGlassStyle].
- * @param performanceMode Rendering-fidelity policy for this Glass runtime. The default adaptive
- * policy selects one of Glass's validated input-resolution profiles from retained work and recent
- * update cadence. Named and fixed modes select a normalized, deterministic profile.
+ * @param performanceMode Effect-owned rendering-fidelity policy for this Glass runtime. The
+ * default adaptive policy selects one of Glass's validated performance profiles from retained work
+ * and recent update cadence. Named and fixed modes select a normalized, deterministic profile.
  * @param expandLayerBounds Whether Glass may expand its capture layer for optical sampling.
  * @param interactionSource Optional external interaction source owned by this modifier node.
  * @param interactionTransformTarget Visual layers that receive the interaction scale transform.

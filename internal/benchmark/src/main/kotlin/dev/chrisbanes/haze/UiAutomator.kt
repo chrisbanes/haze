@@ -54,39 +54,42 @@ internal fun UiDevice.navigateToScaffold() {
   waitForIdle()
 }
 
-internal fun UiDevice.navigateToScaffoldUnscaled() {
-  findSampleListItem(By.res("Scaffold (input unscaled)")).click()
-  waitForIdle()
-}
-
-internal fun UiDevice.navigateToScaffoldBalanced() {
-  findSampleListItem(By.res("Scaffold (input fixed 0.8)")).click()
-  waitForIdle()
-}
-
-internal fun UiDevice.navigateToScaffoldWithProgressive() {
-  findSampleListItem(By.res("Scaffold (progressive blur)")).click()
-  waitForIdle()
-}
-
-internal fun UiDevice.navigateToScaffoldWithProgressiveUnscaled() {
-  findSampleListItem(By.res("Scaffold (progressive blur, input unscaled)")).click()
-  waitForIdle()
-}
-
-internal fun UiDevice.navigateToScaffoldWithMask() {
-  findSampleListItem(By.res("Scaffold (masked)")).click()
-  waitForIdle()
-}
-
-internal fun UiDevice.navigateToScaffoldWithMaskUnscaled() {
-  findSampleListItem(By.res("Scaffold (masked, input unscaled)")).click()
-  waitForIdle()
-}
-
 internal fun UiDevice.navigateToCreditCard() {
   findSampleListItem(By.res("Credit Card")).click()
   waitForIdle()
+}
+
+internal fun UiDevice.navigateToBlurProfiling(scenarioId: String) {
+  findSampleListItem(By.res("Blur — Profiling")).click()
+  waitForObject(By.res("blur_profiling_picker"))
+    .apply { setGestureMarginPercentage(0.1f) }
+    .scrollUntil(
+      Direction.DOWN,
+      Until.findObject(By.res("blur_profiling_select_$scenarioId")),
+    )
+    .click()
+  waitForProfilingObject(
+    effectName = "Blur",
+    scenarioId = scenarioId,
+    expectedPhase = "selected",
+    selector = By.res("blur_profiling_selected_$scenarioId"),
+  )
+  waitForProfilingObject(
+    effectName = "Blur",
+    scenarioId = scenarioId,
+    expectedPhase = "ready",
+    selector = By.res("blur_profiling_start"),
+  )
+}
+
+internal fun UiDevice.runBlurProfilingScenario(scenarioId: String) {
+  waitForProfilingObject(
+    effectName = "Blur",
+    scenarioId = scenarioId,
+    expectedPhase = "ready",
+    selector = By.res("blur_profiling_start"),
+  ).click()
+  SystemClock.sleep(BLUR_PROFILING_MEASURE_MILLIS)
 }
 
 internal fun UiDevice.navigateToGlassProduct() {
@@ -119,12 +122,14 @@ internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
       Until.findObject(By.res("glass_profiling_select_$scenarioId")),
     )
     .click()
-  waitForGlassProfilingObject(
+  waitForProfilingObject(
+    effectName = "Glass",
     scenarioId = scenarioId,
-    expectedPhase = "settling",
+    expectedPhase = "selected",
     selector = By.res("glass_profiling_selected_$scenarioId"),
   )
-  waitForGlassProfilingObject(
+  waitForProfilingObject(
+    effectName = "Glass",
     scenarioId = scenarioId,
     expectedPhase = "ready",
     selector = By.res("glass_profiling_start"),
@@ -132,7 +137,8 @@ internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
 }
 
 internal fun UiDevice.runGlassProfilingScenario(scenarioId: String) {
-  waitForGlassProfilingObject(
+  waitForProfilingObject(
+    effectName = "Glass",
     scenarioId = scenarioId,
     expectedPhase = "ready",
     selector = By.res("glass_profiling_start"),
@@ -140,14 +146,15 @@ internal fun UiDevice.runGlassProfilingScenario(scenarioId: String) {
   SystemClock.sleep(GLASS_PROFILING_MEASURE_MILLIS)
 }
 
-private fun UiDevice.waitForGlassProfilingObject(
+private fun UiDevice.waitForProfilingObject(
+  effectName: String,
   scenarioId: String,
   expectedPhase: String,
   selector: BySelector,
   timeout: Duration = 15.seconds,
 ): UiObject2 = waitForObjectOrNull(selector, timeout)
   ?: error(
-    "Glass profiling timeout: scenario=$scenarioId, phase=$expectedPhase, " +
+    "$effectName profiling timeout: scenario=$scenarioId, phase=$expectedPhase, " +
       "selector=$selector, timeout=$timeout, visibleNodes=" +
       findObjects(By.pkg(GLASS_TARGET_PACKAGE))
         .map { node ->
@@ -157,6 +164,7 @@ private fun UiDevice.waitForGlassProfilingObject(
 
 // Scenarios run for 3 seconds; the buffer absorbs completion scheduling jitter.
 private const val GLASS_PROFILING_MEASURE_MILLIS = 3_250L
+private const val BLUR_PROFILING_MEASURE_MILLIS = 3_250L
 
 internal fun UiDevice.findSampleListItem(selector: BySelector): UiObject2 {
   return waitForObject(By.res("sample_list"))

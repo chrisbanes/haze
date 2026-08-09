@@ -65,8 +65,26 @@ delegate/shader creation rather than representative interaction performance. The
 by the internal [Glass benchmark runbook][benchmark-runbook]. Compare the interactions, content,
 and device classes that your application supports.
 
-The adaptive-sampling rationale and supporting measurements are recorded in
-[ADR-0005][sampling-adr].
+### Current performance-mode calibration
+
+On 2026-08-09, the controlled Glass matrix ran in the `benchmarkRelease` variant on a Pixel 6
+(Android 17/API 37, 1080×2400), locked to 60 Hz with Android fixed-performance mode enabled. Each
+row contains 16 fixed-duration iterations. Values are **P90 CPU frame duration / P90 frame
+overrun**, in milliseconds; a negative overrun is margin below the 60 Hz frame budget.
+
+| Workload | Adaptive | Quality | Balanced | Performance |
+| --- | ---: | ---: | ---: | ---: |
+| Stable source | 6.6 / -7.1 | 8.2 / -1.7 | 8.9 / -4.0 | 7.2 / -6.5 |
+| Continuously changing source | 6.5 / -7.3 | 8.2 / -1.6 | 8.3 / -4.5 | 6.9 / -6.9 |
+
+The calibration keeps the rest of `GlassDefaults.style` unchanged. It compares the named built-in
+profiles under controlled input; it is not a guarantee for another layout, device, or visual
+configuration.
+
+The adaptive performance rationale and supporting measurements are recorded in
+[ADR-0005][sampling-adr] and reconciled with the current public terminology by
+[ADR-0006][performance-mode-adr].
 
 [benchmark-runbook]: https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md
 [sampling-adr]: ../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass.md
+[performance-mode-adr]: ../adr/0006-reconcile-built-in-performance-mode-terminology.md
