@@ -960,8 +960,13 @@
 
 
 <div><h1 id="using-a-snapshot-version-of-the-library">Using a Snapshot Version of the Library<a class="headerlink" href="#using-a-snapshot-version-of-the-library" title="Permanent link">¶</a></h1>
-<p>If you would like to depend on the cutting edge version of the library, you can use the <a href="https://central.sonatype.com/service/rest/repository/browse/maven-snapshots/dev/chrisbanes/haze/haze/">snapshot versions</a> that are published to
-<a href="https://central.sonatype.org/">Sonatype Central Repository</a>'s snapshot repository. These are updated on every commit to <code>main</code>.</p>
+<p>If you would like to depend on the cutting edge version of the library, you can use the <a href="https://central.sonatype.com/repository/maven-snapshots/dev/chrisbanes/haze/haze/maven-metadata.xml">snapshot versions</a> that are published to
+<a href="https://central.sonatype.org/">Sonatype Central Repository</a>'s snapshot repository. These are updated on every commit to <code>main</code>.
+All Haze artifacts from a snapshot build use the same version.</p>
+<p data-haze-snapshot-version-container hidden aria-live="polite">
+  Current snapshot version: <code data-haze-snapshot-version></code>
+</p>
+
 <p>To do so:</p>
 <div class="highlight"><pre><span></span><code><span class="n">repositories</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// ...</span>
@@ -969,12 +974,15 @@
 <span class="p">}</span>
 
 <span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// Check the latest SNAPSHOT version from the link above</span>
+<span class="w">    </span><span class="c1">// Replace XXX-SNAPSHOT with the latest version from the metadata link above.</span>
 <span class="w">    </span><span class="c1">// Core infrastructure (required)</span>
 <span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze:XXX-SNAPSHOT"</span><span class="p">)</span>
 
 <span class="w">    </span><span class="c1">// For blur effects (most users will need this)</span>
 <span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur:XXX-SNAPSHOT"</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c1">// For Glass effects</span>
+<span class="w">    </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-glass:XXX-SNAPSHOT"</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div></div>
 
@@ -1032,6 +1040,8 @@
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../javascripts/snapshot-version.js"></script>
       
     
   </body>
