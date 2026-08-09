@@ -24,7 +24,8 @@ nav:
   - "Blur":
     - "Overview": blur/index.md
     - "Usage": blur/usage.md
-    - "Materials": blur/materials.md
+    - "Material presets": blur/materials.md
+    - "Material 3 integration": blur/material3.md
     - "FAQs": blur/faq.md
     - "Platforms": blur/platforms.md
   - "Glass":

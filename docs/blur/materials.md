@@ -1,12 +1,16 @@
-# Blur materials
+# Blur material presets
 
-The `haze-blur-materials` artifact provides replayable Blur Styles for common design systems:
+The `haze-blur-materials` artifact provides opinionated, replayable Blur Style presets for Haze,
+Cupertino, and Fluent designs:
 
 ```kotlin
 dependencies {
   implementation("dev.chrisbanes.haze:haze-blur-materials:<version>")
 }
 ```
+
+For a minimal Style that follows the current Compose Material 3 theme, use the separate
+[Material 3 integration](material3.md).
 
 ## Material
 

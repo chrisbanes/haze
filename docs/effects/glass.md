@@ -20,6 +20,40 @@ dependencies {
 For unreleased changes, follow the [snapshot build instructions](../using-snapshot-version.md) and
 use the same snapshot version for both artifacts.
 
+### Material 3
+
+Add the optional Material 3 integration when a Glass surface should use the current theme surface
+color:
+
+```kotlin
+dependencies {
+  implementation("dev.chrisbanes.haze:haze-glass-material3:<version>")
+}
+```
+
+`GlassStyle.Material3()` uses `MaterialTheme.colorScheme.surface` as its default container color.
+Pass `containerColor` to use a different color. Supply a replacement Style through recomposition
+when the theme changes. It deliberately leaves the tint unset unless you pass one, so it never
+derives a tint from `LocalContentColor`.
+
+```kotlin
+Modifier.hazeGlass(
+  input = HazeInput.Sources(hazeState),
+  style = GlassStyle.Material3(tint = Color.White.copy(alpha = 0.16f)) {
+    optics(refractionStrength = 0.8f)
+  },
+)
+```
+
+The factory writes its container color and optional tint before its block, allowing the block to
+override either value. It also works as a subtree default:
+
+```kotlin
+CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
+  // Glass modifiers in this subtree inherit the Material 3 surface background.
+}
+```
+
 ### Built-in material
 
 Start with the default `GlassOptics.Adaptive` material. It adjusts to the surface's size and shape,

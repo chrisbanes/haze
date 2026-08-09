@@ -71,7 +71,8 @@ The appearance of the blur effect is controlled through the [HazeBlurStyle](../a
 - **Tint**: Applies a color overlay for contrast
 - **Noise**: Adds visual texture
 
-Pre-built styles are available in the [materials](materials.md) guide.
+Opinionated pre-built styles are available in the [material presets](materials.md) guide. To adapt
+the current Compose Material 3 theme into a Blur Style, see the [Material 3 integration](material3.md).
 
 ## Performance
 
@@ -80,5 +81,6 @@ Blur can be a resource-intensive effect. See the [Performance](../performance.md
 ## Next Steps
 
 - [Blur Usage Guide](usage.md) - Comprehensive usage patterns and features
-- [Materials](materials.md) - Pre-built blur styles
+- [Material presets](materials.md) - Opinionated pre-built Blur Styles
+- [Material 3 integration](material3.md) - Adapt a Compose Material 3 theme into a Blur Style
 - [Performance Tips](../performance.md) - Optimization techniques

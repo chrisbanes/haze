@@ -103,7 +103,9 @@ No renderer or lifecycle object can be shared between Glass nodes.
 - **haze** — core state, source capture, and typed custom-effect orchestration
 - **haze-blur** — blur effect implementation
 - **haze-blur-materials** — reusable blur presets
+- **haze-blur-material3** — optional Compose Material 3 Blur Style factory
 - **haze-glass** — Glass effect implementation
+- **haze-glass-material3** — optional Compose Material 3 Glass Style factory
 - **haze-utils** — shared platform rendering utilities
 
 Effect modules can keep platform-specific renderer internals behind their own `expect`/`actual`
