@@ -3,6 +3,9 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -106,20 +109,32 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
-  fun creditCard_exposesALocalBlurAndGlassChoice() = runComposeUiTest {
+  fun sampleDestination_switchesLocalEffect() = runComposeUiTest {
+    val sample = Sample(
+      route = "effect-picker",
+      title = "Effect picker",
+      effects = listOf(SampleEffect.Blur, SampleEffect.Glass),
+    ) { _, effect ->
+      Text(
+        text = "Selected ${effect.label}",
+        modifier = Modifier.testTag("selected_effect_${effect.name.lowercase()}"),
+      )
+    }
+
     setContent {
       SampleDestination(
-        sample = Sample.CreditCard,
+        sample = sample,
         navController = rememberNavController(),
       )
     }
 
     onNodeWithTag("sample_effect_picker").assertIsDisplayed()
     onNodeWithTag("sample_effect_blur").assertIsDisplayed().assertIsSelected()
+    onNodeWithTag("selected_effect_blur").assertIsDisplayed()
     onNodeWithTag("sample_effect_glass").performClick().assertIsSelected()
     onNodeWithTag("sample_effect_blur").assertIsNotSelected()
-    onNodeWithTag("credit_card_2").assertIsDisplayed()
-    onNodeWithTag("blur_enabled").assertDoesNotExist()
+    onNodeWithTag("selected_effect_glass").assertIsDisplayed()
+    onNodeWithTag("selected_effect_blur").assertDoesNotExist()
   }
 
   @Test
