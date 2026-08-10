@@ -19,8 +19,9 @@ run faster: `./gradlew assembleDebug testDebug` for library artifacts,
 
 ## Coding Style & Naming Conventions
 
-All Kotlin sources use the default JetBrains style (four-space indentation, trailing commas where
-helpful). Spotless with ktlint enforces formatting; run `./gradlew spotlessApply` before committing.
+All Kotlin sources use the ktlint `intellij_idea` code style with two-space indentation, as
+configured in `.editorconfig`, and trailing commas where helpful. Spotless with ktlint enforces
+formatting; run `./gradlew spotlessApply` before committing.
 Keep public packages under `dev.chrisbanes.haze.*` and follow PascalCase for composables, camelCase
 for parameters, and `*Defaults` naming for reusable configuration containers.
 For internal or private value types, prefer `@Poko` over `data class`. Configure modules that use

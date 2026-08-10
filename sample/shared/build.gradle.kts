@@ -3,7 +3,9 @@
 
 
 import dev.chrisbanes.gradle.addDefaultHazeTargets
+import dev.chrisbanes.gradle.appleTargetsEnabled
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.konan.target.Family
 
 plugins {
   id("dev.chrisbanes.android.library")
@@ -71,8 +73,8 @@ kotlin {
       }
     }
 
-    if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
-      iosMain {
+    if (project.appleTargetsEnabled) {
+      appleMain {
         dependencies {
           implementation(libs.ktor.darwin)
         }
@@ -117,12 +119,16 @@ kotlin {
     }
   }
 
-  targets.withType<KotlinNativeTarget>().configureEach {
-    binaries.framework {
-      isStatic = true
-      baseName = "HazeSamplesKt"
+  // Only iOS consumes this framework, via the Xcode sample project. :sample:macos links the
+  // klib directly, so macosArm64 must not build a framework that nothing reads.
+  targets.withType<KotlinNativeTarget>()
+    .matching { it.konanTarget.family == Family.IOS }
+    .configureEach {
+      binaries.framework {
+        isStatic = true
+        baseName = "HazeSamplesKt"
+      }
     }
-  }
 }
 
 poko {
