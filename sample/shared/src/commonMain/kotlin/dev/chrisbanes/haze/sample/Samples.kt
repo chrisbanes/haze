@@ -23,6 +23,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,8 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.LocalHazeBlurStyle
 
 expect val Samples: List<Sample>
 
@@ -328,6 +331,7 @@ fun Samples(
   appTitle: String,
   navController: NavHostController = rememberNavController(),
   samples: List<Sample> = Samples,
+  forceBlur: Boolean = false,
 ) {
   val coilPlatformContext = LocalPlatformContext.current
   LaunchedEffect(coilPlatformContext) {
@@ -339,24 +343,34 @@ fun Samples(
       .forEach { imageLoader.enqueue(it) }
   }
 
-  SamplesTheme {
-    NavHost(
-      navController = navController,
-      startDestination = SAMPLES_ROUTE,
-      modifier = Modifier.testTagsAsResourceId(true),
-    ) {
-      composable(SAMPLES_ROUTE) {
-        val sortedSamples = remember { samples.sortedBy(Sample::title) }
-        SamplesList(
-          appTitle = appTitle,
-          samples = sortedSamples,
-          navController = navController,
-        )
-      }
+  val localBlurStyle = remember(forceBlur) {
+    if (forceBlur) {
+      HazeBlurStyle.then { blurEnabled(true) }
+    } else {
+      HazeBlurStyle
+    }
+  }
 
-      samples.forEach { sample ->
-        composable(sample.route) {
-          SampleDestination(sample = sample, navController = navController)
+  SamplesTheme {
+    CompositionLocalProvider(LocalHazeBlurStyle provides localBlurStyle) {
+      NavHost(
+        navController = navController,
+        startDestination = SAMPLES_ROUTE,
+        modifier = Modifier.testTagsAsResourceId(true),
+      ) {
+        composable(SAMPLES_ROUTE) {
+          val sortedSamples = remember { samples.sortedBy(Sample::title) }
+          SamplesList(
+            appTitle = appTitle,
+            samples = sortedSamples,
+            navController = navController,
+          )
+        }
+
+        samples.forEach { sample ->
+          composable(sample.route) {
+            SampleDestination(sample = sample, navController = navController)
+          }
         }
       }
     }

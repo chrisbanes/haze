@@ -9,13 +9,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import dev.chrisbanes.haze.sample.Samples
 
+private const val FORCE_BLUR_EXTRA = "dev.chrisbanes.haze.sample.android.FORCE_BLUR"
+
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
 
     setContent {
-      Samples(appTitle = title.toString())
+      Samples(
+        appTitle = title.toString(),
+        forceBlur = intent.getBooleanExtra(FORCE_BLUR_EXTRA, false),
+      )
     }
   }
 }
