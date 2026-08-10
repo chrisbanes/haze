@@ -21,9 +21,6 @@ class BaselineProfileGenerator {
     pressHome()
     startActivityAndWait()
 
-    // Force enable blurring
-    device.setBlurEnabled(true)
-
     // Scroll down several times
     device.navigateToImagesList()
     device.repeatedScrolls("lazy_column")

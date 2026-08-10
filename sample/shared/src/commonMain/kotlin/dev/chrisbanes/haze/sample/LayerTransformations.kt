@@ -29,9 +29,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.PI
@@ -39,8 +43,9 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
+@OptIn(ExperimentalHazeApi::class)
 fun LayerTransformations(
-  blurEnabled: Boolean,
+  effect: SampleEffect,
   topOffset: DpOffset = DpOffset.Zero,
 ) {
   val hazeState = rememberHazeState()
@@ -101,11 +106,21 @@ fun LayerTransformations(
           translationY = (radiusPx * sin(theta)).toFloat()
         }
         .align(Alignment.Center)
-        .hazeBlur(
-          input = HazeInput.Sources(hazeState),
-          style = HazeBlurStyle {
-            blurEnabled(blurEnabled)
-            blurRadius(20.dp)
+        .then(
+          when (effect) {
+            SampleEffect.Blur -> Modifier.hazeBlur(
+              input = HazeInput.Sources(hazeState),
+              style = HazeBlurStyle { blurRadius(20.dp) },
+            )
+
+            SampleEffect.Glass -> Modifier.hazeGlass(
+              input = HazeInput.Sources(hazeState),
+              style = GlassStyle {
+                tint(Color.White.copy(alpha = 0.14f))
+                shape(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                optics(GlassOptics.Adaptive)
+              },
+            )
           },
         )
         .padding(16.dp),

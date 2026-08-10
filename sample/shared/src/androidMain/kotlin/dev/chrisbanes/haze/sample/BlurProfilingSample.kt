@@ -117,7 +117,7 @@ private fun BlurProfilingScene(
   Box(modifier = modifier.fillMaxSize()) {
     ScaffoldSample(
       navController = navController,
-      blurEnabled = true,
+      effect = SampleEffect.Blur,
       performanceMode = scenario.performanceMode,
       sourceOffset = sourceOffset,
       profilingDrawProgress = profilingDrawProgress,

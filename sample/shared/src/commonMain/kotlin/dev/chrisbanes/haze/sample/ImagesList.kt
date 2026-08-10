@@ -29,15 +29,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
-fun ImagesList(navController: NavHostController, blurEnabled: Boolean) {
+fun ImagesList(navController: NavHostController, effect: SampleEffect) {
   MaterialTheme {
     Scaffold(
       topBar = {
@@ -81,15 +85,34 @@ fun ImagesList(navController: NavHostController, blurEnabled: Boolean) {
                   .fillMaxSize(),
               )
 
-              val style = HazeMaterials.thin()
+              val shape = RoundedCornerShape(4.dp)
+              val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.14f)
               Box(
                 modifier = Modifier
                   .fillMaxSize(0.8f)
                   .align(Alignment.Center)
-                  .clip(RoundedCornerShape(4.dp))
-                  .hazeBlur(
-                    input = HazeInput.Sources(hazeState),
-                    style = style.then { blurEnabled(blurEnabled) },
+                  .then(
+                    when (effect) {
+                      SampleEffect.Blur ->
+                        Modifier
+                          .clip(shape)
+                          .hazeBlur(
+                            input = HazeInput.Sources(hazeState),
+                            style = HazeMaterials.thin(),
+                          )
+
+                      SampleEffect.Glass ->
+                        Modifier
+                          .hazeGlass(
+                            input = HazeInput.Sources(hazeState),
+                            style = GlassStyle {
+                              tint(glassTint)
+                              shape(shape)
+                              optics(GlassOptics.Adaptive)
+                            },
+                          )
+                          .clip(shape)
+                    },
                   ),
               ) {
                 Text(

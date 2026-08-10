@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
@@ -35,15 +36,19 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
-fun BottomSheet(navController: NavHostController, blurEnabled: Boolean) {
+fun BottomSheet(navController: NavHostController, effect: SampleEffect) {
   var imageIndex by remember { mutableIntStateOf(0) }
 
   Scaffold(
@@ -96,12 +101,26 @@ fun BottomSheet(navController: NavHostController, blurEnabled: Boolean) {
         // Instead, we add it below
         dragHandle = null,
       ) {
-        val style = HazeMaterials.thin()
+        val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.14f)
         Column(
           modifier = Modifier
-            .hazeBlur(
-              input = HazeInput.Sources(hazeState),
-              style = style.then { blurEnabled(blurEnabled) },
+            .then(
+              when (effect) {
+                SampleEffect.Blur -> Modifier.hazeBlur(
+                  input = HazeInput.Sources(hazeState),
+                  style = HazeMaterials.thin(),
+                )
+
+                SampleEffect.Glass -> Modifier.hazeGlass(
+                  input = HazeInput.Sources(hazeState),
+                  style = GlassStyle {
+                    tint(glassTint)
+                    shape(sheetShape)
+                    optics(GlassOptics.Adaptive)
+                  },
+                )
+              },
             )
             .height(400.dp)
             .fillMaxWidth(),
