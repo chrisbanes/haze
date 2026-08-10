@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -50,7 +49,7 @@ internal fun CreditCardScene(
   card: @Composable BoxScope.(
     hazeState: HazeState,
     modifier: Modifier,
-    shape: Shape,
+    shape: RoundedCornerShape,
     zIndex: Float,
   ) -> Unit,
 ) {

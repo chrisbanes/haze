@@ -14,10 +14,20 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class CreditCardSamplesTest : ContextTest() {
   @Test
-  fun creditCardSample_keepsBenchmarkCardTag() = runComposeUiTest {
+  fun creditCardSample_keepsBenchmarkCardTagForBlur() = runComposeUiTest {
     setContent {
       val navController = rememberNavController()
-      CreditCardSample(navController = navController, blurEnabled = false)
+      CreditCardSample(navController = navController)
+    }
+
+    onNodeWithTag("credit_card_2").assertIsDisplayed()
+  }
+
+  @Test
+  fun creditCardSample_keepsBenchmarkCardTagForGlass() = runComposeUiTest {
+    setContent {
+      val navController = rememberNavController()
+      CreditCardSample(navController = navController, effect = SampleEffect.Glass)
     }
 
     onNodeWithTag("credit_card_2").assertIsDisplayed()

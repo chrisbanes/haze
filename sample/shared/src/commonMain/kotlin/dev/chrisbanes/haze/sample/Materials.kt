@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,12 +23,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -35,11 +38,15 @@ import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.CupertinoMaterials
 import dev.chrisbanes.haze.blur.materials.FluentMaterials
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
+@OptIn(ExperimentalHazeApi::class)
 @Composable
-fun MaterialsSample(navController: NavHostController, blurEnabled: Boolean) {
+fun MaterialsSample(navController: NavHostController, effect: SampleEffect) {
   val hazeState = rememberHazeState()
 
   Box {
@@ -52,106 +59,193 @@ fun MaterialsSample(navController: NavHostController, blurEnabled: Boolean) {
         .fillMaxSize(),
     )
 
-    Column(
-      verticalArrangement = Arrangement.spacedBy(24.dp),
-      modifier = Modifier
-        .fillMaxSize()
-        .verticalScroll(rememberScrollState())
-        .padding(24.dp),
+    if (effect == SampleEffect.Blur) {
+      Column(
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        modifier = Modifier
+          .fillMaxSize()
+          .verticalScroll(rememberScrollState())
+          .padding(24.dp),
+      ) {
+        Spacer(Modifier.height(400.dp))
+
+        Card {
+          Text(
+            text = "HazeMaterials - Light",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(16.dp),
+          )
+        }
+
+        SamplesTheme(useDarkColors = false) {
+          HazeMaterialsRow(
+            hazeState = hazeState,
+            modifier = Modifier.fillMaxWidth(),
+          )
+        }
+
+        Card(modifier = Modifier.padding(top = 24.dp)) {
+          Text(
+            text = "HazeMaterials - Dark",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(16.dp),
+          )
+        }
+
+        SamplesTheme(useDarkColors = true) {
+          HazeMaterialsRow(
+            hazeState = hazeState,
+            modifier = Modifier.fillMaxWidth(),
+          )
+        }
+
+        Card(modifier = Modifier.padding(top = 24.dp)) {
+          Text(
+            text = "CupertinoMaterials - Light",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(16.dp),
+          )
+        }
+
+        SamplesTheme(useDarkColors = false) {
+          CupertinoMaterialsRow(
+            hazeState = hazeState,
+            modifier = Modifier.fillMaxWidth(),
+          )
+        }
+
+        Card {
+          Text(
+            text = "CupertinoMaterials - Dark",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(16.dp),
+          )
+        }
+
+        SamplesTheme(useDarkColors = true) {
+          CupertinoMaterialsRow(
+            hazeState = hazeState,
+            modifier = Modifier.fillMaxWidth(),
+          )
+        }
+
+        Card(modifier = Modifier.padding(top = 24.dp)) {
+          Text(
+            text = "FluentMaterials - Light",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(16.dp),
+          )
+        }
+
+        SamplesTheme(useDarkColors = false) {
+          FluentMaterialsRow(
+            hazeState = hazeState,
+            modifier = Modifier.fillMaxWidth(),
+          )
+        }
+
+        Card {
+          Text(
+            text = "FluentMaterials - Dark",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(16.dp),
+          )
+        }
+
+        SamplesTheme(useDarkColors = true) {
+          FluentMaterialsRow(
+            hazeState = hazeState,
+            modifier = Modifier.fillMaxWidth(),
+          )
+        }
+
+        Spacer(Modifier.height(400.dp))
+      }
+    } else {
+      GlassMaterialsContent(hazeState = hazeState)
+    }
+  }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalHazeApi::class)
+@Composable
+private fun GlassMaterialsContent(hazeState: HazeState) {
+  Column(
+    verticalArrangement = Arrangement.spacedBy(24.dp),
+    modifier = Modifier
+      .fillMaxSize()
+      .verticalScroll(rememberScrollState())
+      .padding(24.dp),
+  ) {
+    Spacer(Modifier.height(400.dp))
+    Card {
+      Text(
+        text = "Adaptive Glass",
+        style = MaterialTheme.typography.titleLarge,
+        modifier = Modifier.padding(16.dp),
+      )
+    }
+    FlowRow(
+      horizontalArrangement = Arrangement.spacedBy(16.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      Spacer(Modifier.height(400.dp))
+      GlassMaterialsCard(
+        name = "Warm",
+        hazeState = hazeState,
+        tint = Color(0xFFFFD9A8).copy(alpha = 0.18f),
+      )
+      GlassMaterialsCard(
+        name = "Cool",
+        hazeState = hazeState,
+        tint = Color(0xFFA8D8FF).copy(alpha = 0.18f),
+      )
+      GlassMaterialsCard(
+        name = "Mint",
+        hazeState = hazeState,
+        tint = Color(0xFFA8F2D1).copy(alpha = 0.18f),
+      )
+      GlassMaterialsCard(
+        name = "Violet",
+        hazeState = hazeState,
+        tint = Color(0xFFD8C0FF).copy(alpha = 0.18f),
+      )
+    }
+    Spacer(Modifier.height(400.dp))
+  }
+}
 
-      Card {
-        Text(
-          text = "HazeMaterials - Light",
-          style = MaterialTheme.typography.titleLarge,
-          modifier = Modifier.padding(16.dp),
+@OptIn(ExperimentalHazeApi::class)
+@Composable
+private fun GlassMaterialsCard(
+  name: String,
+  hazeState: HazeState,
+  tint: Color,
+  modifier: Modifier = Modifier,
+) {
+  val shape = RoundedCornerShape(24.dp)
+  Card(
+    shape = shape,
+    colors = CardDefaults.cardColors(
+      containerColor = Color.Transparent,
+      contentColor = MaterialTheme.colorScheme.onSurface,
+    ),
+    modifier = modifier.size(160.dp),
+  ) {
+    Box(
+      Modifier
+        .fillMaxSize()
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          style = GlassStyle {
+            this.tint(tint)
+            shape(shape)
+            optics(GlassOptics.Adaptive)
+          },
         )
-      }
-
-      SamplesTheme(useDarkColors = false) {
-        HazeMaterialsRow(
-          hazeState = hazeState,
-          modifier = Modifier.fillMaxWidth(),
-        )
-      }
-
-      Card(modifier = Modifier.padding(top = 24.dp)) {
-        Text(
-          text = "HazeMaterials - Dark",
-          style = MaterialTheme.typography.titleLarge,
-          modifier = Modifier.padding(16.dp),
-        )
-      }
-
-      SamplesTheme(useDarkColors = true) {
-        HazeMaterialsRow(
-          hazeState = hazeState,
-          modifier = Modifier.fillMaxWidth(),
-        )
-      }
-
-      Card(modifier = Modifier.padding(top = 24.dp)) {
-        Text(
-          text = "CupertinoMaterials - Light",
-          style = MaterialTheme.typography.titleLarge,
-          modifier = Modifier.padding(16.dp),
-        )
-      }
-
-      SamplesTheme(useDarkColors = false) {
-        CupertinoMaterialsRow(
-          hazeState = hazeState,
-          modifier = Modifier.fillMaxWidth(),
-        )
-      }
-
-      Card {
-        Text(
-          text = "CupertinoMaterials - Dark",
-          style = MaterialTheme.typography.titleLarge,
-          modifier = Modifier.padding(16.dp),
-        )
-      }
-
-      SamplesTheme(useDarkColors = true) {
-        CupertinoMaterialsRow(
-          hazeState = hazeState,
-          modifier = Modifier.fillMaxWidth(),
-        )
-      }
-
-      Card(modifier = Modifier.padding(top = 24.dp)) {
-        Text(
-          text = "FluentMaterials - Light",
-          style = MaterialTheme.typography.titleLarge,
-          modifier = Modifier.padding(16.dp),
-        )
-      }
-
-      SamplesTheme(useDarkColors = false) {
-        FluentMaterialsRow(
-          hazeState = hazeState,
-          modifier = Modifier.fillMaxWidth(),
-        )
-      }
-
-      Card {
-        Text(
-          text = "FluentMaterials - Dark",
-          style = MaterialTheme.typography.titleLarge,
-          modifier = Modifier.padding(16.dp),
-        )
-      }
-
-      SamplesTheme(useDarkColors = true) {
-        FluentMaterialsRow(
-          hazeState = hazeState,
-          modifier = Modifier.fillMaxWidth(),
-        )
-      }
-
-      Spacer(Modifier.height(400.dp))
+        .clip(shape)
+        .padding(16.dp),
+    ) {
+      Text(name)
     }
   }
 }

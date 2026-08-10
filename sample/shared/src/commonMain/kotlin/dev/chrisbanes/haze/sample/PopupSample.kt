@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Card
@@ -37,16 +38,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.navigation.NavHostController
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.time.Duration.Companion.seconds
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
 @Composable
-fun PopupSample(navController: NavHostController, blurEnabled: Boolean) {
+fun PopupSample(navController: NavHostController, effect: SampleEffect) {
   Scaffold(
     modifier = Modifier.fillMaxSize(),
     topBar = {
@@ -64,6 +69,8 @@ fun PopupSample(navController: NavHostController, blurEnabled: Boolean) {
   ) { innerPadding ->
     val hazeState = rememberHazeState()
     var showPopup by remember { mutableStateOf(false) }
+    val popupShape = RoundedCornerShape(28.dp)
+    val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.12f)
 
     if (showPopup) {
       Popup(onDismissRequest = { showPopup = false }) {
@@ -71,18 +78,30 @@ fun PopupSample(navController: NavHostController, blurEnabled: Boolean) {
           modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(fraction = .5f),
-          shape = MaterialTheme.shapes.extraLarge,
+          shape = popupShape,
           // We can't use Haze tint with dialogs, as the tint will display a scrim over the
           // background content. Instead we need to set a translucent background on the
           // dialog content.
           color = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
           contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
-          val style = HazeMaterials.regular()
           Box(
-            Modifier.hazeBlur(
-              input = HazeInput.Sources(hazeState),
-              style = style.then { blurEnabled(blurEnabled) },
+            Modifier.then(
+              when (effect) {
+                SampleEffect.Blur -> Modifier.hazeBlur(
+                  input = HazeInput.Sources(hazeState),
+                  style = HazeMaterials.regular(),
+                )
+
+                SampleEffect.Glass -> Modifier.hazeGlass(
+                  input = HazeInput.Sources(hazeState),
+                  style = GlassStyle {
+                    tint(glassTint)
+                    shape(popupShape)
+                    optics(GlassOptics.Adaptive)
+                  },
+                )
+              },
             ),
           ) {
             // empty

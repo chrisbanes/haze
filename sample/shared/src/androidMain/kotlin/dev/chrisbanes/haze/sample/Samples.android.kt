@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 internal val AndroidGlassProfiling = Sample(
   route = "glass-profiling",
   title = "Glass — Profiling",
+  effects = listOf(SampleEffect.Glass),
 ) { navController, _ ->
   GlassProfilingSampleContent(
     state = remember { GlassProfilingState() },
@@ -18,6 +19,7 @@ internal val AndroidGlassProfiling = Sample(
 internal val AndroidBlurProfiling = Sample(
   route = "blur-profiling",
   title = "Blur — Profiling",
+  effects = listOf(SampleEffect.Blur),
 ) { navController, _ ->
   BlurProfilingSampleContent(
     state = remember { BlurProfilingState() },
@@ -29,16 +31,21 @@ internal val AndroidBlurProfiling = Sample(
 internal val AndroidBlurStyleChurn = Sample(
   route = "blur-style-churn",
   title = "Blur — Equivalent Style Churn",
-) { navController, blurEnabled ->
+  effects = listOf(SampleEffect.Blur),
+) { navController, _ ->
   ScaffoldSample(
     navController = navController,
-    blurEnabled = blurEnabled,
+    effect = SampleEffect.Blur,
     mode = ScaffoldSampleMode.StyleChurn,
   )
 }
 
-val AndroidExoPlayer = Sample("exo-player", "ExoPlayer") { _, blurEnabled ->
-  ExoPlayerSample(blurEnabled)
+val AndroidExoPlayer = Sample(
+  route = "exo-player",
+  title = "ExoPlayer",
+  effects = listOf(SampleEffect.Blur, SampleEffect.Glass),
+) { _, effect ->
+  ExoPlayerSample(effect)
 }
 
 actual val Samples: List<Sample> = buildList {

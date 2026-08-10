@@ -9,6 +9,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+private const val FORCE_BLUR_EXTRA = "dev.chrisbanes.haze.sample.android.FORCE_BLUR"
+
 @RunWith(AndroidJUnit4::class)
 class BaselineProfileGenerator {
   @get:Rule
@@ -19,10 +21,9 @@ class BaselineProfileGenerator {
     packageName = "dev.chrisbanes.haze.sample.android",
   ) {
     pressHome()
-    startActivityAndWait()
-
-    // Force enable blurring
-    device.setBlurEnabled(true)
+    startActivityAndWait { intent ->
+      intent.putExtra(FORCE_BLUR_EXTRA, true)
+    }
 
     // Scroll down several times
     device.navigateToImagesList()

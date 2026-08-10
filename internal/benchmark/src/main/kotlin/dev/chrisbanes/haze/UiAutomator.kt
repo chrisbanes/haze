@@ -36,14 +36,6 @@ internal fun <R> UiDevice.wait(condition: SearchCondition<R>, timeout: Duration)
   return wait(condition, timeout.inWholeMilliseconds)
 }
 
-internal fun UiDevice.setBlurEnabled(enabled: Boolean) {
-  val checkbox = waitForObject(By.res("blur_enabled"))
-  if (checkbox.isChecked != enabled) {
-    checkbox.click()
-    waitForIdle()
-  }
-}
-
 internal fun UiDevice.navigateToImagesList() {
   findSampleListItem(By.res("Images List")).click()
   waitForIdle()

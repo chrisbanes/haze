@@ -82,7 +82,6 @@ private val LocalSparklePhase = compositionLocalOf { 0f }
 @Composable
 fun CustomVisualEffectSample(
   navController: NavHostController,
-  blurEnabled: Boolean,
 ) {
   val hazeState = rememberHazeState()
   var selectedSparkIndex by remember { mutableIntStateOf(0) }
@@ -190,7 +189,7 @@ fun CustomVisualEffectSample(
               style = SparkStyle(
                 color = SparkOptions[selectedSparkIndex].color,
                 alpha = sparkAlpha,
-                enabled = blurEnabled,
+                enabled = true,
                 sparkleEnabled = sparkleEnabled,
               ),
             ),

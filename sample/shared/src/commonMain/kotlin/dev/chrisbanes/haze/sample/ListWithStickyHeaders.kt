@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +33,9 @@ import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -41,11 +45,13 @@ import dev.chrisbanes.haze.rememberHazeState
   ExperimentalFoundationApi::class,
 )
 @Composable
-fun ListWithStickyHeaders(navController: NavHostController, blurEnabled: Boolean) {
+fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect) {
   val hazeState = rememberHazeState()
   val listState = rememberLazyListState()
 
-  val style = HazeMaterials.regular(MaterialTheme.colorScheme.surface)
+  val blurStyle = HazeMaterials.regular(MaterialTheme.colorScheme.surface)
+  val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)
+  val glassShape = RoundedCornerShape(0.dp)
 
   Scaffold(
     topBar = {
@@ -74,10 +80,24 @@ fun ListWithStickyHeaders(navController: NavHostController, blurEnabled: Boolean
           Box(
             modifier = Modifier
               .fillMaxWidth()
-              .hazeBlur(
-                input = HazeInput.Sources(hazeState),
-                style = style.then { blurEnabled(blurEnabled) },
-                performanceMode = HazePerformanceMode.Adaptive,
+              .then(
+                when (effect) {
+                  SampleEffect.Blur -> Modifier.hazeBlur(
+                    input = HazeInput.Sources(hazeState),
+                    style = blurStyle,
+                    performanceMode = HazePerformanceMode.Adaptive,
+                  )
+
+                  SampleEffect.Glass -> Modifier.hazeGlass(
+                    input = HazeInput.Sources(hazeState),
+                    style = GlassStyle {
+                      tint(glassTint)
+                      shape(glassShape)
+                      optics(GlassOptics.Adaptive)
+                    },
+                    performanceMode = HazePerformanceMode.Adaptive,
+                  )
+                },
               ),
           ) {
             Text("Header: $group", modifier = Modifier.padding(16.dp))

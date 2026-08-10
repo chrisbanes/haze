@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -17,19 +18,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.sample.shared.R
 
 @Composable
-fun ExoPlayerSample(blurEnabled: Boolean) {
+@OptIn(ExperimentalHazeApi::class)
+fun ExoPlayerSample(effect: SampleEffect) {
   val hazeState = rememberHazeState()
 
   val context = LocalContext.current
@@ -65,16 +72,35 @@ fun ExoPlayerSample(blurEnabled: Boolean) {
         .hazeSource(hazeState),
     )
 
-    val style = HazeMaterials.ultraThin()
+    val shape = RoundedCornerShape(16.dp)
+    val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.14f)
 
     Spacer(
       Modifier
         .fillMaxSize(0.5f)
         .align(Alignment.Center)
-        .clip(MaterialTheme.shapes.large)
-        .hazeBlur(
-          input = HazeInput.Sources(hazeState),
-          style = style.then { blurEnabled(blurEnabled) },
+        .then(
+          when (effect) {
+            SampleEffect.Blur ->
+              Modifier
+                .clip(shape)
+                .hazeBlur(
+                  input = HazeInput.Sources(hazeState),
+                  style = HazeMaterials.ultraThin(),
+                )
+
+            SampleEffect.Glass ->
+              Modifier
+                .hazeGlass(
+                  input = HazeInput.Sources(hazeState),
+                  style = GlassStyle {
+                    tint(glassTint)
+                    shape(shape)
+                    optics(GlassOptics.Adaptive)
+                  },
+                )
+                .clip(shape)
+          },
         ),
     )
   }

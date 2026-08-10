@@ -53,7 +53,6 @@ class BenchmarkTest {
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {
         startActivityAndWait()
-        device.setBlurEnabled(true)
         device.navigateToScaffoldWithEquivalentStyleChurn()
       },
     ) {

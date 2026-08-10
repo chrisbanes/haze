@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
@@ -33,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -54,6 +56,9 @@ import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -71,7 +76,7 @@ enum class ScaffoldSampleMode {
 @Composable
 fun ScaffoldSample(
   navController: NavHostController,
-  blurEnabled: Boolean,
+  effect: SampleEffect = SampleEffect.Blur,
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
   performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   sourceOffset: (() -> Float)? = null,
@@ -111,12 +116,21 @@ fun ScaffoldSample(
       }
     } ?: modifier
   }
+  val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)
+  val progressive = HazeProgressive.verticalGradient(
+    startIntensity = 1f,
+    endIntensity = 0f,
+  )
 
   Scaffold(
     topBar = {
-      val currentStyle = style ?: HazeMaterials.regular(MaterialTheme.colorScheme.surface)
+      val currentBlurStyle = style ?: HazeMaterials.regular(MaterialTheme.colorScheme.surface)
       LargeTopAppBar(
-        title = { },
+        title = {
+          if (effect == SampleEffect.Glass && mode == ScaffoldSampleMode.Mask) {
+            Text("Glass shaped boundary")
+          }
+        },
         navigationIcon = {
           IconButton(
             onClick = navController::navigateUp,
@@ -134,37 +148,49 @@ fun ScaffoldSample(
             profilingDrawProgress?.invoke()
             drawContent()
           }
-          .hazeBlur(
-            input = HazeInput.Sources(hazeState),
-            performanceMode = performanceMode,
-            style = currentStyle.then {
-              blurEnabled(blurEnabled)
-              when (mode) {
-                ScaffoldSampleMode.Default -> Unit
-                ScaffoldSampleMode.Progressive -> {
-                  progressive(
-                    HazeProgressive.verticalGradient(
-                      startIntensity = 1f,
-                      endIntensity = 0f,
-                    ),
+          .then(
+            when (effect) {
+              SampleEffect.Blur -> Modifier.hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                performanceMode = performanceMode,
+                style = currentBlurStyle.then {
+                  when (mode) {
+                    ScaffoldSampleMode.Default -> Unit
+                    ScaffoldSampleMode.Progressive -> progressive(progressive)
+                    ScaffoldSampleMode.Mask -> mask(Brush.easedVerticalGradient(EaseIn))
+                    ScaffoldSampleMode.StyleChurn -> {
+                      alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
+                    }
+                  }
+                },
+              )
+
+              SampleEffect.Glass -> Modifier.hazeGlass(
+                input = HazeInput.Sources(hazeState),
+                performanceMode = performanceMode,
+                style = GlassStyle {
+                  tint(glassTint)
+                  shape(
+                    when (mode) {
+                      ScaffoldSampleMode.Mask -> RoundedCornerShape(24.dp)
+                      else -> RoundedCornerShape(0.dp)
+                    },
                   )
-                }
-
-                ScaffoldSampleMode.Mask -> {
-                  mask(Brush.easedVerticalGradient(EaseIn))
-                }
-
-                ScaffoldSampleMode.StyleChurn -> {
-                  alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
-                }
-              }
+                  optics(
+                    when (mode) {
+                      ScaffoldSampleMode.Progressive -> GlassOptics.Fixed(progressive = progressive)
+                      else -> GlassOptics.Adaptive
+                    },
+                  )
+                },
+              )
             },
           )
           .fillMaxWidth(),
       )
     },
     bottomBar = {
-      val currentStyle = style ?: HazeMaterials.regular(MaterialTheme.colorScheme.surface)
+      val currentBlurStyle = style ?: HazeMaterials.regular(MaterialTheme.colorScheme.surface)
       var selectedIndex by remember { mutableIntStateOf(0) }
       AnimatedVisibility(
         visible = showNavigationBar,
@@ -179,14 +205,27 @@ fun ScaffoldSample(
               profilingDrawProgress?.invoke()
               drawContent()
             }
-            .hazeBlur(
-              input = HazeInput.Sources(hazeState),
-              performanceMode = performanceMode,
-              style = currentStyle.then {
-                blurEnabled(blurEnabled)
-                if (mode == ScaffoldSampleMode.StyleChurn) {
-                  alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
-                }
+            .then(
+              when (effect) {
+                SampleEffect.Blur -> Modifier.hazeBlur(
+                  input = HazeInput.Sources(hazeState),
+                  performanceMode = performanceMode,
+                  style = currentBlurStyle.then {
+                    if (mode == ScaffoldSampleMode.StyleChurn) {
+                      alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
+                    }
+                  },
+                )
+
+                SampleEffect.Glass -> Modifier.hazeGlass(
+                  input = HazeInput.Sources(hazeState),
+                  performanceMode = performanceMode,
+                  style = GlassStyle {
+                    tint(glassTint)
+                    shape(RoundedCornerShape(0.dp))
+                    optics(GlassOptics.Adaptive)
+                  },
+                )
               },
             )
             .fillMaxWidth(),
