@@ -21,7 +21,9 @@ kotlin {
 dependencies {
   dokka(projects.haze)
   dokka(projects.hazeBlur)
+  dokka(projects.hazeBlurMaterial3)
   dokka(projects.hazeGlass)
+  dokka(projects.hazeGlassMaterial3)
   dokka(projects.hazeMaterials)
   dokka(projects.hazeUtils)
 }
