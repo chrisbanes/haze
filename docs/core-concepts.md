@@ -80,7 +80,9 @@ val style = HazeBlurStyle {
 
 Resolution replays `HazeBlurDefaults.style`, `LocalHazeBlurStyle`, and the explicit Style in order.
 The last write wins, and every evaluation starts fresh. Styles contain no mutable renderer or
-platform state and can be shared by concurrent modifiers.
+platform state and can be shared by concurrent modifiers. Style programs with identical ordered
+writes and equal values are structurally equal, so recreating the same program during recomposition
+does not update the modifier node; provide a replacement Style when a configured value changes.
 
 ## Typed custom effects
 

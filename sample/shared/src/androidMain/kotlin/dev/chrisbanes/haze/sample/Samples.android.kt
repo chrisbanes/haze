@@ -26,6 +26,17 @@ internal val AndroidBlurProfiling = Sample(
   )
 }
 
+internal val AndroidBlurStyleChurn = Sample(
+  route = "blur-style-churn",
+  title = "Blur — Equivalent Style Churn",
+) { navController, blurEnabled ->
+  ScaffoldSample(
+    navController = navController,
+    blurEnabled = blurEnabled,
+    mode = ScaffoldSampleMode.StyleChurn,
+  )
+}
+
 val AndroidExoPlayer = Sample("exo-player", "ExoPlayer") { _, blurEnabled ->
   ExoPlayerSample(blurEnabled)
 }
@@ -34,5 +45,6 @@ actual val Samples: List<Sample> = buildList {
   addAll(CommonSamples)
   add(AndroidExoPlayer)
   add(AndroidBlurProfiling)
+  add(AndroidBlurStyleChurn)
   add(AndroidGlassProfiling)
 }
