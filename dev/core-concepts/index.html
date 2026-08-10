@@ -1369,7 +1369,9 @@ and layer-expansion policies do not live in <code>HazeBlurStyle</code>.</p>
 </code></pre></div>
 <p>Resolution replays <code>HazeBlurDefaults.style</code>, <code>LocalHazeBlurStyle</code>, and the explicit Style in order.
 The last write wins, and every evaluation starts fresh. Styles contain no mutable renderer or
-platform state and can be shared by concurrent modifiers.</p>
+platform state and can be shared by concurrent modifiers. Style programs with identical ordered
+writes and equal values are structurally equal, so recreating the same program during recomposition
+does not update the modifier node; provide a replacement Style when a configured value changes.</p>
 <h2 id="typed-custom-effects">Typed custom effects<a class="headerlink" href="#typed-custom-effects" title="Permanent link">¶</a></h2>
 <p>Custom effects use a stateless factory and one renderer per modifier node:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">factory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeEffectFactory</span><span class="o">&lt;</span><span class="n">MyStyle</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>

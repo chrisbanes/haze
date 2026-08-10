@@ -7958,6 +7958,8 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   input-pixel fractions must be remeasured before selecting <code>Fixed(qualityFraction)</code>.
   <code>HazeSampling</code> remains the generic contract for custom effects
   (<a href="https://github.com/chrisbanes/haze/issues/1206">#1206</a>).</li>
+<li>Blur avoids redundant modifier updates when independently recreated <code>HazeBlurStyle</code> programs
+  are equivalent.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">¶</a></h3>
 <ul>
