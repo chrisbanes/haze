@@ -3,6 +3,7 @@
 
 package dev.chrisbanes.haze
 
+import android.os.SystemClock
 import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
@@ -42,6 +43,23 @@ class BenchmarkTest {
 
   @Test
   fun blurSourceUpdateAdaptive() = measureBlurProfilingScenario("source_update_adaptive")
+
+  @Test
+  fun scaffoldEquivalentStyleChurn() {
+    benchmarkRule.measureRepeated(
+      packageName = APP_PACKAGE,
+      metrics = listOf(FrameTimingMetric()),
+      startupMode = StartupMode.WARM,
+      iterations = DEFAULT_ITERATIONS,
+      setupBlock = {
+        startActivityAndWait()
+        device.setBlurEnabled(true)
+        device.navigateToScaffoldWithEquivalentStyleChurn()
+      },
+    ) {
+      SystemClock.sleep(STYLE_CHURN_MEASURE_MILLIS)
+    }
+  }
 
   @Test
   fun blurSourceUpdateQuality() = measureBlurProfilingScenario("source_update_quality")
@@ -94,3 +112,5 @@ class BenchmarkTest {
     }
   }
 }
+
+private const val STYLE_CHURN_MEASURE_MILLIS = 3_250L

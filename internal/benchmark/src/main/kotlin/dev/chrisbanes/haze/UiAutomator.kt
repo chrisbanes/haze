@@ -54,6 +54,11 @@ internal fun UiDevice.navigateToScaffold() {
   waitForIdle()
 }
 
+internal fun UiDevice.navigateToScaffoldWithEquivalentStyleChurn() {
+  findSampleListItem(By.res("Blur — Equivalent Style Churn")).click()
+  waitForIdle()
+}
+
 internal fun UiDevice.navigateToCreditCard() {
   findSampleListItem(By.res("Credit Card")).click()
   waitForIdle()

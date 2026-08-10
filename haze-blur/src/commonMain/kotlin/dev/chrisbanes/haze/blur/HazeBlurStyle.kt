@@ -32,7 +32,9 @@ public val LocalHazeBlurStyle: ProvidableCompositionLocal<HazeBlurStyle> =
  * An opaque, stateless, and shareable program of Blur Style writes.
  *
  * A Style never owns renderer or platform resources. Calling [then] creates a new Style whose
- * writes replay after this one, so the last write to each property wins.
+ * writes replay after this one, so the last write to each property wins. Values retained by a Style
+ * must be immutable after construction; lists passed to [HazeBlurStyleScope.colorEffects] are
+ * snapshotted. Provide a replacement Style when a value changes.
  */
 @Immutable
 public sealed interface HazeBlurStyle {
@@ -60,12 +62,13 @@ public sealed interface HazeBlurStyle {
 }
 
 @Immutable
+@Poko
 private class RecordedHazeBlurStyle(
-  private val writes: List<HazeBlurStyleScope.() -> Unit>,
+  private val writes: List<HazeBlurStyleWrite>,
 ) : HazeBlurStyle {
   fun replay(scope: HazeBlurStyleScope) {
     for (write in writes) {
-      scope.write()
+      write.replay(scope)
     }
   }
 
@@ -203,54 +206,92 @@ public sealed interface HazeBlurStyleScope {
   public fun blurredEdgeTreatment(treatment: BlurredEdgeTreatment)
 }
 
+private enum class HazeBlurStyleProperty {
+  BlurEnabled,
+  BlurRadius,
+  NoiseFactor,
+  BackgroundColor,
+  ColorEffects,
+  FallbackColorEffect,
+  Alpha,
+  Mask,
+  Progressive,
+  BlurredEdgeTreatment,
+}
+
+@Poko
+private class HazeBlurStyleWrite(
+  private val property: HazeBlurStyleProperty,
+  private val value: Any?,
+) {
+  @Suppress("UNCHECKED_CAST")
+  fun replay(scope: HazeBlurStyleScope) {
+    with(scope) {
+      when (property) {
+        HazeBlurStyleProperty.BlurEnabled -> blurEnabled(value as Boolean)
+        HazeBlurStyleProperty.BlurRadius -> blurRadius(value as Dp)
+        HazeBlurStyleProperty.NoiseFactor -> noiseFactor(value as Float)
+        HazeBlurStyleProperty.BackgroundColor -> backgroundColor(value as Color)
+        HazeBlurStyleProperty.ColorEffects -> colorEffects(value as List<HazeColorEffect>)
+        HazeBlurStyleProperty.FallbackColorEffect ->
+          fallbackColorEffect(value as HazeColorEffect)
+        HazeBlurStyleProperty.Alpha -> alpha(value as Float)
+        HazeBlurStyleProperty.Mask -> mask(value as Brush?)
+        HazeBlurStyleProperty.Progressive -> progressive(value as HazeProgressive?)
+        HazeBlurStyleProperty.BlurredEdgeTreatment ->
+          blurredEdgeTreatment(value as BlurredEdgeTreatment)
+      }
+    }
+  }
+}
+
 private fun recordWrites(
   block: HazeBlurStyleScope.() -> Unit,
-): List<HazeBlurStyleScope.() -> Unit> = buildList {
+): List<HazeBlurStyleWrite> = buildList {
   RecordingHazeBlurStyleScope(this).block()
 }
 
 private class RecordingHazeBlurStyleScope(
-  private val writes: MutableList<HazeBlurStyleScope.() -> Unit>,
+  private val writes: MutableList<HazeBlurStyleWrite>,
 ) : HazeBlurStyleScope {
   override fun blurEnabled(enabled: Boolean) {
-    writes += { blurEnabled(enabled) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.BlurEnabled, enabled)
   }
 
   override fun blurRadius(radius: Dp) {
-    writes += { blurRadius(radius) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.BlurRadius, radius)
   }
 
   override fun noiseFactor(factor: Float) {
-    writes += { noiseFactor(factor) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.NoiseFactor, factor)
   }
 
   override fun backgroundColor(color: Color) {
-    writes += { backgroundColor(color) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.BackgroundColor, color)
   }
 
   override fun colorEffects(effects: List<HazeColorEffect>) {
-    val snapshot = effects.toList()
-    writes += { colorEffects(snapshot) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.ColorEffects, effects.toList())
   }
 
   override fun fallbackColorEffect(effect: HazeColorEffect) {
-    writes += { fallbackColorEffect(effect) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.FallbackColorEffect, effect)
   }
 
   override fun alpha(alpha: Float) {
-    writes += { alpha(alpha) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.Alpha, alpha)
   }
 
   override fun mask(mask: Brush?) {
-    writes += { mask(mask) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.Mask, mask)
   }
 
   override fun progressive(progressive: HazeProgressive?) {
-    writes += { progressive(progressive) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.Progressive, progressive)
   }
 
   override fun blurredEdgeTreatment(treatment: BlurredEdgeTreatment) {
-    writes += { blurredEdgeTreatment(treatment) }
+    writes += HazeBlurStyleWrite(HazeBlurStyleProperty.BlurredEdgeTreatment, treatment)
   }
 }
 

@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   input-pixel fractions must be remeasured before selecting `Fixed(qualityFraction)`.
   `HazeSampling` remains the generic contract for custom effects
   ([#1206](https://github.com/chrisbanes/haze/issues/1206)).
+- Blur avoids redundant modifier updates when independently recreated `HazeBlurStyle` programs
+  are equivalent.
 
 ### Fixed
 

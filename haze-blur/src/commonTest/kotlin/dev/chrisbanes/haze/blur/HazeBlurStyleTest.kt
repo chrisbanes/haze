@@ -15,6 +15,7 @@ import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
@@ -25,6 +26,38 @@ class HazeBlurStyleTest {
   @Test
   fun defaultStyle_isShared() {
     assertThat(HazeBlurDefaults.style).isSameInstanceAs(HazeBlurDefaults.style)
+  }
+
+  @Test
+  fun equivalentStylePrograms_areEqual() {
+    val first = HazeBlurStyle {
+      blurEnabled(true)
+      blurRadius(24.dp)
+      backgroundColor(Color.Black)
+      colorEffects(listOf(HazeColorEffect.tint(Color.Red)))
+      alpha(0.8f)
+    }.then {
+      noiseFactor(0.2f)
+    }
+    val second = HazeBlurStyle {
+      blurEnabled(true)
+      blurRadius(24.dp)
+      backgroundColor(Color.Black)
+      colorEffects(listOf(HazeColorEffect.tint(Color.Red)))
+      alpha(0.8f)
+    }.then {
+      noiseFactor(0.2f)
+    }
+
+    assertThat(first).isEqualTo(second)
+  }
+
+  @Test
+  fun differentStylePrograms_areNotEqual() {
+    val first = HazeBlurStyle { blurRadius(24.dp) }
+    val second = HazeBlurStyle { blurRadius(25.dp) }
+
+    assertThat(first).isNotEqualTo(second)
   }
 
   @Test

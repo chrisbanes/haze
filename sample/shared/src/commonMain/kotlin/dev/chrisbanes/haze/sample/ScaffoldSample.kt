@@ -5,6 +5,12 @@ package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +61,7 @@ enum class ScaffoldSampleMode {
   Default,
   Progressive,
   Mask,
+  StyleChurn,
 }
 
 @OptIn(
@@ -75,11 +82,39 @@ fun ScaffoldSample(
   val showNavigationBar by remember(gridState) {
     derivedStateOf { gridState.firstVisibleItemIndex == 0 }
   }
+  // The benchmark reads a changing value while resolving to the same Style on every frame.
+  val styleChurnPhase = if (mode == ScaffoldSampleMode.StyleChurn) {
+    rememberInfiniteTransition(label = "Blur style churn").animateFloat(
+      initialValue = 0f,
+      targetValue = 1f,
+      animationSpec = infiniteRepeatable(
+        animation = tween(durationMillis = 1_000, easing = LinearEasing),
+        repeatMode = RepeatMode.Reverse,
+      ),
+      label = "Blur style churn phase",
+    )
+  } else {
+    null
+  }
 
-  val style = HazeMaterials.regular(MaterialTheme.colorScheme.surface)
+  val style = if (mode == ScaffoldSampleMode.StyleChurn) {
+    null
+  } else {
+    HazeMaterials.regular(MaterialTheme.colorScheme.surface)
+  }
+  val scaffoldModifier = Modifier.fillMaxSize().let { modifier ->
+    styleChurnPhase?.let { phase ->
+      modifier.graphicsLayer {
+        // Keep a constant RenderThread workload so frame metrics remain comparable when the
+        // equivalent style update is suppressed.
+        translationX = phase.value
+      }
+    } ?: modifier
+  }
 
   Scaffold(
     topBar = {
+      val currentStyle = style ?: HazeMaterials.regular(MaterialTheme.colorScheme.surface)
       LargeTopAppBar(
         title = { },
         navigationIcon = {
@@ -102,7 +137,7 @@ fun ScaffoldSample(
           .hazeBlur(
             input = HazeInput.Sources(hazeState),
             performanceMode = performanceMode,
-            style = style.then {
+            style = currentStyle.then {
               blurEnabled(blurEnabled)
               when (mode) {
                 ScaffoldSampleMode.Default -> Unit
@@ -118,6 +153,10 @@ fun ScaffoldSample(
                 ScaffoldSampleMode.Mask -> {
                   mask(Brush.easedVerticalGradient(EaseIn))
                 }
+
+                ScaffoldSampleMode.StyleChurn -> {
+                  alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
+                }
               }
             },
           )
@@ -125,6 +164,7 @@ fun ScaffoldSample(
       )
     },
     bottomBar = {
+      val currentStyle = style ?: HazeMaterials.regular(MaterialTheme.colorScheme.surface)
       var selectedIndex by remember { mutableIntStateOf(0) }
       AnimatedVisibility(
         visible = showNavigationBar,
@@ -142,13 +182,18 @@ fun ScaffoldSample(
             .hazeBlur(
               input = HazeInput.Sources(hazeState),
               performanceMode = performanceMode,
-              style = style.then { blurEnabled(blurEnabled) },
+              style = currentStyle.then {
+                blurEnabled(blurEnabled)
+                if (mode == ScaffoldSampleMode.StyleChurn) {
+                  alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
+                }
+              },
             )
             .fillMaxWidth(),
         )
       }
     },
-    modifier = Modifier.fillMaxSize(),
+    modifier = scaffoldModifier,
   ) { contentPadding ->
     LazyVerticalGrid(
       state = gridState,
