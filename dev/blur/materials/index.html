@@ -18,7 +18,7 @@
         <link rel="prev" href="../usage/">
       
       
-        <link rel="next" href="../faq/">
+        <link rel="next" href="../material3/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Materials - Haze</title>
+        <title>Material presets - Haze</title>
       
     
     
@@ -63,7 +63,7 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Materials - Haze" />
+<meta property="og:title" content="Material presets - Haze" />
 <meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
 <meta property="og:image" content="https://chribanes.github.io/haze/dev/assets/images/social/blur/materials.png" />
 <meta property="og:image:type" content="image/png" />
@@ -71,7 +71,7 @@
 <meta property="og:image:height" content="630" />
 <meta property="og:url" content="https://chribanes.github.io/haze/dev/blur/materials/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Materials - Haze" />
+<meta property="twitter:title" content="Material presets - Haze" />
 <meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
 <meta property="twitter:image" content="https://chribanes.github.io/haze/dev/assets/images/social/blur/materials.png" />
 </head>
@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#blur-materials" class="md-skip">
+        <a href="#blur-material-presets" class="md-skip">
           Skip to content
         </a>
       
@@ -130,7 +130,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Materials
+              Material presets
             
           </span>
         </div>
@@ -451,7 +451,7 @@
   <span class="md-ellipsis">
     
   
-    Materials
+    Material presets
   
 
     
@@ -469,7 +469,7 @@
   <span class="md-ellipsis">
     
   
-    Materials
+    Material presets
   
 
     
@@ -542,6 +542,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../material3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Material 3 integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1108,12 +1136,15 @@
   
 
 
-<div><h1 id="blur-materials">Blur materials<a class="headerlink" href="#blur-materials" title="Permanent link">¶</a></h1>
-<p>The <code>haze-blur-materials</code> artifact provides replayable Blur Styles for common design systems:</p>
+<div><h1 id="blur-material-presets">Blur material presets<a class="headerlink" href="#blur-material-presets" title="Permanent link">¶</a></h1>
+<p>The <code>haze-blur-materials</code> artifact provides opinionated, replayable Blur Style presets for Haze,
+Cupertino, and Fluent designs:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">implementation</span><span class="p">(</span><span class="s">"dev.chrisbanes.haze:haze-blur-materials:&lt;version&gt;"</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>For a minimal Style that follows the current Compose Material 3 theme, use the separate
+<a href="../material3/">Material 3 integration</a>.</p>
 <h2 id="material">Material<a class="headerlink" href="#material" title="Permanent link">¶</a></h2>
 <p><code>HazeMaterials</code> provides <code>ultraThin()</code>, <code>thin()</code>, <code>regular()</code>, <code>thick()</code>, and <code>ultraThick()</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
