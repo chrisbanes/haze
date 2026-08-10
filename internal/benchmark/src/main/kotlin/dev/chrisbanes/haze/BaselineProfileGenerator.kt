@@ -9,8 +9,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-private const val FORCE_BLUR_EXTRA = "dev.chrisbanes.haze.sample.android.FORCE_BLUR"
-
 @RunWith(AndroidJUnit4::class)
 class BaselineProfileGenerator {
   @get:Rule
