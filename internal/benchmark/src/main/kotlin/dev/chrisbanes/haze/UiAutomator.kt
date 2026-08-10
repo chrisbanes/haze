@@ -16,6 +16,8 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
+internal const val FORCE_BLUR_EXTRA = "dev.chrisbanes.haze.sample.android.FORCE_BLUR"
+
 internal fun UiDevice.waitForObject(
   selector: BySelector,
   timeout: Duration = 15.seconds,

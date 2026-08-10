@@ -52,7 +52,9 @@ class BenchmarkTest {
       startupMode = StartupMode.WARM,
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {
-        startActivityAndWait()
+        startActivityAndWait { intent ->
+          intent.putExtra(FORCE_BLUR_EXTRA, true)
+        }
         device.navigateToScaffoldWithEquivalentStyleChurn()
       },
     ) {
