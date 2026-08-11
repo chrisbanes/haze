@@ -15,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEqualTo
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -129,6 +130,24 @@ class SamplesTest : ContextTest() {
     onNodeWithTag("sample_effect_glass").performClick()
     runOnIdle {
       assertThat(selectedEffect).isEqualTo(SampleEffect.Glass)
+    }
+  }
+
+  @Test
+  fun samplesList_navigatesUp() = runComposeUiTest {
+    var navigatedUp = false
+    setContent {
+      SamplesList(
+        appTitle = "Haze Samples — Blur",
+        samples = emptyList(),
+        onNavigateUp = { navigatedUp = true },
+        onSampleSelected = {},
+      )
+    }
+
+    onNodeWithTag("sample_list_back").performClick()
+    runOnIdle {
+      assertThat(navigatedUp).isTrue()
     }
   }
 
