@@ -5,19 +5,14 @@ package dev.chrisbanes.haze.sample
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
@@ -25,15 +20,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -53,6 +42,14 @@ private const val SAMPLES_ROUTE = "samples"
 enum class SampleEffect(val label: String) {
   Blur("Blur"),
   Glass("Glass"),
+}
+
+private fun SampleEffect.route(): String = "$SAMPLES_ROUTE/${name.lowercase()}"
+
+private fun Sample.route(effect: SampleEffect): String = "$route/${effect.name.lowercase()}"
+
+internal fun List<Sample>.forEffect(effect: SampleEffect): List<Sample> = filter {
+  effect in it.effects
 }
 
 @OptIn(ExperimentalHazeApi::class)
@@ -359,17 +356,37 @@ fun Samples(
         modifier = Modifier.testTagsAsResourceId(true),
       ) {
         composable(SAMPLES_ROUTE) {
-          val sortedSamples = remember { samples.sortedBy(Sample::title) }
-          SamplesList(
+          EffectList(
             appTitle = appTitle,
-            samples = sortedSamples,
-            navController = navController,
+            effects = SampleEffect.entries.toList(),
+            onEffectSelected = { effect -> navController.navigate(effect.route()) },
           )
         }
 
+        SampleEffect.entries.forEach { effect ->
+          composable(effect.route()) {
+            val effectSamples = remember(samples, effect) {
+              samples.forEffect(effect).sortedBy(Sample::title)
+            }
+            SamplesList(
+              appTitle = "$appTitle — ${effect.label}",
+              samples = effectSamples,
+              onSampleSelected = { selected ->
+                navController.navigate(selected.route(effect))
+              },
+            )
+          }
+        }
+
         samples.forEach { sample ->
-          composable(sample.route) {
-            SampleDestination(sample = sample, navController = navController)
+          sample.effects.forEach { effect ->
+            composable(sample.route(effect)) {
+              SampleDestination(
+                sample = sample,
+                effect = effect,
+                navController = navController,
+              )
+            }
           }
         }
       }
@@ -380,46 +397,43 @@ fun Samples(
 @Composable
 internal fun SampleDestination(
   sample: Sample,
+  effect: SampleEffect,
   navController: NavHostController,
 ) {
-  var selectedEffectName by rememberSaveable(sample.route) {
-    mutableStateOf(sample.effects.first().name)
-  }
-  val selectedEffect = sample.effects.firstOrNull { it.name == selectedEffectName }
-    ?: sample.effects.first()
-
-  Box(modifier = Modifier.fillMaxSize()) {
-    sample.content(navController, selectedEffect)
-
-    if (sample.effects.size > 1) {
-      SampleEffectPicker(
-        effects = sample.effects,
-        selectedEffect = selectedEffect,
-        onEffectSelected = { selectedEffectName = it.name },
-        modifier = Modifier
-          .align(Alignment.TopEnd)
-          .padding(top = 80.dp, end = 16.dp),
-      )
-    }
-  }
+  sample.content(navController, effect)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SampleEffectPicker(
+internal fun EffectList(
+  appTitle: String,
   effects: List<SampleEffect>,
-  selectedEffect: SampleEffect,
   onEffectSelected: (SampleEffect) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  SingleChoiceSegmentedButtonRow(modifier = modifier.testTag("sample_effect_picker")) {
-    effects.forEachIndexed { index, effect ->
-      SegmentedButton(
-        selected = effect == selectedEffect,
-        onClick = { onEffectSelected(effect) },
-        shape = SegmentedButtonDefaults.itemShape(index = index, count = effects.size),
-        modifier = Modifier.testTag("sample_effect_${effect.name.lowercase()}"),
-      ) {
-        Text(effect.label)
+  Scaffold(
+    topBar = {
+      TopAppBar(
+        title = { Text(text = appTitle) },
+        modifier = Modifier.fillMaxWidth(),
+      )
+    },
+    modifier = modifier,
+  ) { contentPadding ->
+    LazyColumn(
+      modifier = Modifier
+        .testTag("sample_effect_list")
+        .fillMaxSize(),
+      contentPadding = contentPadding,
+    ) {
+      items(effects) { effect ->
+        ListItem(
+          headlineContent = { Text(text = effect.label) },
+          modifier = Modifier
+            .fillMaxWidth()
+            .testTag("sample_effect_${effect.name.lowercase()}")
+            .clickable { onEffectSelected(effect) },
+        )
       }
     }
   }
@@ -427,10 +441,10 @@ private fun SampleEffectPicker(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SamplesList(
+internal fun SamplesList(
   appTitle: String,
   samples: List<Sample>,
-  navController: NavHostController,
+  onSampleSelected: (Sample) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
@@ -454,7 +468,7 @@ private fun SamplesList(
           modifier = Modifier
             .fillMaxWidth()
             .testTag(sample.title)
-            .clickable { navController.navigate(sample.route) },
+            .clickable { onSampleSelected(sample) },
         )
       }
     }
