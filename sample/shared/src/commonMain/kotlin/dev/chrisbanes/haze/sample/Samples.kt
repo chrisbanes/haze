@@ -381,26 +381,13 @@ fun Samples(
         samples.forEach { sample ->
           sample.effects.forEach { effect ->
             composable(sample.route(effect)) {
-              SampleDestination(
-                sample = sample,
-                effect = effect,
-                navController = navController,
-              )
+              sample.content(navController, effect)
             }
           }
         }
       }
     }
   }
-}
-
-@Composable
-internal fun SampleDestination(
-  sample: Sample,
-  effect: SampleEffect,
-  navController: NavHostController,
-) {
-  sample.content(navController, effect)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

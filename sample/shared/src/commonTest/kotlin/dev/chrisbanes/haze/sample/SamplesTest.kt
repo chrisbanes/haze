@@ -158,7 +158,7 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
-  fun sampleDestination_usesItsEffectRoute() = runComposeUiTest {
+  fun sampleContent_usesItsEffectRoute() = runComposeUiTest {
     val sample = Sample(
       route = "effect-picker",
       title = "Effect picker",
@@ -171,11 +171,7 @@ class SamplesTest : ContextTest() {
     }
 
     setContent {
-      SampleDestination(
-        sample = sample,
-        effect = SampleEffect.Glass,
-        navController = rememberNavController(),
-      )
+      sample.content(rememberNavController(), SampleEffect.Glass)
     }
 
     onNodeWithTag("selected_effect_glass").assertIsDisplayed()
@@ -185,11 +181,7 @@ class SamplesTest : ContextTest() {
   @Test
   fun glassScaffold_keepsItsGridContent() = runComposeUiTest {
     setContent {
-      SampleDestination(
-        sample = Sample.Scaffold,
-        effect = SampleEffect.Glass,
-        navController = rememberNavController(),
-      )
+      Sample.Scaffold.content(rememberNavController(), SampleEffect.Glass)
     }
 
     onNodeWithTag("lazy_grid").assertIsDisplayed()
@@ -198,11 +190,7 @@ class SamplesTest : ContextTest() {
   @Test
   fun glassContentBlurring_omitsTheBlurOnlyClippedControl() = runComposeUiTest {
     setContent {
-      SampleDestination(
-        sample = Sample.ContentBlurring,
-        effect = SampleEffect.Glass,
-        navController = rememberNavController(),
-      )
+      Sample.ContentBlurring.content(rememberNavController(), SampleEffect.Glass)
     }
 
     onNodeWithTag("content_blur_clipped").assertDoesNotExist()
