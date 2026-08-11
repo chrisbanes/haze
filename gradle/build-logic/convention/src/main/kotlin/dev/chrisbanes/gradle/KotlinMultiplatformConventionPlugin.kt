@@ -58,15 +58,24 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
   }
 }
 
+/**
+ * Whether the Apple (iOS + macOS) Kotlin/Native targets are configured for this build.
+ *
+ * Non-Apple hosts cannot build them, so CI opts out with `-Phaze.disableAppleTargets`.
+ */
+val Project.appleTargetsEnabled: Boolean
+  get() = !providers.gradleProperty("haze.disableAppleTargets").isPresent
+
 fun KotlinMultiplatformExtension.addDefaultHazeTargets(
   project: Project,
   withSkikoMain: Boolean = false,
 ) {
   jvm()
 
-  if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
+  if (project.appleTargetsEnabled) {
     iosArm64()
     iosSimulatorArm64()
+    macosArm64()
   }
 
   @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
@@ -82,8 +91,9 @@ fun KotlinMultiplatformExtension.addDefaultHazeTargets(
     val skikoMain = sourceSets.maybeCreate("skikoMain").apply {
       dependsOn(sourceSets.getByName("commonMain"))
     }
-    if (!project.providers.gradleProperty("haze.disableAppleTargets").isPresent) {
-      sourceSets.getByName("iosMain").dependsOn(skikoMain)
+    if (project.appleTargetsEnabled) {
+      // appleMain is the common parent of iosMain and macosMain, both of which render via Skiko.
+      sourceSets.getByName("appleMain").dependsOn(skikoMain)
     }
     sourceSets.getByName("jvmMain").dependsOn(skikoMain)
     sourceSets.getByName("wasmJsMain").dependsOn(skikoMain)

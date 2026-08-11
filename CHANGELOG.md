@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Glass can now composite transparent captured content onto an explicit background before
   refraction and blur using `GlassStyle.backgroundColor`
   ([#1207](https://github.com/chrisbanes/haze/issues/1207)).
+- Restored the `macosArm64` target across every published module, along with the `sample/macos`
+  app. The target was published in `2.0.0-alpha03` and dropped from `2.0.0-alpha04` in
+  [#1002](https://github.com/chrisbanes/haze/pull/1002).
 
 ## 2.0.0-alpha04 <small>2026-08-08</small> { id="2.0.0-alpha04" }
 

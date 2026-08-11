@@ -121,3 +121,8 @@ include(
   ":sample:desktop",
   ":sample:web",
 )
+
+// Kotlin/Native macOS executables can only be built on an Apple host.
+if (!providers.gradleProperty("haze.disableAppleTargets").isPresent) {
+  include(":sample:macos")
+}

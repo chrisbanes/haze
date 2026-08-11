@@ -10,7 +10,7 @@ Visual effects (blur and more) for Compose Multiplatform.
 
 https://github.com/user-attachments/assets/836dd79a-abdc-4cdc-b27d-baee394c1e26
 
-Haze provides hardware-accelerated visual effects for Compose Multiplatform — Android, iOS, Desktop, and Web. Built on a modular effect system, it lets you add blur, tint, and custom effects to any composable with a single modifier.
+Haze provides hardware-accelerated visual effects for Compose Multiplatform — Android, iOS, macOS, Desktop, and Web. Built on a modular effect system, it lets you add blur, tint, and custom effects to any composable with a single modifier.
 
 ## Platforms
 
@@ -19,6 +19,7 @@ Haze provides hardware-accelerated visual effects for Compose Multiplatform — 
 | Android | ✅ |
 | Desktop (JVM) | ✅ |
 | iOS | ✅ |
+| macOS | ✅ |
 | Wasm / JS | ✅ |
 
 ## Download

@@ -68,6 +68,7 @@ subprojects {
         "coil-core-iossimulatorarm64",
         "coil-core-js",
         "coil-core-jvm",
+        "coil-core-macosarm64",
         "coil-core-wasm-js",
       ).forEach { module ->
         withModule("io.coil-kt.coil3:$module") {

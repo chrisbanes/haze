@@ -23,7 +23,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
 
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v7
@@ -39,8 +39,12 @@ jobs:
           gradle-home-cache-excludes: |
             caches/build-cache-1
 
-      - name: Compile iOS arm64 target and run simulator tests
-        run: ./gradlew compileKotlinIosArm64 iosSimulatorArm64Test -Phaze.enableAppleTests
+      - name: Compile Apple targets, run iOS simulator and macOS host tests, link macOS sample
+        run: >
+          ./gradlew
+          compileKotlinIosArm64 iosSimulatorArm64Test
+          macosArm64Test :sample:macos:linkDebugExecutableMacosArm64
+          -Phaze.enableAppleTests
         env:
           ORG_GRADLE_PROJECT_remoteBuildCacheUrl: ${{ secrets.GRADLE_REMOTE_CACHE_URL }}
           ORG_GRADLE_PROJECT_remoteBuildCacheUsername: ${{ secrets.GRADLE_REMOTE_CACHE_USERNAME }}

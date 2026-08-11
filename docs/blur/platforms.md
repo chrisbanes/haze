@@ -99,6 +99,10 @@ Desktop JVM is a Compose Multiplatform target which is built upon [Skiko][skiko]
 
 iOS is a Compose Multiplatform target which is built upon [Skiko][skiko], so see the [Skiko](#skiko) docs below.
 
+## macOS
+
+macOS is a Compose Multiplatform target which is built upon [Skiko][skiko], so see the [Skiko](#skiko) docs below.
+
 ## Web
 
 Compose for Web is based on Kotlin/Wasm, and is a Compose Multiplatform target which is built upon [Skiko][skiko], so see the [Skiko](#skiko) docs below.

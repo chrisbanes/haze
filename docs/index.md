@@ -9,6 +9,7 @@ Haze is built with [Compose Multiplatform](https://www.jetbrains.com/lp/compose-
 | Android       | ✅               |
 | Desktop (JVM) | ✅               |
 | iOS           | ✅               |
+| macOS         | ✅               |
 | Wasm          | ✅               |
 | JS/Canvas     | ✅               |
 
