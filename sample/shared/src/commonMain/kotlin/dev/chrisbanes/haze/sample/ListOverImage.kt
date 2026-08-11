@@ -97,6 +97,7 @@ fun ListOverImage(navController: NavHostController, effect: SampleEffect) {
                 .height(160.dp),
             ) {
               val shape = RoundedCornerShape(16.dp)
+              val glassBackgroundColor = MaterialTheme.colorScheme.surface
               val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.14f)
               Box(
                 modifier = Modifier
@@ -112,6 +113,7 @@ fun ListOverImage(navController: NavHostController, effect: SampleEffect) {
                       SampleEffect.Glass -> Modifier.hazeGlass(
                         input = HazeInput.Sources(hazeState),
                         style = GlassStyle {
+                          backgroundColor(glassBackgroundColor)
                           tint(glassTint)
                           shape(shape)
                           optics(GlassOptics.Adaptive)

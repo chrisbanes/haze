@@ -40,7 +40,6 @@ nav:
   - "API reference": api/index.html
   - "Sample code": https://github.com/chrisbanes/haze/tree/main/sample/shared/src/commonMain/kotlin/dev/chrisbanes/haze/sample
   - "🕸️ Sample app (Wasm)": sample/wasm/index.html
-  - "🕸️ Sample app (JS)": sample/js/index.html
 
 # Configuration
 theme:

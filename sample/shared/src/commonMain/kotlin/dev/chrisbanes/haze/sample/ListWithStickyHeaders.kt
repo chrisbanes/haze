@@ -50,6 +50,7 @@ fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect
   val listState = rememberLazyListState()
 
   val blurStyle = HazeMaterials.regular(MaterialTheme.colorScheme.surface)
+  val glassBackgroundColor = MaterialTheme.colorScheme.surface
   val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)
   val glassShape = RoundedCornerShape(0.dp)
 
@@ -91,6 +92,7 @@ fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect
                   SampleEffect.Glass -> Modifier.hazeGlass(
                     input = HazeInput.Sources(hazeState),
                     style = GlassStyle {
+                      backgroundColor(glassBackgroundColor)
                       tint(glassTint)
                       shape(glassShape)
                       optics(GlassOptics.Adaptive)

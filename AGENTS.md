@@ -8,6 +8,20 @@ screenshots live in `sample/screenshot-tests`. Auxiliary tooling and shared fixt
 `internal/`, while runnable examples reside in `sample/` (Android, Desktop, Web, macOS).
 Documentation assets and the MkDocs site configuration are in `docs/` and `site/`.
 
+## Sample Code Guidelines
+
+Code under `sample/` is teaching and reference material intended to be read and copied
+independently.
+
+- Prefer explicit, locally complete sample code over shared abstractions.
+- Duplication between samples is acceptable when it keeps the demonstrated API and required setup
+  visible at the call site.
+- Do not extract helpers or parameterize sample composables solely to reduce repetition.
+- Share only application infrastructure, fixtures, or abstractions that are themselves part of the
+  API being demonstrated.
+- During review, do not treat duplication in sample code as a reuse issue unless it creates a
+  concrete correctness or maintenance risk.
+
 ## Build, Test, and Development Commands
 
 Use `./gradlew build` for a full multi-platform build and verification. Targeted development builds

@@ -102,6 +102,7 @@ fun BottomSheet(navController: NavHostController, effect: SampleEffect) {
         dragHandle = null,
       ) {
         val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        val glassBackgroundColor = MaterialTheme.colorScheme.surface
         val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.14f)
         Column(
           modifier = Modifier
@@ -115,6 +116,7 @@ fun BottomSheet(navController: NavHostController, effect: SampleEffect) {
                 SampleEffect.Glass -> Modifier.hazeGlass(
                   input = HazeInput.Sources(hazeState),
                   style = GlassStyle {
+                    backgroundColor(glassBackgroundColor)
                     tint(glassTint)
                     shape(sheetShape)
                     optics(GlassOptics.Adaptive)

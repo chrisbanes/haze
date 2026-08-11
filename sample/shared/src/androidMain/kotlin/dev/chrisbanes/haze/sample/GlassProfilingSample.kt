@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -120,15 +121,17 @@ private fun GlassProfilingScene(
     Size(ProfilingSurfaceSize.width.toPx(), ProfilingSurfaceSize.height.toPx())
   }
   val effectSurfaceSizePx = profilingEffectSize(surfaceSizePx, scenario.effectCount)
+  val backgroundColor = MaterialTheme.colorScheme.surface
   var effectFrame by remember(scenario) {
     mutableStateOf(glassProfilingFrame(scenario, progress = 0f))
   }
   val styleFrame = if (profilingStyleUsesFrame(scenario)) effectFrame else null
-  val styles = remember(scenario, styleFrame, effectSurfaceSizePx) {
+  val styles = remember(scenario, styleFrame, effectSurfaceSizePx, backgroundColor) {
     List(scenario.effectCount) {
       profilingGlassStyle(
         scenario,
         styleFrame ?: glassProfilingFrame(scenario, progress = 0f),
+        backgroundColor,
       )
     }
   }
@@ -321,7 +324,9 @@ private fun GlassProfilingEffectGrid(
 internal fun profilingGlassStyle(
   scenario: GlassProfilingScenario,
   frame: GlassProfilingFrame,
+  backgroundColor: Color,
 ): GlassStyle = GlassDefaults.style.then {
+  backgroundColor(backgroundColor)
   scenario.opticsOverride?.let(::optics)
   if (scenario.fullChroma) {
     chromaticAberrationMode(ChromaticAberrationMode.Full)

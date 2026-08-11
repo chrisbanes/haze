@@ -70,6 +70,7 @@ fun DialogSample(navController: NavHostController, effect: SampleEffect) {
     val hazeState = rememberHazeState()
     var showDialog by remember { mutableStateOf(false) }
     val dialogShape = RoundedCornerShape(28.dp)
+    val glassBackgroundColor = MaterialTheme.colorScheme.surface
     val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.12f)
 
     if (showDialog) {
@@ -96,6 +97,7 @@ fun DialogSample(navController: NavHostController, effect: SampleEffect) {
                 SampleEffect.Glass -> Modifier.hazeGlass(
                   input = HazeInput.Sources(hazeState),
                   style = GlassStyle {
+                    backgroundColor(glassBackgroundColor)
                     tint(glassTint)
                     shape(dialogShape)
                     optics(GlassOptics.Adaptive)

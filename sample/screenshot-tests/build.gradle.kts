@@ -42,6 +42,7 @@ kotlin {
 
     jvmTest {
       dependencies {
+        implementation(libs.coil.compose)
         implementation(compose.desktop.currentOs)
       }
     }

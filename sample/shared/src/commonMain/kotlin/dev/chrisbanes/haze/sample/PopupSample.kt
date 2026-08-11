@@ -70,6 +70,7 @@ fun PopupSample(navController: NavHostController, effect: SampleEffect) {
     val hazeState = rememberHazeState()
     var showPopup by remember { mutableStateOf(false) }
     val popupShape = RoundedCornerShape(28.dp)
+    val glassBackgroundColor = MaterialTheme.colorScheme.surface
     val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.12f)
 
     if (showPopup) {
@@ -96,6 +97,7 @@ fun PopupSample(navController: NavHostController, effect: SampleEffect) {
                 SampleEffect.Glass -> Modifier.hazeGlass(
                   input = HazeInput.Sources(hazeState),
                   style = GlassStyle {
+                    backgroundColor(glassBackgroundColor)
                     tint(glassTint)
                     shape(popupShape)
                     optics(GlassOptics.Adaptive)

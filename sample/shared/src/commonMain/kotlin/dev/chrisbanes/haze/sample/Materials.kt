@@ -9,24 +9,35 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
@@ -49,7 +60,7 @@ import dev.chrisbanes.haze.rememberHazeState
 fun MaterialsSample(navController: NavHostController, effect: SampleEffect) {
   val hazeState = rememberHazeState()
 
-  Box {
+  Box(modifier = Modifier.fillMaxSize()) {
     AsyncImage(
       model = rememberRandomSampleImageUrl(),
       contentScale = ContentScale.Crop,
@@ -164,6 +175,26 @@ fun MaterialsSample(navController: NavHostController, effect: SampleEffect) {
     } else {
       GlassMaterialsContent(hazeState = hazeState)
     }
+
+    Surface(
+      modifier = Modifier
+        .align(Alignment.TopStart)
+        .windowInsetsPadding(WindowInsets.statusBars)
+        .padding(16.dp),
+      shape = CircleShape,
+      color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+      shadowElevation = 6.dp,
+    ) {
+      IconButton(
+        onClick = navController::navigateUp,
+        modifier = Modifier.size(48.dp).testTag("back"),
+      ) {
+        Icon(
+          imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+          contentDescription = "Back",
+        )
+      }
+    }
   }
 }
 
@@ -223,6 +254,7 @@ private fun GlassMaterialsCard(
   modifier: Modifier = Modifier,
 ) {
   val shape = RoundedCornerShape(24.dp)
+  val glassBackgroundColor = MaterialTheme.colorScheme.surface
   Card(
     shape = shape,
     colors = CardDefaults.cardColors(
@@ -237,6 +269,7 @@ private fun GlassMaterialsCard(
         .hazeGlass(
           input = HazeInput.Sources(hazeState),
           style = GlassStyle {
+            backgroundColor(glassBackgroundColor)
             this.tint(tint)
             shape(shape)
             optics(GlassOptics.Adaptive)
