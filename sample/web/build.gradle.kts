@@ -19,29 +19,10 @@ kotlin {
     binaries.executable()
   }
 
-  js {
-    browser {
-      commonWebpackConfig {
-        outputFileName = "sample.js"
-      }
-    }
-
-    binaries.executable()
-  }
-
   sourceSets {
     commonMain {
       dependencies {
         implementation(projects.sample.shared)
-      }
-    }
-
-    jsMain {
-      dependencies {
-        // Coil fix
-        implementation(npm("node-polyfill-webpack-plugin", "^4.0.0"))
-        implementation(npm("os-browserify", "^0.3.0"))
-        implementation(npm("path-browserify", "^1.0.1"))
       }
     }
 
