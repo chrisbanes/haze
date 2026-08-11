@@ -2,94 +2,94 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://chribanes.github.io/haze/dev/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/architecture/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/changelog/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/core-concepts/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/custom-effects/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/migrating-2.0/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/performance/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/recipes/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/using-snapshot-version/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/adr/0001-treat-haze-2-as-an-intentional-source-break/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/adr/0002-use-a-shared-retained-stage-graph-for-glass/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/adr/0003-use-one-android-fused-glass-renderer/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/adr/0004-use-quality-gated-adaptive-input-scaling-for-blur/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/adr/0006-reconcile-built-in-performance-mode-terminology/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/blur/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/blur/faq/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/blur/material3/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/blur/materials/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/blur/platforms/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/blur/usage/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/effects/glass/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
     <url>
          <loc>https://chribanes.github.io/haze/dev/glass/performance/</loc>
-         <lastmod>2026-08-10</lastmod>
+         <lastmod>2026-08-11</lastmod>
     </url>
 </urlset>
