@@ -8,14 +8,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.navigation.compose.rememberNavController
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.isEqualTo
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -30,12 +30,23 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
-  fun commonSamples_containsOnlyThreeGlassGalleryDestinations() {
+  fun commonSamples_hasDedicatedGlassGalleryDestinations() {
     assertThat(
       CommonSamples.map(Sample::title).filter { "Glass" in it },
     ).isEqualTo(
       listOf("Glass — Product", "Glass — Playground", "Glass — Lab"),
     )
+  }
+
+  @Test
+  fun commonSamples_catalogsIncludeCustomVisualEffectAndGlassShowcases() {
+    assertThat(CommonSamples.forEffect(SampleEffect.Blur).map(Sample::title))
+      .contains("Custom VisualEffect")
+    assertThat(CommonSamples.forEffect(SampleEffect.Glass).size).isEqualTo(22)
+    val glassTitles = CommonSamples.forEffect(SampleEffect.Glass).map(Sample::title)
+    assertThat(glassTitles).contains("Glass — Product")
+    assertThat(glassTitles).contains("Glass — Playground")
+    assertThat(glassTitles).contains("Glass — Lab")
   }
 
   @Test
@@ -87,7 +98,7 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
-  fun samplesList_replacesOldGlassEntriesWithShowcaseSuite() = runComposeUiTest {
+  fun samples_startsWithEffectCategories() = runComposeUiTest {
     setContent {
       Samples(
         appTitle = "Haze Samples",
@@ -100,16 +111,73 @@ class SamplesTest : ContextTest() {
       )
     }
 
-    onNodeWithTag("Credit Card").assertIsDisplayed()
-    onNodeWithTag("Glass — Product").assertIsDisplayed()
-    onNodeWithTag("Glass — Playground").assertIsDisplayed()
-    onNodeWithTag("Glass — Lab").assertIsDisplayed()
-    onNodeWithTag("Glass").assertDoesNotExist()
-    onNodeWithTag("Glass (Debug)").assertDoesNotExist()
+    onNodeWithTag("sample_effect_blur").assertIsDisplayed()
+    onNodeWithTag("sample_effect_glass").assertIsDisplayed()
+    onNodeWithTag("Credit Card").assertDoesNotExist()
   }
 
   @Test
-  fun sampleDestination_switchesLocalEffect() = runComposeUiTest {
+  fun effectList_selectsGlassCategory() = runComposeUiTest {
+    var selectedEffect: SampleEffect? = null
+    setContent {
+      EffectList(
+        appTitle = "Haze Samples",
+        effects = SampleEffect.entries.toList(),
+        onEffectSelected = { selectedEffect = it },
+      )
+    }
+
+    onNodeWithTag("sample_effect_glass").performClick()
+    runOnIdle {
+      assertThat(selectedEffect).isEqualTo(SampleEffect.Glass)
+    }
+  }
+
+  @Test
+  fun samplesList_navigatesUp() = runComposeUiTest {
+    var navigatedUp = false
+    setContent {
+      SamplesList(
+        appTitle = "Haze Samples — Blur",
+        samples = emptyList(),
+        onNavigateUp = { navigatedUp = true },
+        onSampleSelected = {},
+      )
+    }
+
+    onNodeWithTag("sample_list_back").performClick()
+    runOnIdle {
+      assertThat(navigatedUp).isTrue()
+    }
+  }
+
+  @Test
+  fun samplesForEffect_keepsSharedAndEffectSpecificSamplesSeparate() {
+    val sharedSample = Sample(
+      route = "shared",
+      title = "Shared sample",
+      effects = listOf(SampleEffect.Blur, SampleEffect.Glass),
+    ) { _, _ -> }
+    val blurOnlySample = Sample(
+      route = "blur-only",
+      title = "Blur-only sample",
+    ) { _, _ -> }
+    val glassOnlySample = Sample(
+      route = "glass-only",
+      title = "Glass-only sample",
+      effects = listOf(SampleEffect.Glass),
+    ) { _, _ -> }
+
+    val samples = listOf(sharedSample, blurOnlySample, glassOnlySample)
+
+    assertThat(samples.forEffect(SampleEffect.Blur).map(Sample::title))
+      .isEqualTo(listOf("Shared sample", "Blur-only sample"))
+    assertThat(samples.forEffect(SampleEffect.Glass).map(Sample::title))
+      .isEqualTo(listOf("Shared sample", "Glass-only sample"))
+  }
+
+  @Test
+  fun sampleContent_usesItsEffectRoute() = runComposeUiTest {
     val sample = Sample(
       route = "effect-picker",
       title = "Effect picker",
@@ -122,17 +190,9 @@ class SamplesTest : ContextTest() {
     }
 
     setContent {
-      SampleDestination(
-        sample = sample,
-        navController = rememberNavController(),
-      )
+      sample.content(rememberNavController(), SampleEffect.Glass)
     }
 
-    onNodeWithTag("sample_effect_picker").assertIsDisplayed()
-    onNodeWithTag("sample_effect_blur").assertIsDisplayed().assertIsSelected()
-    onNodeWithTag("selected_effect_blur").assertIsDisplayed()
-    onNodeWithTag("sample_effect_glass").performClick().assertIsSelected()
-    onNodeWithTag("sample_effect_blur").assertIsNotSelected()
     onNodeWithTag("selected_effect_glass").assertIsDisplayed()
     onNodeWithTag("selected_effect_blur").assertDoesNotExist()
   }
@@ -140,26 +200,18 @@ class SamplesTest : ContextTest() {
   @Test
   fun glassScaffold_keepsItsGridContent() = runComposeUiTest {
     setContent {
-      SampleDestination(
-        sample = Sample.Scaffold,
-        navController = rememberNavController(),
-      )
+      Sample.Scaffold.content(rememberNavController(), SampleEffect.Glass)
     }
 
-    onNodeWithTag("sample_effect_glass").performClick()
     onNodeWithTag("lazy_grid").assertIsDisplayed()
   }
 
   @Test
   fun glassContentBlurring_omitsTheBlurOnlyClippedControl() = runComposeUiTest {
     setContent {
-      SampleDestination(
-        sample = Sample.ContentBlurring,
-        navController = rememberNavController(),
-      )
+      Sample.ContentBlurring.content(rememberNavController(), SampleEffect.Glass)
     }
 
-    onNodeWithTag("sample_effect_glass").performClick()
     onNodeWithTag("content_blur_clipped").assertDoesNotExist()
   }
 }
