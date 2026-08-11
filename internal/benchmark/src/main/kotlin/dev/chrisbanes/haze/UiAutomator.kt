@@ -39,27 +39,27 @@ internal fun <R> UiDevice.wait(condition: SearchCondition<R>, timeout: Duration)
 }
 
 internal fun UiDevice.navigateToImagesList() {
-  findSampleListItem(By.res("Images List")).click()
+  findBlurSampleListItem(By.res("Images List")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffold() {
-  findSampleListItem(By.res("Scaffold")).click()
+  findBlurSampleListItem(By.res("Scaffold")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToScaffoldWithEquivalentStyleChurn() {
-  findSampleListItem(By.res("Blur — Equivalent Style Churn")).click()
+  findBlurSampleListItem(By.res("Blur — Equivalent Style Churn")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToCreditCard() {
-  findSampleListItem(By.res("Credit Card")).click()
+  findBlurSampleListItem(By.res("Credit Card")).click()
   waitForIdle()
 }
 
 internal fun UiDevice.navigateToBlurProfiling(scenarioId: String) {
-  findSampleListItem(By.res("Blur — Profiling")).click()
+  findBlurSampleListItem(By.res("Blur — Profiling")).click()
   waitForObject(By.res("blur_profiling_picker"))
     .apply { setGestureMarginPercentage(0.1f) }
     .scrollUntil(
@@ -92,7 +92,7 @@ internal fun UiDevice.runBlurProfilingScenario(scenarioId: String) {
 }
 
 internal fun UiDevice.navigateToGlassProduct() {
-  findSampleListItem(By.res("Glass — Product")).click()
+  findGlassSampleListItem(By.res("Glass — Product")).click()
   waitForObject(By.res("glass_product_page_0"))
 }
 
@@ -102,7 +102,7 @@ internal fun UiDevice.advanceGlassProduct() {
 }
 
 internal fun UiDevice.navigateToGlassPlayground() {
-  findSampleListItem(By.res("Glass — Playground")).click()
+  findGlassSampleListItem(By.res("Glass — Playground")).click()
   waitForObject(By.res("glass_playground_loop_1"), timeout = 20.seconds)
 }
 
@@ -113,7 +113,7 @@ internal fun UiDevice.measureFullGlassPlaygroundLoop() {
 }
 
 internal fun UiDevice.navigateToGlassProfiling(scenarioId: String) {
-  findSampleListItem(By.res("Glass — Profiling")).click()
+  findGlassSampleListItem(By.res("Glass — Profiling")).click()
   waitForObject(By.res("glass_profiling_picker"))
     .apply { setGestureMarginPercentage(0.1f) }
     .scrollUntil(
@@ -165,7 +165,14 @@ private fun UiDevice.waitForProfilingObject(
 private const val GLASS_PROFILING_MEASURE_MILLIS = 3_250L
 private const val BLUR_PROFILING_MEASURE_MILLIS = 3_250L
 
-internal fun UiDevice.findSampleListItem(selector: BySelector): UiObject2 {
+private fun UiDevice.findBlurSampleListItem(selector: BySelector): UiObject2 =
+  findSampleListItem(effect = "blur", selector = selector)
+
+private fun UiDevice.findGlassSampleListItem(selector: BySelector): UiObject2 =
+  findSampleListItem(effect = "glass", selector = selector)
+
+private fun UiDevice.findSampleListItem(effect: String, selector: BySelector): UiObject2 {
+  waitForObject(By.res("sample_effect_$effect")).click()
   return waitForObject(By.res("sample_list"))
     .apply { setGestureMarginPercentage(0.1f) }
     .scrollUntil(Direction.DOWN, Until.findObject(selector))
