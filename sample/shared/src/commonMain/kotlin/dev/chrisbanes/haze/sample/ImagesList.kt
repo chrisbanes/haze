@@ -86,6 +86,7 @@ fun ImagesList(navController: NavHostController, effect: SampleEffect) {
               )
 
               val shape = RoundedCornerShape(4.dp)
+              val glassBackgroundColor = MaterialTheme.colorScheme.surface
               val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.14f)
               Box(
                 modifier = Modifier
@@ -106,6 +107,7 @@ fun ImagesList(navController: NavHostController, effect: SampleEffect) {
                           .hazeGlass(
                             input = HazeInput.Sources(hazeState),
                             style = GlassStyle {
+                              backgroundColor(glassBackgroundColor)
                               tint(glassTint)
                               shape(shape)
                               optics(GlassOptics.Adaptive)

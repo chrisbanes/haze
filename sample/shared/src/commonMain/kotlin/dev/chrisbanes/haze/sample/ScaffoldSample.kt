@@ -14,12 +14,22 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,6 +43,7 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -42,7 +53,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -54,6 +67,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.glass.GlassOptics
@@ -117,6 +131,7 @@ fun ScaffoldSample(
     } ?: modifier
   }
   val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.16f)
+  val glassBackgroundColor = MaterialTheme.colorScheme.surface
   val progressive = HazeProgressive.verticalGradient(
     startIntensity = 1f,
     endIntensity = 0f,
@@ -125,69 +140,62 @@ fun ScaffoldSample(
   Scaffold(
     topBar = {
       val currentBlurStyle = style ?: HazeMaterials.regular(MaterialTheme.colorScheme.surface)
-      LargeTopAppBar(
-        title = {
-          if (effect == SampleEffect.Glass && mode == ScaffoldSampleMode.Mask) {
-            Text("Glass shaped boundary")
-          }
-        },
-        navigationIcon = {
-          IconButton(
-            onClick = navController::navigateUp,
-            modifier = Modifier.testTag("back"),
-          ) {
-            Icon(Icons.AutoMirrored.Default.ArrowBack, null)
-          }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-          containerColor = Color.Transparent,
-          scrolledContainerColor = Color.Transparent,
-        ),
-        modifier = Modifier
-          .drawWithContent {
-            profilingDrawProgress?.invoke()
-            drawContent()
-          }
-          .then(
-            when (effect) {
-              SampleEffect.Blur -> Modifier.hazeBlur(
-                input = HazeInput.Sources(hazeState),
-                performanceMode = performanceMode,
-                style = currentBlurStyle.then {
-                  when (mode) {
-                    ScaffoldSampleMode.Default -> Unit
-                    ScaffoldSampleMode.Progressive -> progressive(progressive)
-                    ScaffoldSampleMode.Mask -> mask(Brush.easedVerticalGradient(EaseIn))
-                    ScaffoldSampleMode.StyleChurn -> {
-                      alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
-                    }
+      when (effect) {
+        SampleEffect.Blur -> LargeTopAppBar(
+          title = {},
+          navigationIcon = {
+            IconButton(
+              onClick = navController::navigateUp,
+              modifier = Modifier.testTag("back"),
+            ) {
+              Icon(Icons.AutoMirrored.Default.ArrowBack, null)
+            }
+          },
+          colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            scrolledContainerColor = Color.Transparent,
+          ),
+          modifier = Modifier
+            .drawWithContent {
+              profilingDrawProgress?.invoke()
+              drawContent()
+            }
+            .hazeBlur(
+              input = HazeInput.Sources(hazeState),
+              performanceMode = performanceMode,
+              style = currentBlurStyle.then {
+                when (mode) {
+                  ScaffoldSampleMode.Default -> Unit
+                  ScaffoldSampleMode.Progressive -> progressive(progressive)
+                  ScaffoldSampleMode.Mask -> mask(Brush.easedVerticalGradient(EaseIn))
+                  ScaffoldSampleMode.StyleChurn -> {
+                    alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
                   }
-                },
-              )
+                }
+              },
+            )
+            .fillMaxWidth(),
+        )
 
-              SampleEffect.Glass -> Modifier.hazeGlass(
-                input = HazeInput.Sources(hazeState),
-                performanceMode = performanceMode,
-                style = GlassStyle {
-                  tint(glassTint)
-                  shape(
-                    when (mode) {
-                      ScaffoldSampleMode.Mask -> RoundedCornerShape(24.dp)
-                      else -> RoundedCornerShape(0.dp)
-                    },
-                  )
-                  optics(
-                    when (mode) {
-                      ScaffoldSampleMode.Progressive -> GlassOptics.Fixed(progressive = progressive)
-                      else -> GlassOptics.Adaptive
-                    },
-                  )
-                },
-              )
-            },
-          )
-          .fillMaxWidth(),
-      )
+        SampleEffect.Glass -> GlassScaffoldTopBar(
+          hazeState = hazeState,
+          backgroundColor = glassBackgroundColor,
+          tint = glassTint,
+          performanceMode = performanceMode,
+          optics = when (mode) {
+            ScaffoldSampleMode.Progressive -> GlassOptics.Fixed(progressive = progressive)
+            else -> GlassOptics.Adaptive
+          },
+          title = "Glass shaped boundary".takeIf { mode == ScaffoldSampleMode.Mask },
+          onBack = navController::navigateUp,
+          modifier = Modifier
+            .drawWithContent {
+              profilingDrawProgress?.invoke()
+              drawContent()
+            }
+            .fillMaxWidth(),
+        )
+      }
     },
     bottomBar = {
       val currentBlurStyle = style ?: HazeMaterials.regular(MaterialTheme.colorScheme.surface)
@@ -197,39 +205,42 @@ fun ScaffoldSample(
         enter = slideInVertically { it },
         exit = slideOutVertically { it },
       ) {
-        SampleNavigationBar(
-          selectedIndex = selectedIndex,
-          onItemClicked = { selectedIndex = it },
-          modifier = Modifier
-            .drawWithContent {
-              profilingDrawProgress?.invoke()
-              drawContent()
-            }
-            .then(
-              when (effect) {
-                SampleEffect.Blur -> Modifier.hazeBlur(
-                  input = HazeInput.Sources(hazeState),
-                  performanceMode = performanceMode,
-                  style = currentBlurStyle.then {
-                    if (mode == ScaffoldSampleMode.StyleChurn) {
-                      alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
-                    }
-                  },
-                )
+        when (effect) {
+          SampleEffect.Blur -> SampleNavigationBar(
+            selectedIndex = selectedIndex,
+            onItemClicked = { selectedIndex = it },
+            modifier = Modifier
+              .drawWithContent {
+                profilingDrawProgress?.invoke()
+                drawContent()
+              }
+              .hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                performanceMode = performanceMode,
+                style = currentBlurStyle.then {
+                  if (mode == ScaffoldSampleMode.StyleChurn) {
+                    alpha(1f + checkNotNull(styleChurnPhase).value * 0f)
+                  }
+                },
+              )
+              .fillMaxWidth(),
+          )
 
-                SampleEffect.Glass -> Modifier.hazeGlass(
-                  input = HazeInput.Sources(hazeState),
-                  performanceMode = performanceMode,
-                  style = GlassStyle {
-                    tint(glassTint)
-                    shape(RoundedCornerShape(0.dp))
-                    optics(GlassOptics.Adaptive)
-                  },
-                )
-              },
-            )
-            .fillMaxWidth(),
-        )
+          SampleEffect.Glass -> GlassScaffoldNavigationBar(
+            hazeState = hazeState,
+            backgroundColor = glassBackgroundColor,
+            tint = glassTint,
+            performanceMode = performanceMode,
+            selectedIndex = selectedIndex,
+            onItemClicked = { selectedIndex = it },
+            modifier = Modifier
+              .drawWithContent {
+                profilingDrawProgress?.invoke()
+                drawContent()
+              }
+              .fillMaxWidth(),
+          )
+        }
       }
     },
     modifier = scaffoldModifier,
@@ -260,6 +271,140 @@ fun ScaffoldSample(
 }
 
 @Composable
+@OptIn(ExperimentalHazeApi::class)
+private fun GlassScaffoldTopBar(
+  hazeState: HazeState,
+  backgroundColor: Color,
+  tint: Color,
+  performanceMode: HazePerformanceMode,
+  optics: GlassOptics,
+  title: String?,
+  onBack: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  Row(
+    modifier = modifier
+      .windowInsetsPadding(WindowInsets.statusBars)
+      .padding(16.dp),
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    GlassScaffoldSurface(
+      hazeState = hazeState,
+      backgroundColor = backgroundColor,
+      tint = tint,
+      performanceMode = performanceMode,
+      optics = optics,
+      shape = RoundedCornerShape(50),
+      modifier = Modifier.size(56.dp).testTag("glass_scaffold_back"),
+    ) {
+      IconButton(onClick = onBack) {
+        Icon(
+          imageVector = Icons.AutoMirrored.Default.ArrowBack,
+          contentDescription = "Back",
+        )
+      }
+    }
+
+    if (title != null) {
+      GlassScaffoldSurface(
+        hazeState = hazeState,
+        backgroundColor = backgroundColor,
+        tint = tint,
+        performanceMode = performanceMode,
+        optics = optics,
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.height(56.dp),
+      ) {
+        Text(
+          text = title,
+          modifier = Modifier.padding(horizontal = 20.dp),
+        )
+      }
+    }
+  }
+}
+
+@Composable
+@OptIn(ExperimentalHazeApi::class)
+private fun GlassScaffoldNavigationBar(
+  hazeState: HazeState,
+  backgroundColor: Color,
+  tint: Color,
+  performanceMode: HazePerformanceMode,
+  selectedIndex: Int,
+  onItemClicked: (Int) -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  GlassScaffoldSurface(
+    hazeState = hazeState,
+    backgroundColor = backgroundColor,
+    tint = tint,
+    performanceMode = performanceMode,
+    optics = GlassOptics.Adaptive,
+    shape = RoundedCornerShape(32.dp),
+    modifier = modifier
+      .windowInsetsPadding(WindowInsets.navigationBars)
+      .padding(16.dp)
+      .testTag("glass_scaffold_navigation"),
+  ) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(64.dp)
+        .padding(horizontal = 4.dp)
+        .selectableGroup(),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      for (i in 0 until 3) {
+        NavigationBarItem(
+          selected = selectedIndex == i,
+          onClick = { onItemClicked(i) },
+          icon = { SampleNavigationIcon(i) },
+          colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = MaterialTheme.colorScheme.primary,
+            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            indicatorColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+          ),
+          modifier = Modifier.weight(1f),
+        )
+      }
+    }
+  }
+}
+
+@Composable
+@OptIn(ExperimentalHazeApi::class)
+private fun GlassScaffoldSurface(
+  hazeState: HazeState,
+  backgroundColor: Color,
+  tint: Color,
+  performanceMode: HazePerformanceMode,
+  optics: GlassOptics,
+  shape: RoundedCornerShape,
+  modifier: Modifier = Modifier,
+  content: @Composable () -> Unit,
+) {
+  Box(
+    contentAlignment = Alignment.Center,
+    modifier = modifier
+      .hazeGlass(
+        input = HazeInput.Sources(hazeState),
+        performanceMode = performanceMode,
+        style = GlassStyle {
+          backgroundColor(backgroundColor)
+          tint(tint)
+          shape(shape)
+          optics(optics)
+        },
+      )
+      .clip(shape),
+  ) {
+    content()
+  }
+}
+
+@Composable
 private fun SampleNavigationBar(
   selectedIndex: Int,
   onItemClicked: (Int) -> Unit,
@@ -273,17 +418,24 @@ private fun SampleNavigationBar(
       NavigationBarItem(
         selected = selectedIndex == i,
         onClick = { onItemClicked(i) },
-        icon = {
-          Icon(
-            imageVector = when (i) {
-              0 -> Icons.Default.Call
-              1 -> Icons.Default.Lock
-              else -> Icons.Default.Search
-            },
-            contentDescription = null,
-          )
-        },
+        icon = { SampleNavigationIcon(i) },
       )
     }
   }
+}
+
+@Composable
+private fun SampleNavigationIcon(index: Int) {
+  Icon(
+    imageVector = when (index) {
+      0 -> Icons.Default.Call
+      1 -> Icons.Default.Lock
+      else -> Icons.Default.Search
+    },
+    contentDescription = when (index) {
+      0 -> "Calls"
+      1 -> "Security"
+      else -> "Search"
+    },
+  )
 }

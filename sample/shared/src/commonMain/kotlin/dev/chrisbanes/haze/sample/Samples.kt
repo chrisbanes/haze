@@ -286,8 +286,11 @@ class Sample(
       route = "layer-transformations",
       title = "Layer Transformations",
       effects = BuiltInEffects,
-    ) { _, effect ->
-      LayerTransformations(effect = effect)
+    ) { navController, effect ->
+      LayerTransformations(
+        effect = effect,
+        onBack = navController::navigateUp,
+      )
     }
 
     val GlassProduct = Sample(

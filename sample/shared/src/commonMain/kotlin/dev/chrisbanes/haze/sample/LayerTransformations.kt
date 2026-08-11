@@ -12,10 +12,20 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -46,13 +57,15 @@ import kotlin.math.sin
 @OptIn(ExperimentalHazeApi::class)
 fun LayerTransformations(
   effect: SampleEffect,
+  onBack: () -> Unit,
   topOffset: DpOffset = DpOffset.Zero,
+  modifier: Modifier = Modifier,
 ) {
   val hazeState = rememberHazeState()
+  val glassBackgroundColor = MaterialTheme.colorScheme.surface
 
   Box(
-    modifier = Modifier
-      .fillMaxSize(),
+    modifier = modifier.fillMaxSize(),
   ) {
     Spacer(
       modifier = Modifier
@@ -116,8 +129,9 @@ fun LayerTransformations(
             SampleEffect.Glass -> Modifier.hazeGlass(
               input = HazeInput.Sources(hazeState),
               style = GlassStyle {
+                backgroundColor(glassBackgroundColor)
                 tint(Color.White.copy(alpha = 0.14f))
-                shape(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                shape(RoundedCornerShape(16.dp))
                 optics(GlassOptics.Adaptive)
               },
             )
@@ -125,6 +139,26 @@ fun LayerTransformations(
         )
         .padding(16.dp),
     )
+
+    Surface(
+      modifier = Modifier
+        .align(Alignment.TopStart)
+        .windowInsetsPadding(WindowInsets.statusBars)
+        .padding(16.dp),
+      shape = CircleShape,
+      color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+      shadowElevation = 6.dp,
+    ) {
+      IconButton(
+        onClick = onBack,
+        modifier = Modifier.size(48.dp).testTag("back"),
+      ) {
+        Icon(
+          imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+          contentDescription = "Back",
+        )
+      }
+    }
   }
 }
 

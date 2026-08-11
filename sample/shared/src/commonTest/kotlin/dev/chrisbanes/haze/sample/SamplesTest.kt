@@ -8,7 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.navigation.compose.rememberNavController
@@ -198,12 +200,42 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
-  fun glassScaffold_keepsItsGridContent() = runComposeUiTest {
+  fun glassScaffold_displaysGridAndGlassChrome() = runComposeUiTest {
     setContent {
       Sample.Scaffold.content(rememberNavController(), SampleEffect.Glass)
     }
 
     onNodeWithTag("lazy_grid").assertIsDisplayed()
+    onNodeWithTag("glass_scaffold_back").assertIsDisplayed()
+    onNodeWithTag("glass_scaffold_navigation").assertIsDisplayed()
+    onNodeWithContentDescription("Back").assertIsDisplayed()
+  }
+
+  @Test
+  fun maskedGlassScaffold_keepsItsBoundaryTitle() = runComposeUiTest {
+    setContent {
+      Sample.ScaffoldMasked.content(rememberNavController(), SampleEffect.Glass)
+    }
+
+    onNodeWithText("Glass shaped boundary").assertIsDisplayed()
+  }
+
+  @Test
+  fun materialsSample_hasBackButton() = runComposeUiTest {
+    setContent {
+      Sample.Materials.content(rememberNavController(), SampleEffect.Glass)
+    }
+
+    onNodeWithContentDescription("Back").assertIsDisplayed()
+  }
+
+  @Test
+  fun layerTransformationsSample_hasBackButton() = runComposeUiTest {
+    setContent {
+      Sample.LayerTransformations.content(rememberNavController(), SampleEffect.Glass)
+    }
+
+    onNodeWithContentDescription("Back").assertIsDisplayed()
   }
 
   @Test

@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +27,7 @@ fun CreditCardSample(
   navController: NavHostController,
   effect: SampleEffect = SampleEffect.Blur,
 ) {
+  val glassBackgroundColor = MaterialTheme.colorScheme.surface
   CreditCardScene(onNavigateUp = navController::navigateUp) { hazeState, modifier, shape, zIndex ->
     Box(
       modifier = modifier
@@ -49,6 +51,7 @@ fun CreditCardSample(
                 .hazeGlass(
                   input = HazeInput.Sources(hazeState),
                   style = GlassStyle {
+                    backgroundColor(glassBackgroundColor)
                     tint(Color.Yellow.copy(alpha = 0.18f))
                     shape(shape)
                     optics(GlassOptics.Adaptive)

@@ -6,11 +6,22 @@ package dev.chrisbanes.haze.sample
 import android.view.LayoutInflater
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -18,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
@@ -36,7 +48,11 @@ import dev.chrisbanes.haze.sample.shared.R
 
 @Composable
 @OptIn(ExperimentalHazeApi::class)
-fun ExoPlayerSample(effect: SampleEffect) {
+fun ExoPlayerSample(
+  effect: SampleEffect,
+  onBack: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
   val hazeState = rememberHazeState()
 
   val context = LocalContext.current
@@ -54,7 +70,7 @@ fun ExoPlayerSample(effect: SampleEffect) {
   }
 
   Box(
-    modifier = Modifier
+    modifier = modifier
       .fillMaxWidth()
       .aspectRatio(16 / 9f),
   ) {
@@ -73,6 +89,7 @@ fun ExoPlayerSample(effect: SampleEffect) {
     )
 
     val shape = RoundedCornerShape(16.dp)
+    val glassBackgroundColor = MaterialTheme.colorScheme.surface
     val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.14f)
 
     Spacer(
@@ -94,6 +111,7 @@ fun ExoPlayerSample(effect: SampleEffect) {
                 .hazeGlass(
                   input = HazeInput.Sources(hazeState),
                   style = GlassStyle {
+                    backgroundColor(glassBackgroundColor)
                     tint(glassTint)
                     shape(shape)
                     optics(GlassOptics.Adaptive)
@@ -103,6 +121,26 @@ fun ExoPlayerSample(effect: SampleEffect) {
           },
         ),
     )
+
+    Surface(
+      modifier = Modifier
+        .align(Alignment.TopStart)
+        .windowInsetsPadding(WindowInsets.statusBars)
+        .padding(16.dp),
+      shape = CircleShape,
+      color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+      shadowElevation = 6.dp,
+    ) {
+      IconButton(
+        onClick = onBack,
+        modifier = Modifier.size(48.dp).testTag("back"),
+      ) {
+        Icon(
+          imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+          contentDescription = "Back",
+        )
+      }
+    }
   }
 }
 

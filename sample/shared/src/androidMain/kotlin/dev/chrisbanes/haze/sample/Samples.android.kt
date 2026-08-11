@@ -44,8 +44,11 @@ val AndroidExoPlayer = Sample(
   route = "exo-player",
   title = "ExoPlayer",
   effects = listOf(SampleEffect.Blur, SampleEffect.Glass),
-) { _, effect ->
-  ExoPlayerSample(effect)
+) { navController, effect ->
+  ExoPlayerSample(
+    effect = effect,
+    onBack = navController::navigateUp,
+  )
 }
 
 actual val Samples: List<Sample> = buildList {

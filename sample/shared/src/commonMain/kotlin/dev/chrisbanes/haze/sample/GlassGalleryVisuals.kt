@@ -154,13 +154,16 @@ internal fun GlassSurface(
   interactionStyle: GlassStyle = GlassStyle,
   content: @Composable BoxScope.() -> Unit,
 ) {
+  val backgroundColor = MaterialTheme.colorScheme.surface
   Box(
     modifier = modifier
       // Let Glass own the material silhouette. An outer Compose clip creates a second,
       // independently-rasterized rounded boundary and exposes isolated carrier pixels on Skiko.
       .hazeGlass(
         input = HazeInput.Sources(hazeState),
-        style = style.then {
+        style = GlassStyle {
+          backgroundColor(backgroundColor)
+        }.then(style).then {
           this.shape(shape)
         }.then(interactionStyle),
         interactionSource = interactionSource,
