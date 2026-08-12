@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalInspectionMode
 import dev.chrisbanes.haze.sample.Samples
 import dev.chrisbanes.haze.test.ScreenshotTest
+import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
@@ -32,7 +33,9 @@ class SampleBrowserDesktopScreenshotTest : ScreenshotTest() {
 private fun ScreenshotUiTest.captureSampleBrowser() {
   setContent {
     CompositionLocalProvider(LocalInspectionMode provides true) {
-      Samples(appTitle = "Haze Samples")
+      ScreenshotTheme {
+        Samples(appTitle = "Haze Samples")
+      }
     }
   }
   waitForIdle()
