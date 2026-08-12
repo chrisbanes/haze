@@ -117,3 +117,6 @@ test_output
 
 # Local Perfetto tooling
 trace_processor
+
+# AI scratch files
+.scratch/
