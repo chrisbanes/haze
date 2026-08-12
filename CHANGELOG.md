@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 2.0.0-alpha05 <small>2026-08-12</small> { id="2.0.0-alpha05" }
+
 ### Changed
 
 - Built-in Blur and Glass now document the shared `HazePerformanceMode` contract: `Default` is
