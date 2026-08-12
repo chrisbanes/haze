@@ -10,15 +10,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -26,10 +27,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
@@ -51,6 +55,9 @@ enum class SampleEffect(val label: String) {
 private fun SampleEffect.route(): String = "$SAMPLES_ROUTE/${name.lowercase()}"
 
 private fun Sample.route(effect: SampleEffect): String = "$route/${effect.name.lowercase()}"
+
+private fun SampleEffect.matches(route: String?): Boolean =
+  route?.endsWith("/${name.lowercase()}") == true
 
 internal fun List<Sample>.forEffect(effect: SampleEffect): List<Sample> = filter {
   effect in it.effects
@@ -338,13 +345,16 @@ fun Samples(
   forceBlur: Boolean = false,
 ) {
   val coilPlatformContext = LocalPlatformContext.current
-  LaunchedEffect(coilPlatformContext) {
-    // Preload the first 20 precanned image urls
-    val imageLoader = SingletonImageLoader.get(coilPlatformContext)
-    precannedImageUrls
-      .asSequence()
-      .map { ImageRequest.Builder(coilPlatformContext).data(it).build() }
-      .forEach { imageLoader.enqueue(it) }
+  val inspectionMode = LocalInspectionMode.current
+  LaunchedEffect(coilPlatformContext, inspectionMode) {
+    if (!inspectionMode) {
+      // Preload the first 20 precanned image urls
+      val imageLoader = SingletonImageLoader.get(coilPlatformContext)
+      precannedImageUrls
+        .asSequence()
+        .map { ImageRequest.Builder(coilPlatformContext).data(it).build() }
+        .forEach { imageLoader.enqueue(it) }
+    }
   }
 
   val localBlurStyle = remember(forceBlur) {
@@ -357,78 +367,61 @@ fun Samples(
 
   SamplesTheme {
     CompositionLocalProvider(LocalHazeBlurStyle provides localBlurStyle) {
-      NavHost(
-        navController = navController,
-        startDestination = SAMPLES_ROUTE,
-        modifier = Modifier.testTagsAsResourceId(true),
-      ) {
-        composable(SAMPLES_ROUTE) {
-          EffectList(
-            appTitle = appTitle,
-            effects = SampleEffect.entries.toList(),
-            onEffectSelected = { effect -> navController.navigate(effect.route()) },
-          )
-        }
-
-        SampleEffect.entries.forEach { effect ->
-          composable(effect.route()) {
-            val effectSamples = remember(samples, effect) {
-              samples.forEffect(effect).sortedBy(Sample::title)
-            }
-            SamplesList(
-              appTitle = "$appTitle — ${effect.label}",
-              samples = effectSamples,
-              onNavigateUp = navController::navigateUp,
-              onSampleSelected = { selected ->
-                navController.navigate(selected.route(effect))
+      val currentDestination = navController.currentBackStackEntryAsState().value?.destination
+      NavigationSuiteScaffold(
+        navigationSuiteItems = {
+          SampleEffect.entries.forEach { effect ->
+            item(
+              selected = effect.matches(currentDestination?.route),
+              onClick = {
+                navController.navigate(effect.route()) {
+                  popUpTo(navController.graph.findStartDestination().id)
+                  launchSingleTop = true
+                }
               },
+              icon = {
+                Icon(
+                  imageVector = when (effect) {
+                    SampleEffect.Blur -> Icons.Default.Search
+                    SampleEffect.Glass -> Icons.Default.Lock
+                  },
+                  contentDescription = null,
+                )
+              },
+              label = { Text(effect.label) },
+              modifier = Modifier.testTag("sample_effect_${effect.name.lowercase()}"),
             )
           }
-        }
+        },
+        modifier = Modifier.testTagsAsResourceId(true),
+      ) {
+        NavHost(
+          navController = navController,
+          startDestination = SampleEffect.Blur.route(),
+        ) {
+          SampleEffect.entries.forEach { effect ->
+            composable(effect.route()) {
+              val effectSamples = remember(samples, effect) {
+                samples.forEffect(effect).sortedBy(Sample::title)
+              }
+              SamplesList(
+                appTitle = "$appTitle — ${effect.label}",
+                samples = effectSamples,
+                onSampleSelected = { selected ->
+                  navController.navigate(selected.route(effect))
+                },
+              )
+            }
+          }
 
-        samples.forEach { sample ->
-          sample.effects.forEach { effect ->
-            composable(sample.route(effect)) {
-              sample.content(navController, effect)
+          samples.forEach { sample ->
+            sample.effects.forEach { effect ->
+              composable(sample.route(effect)) {
+                sample.content(navController, effect)
+              }
             }
           }
         }
-      }
-    }
-  }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun EffectList(
-  appTitle: String,
-  effects: List<SampleEffect>,
-  onEffectSelected: (SampleEffect) -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  Scaffold(
-    topBar = {
-      TopAppBar(
-        title = { Text(text = appTitle) },
-        modifier = Modifier.fillMaxWidth(),
-      )
-    },
-    modifier = modifier,
-  ) { contentPadding ->
-    LazyColumn(
-      modifier = Modifier
-        .testTag("sample_effect_list")
-        .fillMaxSize(),
-      contentPadding = contentPadding,
-    ) {
-      items(effects) { effect ->
-        ListItem(
-          headlineContent = { Text(text = effect.label) },
-          modifier = Modifier
-            .fillMaxWidth()
-            .testTag("sample_effect_${effect.name.lowercase()}")
-            .clickable { onEffectSelected(effect) },
-        )
       }
     }
   }
@@ -439,7 +432,6 @@ internal fun EffectList(
 internal fun SamplesList(
   appTitle: String,
   samples: List<Sample>,
-  onNavigateUp: () -> Unit,
   onSampleSelected: (Sample) -> Unit,
   modifier: Modifier = Modifier,
 ) {
@@ -447,14 +439,6 @@ internal fun SamplesList(
     topBar = {
       TopAppBar(
         title = { Text(text = appTitle) },
-        navigationIcon = {
-          IconButton(
-            onClick = onNavigateUp,
-            modifier = Modifier.testTag("sample_list_back"),
-          ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-          }
-        },
         modifier = Modifier.fillMaxWidth(),
       )
     },

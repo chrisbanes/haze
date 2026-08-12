@@ -17,7 +17,6 @@ import androidx.navigation.compose.rememberNavController
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEqualTo
-import assertk.assertions.isTrue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
@@ -100,7 +99,7 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
-  fun samples_startsWithEffectCategories() = runComposeUiTest {
+  fun samples_startsWithBlurCatalog() = runComposeUiTest {
     setContent {
       Samples(
         appTitle = "Haze Samples",
@@ -113,43 +112,44 @@ class SamplesTest : ContextTest() {
       )
     }
 
-    onNodeWithTag("sample_effect_blur").assertIsDisplayed()
-    onNodeWithTag("sample_effect_glass").assertIsDisplayed()
-    onNodeWithTag("Credit Card").assertDoesNotExist()
+    onNodeWithTag("Credit Card").assertIsDisplayed()
+    onNodeWithTag("Glass — Product").assertDoesNotExist()
   }
 
   @Test
-  fun effectList_selectsGlassCategory() = runComposeUiTest {
-    var selectedEffect: SampleEffect? = null
+  fun samples_displaysSuiteItems() = runComposeUiTest {
     setContent {
-      EffectList(
+      Samples(
         appTitle = "Haze Samples",
-        effects = SampleEffect.entries.toList(),
-        onEffectSelected = { selectedEffect = it },
+        samples = listOf(
+          Sample.CreditCard,
+          Sample.GlassProduct,
+        ),
       )
     }
 
-    onNodeWithTag("sample_effect_glass").performClick()
-    runOnIdle {
-      assertThat(selectedEffect).isEqualTo(SampleEffect.Glass)
-    }
+    onNodeWithTag("sample_effect_blur").assertIsDisplayed()
+    onNodeWithTag("sample_effect_glass").assertIsDisplayed()
   }
 
   @Test
-  fun samplesList_navigatesUp() = runComposeUiTest {
-    var navigatedUp = false
+  fun samplesList_selectsSample() = runComposeUiTest {
+    val sample = Sample(
+      route = "sample",
+      title = "Sample",
+    ) { _, _ -> }
+    var selectedSample: Sample? = null
     setContent {
       SamplesList(
         appTitle = "Haze Samples — Blur",
-        samples = emptyList(),
-        onNavigateUp = { navigatedUp = true },
-        onSampleSelected = {},
+        samples = listOf(sample),
+        onSampleSelected = { selectedSample = it },
       )
     }
 
-    onNodeWithTag("sample_list_back").performClick()
+    onNodeWithTag("Sample").performClick()
     runOnIdle {
-      assertThat(navigatedUp).isTrue()
+      assertThat(selectedSample).isEqualTo(sample)
     }
   }
 
