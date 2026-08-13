@@ -539,8 +539,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
-  fun runtimeDrawFailure_preservesContentInputInTheFailureFrame() = runComposeUiTest {
-    val effect = activeDetailEffect()
+  fun runtimeDrawFailure_preservesFullOpacityContentInputInTheFailureFrame() = runComposeUiTest {
+    val effect = activeDetailEffect().apply { alpha = 0.5f }
     setContent { RuntimeContentGlassTestContent(effect, tag = "glass") }
     waitForIdle()
 

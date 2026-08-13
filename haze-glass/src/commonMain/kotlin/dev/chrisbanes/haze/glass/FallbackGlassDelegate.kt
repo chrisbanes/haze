@@ -167,14 +167,16 @@ internal class FallbackGlassDelegate(
     trace(GlassTraceSection.FallbackDraw) {
       val shapePath = prepared.shapePath
 
+      if (forceInput && backgroundColor.alpha <= 0f) {
+        drawInputWithAlpha(context, alpha = 1f)
+      }
+
       fun DrawScope.drawFallback(alphaMultiplier: Float) {
         fun DrawScope.drawBase() {
           if (backgroundColor.alpha > 0f) {
             drawRect(
               color = backgroundColor.copy(alpha = backgroundColor.alpha * alphaMultiplier),
             )
-          }
-          if (backgroundColor.alpha > 0f || forceInput) {
             this@drawBase.drawInputWithAlpha(context, alphaMultiplier)
           }
           if (tint.alpha > 0f) {
