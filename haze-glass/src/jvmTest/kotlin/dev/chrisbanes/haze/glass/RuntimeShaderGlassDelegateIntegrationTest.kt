@@ -539,6 +539,24 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
   }
 
   @Test
+  fun runtimeDrawFailure_preservesContentInputInTheFailureFrame() = runComposeUiTest {
+    val effect = activeDetailEffect()
+    setContent { RuntimeContentGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    val runtime = runtime(effect)
+    assertThat(runtime.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+    runtime.delegate = FailingRuntimeShaderGlassDelegate()
+    checkNotNull(runtime.attachedContextForTest).invalidateDraw()
+    waitForIdle()
+
+    val failureFrameCenter = onNodeWithTag("glass").captureToImage().toPixelMap()[60, 60]
+    assertThat(runtime.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(failureFrameCenter.red).isGreaterThan(0.9f)
+    assertThat(failureFrameCenter.alpha).isGreaterThan(0.9f)
+  }
+
+  @Test
   fun interactionRuntimeEffects_constructBeforeDraw() = runComposeUiTest {
     var creationAttempts = 0
     val effect = runtimeInteractiveEffect().apply {
@@ -1096,6 +1114,21 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
             style = style,
           ),
       )
+    }
+  }
+
+  @Composable
+  private fun RuntimeContentGlassTestContent(
+    effect: GlassRuntimeEffect,
+    tag: String,
+  ) {
+    Box(
+      Modifier
+        .size(120.dp)
+        .testTag(tag)
+        .testGlass(effect),
+    ) {
+      Box(Modifier.fillMaxSize().background(Color.Red))
     }
   }
 

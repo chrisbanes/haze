@@ -14,9 +14,12 @@ class SampleBrowserAndroidScreenshotTest : ScreenshotTest() {
   @Test fun phonePortrait() = runScreenshotTest { captureSampleBrowser() }
 }
 
-@Config(sdk = [35], qualifiers = RobolectricDeviceQualifiers.PixelTablet)
+@Config(sdk = [35], qualifiers = PIXEL_TABLET_PORTRAIT_QUALIFIERS)
 class SampleBrowserTabletAndroidScreenshotTest : ScreenshotTest() {
   @Test fun tabletPortrait_glassSelected() = runScreenshotTest {
     captureSampleBrowser(selectGlass = true)
   }
 }
+
+private const val PIXEL_TABLET_PORTRAIT_QUALIFIERS =
+  "w800dp-h1280dp-large-notlong-notround-port-any-xhdpi-keyshidden-nonav"
