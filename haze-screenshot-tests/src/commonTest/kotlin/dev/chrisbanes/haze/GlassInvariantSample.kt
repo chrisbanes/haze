@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
@@ -64,7 +65,9 @@ private val InvariantSourceColor = Color(0xFF101820)
 
 internal enum class GlassContinuityCarrier {
   Horizontal,
+  HorizontalExtended,
   Vertical,
+  VerticalExtended,
 }
 
 @Composable
@@ -200,10 +203,20 @@ private fun DrawScope.drawInvariantGrid(
       startX = surfaceLeft,
       endX = surfaceLeft + surfaceWidthPx,
     )
+    GlassContinuityCarrier.HorizontalExtended -> Brush.horizontalGradient(
+      colors = listOf(Color.Black, Color.White),
+      startX = surfaceLeft - surfaceWidthPx * 0.25f,
+      endX = surfaceLeft + surfaceWidthPx * 1.25f,
+    )
     GlassContinuityCarrier.Vertical -> Brush.verticalGradient(
       colors = listOf(Color.Black, Color.White),
       startY = surfaceTop,
       endY = surfaceTop + surfaceHeightPx,
+    )
+    GlassContinuityCarrier.VerticalExtended -> Brush.verticalGradient(
+      colors = listOf(Color.Black, Color.White),
+      startY = surfaceTop - surfaceHeightPx * 0.25f,
+      endY = surfaceTop + surfaceHeightPx * 1.25f,
     )
     null -> null
   }
@@ -1750,14 +1763,150 @@ internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
   )
   println("Glass default refraction invariant: $metrics")
   val failures = buildList {
-    if (metrics.directionalDisplacementDeltaPx > -1f) {
-      add("directional displacement delta=${metrics.directionalDisplacementDeltaPx}px is above -1px")
+    if (abs(metrics.directionalDisplacementDeltaPx) < 1f) {
+      add(
+        "directional displacement magnitude=" +
+          "${abs(metrics.directionalDisplacementDeltaPx)}px is below 1px",
+      )
     }
     if (metrics.edgeBandResidualChangedPixelRatio <= .01f) {
       add("edge-band residual changed ratio=${metrics.edgeBandResidualChangedPixelRatio} is not above 1%")
     }
   }
   check(failures.isEmpty()) { failures.joinToString("; ") }
+}
+
+internal fun ScreenshotUiTest.assertGlassRefractionFoldInvertsIncomingContentInvariant() {
+  val cases = listOf(
+    GlassContinuityCase("rounded", DpSize(280.dp, 180.dp), RoundedCornerShape(28.dp)),
+    GlassContinuityCase(
+      "asymmetric-corners",
+      DpSize(280.dp, 180.dp),
+      RoundedCornerShape(72.dp, 16.dp, 48.dp, 32.dp),
+    ),
+    GlassContinuityCase("pill", DpSize(320.dp, 64.dp), RoundedCornerShape(32.dp)),
+  )
+  val profiles = listOf(
+    SurfaceProfile.Circle,
+    SurfaceProfile.Squircle,
+    SurfaceProfile.Lip,
+    SurfaceProfile.Concave,
+  )
+  var currentCase by mutableStateOf(cases.first())
+  var carrier by mutableStateOf(GlassContinuityCarrier.Horizontal)
+  val effect = GlassTestConfiguration().apply {
+    tint = Color.Transparent
+    optics = foldInvariantOptics(0f)
+    specularIntensity = 0f
+    ambientResponse = 0f
+    chromaticAberrationStrength = 0f
+    edgeSoftness = 0.dp
+    shape = currentCase.shape
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        performanceMode = HazePerformanceMode.Quality,
+        shape = currentCase.shape,
+        surfaceSize = currentCase.size,
+        drawGridLines = false,
+        continuityCarrier = carrier,
+      )
+    }
+  }
+
+  cases.forEach { case ->
+    profiles.forEach { profile ->
+      val reversals = listOf(
+        GlassContinuityCarrier.HorizontalExtended,
+        GlassContinuityCarrier.VerticalExtended,
+      ).map { direction ->
+        currentCase = case
+        carrier = direction
+        effect.shape = case.shape
+        effect.surfaceProfile = profile
+        effect.optics = foldInvariantOptics(0f)
+        waitForIdle()
+        val unfolded = captureInvariantSnapshot()
+
+        effect.optics = foldInvariantOptics(1f)
+        waitForIdle()
+        val folded = captureInvariantSnapshot()
+        val bounds = folded.centeredSurfaceBounds(case.size)
+        val strongestReversal = listOf(1, 6).maxOf { step ->
+          val unfoldedSlopes = unfolded.foldProbeSlopes(case, bounds, direction, step)
+          val foldedSlopes = folded.foldProbeSlopes(case, bounds, direction, step)
+          foldedSlopes.zip(unfoldedSlopes).maxOf { (foldedSlope, unfoldedSlope) ->
+            if (foldedSlope * unfoldedSlope < 0f) {
+              minOf(abs(foldedSlope), abs(unfoldedSlope))
+            } else {
+              0f
+            }
+          }
+        }
+        println(
+          "Glass refraction fold invariant ${case.name}/$profile/$direction: " +
+            "reversal=$strongestReversal, changed=${unfolded.changedPixelRatio(folded)}",
+        )
+
+        assertThat(
+          unfolded.changedPixelRatioOutside(folded, bounds),
+          "${case.name}/$profile/$direction pixels outside the glass bounds",
+        ).isEqualTo(0f)
+        assertThat(
+          unfolded.changedPixelRatio(folded),
+          "${case.name}/$profile/$direction fold-changed pixel ratio",
+        ).isGreaterThan(0.01f)
+        strongestReversal
+      }
+      assertThat(reversals.max(), "${case.name}/$profile opposed signed slope magnitude")
+        .isGreaterThan(0.1f / 255f)
+    }
+  }
+}
+
+private fun foldInvariantOptics(strength: Float) = GlassOptics.Fixed(
+  refractionStrength = 1f,
+  refractionHeightFraction = 0.75f,
+  refractionDisplacement = 48.dp,
+  refractionFoldStrength = strength,
+  depth = 0f,
+  blurRadius = 0.dp,
+)
+
+private fun PixelSnapshot.foldProbeSlopes(
+  case: GlassContinuityCase,
+  bounds: IntRect,
+  carrier: GlassContinuityCarrier,
+  step: Int,
+): List<Float> {
+  require(step > 0)
+  val exercisesCorner = case.name == "asymmetric-corners"
+  return when (carrier) {
+    GlassContinuityCarrier.Horizontal,
+    GlassContinuityCarrier.HorizontalExtended,
+    -> {
+      val y = if (exercisesCorner) bounds.top + bounds.height / 3 else bounds.center.y
+      val xRange = (bounds.left + 2)..(bounds.left + minOf(160, bounds.width / 2))
+      require(xRange.first >= 0 && xRange.last < width)
+      require(y in 0 until height)
+      (xRange.first..xRange.last - step).map { x ->
+        this[x + step, y].luminance() - this[x, y].luminance()
+      }
+    }
+    GlassContinuityCarrier.Vertical,
+    GlassContinuityCarrier.VerticalExtended,
+    -> {
+      val x = if (exercisesCorner) bounds.left + bounds.width / 6 else bounds.center.x
+      val yRange = (bounds.top + 2)..(bounds.top + minOf(120, bounds.height / 2))
+      require(x in 0 until width)
+      require(yRange.first >= 0 && yRange.last < height)
+      (yRange.first..yRange.last - step).map { y ->
+        this[x, y + step].luminance() - this[x, y].luminance()
+      }
+    }
+  }
 }
 
 internal fun ScreenshotUiTest.assertGlassOversizedAsymmetricCornersInvariant() {

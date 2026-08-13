@@ -133,6 +133,11 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_refractionFoldInvertsIncomingContent() = runScreenshotTest {
+    assertGlassRefractionFoldInvertsIncomingContentInvariant()
+  }
+
+  @Test
   fun glass_oversizedAsymmetricCornersMatchComposeClip() = runScreenshotTest {
     assertGlassOversizedAsymmetricCornersInvariant()
   }

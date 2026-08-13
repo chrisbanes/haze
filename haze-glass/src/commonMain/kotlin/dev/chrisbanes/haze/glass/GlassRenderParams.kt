@@ -19,6 +19,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
+private const val ADAPTIVE_REFRACTION_FOLD_STRENGTH = 0.65f
 
 internal data class GlassCoordinates(
   val sampleSize: Size,
@@ -255,6 +256,7 @@ private val AdaptiveOpticsBaseline = GlassOptics.Fixed()
 
 internal data class ResolvedGlassOptics(
   val refractionStrength: Float,
+  val refractionFoldStrength: Float,
   val refractionHeightPx: Float,
   val refractionScalePx: Float,
   val depth: Float,
@@ -294,6 +296,10 @@ internal fun resolveGlassOptics(
   )
   return ResolvedGlassOptics(
     refractionStrength = fixed.refractionStrength,
+    refractionFoldStrength = when (optics) {
+      GlassOptics.Adaptive -> ADAPTIVE_REFRACTION_FOLD_STRENGTH
+      is GlassOptics.Fixed -> fixed.refractionFoldStrength
+    },
     refractionHeightPx = resolved.refractionHeightPx,
     refractionScalePx = resolved.refractionScalePx
       .coerceIn(0f, MAX_REFRACTION_DISPLACEMENT_PX)
@@ -314,6 +320,7 @@ internal fun resolveGlassOptics(
 internal data class GlassRenderParams(
   val coordinates: GlassCoordinates,
   val refractionStrength: Float,
+  val refractionFoldStrength: Float,
   val specularIntensity: Float,
   val depth: Float,
   val ambientResponse: Float,
@@ -376,6 +383,7 @@ internal fun GlassRenderParams.blurEffectKey(): GlassBlurEffectKey {
 internal data class GlassOpticalEffectKey(
   val coordinates: GlassCoordinates,
   val refractionStrength: Float,
+  val refractionFoldStrength: Float,
   val ambientResponse: Float,
   val tint: Color,
   val edgeSoftnessPx: Float,
@@ -398,6 +406,7 @@ internal data class GlassOpticalEffectKey(
 internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   coordinates = coordinates,
   refractionStrength = refractionStrength,
+  refractionFoldStrength = refractionFoldStrength,
   ambientResponse = ambientResponse,
   tint = tint,
   edgeSoftnessPx = edgeSoftnessPx,
@@ -421,7 +430,9 @@ internal data class GlassRefractionDetailEffectKey(
   val sampleSize: Size,
   val materialOrigin: Offset,
   val materialSize: Size,
+  val sampleStepPx: Float,
   val refractionStrength: Float,
+  val refractionFoldStrength: Float,
   val refractionHeightPx: Float,
   val refractionScalePx: Float,
   val surfaceProfile: Float,
@@ -438,7 +449,9 @@ internal fun GlassRenderParams.refractionDetailEffectKey(
   sampleSize = coordinates.sampleSize,
   materialOrigin = coordinates.materialOrigin,
   materialSize = coordinates.materialSize,
+  sampleStepPx = sampleStepPx,
   refractionStrength = refractionStrength,
+  refractionFoldStrength = refractionFoldStrength,
   refractionHeightPx = refractionHeightPx,
   refractionScalePx = refractionScalePx,
   surfaceProfile = surfaceProfile,
@@ -658,6 +671,7 @@ internal fun buildGlassRenderParams(
   return GlassRenderParams(
     coordinates = coordinates,
     refractionStrength = resolvedOptics.refractionStrength.finiteOr(0f).coerceIn(0f, 1f),
+    refractionFoldStrength = resolvedOptics.refractionFoldStrength.finiteOr(0f).coerceIn(0f, 1f),
     specularIntensity = style.specularIntensity,
     depth = resolvedOptics.depth.finiteOr(0f).coerceIn(0f, 1f),
     ambientResponse = style.ambientResponse,
@@ -1021,6 +1035,7 @@ private fun GlassRenderParams.hasSameBlurEffectInputs(other: GlassRenderParams):
 private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParams): Boolean =
   coordinates == other.coordinates &&
     refractionStrength == other.refractionStrength &&
+    refractionFoldStrength == other.refractionFoldStrength &&
     ambientResponse == other.ambientResponse &&
     tint == other.tint &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
@@ -1043,13 +1058,14 @@ private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
   other: GlassRenderParams,
 ): Boolean =
   coordinates == other.coordinates &&
+    sampleStepPx == other.sampleStepPx &&
     refractionStrength == other.refractionStrength &&
+    refractionFoldStrength == other.refractionFoldStrength &&
     refractionHeightPx == other.refractionHeightPx &&
     refractionScalePx == other.refractionScalePx &&
     surfaceProfile == other.surfaceProfile &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&
-    sampleStepPx == other.sampleStepPx &&
     refractionDetailIntensity == other.refractionDetailIntensity
 
 private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): Boolean =

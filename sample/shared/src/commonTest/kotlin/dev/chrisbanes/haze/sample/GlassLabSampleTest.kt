@@ -460,6 +460,7 @@ class GlassLabSampleTest : ContextTest() {
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
     assertThat(state.advancedExpanded).isTrue()
+    onNodeWithText("Fold").performScrollTo().assertIsDisplayed()
   }
 
   @Test

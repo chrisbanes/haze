@@ -27,6 +27,9 @@ class GlassOpticsTest {
     assertInvalidFixedFraction("refractionStrength") {
       GlassOptics.Fixed(refractionStrength = it)
     }
+    assertInvalidFixedFraction("refractionFoldStrength") {
+      GlassOptics.Fixed(refractionFoldStrength = it)
+    }
     assertInvalidFixedFraction("refractionHeightFraction") {
       GlassOptics.Fixed(refractionHeightFraction = it)
     }
@@ -45,6 +48,7 @@ class GlassOpticsTest {
   fun fixed_acceptsBoundariesAndLargeRendererIndependentValues() {
     val minimum = GlassOptics.Fixed(
       refractionStrength = 0f,
+      refractionFoldStrength = 0f,
       refractionHeightFraction = 0f,
       refractionDisplacement = 0.dp,
       depth = 0f,
@@ -52,6 +56,7 @@ class GlassOpticsTest {
     )
     val maximum = GlassOptics.Fixed(
       refractionStrength = 1f,
+      refractionFoldStrength = 1f,
       refractionHeightFraction = 1f,
       refractionDisplacement = Float.MAX_VALUE.dp,
       depth = 1f,
@@ -59,12 +64,14 @@ class GlassOpticsTest {
     )
 
     assertThat(minimum.refractionStrength).isEqualTo(0f)
+    assertThat(minimum.refractionFoldStrength).isEqualTo(0f)
     assertThat(minimum.refractionHeightFraction).isEqualTo(0f)
     assertThat(minimum.refractionDisplacement).isEqualTo(0.dp)
     assertThat(minimum.depth).isEqualTo(0f)
     assertThat(minimum.blurRadius).isEqualTo(0.dp)
     assertThat(minimum.progressive).isNull()
     assertThat(maximum.refractionStrength).isEqualTo(1f)
+    assertThat(maximum.refractionFoldStrength).isEqualTo(1f)
     assertThat(maximum.refractionHeightFraction).isEqualTo(1f)
     assertThat(maximum.refractionDisplacement).isEqualTo(Float.MAX_VALUE.dp)
     assertThat(maximum.depth).isEqualTo(1f)

@@ -2214,6 +2214,7 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
     key.cornerRadii.bottomLeft,
   )
   setFloatUniform("refractionStrength", key.refractionStrength)
+  setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("ambientResponse", key.ambientResponse)
   setFloatUniform("refractionHeight", key.refractionHeightPx)
   setFloatUniform("chromaticAberrationStrength", key.chromaticAberrationStrength)
@@ -2242,6 +2243,7 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
   setFloatUniform("sampleSize", key.sampleSize.width, key.sampleSize.height)
   setFloatUniform("materialOrigin", key.materialOrigin.x, key.materialOrigin.y)
   setFloatUniform("materialSize", key.materialSize.width, key.materialSize.height)
+  setFloatUniform("sampleStep", key.sampleStepPx)
   setFloatUniform("edgeSoftness", key.edgeSoftnessPx)
   setFloatUniform(
     "cornerRadii",
@@ -2251,6 +2253,7 @@ internal fun RuntimeShaderUniformProvider.setRefractionDetailUniforms(
     key.cornerRadii.bottomLeft,
   )
   setFloatUniform("refractionStrength", key.refractionStrength)
+  setFloatUniform("refractionFoldStrength", key.refractionFoldStrength)
   setFloatUniform("refractionHeight", key.refractionHeightPx)
   setFloatUniform("refractionScale", key.refractionScalePx)
   setFloatUniform("surfaceProfile", key.surfaceProfile)

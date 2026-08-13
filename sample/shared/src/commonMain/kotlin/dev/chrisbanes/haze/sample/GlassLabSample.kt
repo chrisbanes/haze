@@ -361,6 +361,11 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
     LabSlider("Refraction", fixed.refractionStrength, 0f..1f) { value ->
       onStateChanged(state.editStyle { it.copy(optics = fixed.copy(refractionStrength = value)) })
     }
+    LabSlider("Fold", fixed.refractionFoldStrength, 0f..1f) { value ->
+      onStateChanged(
+        state.editStyle { it.copy(optics = fixed.copy(refractionFoldStrength = value)) },
+      )
+    }
     LabSlider("Depth", fixed.depth, 0f..1f) { value ->
       onStateChanged(state.editStyle { it.copy(optics = fixed.copy(depth = value)) })
     }

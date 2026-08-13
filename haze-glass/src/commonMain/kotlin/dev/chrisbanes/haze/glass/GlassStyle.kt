@@ -188,6 +188,7 @@ public class GlassStyleScope internal constructor(
     depth: Float = 1f,
     blurRadius: Dp = 14.dp,
     progressive: HazeProgressive? = null,
+    refractionFoldStrength: Float = 0f,
   ) {
     optics(
       GlassOptics.Fixed(
@@ -197,6 +198,7 @@ public class GlassStyleScope internal constructor(
         depth = depth,
         blurRadius = blurRadius,
         progressive = progressive,
+        refractionFoldStrength = refractionFoldStrength,
       ),
     )
   }
