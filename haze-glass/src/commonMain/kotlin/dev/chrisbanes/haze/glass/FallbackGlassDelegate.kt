@@ -151,6 +151,13 @@ internal class FallbackGlassDelegate(
   }
 
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
+    draw(context, forceInput = false)
+  }
+
+  internal fun DrawScope.draw(
+    context: HazeEffectRuntimeDrawScope,
+    forceInput: Boolean,
+  ) {
     val prepared = preparedDraw ?: return
     val style = prepared.style
     val backgroundColor = style.backgroundColor
@@ -159,6 +166,10 @@ internal class FallbackGlassDelegate(
     if (style.alpha <= 0f) return
     trace(GlassTraceSection.FallbackDraw) {
       val shapePath = prepared.shapePath
+
+      if (forceInput && backgroundColor.alpha <= 0f) {
+        drawInputWithAlpha(context, alpha = 1f)
+      }
 
       fun DrawScope.drawFallback(alphaMultiplier: Float) {
         fun DrawScope.drawBase() {
