@@ -302,6 +302,10 @@ Modifier
   )
 ```
 
+Direct mouse, stylus, and touch positions track immediately.
+`interactionPositionAnimationSpec` controls movement to focus and `InteractionSource`-derived
+positions.
+
 Keep the visual response in `GlassStyle`, and pass each element's interaction source and behavior
 options to `hazeGlass`. The same Style can be reused without sharing interaction state.
 

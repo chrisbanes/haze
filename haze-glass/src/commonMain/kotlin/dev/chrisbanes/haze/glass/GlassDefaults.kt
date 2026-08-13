@@ -6,6 +6,7 @@ package dev.chrisbanes.haze.glass
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -20,7 +21,7 @@ public object GlassDefaults {
   /** Default light radius recorded by [style] as a fraction of the material's shortest side. */
   public const val interactionLightRadiusFraction: Float = 0.7f
 
-  /** Default animation recorded by [style] when the interaction light moves to a new position. */
+  /** Default animation used for focus and [InteractionSource]-derived positions. */
   public val positionAnimationSpec: FiniteAnimationSpec<Offset> = spring(
     dampingRatio = 1f,
     stiffness = Spring.StiffnessMedium,

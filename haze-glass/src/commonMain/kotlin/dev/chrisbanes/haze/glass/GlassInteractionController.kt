@@ -284,13 +284,14 @@ internal class GlassInteractionController(
   fun onPointerEvent(event: PointerEvent, size: Size) {
     if (disposed) return
     val hasDrawableSize = size.isDrawable()
+    var directPosition: Offset? = null
 
     val primaryChange = primaryPointerId?.let { id ->
       event.changes.firstOrNull { it.id == id }
     }
     if (primaryChange?.isConsumed == true && primaryChange.positionChangedIgnoreConsumed()) {
       if (hasDrawableSize) {
-        primaryChange.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+        directPosition = captureRawPosition(primaryChange.position, size)
       }
       cancelRawPress()
     }
@@ -317,13 +318,13 @@ internal class GlassInteractionController(
         primaryPointerId = change.id
         rawPressed = true
         if (hasDrawableSize) {
-          change.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+          directPosition = captureRawPosition(change.position, size)
         }
       }
     } else {
       event.changes.firstOrNull { it.id == primaryPointerId }?.let { change ->
         if (hasDrawableSize) {
-          change.position.validOrNull()?.let { rawPosition = it.clampTo(size) }
+          directPosition = captureRawPosition(change.position, size)
         }
         if (change.changedToUpIgnoreConsumed()) {
           primaryPointerId = null
@@ -332,7 +333,7 @@ internal class GlassInteractionController(
       }
     }
 
-    updateSignalsAndPosition(size)
+    updateSignalsAndPosition(size, directPosition)
   }
 
   fun cancelPointerInput(size: Size) {
@@ -414,6 +415,9 @@ internal class GlassInteractionController(
     positionJob = null
   }
 
+  private fun captureRawPosition(position: Offset, size: Size): Offset? =
+    position.validOrNull()?.clampTo(size)?.also { rawPosition = it }
+
   private fun cancelRawPress() {
     primaryPointerId = null
     rawPressed = false
@@ -426,21 +430,29 @@ internal class GlassInteractionController(
       ?.validOrNull()
   }
 
-  private fun updateSignalsAndPosition(size: Size) {
+  private fun updateSignalsAndPosition(size: Size, directPosition: Offset? = null) {
     updateSignals(currentSignals)
-    updatePositionForCurrentInputs(size)
+    updatePositionForCurrentInputs(size, directPosition)
   }
 
-  private fun updatePositionForCurrentInputs(size: Size) {
+  private fun updatePositionForCurrentInputs(size: Size, directPosition: Offset? = null) {
     if (!size.isDrawable()) return
-    val target = when {
-      rawPressed -> rawPosition ?: sourcePosition ?: size.center
-      sourcePresses.isNotEmpty() -> sourcePosition ?: rawPosition ?: size.center
-      rawHovered -> hoverPosition ?: size.center
-      sourceHovers.isNotEmpty() || sourceFocuses.isNotEmpty() -> size.center
-      else -> hoverPosition ?: rawPosition ?: size.center
+    when {
+      rawPressed -> retargetPosition(
+        target = (rawPosition ?: sourcePosition ?: size.center).clampTo(size),
+        immediate = rawPosition != null,
+      )
+      sourcePresses.isNotEmpty() -> updatePosition(
+        (sourcePosition ?: rawPosition ?: size.center).clampTo(size),
+      )
+      rawHovered -> retargetPosition(
+        target = (directPosition ?: hoverPosition ?: size.center).clampTo(size),
+        immediate = directPosition != null || hoverPosition != null,
+      )
+      sourceHovers.isNotEmpty() || sourceFocuses.isNotEmpty() -> updatePosition(size.center)
+      directPosition != null -> retargetPosition(directPosition, immediate = true)
+      else -> updatePosition((hoverPosition ?: rawPosition ?: size.center).clampTo(size))
     }
-    updatePosition(target.clampTo(size))
   }
 
   private fun retarget(
@@ -512,7 +524,11 @@ internal class GlassInteractionController(
     scaleY.snapTo(targets.scaleY)
   }
 
-  private fun retargetPosition(target: Offset, force: Boolean = false) {
+  private fun retargetPosition(
+    target: Offset,
+    force: Boolean = false,
+    immediate: Boolean = false,
+  ) {
     if (!hasInitialPositionTarget) {
       hasInitialPositionTarget = true
       positionTarget = target
@@ -523,13 +539,13 @@ internal class GlassInteractionController(
       }
       return
     }
-    if (!force && target == positionTarget) return
+    if (!force && target == positionTarget && (!immediate || position.value == target)) return
     positionTarget = target
     positionJob?.cancel()
     positionJob = scope.launch(
       if (configuration.forceFullMotion) FullMotionDurationScale else EmptyCoroutineContext,
     ) {
-      if (configuration.reducedMotion || !hasFrameClock) {
+      if (immediate || configuration.reducedMotion || !hasFrameClock) {
         position.snapTo(target)
         invalidateDraw()
       } else {
