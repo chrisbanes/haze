@@ -195,6 +195,23 @@ internal fun DemoChrome(
     },
     shape = shape,
     modifier = modifier,
+    interactionStyle = GlassStyle {
+      hovered {
+        animate(DefaultGlassHoverAnimationSpec, DefaultGlassReleaseAnimationSpec) {
+          lightingIntensity(0.35f)
+          refractionMultiplier(1.02f)
+          whitePointDelta(0.01f)
+        }
+      }
+      pressed {
+        animate(DefaultGlassPressAnimationSpec, DefaultGlassReleaseAnimationSpec) {
+          lightingIntensity(1f)
+          refractionMultiplier(1.08f)
+          whitePointDelta(0.04f)
+          scale(0.98f)
+        }
+      }
+    },
   ) {
     Row(
       modifier = Modifier.padding(4.dp),

@@ -72,6 +72,8 @@ import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.GlassTransformPivot
+import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -396,7 +398,24 @@ private fun GlassScaffoldSurface(
           tint(tint)
           shape(shape)
           optics(optics)
+          hovered {
+            animate(DefaultGlassHoverAnimationSpec, DefaultGlassReleaseAnimationSpec) {
+              lightingIntensity(0.35f)
+              refractionMultiplier(1.02f)
+              whitePointDelta(0.01f)
+            }
+          }
+          pressed {
+            animate(DefaultGlassPressAnimationSpec, DefaultGlassReleaseAnimationSpec) {
+              lightingIntensity(1f)
+              refractionMultiplier(1.08f)
+              whitePointDelta(0.04f)
+              scale(0.98f)
+            }
+          }
         },
+        interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
+        interactionTransformPivot = GlassTransformPivot.Pointer,
       )
       .clip(shape),
   ) {
