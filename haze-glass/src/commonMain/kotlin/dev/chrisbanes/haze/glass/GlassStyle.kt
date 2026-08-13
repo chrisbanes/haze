@@ -6,6 +6,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ProvidableCompositionLocal
@@ -160,7 +161,9 @@ public class GlassStyleScope internal constructor(
   }
 
   /**
-   * Sets the animation used when the interaction light moves to a new position.
+   * Sets the animation used for focus and [InteractionSource]-derived positions.
+   *
+   * Direct mouse, stylus, and touch input tracks immediately.
    *
    * This presentation is replayed into fresh animation state owned by each consuming node.
    */

@@ -197,6 +197,26 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun touchMove_tracksLatestPointerOnNextFrame() = runComposeUiTest {
+    mainClock.autoAdvance = false
+    val effect = GlassRuntimeEffect().apply {
+      testPressResponse()
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+    }
+    setTaggedEffectContent(effect)
+    mainClock.advanceTimeByFrame()
+
+    onNodeWithTag("glass").performTouchInput {
+      down(Offset(20f, 30f))
+      moveTo(Offset(80f, 70f))
+    }
+    mainClock.advanceTimeByFrame()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(80f, 70f))
+  }
+
+  @Test
   fun rawInput_primaryUpAtZeroSizeClearsActivePress() = runComposeUiTest {
     val effect = reducedPressEffect()
     var size by mutableStateOf(100.dp)
@@ -320,6 +340,52 @@ class GlassInteractionControllerTest : ContextTest() {
     waitForIdle()
     assertThat(renderState(effect).lightingIntensity).isEqualTo(0f)
     assertThat(renderState(effect).position).isEqualTo(Offset(30f, 40f))
+  }
+
+  @Test
+  fun mouseHoverMove_tracksLatestPointerOnNextFrame() = runComposeUiTest {
+    mainClock.autoAdvance = false
+    val effect = GlassRuntimeEffect().apply {
+      testHoverResponse()
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+    }
+    setTaggedEffectContent(effect)
+    mainClock.advanceTimeByFrame()
+
+    onNodeWithTag("glass").performMouseInput {
+      enter(Offset(50f, 50f))
+      moveTo(Offset(90f, 50f))
+    }
+    mainClock.advanceTimeByFrame()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(90f, 50f))
+  }
+
+  @Test
+  fun mouseHoverAtSyntheticTarget_cancelsInFlightAnimation() = runComposeUiTest {
+    mainClock.autoAdvance = false
+    val effect = GlassRuntimeEffect().apply {
+      testHoverResponse()
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+    }
+    setTaggedEffectContent(effect)
+    mainClock.advanceTimeByFrame()
+    val controller = checkNotNull(runtime(effect).interactionControllerForTest)
+
+    onNodeWithTag("glass").performMouseInput { enter(Offset(10f, 50f)) }
+    mainClock.advanceTimeByFrame()
+    onNodeWithTag("glass").performMouseInput { exit() }
+    controller.updatePosition(Offset(50f, 50f))
+    mainClock.advanceTimeBy(200)
+    assertThat(renderState(effect).position.x).isGreaterThan(10f)
+    assertThat(renderState(effect).position.x).isLessThan(50f)
+
+    onNodeWithTag("glass").performMouseInput { enter(Offset(50f, 50f)) }
+    mainClock.advanceTimeByFrame()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(50f, 50f))
   }
 
   @Test

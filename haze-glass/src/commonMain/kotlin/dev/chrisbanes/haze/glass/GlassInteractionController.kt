@@ -433,14 +433,21 @@ internal class GlassInteractionController(
 
   private fun updatePositionForCurrentInputs(size: Size) {
     if (!size.isDrawable()) return
-    val target = when {
-      rawPressed -> rawPosition ?: sourcePosition ?: size.center
-      sourcePresses.isNotEmpty() -> sourcePosition ?: rawPosition ?: size.center
-      rawHovered -> hoverPosition ?: size.center
-      sourceHovers.isNotEmpty() || sourceFocuses.isNotEmpty() -> size.center
-      else -> hoverPosition ?: rawPosition ?: size.center
+    when {
+      rawPressed -> retargetPosition(
+        target = (rawPosition ?: sourcePosition ?: size.center).clampTo(size),
+        immediate = rawPosition != null,
+      )
+      sourcePresses.isNotEmpty() -> updatePosition(
+        (sourcePosition ?: rawPosition ?: size.center).clampTo(size),
+      )
+      rawHovered -> retargetPosition(
+        target = (hoverPosition ?: size.center).clampTo(size),
+        immediate = hoverPosition != null,
+      )
+      sourceHovers.isNotEmpty() || sourceFocuses.isNotEmpty() -> updatePosition(size.center)
+      else -> updatePosition((hoverPosition ?: rawPosition ?: size.center).clampTo(size))
     }
-    updatePosition(target.clampTo(size))
   }
 
   private fun retarget(
@@ -512,7 +519,11 @@ internal class GlassInteractionController(
     scaleY.snapTo(targets.scaleY)
   }
 
-  private fun retargetPosition(target: Offset, force: Boolean = false) {
+  private fun retargetPosition(
+    target: Offset,
+    force: Boolean = false,
+    immediate: Boolean = false,
+  ) {
     if (!hasInitialPositionTarget) {
       hasInitialPositionTarget = true
       positionTarget = target
@@ -523,13 +534,13 @@ internal class GlassInteractionController(
       }
       return
     }
-    if (!force && target == positionTarget) return
+    if (!force && target == positionTarget && (!immediate || position.value == target)) return
     positionTarget = target
     positionJob?.cancel()
     positionJob = scope.launch(
       if (configuration.forceFullMotion) FullMotionDurationScale else EmptyCoroutineContext,
     ) {
-      if (configuration.reducedMotion || !hasFrameClock) {
+      if (immediate || configuration.reducedMotion || !hasFrameClock) {
         position.snapTo(target)
         invalidateDraw()
       } else {
