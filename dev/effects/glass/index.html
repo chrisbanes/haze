@@ -1636,6 +1636,9 @@ and your behavior modifiers:</p>
 <span class="w">    </span><span class="n">interactionReducedMotionPolicy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassReducedMotionPolicy</span><span class="p">.</span><span class="na">System</span><span class="p">,</span>
 <span class="w">  </span><span class="p">)</span>
 </code></pre></div>
+<p>Direct mouse, stylus, and touch positions track immediately.
+<code>interactionPositionAnimationSpec</code> controls movement to focus and <code>InteractionSource</code>-derived
+positions.</p>
 <p>Keep the visual response in <code>GlassStyle</code>, and pass each element's interaction source and behavior
 options to <code>hazeGlass</code>. The same Style can be reused without sharing interaction state.</p>
 <p>When states overlap, pressed takes priority over hovered, which takes priority over focused. Use
