@@ -267,6 +267,7 @@ private data class GlassContinuityCase(
   val name: String,
   val size: DpSize,
   val shape: RoundedCornerShape,
+  val checksOffCenterRefraction: Boolean = false,
 )
 
 private fun assertContinuousAt(
@@ -289,6 +290,12 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
     GlassContinuityCase("square", DpSize(220.dp, 220.dp), RoundedCornerShape(28.dp)),
     GlassContinuityCase("wide", DpSize(280.dp, 160.dp), RoundedCornerShape(28.dp)),
     GlassContinuityCase("tall", DpSize(160.dp, 280.dp), RoundedCornerShape(28.dp)),
+    GlassContinuityCase(
+      name = "pill",
+      size = DpSize(320.dp, 64.dp),
+      shape = RoundedCornerShape(32.dp),
+      checksOffCenterRefraction = true,
+    ),
   )
   val profiles = listOf(SurfaceProfile.Circle, SurfaceProfile.Squircle)
   val opticsCases = listOf(
@@ -360,6 +367,28 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
           boundaryIndex = bounds.center.y - centerYRange.first,
           label = "${case.name}/$profile/$optics vertical center",
         )
+        if (case.checksOffCenterRefraction) {
+          assertContinuousAt(
+            derivative = vertical.verticalScanlineDerivative(
+              x = bounds.center.x + bounds.width / 4,
+              yRange = centerYRange,
+            ),
+            boundaryIndex = bounds.center.y - centerYRange.first,
+            label = "${case.name}/$profile/$optics vertical off-center",
+          )
+          if (profile == SurfaceProfile.Circle && optics is GlassOptics.Fixed) {
+            val probeX = bounds.center.x + bounds.width / 4
+            val probeY = bounds.center.y
+            val refractedLuminance = horizontal[probeX, probeY].luminance()
+            effect.updateFixedOptics { copy(refractionStrength = 0f) }
+            carrier = GlassContinuityCarrier.Horizontal
+            waitForIdle()
+            val unrefractedLuminance =
+              captureInvariantPixels()[probeX, probeY].luminance()
+            assertThat(abs(refractedLuminance - unrefractedLuminance))
+              .isGreaterThan(2f / 255f)
+          }
+        }
       }
     }
   }

@@ -102,11 +102,17 @@ internal object GlassShaders {
   } else {
     ""
   }}
-      float heightNorm = surfaceHeightNormFromSignedDistance(outputSd);
+      float fieldWeight = opticalFieldWeight();
+      float heightNorm = surfaceHeightNormFromSignedDistance(
+        localCoord,
+        outputSd,
+        fieldWeight
+      );
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
-        ${if (interactionOptics) "localizedRefractionMultiplier" else "1.0"}
+        ${if (interactionOptics) "localizedRefractionMultiplier" else "1.0"},
+        fieldWeight
       );
       vec2 refractCoord = clampSample(coord + displacement);
 
@@ -125,7 +131,7 @@ internal object GlassShaders {
         if (fresnelExponent == 0.0) {
           ambient = 1.0 + clampedAmbientResponse;
         } else {
-          vec2 gradient = surfaceLightingGradient(localCoord, outputSd);
+          vec2 gradient = surfaceLightingGradient(localCoord, outputSd, fieldWeight);
           vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
           vec3 normal = shapeNormal;
           if (contentNormalBlend > 0.0) {
@@ -349,11 +355,13 @@ internal object GlassShaders {
     ""
   }}
 
-      float heightNorm = surfaceHeightNormFromSignedDistance(sd);
+      float fieldWeight = opticalFieldWeight();
+      float heightNorm = surfaceHeightNormFromSignedDistance(localCoord, sd, fieldWeight);
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
-        ${if (interactive) "localizedRefractionMultiplier" else "1.0"}
+        ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
+        fieldWeight
       );
       vec2 refractCoord = clampSample(coord + displacement);
 
@@ -371,7 +379,7 @@ internal object GlassShaders {
         if (fresnelExponent == 0.0) {
           ambient = 1.0 + clampedAmbientResponse;
         } else {
-          vec2 gradient = surfaceLightingGradient(localCoord, sd);
+          vec2 gradient = surfaceLightingGradient(localCoord, sd, fieldWeight);
           vec3 shapeNormal = normalize(vec3(-gradient.x, -gradient.y, 1.0));
           vec3 normal = shapeNormal;
           if (contentNormalBlend > 0.0) {
@@ -461,11 +469,17 @@ internal object GlassShaders {
       );
       if (outputDistToEdge > detailWidth + maxPossibleDisplacement) return vec4(0.0);
 
-      float heightNorm = surfaceHeightNormFromSignedDistance(outputSd);
+      float fieldWeight = opticalFieldWeight();
+      float heightNorm = surfaceHeightNormFromSignedDistance(
+        localCoord,
+        outputSd,
+        fieldWeight
+      );
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
-        ${if (interactive) "localizedRefractionMultiplier" else "1.0"}
+        ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
+        fieldWeight
       );
       vec2 refractCoord = clampSample(coord + displacement);
       vec2 refractedLocalCoord = localCoord + displacement;
@@ -716,69 +730,172 @@ internal object GlassShaders {
       return circleMap(x);
     }
 
-    float surfaceHeightFromSignedDistance(float sd) {
+    float elongationWeight() {
+      float shortestSide = max(min(materialSize.x, materialSize.y), 0.0001);
+      float aspectRatio = max(materialSize.x, materialSize.y) / shortestSide;
+      // Preserve near-square optics and complete the transition for long controls.
+      return smootherstep(clamp((aspectRatio - 1.5) / 1.5, 0.0, 1.0));
+    }
+
+    vec2 normalizedMaterialCoord(vec2 localCoord) {
+      vec2 halfSize = max(materialSize * 0.5, vec2(0.0001));
+      return (localCoord - halfSize) / halfSize;
+    }
+
+    float opticalFieldWeight() {
+      float inradius = max(min(materialSize.x, materialSize.y) * 0.5, 0.0001);
+      // Begin the transition before opposing edge profiles reach the medial axis.
+      float overlapWeight = smootherstep(
+        clamp((refractionHeight / inradius - 0.75) / 0.25, 0.0, 1.0)
+      );
+      return elongationWeight() * overlapWeight;
+    }
+
+    float domeRadius(vec2 normalizedCoord) {
+      vec2 squaredCoord = normalizedCoord * normalizedCoord;
+      // A smooth rectangular radius: zero at center and one on every axis-aligned edge.
+      return sqrt(clamp(
+        squaredCoord.x + squaredCoord.y - squaredCoord.x * squaredCoord.y,
+        0.0,
+        1.0
+      ));
+    }
+
+    float domeDistance(vec2 localCoord) {
+      return max(
+        (1.0 - domeRadius(normalizedMaterialCoord(localCoord))) * refractionHeight,
+        0.0
+      );
+    }
+
+    float opticalDistanceFromSignedDistance(
+      vec2 localCoord,
+      float sd,
+      float fieldWeight
+    ) {
       float distToEdge = max(-sd, 0.0);
+      if (fieldWeight <= 0.0) return distToEdge;
+      float distanceFromDome = domeDistance(localCoord);
+      if (fieldWeight >= 1.0) return distanceFromDome;
+      return mix(distToEdge, distanceFromDome, fieldWeight);
+    }
+
+    float surfaceHeightFromOpticalDistance(float opticalDistance) {
       float refractionZone = max(refractionHeight, 0.0001);
-      float t = clamp(distToEdge / refractionZone, 0.0, 1.0);
+      float t = clamp(opticalDistance / refractionZone, 0.0, 1.0);
       return evaluateProfile(t) * refractionZone;
     }
 
-    float surfaceHeightAt(vec2 localCoord, vec4 customRadii) {
+    float surfaceHeightAt(vec2 localCoord, vec4 customRadii, float fieldWeight) {
+      if (fieldWeight >= 1.0) {
+        return surfaceHeightFromOpticalDistance(domeDistance(localCoord));
+      }
       float sd = sdRoundedRect(localCoord, materialSize, customRadii);
-      return surfaceHeightFromSignedDistance(sd);
+      float opticalDistance = opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight);
+      return surfaceHeightFromOpticalDistance(opticalDistance);
     }
 
-    float surfaceHeight(vec2 localCoord) {
-      return surfaceHeightAt(localCoord, cornerRadii);
+    float surfaceHeight(vec2 localCoord, float fieldWeight) {
+      return surfaceHeightAt(localCoord, cornerRadii, fieldWeight);
     }
 
-    float surfaceHeightNormFromSignedDistance(float sd) {
+    float surfaceHeightNormFromSignedDistance(
+      vec2 localCoord,
+      float sd,
+      float fieldWeight
+    ) {
       float refractionZone = max(refractionHeight, 0.0001);
-      return clamp(surfaceHeightFromSignedDistance(sd) / refractionZone, -1.0, 1.0);
+      float opticalDistance = opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight);
+      return clamp(
+        surfaceHeightFromOpticalDistance(opticalDistance) / refractionZone,
+        -1.0,
+        1.0
+      );
+    }
+
+    vec2 opticalSurfaceGradient(vec2 localCoord, float fieldWeight) {
+      if (fieldWeight >= 1.0) {
+        vec2 normalizedCoord = normalizedMaterialCoord(localCoord);
+        vec2 squaredCoord = normalizedCoord * normalizedCoord;
+        return vec2(
+          normalizedCoord.x * (1.0 - squaredCoord.y),
+          normalizedCoord.y * (1.0 - squaredCoord.x)
+        );
+      }
+      float normalBlendWidth = max(refractionHeight, 1.0);
+      vec2 boundaryGradient = gradSdRoundedRect(
+        localCoord,
+        materialSize,
+        cornerRadii,
+        normalBlendWidth
+      );
+      if (fieldWeight <= 0.0) return boundaryGradient;
+      vec2 normalizedCoord = normalizedMaterialCoord(localCoord);
+      vec2 squaredCoord = normalizedCoord * normalizedCoord;
+      vec2 domeGradient = vec2(
+        normalizedCoord.x * (1.0 - squaredCoord.y),
+        normalizedCoord.y * (1.0 - squaredCoord.x)
+      );
+      return mix(
+        boundaryGradient,
+        domeGradient,
+        fieldWeight
+      );
     }
 
     vec2 refractionDisplacement(
       vec2 localCoord,
       float heightNorm,
-      float refractionMultiplier
+      float refractionMultiplier,
+      float fieldWeight
     ) {
       float effectiveRefractionStrength =
         clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
       float displacementMagnitude =
         heightNorm * effectiveRefractionStrength * refractionScale;
-      float normalBlendWidth = max(refractionHeight, 1.0);
-      vec2 opticalGradient =
-        gradSdRoundedRect(localCoord, materialSize, cornerRadii, normalBlendWidth);
-      float gradientLength = length(opticalGradient);
-      float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
-      vec2 refractionDir = opticalGradient / max(gradientLength, 0.0001);
-      return -refractionDir * displacementMagnitude * centerFade;
+      vec2 opticalGradient = opticalSurfaceGradient(localCoord, fieldWeight);
+      vec2 displacementGradient = opticalGradient;
+      if (fieldWeight < 1.0) {
+        float gradientLength = length(opticalGradient);
+        float centerFade = smootherstep(clamp(gradientLength / 0.5, 0.0, 1.0));
+        vec2 normalizedGradient =
+          opticalGradient / max(gradientLength, 0.0001) * centerFade;
+        displacementGradient = mix(normalizedGradient, opticalGradient, fieldWeight);
+      }
+      return -displacementGradient * displacementMagnitude;
     }
   """
 
   private fun opticalHelpers(): String = """
-    vec2 surfaceGradient(vec2 localCoord) {
-      float left = surfaceHeight(clampMaterial(localCoord - vec2(sampleStep, 0.0)));
-      float right = surfaceHeight(clampMaterial(localCoord + vec2(sampleStep, 0.0)));
-      float up = surfaceHeight(clampMaterial(localCoord - vec2(0.0, sampleStep)));
-      float down = surfaceHeight(clampMaterial(localCoord + vec2(0.0, sampleStep)));
+    vec2 surfaceGradient(vec2 localCoord, float fieldWeight) {
+      float left = surfaceHeight(
+        clampMaterial(localCoord - vec2(sampleStep, 0.0)),
+        fieldWeight
+      );
+      float right = surfaceHeight(
+        clampMaterial(localCoord + vec2(sampleStep, 0.0)),
+        fieldWeight
+      );
+      float up = surfaceHeight(
+        clampMaterial(localCoord - vec2(0.0, sampleStep)),
+        fieldWeight
+      );
+      float down = surfaceHeight(
+        clampMaterial(localCoord + vec2(0.0, sampleStep)),
+        fieldWeight
+      );
       return vec2(right - left, down - up) * (0.5 / max(sampleStep, 0.0001));
     }
 
-    vec2 surfaceLightingGradient(vec2 localCoord, float sd) {
+    vec2 surfaceLightingGradient(vec2 localCoord, float sd, float fieldWeight) {
       if (surfaceProfile == 1) {
         float refractionZone = max(refractionHeight, 0.0001);
-        float t = clamp(max(-sd, 0.0) / refractionZone, 0.0, 1.0);
+        float opticalDistance = opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight);
+        float t = clamp(opticalDistance / refractionZone, 0.0, 1.0);
         float lightingSlope = 2.0 * (1.0 - smootherstep(t));
-        float normalBlendWidth = max(refractionHeight, 1.0);
-        return gradSdRoundedRect(
-          localCoord,
-          materialSize,
-          cornerRadii,
-          normalBlendWidth
-        ) * lightingSlope;
+        return opticalSurfaceGradient(localCoord, fieldWeight) * lightingSlope;
       }
-      return surfaceGradient(localCoord);
+      return surfaceGradient(localCoord, fieldWeight);
     }
 
     vec3 unpremultiply(vec4 color) {
