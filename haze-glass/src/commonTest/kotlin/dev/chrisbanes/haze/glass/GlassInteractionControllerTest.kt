@@ -217,6 +217,27 @@ class GlassInteractionControllerTest : ContextTest() {
   }
 
   @Test
+  fun touchUp_tracksLatestPointerOnNextFrame() = runComposeUiTest {
+    mainClock.autoAdvance = false
+    val effect = GlassRuntimeEffect().apply {
+      testPressResponse()
+      interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full
+      style = GlassStyle { interactionPositionAnimationSpec(tween(1_000)) }
+    }
+    setTaggedEffectContent(effect)
+    mainClock.advanceTimeByFrame()
+
+    onNodeWithTag("glass").performTouchInput {
+      down(Offset(20f, 30f))
+      updatePointerTo(0, Offset(80f, 70f))
+      up()
+    }
+    mainClock.advanceTimeByFrame()
+
+    assertThat(renderState(effect).position).isEqualTo(Offset(80f, 70f))
+  }
+
+  @Test
   fun rawInput_primaryUpAtZeroSizeClearsActivePress() = runComposeUiTest {
     val effect = reducedPressEffect()
     var size by mutableStateOf(100.dp)
