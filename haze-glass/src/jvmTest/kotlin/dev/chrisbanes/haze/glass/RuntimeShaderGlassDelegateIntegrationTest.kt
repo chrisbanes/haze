@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -45,6 +46,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.Bitmask
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
@@ -516,6 +518,24 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     assertThat(runtime(effect).delegate).isInstanceOf<FallbackGlassDelegate>()
     assertThat(creationAttempts).isEqualTo(attemptsAfterDowngrade)
     onNodeWithTag("glass").captureToImage()
+  }
+
+  @Test
+  fun runtimeDrawFailure_drawsFallbackInTheFailureFrame() = runComposeUiTest {
+    val effect = activeDetailEffect().apply { tint = Color.Blue }
+    setContent { RuntimeGlassTestContent(effect, tag = "glass") }
+    waitForIdle()
+
+    val runtime = runtime(effect)
+    assertThat(runtime.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
+    runtime.delegate = FailingRuntimeShaderGlassDelegate()
+    checkNotNull(runtime.attachedContextForTest).invalidateDraw()
+    waitForIdle()
+
+    val failureFrameCenter = onNodeWithTag("glass").captureToImage().toPixelMap()[60, 60]
+    assertThat(runtime.delegate).isInstanceOf<FallbackGlassDelegate>()
+    assertThat(failureFrameCenter.blue).isGreaterThan(0.9f)
+    assertThat(failureFrameCenter.red).isLessThan(0.1f)
   }
 
   @Test
@@ -1036,6 +1056,14 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     bottomRight,
     bottomLeft,
   )
+
+  private class FailingRuntimeShaderGlassDelegate : GlassRuntimeEffect.Delegate {
+    override fun DrawScope.prepareDraw(context: HazeEffectRuntimeDrawScope) = Unit
+
+    override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope): Nothing {
+      throw RuntimeShaderRenderEffectException(IllegalArgumentException("draw failure"))
+    }
+  }
 
   private fun RuntimeShaderGlassDelegate.interactionShaderHandle(fieldName: String): Any {
     return checkNotNull(interactionShaderHandleOrNull(fieldName))

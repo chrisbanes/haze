@@ -476,8 +476,10 @@ internal class GlassRuntimeEffect() :
           with(selectedDelegate) { draw(context) }
         }
       } catch (failure: RuntimeShaderRenderEffectException) {
-        if (selectedDelegate !is RuntimeShaderGlassDelegate) throw failure
-        downgradeRuntimeDelegate(context, failure)
+        val fallback = downgradeRuntimeDelegate(context, failure)
+        withMaterialTransform(context) {
+          with(fallback) { draw(context) }
+        }
       }
     } finally {
       resetDirtyTracker()
@@ -487,14 +489,16 @@ internal class GlassRuntimeEffect() :
   private fun DrawScope.downgradeRuntimeDelegate(
     context: HazeEffectRuntimeDrawScope,
     failure: RuntimeShaderRenderEffectException,
-  ) {
+  ): FallbackGlassDelegate {
     runtimeShaderIncompatible = true
     HazeLogger.d(TAG) {
-      "Runtime shader construction failed; using fallback until reattachment: $failure"
+      "Runtime shader rendering failed; using fallback until reattachment: $failure"
     }
-    delegate = FallbackGlassDelegate(this@GlassRuntimeEffect)
-    with(delegate) { prepareDraw(context) }
+    val fallback = FallbackGlassDelegate(this@GlassRuntimeEffect)
+    delegate = fallback
+    with(fallback) { prepareDraw(context) }
     context.invalidateDraw()
+    return fallback
   }
 
   override fun HazeEffectRuntimeDrawScope.drawForeground(style: GlassNodeConfiguration) {
