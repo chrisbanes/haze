@@ -2,7 +2,7 @@
 site_name: "Haze"
 site_description: "Visual effects (blur and more) for Compose Multiplatform"
 site_author: "Chris Banes"
-site_url: "https://chribanes.github.io/haze/"
+site_url: "https://chrisbanes.github.io/haze/"
 edit_uri: "tree/main/docs/"
 remote_branch: gh-pages
 strict: true

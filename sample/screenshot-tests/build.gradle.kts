@@ -40,6 +40,12 @@ kotlin {
       }
     }
 
+    getByName("androidHostTest") {
+      dependencies {
+        implementation(libs.roborazzi.android)
+      }
+    }
+
     jvmTest {
       dependencies {
         implementation(libs.coil.compose)
