@@ -343,6 +343,7 @@ fun Samples(
   navController: NavHostController = rememberNavController(),
   samples: List<Sample> = Samples,
   forceBlur: Boolean = false,
+  useDarkColors: Boolean = isSystemInDarkTheme(),
 ) {
   val coilPlatformContext = LocalPlatformContext.current
   val inspectionMode = LocalInspectionMode.current
@@ -365,7 +366,7 @@ fun Samples(
     }
   }
 
-  SamplesTheme {
+  SamplesTheme(useDarkColors = useDarkColors) {
     CompositionLocalProvider(LocalHazeBlurStyle provides localBlurStyle) {
       val currentDestination = navController.currentBackStackEntryAsState().value?.destination
       NavigationSuiteScaffold(

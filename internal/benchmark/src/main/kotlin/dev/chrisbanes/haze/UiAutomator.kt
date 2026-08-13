@@ -172,11 +172,8 @@ private fun UiDevice.findGlassSampleListItem(selector: BySelector): UiObject2 =
   findSampleListItem(effect = "glass", selector = selector)
 
 private fun UiDevice.findSampleListItem(effect: String, selector: BySelector): UiObject2 {
-  val sampleList = findObject(By.res("sample_list")) ?: run {
-    waitForObject(By.res("sample_effect_$effect")).click()
-    waitForObject(By.res("sample_list"))
-  }
-  return sampleList
+  waitForObject(By.res("sample_effect_$effect")).click()
+  return waitForObject(By.res("sample_list"))
     .apply { setGestureMarginPercentage(0.1f) }
     .scrollUntil(Direction.DOWN, Until.findObject(selector))
 }

@@ -34,7 +34,10 @@ private fun ScreenshotUiTest.captureSampleBrowser() {
   setContent {
     CompositionLocalProvider(LocalInspectionMode provides true) {
       ScreenshotTheme {
-        Samples(appTitle = "Haze Samples")
+        Samples(
+          appTitle = "Haze Samples",
+          useDarkColors = false,
+        )
       }
     }
   }
