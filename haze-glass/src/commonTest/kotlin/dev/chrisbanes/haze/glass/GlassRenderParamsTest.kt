@@ -284,6 +284,18 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun interactionOutputFeather_scalesWithRadiusAndKeepsSampleStepMinimum() {
+    assertThat(
+      calculateGlassInteractionOutputFeatherWidth(radiusPx = 200f, sampleStepPx = 1f),
+      name = "radius-scaled feather",
+    ).isEqualTo(50f)
+    assertThat(
+      calculateGlassInteractionOutputFeatherWidth(radiusPx = 2f, sampleStepPx = 1f),
+      name = "sample-step minimum",
+    ).isEqualTo(1f)
+  }
+
+  @Test
   fun interactionPatch_isIndependentOfPrecomputedBlur() {
     val coordinates = GlassCoordinates(
       Size(1000f, 600f),

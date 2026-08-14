@@ -10,6 +10,8 @@ import androidx.compose.ui.unit.IntSize
 import kotlin.math.ceil
 import kotlin.math.floor
 
+private const val INTERACTION_OUTPUT_FEATHER_RADIUS_FRACTION = 0.25f
+
 internal data class GlassInteractionTopology(
   val hasOptics: Boolean,
   val hasLighting: Boolean,
@@ -62,6 +64,14 @@ internal fun calculateGlassInteractionPatchSize(
     height = minOf(side, sampleSize.height.toInt().coerceAtLeast(0)),
   )
 }
+
+internal fun calculateGlassInteractionOutputFeatherWidth(
+  radiusPx: Float,
+  sampleStepPx: Float,
+): Float = maxOf(
+  sampleStepPx,
+  radiusPx * INTERACTION_OUTPUT_FEATHER_RADIUS_FRACTION,
+)
 
 internal fun resolveGlassInteractionPatch(
   params: GlassRenderParams,

@@ -143,8 +143,8 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun glass_interactionRefractionFoldSeamIsSmooth() = runScreenshotTest {
-    assertGlassInteractionFoldSeamIsSmoothInvariant()
+  fun glass_interactionOpticsHasNoCircularPatchSeam() = runScreenshotTest {
+    assertGlassInteractionOpticsHasNoCircularPatchSeamInvariant()
   }
 
   @Test

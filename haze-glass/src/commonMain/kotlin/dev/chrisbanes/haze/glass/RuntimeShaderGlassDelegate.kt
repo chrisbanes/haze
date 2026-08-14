@@ -341,7 +341,10 @@ internal class RuntimeShaderGlassDelegate(
         layer = outputLayer,
         input = if (detail == null) checkNotNull(interactionOpticalPlatformEffect) else null,
         patch = patch,
-        featherWidth = maxOf(params.sampleStepPx, 1f),
+        featherWidth = calculateGlassInteractionOutputFeatherWidth(
+          radiusPx = patch.uniforms.radiusPx,
+          sampleStepPx = params.sampleStepPx,
+        ),
       )
     }
     if (render.interactionTopology.hasLighting) {
@@ -688,7 +691,10 @@ internal class RuntimeShaderGlassDelegate(
               null
             },
             patch = interactionPatch,
-            featherWidth = maxOf(params.sampleStepPx, 1f),
+            featherWidth = calculateGlassInteractionOutputFeatherWidth(
+              radiusPx = interactionPatch.uniforms.radiusPx,
+              sampleStepPx = params.sampleStepPx,
+            ),
           )
         }
         if (interactionUniforms.hasLighting && interactionPatch != null) {
