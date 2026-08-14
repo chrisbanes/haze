@@ -265,7 +265,7 @@ class GlassShadersTest {
     assertThat(shader).contains("unpremultiply(sampleDepth(")
     assertThat(shader).contains("vec4 baseSample = content.eval(clampSample(coord));")
     assertThat(shader).contains(
-      "vec4 refractedCenterSample = content.eval(clampSample(refractCoord));",
+      "vec4 refractedCenterSample = sampleDepth(refractCoord);",
     )
     assertThat(shader).contains(
       "sampleChroma(refractCoord, chromaOffset, refractedCenterSample)",
@@ -346,7 +346,7 @@ class GlassShadersTest {
       )
       assertThat(shader).contains("float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);")
       assertThat(shader).contains(
-        "float foldEnvelope = 16.0 * foldT * foldT * (1.0 - foldT) * (1.0 - foldT);",
+        "return 16.0 * foldT * foldT * (1.0 - foldT) * (1.0 - foldT);",
       )
       assertThat(shader).contains(
         "float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);",
@@ -358,8 +358,14 @@ class GlassShadersTest {
         "float foldTarget = foldDirection * foldEnvelope;",
       )
       assertThat(shader).contains(
-        "float effectiveHeightNorm = mix(heightNorm, foldTarget, foldWeight);",
+        "return mix(heightNorm, foldTarget, foldWeight);",
       )
+      assertThat(shader).contains("float refractionFoldSeamWeight(")
+      assertThat(shader).contains("if (refractionFoldStrength <= 0.0) return 0.0;")
+      assertThat(shader).contains("vec2 refractionFoldSampleOffset(")
+      assertThat(shader)
+        .contains("if (dot(foldSeamAxis, foldSeamAxis) <= 0.000001) return centerSample;")
+      assertThat(shader).contains("vec2 foldSeamTangent = vec2(-foldSeamAxis.y, foldSeamAxis.x);")
       assertThat(shader).contains(
         "return -displacementGradient * displacementMagnitude;",
       )
@@ -499,6 +505,16 @@ class GlassShadersTest {
   }
 
   @Test
+  fun refractionDetailCoverageShader_omitsUnreachableSourceSampling() {
+    val shader = GlassShaders.buildRefractionDetail(coverageOnly = true)
+
+    assertThat(shader).contains("return vec4(vec3(detailAlpha), detailAlpha);")
+    assertThat(shader).doesNotContain("vec4 sampleDepth")
+    assertThat(shader).doesNotContain("sampleFoldSmoothedDepth")
+    assertThat(shader).doesNotContain("content.eval")
+  }
+
+  @Test
   fun refractionDetailShader_isSharpPremultipliedShapeMaskedEdgeDetail() {
     val shader = GlassShaders.buildRefractionDetail()
 
@@ -512,7 +528,7 @@ class GlassShadersTest {
       "effectiveHeightNorm * effectiveRefractionStrength * refractionScale;",
     )
     assertThat(shader).contains("vec2 refractCoord = clampSample(coord + displacement);")
-    assertThat(shader).contains("vec4 sharpSample = content.eval(refractCoord);")
+    assertThat(shader).contains("vec4 sharpSample = sampleDepth(refractCoord);")
     assertThat(shader)
       .contains("opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight)")
     assertThat(shader).contains("surfaceHeightNormFromOpticalDistance(opticalDistance)")
@@ -536,7 +552,7 @@ class GlassShadersTest {
     val transparentRejection = "if (detailAlpha <= 0.0) return vec4(0.0);"
     assertThat(shader).contains(transparentRejection)
     assertThat(shader.indexOf(transparentRejection))
-      .isLessThan(shader.indexOf("vec4 sharpSample = content.eval(refractCoord);"))
+      .isLessThan(shader.indexOf("vec4 sharpSample = sampleDepth(refractCoord);"))
     assertThat(shader).contains("vec4 detailColor = sharpSample * detailAlpha;")
     assertThat(shader).contains("if (outputSd > 0.0) return vec4(0.0);")
     assertThat(shader).contains("return detailColor.a > 0.0 ? detailColor : vec4(0.0);")
@@ -564,7 +580,7 @@ class GlassShadersTest {
         ),
       )
     assertThat(main.indexOf(conservativeRejection))
-      .isLessThan(main.indexOf("vec4 sharpSample = content.eval(refractCoord);"))
+      .isLessThan(main.indexOf("vec4 sharpSample = sampleDepth(refractCoord);"))
   }
 
   @Test
@@ -580,7 +596,7 @@ class GlassShadersTest {
     assertThat(shader.indexOf("float sourceDistToEdge = max(-refractedSd, 0.0);"))
       .isLessThan(shader.indexOf(preciseRejection))
     assertThat(shader.indexOf(preciseRejection))
-      .isLessThan(shader.indexOf("vec4 sharpSample = content.eval(refractCoord);"))
+      .isLessThan(shader.indexOf("vec4 sharpSample = sampleDepth(refractCoord);"))
   }
 
   @Test

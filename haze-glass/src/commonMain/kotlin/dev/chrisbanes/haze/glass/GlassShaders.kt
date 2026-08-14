@@ -74,6 +74,8 @@ internal object GlassShaders {
 
     ${opticalHelpers()}
 
+    ${refractionFoldSamplingHelpers()}
+
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       vec2 halfSize = materialSize * 0.5;
@@ -124,6 +126,18 @@ internal object GlassShaders {
       vec4 refractedCenter = sampleDepth(refractCoord);
       vec3 refractedStraightColor =
         sampleChroma(refractCoord, chromaOffset, refractedCenter);
+      float foldSeamWeight =
+        refractionFoldSeamWeight(heightNorm, opticalDistance);
+      refractedCenter = sampleFoldSmoothedDepth(
+        refractedCenter,
+        refractCoord,
+        localCoord,
+        ${if (interactionOptics) "localizedRefractionMultiplier" else "1.0"},
+        fieldWeight,
+        foldSeamWeight
+      );
+      refractedStraightColor =
+        mix(refractedStraightColor, unpremultiply(refractedCenter), foldSeamWeight);
 
       float ambient = 1.0;
       if (ambientResponse > 0.0) {
@@ -330,6 +344,8 @@ internal object GlassShaders {
 
     ${opticalHelpers()}
 
+    ${refractionFoldSamplingHelpers()}
+
     vec4 main(vec2 coord) {
       vec2 localCoord = materialCoord(coord);
       vec2 halfSize = materialSize * 0.5;
@@ -373,9 +389,21 @@ internal object GlassShaders {
         (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)
       );
       vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
-      vec4 refractedCenterSample = content.eval(clampSample(refractCoord));
+      vec4 refractedCenterSample = sampleDepth(refractCoord);
       vec3 refractedStraightColor =
         sampleChroma(refractCoord, chromaOffset, refractedCenterSample);
+      float foldSeamWeight =
+        refractionFoldSeamWeight(heightNorm, opticalDistance);
+      refractedCenterSample = sampleFoldSmoothedDepth(
+        refractedCenterSample,
+        refractCoord,
+        localCoord,
+        ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
+        fieldWeight,
+        foldSeamWeight
+      );
+      refractedStraightColor =
+        mix(refractedStraightColor, unpremultiply(refractedCenterSample), foldSeamWeight);
 
       float ambient = 1.0;
       if (ambientResponse > 0.0) {
@@ -451,6 +479,18 @@ internal object GlassShaders {
 
     ${surfaceAndDisplacementHelpers()}
 
+    ${if (coverageOnly) {
+    ""
+  } else {
+    """
+      vec4 sampleDepth(vec2 coord) {
+        return content.eval(clampSample(coord));
+      }
+
+      ${refractionFoldSamplingHelpers()}
+      """
+  }}
+
     ${if (interactive) interactionFalloffHelper() else ""}
 
     vec4 main(vec2 coord) {
@@ -503,10 +543,25 @@ internal object GlassShaders {
       float detailAlpha = sourceShapeMask * innerEnvelope * outerEnvelope * detailIntensity * detailVisibility;
       if (detailAlpha <= 0.0) return vec4(0.0);
 
-      ${if (coverageOnly) "return vec4(vec3(detailAlpha), detailAlpha);" else ""}
-      vec4 sharpSample = content.eval(refractCoord);
+      ${if (coverageOnly) {
+    "return vec4(vec3(detailAlpha), detailAlpha);"
+  } else {
+    """
+      vec4 sharpSample = sampleDepth(refractCoord);
+      float foldSeamWeight =
+        refractionFoldSeamWeight(heightNorm, opticalDistance);
+      sharpSample = sampleFoldSmoothedDepth(
+        sharpSample,
+        refractCoord,
+        localCoord,
+        ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
+        fieldWeight,
+        foldSeamWeight
+      );
       vec4 detailColor = sharpSample * detailAlpha;
       return detailColor.a > 0.0 ? detailColor : vec4(0.0);
+      """
+  }}
     }
   """
 
@@ -843,6 +898,47 @@ internal object GlassShaders {
       );
     }
 
+    float refractionFoldEnvelope(float opticalDistance) {
+      float foldWidth = max(refractionHeight, sampleStep);
+      float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);
+      return 16.0 * foldT * foldT * (1.0 - foldT) * (1.0 - foldT);
+    }
+
+    float foldedRefractionHeightNorm(float heightNorm, float opticalDistance) {
+      float foldEnvelope = refractionFoldEnvelope(opticalDistance);
+      float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);
+      float foldDirection = -heightNorm / max(abs(heightNorm), 0.0001);
+      float foldTarget = foldDirection * foldEnvelope;
+      return mix(heightNorm, foldTarget, foldWeight);
+    }
+
+    float refractionFoldSeamWeight(float heightNorm, float opticalDistance) {
+      if (refractionFoldStrength <= 0.0) return 0.0;
+      float foldEnvelope = refractionFoldEnvelope(opticalDistance);
+      float effectiveHeightNorm = foldedRefractionHeightNorm(heightNorm, opticalDistance);
+      float foldActivation =
+        smootherstep(clamp(refractionFoldStrength * 4.0, 0.0, 1.0)) *
+          smootherstep(clamp(foldEnvelope * 4.0, 0.0, 1.0));
+      return foldActivation * (
+        1.0 - smootherstep(clamp(abs(effectiveHeightNorm) / 0.35, 0.0, 1.0))
+      );
+    }
+
+    vec2 refractionFoldSampleOffset(
+      vec2 localCoord,
+      float refractionMultiplier,
+      float fieldWeight
+    ) {
+      float effectiveRefractionStrength =
+        clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
+      float sampleRadius = min(
+        abs(refractionScale * effectiveRefractionStrength) * 0.3,
+        refractionHeight * 0.12
+      );
+      vec2 gradient = opticalSurfaceGradient(localCoord, fieldWeight);
+      return gradient / max(length(gradient), 0.0001) * sampleRadius;
+    }
+
     vec2 refractionDisplacement(
       vec2 localCoord,
       float heightNorm,
@@ -852,13 +948,8 @@ internal object GlassShaders {
     ) {
       float effectiveRefractionStrength =
         clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
-      float foldWidth = max(refractionHeight, sampleStep);
-      float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);
-      float foldEnvelope = 16.0 * foldT * foldT * (1.0 - foldT) * (1.0 - foldT);
-      float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);
-      float foldDirection = -heightNorm / max(abs(heightNorm), 0.0001);
-      float foldTarget = foldDirection * foldEnvelope;
-      float effectiveHeightNorm = mix(heightNorm, foldTarget, foldWeight);
+      float effectiveHeightNorm =
+        foldedRefractionHeightNorm(heightNorm, opticalDistance);
       float displacementMagnitude =
         effectiveHeightNorm * effectiveRefractionStrength * refractionScale;
       vec2 opticalGradient = opticalSurfaceGradient(localCoord, fieldWeight);
@@ -871,6 +962,30 @@ internal object GlassShaders {
         displacementGradient = mix(normalizedGradient, opticalGradient, fieldWeight);
       }
       return -displacementGradient * displacementMagnitude;
+    }
+  """
+
+  private fun refractionFoldSamplingHelpers(): String = """
+    vec4 sampleFoldSmoothedDepth(
+      vec4 centerSample,
+      vec2 refractCoord,
+      vec2 localCoord,
+      float refractionMultiplier,
+      float fieldWeight,
+      float foldSeamWeight
+    ) {
+      if (foldSeamWeight <= 0.0) return centerSample;
+      vec2 foldSeamAxis =
+        refractionFoldSampleOffset(localCoord, refractionMultiplier, fieldWeight);
+      if (dot(foldSeamAxis, foldSeamAxis) <= 0.000001) return centerSample;
+      vec2 foldSeamTangent = vec2(-foldSeamAxis.y, foldSeamAxis.x);
+      vec4 smoothedSample = (
+        sampleDepth(refractCoord - foldSeamAxis) +
+          sampleDepth(refractCoord + foldSeamAxis) +
+          sampleDepth(refractCoord - foldSeamTangent) +
+          sampleDepth(refractCoord + foldSeamTangent)
+      ) * 0.25;
+      return mix(centerSample, smoothedSample, foldSeamWeight);
     }
   """
 
