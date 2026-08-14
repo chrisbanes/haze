@@ -2021,7 +2021,8 @@ private fun PixelSnapshot.foldProbeSlopes(
   }
 }
 
-private data class FoldOrientation(
+@Poko
+private class FoldOrientation(
   val tangentSlope: Float,
   val strongestNormalSlope: Float,
 )
