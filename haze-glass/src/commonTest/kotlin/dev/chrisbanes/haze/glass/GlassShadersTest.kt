@@ -342,7 +342,7 @@ class GlassShadersTest {
     ).forEach { shader ->
       assertThat(shader).contains("uniform float refractionFoldStrength;")
       assertThat(shader).contains(
-        "float foldWidth = max(abs(refractionScale * effectiveRefractionStrength), sampleStep);",
+        "float foldWidth = max(refractionHeight, sampleStep);",
       )
       assertThat(shader).contains("float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);")
       assertThat(shader).contains(

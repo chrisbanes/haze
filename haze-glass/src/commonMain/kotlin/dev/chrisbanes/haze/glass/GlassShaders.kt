@@ -852,7 +852,7 @@ internal object GlassShaders {
     ) {
       float effectiveRefractionStrength =
         clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
-      float foldWidth = max(abs(refractionScale * effectiveRefractionStrength), sampleStep);
+      float foldWidth = max(refractionHeight, sampleStep);
       float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);
       float foldEnvelope = 16.0 * foldT * foldT * (1.0 - foldT) * (1.0 - foldT);
       float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);

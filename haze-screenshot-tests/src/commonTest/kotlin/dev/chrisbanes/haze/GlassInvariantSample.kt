@@ -1695,7 +1695,7 @@ internal fun ScreenshotUiTest.assertGlassProfileBranchContinuous() {
   )
 }
 
-internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
+internal fun ScreenshotUiTest.assertGlassMonotonicRefractionVisibleInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val performanceMode = HazePerformanceMode.Quality
   val effect = GlassTestConfiguration().apply {
@@ -1721,7 +1721,7 @@ internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
   waitForIdle()
   val disabledUniform = captureInvariantSnapshot()
 
-  effect.optics = GlassOptics.Adaptive
+  effect.optics = GlassOptics.Fixed()
   waitForIdle()
   drawCarrier = true
   waitForIdle()
@@ -1761,7 +1761,7 @@ internal fun ScreenshotUiTest.assertGlassDefaultRefractionVisibleInvariant() {
       geometry.surfaceBounds.bottom - 64,
     ),
   )
-  println("Glass default refraction invariant: $metrics")
+  println("Glass monotonic refraction invariant: $metrics")
   val failures = buildList {
     if (abs(metrics.directionalDisplacementDeltaPx) < 1f) {
       add(
@@ -1864,6 +1864,59 @@ internal fun ScreenshotUiTest.assertGlassRefractionFoldInvertsIncomingContentInv
         .isGreaterThan(0.1f / 255f)
     }
   }
+}
+
+internal fun ScreenshotUiTest.assertGlassRefractionFoldDoesNotFormSeparateEdgeBandInvariant() {
+  val shape = RoundedCornerShape(28.dp)
+  val unfoldedOptics = GlassOptics.Fixed(
+    refractionStrength = 0.8f,
+    refractionHeightFraction = 0.3f,
+    refractionDisplacement = 18.dp,
+    refractionFoldStrength = 0f,
+    depth = 0f,
+    blurRadius = 0.dp,
+  )
+  val effect = GlassTestConfiguration().apply {
+    tint = Color.Transparent
+    optics = unfoldedOptics
+    specularIntensity = 0f
+    ambientResponse = 0f
+    chromaticAberrationStrength = 0f
+    edgeSoftness = 0.dp
+    surfaceProfile = SurfaceProfile.Circle
+    this.shape = shape
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        performanceMode = HazePerformanceMode.Quality,
+        shape = shape,
+        drawGridLines = false,
+        continuityCarrier = GlassContinuityCarrier.HorizontalExtended,
+      )
+    }
+  }
+
+  val unfolded = captureInvariantSnapshot()
+  effect.optics = unfoldedOptics.copy(refractionFoldStrength = 0.65f)
+  waitForIdle()
+  val folded = captureInvariantSnapshot()
+  val bounds = folded.invariantGeometry().surfaceBounds
+  val density = InvariantSurfaceWidthPx / 280f
+  val previousFoldBandEndPx =
+    (unfoldedOptics.refractionDisplacement.value * density * unfoldedOptics.refractionStrength)
+      .roundToInt()
+  val probeRange = (bounds.left + previousFoldBandEndPx + 2)..(bounds.left + previousFoldBandEndPx + 6)
+  val centerY = bounds.center.y
+  val foldDelta = probeRange
+    .map { x -> abs(folded[x, centerY].luminance() - unfolded[x, centerY].luminance()) }
+    .average()
+    .toFloat()
+  println("Glass refraction fold inner-boundary delta: $foldDelta")
+
+  assertThat(foldDelta, "fold influence immediately inside the previous edge-band boundary")
+    .isGreaterThan(0.25f / 255f)
 }
 
 private fun foldInvariantOptics(strength: Float) = GlassOptics.Fixed(
