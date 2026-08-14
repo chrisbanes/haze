@@ -863,6 +863,7 @@ internal object GlassShaders {
     }
 
     float foldedRefractionHeightNorm(float heightNorm, float opticalDistance) {
+      if (refractionFoldStrength <= 0.0) return heightNorm;
       float foldEnvelope = refractionFoldEnvelope(opticalDistance);
       float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);
       // Reverse the sampling derivative without reversing displacement through zero.
