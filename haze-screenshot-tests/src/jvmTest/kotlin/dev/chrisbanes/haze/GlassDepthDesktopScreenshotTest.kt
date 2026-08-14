@@ -143,6 +143,11 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_interactionRefractionFoldSeamIsSmooth() = runScreenshotTest {
+    assertGlassInteractionFoldSeamIsSmoothInvariant()
+  }
+
+  @Test
   fun glass_oversizedAsymmetricCornersMatchComposeClip() = runScreenshotTest {
     assertGlassOversizedAsymmetricCornersInvariant()
   }

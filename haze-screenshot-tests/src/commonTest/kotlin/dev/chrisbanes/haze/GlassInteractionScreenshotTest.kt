@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassTransformPivot
@@ -164,6 +165,42 @@ private fun ScreenshotUiTest.capturePressed(tag: String, label: String, effect: 
   onNodeWithTag(tag).performTouchInput { down(lowerRightPosition()) }
   waitForIdle()
   captureRoot("pressed")
+}
+
+internal fun ScreenshotUiTest.assertGlassInteractionFoldSeamIsSmoothInvariant() {
+  val effect = GlassTestConfiguration().apply {
+    pressed { refractionMultiplier(1.08f) }
+    interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    shape = RoundedCornerShape(20.dp)
+  }
+  setContent { ScreenshotTheme { GlassInteractionScene("fold_seam", "HOVER / PRESS", effect) } }
+  val node = onNodeWithTag("fold_seam")
+  node.performTouchInput { down(lowerRightPosition()) }
+  waitForIdle()
+
+  val bounds = node.fetchSemanticsNode().boundsInRoot
+  val probeBounds = IntRect(
+    left = floor(bounds.left + bounds.width * 0.35f).toInt(),
+    top = floor(bounds.top + bounds.height * 0.55f).toInt(),
+    right = ceil(bounds.left + bounds.width * 0.42f).toInt(),
+    bottom = ceil(bounds.top + bounds.height * 0.66f).toInt(),
+  )
+  val maxDelta = captureRootPixels().snapshot().maxHorizontalRgbDelta(probeBounds)
+  assertThat(maxDelta, "pressed refraction-fold seam RGB delta").isLessThan(0.15f)
+}
+
+private fun PixelSnapshot.maxHorizontalRgbDelta(bounds: IntRect): Float {
+  require(bounds.left >= 0 && bounds.right <= width)
+  require(bounds.top >= 0 && bounds.bottom <= height)
+  return (bounds.top until bounds.bottom).maxOf { y ->
+    (bounds.left + 1 until bounds.right).maxOf { x ->
+      val previous = this[x - 1, y]
+      val current = this[x, y]
+      kotlin.math.abs(current.red - previous.red) +
+        kotlin.math.abs(current.green - previous.green) +
+        kotlin.math.abs(current.blue - previous.blue)
+    }
+  }
 }
 
 private fun androidx.compose.ui.test.TouchInjectionScope.lowerRightPosition(): Offset = Offset(
