@@ -68,6 +68,7 @@ internal enum class GlassContinuityCarrier {
   HorizontalExtended,
   Vertical,
   VerticalExtended,
+  AsymmetricAxes,
 }
 
 @Composable
@@ -218,7 +219,27 @@ private fun DrawScope.drawInvariantGrid(
       startY = surfaceTop - surfaceHeightPx * 0.25f,
       endY = surfaceTop + surfaceHeightPx * 1.25f,
     )
-    null -> null
+    GlassContinuityCarrier.AsymmetricAxes,
+    null,
+    -> null
+  }
+  if (continuityCarrier == GlassContinuityCarrier.AsymmetricAxes) {
+    drawRect(
+      brush = Brush.horizontalGradient(
+        colors = listOf(Color.Black, Color.Red),
+        startX = surfaceLeft - surfaceWidthPx * 0.25f,
+        endX = surfaceLeft + surfaceWidthPx * 1.25f,
+      ),
+    )
+    drawRect(
+      brush = Brush.verticalGradient(
+        colors = listOf(Color.Black, Color.Green),
+        startY = surfaceTop - surfaceHeightPx * 0.25f,
+        endY = surfaceTop + surfaceHeightPx * 1.25f,
+      ),
+      blendMode = BlendMode.Plus,
+    )
+    return
   }
   if (continuityBrush != null) {
     drawRect(brush = continuityBrush)
@@ -1866,6 +1887,43 @@ internal fun ScreenshotUiTest.assertGlassRefractionFoldInvertsIncomingContentInv
   }
 }
 
+internal fun ScreenshotUiTest.assertGlassRefractionFoldPreservesTangentOrientationInvariant() {
+  val surfaceSize = DpSize(280.dp, 180.dp)
+  val shape = RoundedCornerShape(0.dp)
+  val effect = GlassTestConfiguration().apply {
+    tint = Color.Transparent
+    optics = foldInvariantOptics(1f)
+    specularIntensity = 0f
+    ambientResponse = 0f
+    chromaticAberrationStrength = 0f
+    edgeSoftness = 0.dp
+    surfaceProfile = SurfaceProfile.Circle
+    this.shape = shape
+  }
+  setContent {
+    ScreenshotTheme {
+      GlassInvariantSample(
+        effect = effect,
+        performanceMode = HazePerformanceMode.Quality,
+        shape = shape,
+        surfaceSize = surfaceSize,
+        drawGridLines = false,
+        continuityCarrier = GlassContinuityCarrier.AsymmetricAxes,
+      )
+    }
+  }
+
+  val folded = captureInvariantSnapshot()
+  val bounds = folded.centeredSurfaceBounds(surfaceSize)
+  val orientation = folded.foldOrientationAtTopEdge(bounds)
+  println("Glass refraction fold axis orientation: $orientation")
+
+  assertThat(orientation.tangentSlope, "folded tangent-axis slope")
+    .isGreaterThan(0.1f / 255f)
+  assertThat(orientation.strongestNormalSlope, "folded normal-axis slope")
+    .isLessThan(-0.1f / 255f)
+}
+
 internal fun ScreenshotUiTest.assertGlassRefractionFoldDoesNotFormSeparateEdgeBandInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val unfoldedOptics = GlassOptics.Fixed(
@@ -1959,7 +2017,40 @@ private fun PixelSnapshot.foldProbeSlopes(
         this[x, y + step].luminance() - this[x, y].luminance()
       }
     }
+    GlassContinuityCarrier.AsymmetricAxes -> error("Asymmetric axes use channel-specific probes")
   }
+}
+
+private data class FoldOrientation(
+  val tangentSlope: Float,
+  val strongestNormalSlope: Float,
+)
+
+private fun PixelSnapshot.foldOrientationAtTopEdge(
+  bounds: IntRect,
+  step: Int = 6,
+): FoldOrientation {
+  require(step > 0)
+  val xRange = (bounds.center.x - 80)..(bounds.center.x + 80 - step)
+  val yRange = (bounds.top + 2)..(bounds.top + minOf(120, bounds.height / 2) - step)
+  require(xRange.first >= 0 && xRange.last + step < width)
+  require(yRange.first >= 0 && yRange.last + step < height)
+
+  var tangentSlopeTotal = 0f
+  var tangentSlopeCount = 0
+  for (y in yRange) {
+    for (x in xRange) {
+      tangentSlopeTotal += this[x + step, y].red - this[x, y].red
+      tangentSlopeCount++
+    }
+  }
+  val strongestNormalSlope = yRange.minOf { y ->
+    this[bounds.center.x, y + step].green - this[bounds.center.x, y].green
+  }
+  return FoldOrientation(
+    tangentSlope = tangentSlopeTotal / tangentSlopeCount,
+    strongestNormalSlope = strongestNormalSlope,
+  )
 }
 
 internal fun ScreenshotUiTest.assertGlassOversizedAsymmetricCornersInvariant() {

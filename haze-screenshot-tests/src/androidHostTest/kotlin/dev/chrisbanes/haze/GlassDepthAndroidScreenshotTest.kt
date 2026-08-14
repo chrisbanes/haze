@@ -144,6 +144,11 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   }
 
   @Test
+  fun glass_refractionFoldPreservesTangentOrientation() = runScreenshotTest {
+    assertGlassRefractionFoldPreservesTangentOrientationInvariant()
+  }
+
+  @Test
   fun glass_refractionFoldDoesNotFormSeparateEdgeBand() = runScreenshotTest {
     assertGlassRefractionFoldDoesNotFormSeparateEdgeBandInvariant()
   }
