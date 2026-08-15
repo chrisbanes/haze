@@ -30,6 +30,7 @@ kotlin {
     val kameraMain = create("kameraMain") {
       dependsOn(getByName("commonMain"))
       dependencies {
+        implementation(libs.androidx.lifecycle.runtime.compose)
         implementation(libs.kamera)
       }
     }

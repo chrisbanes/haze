@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kashif.cameraK.compose.rememberCameraKState
 import com.kashif.cameraK.controller.CameraController
 import com.kashif.cameraK.enums.AspectRatio
@@ -73,6 +74,12 @@ internal fun KameraSample(
     mutableStateOf(permissions.hasCameraPermission())
   }
   var permissionDenied by remember { mutableStateOf(false) }
+
+  LifecycleResumeEffect(permissions) {
+    permissionGranted = permissions.hasCameraPermission()
+    if (permissionGranted) permissionDenied = false
+    onPauseOrDispose { }
+  }
 
   if (!permissionGranted) {
     if (!permissionDenied) {

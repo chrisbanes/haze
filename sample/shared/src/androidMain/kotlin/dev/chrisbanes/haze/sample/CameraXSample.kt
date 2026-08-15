@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
@@ -75,6 +76,13 @@ internal fun CameraXSample(
   ) { granted ->
     permissionGranted = granted
     permissionDenied = !granted
+  }
+
+  LifecycleResumeEffect(context) {
+    permissionGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+      PackageManager.PERMISSION_GRANTED
+    if (permissionGranted) permissionDenied = false
+    onPauseOrDispose { }
   }
 
   LaunchedEffect(permissionGranted, permissionDenied) {
