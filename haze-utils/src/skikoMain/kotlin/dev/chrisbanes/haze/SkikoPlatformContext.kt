@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 @file:JvmName("PlatformContextKt")
+@file:Suppress("DuplicateSourceClass")
 
 package dev.chrisbanes.haze
 
