@@ -1406,9 +1406,10 @@ override either value. It also works as a subtree default:</p>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="built-in-material">Built-in material<a class="headerlink" href="#built-in-material" title="Permanent link">¶</a></h3>
-<p>Start with the default <code>GlassOptics.Adaptive</code> material. It adjusts to the surface's size and shape,
-which makes it a good fit for reusable components. Choose fixed optics only when the design needs
-the same values at every size.</p>
+<p>Start with the default <code>GlassOptics.Adaptive</code> material. It adjusts to the surface's size and shape
+and includes a restrained edge fold, where the local sampling direction reverses so incoming
+content can appear inverted near the glass boundary. This makes it a good fit for reusable
+components. Choose fixed optics only when the design needs the same values at every size.</p>
 <h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">¶</a></h2>
 <ul>
 <li><strong>backgroundColor</strong>: Color composited behind captured content before refraction and blur
@@ -1484,6 +1485,7 @@ direct <code>optics(...)</code> function:</p>
 <span class="w">    </span><span class="n">refractionStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.8f</span><span class="p">,</span>
 <span class="w">    </span><span class="n">refractionHeightFraction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.3f</span><span class="p">,</span>
 <span class="w">    </span><span class="n">refractionDisplacement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">18.</span><span class="n">dp</span><span class="p">,</span>
+<span class="w">    </span><span class="n">refractionFoldStrength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.65f</span><span class="p">,</span>
 <span class="w">    </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">,</span>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
@@ -1494,6 +1496,10 @@ components, but Adaptive is usually the better default for reusable layouts.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">reusableOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">reusableOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
+<p><code>refractionFoldStrength</code> controls the inverted edge-refraction fold from <code>0f</code> to <code>1f</code>. The default
+for <code>GlassOptics.Fixed</code> is <code>0f</code>, which preserves the original monotonic refraction map. The fold is
+available with every <code>SurfaceProfile</code> and remains within the configured refraction displacement;
+it does not expand the capture area.</p>
 <p><code>GlassOptics.Fixed</code> controls the appearance; <code>HazePerformanceMode.Fixed</code> controls the normalized
 rendering trade-off.
 The <code>shape</code> supplied to Glass defines its material boundary. Add an outer <code>Modifier.clip()</code> with
