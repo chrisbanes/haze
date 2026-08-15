@@ -472,7 +472,7 @@ class GlassLabSampleTest : ContextTest() {
     onNode(
       hasProgressBarRangeInfo(ProgressBarRangeInfo(0.65f, 0f..1f, 0)) and
         hasAnySibling(hasText("Fold")),
-    ).assertIsDisplayed()
+    ).performScrollTo().assertIsDisplayed()
   }
 
   @Test
