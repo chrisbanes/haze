@@ -71,6 +71,7 @@ class GlassStyleTest {
         depth = 0.6f,
         blurRadius = 20.dp,
         progressive = progressive,
+        refractionFoldStrength = 0.65f,
       )
     }
 
@@ -82,6 +83,7 @@ class GlassStyleTest {
         depth = 0.6f,
         blurRadius = 20.dp,
         progressive = progressive,
+        refractionFoldStrength = 0.65f,
       ),
     )
   }
@@ -92,6 +94,11 @@ class GlassStyleTest {
       "refractionStrength must be finite and in 0f..1f",
       fixed = { GlassOptics.Fixed(refractionStrength = Float.NaN) },
       direct = { optics(refractionStrength = Float.NaN) },
+    )
+    assertFixedAndDirectOpticsFailure(
+      "refractionFoldStrength must be finite and in 0f..1f",
+      fixed = { GlassOptics.Fixed(refractionFoldStrength = Float.NaN) },
+      direct = { optics(refractionFoldStrength = Float.NaN) },
     )
     assertFixedAndDirectOpticsFailure(
       "refractionHeightFraction must be finite and in 0f..1f",

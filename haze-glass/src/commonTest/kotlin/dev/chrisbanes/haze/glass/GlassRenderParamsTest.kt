@@ -284,6 +284,18 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun interactionOutputFeather_scalesWithRadiusAndKeepsSampleStepMinimum() {
+    assertThat(
+      calculateGlassInteractionOutputFeatherWidth(radiusPx = 200f, sampleStepPx = 1f),
+      name = "radius-scaled feather",
+    ).isEqualTo(50f)
+    assertThat(
+      calculateGlassInteractionOutputFeatherWidth(radiusPx = 2f, sampleStepPx = 1f),
+      name = "sample-step minimum",
+    ).isEqualTo(1f)
+  }
+
+  @Test
   fun interactionPatch_isIndependentOfPrecomputedBlur() {
     val coordinates = GlassCoordinates(
       Size(1000f, 600f),
@@ -660,6 +672,7 @@ class GlassRenderParamsTest {
       depth = 0.6f,
       blurRadius = 10.dp,
       progressive = progressive,
+      refractionFoldStrength = 0.4f,
     )
     val cases = listOf(
       Triple(Size(80f, 240f), Density(1f), CornerRadii(40f, 40f, 40f, 40f)),
@@ -670,6 +683,7 @@ class GlassRenderParamsTest {
       val resolved = resolveGlassOptics(optics, size, density, radii)
 
       assertThat(resolved.refractionStrength).isEqualTo(optics.refractionStrength)
+      assertThat(resolved.refractionFoldStrength).isEqualTo(optics.refractionFoldStrength)
       assertThat(resolved.refractionHeightPx / size.minDimension)
         .isEqualTo(optics.refractionHeightFraction)
       assertThat(resolved.refractionScalePx)
@@ -693,6 +707,7 @@ class GlassRenderParamsTest {
     )
 
     assertThat(resolved.refractionDetailIntensity).isEqualTo(0f)
+    assertThat(resolved.refractionFoldStrength).isEqualTo(0.65f)
   }
 
   @Test
@@ -1001,6 +1016,7 @@ class GlassRenderParamsTest {
         refractionHeightFraction = 0.25f,
         refractionDisplacement = 12.dp,
         blurRadius = 10.dp,
+        refractionFoldStrength = 0.4f,
       )
     }
     val style = resolveGlassStyle(
@@ -1022,9 +1038,12 @@ class GlassRenderParamsTest {
 
     assertThat(params.refractionScalePx).isEqualTo(12f)
     assertThat(params.refractionHeightPx).isEqualTo(12.5f)
+    assertThat(params.refractionFoldStrength).isEqualTo(0.4f)
     assertThat(params.blurRadiusPx).isEqualTo(10f)
     assertThat(params.opticalEffectKey().refractionScalePx).isEqualTo(12f)
     assertThat(params.opticalEffectKey().refractionHeightPx).isEqualTo(12.5f)
+    assertThat(params.opticalEffectKey().refractionFoldStrength).isEqualTo(0.4f)
+    assertThat(params.refractionDetailEffectKey().refractionFoldStrength).isEqualTo(0.4f)
   }
 
   @Test
@@ -1381,6 +1400,7 @@ class GlassRenderParamsTest {
   ) = GlassRenderParams(
     coordinates = coordinates,
     refractionStrength = refractionStrength,
+    refractionFoldStrength = 0f,
     specularIntensity = 1f,
     depth = depth,
     ambientResponse = 1f,

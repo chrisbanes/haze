@@ -14,6 +14,7 @@ internal object GlassShaders {
     uniform float2 materialSize;
     uniform float sampleStep;
     uniform float refractionStrength;
+    uniform float refractionFoldStrength;
     uniform float ambientResponse;
     uniform float edgeSoftness;
     uniform float refractionHeight;
@@ -103,14 +104,13 @@ internal object GlassShaders {
     ""
   }}
       float fieldWeight = opticalFieldWeight();
-      float heightNorm = surfaceHeightNormFromSignedDistance(
-        localCoord,
-        outputSd,
-        fieldWeight
-      );
+      float opticalDistance =
+        opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight);
+      float heightNorm = surfaceHeightNormFromOpticalDistance(opticalDistance);
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
+        opticalDistance,
         ${if (interactionOptics) "localizedRefractionMultiplier" else "1.0"},
         fieldWeight
       );
@@ -287,6 +287,7 @@ internal object GlassShaders {
     uniform float2 materialSize;
     uniform float sampleStep;
     uniform float refractionStrength;
+    uniform float refractionFoldStrength;
     uniform float ambientResponse;
     uniform float edgeSoftness;
     uniform float refractionHeight;
@@ -356,10 +357,13 @@ internal object GlassShaders {
   }}
 
       float fieldWeight = opticalFieldWeight();
-      float heightNorm = surfaceHeightNormFromSignedDistance(localCoord, sd, fieldWeight);
+      float opticalDistance =
+        opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight);
+      float heightNorm = surfaceHeightNormFromOpticalDistance(opticalDistance);
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
+        opticalDistance,
         ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
         fieldWeight
       );
@@ -369,7 +373,7 @@ internal object GlassShaders {
         (centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 0.001)
       );
       vec2 chromaOffset = displacement * chromaticAberrationStrength * 0.5 * cornerWeight;
-      vec4 refractedCenterSample = content.eval(clampSample(refractCoord));
+      vec4 refractedCenterSample = sampleDepth(refractCoord);
       vec3 refractedStraightColor =
         sampleChroma(refractCoord, chromaOffset, refractedCenterSample);
 
@@ -423,7 +427,9 @@ internal object GlassShaders {
     uniform float2 sampleSize;
     uniform float2 materialOrigin;
     uniform float2 materialSize;
+    uniform float sampleStep;
     uniform float refractionStrength;
+    uniform float refractionFoldStrength;
     uniform float edgeSoftness;
     uniform float refractionHeight;
     uniform vec4 cornerRadii;
@@ -437,9 +443,15 @@ internal object GlassShaders {
 
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
 
+    ${if (coverageOnly) {
+    ""
+  } else {
+    """
     vec2 clampSample(vec2 coord) {
       return clamp(coord, vec2(0.5), sampleSize - vec2(0.5));
     }
+    """
+  }}
 
     ${sdfHelpers()}
 
@@ -470,18 +482,17 @@ internal object GlassShaders {
       if (outputDistToEdge > detailWidth + maxPossibleDisplacement) return vec4(0.0);
 
       float fieldWeight = opticalFieldWeight();
-      float heightNorm = surfaceHeightNormFromSignedDistance(
-        localCoord,
-        outputSd,
-        fieldWeight
-      );
+      float opticalDistance =
+        opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight);
+      float heightNorm = surfaceHeightNormFromOpticalDistance(opticalDistance);
       vec2 displacement = refractionDisplacement(
         localCoord,
         heightNorm,
+        opticalDistance,
         ${if (interactive) "localizedRefractionMultiplier" else "1.0"},
         fieldWeight
       );
-      vec2 refractCoord = clampSample(coord + displacement);
+      ${if (coverageOnly) "" else "vec2 refractCoord = clampSample(coord + displacement);"}
       vec2 refractedLocalCoord = localCoord + displacement;
       float refractedSd = sdRoundedRect(refractedLocalCoord, materialSize, cornerRadii);
       float sourceDistToEdge = max(-refractedSd, 0.0);
@@ -498,10 +509,15 @@ internal object GlassShaders {
       float detailAlpha = sourceShapeMask * innerEnvelope * outerEnvelope * detailIntensity * detailVisibility;
       if (detailAlpha <= 0.0) return vec4(0.0);
 
-      ${if (coverageOnly) "return vec4(vec3(detailAlpha), detailAlpha);" else ""}
+      ${if (coverageOnly) {
+    "return vec4(vec3(detailAlpha), detailAlpha);"
+  } else {
+    """
       vec4 sharpSample = content.eval(refractCoord);
       vec4 detailColor = sharpSample * detailAlpha;
       return detailColor.a > 0.0 ? detailColor : vec4(0.0);
+      """
+  }}
     }
   """
 
@@ -799,13 +815,8 @@ internal object GlassShaders {
       return surfaceHeightAt(localCoord, cornerRadii, fieldWeight);
     }
 
-    float surfaceHeightNormFromSignedDistance(
-      vec2 localCoord,
-      float sd,
-      float fieldWeight
-    ) {
+    float surfaceHeightNormFromOpticalDistance(float opticalDistance) {
       float refractionZone = max(refractionHeight, 0.0001);
-      float opticalDistance = opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight);
       return clamp(
         surfaceHeightFromOpticalDistance(opticalDistance) / refractionZone,
         -1.0,
@@ -843,16 +854,37 @@ internal object GlassShaders {
       );
     }
 
+    float refractionFoldEnvelope(float opticalDistance) {
+      float foldWidth = max(refractionHeight, sampleStep);
+      float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);
+      float foldRise = smootherstep(clamp(foldT / 0.2, 0.0, 1.0));
+      float foldFall = 1.0 - smootherstep(clamp((foldT - 0.25) / 0.35, 0.0, 1.0));
+      return foldRise * foldFall;
+    }
+
+    float foldedRefractionHeightNorm(float heightNorm, float opticalDistance) {
+      if (refractionFoldStrength <= 0.0) return heightNorm;
+      float foldEnvelope = refractionFoldEnvelope(opticalDistance);
+      float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);
+      // Reverse the sampling derivative without reversing displacement through zero.
+      float foldDirection = surfaceProfile == 2 ? -1.0 : 1.0;
+      float foldTarget = foldDirection * abs(heightNorm) * 0.02;
+      return mix(heightNorm, foldTarget, foldWeight);
+    }
+
     vec2 refractionDisplacement(
       vec2 localCoord,
       float heightNorm,
+      float opticalDistance,
       float refractionMultiplier,
       float fieldWeight
     ) {
       float effectiveRefractionStrength =
         clamp(refractionStrength * refractionMultiplier, 0.0, 1.0);
+      float effectiveHeightNorm =
+        foldedRefractionHeightNorm(heightNorm, opticalDistance);
       float displacementMagnitude =
-        heightNorm * effectiveRefractionStrength * refractionScale;
+        effectiveHeightNorm * effectiveRefractionStrength * refractionScale;
       vec2 opticalGradient = opticalSurfaceGradient(localCoord, fieldWeight);
       vec2 displacementGradient = opticalGradient;
       if (fieldWeight < 1.0) {

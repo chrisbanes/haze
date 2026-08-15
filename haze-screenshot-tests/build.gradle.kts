@@ -11,6 +11,7 @@ plugins {
   id("dev.chrisbanes.android.library")
   id("dev.chrisbanes.kotlin.multiplatform")
   id("dev.chrisbanes.compose")
+  id("dev.drewhamilton.poko")
   id("io.github.takahirom.roborazzi")
 }
 
@@ -72,6 +73,10 @@ roborazzi {
 
   @OptIn(ExperimentalRoborazziApi::class)
   separateOutputDirs.set(true)
+}
+
+poko {
+  pokoAnnotation.set("dev/chrisbanes/haze/Poko")
 }
 
 tasks.withType<Test> {

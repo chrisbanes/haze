@@ -213,9 +213,13 @@ class GlassShadersTest {
     val detailMain = GlassShaders.buildRefractionDetail().substringAfter("vec4 main(vec2 coord)")
 
     assertThat(opticalMain)
-      .contains("surfaceHeightNormFromSignedDistance(localCoord, sd, fieldWeight)")
+      .contains("opticalDistanceFromSignedDistance(localCoord, sd, fieldWeight)")
+    assertThat(opticalMain)
+      .contains("surfaceHeightNormFromOpticalDistance(opticalDistance)")
     assertThat(detailMain)
-      .contains("localCoord,\n        outputSd,\n        fieldWeight")
+      .contains("opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight)")
+    assertThat(detailMain)
+      .contains("surfaceHeightNormFromOpticalDistance(opticalDistance)")
     assertThat(opticalMain).doesNotContain("surfaceHeightNorm(localCoord)")
     assertThat(detailMain).doesNotContain("surfaceHeightNorm(localCoord)")
   }
@@ -261,7 +265,7 @@ class GlassShadersTest {
     assertThat(shader).contains("unpremultiply(sampleDepth(")
     assertThat(shader).contains("vec4 baseSample = content.eval(clampSample(coord));")
     assertThat(shader).contains(
-      "vec4 refractedCenterSample = content.eval(clampSample(refractCoord));",
+      "vec4 refractedCenterSample = sampleDepth(refractCoord);",
     )
     assertThat(shader).contains(
       "sampleChroma(refractCoord, chromaOffset, refractedCenterSample)",
@@ -291,6 +295,7 @@ class GlassShadersTest {
     val shader = GlassShaders.buildOptical()
 
     assertThat(shader).contains("uniform float refractionStrength;")
+    assertThat(shader).contains("uniform float refractionFoldStrength;")
     assertThat(shader).contains("uniform float refractionHeight;")
     assertThat(shader).contains("uniform float chromaticAberrationStrength;")
     assertThat(shader).contains("uniform float surfaceProfile;")
@@ -304,7 +309,7 @@ class GlassShadersTest {
     val shader = GlassShaders.buildOptical()
 
     assertThat(shader).contains(
-      "heightNorm * effectiveRefractionStrength * refractionScale;",
+      "effectiveHeightNorm * effectiveRefractionStrength * refractionScale;",
     )
     assertThat(shader).contains("vec2 refractCoord = clampSample(coord + displacement);")
     assertThat(shader).contains("vec3 opticalColor = refractedStraightColor;")
@@ -322,21 +327,50 @@ class GlassShadersTest {
       GlassShaders.buildRefractionDetail(interactive = true),
     ).forEach { shader ->
       assertThat(shader).contains(expectedClamp)
-      assertThat(shader).contains("heightNorm * effectiveRefractionStrength * refractionScale;")
+      assertThat(shader).contains(
+        "effectiveHeightNorm * effectiveRefractionStrength * refractionScale;",
+      )
     }
   }
 
   @Test
-  fun sharedRefractionDisplacement_samplesInwardForOutwardVisualWarp() {
-    val optical = GlassShaders.buildOptical()
-    val detail = GlassShaders.buildRefractionDetail()
-    val inwardSampleDirection =
-      "return -displacementGradient * displacementMagnitude;"
-
-    assertThat(optical).contains(inwardSampleDirection)
-    assertThat(detail).contains(inwardSampleDirection)
-    assertThat(optical).doesNotContain("return displacementGradient * displacementMagnitude;")
-    assertThat(detail).doesNotContain("return displacementGradient * displacementMagnitude;")
+  fun refractionShaders_foldTheOneSidedSampleMapWithinTheDisplacementEnvelope() {
+    listOf(
+      GlassShaders.buildFused(),
+      GlassShaders.buildOptical(),
+      GlassShaders.buildRefractionDetail(),
+    ).forEach { shader ->
+      assertThat(shader).contains("uniform float refractionFoldStrength;")
+      assertThat(shader).contains(
+        "if (refractionFoldStrength <= 0.0) return heightNorm;",
+      )
+      assertThat(shader).contains(
+        "float foldWidth = max(refractionHeight, sampleStep);",
+      )
+      assertThat(shader).contains("float foldT = clamp(opticalDistance / foldWidth, 0.0, 1.0);")
+      assertThat(shader).contains(
+        "float foldRise = smootherstep(clamp(foldT / 0.2, 0.0, 1.0));",
+      )
+      assertThat(shader).contains(
+        "float foldFall = 1.0 - smootherstep(clamp((foldT - 0.25) / 0.35, 0.0, 1.0));",
+      )
+      assertThat(shader).contains("return foldRise * foldFall;")
+      assertThat(shader).contains(
+        "float foldWeight = clamp(refractionFoldStrength * foldEnvelope, 0.0, 1.0);",
+      )
+      assertThat(shader).contains(
+        "float foldDirection = surfaceProfile == 2 ? -1.0 : 1.0;",
+      )
+      assertThat(shader).contains(
+        "float foldTarget = foldDirection * abs(heightNorm) * 0.02;",
+      )
+      assertThat(shader).contains(
+        "return mix(heightNorm, foldTarget, foldWeight);",
+      )
+      assertThat(shader).contains(
+        "return -displacementGradient * displacementMagnitude;",
+      )
+    }
   }
 
   @Test
@@ -454,9 +488,11 @@ class GlassShadersTest {
     assertThat(optical).contains("uniform float interactionWhitePointDelta;")
     assertThat(optical).contains("localizedRefractionMultiplier")
     assertThat(optical).contains("localizedWhitePoint")
-    assertThat(optical).contains("heightNorm,\n        localizedRefractionMultiplier")
+    assertThat(optical)
+      .contains("heightNorm,\n        opticalDistance,\n        localizedRefractionMultiplier")
     assertThat(detail).contains("uniform float interactionRefractionMultiplier;")
-    assertThat(detail).contains("heightNorm,\n        localizedRefractionMultiplier")
+    assertThat(detail)
+      .contains("heightNorm,\n        opticalDistance,\n        localizedRefractionMultiplier")
     assertThat(detail).contains(
       "abs(refractionScale * refractionStrength) * max(1.0, localizedRefractionMultiplier),",
     )
@@ -470,6 +506,17 @@ class GlassShadersTest {
   }
 
   @Test
+  fun refractionDetailCoverageShader_omitsUnreachableSourceSampling() {
+    val shader = GlassShaders.buildRefractionDetail(coverageOnly = true)
+
+    assertThat(shader).contains("return vec4(vec3(detailAlpha), detailAlpha);")
+    assertThat(shader).doesNotContain("vec4 sampleDepth")
+    assertThat(shader).doesNotContain("clampSample")
+    assertThat(shader).doesNotContain("refractCoord")
+    assertThat(shader).doesNotContain("content.eval")
+  }
+
+  @Test
   fun refractionDetailShader_isSharpPremultipliedShapeMaskedEdgeDetail() {
     val shader = GlassShaders.buildRefractionDetail()
 
@@ -477,17 +524,18 @@ class GlassShadersTest {
     assertThat(shader).contains("uniform float detailWidth;")
     assertThat(shader).contains("uniform float detailIntensity;")
     assertThat(shader).contains("uniform float detailVisibility;")
-    assertThat(shader).doesNotContain("uniform float sampleStep;")
+    assertThat(shader).contains("uniform float sampleStep;")
     assertThat(shader).contains("clamp(coord, vec2(0.5), sampleSize - vec2(0.5))")
     assertThat(shader).contains(
-      "heightNorm * effectiveRefractionStrength * refractionScale;",
+      "effectiveHeightNorm * effectiveRefractionStrength * refractionScale;",
     )
     assertThat(shader).contains("vec2 refractCoord = clampSample(coord + displacement);")
     assertThat(shader).contains("vec4 sharpSample = content.eval(refractCoord);")
-    assertThat(shader).contains("float heightNorm = surfaceHeightNormFromSignedDistance(")
-    assertThat(shader).contains("localCoord,\n        outputSd,\n        fieldWeight")
+    assertThat(shader)
+      .contains("opticalDistanceFromSignedDistance(localCoord, outputSd, fieldWeight)")
+    assertThat(shader).contains("surfaceHeightNormFromOpticalDistance(opticalDistance)")
     assertThat(shader).contains("float refractionMultiplier")
-    assertThat(shader).contains("heightNorm,\n        1.0")
+    assertThat(shader).contains("heightNorm,\n        opticalDistance,\n        1.0")
     assertThat(shader).contains("if (surfaceProfile == 1)")
     assertThat(shader).contains("else if (surfaceProfile == 2)")
     assertThat(shader).contains("else if (surfaceProfile == 3)")
@@ -497,7 +545,6 @@ class GlassShadersTest {
     assertThat(shader).contains(
       "clamp(sourceDistToEdge / max(detailWidth, 0.0001), 0.0, 1.0)",
     )
-    assertThat(shader).doesNotContain("abs(heightNorm)")
     assertThat(shader).doesNotContain("float envelopeWidth")
     assertThat(shader).contains(
       "float detailAlpha = sourceShapeMask * innerEnvelope * outerEnvelope * detailIntensity * detailVisibility;",
@@ -520,6 +567,7 @@ class GlassShadersTest {
   @Test
   fun refractionDetailShader_conservativelyRejectsBeforeDisplacementAndSampling() {
     val shader = GlassShaders.buildRefractionDetail()
+    val main = shader.substringAfter("vec4 main(vec2 coord)")
     val conservativeRejection =
       "if (outputDistToEdge > detailWidth + maxPossibleDisplacement) return vec4(0.0);"
 
@@ -527,14 +575,14 @@ class GlassShadersTest {
     assertThat(shader).contains("abs(refractionScale * refractionStrength)")
     assertThat(shader).contains("float maxPossibleDisplacement = min(")
     assertThat(shader).contains(conservativeRejection)
-    assertThat(shader.indexOf(conservativeRejection))
+    assertThat(main.indexOf(conservativeRejection))
       .isLessThan(
-        shader.indexOf(
-          "float heightNorm = surfaceHeightNormFromSignedDistance(",
+        main.indexOf(
+          "float opticalDistance =",
         ),
       )
-    assertThat(shader.indexOf(conservativeRejection))
-      .isLessThan(shader.indexOf("vec4 sharpSample = content.eval(refractCoord);"))
+    assertThat(main.indexOf(conservativeRejection))
+      .isLessThan(main.indexOf("vec4 sharpSample = content.eval(refractCoord);"))
   }
 
   @Test
@@ -561,7 +609,9 @@ class GlassShadersTest {
         sampleSize = Size(640f, 480f),
         materialOrigin = Offset(8f, 4f),
         materialSize = Size(320f, 240f),
+        sampleStepPx = 2f,
         refractionStrength = 0.5f,
+        refractionFoldStrength = 0f,
         refractionHeightPx = 20f,
         refractionScalePx = 18f,
         surfaceProfile = 2f,
@@ -578,9 +628,11 @@ class GlassShadersTest {
         "sampleSize" to listOf(640f, 480f),
         "materialOrigin" to listOf(8f, 4f),
         "materialSize" to listOf(320f, 240f),
+        "sampleStep" to listOf(2f),
         "edgeSoftness" to listOf(4f),
         "cornerRadii" to listOf(1f, 2f, 3f, 4f),
         "refractionStrength" to listOf(0.5f),
+        "refractionFoldStrength" to listOf(0f),
         "refractionHeight" to listOf(20f),
         "refractionScale" to listOf(18f),
         "surfaceProfile" to listOf(2f),

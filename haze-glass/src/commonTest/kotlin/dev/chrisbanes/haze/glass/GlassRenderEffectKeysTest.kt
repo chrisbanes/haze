@@ -133,6 +133,9 @@ class GlassRenderEffectKeysTest {
       base.copy(depth = 0.2f, blurRadiusPx = 80f, tint = Color.Red).rimEffectKey(),
     )
     assertThat(base.opticalEffectKey()).isNotEqualTo(base.copy(tint = Color.Red).opticalEffectKey())
+    assertThat(base.opticalEffectKey()).isNotEqualTo(
+      base.copy(refractionFoldStrength = 0.5f).opticalEffectKey(),
+    )
     assertThat(base.rimEffectKey()).isNotEqualTo(base.copy(specularIntensity = 1f).rimEffectKey())
   }
 
@@ -194,6 +197,7 @@ class GlassRenderEffectKeysTest {
     listOf(
       base.copy(coordinates = base.coordinates.copy(materialOrigin = Offset(12f, 8f))),
       base.copy(refractionStrength = 0.8f),
+      base.copy(refractionFoldStrength = 0.5f),
       base.copy(refractionHeightPx = 30f),
       base.copy(refractionScalePx = 24f),
       base.copy(surfaceProfile = 1f),
@@ -233,11 +237,11 @@ class GlassRenderEffectKeysTest {
   }
 
   @Test
-  fun refractionDetailKey_tracksSampleStepThroughDetailWidthAndVisibility() {
+  fun refractionDetailKey_tracksConsumedSampleStepUniformWidthAndVisibility() {
     val base = params().copy(refractionHeightPx = 100f, edgeSoftnessPx = 20f)
 
     assertThat(base.refractionDetailEffectKey())
-      .isEqualTo(base.copy(sampleStepPx = 1f).refractionDetailEffectKey())
+      .isNotEqualTo(base.copy(sampleStepPx = 1f).refractionDetailEffectKey())
     assertThat(base.refractionDetailEffectKey())
       .isNotEqualTo(base.copy(sampleStepPx = 11f).refractionDetailEffectKey())
 
@@ -314,6 +318,7 @@ class GlassRenderEffectKeysTest {
   private fun params() = GlassRenderParams(
     coordinates = GlassCoordinates(Size(640f, 480f), Offset(8f, 4f), Size(320f, 240f), 1f),
     refractionStrength = 0.5f,
+    refractionFoldStrength = 0f,
     specularIntensity = 0.5f,
     depth = 1f,
     ambientResponse = 0.5f,

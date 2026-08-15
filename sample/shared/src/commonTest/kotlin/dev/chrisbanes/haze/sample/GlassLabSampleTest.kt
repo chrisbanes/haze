@@ -14,11 +14,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -456,10 +459,20 @@ class GlassLabSampleTest : ContextTest() {
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
     assertThat(state.interaction).isEqualTo(GlassLabInteractionMode.Off)
 
+    onNode(hasText("Adaptive") and hasClickAction())
+      .performScrollTo()
+      .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
+    assertThat(state.preset).isEqualTo(GlassLabPresetId.Adaptive)
+
     onNodeWithText("Advanced")
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
     assertThat(state.advancedExpanded).isTrue()
+    onNodeWithText("Fold").performScrollTo().assertIsDisplayed()
+    onNode(
+      hasProgressBarRangeInfo(ProgressBarRangeInfo(0.65f, 0f..1f, 0)) and
+        hasAnySibling(hasText("Fold")),
+    ).performScrollTo().assertIsDisplayed()
   }
 
   @Test

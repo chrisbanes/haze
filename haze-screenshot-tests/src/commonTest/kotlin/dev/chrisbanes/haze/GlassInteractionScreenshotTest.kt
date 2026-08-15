@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassTransformPivot
@@ -164,6 +165,50 @@ private fun ScreenshotUiTest.capturePressed(tag: String, label: String, effect: 
   onNodeWithTag(tag).performTouchInput { down(lowerRightPosition()) }
   waitForIdle()
   captureRoot("pressed")
+}
+
+internal fun ScreenshotUiTest.assertGlassInteractionOpticsHasNoCircularPatchSeamInvariant() {
+  val effect = GlassTestConfiguration().apply {
+    pressed { refractionMultiplier(1.08f) }
+    interactionReducedMotionPolicy = GlassReducedMotionPolicy.Reduced
+    shape = RoundedCornerShape(20.dp)
+  }
+  setContent { ScreenshotTheme { GlassInteractionScene("optics_seam", "HOVER / PRESS", effect) } }
+  val node = onNodeWithTag("optics_seam")
+  val idle = captureRootPixels().snapshot()
+  node.performTouchInput { down(lowerRightPosition()) }
+  waitForIdle()
+
+  val bounds = node.fetchSemanticsNode().boundsInRoot
+  val probeBounds = IntRect(
+    left = floor(bounds.left + bounds.width * 0.35f).toInt(),
+    top = floor(bounds.top + bounds.height * 0.55f).toInt(),
+    right = ceil(bounds.left + bounds.width * 0.42f).toInt(),
+    bottom = ceil(bounds.top + bounds.height * 0.66f).toInt(),
+  )
+  val pressed = captureRootPixels().snapshot()
+  val maxDelta = idle.maxHorizontalRgbEffectDelta(pressed, probeBounds)
+  assertThat(maxDelta, "pressed interaction-optics seam RGB effect delta").isLessThan(0.02f)
+}
+
+private fun PixelSnapshot.maxHorizontalRgbEffectDelta(
+  other: PixelSnapshot,
+  bounds: IntRect,
+): Float {
+  require(width == other.width && height == other.height)
+  require(bounds.left >= 0 && bounds.right <= width)
+  require(bounds.top >= 0 && bounds.bottom <= height)
+  return (bounds.top until bounds.bottom).maxOf { y ->
+    (bounds.left + 1 until bounds.right).maxOf { x ->
+      val previousIdle = this[x - 1, y]
+      val currentIdle = this[x, y]
+      val previousEffect = other[x - 1, y]
+      val currentEffect = other[x, y]
+      kotlin.math.abs((currentEffect.red - currentIdle.red) - (previousEffect.red - previousIdle.red)) +
+        kotlin.math.abs((currentEffect.green - currentIdle.green) - (previousEffect.green - previousIdle.green)) +
+        kotlin.math.abs((currentEffect.blue - currentIdle.blue) - (previousEffect.blue - previousIdle.blue))
+    }
+  }
 }
 
 private fun androidx.compose.ui.test.TouchInjectionScope.lowerRightPosition(): Offset = Offset(

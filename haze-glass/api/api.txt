@@ -65,22 +65,25 @@ package dev.chrisbanes.haze.glass {
 
   public static final class GlassOptics.Fixed implements dev.chrisbanes.haze.glass.GlassOptics {
     ctor public GlassOptics.Fixed();
-    ctor @KotlinOnly public GlassOptics.Fixed(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
+    ctor @KotlinOnly public GlassOptics.Fixed(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength);
     method public float component1();
     method public float component2();
     method @KotlinOnly public operator androidx.compose.ui.unit.Dp component3();
     method public float component4();
     method @KotlinOnly public operator androidx.compose.ui.unit.Dp component5();
     method public dev.chrisbanes.haze.HazeProgressive? component6();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics.Fixed copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
+    method public float component7();
+    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics.Fixed copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength);
     method @InaccessibleFromKotlin public float getDepth();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeProgressive? getProgressive();
+    method @InaccessibleFromKotlin public float getRefractionFoldStrength();
     method @InaccessibleFromKotlin public float getRefractionHeightFraction();
     method @InaccessibleFromKotlin public float getRefractionStrength();
     property public androidx.compose.ui.unit.Dp blurRadius;
     property public float depth;
     property public dev.chrisbanes.haze.HazeProgressive? progressive;
     property public androidx.compose.ui.unit.Dp refractionDisplacement;
+    property public float refractionFoldStrength;
     property public float refractionHeightFraction;
     property public float refractionStrength;
   }
@@ -126,7 +129,7 @@ package dev.chrisbanes.haze.glass {
     method public void interactionPositionAnimationSpec(androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> animationSpec);
     method public void lightPosition(androidx.compose.ui.Alignment alignment);
     method public void optics(dev.chrisbanes.haze.glass.GlassOptics optics);
-    method @KotlinOnly public void optics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive);
+    method @KotlinOnly public void optics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional float depth, optional androidx.compose.ui.unit.Dp blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength);
     method public void pressed(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
     method public void shape(androidx.compose.foundation.shape.RoundedCornerShape shape);
     method public void specularExponent(float exponent);

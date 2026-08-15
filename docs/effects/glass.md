@@ -56,9 +56,10 @@ CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
 
 ### Built-in material
 
-Start with the default `GlassOptics.Adaptive` material. It adjusts to the surface's size and shape,
-which makes it a good fit for reusable components. Choose fixed optics only when the design needs
-the same values at every size.
+Start with the default `GlassOptics.Adaptive` material. It adjusts to the surface's size and shape
+and includes a restrained edge fold, where the local sampling direction reverses so incoming
+content can appear inverted near the glass boundary. This makes it a good fit for reusable
+components. Choose fixed optics only when the design needs the same values at every size.
 
 ## Parameters
 
@@ -157,6 +158,7 @@ GlassStyle {
     refractionStrength = 0.8f,
     refractionHeightFraction = 0.3f,
     refractionDisplacement = 18.dp,
+    refractionFoldStrength = 0.65f,
     depth = 0.5f,
   )
 }
@@ -171,6 +173,11 @@ Keep a complete value when it is reused, stored, copied, or selected programmati
 val reusableOptics = GlassOptics.Fixed(blurRadius = 20.dp)
 val style = GlassStyle { optics(reusableOptics) }
 ```
+
+`refractionFoldStrength` controls the inverted edge-refraction fold from `0f` to `1f`. The default
+for `GlassOptics.Fixed` is `0f`, which preserves the original monotonic refraction map. The fold is
+available with every `SurfaceProfile` and remains within the configured refraction displacement;
+it does not expand the capture area.
 
 `GlassOptics.Fixed` controls the appearance; `HazePerformanceMode.Fixed` controls the normalized
 rendering trade-off.

@@ -128,8 +128,28 @@ class GlassDepthDesktopScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun glass_defaultRefractionIsVisiblyDisplaced() = runScreenshotTest {
-    assertGlassDefaultRefractionVisibleInvariant()
+  fun glass_monotonicRefractionIsVisiblyDisplaced() = runScreenshotTest {
+    assertGlassMonotonicRefractionVisibleInvariant()
+  }
+
+  @Test
+  fun glass_refractionFoldInvertsIncomingContent() = runScreenshotTest {
+    assertGlassRefractionFoldInvertsIncomingContentInvariant()
+  }
+
+  @Test
+  fun glass_refractionFoldPreservesTangentOrientation() = runScreenshotTest {
+    assertGlassRefractionFoldPreservesTangentOrientationInvariant()
+  }
+
+  @Test
+  fun glass_refractionFoldDoesNotFormSeparateEdgeBand() = runScreenshotTest {
+    assertGlassRefractionFoldDoesNotFormSeparateEdgeBandInvariant()
+  }
+
+  @Test
+  fun glass_interactionOpticsHasNoCircularPatchSeam() = runScreenshotTest {
+    assertGlassInteractionOpticsHasNoCircularPatchSeamInvariant()
   }
 
   @Test

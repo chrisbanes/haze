@@ -47,6 +47,8 @@ public sealed interface GlassOptics {
    * @param blurRadius Specified, finite, non-negative maximum blur radius before the renderer's
    * adaptive scale is applied. There is no authored upper limit.
    * @param progressive Optional progressive intensity applied to the blur.
+   * @param refractionFoldStrength Finite strength of the inverted edge-refraction fold, in the
+   * inclusive range `0f..1f`. The default `0f` preserves a monotonic refraction mapping.
    */
   public data class Fixed(
     val refractionStrength: Float = 0.7f,
@@ -55,9 +57,16 @@ public sealed interface GlassOptics {
     val depth: Float = 1f,
     val blurRadius: Dp = 14.dp,
     val progressive: HazeProgressive? = null,
+    val refractionFoldStrength: Float = 0f,
   ) : GlassOptics {
     init {
       requireFiniteInRange("refractionStrength", refractionStrength, 0f..1f, UNIT_INTERVAL_DOMAIN)
+      requireFiniteInRange(
+        "refractionFoldStrength",
+        refractionFoldStrength,
+        0f..1f,
+        UNIT_INTERVAL_DOMAIN,
+      )
       requireFiniteInRange(
         "refractionHeightFraction",
         refractionHeightFraction,

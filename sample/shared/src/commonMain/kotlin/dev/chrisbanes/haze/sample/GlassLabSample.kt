@@ -68,6 +68,8 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+private const val ADAPTIVE_REFRACTION_FOLD_STRENGTH = 0.65f
+
 @Composable
 public fun GlassLabSample(navController: NavHostController) {
   var state by remember { mutableStateOf(GlassLabState()) }
@@ -355,11 +357,17 @@ private fun <T : Enum<T>> LabChipGroup(
 @Composable
 private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
   val values = state.styleValues
-  val fixed = (values.optics as? GlassOptics.Fixed) ?: GlassOptics.Fixed()
+  val fixed = (values.optics as? GlassOptics.Fixed)
+    ?: GlassOptics.Fixed(refractionFoldStrength = ADAPTIVE_REFRACTION_FOLD_STRENGTH)
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text("Optics", style = MaterialTheme.typography.titleMedium)
     LabSlider("Refraction", fixed.refractionStrength, 0f..1f) { value ->
       onStateChanged(state.editStyle { it.copy(optics = fixed.copy(refractionStrength = value)) })
+    }
+    LabSlider("Fold", fixed.refractionFoldStrength, 0f..1f) { value ->
+      onStateChanged(
+        state.editStyle { it.copy(optics = fixed.copy(refractionFoldStrength = value)) },
+      )
     }
     LabSlider("Depth", fixed.depth, 0f..1f) { value ->
       onStateChanged(state.editStyle { it.copy(optics = fixed.copy(depth = value)) })
