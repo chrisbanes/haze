@@ -5,10 +5,7 @@ package dev.chrisbanes.haze.sample
 
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.kashif.cameraK.controller.CameraController
 
@@ -17,21 +14,14 @@ internal actual fun KameraPreview(
   controller: CameraController,
   modifier: Modifier,
 ) {
-  val context = LocalContext.current
-  val previewView = remember(context) {
-    PreviewView(context).apply {
-      implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-      scaleType = PreviewView.ScaleType.FILL_CENTER
-    }
-  }
-
-  DisposableEffect(controller, previewView) {
-    controller.bindCamera(previewView)
-    onDispose {}
-  }
-
   AndroidView(
-    factory = { previewView },
+    factory = { context ->
+      PreviewView(context).also { previewView ->
+        previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
+        controller.bindCamera(previewView)
+      }
+    },
     modifier = modifier,
   )
 }

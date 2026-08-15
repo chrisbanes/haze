@@ -99,21 +99,14 @@ actual fun KameraPreview(
   controller: CameraController,
   modifier: Modifier,
 ) {
-  val context = LocalContext.current
-  val previewView = remember(context) {
-    PreviewView(context).apply {
-      implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-      scaleType = PreviewView.ScaleType.FILL_CENTER
-    }
-  }
-
-  DisposableEffect(controller, previewView) {
-    controller.bindCamera(previewView)
-    onDispose {}
-  }
-
   AndroidView(
-    factory = { previewView },
+    factory = { context ->
+      PreviewView(context).also { previewView ->
+        previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
+        controller.bindCamera(previewView)
+      }
+    },
     modifier = modifier,
   )
 }
