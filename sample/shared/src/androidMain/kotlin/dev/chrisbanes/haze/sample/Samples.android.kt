@@ -5,6 +5,17 @@ package dev.chrisbanes.haze.sample
 
 import androidx.compose.runtime.remember
 
+internal val AndroidCameraX = Sample(
+  route = "camera-x",
+  title = "CameraX",
+  effects = listOf(SampleEffect.Blur, SampleEffect.Glass),
+) { navController, effect ->
+  CameraXSample(
+    effect = effect,
+    onBack = navController::navigateUp,
+  )
+}
+
 internal val AndroidGlassProfiling = Sample(
   route = "glass-profiling",
   title = "Glass — Profiling",
@@ -53,6 +64,8 @@ val AndroidExoPlayer = Sample(
 
 actual val Samples: List<Sample> = buildList {
   addAll(CommonSamples)
+  add(AndroidCameraX)
+  add(Kamera)
   add(AndroidExoPlayer)
   add(AndroidBlurProfiling)
   add(AndroidBlurStyleChurn)

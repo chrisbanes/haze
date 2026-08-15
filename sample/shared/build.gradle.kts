@@ -27,6 +27,13 @@ kotlin {
   addDefaultHazeTargets(project, withSkikoMain = true)
 
   sourceSets {
+    val kameraMain = create("kameraMain") {
+      dependsOn(getByName("commonMain"))
+      dependencies {
+        implementation(libs.kamera)
+      }
+    }
+
     commonMain {
       dependencies {
         api(projects.haze)
@@ -59,9 +66,13 @@ kotlin {
     }
 
     androidMain {
+      dependsOn(kameraMain)
       dependencies {
         implementation(libs.ktor.cio)
 
+        implementation(libs.androidx.activity.compose)
+        implementation(libs.androidx.camera.lifecycle)
+        implementation(libs.androidx.camera.view)
         implementation(libs.androidx.media3.exoplayer)
         implementation(libs.androidx.media3.ui)
       }
@@ -83,6 +94,7 @@ kotlin {
     }
 
     jvmMain {
+      dependsOn(kameraMain)
       dependencies {
         implementation(libs.ktor.cio)
       }
