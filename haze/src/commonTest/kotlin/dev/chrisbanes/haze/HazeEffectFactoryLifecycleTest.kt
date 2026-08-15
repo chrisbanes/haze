@@ -191,7 +191,7 @@ private class RecordingRenderer : HazeEffectRenderer<RecordingStyle> {
   }
 }
 
-@Suppress("unused")
+@Suppress("unused", "ModifierFactoryExtensionFunction")
 private fun <Style> typedPairingCompiles(
   factory: HazeEffectFactory<Style>,
   style: Style,

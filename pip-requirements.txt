@@ -1,4 +1,4 @@
-mkdocs
+properdocs
 mkdocs-material
 mkdocs-material[imaging]
 mkdocs-redirects

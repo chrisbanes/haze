@@ -3,8 +3,10 @@
 
 
 import org.gradle.api.file.DuplicatesStrategy
-import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.AbstractCopyTask
 import org.jetbrains.dokka.gradle.DokkaExtension
+import org.jetbrains.kotlin.gradle.targets.js.ir.DefaultIncrementalSyncTask
+import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
 
 plugins {
   id("dev.chrisbanes.root")
@@ -35,6 +37,10 @@ tasks.named("check") {
   dependsOn(checkPublicApiDocumentation)
 }
 
+tasks.withType<KotlinNpmInstallTask>().configureEach {
+  args.add("--userconfig=${rootProject.file("gradle/npmrc")}")
+}
+
 subprojects {
   pluginManager.withPlugin("org.jetbrains.dokka") {
     extensions.configure<DokkaExtension> {
@@ -54,10 +60,19 @@ subprojects {
     }
   }
 
-  tasks.withType<Copy>().configureEach {
+  tasks.withType<AbstractCopyTask>().configureEach {
     if (name.endsWith("TestDevelopmentExecutableCompileSync")) {
       // Kotlin/JS copies duplicate Skiko runtime files from main and test resources.
       duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+  }
+
+  afterEvaluate {
+    tasks.withType<DefaultIncrementalSyncTask>().configureEach {
+      if (name.endsWith("TestDevelopmentExecutableCompileSync")) {
+        // Kotlin/JS configures these tasks after the root project configures subprojects.
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+      }
     }
   }
 

@@ -31,7 +31,11 @@ android {
   }
 
   packaging {
-    jniLibs.keepDebugSymbols += "**/libandroidx.graphics.path.so"
+    jniLibs.keepDebugSymbols += setOf(
+      "**/libandroidx.graphics.path.so",
+      "**/libimage_processing_util_jni.so",
+      "**/libsurface_util_jni.so",
+    )
 
     resources.excludes += setOf(
       // Exclude AndroidX version files
