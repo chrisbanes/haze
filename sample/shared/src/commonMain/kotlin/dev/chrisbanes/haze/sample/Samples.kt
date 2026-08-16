@@ -595,7 +595,9 @@ internal fun SamplesList(
             .testTag(sample.title)
             .selectable(
               selected = selected,
-              onClick = { onSampleSelected(sample) },
+              onClick = {
+                if (!selected) onSampleSelected(sample)
+              },
             ),
         )
       }

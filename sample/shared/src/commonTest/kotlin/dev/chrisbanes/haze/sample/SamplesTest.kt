@@ -157,6 +157,29 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
+  fun samplesList_doesNotReselectSelectedSample() = runComposeUiTest {
+    val sample = Sample(
+      route = "sample",
+      title = "Sample",
+    ) { _, _ -> }
+    var selectionCount = 0
+    setContent {
+      SamplesList(
+        appTitle = "Haze Samples — Blur",
+        samples = listOf(sample),
+        selectedSample = sample,
+        onNavigateUp = {},
+        onSampleSelected = { selectionCount += 1 },
+      )
+    }
+
+    onNodeWithTag("Sample").performClick()
+    runOnIdle {
+      assertThat(selectionCount).isEqualTo(0)
+    }
+  }
+
+  @Test
   fun samplesForEffect_keepsSharedAndEffectSpecificSamplesSeparate() {
     val sharedSample = Sample(
       route = "shared",
