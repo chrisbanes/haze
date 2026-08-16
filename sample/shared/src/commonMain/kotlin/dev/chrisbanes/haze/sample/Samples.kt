@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -556,6 +557,13 @@ internal fun SamplesList(
   onSampleSelected: (Sample) -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val initialFirstVisibleItemIndex = remember(samples, selectedSample) {
+    samples.indexOfFirst { it === selectedSample }.coerceAtLeast(0)
+  }
+  val listState = rememberLazyListState(
+    initialFirstVisibleItemIndex = initialFirstVisibleItemIndex,
+  )
+
   Scaffold(
     topBar = {
       TopAppBar(
@@ -574,6 +582,7 @@ internal fun SamplesList(
     modifier = modifier,
   ) { contentPadding ->
     LazyColumn(
+      state = listState,
       modifier = Modifier
         .testTag("sample_list")
         .fillMaxSize(),

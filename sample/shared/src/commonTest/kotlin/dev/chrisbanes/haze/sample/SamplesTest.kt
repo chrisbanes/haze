@@ -180,6 +180,28 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
+  fun samplesList_initiallyDisplaysSelectedSample() = runComposeUiTest {
+    val samples = List(30) { index ->
+      Sample(
+        route = "sample-$index",
+        title = "Sample $index",
+      ) { _, _ -> }
+    }
+    val selectedSample = samples.last()
+    setContent {
+      SamplesList(
+        appTitle = "Haze Samples — Blur",
+        samples = samples,
+        selectedSample = selectedSample,
+        onNavigateUp = {},
+        onSampleSelected = {},
+      )
+    }
+
+    onNodeWithText(selectedSample.title).assertIsDisplayed()
+  }
+
+  @Test
   fun samplesForEffect_keepsSharedAndEffectSpecificSamplesSeparate() {
     val sharedSample = Sample(
       route = "shared",
