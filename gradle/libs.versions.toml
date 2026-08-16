@@ -2,6 +2,7 @@
 agp = "9.3.1"
 androidx-activity = "1.13.0"
 androidx-benchmark = "1.5.0-rc01"
+androidx-camera = "1.5.1"
 androidx-collection = "1.6.0"
 androidx-lifecycle = "2.11.0"
 androidx-media3 = "1.11.0"
@@ -18,6 +19,7 @@ kotlin = "2.4.10"
 ksp = "2.3.1"
 ktor = "3.5.2"
 jetpack-compose = "1.11.4"
+kamera = "1.2"
 metalava = "0.5.0"
 navigation-compose = "2.9.2"
 robolectric = "4.16.1"
@@ -44,6 +46,8 @@ mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.37.0" }
 
 [libraries]
 androidx-benchmark-macro = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "androidx-camera" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "androidx-camera" }
 androidx-core = "androidx.core:core-ktx:1.19.0"
 androidx-activity = { module = "androidx.activity:activity", version.ref = "androidx-activity" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
@@ -83,6 +87,8 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines-swing" }
+
+kamera = { module = "io.github.kashif-mehmood-km:camerak", version.ref = "kamera" }
 
 ktor-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }

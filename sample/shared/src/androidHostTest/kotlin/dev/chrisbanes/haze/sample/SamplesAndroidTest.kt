@@ -11,12 +11,25 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import assertk.assertThat
+import assertk.assertions.contains
 import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class SamplesAndroidTest : ContextTest() {
+  @Test
+  fun cameraSamples_areRegisteredAndExposeBothBuiltInEffects() {
+    assertThat(Samples).contains(AndroidCameraX)
+    assertThat(Samples).contains(Kamera)
+    assertThat(AndroidCameraX.effects).isEqualTo(
+      listOf(SampleEffect.Blur, SampleEffect.Glass),
+    )
+    assertThat(Kamera.effects).isEqualTo(
+      listOf(SampleEffect.Blur, SampleEffect.Glass),
+    )
+  }
+
   @Test
   fun exoPlayer_exposesBothBuiltInEffects() {
     assertThat(AndroidExoPlayer.effects).isEqualTo(

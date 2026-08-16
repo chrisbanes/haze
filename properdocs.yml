@@ -34,6 +34,8 @@ nav:
   - "Performance":
     - "Overview": performance.md
     - "Glass": glass/performance.md
+  - "Scenarios":
+    - "Camera": scenarios/camera.md
   - "Recipes": recipes.md
   - "Migrating to Haze 2.0": migrating-2.0.md
   - "Changelog": changelog.md
