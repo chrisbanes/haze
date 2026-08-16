@@ -92,7 +92,7 @@ class RecompositionLoopTest : ContextTest() {
   }
 
   @Test
-  fun openingDialogWithSharedStateAndHostEffect_doesNotInfiniteLoop() = runComposeUiTest {
+  fun openingAndClosingDialogWithSharedStateAndHostEffect_doesNotInfiniteLoop() = runComposeUiTest {
     val hazeState = HazeState()
     val showDialog = mutableStateOf(false)
     val detector = LivelockDetector()
@@ -131,6 +131,10 @@ class RecompositionLoopTest : ContextTest() {
     showDialog.value = true
 
     awaitIdleWithTimeout("after opening dialog with shared HazeState")
+
+    showDialog.value = false
+
+    awaitIdleWithTimeout("after closing dialog with shared HazeState")
   }
 
   @Test

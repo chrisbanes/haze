@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.snapshots.ObserverHandle
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -91,6 +92,9 @@ internal class HazeSourceNode(
   private var lastCoordinates: LayoutCoordinates? = null
 
   private var preDrawJob: Job? = null
+  private var regularPreDrawPending = false
+  private var snapshotApplyPending = false
+  private var snapshotApplyObserver: ObserverHandle? = null
 
   /**
    * We manually invalidate when things have changed
@@ -117,6 +121,36 @@ internal class HazeSourceNode(
   }
 
   private fun enablePreDrawListener() {
+    if (area.preDrawListeners.any { it.needsSnapshotApplyObservation(area) }) {
+      enableSnapshotApplyObserver()
+    } else {
+      disableSnapshotApplyObserver()
+    }
+    schedulePreDraw()
+  }
+
+  private fun enableSnapshotApplyObserver() {
+    if (snapshotApplyObserver != null) return
+
+    // Descendant layer-property changes may not redraw this node, but their snapshot writes
+    // still need to refresh effects hosted in another window.
+    snapshotApplyObserver = Snapshot.registerApplyObserver { _, _ ->
+      coroutineScope.launch { schedulePreDraw(snapshotApplied = true) }
+    }
+  }
+
+  private fun disableSnapshotApplyObserver() {
+    snapshotApplyObserver?.dispose()
+    snapshotApplyObserver = null
+  }
+
+  private fun schedulePreDraw(snapshotApplied: Boolean = false) {
+    if (area.preDrawListeners.isEmpty()) return
+    if (snapshotApplied) {
+      snapshotApplyPending = true
+    } else {
+      regularPreDrawPending = true
+    }
     if (preDrawJob?.isActive != true) {
       preDrawJob = launchPreDraw()
     }
@@ -125,11 +159,21 @@ internal class HazeSourceNode(
   private fun launchPreDraw(): Job = coroutineScope.launch {
     withFrameNanos {
       HazeLogger.d(TAG) { "onPreDraw" }
-      area.preDrawListeners.forEach(OnPreDrawListener::invoke)
+      val regularPreDraw = regularPreDrawPending
+      val snapshotApplied = snapshotApplyPending
+      regularPreDrawPending = false
+      snapshotApplyPending = false
+      area.notifyPreDrawListeners(
+        regularPreDraw = regularPreDraw,
+        snapshotApplied = snapshotApplied,
+      )
     }
   }
 
   private fun disablePreDrawListener() {
+    disableSnapshotApplyObserver()
+    regularPreDrawPending = false
+    snapshotApplyPending = false
     preDrawJob?.cancel()
     preDrawJob = null
   }
@@ -238,6 +282,7 @@ internal class HazeSourceNode(
 
   override fun onDetach() {
     HazeLogger.d(TAG) { "onDetach. Removing HazeArea: $area" }
+    disablePreDrawListener()
     area.reset()
     area.releaseLayer()
     state.removeArea(area)
@@ -245,6 +290,7 @@ internal class HazeSourceNode(
 
   override fun onReset() {
     HazeLogger.d(TAG) { "onReset. Resetting HazeArea: $area" }
+    disablePreDrawListener()
     area.releaseLayer()
     area.reset()
   }
