@@ -150,8 +150,13 @@ internal fun HazeArea.reset() {
   contentDrawing = false
 }
 
-internal fun interface OnPreDrawListener {
-  operator fun invoke()
+internal class OnPreDrawListener(
+  private val effectWindowId: () -> Any?,
+  private val onPreDraw: () -> Unit,
+) {
+  fun needsSnapshotApplyObservation(area: HazeArea): Boolean = area.windowId != effectWindowId()
+
+  operator fun invoke() = onPreDraw()
 }
 
 /**

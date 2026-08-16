@@ -5,6 +5,7 @@
 
 package dev.chrisbanes.haze
 
+import androidx.compose.runtime.snapshots.ObserverHandle
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -91,6 +92,7 @@ internal class HazeSourceNode(
   private var lastCoordinates: LayoutCoordinates? = null
 
   private var preDrawJob: Job? = null
+  private var snapshotApplyObserver: ObserverHandle? = null
 
   /**
    * We manually invalidate when things have changed
@@ -117,6 +119,31 @@ internal class HazeSourceNode(
   }
 
   private fun enablePreDrawListener() {
+    if (area.preDrawListeners.any { it.needsSnapshotApplyObservation(area) }) {
+      enableSnapshotApplyObserver()
+    } else {
+      disableSnapshotApplyObserver()
+    }
+    schedulePreDraw()
+  }
+
+  private fun enableSnapshotApplyObserver() {
+    if (snapshotApplyObserver != null) return
+
+    // Descendant layer-property changes may not redraw this node, but their snapshot writes
+    // still need to refresh effects hosted in another window.
+    snapshotApplyObserver = Snapshot.registerApplyObserver { _, _ ->
+      coroutineScope.launch { schedulePreDraw() }
+    }
+  }
+
+  private fun disableSnapshotApplyObserver() {
+    snapshotApplyObserver?.dispose()
+    snapshotApplyObserver = null
+  }
+
+  private fun schedulePreDraw() {
+    if (area.preDrawListeners.isEmpty()) return
     if (preDrawJob?.isActive != true) {
       preDrawJob = launchPreDraw()
     }
@@ -130,6 +157,7 @@ internal class HazeSourceNode(
   }
 
   private fun disablePreDrawListener() {
+    disableSnapshotApplyObserver()
     preDrawJob?.cancel()
     preDrawJob = null
   }
@@ -238,6 +266,7 @@ internal class HazeSourceNode(
 
   override fun onDetach() {
     HazeLogger.d(TAG) { "onDetach. Removing HazeArea: $area" }
+    disablePreDrawListener()
     area.reset()
     area.releaseLayer()
     state.removeArea(area)
@@ -245,6 +274,7 @@ internal class HazeSourceNode(
 
   override fun onReset() {
     HazeLogger.d(TAG) { "onReset. Resetting HazeArea: $area" }
+    disablePreDrawListener()
     area.releaseLayer()
     area.reset()
   }

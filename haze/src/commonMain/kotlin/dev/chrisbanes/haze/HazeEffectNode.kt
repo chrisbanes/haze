@@ -108,6 +108,7 @@ internal class HazeEffectNode(
   private var needsContentInvalidation = false
   private var hasRenderedTypedSourceOutput = false
   private var lastInputSnapshot: HazeEffectInputSnapshotImpl? = null
+  private var inputCaptureGeneration = 0L
   private var isDrawing = false
   private var lastKnownCoordinates: LayoutCoordinates? = null
   private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
@@ -362,12 +363,16 @@ internal class HazeEffectNode(
 
   private var retainOutputWhenSourceUnavailable: Boolean = true
   private val areaPreDrawListener by lazy(LazyThreadSafetyMode.NONE) {
-    OnPreDrawListener {
-      if (!needsPreDrawInvalidation) {
-        needsPreDrawInvalidation = true
-        invalidateHazeDraw(HazeInvalidationReason.PreDraw)
-      }
-    }
+    OnPreDrawListener(
+      effectWindowId = { windowId },
+      onPreDraw = {
+        inputCaptureGeneration++
+        if (!needsPreDrawInvalidation) {
+          needsPreDrawInvalidation = true
+          invalidateHazeDraw(HazeInvalidationReason.PreDraw)
+        }
+      },
+    )
   }
 
   internal fun update() {
@@ -1030,7 +1035,9 @@ internal class HazeEffectNode(
   }
 
   internal fun inputSnapshot(): HazeEffectInputSnapshot? {
-    lastInputSnapshot?.takeIf { it.matches(this) }?.let { return it }
+    lastInputSnapshot
+      ?.takeIf { it.matches(this, inputCaptureGeneration) }
+      ?.let { return it }
     val snapshots = ArrayList<HazeEffectInputSnapshotEntry>(areas.size)
     val effectPosition = position
     for (area in areas) {
@@ -1053,7 +1060,7 @@ internal class HazeEffectNode(
     }
     return snapshots
       .takeIf { it.isNotEmpty() }
-      ?.let(::HazeEffectInputSnapshotImpl)
+      ?.let { HazeEffectInputSnapshotImpl(it, inputCaptureGeneration) }
       .also { lastInputSnapshot = it }
   }
 
@@ -1093,8 +1100,11 @@ private class HazeEffectPointerInputNode(
 
 private class HazeEffectInputSnapshotImpl(
   private val entries: List<HazeEffectInputSnapshotEntry>,
+  private val captureGeneration: Long,
 ) : HazeEffectInputSnapshot {
-  fun matches(node: HazeEffectNode): Boolean {
+  fun matches(node: HazeEffectNode, captureGeneration: Long): Boolean {
+    if (this.captureGeneration != captureGeneration) return false
+
     val effectPosition = node.position
     var drawableIndex = 0
     for (area in node.areas) {
@@ -1124,9 +1134,11 @@ private class HazeEffectInputSnapshotImpl(
   }
 
   override fun equals(other: Any?): Boolean =
-    other is HazeEffectInputSnapshotImpl && entries == other.entries
+    other is HazeEffectInputSnapshotImpl &&
+      captureGeneration == other.captureGeneration &&
+      entries == other.entries
 
-  override fun hashCode(): Int = entries.hashCode()
+  override fun hashCode(): Int = 31 * entries.hashCode() + captureGeneration.hashCode()
 }
 
 private class HazeEffectInputSnapshotEntry(
