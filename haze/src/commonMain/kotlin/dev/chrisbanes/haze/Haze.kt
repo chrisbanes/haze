@@ -152,11 +152,24 @@ internal fun HazeArea.reset() {
 
 internal class OnPreDrawListener(
   private val effectWindowId: () -> Any?,
-  private val onPreDraw: () -> Unit,
+  private val onPreDraw: (invalidateInputCapture: Boolean) -> Unit,
 ) {
   fun needsSnapshotApplyObservation(area: HazeArea): Boolean = area.windowId != effectWindowId()
 
-  operator fun invoke() = onPreDraw()
+  operator fun invoke(invalidateInputCapture: Boolean) = onPreDraw(invalidateInputCapture)
+}
+
+internal fun HazeArea.notifyPreDrawListeners(
+  regularPreDraw: Boolean,
+  snapshotApplied: Boolean,
+) {
+  preDrawListeners.forEach { listener ->
+    val invalidateInputCapture =
+      snapshotApplied && listener.needsSnapshotApplyObservation(this)
+    if (regularPreDraw || invalidateInputCapture) {
+      listener(invalidateInputCapture)
+    }
+  }
 }
 
 /**

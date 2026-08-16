@@ -365,8 +365,8 @@ internal class HazeEffectNode(
   private val areaPreDrawListener by lazy(LazyThreadSafetyMode.NONE) {
     OnPreDrawListener(
       effectWindowId = { windowId },
-      onPreDraw = {
-        inputCaptureGeneration++
+      onPreDraw = { invalidateInputCapture ->
+        if (invalidateInputCapture) inputCaptureGeneration++
         if (!needsPreDrawInvalidation) {
           needsPreDrawInvalidation = true
           invalidateHazeDraw(HazeInvalidationReason.PreDraw)
