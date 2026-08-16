@@ -50,7 +50,8 @@ kotlin {
         implementation(libs.coil.ktor)
 
         api(libs.compose.material3)
-        implementation(libs.compose.material3.adaptive.navigation.suite)
+        implementation(libs.compose.material3.adaptive.layout)
+        implementation(libs.compose.material3.adaptive.navigation)
         api(libs.compose.material.icons)
       }
     }

@@ -99,7 +99,7 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
-  fun samples_startsWithBlurCatalog() = runComposeUiTest {
+  fun samples_startsWithEffectList() = runComposeUiTest {
     setContent {
       Samples(
         appTitle = "Haze Samples",
@@ -112,24 +112,26 @@ class SamplesTest : ContextTest() {
       )
     }
 
-    onNodeWithTag("Credit Card").assertIsDisplayed()
-    onNodeWithTag("Glass — Product").assertDoesNotExist()
+    onNodeWithTag("sample_effect_blur").assertIsDisplayed()
+    onNodeWithTag("sample_effect_glass").assertIsDisplayed()
+    onNodeWithTag("Credit Card").assertDoesNotExist()
   }
 
   @Test
-  fun samples_displaysSuiteItems() = runComposeUiTest {
+  fun effectList_selectsGlassCategory() = runComposeUiTest {
+    var selectedEffect: SampleEffect? = null
     setContent {
-      Samples(
+      EffectList(
         appTitle = "Haze Samples",
-        samples = listOf(
-          Sample.CreditCard,
-          Sample.GlassProduct,
-        ),
+        effects = SampleEffect.entries.toList(),
+        onEffectSelected = { selectedEffect = it },
       )
     }
 
-    onNodeWithTag("sample_effect_blur").assertIsDisplayed()
-    onNodeWithTag("sample_effect_glass").assertIsDisplayed()
+    onNodeWithTag("sample_effect_glass").performClick()
+    runOnIdle {
+      assertThat(selectedEffect).isEqualTo(SampleEffect.Glass)
+    }
   }
 
   @Test
@@ -143,6 +145,7 @@ class SamplesTest : ContextTest() {
       SamplesList(
         appTitle = "Haze Samples — Blur",
         samples = listOf(sample),
+        onNavigateUp = {},
         onSampleSelected = { selectedSample = it },
       )
     }
@@ -151,6 +154,51 @@ class SamplesTest : ContextTest() {
     runOnIdle {
       assertThat(selectedSample).isEqualTo(sample)
     }
+  }
+
+  @Test
+  fun samplesList_doesNotReselectSelectedSample() = runComposeUiTest {
+    val sample = Sample(
+      route = "sample",
+      title = "Sample",
+    ) { _, _ -> }
+    var selectionCount = 0
+    setContent {
+      SamplesList(
+        appTitle = "Haze Samples — Blur",
+        samples = listOf(sample),
+        selectedSample = sample,
+        onNavigateUp = {},
+        onSampleSelected = { selectionCount += 1 },
+      )
+    }
+
+    onNodeWithTag("Sample").performClick()
+    runOnIdle {
+      assertThat(selectionCount).isEqualTo(0)
+    }
+  }
+
+  @Test
+  fun samplesList_initiallyDisplaysSelectedSample() = runComposeUiTest {
+    val samples = List(30) { index ->
+      Sample(
+        route = "sample-$index",
+        title = "Sample $index",
+      ) { _, _ -> }
+    }
+    val selectedSample = samples.last()
+    setContent {
+      SamplesList(
+        appTitle = "Haze Samples — Blur",
+        samples = samples,
+        selectedSample = selectedSample,
+        onNavigateUp = {},
+        onSampleSelected = {},
+      )
+    }
+
+    onNodeWithText(selectedSample.title).assertIsDisplayed()
   }
 
   @Test

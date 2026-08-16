@@ -10,7 +10,10 @@ import dev.chrisbanes.haze.sample.Samples
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 
-internal fun ScreenshotUiTest.captureSampleBrowser(selectGlass: Boolean = false) {
+internal fun ScreenshotUiTest.captureSampleBrowser(
+  selectGlass: Boolean = false,
+  sampleTitle: String? = null,
+) {
   setContent {
     CompositionLocalProvider(LocalInspectionMode provides true) {
       ScreenshotTheme {
@@ -22,8 +25,10 @@ internal fun ScreenshotUiTest.captureSampleBrowser(selectGlass: Boolean = false)
     }
   }
   waitForIdle()
-  if (selectGlass) {
-    onNodeWithTag("sample_effect_glass").performClick()
+  onNodeWithTag(if (selectGlass) "sample_effect_glass" else "sample_effect_blur").performClick()
+  waitForIdle()
+  if (sampleTitle != null) {
+    onNodeWithTag(sampleTitle).performClick()
     waitForIdle()
   }
   captureRoot()
