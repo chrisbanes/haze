@@ -21,6 +21,6 @@ class SampleBrowserDesktopScreenshotTest : ScreenshotTest() {
 
   @Test
   fun largeLandscape() = runScreenshotTest(size = Size(2560f, 1440f)) {
-    captureSampleBrowser()
+    captureSampleBrowser(sampleTitle = "Credit Card")
   }
 }

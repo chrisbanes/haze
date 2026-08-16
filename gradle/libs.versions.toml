@@ -12,6 +12,7 @@ coil = "3.5.0"
 compose-multiplatform = "1.11.1"
 # Material3 does not publish every Compose Multiplatform version.
 compose-material3 = "1.9.0"
+compose-material3-adaptive = "1.1.2"
 compose-navigation3 = "1.1.1"
 kotlinx-coroutines-swing = "1.11.0"
 ktlint = "1.0.1"
@@ -74,7 +75,8 @@ compose-components-resources = { module = "org.jetbrains.compose.components:comp
 compose-animation-core = { module = "org.jetbrains.compose.animation:animation-core", version.ref = "compose-multiplatform" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "compose-material3" }
-compose-material3-adaptive-navigation-suite = { module = "org.jetbrains.compose.material3:material3-adaptive-navigation-suite", version.ref = "compose-material3" }
+compose-material3-adaptive-layout = { module = "org.jetbrains.compose.material3.adaptive:adaptive-layout", version.ref = "compose-material3-adaptive" }
+compose-material3-adaptive-navigation = { module = "org.jetbrains.compose.material3.adaptive:adaptive-navigation", version.ref = "compose-material3-adaptive" }
 compose-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "compose-navigation3" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose-multiplatform" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }

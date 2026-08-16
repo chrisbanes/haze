@@ -3,11 +3,13 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import assertk.assertThat
@@ -38,20 +40,26 @@ class SamplesAndroidTest : ContextTest() {
   }
 
   @Test
-  fun samples_switchingSuitesOrReselectingSuiteDisplaysTheTargetCatalog() = runComposeUiTest {
+  fun samples_nestedEffectListsDisplayTheTargetDetail() = runComposeUiTest {
     val blurDemo = Sample(
       route = "blur-demo",
       title = "Blur demo",
       effects = listOf(SampleEffect.Blur),
-    ) { _, _ ->
-      Text("Blur detail")
+    ) { navController, _ ->
+      Text(
+        text = "Blur detail",
+        modifier = Modifier.testTag("blur_detail").clickable(onClick = navController::navigateUp),
+      )
     }
     val glassDemo = Sample(
       route = "glass-demo",
       title = "Glass demo",
       effects = listOf(SampleEffect.Glass),
-    ) { _, _ ->
-      Text("Glass detail")
+    ) { navController, _ ->
+      Text(
+        text = "Glass detail",
+        modifier = Modifier.testTag("glass_detail").clickable(onClick = navController::navigateUp),
+      )
     }
 
     setContent {
@@ -61,18 +69,23 @@ class SamplesAndroidTest : ContextTest() {
       )
     }
 
+    onNodeWithTag("sample_effect_blur").performClick()
+    waitForIdle()
     onNodeWithTag("Blur demo").performClick()
-    onNodeWithText("Blur detail").assertIsDisplayed()
+    waitForIdle()
+    onNodeWithTag("blur_detail").assertIsDisplayed().performClick()
+    waitForIdle()
+    onNodeWithTag("sample_list_back").performClick()
+    waitForIdle()
 
     onNodeWithTag("sample_effect_glass").performClick()
+    waitForIdle()
     onNodeWithTag("Glass demo").assertIsDisplayed()
-    onNodeWithText("Blur detail").assertDoesNotExist()
+    onNodeWithTag("blur_detail").assertDoesNotExist()
 
     onNodeWithTag("Glass demo").performClick()
-    onNodeWithText("Glass detail").assertIsDisplayed()
-
-    onNodeWithTag("sample_effect_glass").performClick()
-    onNodeWithTag("Glass demo").assertIsDisplayed()
-    onNodeWithText("Glass detail").assertDoesNotExist()
+    waitForIdle()
+    onNodeWithTag("glass_detail").assertIsDisplayed()
+    waitForIdle()
   }
 }

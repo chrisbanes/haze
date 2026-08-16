@@ -99,7 +99,7 @@ class SamplesTest : ContextTest() {
   }
 
   @Test
-  fun samples_startsWithBlurCatalog() = runComposeUiTest {
+  fun samples_startsWithEffectList() = runComposeUiTest {
     setContent {
       Samples(
         appTitle = "Haze Samples",
@@ -112,24 +112,26 @@ class SamplesTest : ContextTest() {
       )
     }
 
-    onNodeWithTag("Credit Card").assertIsDisplayed()
-    onNodeWithTag("Glass — Product").assertDoesNotExist()
+    onNodeWithTag("sample_effect_blur").assertIsDisplayed()
+    onNodeWithTag("sample_effect_glass").assertIsDisplayed()
+    onNodeWithTag("Credit Card").assertDoesNotExist()
   }
 
   @Test
-  fun samples_displaysSuiteItems() = runComposeUiTest {
+  fun effectList_selectsGlassCategory() = runComposeUiTest {
+    var selectedEffect: SampleEffect? = null
     setContent {
-      Samples(
+      EffectList(
         appTitle = "Haze Samples",
-        samples = listOf(
-          Sample.CreditCard,
-          Sample.GlassProduct,
-        ),
+        effects = SampleEffect.entries.toList(),
+        onEffectSelected = { selectedEffect = it },
       )
     }
 
-    onNodeWithTag("sample_effect_blur").assertIsDisplayed()
-    onNodeWithTag("sample_effect_glass").assertIsDisplayed()
+    onNodeWithTag("sample_effect_glass").performClick()
+    runOnIdle {
+      assertThat(selectedEffect).isEqualTo(SampleEffect.Glass)
+    }
   }
 
   @Test
@@ -143,6 +145,7 @@ class SamplesTest : ContextTest() {
       SamplesList(
         appTitle = "Haze Samples — Blur",
         samples = listOf(sample),
+        onNavigateUp = {},
         onSampleSelected = { selectedSample = it },
       )
     }

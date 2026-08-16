@@ -3,37 +3,47 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.layout.AnimatedPane
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldDestinationItem
+import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil3.SingletonImageLoader
 import coil3.compose.LocalPlatformContext
@@ -55,9 +65,6 @@ enum class SampleEffect(val label: String) {
 private fun SampleEffect.route(): String = "$SAMPLES_ROUTE/${name.lowercase()}"
 
 private fun Sample.route(effect: SampleEffect): String = "$route/${effect.name.lowercase()}"
-
-private fun SampleEffect.matches(route: String?): Boolean =
-  route?.endsWith("/${name.lowercase()}") == true
 
 internal fun List<Sample>.forEffect(effect: SampleEffect): List<Sample> = filter {
   effect in it.effects
@@ -285,7 +292,7 @@ class Sample(
     val CustomVisualEffect = Sample(
       route = "custom-visual-effect",
       title = "Custom VisualEffect",
-    ) { navController, effect ->
+    ) { navController, _ ->
       CustomVisualEffectSample(navController)
     }
 
@@ -368,58 +375,60 @@ fun Samples(
 
   SamplesTheme(useDarkColors = useDarkColors) {
     CompositionLocalProvider(LocalHazeBlurStyle provides localBlurStyle) {
-      val currentDestination = navController.currentBackStackEntryAsState().value?.destination
-      NavigationSuiteScaffold(
-        navigationSuiteItems = {
-          SampleEffect.entries.forEach { effect ->
-            item(
-              selected = effect.matches(currentDestination?.route),
-              onClick = {
-                navController.navigate(effect.route()) {
-                  popUpTo(navController.graph.findStartDestination().id)
-                  launchSingleTop = true
-                }
-              },
-              icon = {
-                Icon(
-                  imageVector = when (effect) {
-                    SampleEffect.Blur -> Icons.Default.Search
-                    SampleEffect.Glass -> Icons.Default.Lock
-                  },
-                  contentDescription = null,
-                )
-              },
-              label = { Text(effect.label) },
-              modifier = Modifier.testTag("sample_effect_${effect.name.lowercase()}"),
-            )
-          }
-        },
+      NavHost(
+        navController = navController,
+        startDestination = SAMPLES_ROUTE,
         modifier = Modifier.testTagsAsResourceId(true),
       ) {
-        NavHost(
-          navController = navController,
-          startDestination = SampleEffect.Blur.route(),
-        ) {
-          SampleEffect.entries.forEach { effect ->
-            composable(effect.route()) {
+        composable(SAMPLES_ROUTE) {
+          EffectList(
+            appTitle = appTitle,
+            effects = SampleEffect.entries.toList(),
+            onEffectSelected = { effect -> navController.navigate(effect.route()) },
+          )
+        }
+
+        SampleEffect.entries.forEach { effect ->
+          composable(effect.route()) {
+            val effectSamples = remember(samples, effect) {
+              samples.forEffect(effect).sortedBy(Sample::title)
+            }
+            SamplesListDetail(
+              appTitle = "$appTitle — ${effect.label}",
+              navController = navController,
+              effect = effect,
+              samples = effectSamples,
+              selectedSample = null,
+              onListNavigateUp = navController::navigateUp,
+              onSampleSelected = { selected ->
+                navController.navigate(selected.route(effect))
+              },
+            )
+          }
+        }
+
+        samples.forEach { sample ->
+          sample.effects.forEach { effect ->
+            composable(sample.route(effect)) {
               val effectSamples = remember(samples, effect) {
                 samples.forEffect(effect).sortedBy(Sample::title)
               }
-              SamplesList(
+              SamplesListDetail(
                 appTitle = "$appTitle — ${effect.label}",
+                navController = navController,
+                effect = effect,
                 samples = effectSamples,
+                selectedSample = sample,
+                onListNavigateUp = {
+                  navController.popBackStack(SAMPLES_ROUTE, inclusive = false)
+                },
                 onSampleSelected = { selected ->
-                  navController.navigate(selected.route(effect))
+                  navController.navigate(selected.route(effect)) {
+                    popUpTo(effect.route())
+                    launchSingleTop = true
+                  }
                 },
               )
-            }
-          }
-
-          samples.forEach { sample ->
-            sample.effects.forEach { effect ->
-              composable(sample.route(effect)) {
-                sample.content(navController, effect)
-              }
             }
           }
         }
@@ -430,10 +439,10 @@ fun Samples(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SamplesList(
+internal fun EffectList(
   appTitle: String,
-  samples: List<Sample>,
-  onSampleSelected: (Sample) -> Unit,
+  effects: List<SampleEffect>,
+  onEffectSelected: (SampleEffect) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
@@ -447,17 +456,147 @@ internal fun SamplesList(
   ) { contentPadding ->
     LazyColumn(
       modifier = Modifier
+        .testTag("sample_effect_list")
+        .fillMaxSize(),
+      contentPadding = contentPadding,
+    ) {
+      items(effects) { effect ->
+        ListItem(
+          headlineContent = { Text(text = effect.label) },
+          modifier = Modifier
+            .fillMaxWidth()
+            .testTag("sample_effect_${effect.name.lowercase()}")
+            .clickable { onEffectSelected(effect) },
+        )
+      }
+    }
+  }
+}
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+private fun SamplesListDetail(
+  appTitle: String,
+  navController: NavHostController,
+  effect: SampleEffect,
+  samples: List<Sample>,
+  selectedSample: Sample?,
+  onListNavigateUp: () -> Unit,
+  onSampleSelected: (Sample) -> Unit,
+) {
+  val initialDestinationHistory = remember(selectedSample) {
+    buildList {
+      if (selectedSample == null) {
+        add(
+          ThreePaneScaffoldDestinationItem<String?>(
+            pane = ListDetailPaneScaffoldRole.Detail,
+            contentKey = null,
+          ),
+        )
+        add(ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.List))
+      } else {
+        add(ThreePaneScaffoldDestinationItem<String?>(ListDetailPaneScaffoldRole.List))
+        add(
+          ThreePaneScaffoldDestinationItem(
+            pane = ListDetailPaneScaffoldRole.Detail,
+            contentKey = selectedSample.route,
+          ),
+        )
+      }
+    }
+  }
+  val navigator = rememberListDetailPaneScaffoldNavigator(
+    initialDestinationHistory = initialDestinationHistory,
+  )
+
+  ListDetailPaneScaffold(
+    directive = navigator.scaffoldDirective,
+    scaffoldState = navigator.scaffoldState,
+    modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+    listPane = {
+      AnimatedPane(Modifier.preferredWidth(360.dp)) {
+        SamplesList(
+          appTitle = appTitle,
+          samples = samples,
+          selectedSample = selectedSample,
+          onNavigateUp = onListNavigateUp,
+          onSampleSelected = onSampleSelected,
+        )
+      }
+    },
+    detailPane = {
+      AnimatedPane {
+        if (selectedSample != null) {
+          key(selectedSample.route) {
+            selectedSample.content(navController, effect)
+          }
+        } else {
+          Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+              .background(MaterialTheme.colorScheme.surface)
+              .testTag("sample_detail_placeholder")
+              .fillMaxSize(),
+          ) {
+            Text("Select a sample")
+          }
+        }
+      }
+    },
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SamplesList(
+  appTitle: String,
+  samples: List<Sample>,
+  selectedSample: Sample? = null,
+  onNavigateUp: () -> Unit,
+  onSampleSelected: (Sample) -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  Scaffold(
+    topBar = {
+      TopAppBar(
+        title = { Text(text = appTitle) },
+        navigationIcon = {
+          IconButton(
+            onClick = onNavigateUp,
+            modifier = Modifier.testTag("sample_list_back"),
+          ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+          }
+        },
+        modifier = Modifier.fillMaxWidth(),
+      )
+    },
+    modifier = modifier,
+  ) { contentPadding ->
+    LazyColumn(
+      modifier = Modifier
         .testTag("sample_list")
         .fillMaxSize(),
       contentPadding = contentPadding,
     ) {
       items(samples) { sample ->
+        val selected = sample === selectedSample
         ListItem(
           headlineContent = { Text(text = sample.title) },
+          colors = ListItemDefaults.colors(
+            containerColor = if (selected) {
+              MaterialTheme.colorScheme.secondaryContainer
+            } else {
+              MaterialTheme.colorScheme.surface
+            },
+          ),
           modifier = Modifier
             .fillMaxWidth()
             .testTag(sample.title)
-            .clickable { onSampleSelected(sample) },
+            .selectable(
+              selected = selected,
+              onClick = { onSampleSelected(sample) },
+            ),
         )
       }
     }
