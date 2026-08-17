@@ -64,14 +64,37 @@ public sealed interface HazeProgressive {
    * the largest radius that can fit within the bounds of the drawing area.
    * @param radiusIntensity - The intensity of the haze effect at the [radius], in the range `0f`..`1f`
    */
-  @Poko
   public class RadialGradient(
     public val easing: Easing = EaseIn,
     public val center: Offset = Offset.Unspecified,
     public val centerIntensity: Float = 1f,
     public val radius: Float = Float.POSITIVE_INFINITY,
     public val radiusIntensity: Float = 0f,
-  ) : HazeProgressive
+  ) : HazeProgressive {
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is RadialGradient) return false
+
+      return easing == other.easing &&
+        center == other.center &&
+        centerIntensity.compareTo(other.centerIntensity) == 0 &&
+        radius.compareTo(other.radius) == 0 &&
+        radiusIntensity.compareTo(other.radiusIntensity) == 0
+    }
+
+    override fun hashCode(): Int {
+      var result = easing.hashCode()
+      result = 31 * result + center.hashCode()
+      result = 31 * result + centerIntensity.hashCode()
+      result = 31 * result + radius.hashCode()
+      result = 31 * result + radiusIntensity.hashCode()
+      return result
+    }
+
+    override fun toString(): String =
+      "RadialGradient(easing=$easing, center=$center, centerIntensity=$centerIntensity, " +
+        "radius=$radius, radiusIntensity=$radiusIntensity)"
+  }
 
   /**
    * A progressive effect which is derived by using the provided [Brush] as an alpha mask.
