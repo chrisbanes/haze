@@ -21,6 +21,8 @@ class BlurProfilingScenarioTest {
         "stable_quality",
         "stable_balanced",
         "stable_performance",
+        "progressive_quality",
+        "progressive_balanced",
         "source_update_adaptive",
         "source_update_quality",
         "source_update_balanced",
@@ -38,6 +40,8 @@ class BlurProfilingScenarioTest {
           HazePerformanceMode.Quality,
           HazePerformanceMode.Balanced,
           HazePerformanceMode.Performance,
+          HazePerformanceMode.Quality,
+          HazePerformanceMode.Balanced,
         ),
         true to listOf(
           HazePerformanceMode.Adaptive,
@@ -45,6 +49,18 @@ class BlurProfilingScenarioTest {
           HazePerformanceMode.Balanced,
           HazePerformanceMode.Performance,
         ),
+      ),
+    )
+  }
+
+  @Test
+  fun progressiveScenarios_useProgressiveModeWithTheirNamedPerformanceTier() {
+    assertThat(
+      BlurProfilingScenario.entries.filter { it.mode == ScaffoldSampleMode.Progressive },
+    ).isEqualTo(
+      listOf(
+        BlurProfilingScenario.ProgressiveQuality,
+        BlurProfilingScenario.ProgressiveBalanced,
       ),
     )
   }

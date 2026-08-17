@@ -14,8 +14,13 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   progressive: HazeProgressive,
   contentLayer: GraphicsLayer,
   context: HazeEffectRuntimeDrawScope,
+  inputScale: Float,
 ) = with(drawScope) {
-  contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(context = context, progressive = progressive)
+  contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
+    context = context,
+    inputScale = inputScale,
+    progressive = progressive,
+  )
   contentLayer.alpha = blurVisualEffect.alpha
 
   // Finally draw the layer

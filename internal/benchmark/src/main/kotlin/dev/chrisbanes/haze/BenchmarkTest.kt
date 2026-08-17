@@ -42,6 +42,12 @@ class BenchmarkTest {
   fun blurStablePerformance() = measureBlurProfilingScenario("stable_performance")
 
   @Test
+  fun blurProgressiveQuality() = measureBlurProfilingScenario("progressive_quality")
+
+  @Test
+  fun blurProgressiveBalanced() = measureBlurProfilingScenario("progressive_balanced")
+
+  @Test
   fun blurSourceUpdateAdaptive() = measureBlurProfilingScenario("source_update_adaptive")
 
   @Test

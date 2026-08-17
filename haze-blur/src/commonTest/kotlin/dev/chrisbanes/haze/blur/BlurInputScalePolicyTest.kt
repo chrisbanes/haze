@@ -8,11 +8,34 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TestTimeSource
 
 class BlurInputScalePolicyTest {
+
+  @Test
+  fun progressiveLayeredRoute_requiresFullResolutionLinearGradient() {
+    assertThat(
+      shouldDrawProgressiveWithLayers(
+        progressive = HazeProgressive.horizontalGradient(),
+        inputScale = BlurInputScalePolicy.NONE_SCALE,
+      ),
+    ).isEqualTo(true)
+    assertThat(
+      shouldDrawProgressiveWithLayers(
+        progressive = HazeProgressive.horizontalGradient(),
+        inputScale = BlurInputScalePolicy.BALANCED_SCALE,
+      ),
+    ).isEqualTo(false)
+    assertThat(
+      shouldDrawProgressiveWithLayers(
+        progressive = HazeProgressive.RadialGradient(),
+        inputScale = BlurInputScalePolicy.NONE_SCALE,
+      ),
+    ).isEqualTo(false)
+  }
 
   @Test
   fun fixedModes_resolveDeterministicProfiles() {

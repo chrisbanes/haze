@@ -32,7 +32,7 @@ import org.robolectric.annotation.Config
 class BlurInputScaleAndroidScreenshotTest : ScreenshotTest() {
 
   @Test
-  fun progressiveBlur_preservesScreenSpaceRadiusAcrossInputScales() = runScreenshotTest {
+  fun progressiveBlur_qualityLayeredAndBalancedMask_preserveScreenSpaceRadius() = runScreenshotTest {
     val effect = HazeBlurStyle {
       blurRadius(48.dp)
       noiseFactor(0f)
@@ -76,9 +76,11 @@ class BlurInputScaleAndroidScreenshotTest : ScreenshotTest() {
     }
 
     val unscaled = captureRootPixels().snapshot()
-    performanceMode = HazePerformanceMode.Performance
+    captureRoot("quality")
+    performanceMode = HazePerformanceMode.Balanced
     waitForIdle()
     val scaled = captureRootPixels().snapshot()
+    captureRoot("balanced")
 
     val scanY = unscaled.height * 3 / 4
     val unscaledWidth = unscaled.horizontalTransitionWidth(scanY)

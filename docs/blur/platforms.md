@@ -20,26 +20,9 @@ When running on these versions of Android, Haze needs to use a few workarounds:
 
 #### HazeProgressive
 
-Only linear gradient [HazeProgressive](../api/haze/dev.chrisbanes.haze/-haze-progressive/index.html) effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.
+At a full-resolution tier, including [HazePerformanceMode.Quality](../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-quality/index.html), linear gradient [HazeProgressive](../api/haze/dev.chrisbanes.haze/-haze-progressive/index.html) effects are implemented by drawing the effect multiple times. This can hurt performance, so verify it for your workload.
 
-You can disable this behavior by setting the [preferPerformance](../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/index.html) property. When set to true, the progressive 'effect' will instead be drawn via a mask:
-
-```kotlin hl_lines="7"
-LargeTopAppBar(
-  // ...
-  modifier = Modifier.hazeBlur(
-    input = HazeInput.Sources(hazeState),
-    style = HazeBlurStyle {
-      progressive(HazeProgressive.verticalGradient(
-        // ...
-        preferPerformance = true,
-      ))
-    },
-  )
-)
-```
-
-All other progressive types will fallback to using a mask when running on Android 12 & 12L.
+Downsampled tiers, including [HazePerformanceMode.Balanced](../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-balanced/index.html), use a mask instead. All non-linear progressive types also use a mask on Android 12 & 12L.
 
 ### Android 12 and below
 

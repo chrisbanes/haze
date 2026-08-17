@@ -261,16 +261,19 @@ class HazeScreenshotTest : ScreenshotTest() {
   }
 
   @Test
-  fun creditCard_progressive_horiz_preferMask() = runScreenshotTest {
+  fun creditCard_progressive_horiz_balanced() = runScreenshotTest {
     val blurVisualEffect = HazeBlurStyle {
       colorEffects(listOf(DefaultTint))
       blurRadius(8.dp)
-      progressive(HazeProgressive.horizontalGradient(preferPerformance = true))
+      progressive(HazeProgressive.horizontalGradient())
     }
 
     setContent {
       ScreenshotTheme {
-        CreditCardSample(visualEffect = blurVisualEffect)
+        CreditCardSample(
+          visualEffect = blurVisualEffect,
+          performanceMode = HazePerformanceMode.Balanced,
+        )
       }
     }
     captureRoot()

@@ -29,28 +29,40 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   progressive: RootHazeProgressive,
   contentLayer: GraphicsLayer,
   context: HazeEffectRuntimeDrawScope,
+  inputScale: Float,
 ) {
   if (USE_RUNTIME_SHADER && Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
-      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(context = context, progressive = progressive)
+      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
+        context = context,
+        inputScale = inputScale,
+        progressive = progressive,
+      )
       contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
       drawLayer(contentLayer)
     }
-  } else if (progressive is RootHazeProgressive.LinearGradient && !progressive.preferPerformance) {
-    // If it's a linear gradient, and the 'preferPerformance' flag is not enabled, we can use
-    // our slow approximated version
+  } else if (
+    progressive is RootHazeProgressive.LinearGradient &&
+    shouldDrawProgressiveWithLayers(progressive, inputScale)
+  ) {
+    // Full-resolution linear gradients use our slower, layered approximation.
     drawLinearGradientProgressiveEffectUsingLayers(
       drawScope = drawScope,
       progressive = progressive,
       contentLayer = contentLayer,
       context = context,
+      inputScale = inputScale,
     )
   } else {
     // Otherwise we convert it to a mask
     with(drawScope) {
-      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(context = context, mask = progressive.asBrush())
+      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
+        context = context,
+        inputScale = inputScale,
+        mask = progressive.asBrush(),
+      )
       contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
@@ -64,6 +76,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
   progressive: RootHazeProgressive.LinearGradient,
   contentLayer: GraphicsLayer,
   context: HazeEffectRuntimeDrawScope,
+  inputScale: Float,
 ) = with(drawScope) {
   val colorEffects = blurVisualEffect.colorEffects
   val noiseFactor = blurVisualEffect.noiseFactor
@@ -81,6 +94,7 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
 
       layer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
         context = context,
+        inputScale = inputScale,
         blurRadius = blurRadius * intensity,
         noiseFactor = noiseFactor,
         colorEffects = colorEffects.orEmpty(),
