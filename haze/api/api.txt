@@ -218,7 +218,7 @@ package dev.chrisbanes.haze {
     property public float startIntensity;
   }
 
-  @dev.chrisbanes.haze.Poko public static final class HazeProgressive.RadialGradient implements dev.chrisbanes.haze.HazeProgressive {
+  public static final class HazeProgressive.RadialGradient implements dev.chrisbanes.haze.HazeProgressive {
     ctor public HazeProgressive.RadialGradient();
     ctor @KotlinOnly public HazeProgressive.RadialGradient(optional androidx.compose.animation.core.Easing easing, optional androidx.compose.ui.geometry.Offset center, optional float centerIntensity, optional float radius, optional float radiusIntensity);
     method @InaccessibleFromKotlin public float getCenterIntensity();

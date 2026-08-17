@@ -285,6 +285,8 @@ and `then`.
 | `HazeProgressive.LinearGradient(..., preferPerformance = ...)` | `Modifier.hazeBlur(performanceMode = ...)` | Choose `Quality` for full resolution or a downsampled `Balanced`/`Performance` tier; `Adaptive` follows Haze's workload policy. |
 | `HazeColorEffect.Unspecified` or a concrete `HazeColorEffect` constructor | `HazeColorEffect.tint(...)` or `HazeColorEffect.colorFilter(...)` | Effects are factory-only; use `fallbackColorEffect(null)` to clear a fallback. |
 | `HazeBlurDefaults.blurEnabled()` | `HazeBlurDefaults.isBlurEnabledByDefault()` | This remains the platform-aware default-enable query. |
+| `Poko` | Removed | This implementation annotation is not part of Haze's supported API. |
+| `HazeLogger.d(...)` | Removed | `HazeLogger.enabled` remains the supported logging control. |
 | `LocalHazeStyle` | `LocalHazeBlurStyle` | The local contains replayable Style writes. |
 | `dev.chrisbanes.haze.materials.*` | `dev.chrisbanes.haze.blur.materials.*` | The artifact is now `haze-blur-materials`. |
 | `ExperimentalHazeMaterialsApi` | Removed | Materials APIs no longer require this opt-in. |
