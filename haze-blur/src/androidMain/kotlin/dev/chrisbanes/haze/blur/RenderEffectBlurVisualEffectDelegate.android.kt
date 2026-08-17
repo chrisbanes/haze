@@ -56,12 +56,13 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
       inputScale = inputScale,
     )
   } else {
-    // Otherwise we convert it to a mask
+    // Otherwise draw the masked blur over its input, preserving unblurred regions.
     with(drawScope) {
       contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
         context = context,
         inputScale = inputScale,
         mask = progressive.asBrush(),
+        retainInputWhenMasked = progressive is RootHazeProgressive.LinearGradient,
       )
       contentLayer.alpha = blurVisualEffect.alpha
 

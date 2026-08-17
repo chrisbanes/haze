@@ -41,6 +41,7 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
   contentSize: Size = context.size,
   contentOffset: Offset = context.layerOffset,
   mask: Brush? = this.mask,
+  retainInputWhenMasked: Boolean = false,
   progressive: HazeProgressive? = null,
   blurTileMode: TileMode = calculateBlurTileMode(),
 ): RenderEffect? = trace("HazeEffectNode-getOrCreateRenderEffect") {
@@ -55,6 +56,7 @@ internal fun BlurVisualEffect.getOrCreateRenderEffect(
       contentSize = contentSize,
       contentOffset = contentOffset,
       mask = mask,
+      retainInputWhenMasked = retainInputWhenMasked,
       progressive = progressive,
       blurTileMode = blurTileMode,
     ),
@@ -75,6 +77,7 @@ internal class RenderEffectParams(
   val colorEffects: List<HazeColorEffect> = emptyList(),
   val colorEffectsAlphaModulate: Float = 1f,
   val mask: Brush? = null,
+  val retainInputWhenMasked: Boolean = false,
   val progressive: HazeProgressive? = null,
   val blurTileMode: TileMode,
 )
@@ -89,6 +92,7 @@ internal class RenderEffectCacheKey(
   val colorEffects: List<HazeColorEffect>,
   val colorEffectsAlphaModulate: Float,
   val mask: Brush?,
+  val retainInputWhenMasked: Boolean,
   val progressive: HazeProgressive?,
   val blurTileMode: TileMode,
 )
@@ -113,6 +117,7 @@ internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEf
     colorEffects = colorEffects,
     colorEffectsAlphaModulate = colorEffectsAlphaModulate,
     mask = mask,
+    retainInputWhenMasked = retainInputWhenMasked,
     progressive = progressive,
     blurTileMode = blurTileMode,
   )

@@ -100,9 +100,14 @@ internal fun createRenderEffect(
     )
   }
 
-  return styled
-    .withMask(params.mask, size, offset)
-    .asComposeRenderEffect()
+  val masked = styled.withMask(params.mask, size, offset)
+  val result = if (params.retainInputWhenMasked && params.mask != null) {
+    createOffsetRenderEffect(0f, 0f).blendForeground(masked, BlendMode.SrcOver)
+  } else {
+    masked
+  }
+
+  return result.asComposeRenderEffect()
 }
 
 internal fun Float.hasVisibleNoise(): Boolean = this > 0f
