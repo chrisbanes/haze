@@ -40,6 +40,7 @@ kotlin {
       dependencies {
         api(projects.hazeBlur)
         api(projects.hazeGlass)
+        implementation(projects.hazeUtils)
         api(libs.compose.foundation)
         api(libs.compose.material3)
         api(libs.compose.components.resources)
@@ -54,7 +55,6 @@ kotlin {
         implementation(libs.compose.ui.test)
         implementation(libs.compose.navigation3.ui)
 
-        implementation(projects.hazeUtils)
         implementation(projects.internal.contextTest)
         implementation(projects.internal.screenshotTest)
       }

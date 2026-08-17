@@ -58,6 +58,7 @@ import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectFactory
 import dev.chrisbanes.haze.HazeEffectRenderer
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -269,6 +270,7 @@ fun CustomVisualEffectSample(
 }
 
 @Immutable
+@OptIn(InternalHazeApi::class)
 @Poko
 private class SparkStyle(
   val color: Color,
