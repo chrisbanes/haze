@@ -6,4 +6,4 @@ package dev.chrisbanes.haze.blur
 /**
  * Skiko always has blurring support (that we know of).
  */
-internal actual fun isBlurEnabledByDefault(): Boolean = true
+internal actual fun platformIsBlurEnabledByDefault(): Boolean = true

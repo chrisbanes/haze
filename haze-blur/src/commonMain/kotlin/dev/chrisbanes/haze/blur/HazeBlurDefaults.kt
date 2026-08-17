@@ -5,10 +5,8 @@ package dev.chrisbanes.haze.blur
 
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isSpecified
 
 /**
  * Default values for [hazeBlur].
@@ -26,11 +24,6 @@ public object HazeBlurDefaults {
   public const val noiseFactor: Float = 0.15f
 
   /**
-   * Default alpha used for the tint color. Used by the [tint] function.
-   */
-  public const val tintAlpha: Float = 0.7f
-
-  /**
    * Default edge treatment used by [hazeBlur].
    */
   public val blurredEdgeTreatment: BlurredEdgeTreatment = BlurredEdgeTreatment.Rectangle
@@ -41,7 +34,7 @@ public object HazeBlurDefaults {
    * This Style is replayed before composition-local and explicit Styles.
    */
   public val style: HazeBlurStyle = HazeBlurStyle {
-    blurEnabled(blurEnabled())
+    blurEnabled(isBlurEnabledByDefault())
     blurRadius(blurRadius)
     noiseFactor(noiseFactor)
     backgroundColor(Color.Transparent)
@@ -54,55 +47,6 @@ public object HazeBlurDefaults {
   }
 
   /**
-   * Temporary source adapter for the former default Blur Style builder.
-   *
-   * The canonical [style] is replayed first, then specified legacy arguments are appended as
-   * overrides. This source-only shim will be removed before Haze 2.0 stable.
-   *
-   * @param backgroundColor color drawn behind the blurred content.
-   * @param tint color effect applied to the blurred content.
-   * @param blurRadius radius of the blur.
-   * @param noiseFactor amount of noise applied to the content.
-   */
-  @Deprecated(
-    message =
-    "Use HazeBlurDefaults.style.then { ... }. " +
-      "This source-only shim will be removed before Haze 2.0 stable.",
-    replaceWith = ReplaceWith(
-      expression = """HazeBlurDefaults.style.then {
-        if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
-        if (tint != null) colorEffects(listOf(tint))
-        if (blurRadius.isSpecified) blurRadius(blurRadius)
-        if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
-      }""",
-      "androidx.compose.ui.graphics.isSpecified",
-      "androidx.compose.ui.unit.isSpecified",
-    ),
-    level = DeprecationLevel.WARNING,
-  )
-  public fun style(
-    backgroundColor: Color,
-    tint: HazeColorEffect? = backgroundColor.takeIf { it.isSpecified }?.let(::tint),
-    blurRadius: Dp = this.blurRadius,
-    noiseFactor: Float = this.noiseFactor,
-  ): HazeBlurStyle = style.then {
-    if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
-    if (tint != null) colorEffects(listOf(tint))
-    if (blurRadius.isSpecified) blurRadius(blurRadius)
-    if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
-  }
-
-  /**
-   * Default builder for the 'tint' color. Transforms the provided [color].
-   */
-  public fun tint(color: Color): HazeColorEffect = HazeColorEffect.tint(
-    color = when {
-      color.isSpecified -> color.copy(alpha = color.alpha * tintAlpha)
-      else -> color
-    },
-  )
-
-  /**
    * Default value for Blur enablement. This function only returns `true` on
    * platforms where we know blurring works reliably.
    *
@@ -111,7 +55,7 @@ public object HazeBlurDefaults {
    *
    * The devices excluded by this function may change in the future.
    */
-  public fun blurEnabled(): Boolean = isBlurEnabledByDefault()
+  public fun isBlurEnabledByDefault(): Boolean = platformIsBlurEnabledByDefault()
 }
 
-internal expect fun isBlurEnabledByDefault(): Boolean
+internal expect fun platformIsBlurEnabledByDefault(): Boolean
