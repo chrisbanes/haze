@@ -7,6 +7,8 @@ import androidx.compose.ui.geometry.Size
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
@@ -22,19 +24,25 @@ class BlurInputScalePolicyTest {
         progressive = HazeProgressive.horizontalGradient(),
         inputScale = BlurInputScalePolicy.NONE_SCALE,
       ),
-    ).isEqualTo(true)
+    ).isTrue()
     assertThat(
       shouldDrawProgressiveWithLayers(
         progressive = HazeProgressive.horizontalGradient(),
         inputScale = BlurInputScalePolicy.BALANCED_SCALE,
       ),
-    ).isEqualTo(false)
+    ).isFalse()
+    assertThat(
+      shouldDrawProgressiveWithLayers(
+        progressive = HazeProgressive.horizontalGradient(),
+        inputScale = BlurInputScalePolicy.AGGRESSIVE_SCALE,
+      ),
+    ).isFalse()
     assertThat(
       shouldDrawProgressiveWithLayers(
         progressive = HazeProgressive.RadialGradient(),
         inputScale = BlurInputScalePolicy.NONE_SCALE,
       ),
-    ).isEqualTo(false)
+    ).isFalse()
   }
 
   @Test
