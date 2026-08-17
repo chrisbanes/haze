@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Haze 2 beta finalizes the supported source-selection and Blur contracts. Source predicates now
+  receive library-owned `HazeSourceMetadata` through the member
+  `HazeSourceSelection.where { ... }`; `HazeColorEffect` is factory-only; and a nullable
+  `fallbackColorEffect(null)` explicitly clears an inherited fallback.
+- On Android 12 and 12L, progressive linear Blur now selects its fallback from the resolved
+  `HazePerformanceMode` tier: full-resolution tiers use the layered approximation, while
+  downsampled tiers use a mask.
+
+### Removed
+
+- Removed Haze 2 prerelease-only Blur adapters and aliases, including the legacy
+  `HazeBlurStyle(...)` forms, `HazeBlurStyle.Unspecified`, the Blur-package `HazeProgressive`
+  typealias, and deprecated defaults helpers.
+- Removed `HazeProgressive.LinearGradient.preferPerformance`; choose a
+  `HazePerformanceMode` tier instead.
+- Removed public `HazeColorEffect` concrete implementations, sentinel/default helpers, and
+  inspection APIs. Create effects with `tint(...)` or `colorFilter(...)`.
+- Removed the public core `Poko` marker and `HazeLogger.d(...)` operations from the supported API.
+
 ## 2.0.0-alpha05 <small>2026-08-12</small> { id="2.0.0-alpha05" }
 
 ### Changed

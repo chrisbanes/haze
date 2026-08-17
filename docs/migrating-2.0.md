@@ -76,49 +76,25 @@ value is retained.
 An explicit `colorEffects(emptyList())` clears inherited effects. Caller-owned lists are
 snapshotted before replay.
 
-### Temporary Blur construction shims
+### Finalized Blur API
 
-During the remaining Haze 2 prereleases, the former `HazeBlurStyle(...)` construction forms,
-`HazeBlurStyle.Unspecified`, and `HazeBlurDefaults.style(...)` builder remain available as
-warning-level deprecations. They are source-migration aids only: code already compiled against the
-former `HazeBlurStyle` class is not binary compatible with the replayable Style interface. Every
-shim will be removed before Haze 2.0 stable.
+The temporary prerelease adapters are removed in beta01. Replace both former
+`HazeBlurStyle(...)` construction forms, `HazeBlurStyle.Unspecified`, and the
+`HazeBlurDefaults.style(...)` builder with a replayable `HazeBlurStyle { ... }` program. Start
+from `HazeBlurDefaults.style.then { ... }` when extending the defaults.
 
-The plural construction form translates to guarded Style writes:
+`HazeColorEffect` is now opaque. Create an effect only with `HazeColorEffect.tint(...)` or
+`HazeColorEffect.colorFilter(...)`; its concrete implementations, sentinel, `isSpecified`,
+`DefaultBlendMode`, `copy`, and destructuring APIs are not public. `Color.Unspecified` is rejected
+by the color tint factory. Use `fallbackColorEffect(null)` to explicitly clear an inherited
+fallback effect; `null` is the only fallback-absence value.
 
-```kotlin
-val migrated = HazeBlurStyle {
-  if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
-  if (colorEffects != null) colorEffects(colorEffects)
-  if (blurRadius.isSpecified) blurRadius(blurRadius)
-  if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
-  if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
-}
-```
+`HazeBlurDefaults.tintAlpha`, `HazeBlurDefaults.tint(...)`, and the deprecated
+`HazeBlurDefaults.style(...)` builder are removed. The supported default-enable query is
+`HazeBlurDefaults.isBlurEnabledByDefault()`.
 
-For the singular form, replace the effects line with:
-
-```kotlin
-if (colorEffect != null) colorEffects(listOf(colorEffect))
-```
-
-`null` omits the color-effects write and reveals a lower-precedence value. A non-null empty plural
-list explicitly clears inherited effects, and non-empty caller-owned lists are snapshotted. An
-unspecified color, dimension, or fallback effect also omits its write. Negative numeric noise is
-the legacy omission sentinel; other values use normal Style resolution, so values above `1f`
-clamp and `NaN` fails validation.
-
-Replace `HazeBlurStyle.Unspecified` with `HazeBlurStyle`. Migrate the defaults builder by replaying
-the canonical defaults first and guarding its overrides in the same way:
-
-```kotlin
-val migrated = HazeBlurDefaults.style.then {
-  if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
-  if (tint.isSpecified) colorEffects(listOf(tint))
-  if (blurRadius.isSpecified) blurRadius(blurRadius)
-  if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
-}
-```
+The former Blur-package `HazeProgressive` typealias is also removed. Import
+`dev.chrisbanes.haze.HazeProgressive` directly.
 
 ## Migrate material presets
 
@@ -250,8 +226,10 @@ interaction source and behavior options to the modifier.
 
 ### Position and geometry
 
-Position handling is now automatic. Source-selection predicates receive only
-`HazeSourceInfo.key` and `zIndex`; custom renderers work with modifier-relative bounds and draw the
+Position handling is now automatic. Source-selection predicates receive library-owned
+`HazeSourceMetadata` with only immutable `key` and `zIndex` values. Refine a selection with its
+member `HazeSourceSelection.where { ... }`; metadata construction, source geometry, and captured
+content remain library-owned. Custom renderers work with modifier-relative bounds and draw the
 selected input with `drawInput()`.
 
 ## Removed compatibility APIs
@@ -259,8 +237,8 @@ selected input with `drawInput()`.
 `VisualEffect`, `VisualEffectContext`, `HazeEffectScope`, `BlurVisualEffect`,
 `HazeEffectScope.blurEffect`, and the lambda-based `hazeEffect` overloads are removed. Readable
 `HazeBlurStyle` properties, `copy`, destructuring, and mutable runtime interfaces remain removed.
-Only the temporary source construction shims described above survive during the prerelease cycle;
-use replayable Style blocks and `then` before Haze 2.0 stable.
+The prerelease Blur construction shims and aliases are now removed; use replayable Style blocks
+and `then`.
 
 ## Complete API mapping
 
@@ -276,7 +254,7 @@ use replayable Style blocks and `then` before Haze 2.0 stable.
 | `HazeEffectScope.mask` | `HazeBlurStyle { mask(...) }` | Write `null` to clear an inherited mask. |
 | `HazeEffectScope.backgroundColor` | `HazeBlurStyle { backgroundColor(...) }` | `Color.Unspecified` is not an inheritance sentinel in the new Style API. |
 | `HazeEffectScope.blurredEdgeTreatment` | `HazeBlurStyle { blurredEdgeTreatment(...) }` | Layer expansion remains structural. |
-| `HazeEffectScope.fallbackTint` | `HazeBlurStyle { fallbackColorEffect(...) }` | The effect type is unchanged. |
+| `HazeEffectScope.fallbackTint` | `HazeBlurStyle { fallbackColorEffect(...) }` | Pass `null` to explicitly clear an inherited fallback. |
 | `HazeEffectScope.alpha` | `HazeBlurStyle { alpha(...) }` | Values are clamped to `0f..1f`. |
 | `HazeEffectScope.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | State-level Blur enablement is removed. |
 | `HazeEffectScope.inputScale` | `Modifier.hazeBlur(performanceMode = ...)` | Map `Default` to `Default`, `Auto` to `Adaptive`, `None` to `Quality`, and choose `Balanced`, `Performance`, or `Fixed(qualityFraction)` for an explicit Blur profile. |
@@ -284,7 +262,7 @@ use replayable Style blocks and `then` before Haze 2.0 stable.
 | `HazeEffectScope.clipToAreasBounds` | Removed | Source geometry is internal. Return required modifier-relative bounds from `calculateLayerBounds`. |
 | `HazeEffectScope.expandLayerBounds` | `Modifier.hazeBlur(expandLayerBounds = ...)` | Non-null and `true` by default. |
 | `HazeEffectScope.forceInvalidateOnPreDraw` | Removed | Haze owns source invalidation. |
-| `HazeEffectScope.canDrawArea` | `HazeSourceSelection.where { ... }` | Typed selection exposes immutable `key` and `zIndex` metadata. |
+| `HazeEffectScope.canDrawArea` | `HazeSourceSelection.where { ... }` | `where` is a selection member; its library-owned `HazeSourceMetadata` exposes immutable `key` and `zIndex`. |
 | `HazeEffectScope.retainOutputWhenSourceUnavailable` | `HazeSourceRetention` | Choose `KeepLastFrame` or `ClearWhenUnavailable`. |
 | `rememberHazeState(blurEnabled)` | `rememberHazeState()` | Put `blurEnabled(...)` in the Style. |
 | `HazeState.blurEnabled` | `HazeBlurStyle { blurEnabled(...) }` | Configure each effect explicitly. |
@@ -303,7 +281,10 @@ use replayable Style blocks and `then` before Haze 2.0 stable.
 | `HazeDefaults.drawContentBehind` | Removed | Custom renderers own draw order; built-ins choose their internal composition. |
 | `HazeStyle` | `HazeBlurStyle` | Renamed, moved, and changed to a replayable Style. |
 | `HazeTint` | `HazeColorEffect` | Renamed and moved to `dev.chrisbanes.haze.blur`. |
-| `dev.chrisbanes.haze.blur.HazeProgressive` | `dev.chrisbanes.haze.HazeProgressive` | The old Blur-package name remains as a deprecated typealias during the v2 alpha cycle. |
+| `dev.chrisbanes.haze.blur.HazeProgressive` | `dev.chrisbanes.haze.HazeProgressive` | The old Blur-package typealias is removed. |
+| `HazeProgressive.LinearGradient(..., preferPerformance = ...)` | `Modifier.hazeBlur(performanceMode = ...)` | Choose `Quality` for full resolution or a downsampled `Balanced`/`Performance` tier; `Adaptive` follows Haze's workload policy. |
+| `HazeColorEffect.Unspecified` or a concrete `HazeColorEffect` constructor | `HazeColorEffect.tint(...)` or `HazeColorEffect.colorFilter(...)` | Effects are factory-only; use `fallbackColorEffect(null)` to clear a fallback. |
+| `HazeBlurDefaults.blurEnabled()` | `HazeBlurDefaults.isBlurEnabledByDefault()` | This remains the platform-aware default-enable query. |
 | `LocalHazeStyle` | `LocalHazeBlurStyle` | The local contains replayable Style writes. |
 | `dev.chrisbanes.haze.materials.*` | `dev.chrisbanes.haze.blur.materials.*` | The artifact is now `haze-blur-materials`. |
 | `ExperimentalHazeMaterialsApi` | Removed | Materials APIs no longer require this opt-in. |
