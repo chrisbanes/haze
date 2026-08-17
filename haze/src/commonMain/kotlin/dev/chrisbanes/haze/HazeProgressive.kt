@@ -71,6 +71,7 @@ public sealed interface HazeProgressive {
     public val radius: Float = Float.POSITIVE_INFINITY,
     public val radiusIntensity: Float = 0f,
   ) : HazeProgressive {
+    /** Compares this gradient's parameters for value equality. */
     override fun equals(other: Any?): Boolean {
       if (this === other) return true
       if (other !is RadialGradient) return false
@@ -82,6 +83,7 @@ public sealed interface HazeProgressive {
         radiusIntensity.compareTo(other.radiusIntensity) == 0
     }
 
+    /** Returns a hash code derived from this gradient's parameters. */
     override fun hashCode(): Int {
       var result = easing.hashCode()
       result = 31 * result + center.hashCode()
@@ -91,6 +93,7 @@ public sealed interface HazeProgressive {
       return result
     }
 
+    /** Returns a string representation of this gradient's parameters. */
     override fun toString(): String =
       "RadialGradient(easing=$easing, center=$center, centerIntensity=$centerIntensity, " +
         "radius=$radius, radiusIntensity=$radiusIntensity)"
