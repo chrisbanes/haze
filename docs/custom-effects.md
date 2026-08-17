@@ -85,6 +85,7 @@ Source selection and retention remain explicit:
 ```kotlin
 input = HazeInput.Sources(
     state = hazeState,
+    // `where` receives library-owned HazeSourceMetadata.
     selection = HazeSourceSelection.All.where { it.key == "hero" },
     retention = HazeSourceRetention.ClearWhenUnavailable,
 )

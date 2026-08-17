@@ -5,6 +5,7 @@ package dev.chrisbanes.haze
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotEqualTo
 import kotlin.test.Test
 
 class HazeInputTest {
@@ -30,10 +31,12 @@ class HazeInputTest {
   }
 
   @Test
-  fun sourceInfo_exposesOnlyStableMetadataValues() {
-    val info = HazeSourceInfo(key = "source", zIndex = 2f)
+  fun sourceSelection_whereExposesStableSourceMetadata() {
+    val acceptsSourceMetadata: (HazeSourceMetadata) -> Boolean = { metadata ->
+      metadata.key == "source" && metadata.zIndex == 2f
+    }
+    val selection = HazeSourceSelection.All.where(acceptsSourceMetadata)
 
-    assertThat(info.key).isEqualTo("source")
-    assertThat(info.zIndex).isEqualTo(2f)
+    assertThat(selection).isNotEqualTo(HazeSourceSelection.All)
   }
 }
