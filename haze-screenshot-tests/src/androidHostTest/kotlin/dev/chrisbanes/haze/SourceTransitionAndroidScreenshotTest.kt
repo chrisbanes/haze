@@ -32,10 +32,7 @@ class SourceTransitionAndroidScreenshotTest : ScreenshotTest() {
       blurRadius(16.dp)
       colorEffects(
         listOf(
-          HazeColorEffect.tint(
-            Color.White.copy(alpha = 0.12f),
-            HazeColorEffect.DefaultBlendMode,
-          ),
+          HazeColorEffect.tint(Color.White.copy(alpha = 0.12f)),
         ),
       )
     }

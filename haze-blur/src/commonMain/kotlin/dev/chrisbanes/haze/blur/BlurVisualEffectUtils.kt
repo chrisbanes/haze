@@ -97,9 +97,9 @@ internal fun RenderEffectParams.resolveBlurRadiusPx(density: Density): Float =
   with(density) { (blurRadius * scale).toPx() }
 
 internal fun RenderEffectParams.renderEffectCacheKey(density: Density): RenderEffectCacheKey {
-  val hasBrushTint = colorEffects.any { it is HazeColorEffect.TintBrush }
+  val hasBrushTint = colorEffects.any { it is TintBrushHazeColorEffect }
   val hasOffsetColorEffect = colorEffects.any {
-    it is HazeColorEffect.TintBrush || it is HazeColorEffect.ColorFilter
+    it is TintBrushHazeColorEffect || it is ColorFilterHazeColorEffect
   }
   val usesContentSize = progressive != null || mask != null || hasBrushTint
   val usesContentOffset = progressive != null || mask != null || hasOffsetColorEffect

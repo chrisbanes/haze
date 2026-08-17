@@ -16,6 +16,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.test.Test
@@ -198,7 +199,7 @@ class HazeBlurStyleTest {
   }
 
   @Test
-  fun deprecatedFactories_unspecifiedFallbackEffectOmitsWrite() {
+  fun deprecatedFactories_nullFallbackEffectOmitsWrite() {
     val inherited = HazeBlurStyle {
       fallbackColorEffect(HazeColorEffect.tint(Color.Blue))
     }
@@ -208,7 +209,7 @@ class HazeBlurStyleTest {
     assertThat(
       resolveHazeBlurStyle(
         inherited,
-        HazeBlurStyle(fallbackColorEffect = HazeColorEffect.Unspecified),
+        HazeBlurStyle(fallbackColorEffect = null),
       ),
     ).isEqualTo(expected)
     assertThat(
@@ -216,7 +217,7 @@ class HazeBlurStyleTest {
         inherited,
         HazeBlurStyle(
           colorEffect = null,
-          fallbackColorEffect = HazeColorEffect.Unspecified,
+          fallbackColorEffect = null,
         ),
       ),
     ).isEqualTo(expected)
@@ -334,10 +335,10 @@ class HazeBlurStyleTest {
   }
 
   @Test
-  fun deprecatedDefaultsBuilder_unspecifiedTintOmitsOverride() {
+  fun deprecatedDefaultsBuilder_nullTintOmitsOverride() {
     val legacy = HazeBlurDefaults.style(
       backgroundColor = Color.Unspecified,
-      tint = HazeColorEffect.Unspecified,
+      tint = null,
     )
     val replacement = HazeBlurDefaults.style.then {}
 
@@ -472,6 +473,32 @@ class HazeBlurStyleTest {
     }
 
     assertThat(resolveHazeBlurStyle(local, explicit).colorEffects).isEmpty()
+  }
+
+  @Test
+  fun nullFallbackColorEffect_clearsInheritedFallback() {
+    val inheritedFallback = HazeColorEffect.tint(Color.Red)
+    val inherited = HazeBlurStyle {
+      fallbackColorEffect(inheritedFallback)
+    }
+    val explicit = HazeBlurStyle {
+      fallbackColorEffect(null)
+    }
+
+    assertThat(resolveHazeBlurStyle(inherited, explicit).fallbackColorEffect).isNull()
+  }
+
+  @Test
+  fun factoryCreatedColorEffects_haveStructuralEquality() {
+    assertThat(HazeColorEffect.tint(Color.Red))
+      .isEqualTo(HazeColorEffect.tint(Color.Red))
+  }
+
+  @Test
+  fun tint_rejectsUnspecifiedColor() {
+    assertFailure {
+      HazeColorEffect.tint(Color.Unspecified)
+    }.isInstanceOf<IllegalArgumentException>()
   }
 
   @Test

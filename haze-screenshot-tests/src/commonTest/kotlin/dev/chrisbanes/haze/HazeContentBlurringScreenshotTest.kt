@@ -101,7 +101,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   fun creditCard_transparentTint() = runScreenshotTest {
     val blurVisualEffect = HazeBlurStyle {
       blurRadius(8.dp)
-      colorEffects(listOf(HazeColorEffect.tint(Color.Transparent, HazeColorEffect.DefaultBlendMode)))
+      colorEffects(listOf(HazeColorEffect.tint(Color.Transparent)))
     }
     setContent {
       ScreenshotTheme {
@@ -251,10 +251,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
       HazeBlurStyle {
         colorEffects(
           listOf(
-            HazeColorEffect.tint(
-              Color.Magenta.copy(alpha = 0.5f),
-              HazeColorEffect.DefaultBlendMode,
-            ),
+            HazeColorEffect.tint(Color.Magenta.copy(alpha = 0.5f)),
           ),
         )
         blurRadius(8.dp)
@@ -273,10 +270,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
     blurVisualEffect = blurVisualEffect.then {
       colorEffects(
         listOf(
-          HazeColorEffect.tint(
-            Color.Yellow.copy(alpha = 0.5f),
-            HazeColorEffect.DefaultBlendMode,
-          ),
+          HazeColorEffect.tint(Color.Yellow.copy(alpha = 0.5f)),
         ),
       )
     }
@@ -286,10 +280,7 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
     blurVisualEffect = blurVisualEffect.then {
       colorEffects(
         listOf(
-          HazeColorEffect.tint(
-            Color.Red.copy(alpha = 0.5f),
-            HazeColorEffect.DefaultBlendMode,
-          ),
+          HazeColorEffect.tint(Color.Red.copy(alpha = 0.5f)),
         ),
       )
     }
@@ -368,17 +359,11 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
   }
 
   companion object {
-    val DefaultTint = HazeColorEffect.tint(
-      Color.White.copy(alpha = 0.1f),
-      HazeColorEffect.DefaultBlendMode,
-    )
+    val DefaultTint = HazeColorEffect.tint(Color.White.copy(alpha = 0.1f))
     val OverrideStyle = HazeBlurStyle {
       colorEffects(
         listOf(
-          HazeColorEffect.tint(
-            Color.Red.copy(alpha = 0.5f),
-            HazeColorEffect.DefaultBlendMode,
-          ),
+          HazeColorEffect.tint(Color.Red.copy(alpha = 0.5f)),
         ),
       )
     }
@@ -390,7 +375,6 @@ class HazeContentBlurringScreenshotTest : ScreenshotTest() {
           Color.Red.copy(alpha = 0.5f),
         ),
       ),
-      blendMode = HazeColorEffect.DefaultBlendMode,
     )
 
     val VerticalMask = Brush.verticalGradient(

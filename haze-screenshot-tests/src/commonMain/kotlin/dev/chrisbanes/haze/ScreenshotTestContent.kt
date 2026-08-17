@@ -523,10 +523,7 @@ internal fun stickyHeaderBlurVisualEffect(): HazeBlurStyle {
     blurRadius(24.dp)
     colorEffects(
       listOf(
-        HazeColorEffect.tint(
-          Color.White.copy(alpha = 0.18f),
-          HazeColorEffect.DefaultBlendMode,
-        ),
+        HazeColorEffect.tint(Color.White.copy(alpha = 0.18f)),
       ),
     )
   }

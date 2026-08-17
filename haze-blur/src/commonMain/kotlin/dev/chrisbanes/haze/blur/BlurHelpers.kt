@@ -34,7 +34,7 @@ import kotlin.math.max
  *
  * Rendering order: content → color effect → mask → alpha → blendMode
  *
- * @param colorEffect The color effect to draw (tint color, tint brush, color filter, or unspecified)
+ * @param colorEffect The color effect to draw
  * @param context The visual effect context
  * @param offset Offset to translate the effect by
  * @param expandedSize Size for drawing (defaults to canvas size)
@@ -42,7 +42,7 @@ import kotlin.math.max
  */
 internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffectRuntimeDrawScope, offset: Offset = Offset.Zero, expandedSize: Size = this.size, mask: Brush? = null) {
   when (colorEffect) {
-    is HazeColorEffect.TintBrush -> {
+    is TintBrushHazeColorEffect -> {
       if (mask != null) {
         context.withGraphicsLayer { layer ->
           layer.compositingStrategy = CompositingStrategy.Offscreen
@@ -63,7 +63,7 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
         )
       }
     }
-    is HazeColorEffect.TintColor -> {
+    is TintColorHazeColorEffect -> {
       if (mask != null) {
         // When we have a mask, combine the tint color with the mask
         context.withGraphicsLayer { layer ->
@@ -84,7 +84,7 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
         )
       }
     }
-    is HazeColorEffect.ColorFilter -> {
+    is ColorFilterHazeColorEffect -> {
       if (mask != null) {
         context.withGraphicsLayer { layer ->
           layer.compositingStrategy = CompositingStrategy.Offscreen
@@ -109,9 +109,6 @@ internal fun DrawScope.drawScrim(colorEffect: HazeColorEffect, context: HazeEffe
           blendMode = colorEffect.blendMode,
         )
       }
-    }
-    else -> {
-      // Unspecified - do nothing
     }
   }
 }

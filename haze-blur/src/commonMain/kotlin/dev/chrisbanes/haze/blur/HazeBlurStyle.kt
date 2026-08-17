@@ -96,7 +96,7 @@ public fun HazeBlurStyle(block: HazeBlurStyleScope.() -> Unit): HazeBlurStyle =
       if (colorEffects != null) colorEffects(colorEffects)
       if (blurRadius.isSpecified) blurRadius(blurRadius)
       if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
-      if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
+      if (fallbackColorEffect != null) fallbackColorEffect(fallbackColorEffect)
     }""",
     "androidx.compose.ui.graphics.isSpecified",
     "androidx.compose.ui.unit.isSpecified",
@@ -108,13 +108,13 @@ public fun HazeBlurStyle(
   colorEffects: List<HazeColorEffect>? = null,
   blurRadius: Dp = Dp.Unspecified,
   noiseFactor: Float = -1f,
-  fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified,
+  fallbackColorEffect: HazeColorEffect? = null,
 ): HazeBlurStyle = HazeBlurStyle {
   if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
   if (colorEffects != null) colorEffects(colorEffects)
   if (blurRadius.isSpecified) blurRadius(blurRadius)
   if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
-  if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
+  if (fallbackColorEffect != null) fallbackColorEffect(fallbackColorEffect)
 }
 
 /**
@@ -132,7 +132,7 @@ public fun HazeBlurStyle(
       if (colorEffect != null) colorEffects(listOf(colorEffect))
       if (blurRadius.isSpecified) blurRadius(blurRadius)
       if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
-      if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
+      if (fallbackColorEffect != null) fallbackColorEffect(fallbackColorEffect)
     }""",
     "androidx.compose.ui.graphics.isSpecified",
     "androidx.compose.ui.unit.isSpecified",
@@ -144,13 +144,13 @@ public fun HazeBlurStyle(
   colorEffect: HazeColorEffect?,
   blurRadius: Dp = Dp.Unspecified,
   noiseFactor: Float = -1f,
-  fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified,
+  fallbackColorEffect: HazeColorEffect? = null,
 ): HazeBlurStyle = HazeBlurStyle {
   if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
   if (colorEffect != null) colorEffects(listOf(colorEffect))
   if (blurRadius.isSpecified) blurRadius(blurRadius)
   if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
-  if (fallbackColorEffect.isSpecified) fallbackColorEffect(fallbackColorEffect)
+  if (fallbackColorEffect != null) fallbackColorEffect(fallbackColorEffect)
 }
 
 private fun combineHazeBlurStyles(
@@ -191,7 +191,7 @@ public sealed interface HazeBlurStyleScope {
   public fun colorEffects(effects: List<HazeColorEffect>)
 
   /** Sets the effect used when blur rendering is unavailable. */
-  public fun fallbackColorEffect(effect: HazeColorEffect)
+  public fun fallbackColorEffect(effect: HazeColorEffect?)
 
   /** Sets the overall effect opacity, coerced to the range `0f..1f`. */
   public fun alpha(alpha: Float)
@@ -234,7 +234,7 @@ private class HazeBlurStyleWrite(
         HazeBlurStyleProperty.BackgroundColor -> backgroundColor(value as Color)
         HazeBlurStyleProperty.ColorEffects -> colorEffects(value as List<HazeColorEffect>)
         HazeBlurStyleProperty.FallbackColorEffect ->
-          fallbackColorEffect(value as HazeColorEffect)
+          fallbackColorEffect(value as HazeColorEffect?)
         HazeBlurStyleProperty.Alpha -> alpha(value as Float)
         HazeBlurStyleProperty.Mask -> mask(value as Brush?)
         HazeBlurStyleProperty.Progressive -> progressive(value as HazeProgressive?)
@@ -274,7 +274,7 @@ private class RecordingHazeBlurStyleScope(
     writes += HazeBlurStyleWrite(HazeBlurStyleProperty.ColorEffects, effects.toList())
   }
 
-  override fun fallbackColorEffect(effect: HazeColorEffect) {
+  override fun fallbackColorEffect(effect: HazeColorEffect?) {
     writes += HazeBlurStyleWrite(HazeBlurStyleProperty.FallbackColorEffect, effect)
   }
 
@@ -302,7 +302,7 @@ internal class ResolvedHazeBlurStyle(
   val noiseFactor: Float,
   val backgroundColor: Color,
   val colorEffects: List<HazeColorEffect>,
-  val fallbackColorEffect: HazeColorEffect,
+  val fallbackColorEffect: HazeColorEffect?,
   val alpha: Float,
   val mask: Brush?,
   val progressive: HazeProgressive?,
@@ -315,7 +315,7 @@ private class HazeBlurStyleAccumulator : HazeBlurStyleScope {
   private var noiseFactor: Float = HazeBlurDefaults.noiseFactor
   private var backgroundColor: Color = Color.Transparent
   private var colorEffects: List<HazeColorEffect> = emptyList()
-  private var fallbackColorEffect: HazeColorEffect = HazeColorEffect.Unspecified
+  private var fallbackColorEffect: HazeColorEffect? = null
   private var alpha: Float = 1f
   private var mask: Brush? = null
   private var progressive: HazeProgressive? = null
@@ -344,7 +344,7 @@ private class HazeBlurStyleAccumulator : HazeBlurStyleScope {
     colorEffects = effects.toList()
   }
 
-  override fun fallbackColorEffect(effect: HazeColorEffect) {
+  override fun fallbackColorEffect(effect: HazeColorEffect?) {
     fallbackColorEffect = effect
   }
 
@@ -391,101 +391,58 @@ internal fun resolveHazeBlurStyle(
 /**
  * Describes a color effect applied by the haze effect.
  *
- * This is a sealed interface with concrete implementations for color filters and tints.
- * Follows the Compose UI model where ColorFilter is a top-level effect.
+ * Create effects with [colorFilter] or [tint].
  */
 @Stable
 public sealed interface HazeColorEffect {
-  /**
-   * The blend mode to use when applying the effect.
-   */
-  public val blendMode: BlendMode
-
-  /**
-   * Whether this effect is specified (not [Unspecified]).
-   */
-  public val isSpecified: Boolean
-
-  /**
-   * A color filter effect.
-   *
-   * @property colorFilter Color filter applied to the input.
-   * @property blendMode Blend mode used to composite the filtered input.
-   */
-  @Immutable
-  public data class ColorFilter(
-    public val colorFilter: androidx.compose.ui.graphics.ColorFilter,
-    override val blendMode: BlendMode = DefaultBlendMode,
-  ) : HazeColorEffect {
-    override val isSpecified: Boolean get() = true
-  }
-
-  /**
-   * A color-based tint effect.
-   *
-   * @property color Tint color applied to the input.
-   * @property blendMode Blend mode used to composite the tint.
-   */
-  @Immutable
-  public data class TintColor(
-    public val color: Color,
-    override val blendMode: BlendMode = DefaultBlendMode,
-  ) : HazeColorEffect {
-    override val isSpecified: Boolean get() = color.isSpecified
-  }
-
-  /**
-   * A brush-based tint effect.
-   *
-   * @property brush Tint brush applied to the input.
-   * @property blendMode Blend mode used to composite the tint.
-   */
-  @Immutable
-  public data class TintBrush(
-    public val brush: Brush,
-    override val blendMode: BlendMode = DefaultBlendMode,
-  ) : HazeColorEffect {
-    override val isSpecified: Boolean = true
-  }
-
-  /**
-   * An unspecified color effect. When used, no effect will be applied.
-   */
-  public object Unspecified : HazeColorEffect {
-    override val blendMode: BlendMode = BlendMode.SrcOver
-    override val isSpecified: Boolean = false
-  }
-
-  /** Factories and defaults for [HazeColorEffect] values. */
-  @Suppress("NOTHING_TO_INLINE")
+  /** Factories for [HazeColorEffect] values. */
   public companion object {
-    /**
-     * Default blend mode for effects.
-     */
-    public val DefaultBlendMode: BlendMode = BlendMode.SrcOver
-
     /**
      * Creates a color filter effect.
      */
-    public inline fun colorFilter(
+    public fun colorFilter(
       colorFilter: androidx.compose.ui.graphics.ColorFilter,
-      blendMode: BlendMode = DefaultBlendMode,
-    ): HazeColorEffect = ColorFilter(colorFilter, blendMode)
+      blendMode: BlendMode = BlendMode.SrcOver,
+    ): HazeColorEffect = ColorFilterHazeColorEffect(colorFilter, blendMode)
 
     /**
      * Creates a color-based tint effect.
      */
-    public inline fun tint(
+    public fun tint(
       color: Color,
-      blendMode: BlendMode = DefaultBlendMode,
-    ): HazeColorEffect = TintColor(color, blendMode)
+      blendMode: BlendMode = BlendMode.SrcOver,
+    ): HazeColorEffect {
+      require(color.isSpecified) { "color must be specified" }
+      return TintColorHazeColorEffect(color, blendMode)
+    }
 
     /**
      * Creates a brush-based tint effect.
      */
-    public inline fun tint(
+    public fun tint(
       brush: Brush,
-      blendMode: BlendMode = DefaultBlendMode,
-    ): HazeColorEffect = TintBrush(brush, blendMode)
+      blendMode: BlendMode = BlendMode.SrcOver,
+    ): HazeColorEffect = TintBrushHazeColorEffect(brush, blendMode)
   }
 }
+
+@Immutable
+@Poko
+internal class ColorFilterHazeColorEffect(
+  val colorFilter: androidx.compose.ui.graphics.ColorFilter,
+  val blendMode: BlendMode,
+) : HazeColorEffect
+
+@Immutable
+@Poko
+internal class TintColorHazeColorEffect(
+  val color: Color,
+  val blendMode: BlendMode,
+) : HazeColorEffect
+
+@Immutable
+@Poko
+internal class TintBrushHazeColorEffect(
+  val brush: Brush,
+  val blendMode: BlendMode,
+) : HazeColorEffect

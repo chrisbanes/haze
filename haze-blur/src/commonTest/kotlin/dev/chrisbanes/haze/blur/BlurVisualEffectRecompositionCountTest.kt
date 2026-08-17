@@ -232,7 +232,7 @@ class BlurVisualEffectRecompositionCountTest : ContextTest() {
   fun fallbackTintChange_causesBoundedRecompositions() = runComposeUiTest {
     val hazeState = HazeState()
     val effectCounter = mutableIntStateOf(0)
-    val fallbackTint = mutableStateOf<HazeColorEffect>(HazeColorEffect.Unspecified)
+    val fallbackTint = mutableStateOf<HazeColorEffect?>(null)
 
     setBlurEffectContent(hazeState, effectCounter) {
       fallbackColorEffect(fallbackTint.value)

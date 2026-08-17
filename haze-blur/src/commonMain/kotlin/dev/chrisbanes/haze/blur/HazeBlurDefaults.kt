@@ -9,7 +9,6 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import dev.chrisbanes.haze.blur.HazeBlurDefaults.tint
 
 /**
  * Default values for [hazeBlur].
@@ -47,7 +46,7 @@ public object HazeBlurDefaults {
     noiseFactor(noiseFactor)
     backgroundColor(Color.Transparent)
     colorEffects(emptyList())
-    fallbackColorEffect(HazeColorEffect.Unspecified)
+    fallbackColorEffect(null)
     alpha(1f)
     mask(null)
     progressive(null)
@@ -72,7 +71,7 @@ public object HazeBlurDefaults {
     replaceWith = ReplaceWith(
       expression = """HazeBlurDefaults.style.then {
         if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
-        if (tint.isSpecified) colorEffects(listOf(tint))
+        if (tint != null) colorEffects(listOf(tint))
         if (blurRadius.isSpecified) blurRadius(blurRadius)
         if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
       }""",
@@ -83,12 +82,12 @@ public object HazeBlurDefaults {
   )
   public fun style(
     backgroundColor: Color,
-    tint: HazeColorEffect = tint(backgroundColor),
+    tint: HazeColorEffect? = backgroundColor.takeIf { it.isSpecified }?.let(::tint),
     blurRadius: Dp = this.blurRadius,
     noiseFactor: Float = this.noiseFactor,
   ): HazeBlurStyle = style.then {
     if (backgroundColor.isSpecified) backgroundColor(backgroundColor)
-    if (tint.isSpecified) colorEffects(listOf(tint))
+    if (tint != null) colorEffects(listOf(tint))
     if (blurRadius.isSpecified) blurRadius(blurRadius)
     if (!(noiseFactor < 0f)) noiseFactor(noiseFactor)
   }
