@@ -1446,22 +1446,8 @@
 <p>SDK Levels: 31 &amp; 32</p>
 <p>When running on these versions of Android, Haze needs to use a few workarounds:</p>
 <h4 id="hazeprogressive">HazeProgressive<a class="headerlink" href="#hazeprogressive" title="Permanent link">¶</a></h4>
-<p>Only linear gradient <a href="../../api/haze/dev.chrisbanes.haze/-haze-progressive/">HazeProgressive</a> effects are supported, and are implemented via a mechanism which draws the effect multiple times. This can hurt performance, so it is recommended to verify the performance of this yourself.</p>
-<p>You can disable this behavior by setting the <a href="../../api/haze/dev.chrisbanes.haze/-haze-progressive/-companion/">preferPerformance</a> property. When set to true, the progressive 'effect' will instead be drawn via a mask:</p>
-<div class="highlight"><pre><span></span><code><span class="n">LargeTopAppBar</span><span class="p">(</span>
-<span class="w">  </span><span class="c1">// ...</span>
-<span class="w">  </span><span class="n">modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
-<span class="w">    </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
-<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">progressive</span><span class="p">(</span><span class="n">HazeProgressive</span><span class="p">.</span><span class="na">verticalGradient</span><span class="p">(</span>
-<span class="hll"><span class="w">        </span><span class="c1">// ...</span>
-</span><span class="w">        </span><span class="n">preferPerformance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">      </span><span class="p">))</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">  </span><span class="p">)</span>
-<span class="p">)</span>
-</code></pre></div>
-<p>All other progressive types will fallback to using a mask when running on Android 12 &amp; 12L.</p>
+<p>At a full-resolution tier, including <a href="../../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-quality.html">HazePerformanceMode.Quality</a>, linear gradient <a href="../../api/haze/dev.chrisbanes.haze/-haze-progressive/">HazeProgressive</a> effects are implemented by drawing the effect multiple times. This can hurt performance, so verify it for your workload.</p>
+<p>Downsampled tiers, including <a href="../../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-balanced.html">HazePerformanceMode.Balanced</a>, use a mask instead. All non-linear progressive types also use a mask on Android 12 &amp; 12L.</p>
 <h3 id="android-12-and-below">Android 12 and below<a class="headerlink" href="#android-12-and-below" title="Permanent link">¶</a></h3>
 <p>When running on Android 12 and below, we can not rely on <a href="https://developer.android.com/reference/android/graphics/RenderNode">RenderNode</a> (which <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/layer/GraphicsLayer">GraphicsLayer</a> use internally) re-painting when content changes. For this reason, Haze <em>previously</em> disabled blurring effects on Android 12 by default, as we could not guarantee that it works.</p>
 <p>As of Haze v1.6 and newer though, we have a mechanism allowing Haze to re-enable blurring on Android 12 by default.</p>

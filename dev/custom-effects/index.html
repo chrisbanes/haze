@@ -1302,6 +1302,7 @@ factory is replaced or the node detaches.</p>
 <p>Source selection and retention remain explicit:</p>
 <div class="highlight"><pre><span></span><code><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span>
 <span class="w">    </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hazeState</span><span class="p">,</span>
+<span class="w">    </span><span class="c1">// `where` receives library-owned HazeSourceMetadata.</span>
 <span class="w">    </span><span class="n">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">All</span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nb">it</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">"hero"</span><span class="w"> </span><span class="p">},</span>
 <span class="w">    </span><span class="n">retention</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceRetention</span><span class="p">.</span><span class="na">ClearWhenUnavailable</span><span class="p">,</span>
 <span class="p">)</span>

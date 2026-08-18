@@ -1380,9 +1380,9 @@
 <p>Sources can have a <code>zIndex</code> and metadata <code>key</code>. <code>HazeSourceSelection.Behind</code> is the default. With
 a nearest ancestor <code>hazeSource</code> using the same state, it selects lower-z sources; without one, it
 selects every source. <code>HazeSourceSelection.All</code> bypasses the ancestor relationship.</p>
-<p>Refine either selection with <code>where</code>. Predicates receive only immutable <code>key</code> and <code>zIndex</code>
-metadata, not captured pixels or renderer resources. Repeated refinements combine with logical
-AND:</p>
+<p>Refine either selection with <code>where</code>. Predicates receive a library-owned <code>HazeSourceMetadata</code>
+with only immutable <code>key</code> and <code>zIndex</code> values, not captured pixels or renderer resources. Repeated
+refinements combine with logical AND:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeSourceSelection</span><span class="p">.</span><span class="na">Behind</span>
 <span class="w">  </span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="na">zIndex</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="m">1f</span><span class="w"> </span><span class="p">}</span>
 <span class="w">  </span><span class="p">.</span><span class="na">where</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="na">key</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">"sensitive"</span><span class="w"> </span><span class="p">}</span>

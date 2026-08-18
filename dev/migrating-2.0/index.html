@@ -974,10 +974,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#temporary-blur-construction-shims" class="md-nav__link">
+  <a href="#finalized-blur-api" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Temporary Blur construction shims
+        Finalized Blur API
       
     </span>
   </a>
@@ -1293,10 +1293,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#temporary-blur-construction-shims" class="md-nav__link">
+  <a href="#finalized-blur-api" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Temporary Blur construction shims
+        Finalized Blur API
       
     </span>
   </a>
@@ -1510,38 +1510,21 @@ wins. Replacing <code>compact</code> with <code>base</code> removes the 12 dp wr
 value is retained.</p>
 <p>An explicit <code>colorEffects(emptyList())</code> clears inherited effects. Caller-owned lists are
 snapshotted before replay.</p>
-<h3 id="temporary-blur-construction-shims">Temporary Blur construction shims<a class="headerlink" href="#temporary-blur-construction-shims" title="Permanent link">¶</a></h3>
-<p>During the remaining Haze 2 prereleases, the former <code>HazeBlurStyle(...)</code> construction forms,
-<code>HazeBlurStyle.Unspecified</code>, and <code>HazeBlurDefaults.style(...)</code> builder remain available as
-warning-level deprecations. They are source-migration aids only: code already compiled against the
-former <code>HazeBlurStyle</code> class is not binary compatible with the replayable Style interface. Every
-shim will be removed before Haze 2.0 stable.</p>
-<p>The plural construction form translates to guarded Style writes:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">migrated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">backgroundColor</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">backgroundColor</span><span class="p">(</span><span class="n">backgroundColor</span><span class="p">)</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">colorEffects</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="n">colorEffects</span><span class="p">(</span><span class="n">colorEffects</span><span class="p">)</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">blurRadius</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">(</span><span class="n">blurRadius</span><span class="p">)</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="m">0f</span><span class="p">))</span><span class="w"> </span><span class="n">noiseFactor</span><span class="p">(</span><span class="n">noiseFactor</span><span class="p">)</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fallbackColorEffect</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">fallbackColorEffect</span><span class="p">(</span><span class="n">fallbackColorEffect</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
-<p>For the singular form, replace the effects line with:</p>
-<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">colorEffect</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="n">colorEffects</span><span class="p">(</span><span class="n">listOf</span><span class="p">(</span><span class="n">colorEffect</span><span class="p">))</span>
-</code></pre></div>
-<p><code>null</code> omits the color-effects write and reveals a lower-precedence value. A non-null empty plural
-list explicitly clears inherited effects, and non-empty caller-owned lists are snapshotted. An
-unspecified color, dimension, or fallback effect also omits its write. Negative numeric noise is
-the legacy omission sentinel; other values use normal Style resolution, so values above <code>1f</code>
-clamp and <code>NaN</code> fails validation.</p>
-<p>Replace <code>HazeBlurStyle.Unspecified</code> with <code>HazeBlurStyle</code>. Migrate the defaults builder by replaying
-the canonical defaults first and guarding its overrides in the same way:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">migrated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurDefaults</span><span class="p">.</span><span class="na">style</span><span class="p">.</span><span class="na">then</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">backgroundColor</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">backgroundColor</span><span class="p">(</span><span class="n">backgroundColor</span><span class="p">)</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tint</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">colorEffects</span><span class="p">(</span><span class="n">listOf</span><span class="p">(</span><span class="n">tint</span><span class="p">))</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">blurRadius</span><span class="p">.</span><span class="na">isSpecified</span><span class="p">)</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">(</span><span class="n">blurRadius</span><span class="p">)</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">noiseFactor</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="m">0f</span><span class="p">))</span><span class="w"> </span><span class="n">noiseFactor</span><span class="p">(</span><span class="n">noiseFactor</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
+<h3 id="finalized-blur-api">Finalized Blur API<a class="headerlink" href="#finalized-blur-api" title="Permanent link">¶</a></h3>
+<p>The temporary prerelease adapters are removed in beta01. Replace both former
+<code>HazeBlurStyle(...)</code> construction forms, <code>HazeBlurStyle.Unspecified</code>, and the
+<code>HazeBlurDefaults.style(...)</code> builder with a replayable <code>HazeBlurStyle { ... }</code> program. Start
+from <code>HazeBlurDefaults.style.then { ... }</code> when extending the defaults.</p>
+<p><code>HazeColorEffect</code> is now opaque. Create an effect only with <code>HazeColorEffect.tint(...)</code> or
+<code>HazeColorEffect.colorFilter(...)</code>; its concrete implementations, sentinel, <code>isSpecified</code>,
+<code>DefaultBlendMode</code>, <code>copy</code>, and destructuring APIs are not public. <code>Color.Unspecified</code> is rejected
+by the color tint factory. Use <code>fallbackColorEffect(null)</code> to explicitly clear an inherited
+fallback effect; <code>null</code> is the only fallback-absence value.</p>
+<p><code>HazeBlurDefaults.tintAlpha</code>, <code>HazeBlurDefaults.tint(...)</code>, and the deprecated
+<code>HazeBlurDefaults.style(...)</code> builder are removed. The supported default-enable query is
+<code>HazeBlurDefaults.isBlurEnabledByDefault()</code>.</p>
+<p>The former Blur-package <code>HazeProgressive</code> typealias is also removed. Import
+<code>dev.chrisbanes.haze.HazeProgressive</code> directly.</p>
 <h2 id="migrate-material-presets">Migrate material presets<a class="headerlink" href="#migrate-material-presets" title="Permanent link">¶</a></h2>
 <p>Before:</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeEffect</span><span class="p">(</span><span class="n">hazeState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1702,15 +1685,17 @@ former <code>Offset.Unspecified</code> behavior, logical start/end alignments fo
 <p>Interaction appearance belongs in the Style and can be shared. Each element still supplies its own
 interaction source and behavior options to the modifier.</p>
 <h3 id="position-and-geometry">Position and geometry<a class="headerlink" href="#position-and-geometry" title="Permanent link">¶</a></h3>
-<p>Position handling is now automatic. Source-selection predicates receive only
-<code>HazeSourceInfo.key</code> and <code>zIndex</code>; custom renderers work with modifier-relative bounds and draw the
+<p>Position handling is now automatic. Source-selection predicates receive library-owned
+<code>HazeSourceMetadata</code> with only immutable <code>key</code> and <code>zIndex</code> values. Refine a selection with its
+member <code>HazeSourceSelection.where { ... }</code>; metadata construction, source geometry, and captured
+content remain library-owned. Custom renderers work with modifier-relative bounds and draw the
 selected input with <code>drawInput()</code>.</p>
 <h2 id="removed-compatibility-apis">Removed compatibility APIs<a class="headerlink" href="#removed-compatibility-apis" title="Permanent link">¶</a></h2>
 <p><code>VisualEffect</code>, <code>VisualEffectContext</code>, <code>HazeEffectScope</code>, <code>BlurVisualEffect</code>,
 <code>HazeEffectScope.blurEffect</code>, and the lambda-based <code>hazeEffect</code> overloads are removed. Readable
 <code>HazeBlurStyle</code> properties, <code>copy</code>, destructuring, and mutable runtime interfaces remain removed.
-Only the temporary source construction shims described above survive during the prerelease cycle;
-use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
+The prerelease Blur construction shims and aliases are now removed; use replayable Style blocks
+and <code>then</code>.</p>
 <h2 id="complete-api-mapping">Complete API mapping<a class="headerlink" href="#complete-api-mapping" title="Permanent link">¶</a></h2>
 <table>
 <thead>
@@ -1774,7 +1759,7 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 <tr>
 <td><code>HazeEffectScope.fallbackTint</code></td>
 <td><code>HazeBlurStyle { fallbackColorEffect(...) }</code></td>
-<td>The effect type is unchanged.</td>
+<td>Pass <code>null</code> to explicitly clear an inherited fallback.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.alpha</code></td>
@@ -1814,7 +1799,7 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 <tr>
 <td><code>HazeEffectScope.canDrawArea</code></td>
 <td><code>HazeSourceSelection.where { ... }</code></td>
-<td>Typed selection exposes immutable <code>key</code> and <code>zIndex</code> metadata.</td>
+<td><code>where</code> is a selection member; its library-owned <code>HazeSourceMetadata</code> exposes immutable <code>key</code> and <code>zIndex</code>.</td>
 </tr>
 <tr>
 <td><code>HazeEffectScope.retainOutputWhenSourceUnavailable</code></td>
@@ -1909,7 +1894,32 @@ use replayable Style blocks and <code>then</code> before Haze 2.0 stable.</p>
 <tr>
 <td><code>dev.chrisbanes.haze.blur.HazeProgressive</code></td>
 <td><code>dev.chrisbanes.haze.HazeProgressive</code></td>
-<td>The old Blur-package name remains as a deprecated typealias during the v2 alpha cycle.</td>
+<td>The old Blur-package typealias is removed.</td>
+</tr>
+<tr>
+<td><code>HazeProgressive.LinearGradient(..., preferPerformance = ...)</code></td>
+<td><code>Modifier.hazeBlur(performanceMode = ...)</code></td>
+<td>Choose <code>Quality</code> for full resolution or a downsampled <code>Balanced</code>/<code>Performance</code> tier; <code>Adaptive</code> follows Haze's workload policy.</td>
+</tr>
+<tr>
+<td><code>HazeColorEffect.Unspecified</code> or a concrete <code>HazeColorEffect</code> constructor</td>
+<td><code>HazeColorEffect.tint(...)</code> or <code>HazeColorEffect.colorFilter(...)</code></td>
+<td>Effects are factory-only; use <code>fallbackColorEffect(null)</code> to clear a fallback.</td>
+</tr>
+<tr>
+<td><code>HazeBlurDefaults.blurEnabled()</code></td>
+<td><code>HazeBlurDefaults.isBlurEnabledByDefault()</code></td>
+<td>This remains the platform-aware default-enable query.</td>
+</tr>
+<tr>
+<td><code>Poko</code></td>
+<td>Removed</td>
+<td>This implementation annotation is not part of Haze's supported API.</td>
+</tr>
+<tr>
+<td><code>HazeLogger.d(...)</code></td>
+<td>Removed</td>
+<td><code>HazeLogger.enabled</code> remains the supported logging control.</td>
 </tr>
 <tr>
 <td><code>LocalHazeStyle</code></td>
