@@ -20,9 +20,9 @@ When running on these versions of Android, Haze needs to use a few workarounds:
 
 #### HazeProgressive
 
-At a full-resolution tier, including [HazePerformanceMode.Quality](../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-quality/index.html), linear gradient [HazeProgressive](../api/haze/dev.chrisbanes.haze/-haze-progressive/index.html) effects are implemented by drawing the effect multiple times. This can hurt performance, so verify it for your workload.
+At a full-resolution tier, including [HazePerformanceMode.Quality](../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-quality.html), linear gradient [HazeProgressive](../api/haze/dev.chrisbanes.haze/-haze-progressive/index.html) effects are implemented by drawing the effect multiple times. This can hurt performance, so verify it for your workload.
 
-Downsampled tiers, including [HazePerformanceMode.Balanced](../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-balanced/index.html), use a mask instead. All non-linear progressive types also use a mask on Android 12 & 12L.
+Downsampled tiers, including [HazePerformanceMode.Balanced](../api/haze/dev.chrisbanes.haze/-haze-performance-mode/-companion/-balanced.html), use a mask instead. All non-linear progressive types also use a mask on Android 12 & 12L.
 
 ### Android 12 and below
 
