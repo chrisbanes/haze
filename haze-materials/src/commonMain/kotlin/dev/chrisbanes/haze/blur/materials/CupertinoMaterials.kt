@@ -124,7 +124,6 @@ internal fun cupertinoMaterialValues(
   ),
   HazeColorEffect.tint(
     color = if (isDark) darkForegroundColor else lightForegroundColor,
-    blendMode = HazeColorEffect.DefaultBlendMode,
   ),
 )
 

@@ -177,7 +177,7 @@ class BlurVisualEffectRecompositionLoopTest : ContextTest() {
   @Test
   fun fallbackTintMutation_doesNotInfiniteLoop() = runComposeUiTest {
     val hazeState = HazeState()
-    val fallbackTint = mutableStateOf<HazeColorEffect>(HazeColorEffect.Unspecified)
+    val fallbackTint = mutableStateOf<HazeColorEffect?>(null)
 
     setBlurEffectContent(hazeState) {
       fallbackColorEffect(fallbackTint.value)

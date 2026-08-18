@@ -20,9 +20,9 @@ Sources can have a `zIndex` and metadata `key`. `HazeSourceSelection.Behind` is 
 a nearest ancestor `hazeSource` using the same state, it selects lower-z sources; without one, it
 selects every source. `HazeSourceSelection.All` bypasses the ancestor relationship.
 
-Refine either selection with `where`. Predicates receive only immutable `key` and `zIndex`
-metadata, not captured pixels or renderer resources. Repeated refinements combine with logical
-AND:
+Refine either selection with `where`. Predicates receive a library-owned `HazeSourceMetadata`
+with only immutable `key` and `zIndex` values, not captured pixels or renderer resources. Repeated
+refinements combine with logical AND:
 
 ```kotlin
 val selection = HazeSourceSelection.Behind

@@ -650,25 +650,25 @@ internal class HazeEffectNode(
         val selection = checkNotNull(explicitInput as? HazeInput.Sources).selection
         HazeLogger.d(TAG) { "Background Areas observing: $unfilteredAreas" }
         val relatedSources = unfilteredAreas.mapNotNull { area ->
-          val info = HazeSourceInfo(key = area.key, zIndex = area.zIndex)
+          val metadata = HazeSourceMetadata(key = area.key, zIndex = area.zIndex)
           val relationshipMatches = when (selection.baseSelection()) {
             HazeSourceSelection.All -> true
             HazeSourceSelection.Behind -> {
-              ancestorSourceNode == null || info.zIndex < ancestorSourceNode.zIndex
+              ancestorSourceNode == null || metadata.zIndex < ancestorSourceNode.zIndex
             }
             else -> error("Unexpected base HazeSourceSelection")
           }
-          if (relationshipMatches) area to info else null
+          if (relationshipMatches) area to metadata else null
         }
         val selectedSources = if (selection.hasRefinements()) {
           Snapshot.withoutReadObservation {
-            lateinit var result: List<Pair<HazeArea, HazeSourceInfo>>
+            lateinit var result: List<Pair<HazeArea, HazeSourceMetadata>>
             getOrCreateSourceSelectionSnapshotObserver().observeReads(
               sourceSelectionObservationScope,
               onObservedSourceSelectionChanged,
             ) {
-              result = relatedSources.filter { (_, info) ->
-                selection.matches(info)
+              result = relatedSources.filter { (_, metadata) ->
+                selection.matches(metadata)
               }
             }
             result
@@ -677,7 +677,7 @@ internal class HazeEffectNode(
           relatedSources
         }
         val filteredAreas = selectedSources
-          .sortedBy { (_, info) -> info.zIndex }
+          .sortedBy { (_, metadata) -> metadata.zIndex }
           .map { (area) ->
             HazeLogger.d(TAG) { "Background Area: $area. Included=true" }
             area

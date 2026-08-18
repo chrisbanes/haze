@@ -27,23 +27,14 @@ public sealed interface HazeProgressive {
    * You may wish to use the convenience builder functions provided in [horizontalGradient] and
    * [verticalGradient] for more common use cases.
    *
-   * The [preferPerformance] flag below can be set to tell Haze how to handle the progressive effect
-   * in certain situations:
-   *
-   * * On certain platforms (Android SDK 32), drawing the progressive effect is inefficient.
-   *   When [preferPerformance] is set to true, Haze will use a mask when running on those
-   *   platforms, which is far more performant.
-   *
    * @param easing - The easing function to use when applying the effect. Defaults to a
-   * linear easing effect.
+   * [EaseIn] easing effect.
    * @param start - Starting position of the gradient. Defaults to [androidx.compose.ui.geometry.Offset.Zero] which
    * represents the top-left of the drawing area.
    * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`.
    * @param end - Ending position of the gradient. Defaults to
    * [androidx.compose.ui.geometry.Offset.Infinite] which represents the bottom-right of the drawing area.
    * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`
-   * @param preferPerformance - Whether Haze should prefer performance (when true), or
-   * quality (when false). See above for more information.
    */
   public data class LinearGradient(
     public val easing: Easing = EaseIn,
@@ -51,7 +42,6 @@ public sealed interface HazeProgressive {
     public val startIntensity: Float = 0f,
     public val end: Offset = Offset.Infinite,
     public val endIntensity: Float = 1f,
-    public val preferPerformance: Boolean = false,
   ) : HazeProgressive
 
   /**
@@ -64,7 +54,7 @@ public sealed interface HazeProgressive {
    * - Android SDK Level < 31: Falls back to a scrim
    *
    * @param easing - The easing function to use when applying the effect. Defaults to a
-   * linear easing effect.
+   * [EaseIn] easing effect.
    * @param center Center position of the radial gradient circle. If this is set to
    * [Offset.Unspecified] then the center of the drawing area is used as the center for
    * the radial gradient. [Float.POSITIVE_INFINITY] can be used for either [Offset.x] or
@@ -74,14 +64,40 @@ public sealed interface HazeProgressive {
    * the largest radius that can fit within the bounds of the drawing area.
    * @param radiusIntensity - The intensity of the haze effect at the [radius], in the range `0f`..`1f`
    */
-  @Poko
   public class RadialGradient(
     public val easing: Easing = EaseIn,
     public val center: Offset = Offset.Unspecified,
     public val centerIntensity: Float = 1f,
     public val radius: Float = Float.POSITIVE_INFINITY,
     public val radiusIntensity: Float = 0f,
-  ) : HazeProgressive
+  ) : HazeProgressive {
+    /** Compares this gradient's parameters for value equality. */
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is RadialGradient) return false
+
+      return easing == other.easing &&
+        center == other.center &&
+        centerIntensity.compareTo(other.centerIntensity) == 0 &&
+        radius.compareTo(other.radius) == 0 &&
+        radiusIntensity.compareTo(other.radiusIntensity) == 0
+    }
+
+    /** Returns a hash code derived from this gradient's parameters. */
+    override fun hashCode(): Int {
+      var result = easing.hashCode()
+      result = 31 * result + center.hashCode()
+      result = 31 * result + centerIntensity.hashCode()
+      result = 31 * result + radius.hashCode()
+      result = 31 * result + radiusIntensity.hashCode()
+      return result
+    }
+
+    /** Returns a string representation of this gradient's parameters. */
+    override fun toString(): String =
+      "RadialGradient(easing=$easing, center=$center, centerIntensity=$centerIntensity, " +
+        "radius=$radius, radiusIntensity=$radiusIntensity)"
+  }
 
   /**
    * A progressive effect which is derived by using the provided [Brush] as an alpha mask.
@@ -101,16 +117,13 @@ public sealed interface HazeProgressive {
      * A vertical gradient effect.
      *
      * @param easing - The easing function to use when applying the effect. Defaults to a
-     * linear easing effect.
+     * [EaseIn] easing effect.
      * @param startY - Starting x position of the horizontal gradient. Defaults to 0 which
      * represents the top of the drawing area.
      * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`.
      * @param endY - Ending x position of the horizontal gradient. Defaults to
      * [Float.POSITIVE_INFINITY] which represents the bottom of the drawing area.
      * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`.
-     * @param preferPerformance - Whether Haze should prefer performance (when true), or
-     * quality (when false). See [HazeProgressive.LinearGradient]'s documentation for more
-     * information.
      */
     public fun verticalGradient(
       easing: Easing = EaseIn,
@@ -118,30 +131,25 @@ public sealed interface HazeProgressive {
       startIntensity: Float = 0f,
       endY: Float = Float.POSITIVE_INFINITY,
       endIntensity: Float = 1f,
-      preferPerformance: Boolean = false,
     ): LinearGradient = LinearGradient(
       easing = easing,
       start = Offset(0f, startY),
       startIntensity = startIntensity,
       end = Offset(0f, endY),
       endIntensity = endIntensity,
-      preferPerformance = preferPerformance,
     )
 
     /**
      * A horizontal gradient effect.
      *
      * @param easing - The easing function to use when applying the effect. Defaults to a
-     * linear easing effect.
+     * [EaseIn] easing effect.
      * @param startX - Starting x position of the horizontal gradient. Defaults to 0 which
      * represents the left of the drawing area
      * @param startIntensity - The intensity of the haze effect at the start, in the range `0f`..`1f`
      * @param endX - Ending x position of the horizontal gradient. Defaults to
      * [Float.POSITIVE_INFINITY] which represents the right of the drawing area.
      * @param endIntensity - The intensity of the haze effect at the end, in the range `0f`..`1f`.
-     * @param preferPerformance - Whether Haze should prefer performance (when true), or
-     * quality (when false). See [HazeProgressive.LinearGradient]'s documentation for more
-     * information.
      */
     public fun horizontalGradient(
       easing: Easing = EaseIn,
@@ -149,14 +157,12 @@ public sealed interface HazeProgressive {
       startIntensity: Float = 0f,
       endX: Float = Float.POSITIVE_INFINITY,
       endIntensity: Float = 1f,
-      preferPerformance: Boolean = false,
     ): LinearGradient = LinearGradient(
       easing = easing,
       start = Offset(startX, 0f),
       startIntensity = startIntensity,
       end = Offset(endX, 0f),
       endIntensity = endIntensity,
-      preferPerformance = preferPerformance,
     )
 
     /**

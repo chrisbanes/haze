@@ -16,7 +16,7 @@ import assertk.assertThat
 import assertk.assertions.isFalse
 import kotlin.test.Test
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
 class HazeTest {
 
   @Test

@@ -16,7 +16,7 @@ internal class ScrimBlurVisualEffectDelegate(
   val blurVisualEffect: BlurVisualEffect,
 ) : BlurVisualEffect.Delegate {
   override fun DrawScope.draw(context: HazeEffectRuntimeDrawScope) {
-    val scrimTint = blurVisualEffect.fallbackTint.takeIf { it.isSpecified }
+    val scrimTint = blurVisualEffect.fallbackTint
       ?: blurVisualEffect.colorEffects?.firstOrNull()
         ?.boostForFallback(blurVisualEffect.blurRadius.takeOrElse { 0.dp })
       ?: return

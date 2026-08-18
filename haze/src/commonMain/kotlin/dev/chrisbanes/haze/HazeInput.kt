@@ -38,7 +38,7 @@ public sealed interface HazeInput {
  * @property key Optional application key supplied to `hazeSource`.
  * @property zIndex Source ordering value supplied to `hazeSource`.
  */
-public class HazeSourceInfo(
+public class HazeSourceMetadata internal constructor(
   public val key: Any?,
   public val zIndex: Float,
 )
@@ -47,6 +47,18 @@ public class HazeSourceInfo(
  * Selects source content for [HazeInput.Sources].
  */
 public sealed interface HazeSourceSelection {
+
+  /**
+   * Refines this selection using immutable source metadata.
+   *
+   * Repeated refinements compose with logical AND.
+   */
+  public fun where(
+    predicate: (HazeSourceMetadata) -> Boolean,
+  ): HazeSourceSelection = FilteredHazeSourceSelection(
+    selection = this,
+    predicate = predicate,
+  )
 
   /**
    * Sources behind the nearest ancestor [hazeSource], or every source when there is no matching
@@ -60,21 +72,9 @@ public sealed interface HazeSourceSelection {
   public data object All : HazeSourceSelection
 }
 
-/**
- * Refines this selection using immutable source metadata.
- *
- * Repeated refinements compose with logical AND.
- */
-public fun HazeSourceSelection.where(
-  predicate: (HazeSourceInfo) -> Boolean,
-): HazeSourceSelection = FilteredHazeSourceSelection(
-  selection = this,
-  predicate = predicate,
-)
-
 private class FilteredHazeSourceSelection(
   val selection: HazeSourceSelection,
-  val predicate: (HazeSourceInfo) -> Boolean,
+  val predicate: (HazeSourceMetadata) -> Boolean,
 ) : HazeSourceSelection
 
 internal fun HazeSourceSelection.baseSelection(): HazeSourceSelection = when (this) {
@@ -84,11 +84,11 @@ internal fun HazeSourceSelection.baseSelection(): HazeSourceSelection = when (th
   is FilteredHazeSourceSelection -> selection.baseSelection()
 }
 
-internal fun HazeSourceSelection.matches(info: HazeSourceInfo): Boolean = when (this) {
+internal fun HazeSourceSelection.matches(metadata: HazeSourceMetadata): Boolean = when (this) {
   HazeSourceSelection.All,
   HazeSourceSelection.Behind,
   -> true
-  is FilteredHazeSourceSelection -> selection.matches(info) && predicate(info)
+  is FilteredHazeSourceSelection -> selection.matches(metadata) && predicate(metadata)
 }
 
 internal fun HazeSourceSelection.hasRefinements(): Boolean =

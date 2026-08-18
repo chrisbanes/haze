@@ -105,7 +105,6 @@ public object HazeMaterials {
           containerColor.copy(
             alpha = if (containerColor.luminance() >= 0.5) lightAlpha else darkAlpha,
           ),
-          HazeColorEffect.DefaultBlendMode,
         ),
       ),
     )

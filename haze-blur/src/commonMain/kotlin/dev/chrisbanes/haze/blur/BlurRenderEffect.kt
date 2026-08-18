@@ -100,16 +100,21 @@ internal fun createRenderEffect(
     )
   }
 
-  return styled
-    .withMask(params.mask, size, offset)
-    .asComposeRenderEffect()
+  val masked = styled.withMask(params.mask, size, offset)
+  val result = if (params.retainInputWhenMasked && params.mask != null) {
+    createOffsetRenderEffect(0f, 0f).blendForeground(masked, BlendMode.SrcOver)
+  } else {
+    masked
+  }
+
+  return result.asComposeRenderEffect()
 }
 
 internal fun Float.hasVisibleNoise(): Boolean = this > 0f
 
 private fun RenderEffectParams.combinedNoiseTintColor(): Color? {
   if (!noiseFactor.hasVisibleNoise() || progressive != null || mask != null) return null
-  val tint = colorEffects.singleOrNull() as? HazeColorEffect.TintColor ?: return null
+  val tint = colorEffects.singleOrNull() as? TintColorHazeColorEffect ?: return null
   if (tint.blendMode != BlendMode.SrcOver) return null
 
   return tint.resolveColor(colorEffectsAlphaModulate)
@@ -152,13 +157,10 @@ private fun PlatformRenderEffect.withColorEffect(
   alphaModulate: Float = 1f,
   mask: Shader? = null,
 ): PlatformRenderEffect {
-  if (!effect.isSpecified) return this
-
   return when (effect) {
-    is HazeColorEffect.TintBrush -> withBrushTint(effect, size, offset, alphaModulate, mask)
-    is HazeColorEffect.TintColor -> withColorTint(effect, offset, alphaModulate, mask)
-    is HazeColorEffect.ColorFilter -> withColorFilter(effect, size, offset, mask)
-    else -> this
+    is TintBrushHazeColorEffect -> withBrushTint(effect, size, offset, alphaModulate, mask)
+    is TintColorHazeColorEffect -> withColorTint(effect, offset, alphaModulate, mask)
+    is ColorFilterHazeColorEffect -> withColorFilter(effect, size, offset, mask)
   }
 }
 
@@ -168,7 +170,7 @@ private fun PlatformRenderEffect.withColorEffect(
  * Order: brush → alphaModulate → mask → blend
  */
 private fun PlatformRenderEffect.withBrushTint(
-  effect: HazeColorEffect.TintBrush,
+  effect: TintBrushHazeColorEffect,
   size: Size,
   offset: Offset,
   alphaModulate: Float,
@@ -203,7 +205,7 @@ private fun PlatformRenderEffect.withBrushTint(
  * Order: color → alphaModulate → mask → blend
  */
 private fun PlatformRenderEffect.withColorTint(
-  effect: HazeColorEffect.TintColor,
+  effect: TintColorHazeColorEffect,
   offset: Offset,
   alphaModulate: Float,
   mask: Shader?,
@@ -235,7 +237,7 @@ private fun PlatformRenderEffect.withColorTint(
   }
 }
 
-private fun HazeColorEffect.TintColor.resolveColor(alphaModulate: Float): Color? {
+private fun TintColorHazeColorEffect.resolveColor(alphaModulate: Float): Color? {
   val resolved = when {
     alphaModulate < 1f -> color.copy(alpha = color.alpha * alphaModulate)
     else -> color
@@ -249,7 +251,7 @@ private fun HazeColorEffect.TintColor.resolveColor(alphaModulate: Float): Color?
  * Order: colorFilter → mask → blend
  */
 private fun PlatformRenderEffect.withColorFilter(
-  effect: HazeColorEffect.ColorFilter,
+  effect: ColorFilterHazeColorEffect,
   size: Size,
   offset: Offset,
   mask: Shader?,

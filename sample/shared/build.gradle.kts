@@ -42,6 +42,8 @@ kotlin {
         api(projects.hazeGlass)
         api(projects.hazeMaterials)
 
+        implementation(projects.hazeUtils)
+
         api(libs.androidx.navigation.compose)
 
         implementation("io.coil-kt.coil3:coil-compose:${libs.versions.coil.get()}") {

@@ -14,11 +14,13 @@ public object HazeLogger {
   public var enabled: Boolean = false
 
   /** Logs the lazily produced [message] under [tag] when [enabled]. */
+  @InternalHazeApi
   public fun d(tag: String, message: () -> String) {
     d(tag = tag, throwable = null, message = message)
   }
 
   /** Logs [throwable] and the lazily produced [message] under [tag] when [enabled]. */
+  @InternalHazeApi
   public fun d(tag: String, throwable: Throwable?, message: () -> String) {
     if (enabled) {
       Snapshot.withoutReadObservation {

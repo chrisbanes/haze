@@ -8,11 +8,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.takeOrElse
 
 internal fun HazeColorEffect.boostForFallback(blurRadius: Dp): HazeColorEffect = when (this) {
-  is HazeColorEffect.TintColor -> {
+  is TintColorHazeColorEffect -> {
     // For color, we can boost the alpha
     val resolved = blurRadius.takeOrElse { HazeBlurDefaults.blurRadius }
     val boosted = color.boostAlphaForBlurRadius(resolved)
-    copy(color = boosted)
+    HazeColorEffect.tint(color = boosted, blendMode = blendMode)
   }
   else -> this
 }

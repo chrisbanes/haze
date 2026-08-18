@@ -131,6 +131,7 @@ internal class RenderEffectBlurVisualEffectDelegate(
           progressive = p,
           contentLayer = layer,
           context = context,
+          inputScale = scaleFactor,
         )
       } else {
         updateRenderEffectIfDirty(context, scaleFactor)
@@ -202,7 +203,14 @@ internal expect fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   progressive: RootHazeProgressive,
   contentLayer: GraphicsLayer,
   context: HazeEffectRuntimeDrawScope,
+  inputScale: Float,
 )
+
+internal fun shouldDrawProgressiveWithLayers(
+  progressive: RootHazeProgressive,
+  inputScale: Float,
+): Boolean = progressive is RootHazeProgressive.LinearGradient &&
+  inputScale == BlurInputScalePolicy.NONE_SCALE
 
 internal fun DrawScope.drawProgressiveWithMultipleLayers(
   progressive: RootHazeProgressive.LinearGradient,

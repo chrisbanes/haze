@@ -5,6 +5,8 @@ package dev.chrisbanes.haze
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isTrue
 import kotlin.test.Test
 
 class HazeInputTest {
@@ -30,10 +32,21 @@ class HazeInputTest {
   }
 
   @Test
-  fun sourceInfo_exposesOnlyStableMetadataValues() {
-    val info = HazeSourceInfo(key = "source", zIndex = 2f)
+  fun sourceMetadata_exposesOnlyStableValues() {
+    val metadata = HazeSourceMetadata(key = "source", zIndex = 2f)
 
-    assertThat(info.key).isEqualTo("source")
-    assertThat(info.zIndex).isEqualTo(2f)
+    assertThat(metadata.key).isEqualTo("source")
+    assertThat(metadata.zIndex).isEqualTo(2f)
+  }
+
+  @Test
+  fun sourceSelection_whereComposesRefinementsWithAnd() {
+    val selection = HazeSourceSelection.All
+      .where { it.key == "source" }
+      .where { it.zIndex == 2f }
+
+    assertThat(selection.matches(HazeSourceMetadata(key = "source", zIndex = 2f))).isTrue()
+    assertThat(selection.matches(HazeSourceMetadata(key = "source", zIndex = 1f))).isFalse()
+    assertThat(selection.matches(HazeSourceMetadata(key = "other", zIndex = 2f))).isFalse()
   }
 }

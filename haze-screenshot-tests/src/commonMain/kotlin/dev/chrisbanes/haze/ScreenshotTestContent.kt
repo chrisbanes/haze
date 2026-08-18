@@ -58,6 +58,7 @@ internal fun CreditCardSample(
   backgroundColors: List<Color> = listOf(Color.Blue, Color.Cyan),
   shape: RoundedCornerShape = RoundedCornerShape(16.dp),
   enabled: Boolean = true,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   numberCards: Int = 1,
 ) {
   require(visualEffects.size == numberCards)
@@ -82,6 +83,7 @@ internal fun CreditCardSample(
         index = index,
         shape = shape,
         enabled = enabled,
+        performanceMode = performanceMode,
         visualEffect = visualEffects[index],
         modifier = Modifier
           .align(Alignment.Center),
@@ -397,6 +399,7 @@ private fun CreditCard(
   index: Int,
   shape: RoundedCornerShape,
   enabled: Boolean,
+  performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   visualEffect: HazeBlurStyle,
   modifier: Modifier = Modifier,
   baseWidth: Float = .7f,
@@ -413,6 +416,7 @@ private fun CreditCard(
         if (enabled) {
           Modifier.hazeBlur(
             input = HazeInput.Sources(hazeState),
+            performanceMode = performanceMode,
             style = visualEffect,
           )
         } else {
@@ -523,10 +527,7 @@ internal fun stickyHeaderBlurVisualEffect(): HazeBlurStyle {
     blurRadius(24.dp)
     colorEffects(
       listOf(
-        HazeColorEffect.tint(
-          Color.White.copy(alpha = 0.18f),
-          HazeColorEffect.DefaultBlendMode,
-        ),
+        HazeColorEffect.tint(Color.White.copy(alpha = 0.18f)),
       ),
     )
   }

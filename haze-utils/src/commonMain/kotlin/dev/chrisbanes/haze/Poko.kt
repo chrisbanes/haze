@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze
 
 /** Generates value-based `equals`, `hashCode`, and `toString` implementations for the class. */
+@InternalHazeApi
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.CLASS)
 public annotation class Poko

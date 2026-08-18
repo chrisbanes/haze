@@ -36,4 +36,23 @@ class BlurProfilingSampleTest : ContextTest() {
     onNodeWithTag("blur_profiling_start").performClick()
     onNodeWithTag("blur_profiling_phase_complete").assertIsDisplayed()
   }
+
+  @Test
+  fun progressiveBalancedScenario_exposesTheSettledStartProtocol() = runComposeUiTest {
+    setContent {
+      BlurProfilingSampleContent(
+        state = remember { BlurProfilingState() },
+        navController = rememberNavController(),
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("blur_profiling_select_progressive_balanced")
+      .performScrollTo()
+      .performClick()
+    onNodeWithTag("blur_profiling_selected_progressive_balanced").assertIsDisplayed()
+    onNodeWithTag("blur_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("blur_profiling_start").performClick()
+    onNodeWithTag("blur_profiling_phase_complete").assertIsDisplayed()
+  }
 }

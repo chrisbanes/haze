@@ -50,6 +50,9 @@ package dev.chrisbanes.haze {
     ctor public PlatformRuntimeEffect(String sksl);
   }
 
+  @dev.chrisbanes.haze.InternalHazeApi @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.CLASS) public @interface Poko {
+  }
+
   public final class ProgressiveBlurRenderEffectKt {
     method @KotlinOnly @dev.chrisbanes.haze.InternalHazeApi public static dev.chrisbanes.haze.PlatformRenderEffect createProgressiveBlurRenderEffect(float blurRadiusPx, androidx.compose.ui.geometry.Size size, androidx.compose.ui.geometry.Offset offset, androidx.compose.ui.graphics.Shader mask);
   }
@@ -120,8 +123,6 @@ package dev.chrisbanes.haze {
     method @dev.chrisbanes.haze.InternalHazeApi public static inline <R> R trace(String sectionName, kotlin.jvm.functions.Function0<? extends R> block);
     method @dev.chrisbanes.haze.InternalHazeApi public static suspend inline <R> Object? traceAsync(String sectionName, int cookie, kotlin.jvm.functions.Function1<? super kotlin.coroutines.Continuation<? super R>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super R>);
   }
-
-  @Deprecated @dev.chrisbanes.haze.InternalHazeApi public typealias HazeBlendMode = androidx.compose.ui.graphics.BlendMode;
 
 }
 

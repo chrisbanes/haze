@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 @file:Suppress("ktlint:standard:property-naming")
+@file:OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
 
 package dev.chrisbanes.haze
 
