@@ -102,23 +102,23 @@ internal class HazeArea {
   internal var layoutCoordinates: LayoutCoordinates? = null
     private set
 
-  private var transformToRootValues: FloatArray? = null
+  private var coordinateTransformValues: FloatArray? = null
 
   internal var coordinateVersion: Int by mutableIntStateOf(0)
     private set
 
   internal fun updateLayoutCoordinates(coordinates: LayoutCoordinates) {
     layoutCoordinates = coordinates
-    val transform = coordinates.transformToRoot()
-    if (transformToRootValues?.contentEquals(transform.values) != true) {
-      transformToRootValues = transform.values.copyOf()
+    val transform = coordinates.transformToScreenOrRoot()
+    if (coordinateTransformValues?.contentEquals(transform.values) != true) {
+      coordinateTransformValues = transform.values.copyOf()
       coordinateVersion++
     }
   }
 
   internal fun clearLayoutCoordinates() {
     layoutCoordinates = null
-    transformToRootValues = null
+    coordinateTransformValues = null
   }
 
   internal var size: Size by mutableStateOf(Size.Unspecified)

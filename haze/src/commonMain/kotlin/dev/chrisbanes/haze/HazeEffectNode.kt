@@ -112,7 +112,8 @@ internal class HazeEffectNode(
   private var inputCaptureGeneration = 0L
   private var isDrawing = false
   private var lastKnownCoordinates: LayoutCoordinates? = null
-  private var transformToRootValues: FloatArray? = null
+  private var coordinateTransformValues: FloatArray? = null
+  private var screenToEffectTransform: Matrix? = null
   private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
   private var sourceSelectionObserverGeneration: Int = 0
   private val sourceSelectionObservationScope = Any()
@@ -418,7 +419,8 @@ internal class HazeEffectNode(
     }
     pointerInputDelegate = null
     lastKnownCoordinates = null
-    transformToRootValues = null
+    coordinateTransformValues = null
+    screenToEffectTransform = null
     lastInputSnapshot = null
     disposeTypedRenderer()
     typedEffectRenderer = null
@@ -465,20 +467,30 @@ internal class HazeEffectNode(
     }
 
     lastKnownCoordinates = coordinates
-    val transform = coordinates.transformToRoot()
-    if (transformToRootValues?.contentEquals(transform.values) != true) {
-      transformToRootValues = transform.values.copyOf()
+    val effectToScreenTransform = coordinates.safeTransformToScreen()
+    val transform = effectToScreenTransform ?: coordinates.transformToRoot()
+    if (coordinateTransformValues?.contentEquals(transform.values) != true) {
+      coordinateTransformValues = transform.values.copyOf()
       dirtyTracker += DirtyFields.AreaPositionReads
     }
-    updatePositionGeometry(coordinates, source)
+    updatePositionGeometry(coordinates, source, effectToScreenTransform)
     updateEffect()
   }
 
-  private fun updatePositionGeometry(coordinates: LayoutCoordinates, source: String) {
+  private fun updatePositionGeometry(
+    coordinates: LayoutCoordinates,
+    source: String,
+    effectToScreenTransform: Matrix? = null,
+  ) {
     // Use node-local resolvedPositionStrategy instead of shared state
     _position = coordinates.positionForHaze(resolvedPositionStrategy)
     _size = coordinates.size.toSize()
     windowId = getWindowId()
+    screenToEffectTransform = if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
+      (effectToScreenTransform ?: coordinates.safeTransformToScreen())?.also { it.invert() }
+    } else {
+      null
+    }
 
     val rootLayoutCoords = coordinates.findRootCoordinates()
     rootBounds = Rect(
@@ -942,13 +954,22 @@ internal class HazeEffectNode(
   private fun calculateSourceTransformInEffect(area: HazeArea): Matrix {
     val effectCoordinates = lastKnownCoordinates
     val sourceCoordinates = area.observedLayoutCoordinates
-    if (
-      resolvedPositionStrategy == HazePositionStrategy.Local &&
-      effectCoordinates != null &&
-      sourceCoordinates != null &&
-      effectCoordinates.hasSameAttachedRoot(sourceCoordinates)
-    ) {
-      return Matrix().also { effectCoordinates.transformFrom(sourceCoordinates, it) }
+    if (effectCoordinates != null && sourceCoordinates != null) {
+      if (
+        resolvedPositionStrategy == HazePositionStrategy.Local &&
+        effectCoordinates.hasSameAttachedRoot(sourceCoordinates)
+      ) {
+        return Matrix().also { effectCoordinates.transformFrom(sourceCoordinates, it) }
+      }
+
+      if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
+        val sourceToScreen = sourceCoordinates.safeTransformToScreen()
+        val screenToEffect = screenToEffectTransform
+        if (sourceToScreen != null && screenToEffect != null) {
+          sourceToScreen *= screenToEffect
+          return sourceToScreen
+        }
+      }
     }
 
     val transform = Matrix()
@@ -975,6 +996,10 @@ internal class HazeEffectNode(
       if (effectCoordinates.hasSameAttachedRoot(rootCoordinates)) {
         return effectCoordinates.localBoundingBoxOf(rootCoordinates, clipBounds = false)
       }
+    }
+
+    if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
+      screenToEffectTransform?.let { return it.map(rootBounds) }
     }
 
     return if (position.isSpecified) {
