@@ -16,6 +16,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -111,6 +112,8 @@ internal class HazeEffectNode(
   private var inputCaptureGeneration = 0L
   private var isDrawing = false
   private var lastKnownCoordinates: LayoutCoordinates? = null
+  private var coordinateTransformValues: FloatArray? = null
+  private var screenToEffectTransform: Matrix? = null
   private var sourceSelectionSnapshotObserver: SnapshotStateObserver? = null
   private var sourceSelectionObserverGeneration: Int = 0
   private val sourceSelectionObservationScope = Any()
@@ -160,7 +163,7 @@ internal class HazeEffectNode(
       }
     }
 
-  private val areaOffsets = MutableObjectLongMap<HazeArea>()
+  private val areaTransforms = mutableMapOf<HazeArea, Matrix>()
   private val areaZIndexes = MutableObjectLongMap<HazeArea>()
   private val areaKeys = mutableMapOf<HazeArea, Any?>()
 
@@ -404,6 +407,7 @@ internal class HazeEffectNode(
     trimMemoryCallbackLifecycle = null
     resetPendingInvalidations()
     _areas = emptyList()
+    areaTransforms.clear()
     areaZIndexes.clear()
     areaKeys.clear()
     contentDrawArea.releaseLayer()
@@ -415,6 +419,8 @@ internal class HazeEffectNode(
     }
     pointerInputDelegate = null
     lastKnownCoordinates = null
+    coordinateTransformValues = null
+    screenToEffectTransform = null
     lastInputSnapshot = null
     disposeTypedRenderer()
     typedEffectRenderer = null
@@ -461,15 +467,30 @@ internal class HazeEffectNode(
     }
 
     lastKnownCoordinates = coordinates
-    updatePositionGeometry(coordinates, source)
+    val effectToScreenTransform = coordinates.safeTransformToScreen()
+    val transform = effectToScreenTransform ?: coordinates.transformToRoot()
+    if (coordinateTransformValues?.contentEquals(transform.values) != true) {
+      coordinateTransformValues = transform.values.copyOf()
+      dirtyTracker += DirtyFields.AreaPositionReads
+    }
+    updatePositionGeometry(coordinates, source, effectToScreenTransform)
     updateEffect()
   }
 
-  private fun updatePositionGeometry(coordinates: LayoutCoordinates, source: String) {
+  private fun updatePositionGeometry(
+    coordinates: LayoutCoordinates,
+    source: String,
+    effectToScreenTransform: Matrix? = null,
+  ) {
     // Use node-local resolvedPositionStrategy instead of shared state
     _position = coordinates.positionForHaze(resolvedPositionStrategy)
     _size = coordinates.size.toSize()
     windowId = getWindowId()
+    screenToEffectTransform = if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
+      (effectToScreenTransform ?: coordinates.safeTransformToScreen())?.also { it.invert() }
+    } else {
+      null
+    }
 
     val rootLayoutCoords = coordinates.findRootCoordinates()
     rootBounds = Rect(
@@ -722,8 +743,8 @@ internal class HazeEffectNode(
       }
     }
 
-    if (dirtyTracker.any(AreaOffsetsDirtyFields)) {
-      updateAreaOffsets()
+    if (dirtyTracker.any(AreaTransformsDirtyFields)) {
+      updateAreaTransforms()
     }
 
     if (shouldUsePreDrawListener()) {
@@ -745,7 +766,7 @@ internal class HazeEffectNode(
 
     if (dirtyTracker.any(LayerBoundsDirtyFields)) {
       if (state != null && areas.isNotEmpty() && size.isSpecified && position.isSpecified) {
-        val clippedLayerBounds = Rect(position, size)
+        val clippedLayerBounds = Rect(Offset.Zero, size)
           .letIf(shouldExpandLayer()) {
             calculateEffectLayerBounds(it, requireDensity())
           }
@@ -755,7 +776,7 @@ internal class HazeEffectNode(
             var right = Float.NEGATIVE_INFINITY
             var bottom = Float.NEGATIVE_INFINITY
             for (area in areas) {
-              val bounds = area.coordinates.boundsFor(resolvedPositionStrategy, area.size) ?: continue
+              val bounds = areaBoundsInEffect(area) ?: continue
               left = min(left, bounds.left)
               top = min(top, bounds.top)
               right = max(right, bounds.right)
@@ -763,13 +784,13 @@ internal class HazeEffectNode(
             }
             rect.intersect(left, top, right, bottom)
           }
-          .intersect(rootBounds)
+          .intersect(rootBoundsInEffect())
 
         _layerSize = Size(
           width = clippedLayerBounds.width.coerceAtLeast(0f),
           height = clippedLayerBounds.height.coerceAtLeast(0f),
         )
-        _layerOffset = position - clippedLayerBounds.topLeft
+        _layerOffset = Offset.Zero - clippedLayerBounds.topLeft
       } else if (shouldDrawRetainedOutput()) {
         // Keep the previous layer bounds for source transition gaps. Recomputing
         // bounds with no areas collapses to the node size and clears the retained layer.
@@ -910,29 +931,81 @@ internal class HazeEffectNode(
     }
   }
 
-  private fun updateAreaOffsets() {
-    // Calculate new offsets and detect changes for diff tracking
-    val hasAreaOffsetsChanged = when {
-      areaOffsets.size != areas.size -> true
-      else -> {
-        areas.any { area ->
-          val areaPosition = area.coordinates.positionFor(resolvedPositionStrategy)
-          val newOffset = position - areaPosition
-          !areaOffsets.contains(area) || areaOffsets[area] != newOffset.packedValue
+  private fun updateAreaTransforms() {
+    var haveAreaTransformsChanged = areaTransforms.keys.removeAll { it !in areas }
+
+    for (area in areas) {
+      val transform = calculateSourceTransformInEffect(area)
+      if (areaTransforms[area]?.hasSameValues(transform) != true) {
+        areaTransforms[area] = transform
+        haveAreaTransformsChanged = true
+      }
+    }
+
+    if (haveAreaTransformsChanged) {
+      HazeLogger.d(TAG) { "areaTransforms changed" }
+      dirtyTracker += DirtyFields.AreaTransforms
+    }
+  }
+
+  internal fun sourceTransformInEffect(area: HazeArea): Matrix =
+    areaTransforms[area] ?: calculateSourceTransformInEffect(area)
+
+  private fun calculateSourceTransformInEffect(area: HazeArea): Matrix {
+    val effectCoordinates = lastKnownCoordinates
+    val sourceCoordinates = area.observedLayoutCoordinates
+    if (effectCoordinates != null && sourceCoordinates != null) {
+      if (
+        resolvedPositionStrategy == HazePositionStrategy.Local &&
+        effectCoordinates.hasSameAttachedRoot(sourceCoordinates)
+      ) {
+        return Matrix().also { effectCoordinates.transformFrom(sourceCoordinates, it) }
+      }
+
+      if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
+        val sourceToScreen = sourceCoordinates.safeTransformToScreen()
+        val screenToEffect = screenToEffectTransform
+        if (sourceToScreen != null && screenToEffect != null) {
+          sourceToScreen *= screenToEffect
+          return sourceToScreen
         }
       }
     }
 
-    if (hasAreaOffsetsChanged) {
-      HazeLogger.d(TAG) { "areaOffsets changed" }
-      dirtyTracker += DirtyFields.AreaOffsets
+    val transform = Matrix()
+    val sourcePosition = area.coordinates.positionFor(resolvedPositionStrategy)
+    if (sourcePosition.isSpecified && position.isSpecified) {
+      val relativePosition = sourcePosition - position
+      transform.translate(relativePosition.x, relativePosition.y)
+    }
+    return transform
+  }
 
-      areaOffsets.clear()
-      areas.forEach { area ->
-        val areaPosition = area.coordinates.positionFor(resolvedPositionStrategy)
-        val offset = position - areaPosition
-        areaOffsets[area] = offset.packedValue
+  private fun areaBoundsInEffect(area: HazeArea): Rect? {
+    return if (area.size.isSpecified) {
+      sourceTransformInEffect(area).map(Rect(Offset.Zero, area.size))
+    } else {
+      null
+    }
+  }
+
+  private fun rootBoundsInEffect(): Rect {
+    val effectCoordinates = lastKnownCoordinates
+    if (resolvedPositionStrategy == HazePositionStrategy.Local && effectCoordinates != null) {
+      val rootCoordinates = effectCoordinates.findRootCoordinates()
+      if (effectCoordinates.hasSameAttachedRoot(rootCoordinates)) {
+        return effectCoordinates.localBoundingBoxOf(rootCoordinates, clipBounds = false)
       }
+    }
+
+    if (resolvedPositionStrategy == HazePositionStrategy.Screen) {
+      screenToEffectTransform?.let { return it.map(rootBounds) }
+    }
+
+    return if (position.isSpecified) {
+      Rect(offset = rootBounds.topLeft - position, size = rootBounds.size)
+    } else {
+      Rect.Zero
     }
   }
 
@@ -1039,22 +1112,17 @@ internal class HazeEffectNode(
       ?.takeIf { it.matches(this, inputCaptureGeneration) }
       ?.let { return it }
     val snapshots = ArrayList<HazeEffectInputSnapshotEntry>(areas.size)
-    val effectPosition = position
     for (area in areas) {
       val layer = area.contentLayer
         ?.takeUnless { it.isReleased }
         ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
         ?: continue
-      val sourcePosition = Snapshot.withoutReadObservation {
-        area.coordinates.positionFor(resolvedPositionStrategy)
-      }
+      val sourceTransform = Snapshot.withoutReadObservation { sourceTransformInEffect(area) }
       snapshots += HazeEffectInputSnapshotEntry(
         areaIdentity = area,
         layerIdentity = layer,
         contentVersion = area.contentVersion,
-        position = (
-          sourcePosition.takeIf(Offset::isSpecified) ?: Offset.Zero
-          ) - effectPosition,
+        transform = sourceTransform,
         size = area.size,
       )
     }
@@ -1105,25 +1173,20 @@ private class HazeEffectInputSnapshotImpl(
   fun matches(node: HazeEffectNode, captureGeneration: Long): Boolean {
     if (this.captureGeneration != captureGeneration) return false
 
-    val effectPosition = node.position
     var drawableIndex = 0
     for (area in node.areas) {
       val layer = area.contentLayer
         ?.takeUnless { it.isReleased }
         ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }
         ?: continue
-      val sourcePosition = Snapshot.withoutReadObservation {
-        area.coordinates.positionFor(node.resolvedPositionStrategy)
-      }
+      val sourceTransform = Snapshot.withoutReadObservation { node.sourceTransformInEffect(area) }
       val entry = entries.getOrNull(drawableIndex++) ?: return false
       if (
         !entry.matches(
           areaIdentity = area,
           layerIdentity = layer,
           contentVersion = area.contentVersion,
-          position = (
-            sourcePosition.takeIf(Offset::isSpecified) ?: Offset.Zero
-            ) - effectPosition,
+          transform = sourceTransform,
           size = area.size,
         )
       ) {
@@ -1145,20 +1208,22 @@ private class HazeEffectInputSnapshotEntry(
   private val areaIdentity: Any,
   private val layerIdentity: Any,
   private val contentVersion: Long,
-  private val position: Offset,
+  transform: Matrix,
   private val size: Size,
 ) {
+  private val transformValues: FloatArray = transform.values.copyOf()
+
   fun matches(
     areaIdentity: Any,
     layerIdentity: Any,
     contentVersion: Long,
-    position: Offset,
+    transform: Matrix,
     size: Size,
   ): Boolean =
     this.areaIdentity === areaIdentity &&
       this.layerIdentity === layerIdentity &&
       this.contentVersion == contentVersion &&
-      this.position == position &&
+      transformValues.contentEquals(transform.values) &&
       this.size == size
 
   override fun equals(other: Any?): Boolean =
@@ -1166,16 +1231,29 @@ private class HazeEffectInputSnapshotEntry(
       areaIdentity === other.areaIdentity &&
       layerIdentity === other.layerIdentity &&
       contentVersion == other.contentVersion &&
-      position == other.position &&
+      transformValues.contentEquals(other.transformValues) &&
       size == other.size
 
   override fun hashCode(): Int {
     var result = areaIdentity.hashCode()
     result = 31 * result + layerIdentity.hashCode()
     result = 31 * result + contentVersion.hashCode()
-    result = 31 * result + position.hashCode()
+    result = 31 * result + transformValues.contentHashCode()
     return 31 * result + size.hashCode()
   }
+}
+
+private fun Matrix.hasSameValues(other: Matrix): Boolean = values.contentEquals(other.values)
+
+private val HazeArea.observedLayoutCoordinates: LayoutCoordinates?
+  get() {
+    // Observe callbacks whose origin and size are unchanged but whose local transform changed.
+    coordinateVersion
+    return layoutCoordinates
+  }
+
+private fun LayoutCoordinates.hasSameAttachedRoot(other: LayoutCoordinates): Boolean {
+  return isAttached && other.isAttached && findRootCoordinates() === other.findRootCoordinates()
 }
 
 internal expect fun invalidateOnHazeAreaPreDraw(): Boolean
@@ -1207,8 +1285,8 @@ internal fun HazeEffectNode.shouldUsePreDrawListener(): Boolean {
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 internal object DirtyFields {
   const val Position: Int = 0b1
-  const val AreaOffsets: Int = Position shl 1
-  const val AreaPositionReads: Int = AreaOffsets shl 1
+  const val AreaTransforms: Int = Position shl 1
+  const val AreaPositionReads: Int = AreaTransforms shl 1
   const val Size: Int = AreaPositionReads shl 1
   const val Areas: Int = Size shl 1
   const val LayerSize: Int = Areas shl 1
@@ -1219,7 +1297,7 @@ internal object DirtyFields {
   const val InvalidateFlags: Int =
     Size or
       Position or
-      AreaOffsets or
+      AreaTransforms or
       LayerSize or
       LayerOffset or
       Areas or
@@ -1229,7 +1307,7 @@ internal object DirtyFields {
   fun stringify(dirtyTracker: Bitmask): String {
     val params = buildList {
       if (Position in dirtyTracker) add("Position")
-      if (AreaOffsets in dirtyTracker) add("AreaOffsets")
+      if (AreaTransforms in dirtyTracker) add("AreaTransforms")
       if (AreaPositionReads in dirtyTracker) add("AreaPositionReads")
       if (Size in dirtyTracker) add("Size")
       if (LayerSize in dirtyTracker) add("LayerSize")
@@ -1242,8 +1320,8 @@ internal object DirtyFields {
   }
 }
 
-/** Dirty fields that warrant recomputing area offsets. */
-internal val AreaOffsetsDirtyFields: Int =
+/** Dirty fields that warrant recomputing area transforms. */
+internal val AreaTransformsDirtyFields: Int =
   DirtyFields.Position or
     DirtyFields.Areas or
     DirtyFields.AreaPositionReads
@@ -1251,7 +1329,7 @@ internal val AreaOffsetsDirtyFields: Int =
 /** Dirty fields that warrant recomputing layer bounds. */
 internal val LayerBoundsDirtyFields: Int =
   DirtyFields.Position or
-    DirtyFields.AreaOffsets or
+    DirtyFields.AreaTransforms or
     DirtyFields.AreaPositionReads or
     DirtyFields.Size or
     DirtyFields.Areas or

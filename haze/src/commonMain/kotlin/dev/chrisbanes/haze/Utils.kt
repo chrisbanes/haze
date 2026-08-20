@@ -6,7 +6,9 @@
 package dev.chrisbanes.haze
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -26,12 +28,25 @@ internal fun LayoutCoordinates.safePositionOnScreen(): Offset = try {
   Offset.Unspecified
 }
 
+internal fun LayoutCoordinates.safeTransformToScreen(): Matrix? = try {
+  Matrix().also { transformToScreen(it) }
+} catch (_: Exception) {
+  null
+}
+
 internal fun LayoutCoordinates.positionForHaze(
   strategy: HazePositionStrategy,
 ): Offset = when (strategy) {
   HazePositionStrategy.Local, HazePositionStrategy.Auto -> positionInRoot()
   HazePositionStrategy.Screen -> safePositionOnScreen()
 }
+
+internal fun LayoutCoordinates.transformToRoot(): Matrix = Matrix().also { matrix ->
+  findRootCoordinates().transformFrom(this, matrix)
+}
+
+internal fun LayoutCoordinates.transformToScreenOrRoot(): Matrix =
+  safeTransformToScreen() ?: transformToRoot()
 
 internal expect fun CompositionLocalConsumerModifierNode.getWindowId(): Any?
 
