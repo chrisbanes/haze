@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
@@ -22,6 +23,7 @@ import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 
@@ -97,6 +99,28 @@ internal class HazeArea {
 
   internal val coordinates: HazeCoordinates = HazeCoordinates()
 
+  internal var layoutCoordinates: LayoutCoordinates? = null
+    private set
+
+  private var transformToRootValues: FloatArray? = null
+
+  internal var coordinateVersion: Int by mutableIntStateOf(0)
+    private set
+
+  internal fun updateLayoutCoordinates(coordinates: LayoutCoordinates) {
+    layoutCoordinates = coordinates
+    val transform = coordinates.transformToRoot()
+    if (transformToRootValues?.contentEquals(transform.values) != true) {
+      transformToRootValues = transform.values.copyOf()
+      coordinateVersion++
+    }
+  }
+
+  internal fun clearLayoutCoordinates() {
+    layoutCoordinates = null
+    transformToRootValues = null
+  }
+
   internal var size: Size by mutableStateOf(Size.Unspecified)
     internal set
 
@@ -143,6 +167,7 @@ internal class HazeArea {
 }
 
 internal fun HazeArea.reset() {
+  clearLayoutCoordinates()
   coordinates.localPosition = Offset.Unspecified
   coordinates.screenPosition = Offset.Unspecified
   size = Size.Unspecified

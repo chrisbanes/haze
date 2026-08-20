@@ -8,10 +8,10 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.node.currentValueOf
@@ -338,16 +338,12 @@ internal class HazeEffectDrawScopeImpl(
 
   override fun DrawScope.drawInput() {
     val owner = this@HazeEffectDrawScopeImpl.node
-    val effectPosition = owner.position
     translate(left = owner.layerOffset.x, top = owner.layerOffset.y) {
       for (area in owner.areas) {
-        val sourcePosition = Snapshot.withoutReadObservation {
-          area.coordinates.positionFor(owner.resolvedPositionStrategy)
+        val sourceTransform = Snapshot.withoutReadObservation {
+          owner.sourceTransformInEffect(area)
         }
-        val relativePosition = (
-          sourcePosition.takeIf(Offset::isSpecified) ?: Offset.Zero
-          ) - effectPosition
-        translate(left = relativePosition.x, top = relativePosition.y) {
+        withTransform({ transform(sourceTransform) }) {
           val layer = area.contentLayer
             ?.takeUnless { it.isReleased }
             ?.takeUnless { it.size.width <= 0 || it.size.height <= 0 }

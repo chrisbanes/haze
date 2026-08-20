@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `HazePerformanceMode` tier: full-resolution tiers use the layered approximation, while
   downsampled tiers use a mask.
 
+### Fixed
+
+- Haze effects now sample source content correctly through scaled or rotated `graphicsLayer`
+  transforms, including transforms applied directly to the effect-bearing composable
+  ([#717](https://github.com/chrisbanes/haze/issues/717)).
+
 ### Removed
 
 - Removed Haze 2 prerelease-only Blur adapters and aliases, including the legacy

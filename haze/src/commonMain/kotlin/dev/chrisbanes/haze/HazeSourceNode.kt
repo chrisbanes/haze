@@ -215,6 +215,7 @@ internal class HazeSourceNode(
     }
 
     lastCoordinates = coordinates
+    area.updateLayoutCoordinates(coordinates)
     // Write both local and screen positions so effects can use either coordinate space
     area.coordinates.localPosition = coordinates.positionInRoot()
     if (updateScreenPosition) {
