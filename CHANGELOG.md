@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 2.0.0-beta01 <small>2026-08-20</small> { id="2.0.0-beta01" }
 
+### Added
+
+- Added `refractionFoldStrength` to `GlassOptics.Fixed` and the inline `GlassStyle.optics(...)`
+  builder. The optional edge fold reverses local refraction near the Glass boundary without
+  expanding its capture area ([#1236](https://github.com/chrisbanes/haze/pull/1236)).
+- Added CameraX and Kamera samples plus a camera guide. Blur and Glass can process live previews
+  rendered into their Compose source layer; Android `PreviewView` integrations must use
+  `ImplementationMode.COMPATIBLE` ([#1238](https://github.com/chrisbanes/haze/pull/1238)).
+
 ### Changed
 
 - Haze 2 beta finalizes the supported source-selection and Blur contracts. Source predicates now
@@ -24,6 +33,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Haze effects now sample source content correctly through scaled or rotated `graphicsLayer`
   transforms, including transforms applied directly to the effect-bearing composable
   ([#717](https://github.com/chrisbanes/haze/issues/717)).
+- Glass pointer lights now track direct mouse, stylus, and touch input immediately; focus and
+  `InteractionSource`-derived movement still use `interactionPositionAnimationSpec`
+  ([#1234](https://github.com/chrisbanes/haze/pull/1234)).
+- Fixed visible refraction seams on elongated, rounded Glass surfaces
+  ([#1235](https://github.com/chrisbanes/haze/pull/1235)).
+- Glass now preserves captured input when a runtime-shader draw failure falls back in the same
+  frame, including own-content input with a transparent background
+  ([#1230](https://github.com/chrisbanes/haze/pull/1230),
+  [#1231](https://github.com/chrisbanes/haze/pull/1231)).
 
 ### Removed
 
@@ -37,6 +55,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the public core `Poko` marker and `HazeLogger.d(...)` operations from the supported API.
 
 ## 2.0.0-alpha05 <small>2026-08-12</small> { id="2.0.0-alpha05" }
+
+### Added
+
+- Added `HazePerformanceMode` for built-in Blur and Glass. `Default` is adaptive; `Quality`,
+  `Balanced`, `Performance`, and `Fixed(qualityFraction)` select effect-owned profiles. Custom
+  effects continue to use `HazeSampling`
+  ([#1209](https://github.com/chrisbanes/haze/pull/1209),
+  [#1211](https://github.com/chrisbanes/haze/pull/1211)).
+- Added optional `haze-blur-material3` and `haze-glass-material3` artifacts. Their
+  `HazeBlurStyle.Material3()` and `GlassStyle.Material3()` factories use the current
+  `MaterialTheme.colorScheme.surface` without adding a Material dependency to the core effect
+  artifacts ([#1215](https://github.com/chrisbanes/haze/pull/1215)).
 
 ### Changed
 
@@ -137,9 +167,14 @@ is stable.
 - Added declarative hover, focus, and press responses to `GlassStyle`, including localized lighting
   and optics plus configurable transforms and motion on `Modifier.hazeGlass`.
 - Added progressive blur support to Glass.
+- Added `GlassOptics.Adaptive`, the default Glass material that adapts its optical response to a
+  surface's size, aspect ratio, and roundness.
 - Added direct fixed-optics authoring through `GlassStyle { optics(...) }`; keep
   `GlassOptics.Fixed` for reusable or programmatically selected values in
   [#1192](https://github.com/chrisbanes/haze/pull/1192).
+- Added source-selection and retained-output policies to `HazeInput.Sources`. Effects select
+  sources with `HazeSourceSelection` and keep the last frame through temporary source gaps by
+  default; use `HazeSourceRetention.ClearWhenUnavailable` when stale pixels are inappropriate.
 
 ### Changed
 
@@ -186,6 +221,8 @@ is stable.
   [#996](https://github.com/chrisbanes/haze/pull/996). `HazeSourceNode` now refreshes local
   coordinates from every `onPlaced`, and observed area-position reads dirty `HazeEffectNode` area
   offsets so sticky headers blur the currently visible content while scrolling.
+- Fixed source and effect positioning when they are hosted by separate iOS Compose roots
+  ([#978](https://github.com/chrisbanes/haze/pull/978)).
 
 Thanks to [Arda K.](https://github.com/ardakazanci) for
 [#1093](https://github.com/chrisbanes/haze/pull/1093) and
