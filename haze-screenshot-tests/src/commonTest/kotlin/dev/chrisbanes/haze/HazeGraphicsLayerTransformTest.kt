@@ -49,6 +49,7 @@ class HazeGraphicsLayerTransformTest : ScreenshotTest() {
     parentScale = 0.5f
     waitForIdle()
     assertEffectSamplesBlue(label = "scale=0.5")
+    captureRoot("scaled")
   }
 
   @Test
@@ -67,6 +68,7 @@ class HazeGraphicsLayerTransformTest : ScreenshotTest() {
       parentRotation = 45f
       waitForIdle()
       assertEffectSamplesBlue(label = "rotation=45")
+      captureRoot("rotated")
     }
 
   @Test
@@ -85,6 +87,7 @@ class HazeGraphicsLayerTransformTest : ScreenshotTest() {
       effectScale = 0.5f
       waitForIdle()
       assertEffectSamplesBlue(label = "effectScale=0.5", horizontalFraction = 0.75f)
+      captureRoot("scaled")
     }
 
   @Test
