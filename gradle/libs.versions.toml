@@ -12,7 +12,7 @@ coil = "3.5.0"
 compose-multiplatform = "1.11.1"
 # Material3 does not publish every Compose Multiplatform version.
 compose-material3 = "1.9.0"
-compose-material3-adaptive = "1.1.2"
+compose-material3-adaptive = "1.2.0"
 compose-navigation3 = "1.1.1"
 kotlinx-coroutines-swing = "1.11.0"
 ktlint = "1.0.1"
