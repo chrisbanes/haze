@@ -95,7 +95,6 @@ Modifier.hazeGlass(
     style = GlassStyle {
         backgroundColor(MaterialTheme.colorScheme.surface)
         tint(Color.White.copy(alpha = 0.16f))
-        optics(refractionStrength = 0.8f)
         shape(RoundedCornerShape(20.dp))
     },
 )
