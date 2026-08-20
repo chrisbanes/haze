@@ -1,0 +1,471 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>GlassStyleScope</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../index.html" tabindex="1">
+                    Haze
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":haze-glass/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":haze-glass/commonMain" data-filter=":haze-glass/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    Haze
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="haze-glass::dev.chrisbanes.haze.glass/GlassStyleScope///PointingToDeclaration//1575282654">
+  <div class="breadcrumbs"><a href="../../index.html">haze-glass</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze.glass</a><span class="delimiter">/</span><span class="current">GlassStyleScope</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Glass</span><wbr><span>Style</span><wbr><span><span>Scope</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">GlassStyleScope</a></div><p class="paragraph">Receiver for Glass appearance property writes.</p><p class="paragraph">Property functions validate values while the Style is constructed and record them for later replay. Invalid direct Glass numbers throw <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a>. Calling a function again records a later write which takes precedence.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-1556786578%2FFunctions%2F1575282654" anchor-label="alpha" id="-1556786578%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="alpha.html"><span><span>alpha</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1556786578%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="alpha.html"><span class="token function">alpha</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">alpha<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets finite overall material opacity in the inclusive range <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="163033139%2FFunctions%2F1575282654" anchor-label="ambientResponse" id="163033139%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="ambient-response.html"><span>ambient</span><wbr><span><span>Response</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="163033139%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="ambient-response.html"><span class="token function">ambientResponse</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">response<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets finite ambient-light response in the inclusive range <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1287164339%2FFunctions%2F1575282654" anchor-label="backgroundColor" id="-1287164339%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="background-color.html"><span>background</span><wbr><span><span>Color</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1287164339%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="background-color.html"><span class="token function">backgroundColor</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">color<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets any specified color, including transparent, composited behind the captured input.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1598660263%2FFunctions%2F1575282654" anchor-label="chromaMultiplier" id="-1598660263%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="chroma-multiplier.html"><span>chroma</span><wbr><span><span>Multiplier</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1598660263%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="chroma-multiplier.html"><span class="token function">chromaMultiplier</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">multiplier<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets the finite chroma multiplier in the inclusive range <code class="lang-kotlin">0f..2f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1666722324%2FFunctions%2F1575282654" anchor-label="chromaticAberrationMode" id="1666722324%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="chromatic-aberration-mode.html"><span>chromatic</span><wbr><span>Aberration</span><wbr><span><span>Mode</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1666722324%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="chromatic-aberration-mode.html"><span class="token function">chromaticAberrationMode</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">mode<span class="token operator">: </span><a href="../-chromatic-aberration-mode/index.html">ChromaticAberrationMode</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets the quality mode used to render chromatic aberration.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-798195422%2FFunctions%2F1575282654" anchor-label="chromaticAberrationStrength" id="-798195422%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="chromatic-aberration-strength.html"><span>chromatic</span><wbr><span>Aberration</span><wbr><span><span>Strength</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-798195422%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="chromatic-aberration-strength.html"><span class="token function">chromaticAberrationStrength</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">strength<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets finite chromatic dispersion strength in the inclusive range <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-397072257%2FFunctions%2F1575282654" anchor-label="contentNormalBlend" id="-397072257%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="content-normal-blend.html"><span>content</span><wbr><span>Normal</span><wbr><span><span>Blend</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-397072257%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="content-normal-blend.html"><span class="token function">contentNormalBlend</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">blend<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets the finite blend between generated and captured normals in inclusive <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1789784050%2FFunctions%2F1575282654" anchor-label="contrast" id="-1789784050%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="contrast.html"><span><span>contrast</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1789784050%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="contrast.html"><span class="token function">contrast</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">contrast<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets finite contrast adjustment in the inclusive range <code class="lang-kotlin">-1f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="850646116%2FFunctions%2F1575282654" anchor-label="edgeSoftness" id="850646116%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="edge-softness.html"><span>edge</span><wbr><span><span>Softness</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="850646116%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="edge-softness.html"><span class="token function">edgeSoftness</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">softness<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets a specified, finite, non-negative softening distance around the material boundary. There is no authored upper limit.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1906724200%2FFunctions%2F1575282654" anchor-label="focused" id="1906724200%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="focused.html"><span><span>focused</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1906724200%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="focused.html"><span class="token function">focused</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">response<span class="token operator">: </span><a href="../-glass-interaction-scope/index.html">GlassInteractionScope</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Declares the response evaluated by each node while it is focused.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1014780194%2FFunctions%2F1575282654" anchor-label="fresnelExponent" id="1014780194%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="fresnel-exponent.html"><span>fresnel</span><wbr><span><span>Exponent</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1014780194%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="fresnel-exponent.html"><span class="token function">fresnelExponent</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">exponent<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets a finite, non-negative exponent controlling Fresnel response falloff. There is no authored upper limit.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="479882700%2FFunctions%2F1575282654" anchor-label="hovered" id="479882700%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="hovered.html"><span><span>hovered</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="479882700%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="hovered.html"><span class="token function">hovered</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">response<span class="token operator">: </span><a href="../-glass-interaction-scope/index.html">GlassInteractionScope</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Declares the response evaluated by each node while it is hovered.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-852244648%2FFunctions%2F1575282654" anchor-label="interactionLightRadiusFraction" id="-852244648%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="interaction-light-radius-fraction.html"><span>interaction</span><wbr><span>Light</span><wbr><span>Radius</span><wbr><span><span>Fraction</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-852244648%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="interaction-light-radius-fraction.html"><span class="token function">interactionLightRadiusFraction</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">radiusFraction<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets the interaction-light radius as a fraction of the material's shortest side.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-475939131%2FFunctions%2F1575282654" anchor-label="interactionPositionAnimationSpec" id="-475939131%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="interaction-position-animation-spec.html"><span>interaction</span><wbr><span>Position</span><wbr><span>Animation</span><wbr><span><span>Spec</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-475939131%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="interaction-position-animation-spec.html"><span class="token function">interactionPositionAnimationSpec</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">animationSpec<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/animation/core/FiniteAnimationSpec.html">FiniteAnimationSpec</a><span class="token operator">&lt;</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/geometry/Offset.html">Offset</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets the animation used for focus and <a href="https://developer.android.com/reference/kotlin/androidx/compose/foundation/interaction/InteractionSource.html">InteractionSource</a>-derived positions.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-170797156%2FFunctions%2F1575282654" anchor-label="lightPosition" id="-170797156%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="light-position.html"><span>light</span><wbr><span><span>Position</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-170797156%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="light-position.html"><span class="token function">lightPosition</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">alignment<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/Alignment.html">Alignment</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Aligns the virtual light within each material's measured bounds.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="534782822%2FFunctions%2F1575282654" anchor-label="optics" id="534782822%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="optics.html"><span><span>optics</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="534782822%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="optics.html"><span class="token function">optics</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">optics<span class="token operator">: </span><a href="../-glass-optics/index.html">GlassOptics</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets the optical model used to refract and blur captured content.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="optics.html"><span class="token function">optics</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">refractionStrength<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.7f</span><span class="token punctuation">, </span></span><span class="parameter ">refractionHeightFraction<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.25f</span><span class="token punctuation">, </span></span><span class="parameter ">refractionDisplacement<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator"> = </span>15.dp<span class="token punctuation">, </span></span><span class="parameter ">depth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span><span class="token punctuation">, </span></span><span class="parameter ">blurRadius<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator"> = </span>14.dp<span class="token punctuation">, </span></span><span class="parameter ">progressive<span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-haze-progressive/index.html">HazeProgressive</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">refractionFoldStrength<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets a complete fixed optical model used to refract and blur captured content.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="825408979%2FFunctions%2F1575282654" anchor-label="pressed" id="825408979%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pressed.html"><span><span>pressed</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="825408979%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="pressed.html"><span class="token function">pressed</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">response<span class="token operator">: </span><a href="../-glass-interaction-scope/index.html">GlassInteractionScope</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Declares the response evaluated by each node while it is pressed.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1574524244%2FFunctions%2F1575282654" anchor-label="shape" id="1574524244%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="shape.html"><span><span>shape</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1574524244%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="shape.html"><span class="token function">shape</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">shape<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/foundation/shape/RoundedCornerShape.html">RoundedCornerShape</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets the rounded boundary used for refraction and masking.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-447255554%2FFunctions%2F1575282654" anchor-label="specularExponent" id="-447255554%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="specular-exponent.html"><span>specular</span><wbr><span><span>Exponent</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-447255554%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="specular-exponent.html"><span class="token function">specularExponent</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">exponent<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets a finite, non-negative exponent controlling specular highlight concentration. There is no authored upper limit.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-133131812%2FFunctions%2F1575282654" anchor-label="specularIntensity" id="-133131812%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="specular-intensity.html"><span>specular</span><wbr><span><span>Intensity</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-133131812%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="specular-intensity.html"><span class="token function">specularIntensity</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">intensity<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets finite specular-highlight intensity in the inclusive range <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="540308090%2FFunctions%2F1575282654" anchor-label="surfaceProfile" id="540308090%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="surface-profile.html"><span>surface</span><wbr><span><span>Profile</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="540308090%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="surface-profile.html"><span class="token function">surfaceProfile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">profile<span class="token operator">: </span><a href="../-surface-profile/index.html">SurfaceProfile</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets the cross-section profile used by the refraction bezel.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1394419371%2FFunctions%2F1575282654" anchor-label="tint" id="1394419371%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="tint.html"><span><span>tint</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1394419371%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="tint.html"><span class="token function">tint</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">color<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets any specified tint, including transparent, applied to refracted content.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1429265097%2FFunctions%2F1575282654" anchor-label="whitePoint" id="1429265097%2FFunctions%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="white-point.html"><span>white</span><wbr><span><span>Point</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1429265097%2FFunctions%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="white-point.html"><span class="token function">whitePoint</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">whitePoint<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Sets finite white-point adjustment in the inclusive range <code class="lang-kotlin">-1f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
