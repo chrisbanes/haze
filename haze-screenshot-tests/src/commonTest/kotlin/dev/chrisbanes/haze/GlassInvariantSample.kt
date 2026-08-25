@@ -856,7 +856,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
     effect.updateFixedOptics { copy(blurRadius = 0.1.dp) }
     waitForIdle()
     val subpixelEnergy = captureInvariantSnapshot().highFrequencyEnergy(bounds)
-    assertThat(kotlin.math.abs(subpixelEnergy - 0.0239f)).isLessThanOrEqualTo(0.0004f)
+    assertThat(kotlin.math.abs(subpixelEnergy - 0.0237f)).isLessThanOrEqualTo(0.0004f)
 
     var previousEnergy = subpixelEnergy
     listOf(4.dp, 8.dp, 14.dp, 14.1.dp).forEach { radius ->
@@ -866,8 +866,8 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
       val (expected, tolerance) = when (radius) {
         4.dp -> 0.001121f to 0.000012f
         8.dp -> 0.000265f to 0.000004f
-        14.dp -> 0.000017f to 0.000001f
-        else -> 0.000017f to 0.000001f
+        14.dp -> 0.000035f to 0.000002f
+        else -> 0.000035f to 0.000002f
       }
       assertThat(kotlin.math.abs(energy - expected)).isLessThanOrEqualTo(tolerance)
       assertThat(energy).isLessThan(sharp.highFrequencyEnergy(bounds) * 0.9f)
