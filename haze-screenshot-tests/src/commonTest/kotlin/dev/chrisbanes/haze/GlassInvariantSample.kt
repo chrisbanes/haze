@@ -803,7 +803,10 @@ internal fun ScreenshotUiTest.assertGlassRefractionDetailPreservesSharpSourceInv
   }
 }
 
-internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
+internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
+  largeBlurExpectedEnergy: Float,
+  largeBlurTolerance: Float,
+) {
   data class Case(
     val name: String,
     val size: DpSize,
@@ -866,8 +869,8 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant() {
       val (expected, tolerance) = when (radius) {
         4.dp -> 0.001121f to 0.000012f
         8.dp -> 0.000265f to 0.000004f
-        14.dp -> 0.000035f to 0.000002f
-        else -> 0.000035f to 0.000002f
+        14.dp -> largeBlurExpectedEnergy to largeBlurTolerance
+        else -> largeBlurExpectedEnergy to largeBlurTolerance
       }
       assertThat(kotlin.math.abs(energy - expected)).isLessThanOrEqualTo(tolerance)
       assertThat(energy).isLessThan(sharp.highFrequencyEnergy(bounds) * 0.9f)
