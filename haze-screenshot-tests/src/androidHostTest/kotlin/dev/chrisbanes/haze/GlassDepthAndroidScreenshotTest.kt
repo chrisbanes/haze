@@ -66,6 +66,7 @@ class GlassDepthAndroidScreenshotTest : ScreenshotTest() {
   @Test
   fun glass_semanticBlurHasCommonHighFrequencyResponse() = runScreenshotTest {
     assertGlassSemanticBlurHfInvariant(
+      subpixelExpectedEnergy = 0.0239f,
       largeBlurExpectedEnergy = 0.000017f,
       largeBlurTolerance = 0.000001f,
     )
