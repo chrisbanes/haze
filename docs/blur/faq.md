@@ -6,6 +6,39 @@ Haze primarily provides background blurring, meaning that it will blur content b
 
 Other than that, Haze provides a whole bunch of other features which you can read about on the [Usage](usage.md) page.
 
+## Why does my Blur get clipped inside a graphics layer?
+
+An enclosing caller-owned `graphicsLayer` can become a separate compositing boundary when it uses
+`alpha` below one, an explicit offscreen strategy, a color filter, or similar options. Unbounded
+Blur pixels outside that layer's ordinary bounds are then clipped by the caller layer, even though
+Haze has expanded its own effect layer for the Blur radius.
+
+Use Compose 1.12's [LayerOutsets][layer-outsets] on that enclosing layer, with only the edges that
+need the extra raster space. For a Blur that may overflow equally on every edge, match each outset
+to the configured Blur radius:
+
+```kotlin
+val blurRadius = 32.dp
+
+Box(
+  Modifier.graphicsLayer(
+    alpha = 0.5f,
+    outsets = LayerOutsets(blurRadius, blurRadius, blurRadius, blurRadius),
+  ),
+) {
+  Box(
+    Modifier.hazeBlur(
+      input = HazeInput.Sources(hazeState),
+      style = HazeBlurStyle { blurRadius(blurRadius) },
+    ),
+  )
+}
+```
+
+This only expands the caller layer's visual raster bounds. It does not change Haze's capture or
+sampling geometry. An explicit caller clip remains authoritative, so outsets cannot make Blur draw
+outside geometry that you deliberately clip.
+
 ## Are the blur implementations the same across different platforms?
 
 The short answer to this is yes. The majority of the implementation is the same across all platforms.
@@ -19,3 +52,4 @@ For most platforms we can use on [RenderEffects][rendereffect] to implement the 
 See the [Platforms](platforms.md) page for a detailed run down of what is supported on various platforms.
 
  [rendereffect]: https://developer.android.com/reference/android/graphics/RenderEffect
+ [layer-outsets]: https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/LayerOutsets
