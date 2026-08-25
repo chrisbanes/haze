@@ -558,6 +558,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#why-does-my-blur-get-clipped-inside-a-graphics-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why does my Blur get clipped inside a graphics layer?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#are-the-blur-implementations-the-same-across-different-platforms" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1122,6 +1133,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#why-does-my-blur-get-clipped-inside-a-graphics-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why does my Blur get clipped inside a graphics layer?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#are-the-blur-implementations-the-same-across-different-platforms" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1169,6 +1191,33 @@
 <p>The <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/Modifier#(androidx.compose.ui.Modifier).blur(androidx.compose.ui.unit.Dp,androidx.compose.ui.unit.Dp,androidx.compose.ui.draw.BlurredEdgeTreatment)">Modifier.blur</a> modifier and Haze may sound similar, but what they provide is different.</p>
 <p>Haze primarily provides background blurring, meaning that it will blur content behind, not the content itself. This is typically required to implement glass-like effects. <code>Modifier.blur</code> performs 'foreground blurring' (or content blurring) where the content in the node itself is blurred. Haze can work in this mode too, but it's not the primary goal.</p>
 <p>Other than that, Haze provides a whole bunch of other features which you can read about on the <a href="../usage/">Usage</a> page.</p>
+<h2 id="why-does-my-blur-get-clipped-inside-a-graphics-layer">Why does my Blur get clipped inside a graphics layer?<a class="headerlink" href="#why-does-my-blur-get-clipped-inside-a-graphics-layer" title="Permanent link">¶</a></h2>
+<p>An enclosing caller-owned <code>graphicsLayer</code> can become a separate compositing boundary when it uses
+<code>alpha</code> below one, an explicit offscreen strategy, a color filter, or similar options. Unbounded
+Blur pixels outside that layer's ordinary bounds are then clipped by the caller layer, even though
+Haze has expanded its own effect layer for the Blur radius.</p>
+<p>Use Compose 1.12's <a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/LayerOutsets">LayerOutsets</a> on that enclosing layer, with only the edges that
+need the extra raster space. For a Blur that may overflow equally on every edge, match each outset
+to the configured Blur radius:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">32.</span><span class="n">dp</span>
+
+<span class="n">Box</span><span class="p">(</span>
+<span class="w">  </span><span class="n">Modifier</span><span class="p">.</span><span class="na">graphicsLayer</span><span class="p">(</span>
+<span class="w">    </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5f</span><span class="p">,</span>
+<span class="w">    </span><span class="n">outsets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LayerOutsets</span><span class="p">(</span><span class="n">blurRadius</span><span class="p">,</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">,</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">,</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">),</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">Box</span><span class="p">(</span>
+<span class="w">    </span><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeBlur</span><span class="p">(</span>
+<span class="w">      </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
+<span class="w">      </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeBlurStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">blurRadius</span><span class="p">(</span><span class="n">blurRadius</span><span class="p">)</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">),</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This only expands the caller layer's visual raster bounds. It does not change Haze's capture or
+sampling geometry. An explicit caller clip remains authoritative, so outsets cannot make Blur draw
+outside geometry that you deliberately clip.</p>
 <h2 id="are-the-blur-implementations-the-same-across-different-platforms">Are the blur implementations the same across different platforms?<a class="headerlink" href="#are-the-blur-implementations-the-same-across-different-platforms" title="Permanent link">¶</a></h2>
 <p>The short answer to this is yes. The majority of the implementation is the same across all platforms.</p>
 <p>The only differences are in how the blur effect is implemented, especially on Android.</p>
