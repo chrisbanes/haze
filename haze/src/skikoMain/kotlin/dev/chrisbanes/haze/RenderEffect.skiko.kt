@@ -7,13 +7,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.skiaShader
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.currentValueOf
@@ -200,7 +200,7 @@ private fun createBlurImageFilter(
   tileMode: FilterTileMode,
   bounds: Rect? = null,
 ): ImageFilter {
-  val sigma = BlurEffect.convertRadiusToSigma(blurRadiusPx)
+  val sigma = convertBlurRadiusToSigma(blurRadiusPx)
   return ImageFilter.makeBlur(
     sigmaX = sigma,
     sigmaY = sigma,
@@ -231,7 +231,7 @@ private fun createBlurImageFilterWithMask(
   return shader(vertical = false).chainWith(shader(vertical = true))
 }
 
-private fun Brush.toShader(size: Size): Shader? = (this as? ShaderBrush)?.createShader(size)
+private fun Brush.toShader(size: Size): Shader? = (this as? ShaderBrush)?.createShader(size)?.skiaShader
 
 private fun Rect.toIRect(): IRect =
   IRect.makeLTRB(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
@@ -242,3 +242,5 @@ private fun TileMode.toSkiaTileMode(): FilterTileMode = when (this) {
   TileMode.Repeated -> FilterTileMode.REPEAT
   else -> FilterTileMode.CLAMP
 }
+
+private fun convertBlurRadiusToSigma(radius: Float): Float = if (radius > 0) 0.57735f * radius + 0.5f else 0f

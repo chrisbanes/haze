@@ -24,14 +24,14 @@ android {
   targetProjectPath = ":sample:android"
   experimentalProperties["android.experimental.self-instrumenting"] = true
 
-  testOptions.managedDevices.devices {
-    create<ManagedVirtualDevice>("pixel5Api30") {
+  testOptions.managedDevices.localDevices {
+    create("pixel5Api30") {
       device = "Pixel 5"
       apiLevel = 30
       systemImageSource = "aosp"
     }
 
-    create<ManagedVirtualDevice>("pixel5Api34") {
+    create("pixel5Api34") {
       device = "Pixel 5"
       apiLevel = 34
       systemImageSource = "aosp"

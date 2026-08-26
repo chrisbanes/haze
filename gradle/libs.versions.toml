@@ -1,20 +1,20 @@
 [versions]
-agp = "8.13.2"
+agp = "9.1.0"
 androidx-activity = "1.12.2"
-androidx-benchmark = "1.4.1"
+androidx-benchmark = "1.5.0-rc02"
 androidx-collection = "1.5.0"
 androidx-media3 = "1.9.2"
 androidx-test-ext-junit = "1.3.0"
 assertk = "0.28.1"
 coil = "3.3.0"
-compose-multiplatform = "1.10.0"
+compose-multiplatform = "1.12.0"
 kotlinx-coroutines-swing = "1.10.2"
 kotlinx-serialization = "1.9.0"
 ktlint = "1.0.1"
-kotlin = "2.2.21"
+kotlin = "2.3.20"
 ksp = "2.3.1"
 ktor = "3.3.1"
-jetpack-compose = "1.10.2"
+jetpack-compose = "1.12.0"
 metalava = "0.4.0-alpha03"
 navigation-compose = "2.9.1"
 robolectric = "4.16"
@@ -35,7 +35,7 @@ dokka = { id = "org.jetbrains.dokka", version = "2.1.0" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 metalava = { id = "me.tylerbwong.gradle.metalava", version.ref = "metalava" }
-poko = { id = "dev.drewhamilton.poko", version = "0.20.2" }
+poko = { id = "dev.drewhamilton.poko", version = "0.22.1" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 mavenpublish = { id = "com.vanniktech.maven.publish", version = "0.36.0" }
