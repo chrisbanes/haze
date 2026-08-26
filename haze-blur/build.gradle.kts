@@ -70,6 +70,13 @@ kotlin {
       }
     }
 
+    named("androidHostTest") {
+      dependencies {
+        implementation(libs.androidx.compose.ui.test.junit4)
+        implementation(libs.compose.material3)
+      }
+    }
+
     commonTest {
       dependencies {
         implementation(libs.assertk)
