@@ -39,7 +39,8 @@ class GlassContentScreenshotTest : ScreenshotTest() {
     style = GlassStyle.clear
     waitForIdle()
     val clear = captureRootPixels().snapshot()
-    captureRoot("clear")
+    // Fixed refraction amplifies Skia's platform-specific pixel variance.
+    captureRoot("clear", unmatchedPixelThreshold = 0.01f)
 
     assertThat(regular.changedPixelRatio(clear)).isGreaterThan(0.01f)
   }

@@ -77,26 +77,28 @@ internal fun ScreenshotUiTest.captureGlassPlaygroundBeats() {
     }
   }
 
+  // Layered runtime shaders amplify Skia's platform-specific pixel variance.
+  val unmatchedPixelThreshold = 0.013f
   waitForIdle()
-  captureRoot("opening")
+  captureRoot("opening", unmatchedPixelThreshold)
   progress = 0.2f
   waitForIdle()
-  captureRoot("typography")
+  captureRoot("typography", unmatchedPixelThreshold)
   progress = 0.5f
   waitForIdle()
-  captureRoot("depth")
+  captureRoot("depth", unmatchedPixelThreshold)
   progress = 0.8f
   waitForIdle()
-  captureRoot("clear")
+  captureRoot("clear", unmatchedPixelThreshold)
   val press = PressInteraction.Press(Offset(90f, 56f))
   check(clearInteractionSource.tryEmit(press))
   waitForIdle()
-  captureRoot("pressed")
+  captureRoot("pressed", unmatchedPixelThreshold)
   check(clearInteractionSource.tryEmit(PressInteraction.Release(press)))
   waitForIdle()
   displacedLens = Offset(120f, 72f)
   waitForIdle()
-  captureRoot("dragged")
+  captureRoot("dragged", unmatchedPixelThreshold)
 }
 
 internal fun ScreenshotUiTest.captureGlassLabStyles() {
