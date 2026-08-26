@@ -18,7 +18,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 @ExperimentalHazeApi
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object GlassDefaults {
-  /** Default light radius recorded by [style] as a fraction of the material's shortest side. */
+  /** Default interaction light radius as a fraction of the material's shortest side. */
   public const val interactionLightRadiusFraction: Float = 0.7f
 
   /** Default animation used for focus and [InteractionSource]-derived positions. */
