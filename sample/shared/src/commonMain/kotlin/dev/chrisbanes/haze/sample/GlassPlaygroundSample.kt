@@ -477,7 +477,7 @@ private fun PlaygroundSurface(
   ) {
     when (id) {
       GlassPlaygroundSurfaceId.Card -> SurfaceLabel("DEPTH")
-      GlassPlaygroundSurfaceId.Prism -> SurfaceLabel("PRISM")
+      GlassPlaygroundSurfaceId.Clear -> SurfaceLabel("CLEAR")
       GlassPlaygroundSurfaceId.Lens,
       GlassPlaygroundSurfaceId.Pill,
       -> Unit
@@ -507,7 +507,7 @@ internal fun playgroundSurfaceSize(id: GlassPlaygroundSurfaceId): DpSize = when 
   GlassPlaygroundSurfaceId.Lens -> DpSize(128.dp, 128.dp)
   GlassPlaygroundSurfaceId.Pill -> DpSize(220.dp, 88.dp)
   GlassPlaygroundSurfaceId.Card -> DpSize(280.dp, 180.dp)
-  GlassPlaygroundSurfaceId.Prism -> DpSize(180.dp, 112.dp)
+  GlassPlaygroundSurfaceId.Clear -> DpSize(180.dp, 112.dp)
 }
 
 internal fun playgroundSurfaceZIndex(

@@ -66,7 +66,63 @@ public sealed interface GlassStyle {
   public fun then(block: GlassStyleScope.() -> Unit): GlassStyle = then(GlassStyle(block))
 
   /** The empty Glass Style, which performs no writes. */
-  public companion object : GlassStyle
+  public companion object : GlassStyle {
+
+    /**
+     * The default built-in Glass style.
+     *
+     * Its optical response adapts to each material's geometry. It writes the complete material
+     * response while preserving separately composed shape, background colour, tint, alpha, light
+     * position, and interaction presentation.
+     */
+    public val regular: GlassStyle = GlassStyle {
+      optics(RegularGlassStyleValues.optics)
+      specularIntensity(RegularGlassStyleValues.specularIntensity)
+      ambientResponse(RegularGlassStyleValues.ambientResponse)
+      edgeSoftness(RegularGlassStyleValues.edgeSoftness)
+      chromaticAberrationStrength(RegularGlassStyleValues.chromaticAberrationStrength)
+      surfaceProfile(RegularGlassStyleValues.surfaceProfile)
+      chromaticAberrationMode(RegularGlassStyleValues.chromaticAberrationMode)
+      contrast(RegularGlassStyleValues.contrast)
+      whitePoint(RegularGlassStyleValues.whitePoint)
+      chromaMultiplier(RegularGlassStyleValues.chromaMultiplier)
+      contentNormalBlend(RegularGlassStyleValues.contentNormalBlend)
+      specularExponent(RegularGlassStyleValues.specularExponent)
+      fresnelExponent(RegularGlassStyleValues.fresnelExponent)
+    }
+
+    /**
+     * A built-in Glass style that prioritizes visibility of content behind the material.
+     *
+     * Its fixed optics and distinct edge and lighting response remain recognizable when a renderer
+     * simplifies advanced optical effects. It writes the complete material response while preserving
+     * separately composed shape, background colour, tint, alpha, light position, and interaction
+     * presentation.
+     */
+    public val clear: GlassStyle = GlassStyle {
+      optics(
+        GlassOptics.Fixed(
+          refractionStrength = 0.85f,
+          refractionHeightFraction = 0.22f,
+          refractionDisplacement = 18.dp,
+          depth = 0.1f,
+          blurRadius = 2.dp,
+        ),
+      )
+      specularIntensity(0.55f)
+      ambientResponse(0.42f)
+      edgeSoftness(1.dp)
+      chromaticAberrationStrength(0.04f)
+      surfaceProfile(SurfaceProfile.Circle)
+      chromaticAberrationMode(ChromaticAberrationMode.Simple)
+      contrast(0.08f)
+      whitePoint(0.02f)
+      chromaMultiplier(1.05f)
+      contentNormalBlend(0.1f)
+      specularExponent(16f)
+      fresnelExponent(2.5f)
+    }
+  }
 }
 
 /**

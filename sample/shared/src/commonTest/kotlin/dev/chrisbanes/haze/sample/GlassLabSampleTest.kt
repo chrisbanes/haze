@@ -383,7 +383,7 @@ class GlassLabSampleTest : ContextTest() {
   }
 
   @Test
-  fun narrowLabShowsEveryPresetWithoutHorizontalScrolling() = runComposeUiTest {
+  fun narrowLabShowsEveryBuiltInStyleWithoutHorizontalScrolling() = runComposeUiTest {
     setContent {
       LabControls(
         state = GlassLabState(),
@@ -393,8 +393,8 @@ class GlassLabSampleTest : ContextTest() {
       )
     }
 
-    SelectableGlassLabPresets.forEach { preset ->
-      onNode(hasText(preset.name) and hasClickAction()).performScrollTo().assertIsDisplayed()
+    SelectableGlassLabStyles.forEach { style ->
+      onNode(hasText(style.name) and hasClickAction()).performScrollTo().assertIsDisplayed()
     }
   }
 
@@ -412,7 +412,7 @@ class GlassLabSampleTest : ContextTest() {
     }
 
     val optionNames = buildList {
-      addAll(SelectableGlassLabPresets.map { it.name })
+      addAll(SelectableGlassLabStyles.map { it.name })
       addAll(GlassGalleryBackdropId.entries.map { it.name })
       addAll(GlassLabInteractionMode.entries.map { it.name })
     }
@@ -433,7 +433,7 @@ class GlassLabSampleTest : ContextTest() {
   }
 
   @Test
-  fun controlsForwardPresetBackdropInteractionAndAdvancedEvents() = runComposeUiTest {
+  fun controlsForwardStyleBackdropInteractionAndAdvancedEvents() = runComposeUiTest {
     var state by mutableStateOf(GlassLabState())
     setContent {
       LabControls(
@@ -444,10 +444,10 @@ class GlassLabSampleTest : ContextTest() {
       )
     }
 
-    onNode(hasText("Prism") and hasClickAction())
+    onNode(hasText("Clear") and hasClickAction())
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
-    assertThat(state.preset).isEqualTo(GlassLabPresetId.Prism)
+    assertThat(state.styleId).isEqualTo(GlassLabStyleId.Clear)
 
     onNode(hasText("Grid") and hasClickAction())
       .performScrollTo()
@@ -459,10 +459,10 @@ class GlassLabSampleTest : ContextTest() {
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
     assertThat(state.interaction).isEqualTo(GlassLabInteractionMode.Off)
 
-    onNode(hasText("Adaptive") and hasClickAction())
+    onNode(hasText("Regular") and hasClickAction())
       .performScrollTo()
       .performSemanticsAction(SemanticsActions.OnClick) { action -> action() }
-    assertThat(state.preset).isEqualTo(GlassLabPresetId.Adaptive)
+    assertThat(state.styleId).isEqualTo(GlassLabStyleId.Regular)
 
     onNodeWithText("Advanced")
       .performScrollTo()
@@ -488,7 +488,7 @@ class GlassLabSampleTest : ContextTest() {
     }
 
     onNodeWithContentDescription("Glass specimen").assertIsDisplayed()
-    onNodeWithText("Choose a material preset").assertDoesNotExist()
+    onNodeWithText("Choose a built-in Glass style").assertDoesNotExist()
   }
 
   @Test

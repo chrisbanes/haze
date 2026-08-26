@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAbsoluteAlignment
 import androidx.compose.ui.BiasAlignment
@@ -21,6 +22,7 @@ import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
@@ -522,6 +524,101 @@ class GlassStyleTest {
     assertThat(values.fresnelExponent).isEqualTo(GlassDefaults.fresnelExponent)
     assertThat(values.interactionLightRadiusFraction)
       .isEqualTo(GlassDefaults.interactionLightRadiusFraction)
+  }
+
+  @Test
+  fun builtInStyles_exposeRegularAndClearMaterialResponses() {
+    val regular = resolveGlassStyleValues(GlassStyle, GlassStyle.regular)
+    val clear = resolveGlassStyleValues(GlassStyle, GlassStyle.clear)
+
+    assertThat(regular.optics).isSameInstanceAs(GlassOptics.Adaptive)
+    assertThat(clear.optics).isInstanceOf<GlassOptics.Fixed>()
+    assertThat(clear.optics).isNotEqualTo(regular.optics)
+    assertThat(clear.edgeSoftness).isNotEqualTo(regular.edgeSoftness)
+    assertThat(clear.specularIntensity).isNotEqualTo(regular.specularIntensity)
+  }
+
+  @Test
+  fun regular_matchesTheDefaultMaterialResponse() {
+    val defaults = resolveGlassStyleValues(GlassStyle, GlassDefaults.style)
+    val regular = resolveGlassStyleValues(GlassStyle, GlassStyle.regular)
+
+    assertThat(regular.optics).isEqualTo(defaults.optics)
+    assertThat(regular.surfaceProfile).isEqualTo(defaults.surfaceProfile)
+    assertThat(regular.edgeSoftness).isEqualTo(defaults.edgeSoftness)
+    assertThat(regular.specularIntensity).isEqualTo(defaults.specularIntensity)
+    assertThat(regular.specularExponent).isEqualTo(defaults.specularExponent)
+    assertThat(regular.fresnelExponent).isEqualTo(defaults.fresnelExponent)
+    assertThat(regular.ambientResponse).isEqualTo(defaults.ambientResponse)
+    assertThat(regular.chromaticAberrationStrength)
+      .isEqualTo(defaults.chromaticAberrationStrength)
+    assertThat(regular.chromaticAberrationMode).isEqualTo(defaults.chromaticAberrationMode)
+    assertThat(regular.contrast).isEqualTo(defaults.contrast)
+    assertThat(regular.whitePoint).isEqualTo(defaults.whitePoint)
+    assertThat(regular.chromaMultiplier).isEqualTo(defaults.chromaMultiplier)
+    assertThat(regular.contentNormalBlend).isEqualTo(defaults.contentNormalBlend)
+  }
+
+  @Test
+  fun builtInStyles_replaceEveryMaterialResponseWithoutReplacingPresentation() {
+    val inheritedInteraction = GlassStyle { pressed { lightingIntensity(0.8f) } }
+    val local = GlassStyle {
+      shape(RoundedCornerShape(28.dp))
+      backgroundColor(Color.Red)
+      tint(Color.Blue)
+      alpha(0.45f)
+      lightPosition(Alignment.TopEnd)
+    }.then(inheritedInteraction).then {
+      optics(GlassOptics.Fixed(depth = 0.9f, blurRadius = 30.dp))
+      surfaceProfile(SurfaceProfile.Squircle)
+      edgeSoftness(12.dp)
+      specularIntensity(0.1f)
+      specularExponent(8f)
+      fresnelExponent(1f)
+      ambientResponse(0.1f)
+      chromaticAberrationStrength(0.3f)
+      chromaticAberrationMode(ChromaticAberrationMode.Full)
+      contrast(-0.2f)
+      whitePoint(-0.1f)
+      chromaMultiplier(0.6f)
+      contentNormalBlend(0.8f)
+    }
+
+    listOf(GlassStyle.regular, GlassStyle.clear).forEach { builtInStyle ->
+      val expected = resolveGlassStyleValues(GlassStyle, builtInStyle)
+      val resolved = resolveGlassStyleValues(local, builtInStyle)
+
+      assertThat(resolved.optics).isEqualTo(expected.optics)
+      assertThat(resolved.surfaceProfile).isEqualTo(expected.surfaceProfile)
+      assertThat(resolved.edgeSoftness).isEqualTo(expected.edgeSoftness)
+      assertThat(resolved.specularIntensity).isEqualTo(expected.specularIntensity)
+      assertThat(resolved.specularExponent).isEqualTo(expected.specularExponent)
+      assertThat(resolved.fresnelExponent).isEqualTo(expected.fresnelExponent)
+      assertThat(resolved.ambientResponse).isEqualTo(expected.ambientResponse)
+      assertThat(resolved.chromaticAberrationStrength)
+        .isEqualTo(expected.chromaticAberrationStrength)
+      assertThat(resolved.chromaticAberrationMode).isEqualTo(expected.chromaticAberrationMode)
+      assertThat(resolved.contrast).isEqualTo(expected.contrast)
+      assertThat(resolved.whitePoint).isEqualTo(expected.whitePoint)
+      assertThat(resolved.chromaMultiplier).isEqualTo(expected.chromaMultiplier)
+      assertThat(resolved.contentNormalBlend).isEqualTo(expected.contentNormalBlend)
+      assertThat(resolved.shape).isEqualTo(RoundedCornerShape(28.dp))
+      assertThat(resolved.backgroundColor).isEqualTo(Color.Red)
+      assertThat(resolved.tint).isEqualTo(Color.Blue)
+      assertThat(resolved.alpha).isEqualTo(0.45f)
+      assertThat(resolved.lightPosition).isEqualTo(Alignment.TopEnd)
+      assertThat(resolved.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.8f)
+    }
+  }
+
+  @Test
+  fun builtInStyle_allowsLaterCustomMaterialWritesToWin() {
+    val resolved = resolveGlassStyleValues(
+      GlassStyle,
+      GlassStyle.clear.then { contrast(-0.3f) },
+    )
+
+    assertThat(resolved.contrast).isEqualTo(-0.3f)
   }
 
   @Test

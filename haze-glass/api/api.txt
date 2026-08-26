@@ -101,6 +101,10 @@ package dev.chrisbanes.haze.glass {
   }
 
   public static final class GlassStyle.Companion implements dev.chrisbanes.haze.glass.GlassStyle {
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassStyle getClear();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassStyle getRegular();
+    property public dev.chrisbanes.haze.glass.GlassStyle clear;
+    property public dev.chrisbanes.haze.glass.GlassStyle regular;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi @kotlin.DslMarker public @interface GlassStyleDsl {

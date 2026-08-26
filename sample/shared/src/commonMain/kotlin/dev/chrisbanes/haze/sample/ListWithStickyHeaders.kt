@@ -33,7 +33,6 @@ import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
@@ -91,11 +90,10 @@ fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect
 
                   SampleEffect.Glass -> Modifier.hazeGlass(
                     input = HazeInput.Sources(hazeState),
-                    style = GlassStyle {
+                    style = GlassStyle.regular.then {
                       backgroundColor(glassBackgroundColor)
                       tint(glassTint)
                       shape(glassShape)
-                      optics(GlassOptics.Adaptive)
                     },
                     performanceMode = HazePerformanceMode.Adaptive,
                   )

@@ -44,7 +44,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.hazeBlur
-import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
@@ -128,11 +127,10 @@ fun LayerTransformations(
 
             SampleEffect.Glass -> Modifier.hazeGlass(
               input = HazeInput.Sources(hazeState),
-              style = GlassStyle {
+              style = GlassStyle.regular.then {
                 backgroundColor(glassBackgroundColor)
                 tint(Color.White.copy(alpha = 0.14f))
                 shape(RoundedCornerShape(16.dp))
-                optics(GlassOptics.Adaptive)
               },
             )
           },

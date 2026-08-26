@@ -8,7 +8,7 @@ For styling and API guidance, see the [Glass overview](../effects/glass.md).
 
 ## Start here
 
-- Use `HazePerformanceMode.Default` with `GlassOptics.Adaptive`.
+- Use `HazePerformanceMode.Default` with `GlassStyle.regular`.
 - Build the complete screen before tuning; isolated effects do not represent a real workload.
 - Profile the slowest devices you support with realistic content and interactions.
 - Override one setting at a time and keep it only when the benefit is visible or measurable.

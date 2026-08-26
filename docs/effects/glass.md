@@ -54,12 +54,26 @@ CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
 }
 ```
 
-### Built-in material
+### Built-in styles
 
-Start with the default `GlassOptics.Adaptive` material. It adjusts to the surface's size and shape
-and includes a restrained edge fold, where the local sampling direction reverses so incoming
-content can appear inverted near the glass boundary. This makes it a good fit for reusable
-components. Choose fixed optics only when the design needs the same values at every size.
+`GlassStyle.regular` is the default built-in Glass style. Its material response adapts to the
+surface's size and shape and includes a restrained edge fold, where the local sampling direction
+reverses so incoming content can appear inverted near the glass boundary. This makes it a good fit
+for reusable components.
+
+`GlassStyle.clear` is the alternative built-in style for surfaces that should keep more of the
+background visible. It uses fixed authored optics and a distinct edge and lighting response, so it
+also remains recognizable on renderers that simplify advanced optical effects. These are Haze
+styles informed by the platform distinction; they do not promise pixel parity with another system.
+
+```kotlin
+Modifier.hazeGlass(
+  input = HazeInput.Sources(hazeState),
+  style = GlassStyle.clear.then {
+    tint(Color.White.copy(alpha = 0.12f))
+  },
+)
+```
 
 ## Parameters
 
@@ -67,9 +81,10 @@ components. Choose fixed optics only when the design needs the same values at ev
   (defaults to transparent). Use an opaque color when transparent captured content must fully
   obscure the original sharp source.
 - **tint**: Glass tint (defaults to transparent).
-- **optics**: Optical material configuration. `GlassOptics.Adaptive` (the default) is the
-  recommended starting point. Call `optics(...)` for an inline fixed configuration, or keep a
-  `GlassOptics.Fixed` value when it needs to be reused or selected programmatically.
+- **optics**: Optical material configuration. `GlassStyle.regular` supplies the default adaptive
+  optics. Call `optics(...)` only when authoring a custom Style with an inline fixed
+  configuration, or keep a `GlassOptics.Fixed` value when it needs to be reused or selected
+  programmatically.
 - **specularIntensity**: Highlight strength `0..1` (default 0.4).
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.46).
 - **edgeSoftness**: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.
@@ -130,8 +145,9 @@ val movingLighting = GlassStyle {
 
 ## Default style
 
-`GlassDefaults.style` uses `GlassOptics.Adaptive`. Use `LocalGlassStyle` to set a default for a
-subtree, and pass an explicit Style when one element needs to differ.
+`GlassDefaults.style` has the same material response as `GlassStyle.regular`. Use
+`LocalGlassStyle` to set a default for a subtree, and pass an explicit Style when one element
+needs to differ.
 
 ```kotlin
 Box(
@@ -143,12 +159,12 @@ Box(
 
 ### Choosing optics
 
-Use `GlassOptics.Adaptive` for the built-in Haze material, which adapts its optical response to the
-material's size, aspect ratio, and roundness. For ordinary inline fixed Style authoring, call the
-direct `optics(...)` function:
+Use `GlassStyle.regular` for the built-in Haze material, which adapts its optical response to the
+material's size, aspect ratio, and roundness. Use `GlassOptics` only when authoring a custom Style
+with direct optical control:
 
 ```kotlin
-GlassStyle { optics(GlassOptics.Adaptive) }
+val regular = GlassStyle.regular
 ```
 
 ```kotlin
@@ -165,7 +181,7 @@ GlassStyle {
 ```
 
 Fixed optics use the values you provide at every surface size. This is useful for art-directed
-components, but Adaptive is usually the better default for reusable layouts.
+components, but `GlassStyle.regular` is usually the better default for reusable layouts.
 
 Keep a complete value when it is reused, stored, copied, or selected programmatically:
 
@@ -369,7 +385,7 @@ Box(
 
 ## Tips
 
-- `GlassOptics.Adaptive` is the right starting point for material-like glass that should respond
+- `GlassStyle.regular` is the right starting point for material-like glass that should respond
   naturally to its geometry. Use direct `optics(...)` for inline fixed authoring and
   `GlassOptics.Fixed` when the complete value needs to be reused or selected programmatically.
 - Keep `chromaticAberrationStrength` modest; start at 0.1-0.25 to avoid rainbow artifacts.

@@ -15,7 +15,7 @@ import dev.chrisbanes.haze.HazeProgressive
 public sealed interface GlassOptics {
 
   /**
-   * The built-in Haze glass material.
+   * Geometry-adaptive optics used by [GlassStyle.regular].
    *
    * Its optical response adapts to the material's size, aspect ratio, and roundness.
    * Its adaptive blur scaling is applied after the [Fixed] blur-radius cap, so its effective
