@@ -12,13 +12,9 @@
         <meta name="author" content="Chris Banes">
       
       
-        <link rel="canonical" href="https://chrisbanes.github.io/haze/dev/glass/performance/">
+        <link rel="canonical" href="https://chrisbanes.github.io/haze/dev/adr/0007-export-regular-and-clear-as-built-in-glass-styles/">
       
       
-        <link rel="prev" href="../../performance/">
-      
-      
-        <link rel="next" href="../../scenarios/camera/">
       
       
         
@@ -29,7 +25,7 @@
     
     
       
-        <title>Glass - Haze</title>
+        <title>ADR-0007: Export Regular and Clear as built-in Glass styles - Haze</title>
       
     
     
@@ -63,17 +59,17 @@
     
   
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Glass - Haze" />
+<meta property="og:title" content="ADR-0007: Export Regular and Clear as built-in Glass styles - Haze" />
 <meta property="og:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="og:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/glass/performance.png" />
+<meta property="og:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/adr/0007-export-regular-and-clear-as-built-in-glass-styles.png" />
 <meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:url" content="https://chrisbanes.github.io/haze/dev/glass/performance/" />
+<meta property="og:url" content="https://chrisbanes.github.io/haze/dev/adr/0007-export-regular-and-clear-as-built-in-glass-styles/" />
 <meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:title" content="Glass - Haze" />
+<meta property="twitter:title" content="ADR-0007: Export Regular and Clear as built-in Glass styles - Haze" />
 <meta property="twitter:description" content="Visual effects (blur and more) for Compose Multiplatform" />
-<meta property="twitter:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/glass/performance.png" />
+<meta property="twitter:image" content="https://chrisbanes.github.io/haze/dev/assets/images/social/adr/0007-export-regular-and-clear-as-built-in-glass-styles.png" />
 </head>
   
   
@@ -91,7 +87,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#glass-performance" class="md-skip">
+        <a href="#adr-0007-export-regular-and-clear-as-built-in-glass-styles" class="md-skip">
           Skip to content
         </a>
       
@@ -130,7 +126,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Glass
+              ADR-0007: Export Regular and Clear as built-in Glass styles
             
           </span>
         </div>
@@ -658,20 +654,18 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
         
           
           <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
@@ -692,7 +686,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -735,37 +729,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Glass
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../glass/performance/" class="md-nav__link">
         
   
   
@@ -781,98 +748,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#start-here" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Start here
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#glass-specific-cost-drivers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Glass-specific cost drivers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-to-change-performance-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When to change performance mode
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-to-test" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What to test
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reference-measurements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reference measurements
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Reference measurements">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#current-performance-mode-calibration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Current performance-mode calibration
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1156,74 +1031,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#start-here" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Start here
+        Consequences
       
     </span>
   </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#glass-specific-cost-drivers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Glass-specific cost drivers
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#when-to-change-performance-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When to change performance mode
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-to-test" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What to test
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reference-measurements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reference measurements
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Reference measurements">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#current-performance-mode-calibration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Current performance-mode calibration
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1247,131 +1061,24 @@
   
 
 
-<div><h1 id="glass-performance">Glass performance<a class="headerlink" href="#glass-performance" title="Permanent link">¶</a></h1>
-<p>Read the <a href="../../performance/">general performance guide</a> first for the shared workflow,
-performance-mode choices, and measurement advice. This page focuses on the decisions that are
-specific to Glass.</p>
-<p>For styling and API guidance, see the <a href="../../effects/glass/">Glass overview</a>.</p>
-<h2 id="start-here">Start here<a class="headerlink" href="#start-here" title="Permanent link">¶</a></h2>
-<ul>
-<li>Use <code>HazePerformanceMode.Default</code> with <code>GlassStyle.regular</code>.</li>
-<li>Build the complete screen before tuning; isolated effects do not represent a real workload.</li>
-<li>Profile the slowest devices you support with realistic content and interactions.</li>
-<li>Override one setting at a time and keep it only when the benefit is visible or measurable.</li>
-</ul>
-<h2 id="glass-specific-cost-drivers">Glass-specific cost drivers<a class="headerlink" href="#glass-specific-cost-drivers" title="Permanent link">¶</a></h2>
-<ul>
-<li><strong>Surface size:</strong> Large Glass surfaces process more content and optical detail.</li>
-<li><strong>Number of surfaces:</strong> Several independent Glass elements add work even when they share a Style.</li>
-<li><strong>Changing content:</strong> Scrolling or animation behind Glass costs more than a stable background.</li>
-<li><strong>Optical complexity:</strong> Progressive blur and Full chromatic aberration can add work relative to
-  the default material. Measure them with the surfaces and content your application uses.</li>
-<li><strong>Interaction:</strong> Animated lighting, refraction, and transforms add a changing workload while the
-  user hovers, focuses, or presses the element.</li>
-</ul>
-<h2 id="when-to-change-performance-mode">When to change performance mode<a class="headerlink" href="#when-to-change-performance-mode" title="Permanent link">¶</a></h2>
-<p>Keep the adaptive mode unless a target-device comparison gives you a reason to override it:</p>
-<ul>
-<li>Choose <code>Quality</code> when fine source detail is visibly important.</li>
-<li>Choose <code>Balanced</code> or <code>Performance</code> for a named, deterministic trade-off.</li>
-<li>Choose <code>Fixed(qualityFraction)</code> when you need a normalized, deterministic profile for a known
-  layout.</li>
-<li>Return to <code>Default</code> when an override does not produce a meaningful improvement.</li>
-</ul>
-<h2 id="what-to-test">What to test<a class="headerlink" href="#what-to-test" title="Permanent link">¶</a></h2>
-<p>Exercise the states that represent the real screen:</p>
-<ul>
-<li>the largest number of Glass surfaces visible at once;</li>
-<li>scrolling or animation behind those surfaces;</li>
-<li>hover, focus, and press responses;</li>
-<li>resizing, orientation changes, and other layout transitions;</li>
-<li>the lowest-performance devices and highest display resolutions you support.</li>
-</ul>
-<h2 id="reference-measurements">Reference measurements<a class="headerlink" href="#reference-measurements" title="Permanent link">¶</a></h2>
-<p>The following Haze reference run is a reproducible comparison point, not a performance target or
-promise. It used the <code>benchmarkRelease</code> build at commit <code>334557df</code> on 2026-08-04: Pixel 6,
-Android 17/API 37, 1080×2400, locked 60 Hz render rate, locked CPU frequency, and eight
-Macrobenchmark iterations per scenario. The metric is P90 CPU frame duration in milliseconds.</p>
-<table>
-<thead>
-<tr>
-<th>Scenario</th>
-<th>Workload</th>
-<th style="text-align: right;">P90 CPU frame duration</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>productPager</code></td>
-<td>Gallery paging journey</td>
-<td style="text-align: right;">7.5 ms</td>
-</tr>
-<tr>
-<td><code>playgroundTimeline</code></td>
-<td>Gallery animated timeline journey</td>
-<td style="text-align: right;">11.2 ms</td>
-</tr>
-<tr>
-<td><code>steadyFull</code></td>
-<td>Controlled steady state, 1 Glass effect</td>
-<td style="text-align: right;">5.6 ms</td>
-</tr>
-<tr>
-<td><code>steadyFull3</code></td>
-<td>Controlled steady state, 3 Glass effects</td>
-<td style="text-align: right;">5.2 ms</td>
-</tr>
-<tr>
-<td><code>steadyFull9</code></td>
-<td>Controlled steady state, 9 Glass effects</td>
-<td style="text-align: right;">8.1 ms</td>
-</tr>
-</tbody>
-</table>
-<p>The Gallery journeys are closest to the sample's visible user work. The <code>steadyFull*</code> controls
-characterize the baseline at different effect counts. Cold-initialization <code>effectAttach*</code> results
-are deliberately omitted: they attach new effects at the measurement boundary and diagnose
-delegate/shader creation rather than representative interaction performance. They remain covered
-by the internal <a href="https://github.com/chrisbanes/haze/blob/main/internal/benchmark/README.md">Glass benchmark runbook</a>. Compare the interactions, content,
-and device classes that your application supports.</p>
-<h3 id="current-performance-mode-calibration">Current performance-mode calibration<a class="headerlink" href="#current-performance-mode-calibration" title="Permanent link">¶</a></h3>
-<p>On 2026-08-09, the controlled Glass matrix ran in the <code>benchmarkRelease</code> variant on a Pixel 6
-(Android 17/API 37, 1080×2400), locked to 60 Hz with Android fixed-performance mode enabled. Each
-row contains 16 fixed-duration iterations. Values are <strong>P90 CPU frame duration / P90 frame
-overrun</strong>, in milliseconds; a negative overrun is margin below the 60 Hz frame budget.</p>
-<table>
-<thead>
-<tr>
-<th>Workload</th>
-<th style="text-align: right;">Adaptive</th>
-<th style="text-align: right;">Quality</th>
-<th style="text-align: right;">Balanced</th>
-<th style="text-align: right;">Performance</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Stable source</td>
-<td style="text-align: right;">6.6 / -7.1</td>
-<td style="text-align: right;">8.2 / -1.7</td>
-<td style="text-align: right;">8.9 / -4.0</td>
-<td style="text-align: right;">7.2 / -6.5</td>
-</tr>
-<tr>
-<td>Continuously changing source</td>
-<td style="text-align: right;">6.5 / -7.3</td>
-<td style="text-align: right;">8.2 / -1.6</td>
-<td style="text-align: right;">8.3 / -4.5</td>
-<td style="text-align: right;">6.9 / -6.9</td>
-</tr>
-</tbody>
-</table>
-<p>The calibration keeps the other <code>GlassDefaults</code> values unchanged. It compares the named built-in
-profiles under controlled input; it is not a guarantee for another layout, device, or visual
-configuration.</p>
-<p>The adaptive performance rationale and supporting measurements are recorded in
-<a href="../../adr/0005-use-cadence-weighted-adaptive-input-scaling-for-glass/">ADR-0005</a> and reconciled with the current public terminology by
-<a href="../../adr/0006-reconcile-built-in-performance-mode-terminology/">ADR-0006</a>.</p></div>
+<div><h1 id="adr-0007-export-regular-and-clear-as-built-in-glass-styles">ADR-0007: Export Regular and Clear as built-in Glass styles<a class="headerlink" href="#adr-0007-export-regular-and-clear-as-built-in-glass-styles" title="Permanent link">¶</a></h1>
+<p>Haze will expose <code>GlassStyle.regular</code> and <code>GlassStyle.clear</code> as shared built-in styles rather than
+adding a modifier variant parameter or extending <code>GlassOptics</code> with semantic cases. The parallel
+sample-only preset catalogue will be removed rather than retained or exported. Regular remains the
+default geometry-adaptive material response; Clear uses fixed authored optics and remains
+recognisably distinct when a renderer simplifies advanced optics. Both styles own the complete
+optical, edge, lighting, chromatic, tone, and content-normal response while preserving independently
+composed shape, background colour, tint, alpha, light position, and interaction appearance. These
+are Haze styles informed by iOS's semantic distinction and measured direction, not promises of pixel
+parity or Apple-internal constants. Identity remains outside this decision because disabling
+attachment and rendering is modifier/runtime behaviour rather than a Glass appearance.</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">¶</a></h2>
+<p>Callers select a built-in response through the existing replayable Style seam and customize it with
+<code>then</code>, without learning another public type or precedence rule. Switching between Regular and Clear
+resets every built-in-style-owned channel but does not erase theme or caller presentation. Samples
+use Regular and Clear directly; sample-only Adaptive, Clear, Frosted, Deep, and Prism presets are
+removed. A sample that teaches custom authoring declares that customization locally instead of
+adding another reusable preset catalogue.</p></div>
 
 
 

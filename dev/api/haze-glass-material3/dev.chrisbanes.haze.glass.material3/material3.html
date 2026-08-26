@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
-    <title>LocalGlassStyle</title>
+    <title>material3</title>
 <link href="../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../";</script>
     <script>document.documentElement.classList.replace("no-js", "js");</script>
     <script>const storage = localStorage.getItem("dokka-dark-mode")
@@ -42,7 +42,7 @@
         </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
-                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":haze-glass/commonMain">common</button>
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":haze-glass-material3/commonMain">common</button>
             <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
                 <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
                 <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
@@ -53,7 +53,7 @@
                     </div>
                         <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
                             <label class="checkbox">
-                                <input type="checkbox" class="checkbox--input" id=":haze-glass/commonMain" data-filter=":haze-glass/commonMain">
+                                <input type="checkbox" class="checkbox--input" id=":haze-glass-material3/commonMain" data-filter=":haze-glass-material3/commonMain">
                                 <span class="checkbox--icon"></span>
                                 common
                             </label>
@@ -89,12 +89,12 @@
         </nav>
         <div id="resizer" class="resizer" data-item-type="BAR"></div>
         <div id="main" data-item-type="SECTION" role="main">
-<div class="main-content" data-page-type="member" id="content" pageids="haze-glass::dev.chrisbanes.haze.glass//LocalGlassStyle/#/PointingToDeclaration//1575282654">
-  <div class="breadcrumbs"><a href="../index.html">haze-glass</a><span class="delimiter">/</span><a href="index.html">dev.chrisbanes.haze.glass</a><span class="delimiter">/</span><span class="current">LocalGlassStyle</span></div>
+<div class="main-content" data-page-type="member" id="content" pageids="haze-glass-material3::dev.chrisbanes.haze.glass.material3//material3/dev.chrisbanes.haze.glass.GlassStyle#androidx.compose.ui.graphics.Color#androidx.compose.ui.graphics.Color?/PointingToDeclaration//-1804619587">
+  <div class="breadcrumbs"><a href="../index.html">haze-glass-material3</a><span class="delimiter">/</span><a href="index.html">dev.chrisbanes.haze.glass.material3</a><span class="delimiter">/</span><span class="current">material3</span></div>
   <div class="cover ">
-    <h1 class="cover"><span>Local</span><wbr><span>Glass</span><wbr><span><span>Style</span></span></h1>
+    <h1 class="cover"><span><span>material3</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="-local-glass-style.html">LocalGlassStyle</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/ProvidableCompositionLocal.html">ProvidableCompositionLocal</a><span class="token operator">&lt;</span><a href="-glass-style/index.html">GlassStyle</a><span class="token operator">&gt;</span></div><p class="paragraph">A <a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/ProvidableCompositionLocal.html">ProvidableCompositionLocal</a> which provides inherited Glass appearance.</p><p class="paragraph">A Glass node starts with <a href="-glass-defaults/index.html">GlassDefaults</a>, then replays this Style and its explicit <a href="-glass-style/index.html">GlassStyle</a> in that order. Each node uses a fresh accumulator, so a Style may be shared safely by concurrent nodes.</p></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass-material3/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Composable.html"><span class="token annotation builtin">Composable</span></a></div></div><span class="token keyword">fun </span><a href="../../haze-glass/dev.chrisbanes.haze.glass/-glass-style/index.html">GlassStyle</a><span class="token punctuation">.</span><a href="material3.html"><span class="token function">material3</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">containerColor<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a><span class="token operator"> = </span>MaterialTheme.colorScheme.surface<span class="token punctuation">, </span></span><span class="parameter ">tint<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/Color.html">Color</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../haze-glass/dev.chrisbanes.haze.glass/-glass-style/index.html">GlassStyle</a></div><p class="paragraph">Returns a Material 3 Glass Style with this Style's writes applied after the theme defaults.</p><p class="paragraph">The default <a href="material3.html">containerColor</a> comes from the current <a href="https://developer.android.com/reference/kotlin/androidx/compose/material3/MaterialTheme.html">MaterialTheme</a>. A null <a href="material3.html">tint</a> omits the theme tint write. This Style can override either value. The returned Style is reused while this Style, <a href="material3.html">containerColor</a>, and <a href="material3.html">tint</a> are unchanged.</p></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">
