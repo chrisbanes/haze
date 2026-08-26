@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.glass.material3
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +34,35 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalHazeApi::class, ExperimentalTestApi::class)
 class GlassMaterial3Test {
+
+  @Test
+  fun material3OnStyle_appliesSurfaceBeforeReceiverWrites() = runComposeUiTest {
+    setContent {
+      MaterialTheme(colorScheme = lightColorScheme(surface = Color.Red)) {
+        Column {
+          GlassMaterial3Content(
+            style = GlassStyle.regular.material3(),
+            testTag = "surface",
+          )
+          GlassMaterial3Content(
+            style = GlassStyle { backgroundColor(Color.Green) }.material3(),
+            testTag = "background",
+          )
+          GlassMaterial3Content(
+            style = GlassStyle { tint(Color.Blue) }.material3(),
+            testTag = "tint",
+          )
+        }
+      }
+    }
+
+    assertThat(onNodeWithTag("surface").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(Color.Red)
+    assertThat(onNodeWithTag("background").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(Color.Green)
+    assertThat(onNodeWithTag("tint").captureToImage().toPixelMap()[20, 20])
+      .isEqualTo(Color.Blue)
+  }
 
   @Test
   fun material3_capturesThemeSurfaceAndRecomposesWithReplacementStyle() = runComposeUiTest {
@@ -116,11 +146,14 @@ class GlassMaterial3Test {
 
 @OptIn(ExperimentalHazeApi::class)
 @Composable
-private fun GlassMaterial3Content(style: GlassStyle) {
+private fun GlassMaterial3Content(
+  style: GlassStyle,
+  testTag: String = "material",
+) {
   Box(
     Modifier
       .size(40.dp)
-      .testTag("material")
+      .testTag(testTag)
       .hazeGlass(
         input = HazeInput.Content,
         style = style,

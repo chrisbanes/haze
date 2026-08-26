@@ -36,6 +36,13 @@ Pass `containerColor` to use a different color. Supply a replacement Style throu
 when the theme changes. It deliberately leaves the tint unset unless you pass one, so it never
 derives a tint from `LocalContentColor`.
 
+Apply Material 3 to a built-in or custom Style with `material3()`:
+
+```kotlin
+val regular = GlassStyle.regular.material3()
+val clear = GlassStyle.clear.material3(tint = Color.White.copy(alpha = 0.16f))
+```
+
 ```kotlin
 Modifier.hazeGlass(
   input = HazeInput.Sources(hazeState),
@@ -69,9 +76,7 @@ styles informed by the platform distinction; they do not promise pixel parity wi
 ```kotlin
 Modifier.hazeGlass(
   input = HazeInput.Sources(hazeState),
-  style = GlassStyle.clear.then {
-    tint(Color.White.copy(alpha = 0.12f))
-  },
+  style = GlassStyle.clear.material3(tint = Color.White.copy(alpha = 0.12f)),
 )
 ```
 

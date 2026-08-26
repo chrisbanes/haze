@@ -13,6 +13,23 @@ import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassStyleScope
 
 /**
+ * Returns a Material 3 Glass Style with this Style's writes applied after the theme defaults.
+ *
+ * The default [containerColor] comes from the current [MaterialTheme]. A null [tint] omits the
+ * theme tint write. This Style can override either value. The returned Style is reused while this
+ * Style, [containerColor], and [tint] are unchanged.
+ */
+@Composable
+@ExperimentalHazeApi
+public fun GlassStyle.material3(
+  containerColor: Color = MaterialTheme.colorScheme.surface,
+  tint: Color? = null,
+): GlassStyle {
+  val material3Style = GlassStyle.Material3(containerColor, tint)
+  return remember(this, material3Style) { material3Style.then(this) }
+}
+
+/**
  * Creates a Glass Style with a Material 3 surface background and optional tint.
  *
  * The default [containerColor] comes from the current [MaterialTheme]. A null [tint] omits the

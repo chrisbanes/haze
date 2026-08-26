@@ -43,6 +43,7 @@ import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.hazeGlass
+import dev.chrisbanes.haze.glass.material3.material3
 import dev.chrisbanes.haze.hazeSource
 
 @Composable
@@ -153,16 +154,13 @@ internal fun GlassSurface(
   interactionStyle: GlassStyle = GlassStyle,
   content: @Composable BoxScope.() -> Unit,
 ) {
-  val backgroundColor = MaterialTheme.colorScheme.surface
   Box(
     modifier = modifier
       // Let Glass own the material silhouette. An outer Compose clip creates a second,
       // independently-rasterized rounded boundary and exposes isolated carrier pixels on Skiko.
       .hazeGlass(
         input = HazeInput.Sources(hazeState),
-        style = GlassStyle {
-          backgroundColor(backgroundColor)
-        }.then(style).then {
+        style = style.material3().then {
           this.shape(shape)
         }.then(interactionStyle),
         interactionSource = interactionSource,
