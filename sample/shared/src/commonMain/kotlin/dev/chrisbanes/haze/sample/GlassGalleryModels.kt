@@ -86,16 +86,13 @@ public enum class GlassGalleryBackdropId {
   Uniform,
 }
 
-public enum class GlassLabPresetId {
-  Adaptive,
+public enum class GlassLabStyleId {
+  Regular,
   Clear,
-  Frosted,
-  Deep,
-  Prism,
   Custom,
 }
 
-internal val SelectableGlassLabPresets = GlassLabPresetId.entries - GlassLabPresetId.Custom
+internal val SelectableGlassLabStyles = GlassLabStyleId.entries - GlassLabStyleId.Custom
 
 @Immutable
 internal data class GlassLabStyleValues(
@@ -130,10 +127,9 @@ internal data class GlassLabStyleValues(
   }
 }
 
-internal fun glassLabPresetValues(id: GlassLabPresetId): GlassLabStyleValues = when (id) {
-  GlassLabPresetId.Adaptive -> GlassLabStyleValues()
-  GlassLabPresetId.Clear -> GlassLabStyleValues(
-    tint = Color.White.copy(alpha = 0.06f),
+internal fun glassLabStyleValues(id: GlassLabStyleId): GlassLabStyleValues = when (id) {
+  GlassLabStyleId.Regular -> GlassLabStyleValues()
+  GlassLabStyleId.Clear -> GlassLabStyleValues(
     optics = GlassOptics.Fixed(
       refractionStrength = 0.85f,
       refractionHeightFraction = 0.22f,
@@ -146,67 +142,18 @@ internal fun glassLabPresetValues(id: GlassLabPresetId): GlassLabStyleValues = w
     contrast = 0.08f,
     whitePoint = 0.02f,
     chromaMultiplier = 1.05f,
+    edgeSoftness = 1.dp,
+    contentNormalBlend = 0.1f,
+    chromaticAberrationStrength = 0.04f,
   )
-  GlassLabPresetId.Frosted -> GlassLabStyleValues(
-    tint = Color.White.copy(alpha = 0.18f),
-    optics = GlassOptics.Fixed(
-      refractionStrength = 0.45f,
-      refractionHeightFraction = 0.18f,
-      refractionDisplacement = 10.dp,
-      depth = 0.9f,
-      blurRadius = 24.dp,
-    ),
-    specularIntensity = 0.35f,
-    ambientResponse = 0.55f,
-    contrast = -0.08f,
-    whitePoint = 0.08f,
-    chromaMultiplier = 0.72f,
-    edgeSoftness = 8.dp,
-    contentNormalBlend = 0.08f,
-  )
-  GlassLabPresetId.Deep -> GlassLabStyleValues(
-    tint = Color.White.copy(alpha = 0.1f),
-    optics = GlassOptics.Fixed(
-      refractionStrength = 0.9f,
-      refractionHeightFraction = 0.32f,
-      refractionDisplacement = 20.dp,
-      depth = 0.78f,
-      blurRadius = 16.dp,
-    ),
-    specularIntensity = 0.75f,
-    ambientResponse = 0.62f,
-    contrast = 0.05f,
-    whitePoint = 0.02f,
-    edgeSoftness = 10.dp,
-    contentNormalBlend = 0.2f,
-    surfaceProfile = SurfaceProfile.Squircle,
-    chromaticAberrationStrength = 0.05f,
-  )
-  GlassLabPresetId.Prism -> GlassLabStyleValues(
-    tint = Color.White.copy(alpha = 0.08f),
-    optics = GlassOptics.Fixed(
-      refractionStrength = 0.82f,
-      refractionHeightFraction = 0.28f,
-      refractionDisplacement = 18.dp,
-      depth = 0.35f,
-      blurRadius = 8.dp,
-    ),
-    specularIntensity = 0.72f,
-    ambientResponse = 0.58f,
-    contrast = 0.1f,
-    whitePoint = 0.02f,
-    chromaMultiplier = 1.15f,
-    edgeSoftness = 8.dp,
-    contentNormalBlend = 0.18f,
-    surfaceProfile = SurfaceProfile.Squircle,
-    chromaticAberrationStrength = 0.22f,
-    chromaticAberrationMode = ChromaticAberrationMode.Full,
-  )
-  GlassLabPresetId.Custom -> error("Custom style must come from GlassLabState")
+  GlassLabStyleId.Custom -> error("Custom style must come from GlassLabState")
 }
 
-public fun glassLabPresetStyle(id: GlassLabPresetId): GlassStyle =
-  glassLabPresetValues(id).toStyle()
+private fun GlassLabStyleId.builtInStyle(): GlassStyle = when (this) {
+  GlassLabStyleId.Regular -> GlassStyle.regular
+  GlassLabStyleId.Clear -> GlassStyle.clear
+  GlassLabStyleId.Custom -> error("Custom style must come from GlassLabState")
+}
 
 internal enum class GlassLabInteractionMode {
   Off,
@@ -249,24 +196,28 @@ private fun dev.chrisbanes.haze.glass.GlassInteractionScope.defaultPressResponse
 
 @Immutable
 internal data class GlassLabState(
-  val preset: GlassLabPresetId = GlassLabPresetId.Adaptive,
+  val styleId: GlassLabStyleId = GlassLabStyleId.Regular,
   val backdrop: GlassGalleryBackdropId = GlassGalleryBackdropId.Gallery,
   val interaction: GlassLabInteractionMode = GlassLabInteractionMode.All,
   val advancedExpanded: Boolean = false,
-  val styleValues: GlassLabStyleValues = glassLabPresetValues(preset),
+  private val baseStyle: GlassStyle = styleId.builtInStyle(),
+  val styleValues: GlassLabStyleValues = glassLabStyleValues(styleId),
 ) {
-  val style: GlassStyle = styleValues.toStyle()
+  val style: GlassStyle = baseStyle.then(styleValues.toStyle())
 
-  fun selectPreset(id: GlassLabPresetId): GlassLabState {
-    require(id != GlassLabPresetId.Custom)
-    val values = glassLabPresetValues(id)
-    return copy(preset = id, styleValues = values)
+  fun selectStyle(id: GlassLabStyleId): GlassLabState {
+    require(id != GlassLabStyleId.Custom)
+    return copy(
+      styleId = id,
+      baseStyle = id.builtInStyle(),
+      styleValues = glassLabStyleValues(id),
+    )
   }
 
   fun editStyle(transform: (GlassLabStyleValues) -> GlassLabStyleValues): GlassLabState {
     val values = transform(styleValues)
     return copy(
-      preset = GlassLabPresetId.Custom,
+      styleId = GlassLabStyleId.Custom,
       styleValues = values,
     )
   }

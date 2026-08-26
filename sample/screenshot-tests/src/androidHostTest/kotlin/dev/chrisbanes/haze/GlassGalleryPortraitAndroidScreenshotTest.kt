@@ -14,5 +14,5 @@ class GlassGalleryPortraitAndroidScreenshotTest : ScreenshotTest() {
 
   @Test fun playgroundBeats() = runScreenshotTest { captureGlassPlaygroundBeats() }
 
-  @Test fun labPresets() = runScreenshotTest { captureGlassLabPresets() }
+  @Test fun labStyles() = runScreenshotTest { captureGlassLabStyles() }
 }

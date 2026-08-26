@@ -53,7 +53,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -75,9 +74,8 @@ public fun GlassProductSample(navController: NavHostController) {
   )
 }
 
-internal fun productGlassStyle(isDark: Boolean): GlassStyle = GlassStyle {
+internal fun productGlassStyle(isDark: Boolean): GlassStyle = GlassStyle.regular.then {
   tint(if (isDark) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.1f))
-  optics(GlassOptics.Adaptive)
 }
 
 @Composable

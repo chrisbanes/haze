@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +58,7 @@ import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
 import dev.chrisbanes.haze.glass.hazeGlass
+import dev.chrisbanes.haze.glass.material3.material3
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
@@ -409,10 +409,7 @@ private fun PlaygroundSurface(
   }
   val interactionSource = interactionSourceProvider(id)
   var lightPosition by remember(id) { mutableStateOf<Alignment>(Alignment.Center) }
-  val backgroundColor = MaterialTheme.colorScheme.surface
-  val style = GlassStyle {
-    backgroundColor(backgroundColor)
-  }.then(glassPlaygroundStyle(id)).then {
+  val style = glassPlaygroundStyle(id).material3().then {
     shape(glassPlaygroundShape(id))
     lightPosition(lightPosition)
   }.then(playgroundInteractionStyle())
@@ -477,7 +474,7 @@ private fun PlaygroundSurface(
   ) {
     when (id) {
       GlassPlaygroundSurfaceId.Card -> SurfaceLabel("DEPTH")
-      GlassPlaygroundSurfaceId.Prism -> SurfaceLabel("PRISM")
+      GlassPlaygroundSurfaceId.Clear -> SurfaceLabel("CLEAR")
       GlassPlaygroundSurfaceId.Lens,
       GlassPlaygroundSurfaceId.Pill,
       -> Unit
@@ -507,7 +504,7 @@ internal fun playgroundSurfaceSize(id: GlassPlaygroundSurfaceId): DpSize = when 
   GlassPlaygroundSurfaceId.Lens -> DpSize(128.dp, 128.dp)
   GlassPlaygroundSurfaceId.Pill -> DpSize(220.dp, 88.dp)
   GlassPlaygroundSurfaceId.Card -> DpSize(280.dp, 180.dp)
-  GlassPlaygroundSurfaceId.Prism -> DpSize(180.dp, 112.dp)
+  GlassPlaygroundSurfaceId.Clear -> DpSize(180.dp, 112.dp)
 }
 
 internal fun playgroundSurfaceZIndex(

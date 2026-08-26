@@ -48,7 +48,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 
@@ -120,11 +119,10 @@ fun ContentBlurring(
                 Modifier
                   .hazeGlass(
                     input = HazeInput.Content,
-                    style = GlassStyle {
+                    style = GlassStyle.regular.then {
                       backgroundColor(glassBackgroundColor)
                       tint(Color.White.copy(alpha = 0.14f))
                       shape(glassShape)
-                      optics(GlassOptics.Adaptive)
                     },
                   )
                   .clip(glassShape)

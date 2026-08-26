@@ -10,6 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import assertk.assertThat
+import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -20,6 +22,28 @@ import dev.chrisbanes.haze.test.runScreenshotTest
 import kotlin.test.Test
 
 class GlassContentScreenshotTest : ScreenshotTest() {
+
+  @Test
+  fun creditCard_builtInStylesRemainVisuallyDistinct() = runScreenshotTest {
+    var style by mutableStateOf(GlassStyle.regular)
+    setContent {
+      ScreenshotTheme {
+        CreditCardGlassContentBlurring(style = style)
+      }
+    }
+
+    waitForIdle()
+    val regular = captureRootPixels().snapshot()
+    captureRoot("regular")
+
+    style = GlassStyle.clear
+    waitForIdle()
+    val clear = captureRootPixels().snapshot()
+    // Fixed refraction amplifies Skia's platform-specific pixel variance.
+    captureRoot("clear", unmatchedPixelThreshold = 0.01f)
+
+    assertThat(regular.changedPixelRatio(clear)).isGreaterThan(0.01f)
+  }
 
   @Test
   fun creditCard() = runScreenshotTest {

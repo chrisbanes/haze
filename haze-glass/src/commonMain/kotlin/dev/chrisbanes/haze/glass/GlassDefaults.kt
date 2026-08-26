@@ -18,7 +18,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 @ExperimentalHazeApi
 @Suppress("ConstPropertyName", "ktlint:standard:property-naming")
 public object GlassDefaults {
-  /** Default light radius recorded by [style] as a fraction of the material's shortest side. */
+  /** Default interaction light radius as a fraction of the material's shortest side. */
   public const val interactionLightRadiusFraction: Float = 0.7f
 
   /** Default animation used for focus and [InteractionSource]-derived positions. */
@@ -77,31 +77,4 @@ public object GlassDefaults {
 
   /** Default exponent controlling the falloff of the Fresnel response. */
   public const val fresnelExponent: Float = 3f
-
-  /**
-   * Complete default [GlassStyle].
-   *
-   * Glass evaluates this Style before [LocalGlassStyle] and an explicit modifier Style.
-   */
-  public val style: GlassStyle = GlassStyle {
-    interactionLightRadiusFraction(interactionLightRadiusFraction)
-    interactionPositionAnimationSpec(positionAnimationSpec)
-    backgroundColor(backgroundColor)
-    tint(tint)
-    shape(shape)
-    optics(optics)
-    specularIntensity(specularIntensity)
-    specularExponent(specularExponent)
-    fresnelExponent(fresnelExponent)
-    ambientResponse(ambientResponse)
-    alpha(alpha)
-    contrast(contrast)
-    whitePoint(whitePoint)
-    chromaMultiplier(chromaMultiplier)
-    edgeSoftness(edgeSoftness)
-    contentNormalBlend(contentNormalBlend)
-    surfaceProfile(surfaceProfile)
-    chromaticAberrationStrength(chromaticAberrationStrength)
-    chromaticAberrationMode(chromaticAberrationMode)
-  }
 }

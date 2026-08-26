@@ -30,6 +30,7 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
+import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -125,6 +126,26 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
   }
 
   @Test
+  fun fallback_builtInStylesRemainVisuallyDistinct() = runScreenshotTest {
+    var style by mutableStateOf(GlassStyle.regular)
+    setContent {
+      ScreenshotTheme {
+        FallbackBuiltInStyleSample(style)
+      }
+    }
+
+    val regular = captureRootPixels().snapshot()
+    captureRoot("regular")
+
+    style = GlassStyle.clear
+    waitForIdle()
+    val clear = captureRootPixels().snapshot()
+    captureRoot("clear")
+
+    assertThat(regular.changedPixelRatio(clear)).isGreaterThan(0.001f)
+  }
+
+  @Test
   fun fallback_roundedPressedLightingDrawsOverOpaqueContent_api28() {
     assertRoundedPressedLightingDrawsOverOpaqueContent()
   }
@@ -188,6 +209,30 @@ private fun FallbackOpaqueContentSample(effect: GlassTestConfiguration) {
         )
         .clip(shape)
         .background(Color.Black),
+    )
+  }
+}
+
+@Composable
+private fun FallbackBuiltInStyleSample(style: GlassStyle) {
+  val hazeState = rememberHazeState()
+  Box(Modifier.fillMaxSize().background(Color.DarkGray)) {
+    Canvas(Modifier.fillMaxSize().hazeSource(hazeState)) {
+      drawRect(Color(0xFF102030))
+      repeat(14) { index ->
+        val offset = index * size.width / 14f
+        drawLine(Color.Cyan, Offset(offset, 0f), Offset(offset, size.height), 3f)
+      }
+    }
+    Box(
+      Modifier
+        .align(Alignment.Center)
+        .size(FallbackSurfaceSize)
+        .hazeGlass(
+          input = HazeInput.Sources(hazeState),
+          style = style,
+          performanceMode = HazePerformanceMode.Quality,
+        ),
     )
   }
 }

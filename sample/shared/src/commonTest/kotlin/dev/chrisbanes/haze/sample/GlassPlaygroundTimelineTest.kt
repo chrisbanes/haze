@@ -10,11 +10,11 @@ import androidx.compose.ui.unit.IntSize
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThanOrEqualTo
-import assertk.assertions.isInstanceOf
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isSameInstanceAs
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.GlassStyle
 import kotlin.test.Test
 
 class GlassPlaygroundTimelineTest {
@@ -69,15 +69,15 @@ class GlassPlaygroundTimelineTest {
   }
 
   @Test
-  fun smallSurfacesUseAdaptiveAndFeatureSurfacesUseLiteralOptics() {
-    assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Lens))
-      .isEqualTo(GlassOptics.Adaptive)
-    assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Pill))
-      .isEqualTo(GlassOptics.Adaptive)
-    assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Card))
-      .isInstanceOf<GlassOptics.Fixed>()
-    assertThat(resolvedOptics(GlassPlaygroundSurfaceId.Prism))
-      .isInstanceOf<GlassOptics.Fixed>()
+  fun surfacesUseBuiltInRegularAndClearStyles() {
+    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Lens))
+      .isSameInstanceAs(GlassStyle.regular)
+    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Pill))
+      .isSameInstanceAs(GlassStyle.regular)
+    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Card))
+      .isSameInstanceAs(GlassStyle.regular)
+    assertThat(glassPlaygroundStyle(GlassPlaygroundSurfaceId.Clear))
+      .isSameInstanceAs(GlassStyle.clear)
   }
 
   @Test
@@ -88,11 +88,8 @@ class GlassPlaygroundTimelineTest {
       lensPosition = Offset(0.2f, 0.2f),
       pillPosition = Offset(0.4f, 0.4f),
       cardPosition = Offset(0.6f, 0.6f),
-      prismPosition = Offset(0.8f, 0.8f),
+      clearPosition = Offset(0.8f, 0.8f),
     )
-    assertThat(frame.position(GlassPlaygroundSurfaceId.Prism)).isEqualTo(Offset(0.8f, 0.8f))
+    assertThat(frame.position(GlassPlaygroundSurfaceId.Clear)).isEqualTo(Offset(0.8f, 0.8f))
   }
 }
-
-private fun resolvedOptics(id: GlassPlaygroundSurfaceId): GlassOptics =
-  glassPlaygroundOptics(id)

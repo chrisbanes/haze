@@ -46,7 +46,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
@@ -168,11 +167,10 @@ private fun KameraCamera(
               Modifier
                 .hazeGlass(
                   input = HazeInput.Sources(hazeState),
-                  style = GlassStyle {
+                  style = GlassStyle.regular.then {
                     backgroundColor(glassBackgroundColor)
                     tint(glassTint)
                     shape(shape)
-                    optics(GlassOptics.Adaptive)
                   },
                 )
                 .clip(shape)

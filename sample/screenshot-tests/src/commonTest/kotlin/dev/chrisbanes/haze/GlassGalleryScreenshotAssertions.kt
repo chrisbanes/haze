@@ -19,8 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import dev.chrisbanes.haze.sample.GlassGalleryBackdropId
-import dev.chrisbanes.haze.sample.GlassLabPresetId
 import dev.chrisbanes.haze.sample.GlassLabScreenshotContent
+import dev.chrisbanes.haze.sample.GlassLabStyleId
 import dev.chrisbanes.haze.sample.GlassPlaygroundSampleContent
 import dev.chrisbanes.haze.sample.GlassPlaygroundSurfaceId
 import dev.chrisbanes.haze.sample.GlassProductSampleContent
@@ -51,7 +51,7 @@ internal fun ScreenshotUiTest.captureGlassProductHero() {
 internal fun ScreenshotUiTest.captureGlassPlaygroundBeats() {
   var progress by mutableFloatStateOf(0f)
   var displacedLens by mutableStateOf(Offset.Zero)
-  val prismInteractionSource = MutableInteractionSource()
+  val clearInteractionSource = MutableInteractionSource()
   setContent {
     Box(Modifier.fillMaxSize().background(Color.White)) {
       GlassGalleryScreenshotTheme {
@@ -70,37 +70,39 @@ internal fun ScreenshotUiTest.captureGlassPlaygroundBeats() {
           onDrag = { _, _ -> },
           onDragEnd = {},
           interactionSourceProvider = { id ->
-            prismInteractionSource.takeIf { id == GlassPlaygroundSurfaceId.Prism }
+            clearInteractionSource.takeIf { id == GlassPlaygroundSurfaceId.Clear }
           },
         )
       }
     }
   }
 
+  // Layered runtime shaders amplify Skia's platform-specific pixel variance.
+  val unmatchedPixelThreshold = 0.013f
   waitForIdle()
-  captureRoot("opening")
+  captureRoot("opening", unmatchedPixelThreshold)
   progress = 0.2f
   waitForIdle()
-  captureRoot("typography")
+  captureRoot("typography", unmatchedPixelThreshold)
   progress = 0.5f
   waitForIdle()
-  captureRoot("depth")
+  captureRoot("depth", unmatchedPixelThreshold)
   progress = 0.8f
   waitForIdle()
-  captureRoot("prism")
+  captureRoot("clear", unmatchedPixelThreshold)
   val press = PressInteraction.Press(Offset(90f, 56f))
-  check(prismInteractionSource.tryEmit(press))
+  check(clearInteractionSource.tryEmit(press))
   waitForIdle()
-  captureRoot("pressed")
-  check(prismInteractionSource.tryEmit(PressInteraction.Release(press)))
+  captureRoot("pressed", unmatchedPixelThreshold)
+  check(clearInteractionSource.tryEmit(PressInteraction.Release(press)))
   waitForIdle()
   displacedLens = Offset(120f, 72f)
   waitForIdle()
-  captureRoot("dragged")
+  captureRoot("dragged", unmatchedPixelThreshold)
 }
 
-internal fun ScreenshotUiTest.captureGlassLabPresets() {
-  var preset by mutableStateOf(GlassLabPresetId.Adaptive)
+internal fun ScreenshotUiTest.captureGlassLabStyles() {
+  var style by mutableStateOf(GlassLabStyleId.Regular)
   var backdrop by mutableStateOf(GlassGalleryBackdropId.Gallery)
   setContent {
     GlassGalleryScreenshotTheme {
@@ -108,21 +110,17 @@ internal fun ScreenshotUiTest.captureGlassLabPresets() {
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
       ) {
-        GlassLabScreenshotContent(preset = preset, backdrop = backdrop)
+        GlassLabScreenshotContent(style = style, backdrop = backdrop)
       }
     }
   }
 
   waitForIdle()
-  captureRoot("adaptive")
-  preset = GlassLabPresetId.Frosted
+  captureRoot("regular")
+  style = GlassLabStyleId.Clear
   backdrop = GlassGalleryBackdropId.Grid
   waitForIdle()
-  captureRoot("frosted")
-  preset = GlassLabPresetId.Prism
-  backdrop = GlassGalleryBackdropId.Bands
-  waitForIdle()
-  captureRoot("prism")
+  captureRoot("clear")
 }
 
 @Composable

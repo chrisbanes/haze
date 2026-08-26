@@ -16,7 +16,6 @@ import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
-import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
@@ -50,11 +49,10 @@ fun CreditCardSample(
               Modifier
                 .hazeGlass(
                   input = HazeInput.Sources(hazeState),
-                  style = GlassStyle {
+                  style = GlassStyle.regular.then {
                     backgroundColor(glassBackgroundColor)
                     tint(Color.Yellow.copy(alpha = 0.18f))
                     shape(shape)
-                    optics(GlassOptics.Adaptive)
                   },
                 )
                 .clip(shape)

@@ -42,6 +42,7 @@ kotlin {
         api(projects.hazeGlass)
         api(projects.hazeMaterials)
 
+        implementation(projects.hazeGlassMaterial3)
         implementation(projects.hazeUtils)
 
         api(libs.androidx.navigation.compose)

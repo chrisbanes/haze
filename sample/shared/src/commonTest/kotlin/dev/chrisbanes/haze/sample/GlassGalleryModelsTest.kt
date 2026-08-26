@@ -5,56 +5,58 @@
 
 package dev.chrisbanes.haze.sample
 
+import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
-import assertk.assertions.isLessThan
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import kotlin.test.Test
 
 class GlassGalleryModelsTest {
   @Test
-  fun adaptivePreset_usesBuiltInAdaptiveOptics() {
+  fun regularBuiltInStyle_usesAdaptiveOptics() {
     assertThat(GlassLabState().styleValues.optics)
       .isEqualTo(GlassOptics.Adaptive)
   }
 
   @Test
-  fun literalPresets_haveDistinctCompleteOptics() {
-    val clear = absoluteOpticsFor(GlassLabPresetId.Clear)
-    val frosted = absoluteOpticsFor(GlassLabPresetId.Frosted)
-    val deep = absoluteOpticsFor(GlassLabPresetId.Deep)
-    val prism = absoluteOpticsFor(GlassLabPresetId.Prism)
+  fun clearBuiltInStyle_usesVisibleFixedOptics() {
+    val optics = GlassLabState(styleId = GlassLabStyleId.Clear).styleValues.optics
 
-    assertThat(clear.blurRadius).isLessThan(frosted.blurRadius)
-    assertThat(clear.depth).isLessThan(deep.depth)
-    assertThat(prism).isNotEqualTo(deep)
-    assertThat(
-      GlassLabState(preset = GlassLabPresetId.Prism).styleValues.chromaticAberrationMode,
-    ).isEqualTo(
-      ChromaticAberrationMode.Full,
-    )
-    assertThat(
-      GlassLabState(preset = GlassLabPresetId.Prism).styleValues.chromaticAberrationStrength,
-    ).isEqualTo(
-      0.22f,
+    assertThat(optics).isEqualTo(
+      GlassOptics.Fixed(
+        refractionStrength = 0.85f,
+        refractionHeightFraction = 0.22f,
+        refractionDisplacement = 18.dp,
+        depth = 0.1f,
+        blurRadius = 2.dp,
+      ),
     )
   }
 
   @Test
-  fun editingAdaptiveStyle_changesSelectionToCustomAndLiteralOptics() {
+  fun editingBuiltInStyle_changesSelectionToCustomAndLiteralOptics() {
     val edited = GlassLabState().editStyle { values ->
       values.copy(optics = GlassOptics.Fixed(refractionStrength = 0.6f))
     }
 
-    assertThat(edited.preset).isEqualTo(GlassLabPresetId.Custom)
+    assertThat(edited.styleId).isEqualTo(GlassLabStyleId.Custom)
     assertThat(edited.styleValues.optics).isInstanceOf<GlassOptics.Fixed>()
+  }
+
+  @Test
+  fun editingRegularMaterialResponse_preservesAdaptiveOpticsUntilOpticsAreEdited() {
+    val edited = GlassLabState().editStyle { values ->
+      values.copy(specularIntensity = 0.8f)
+    }
+
+    assertThat(edited.styleId).isEqualTo(GlassLabStyleId.Custom)
+    assertThat(edited.styleValues.optics).isEqualTo(GlassOptics.Adaptive)
   }
 
   @Test
@@ -69,7 +71,7 @@ class GlassGalleryModelsTest {
   @Test
   fun reset_restoresCompleteInitialLabState() {
     val changed = GlassLabState(
-      preset = GlassLabPresetId.Prism,
+      styleId = GlassLabStyleId.Clear,
       backdrop = GlassGalleryBackdropId.Grid,
       interaction = GlassLabInteractionMode.Off,
       advancedExpanded = true,
@@ -78,10 +80,4 @@ class GlassGalleryModelsTest {
 
     assertThat(changed.reset()).isEqualTo(GlassLabState())
   }
-}
-
-private fun absoluteOpticsFor(id: GlassLabPresetId): GlassOptics.Fixed {
-  val optics = GlassLabState(preset = id).styleValues.optics
-  assertThat(optics).isInstanceOf<GlassOptics.Fixed>()
-  return optics as GlassOptics.Fixed
 }

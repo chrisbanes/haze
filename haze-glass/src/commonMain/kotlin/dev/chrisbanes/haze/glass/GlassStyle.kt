@@ -26,8 +26,9 @@ import dev.chrisbanes.haze.Poko
 /**
  * A [ProvidableCompositionLocal] which provides inherited Glass appearance.
  *
- * A Glass node replays [GlassDefaults.style], this Style, and its explicit [GlassStyle] in that
- * order. Each node uses a fresh accumulator, so a Style may be shared safely by concurrent nodes.
+ * A Glass node starts with [GlassDefaults], then replays this Style and its explicit [GlassStyle]
+ * in that order. Each node uses a fresh accumulator, so a Style may be shared safely by concurrent
+ * nodes.
  */
 @ExperimentalHazeApi
 public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
@@ -66,7 +67,63 @@ public sealed interface GlassStyle {
   public fun then(block: GlassStyleScope.() -> Unit): GlassStyle = then(GlassStyle(block))
 
   /** The empty Glass Style, which performs no writes. */
-  public companion object : GlassStyle
+  public companion object : GlassStyle {
+
+    /**
+     * The default built-in Glass style.
+     *
+     * Its optical response adapts to each material's geometry. It writes the complete material
+     * response while preserving separately composed shape, background colour, tint, alpha, light
+     * position, and interaction presentation.
+     */
+    public val regular: GlassStyle = GlassStyle {
+      optics(GlassDefaults.optics)
+      specularIntensity(GlassDefaults.specularIntensity)
+      ambientResponse(GlassDefaults.ambientResponse)
+      edgeSoftness(GlassDefaults.edgeSoftness)
+      chromaticAberrationStrength(GlassDefaults.chromaticAberrationStrength)
+      surfaceProfile(GlassDefaults.surfaceProfile)
+      chromaticAberrationMode(GlassDefaults.chromaticAberrationMode)
+      contrast(GlassDefaults.contrast)
+      whitePoint(GlassDefaults.whitePoint)
+      chromaMultiplier(GlassDefaults.chromaMultiplier)
+      contentNormalBlend(GlassDefaults.contentNormalBlend)
+      specularExponent(GlassDefaults.specularExponent)
+      fresnelExponent(GlassDefaults.fresnelExponent)
+    }
+
+    /**
+     * A built-in Glass style that prioritizes visibility of content behind the material.
+     *
+     * Its fixed optics and distinct edge and lighting response remain recognizable when a renderer
+     * simplifies advanced optical effects. It writes the complete material response while preserving
+     * separately composed shape, background colour, tint, alpha, light position, and interaction
+     * presentation.
+     */
+    public val clear: GlassStyle = GlassStyle {
+      optics(
+        GlassOptics.Fixed(
+          refractionStrength = 0.85f,
+          refractionHeightFraction = 0.22f,
+          refractionDisplacement = 18.dp,
+          depth = 0.1f,
+          blurRadius = 2.dp,
+        ),
+      )
+      specularIntensity(0.55f)
+      ambientResponse(0.42f)
+      edgeSoftness(1.dp)
+      chromaticAberrationStrength(0.04f)
+      surfaceProfile(SurfaceProfile.Circle)
+      chromaticAberrationMode(ChromaticAberrationMode.Simple)
+      contrast(0.08f)
+      whitePoint(0.02f)
+      chromaMultiplier(1.05f)
+      contentNormalBlend(0.1f)
+      specularExponent(16f)
+      fresnelExponent(2.5f)
+    }
+  }
 }
 
 /**
@@ -388,7 +445,6 @@ internal fun resolveGlassStyleValues(
   localStyle: GlassStyle,
   explicitStyle: GlassStyle,
 ): GlassStyleValues = GlassStyleValues().also { values ->
-  GlassDefaults.style.replay(values)
   localStyle.replay(values)
   explicitStyle.replay(values)
 }

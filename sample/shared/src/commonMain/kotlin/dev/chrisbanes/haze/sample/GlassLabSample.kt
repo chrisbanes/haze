@@ -151,12 +151,12 @@ internal fun GlassLabSampleContent(
 
 @Composable
 public fun GlassLabScreenshotContent(
-  preset: GlassLabPresetId,
+  style: GlassLabStyleId,
   backdrop: GlassGalleryBackdropId,
   modifier: Modifier = Modifier,
 ) {
   GlassLabSampleContent(
-    state = GlassLabState(preset = preset, backdrop = backdrop),
+    state = GlassLabState(styleId = style, backdrop = backdrop),
     recordingMode = true,
     onStateChanged = {},
     onRecordingModeChanged = {},
@@ -268,7 +268,7 @@ private fun LabSpecimen(
         .semantics { contentDescription = "Glass specimen" },
     ) {
       Text(
-        text = state.preset.name,
+        text = state.styleId.name,
         modifier = Modifier.align(Alignment.Center).padding(24.dp),
         style = MaterialTheme.typography.headlineMedium,
         textAlign = TextAlign.Center,
@@ -296,13 +296,13 @@ internal fun LabControls(
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     AnimatedVisibility(visible = !recordingMode) {
-      Text("Choose a material preset", style = MaterialTheme.typography.bodyMedium)
+      Text("Choose a built-in Glass style", style = MaterialTheme.typography.bodyMedium)
     }
     LabChipGroup(
       title = "Material",
-      options = SelectableGlassLabPresets,
-      selected = state.preset,
-      onSelected = { onStateChanged(state.selectPreset(it)) },
+      options = SelectableGlassLabStyles,
+      selected = state.styleId,
+      onSelected = { onStateChanged(state.selectStyle(it)) },
     )
     LabChipGroup(
       title = "Backdrop",
@@ -377,34 +377,24 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
     }
     Text("Lighting", style = MaterialTheme.typography.titleMedium)
     LabSlider("Specular", values.specularIntensity, 0f..1f) { value ->
-      onStateChanged(
-        state.editStyle { it.copy(optics = fixed, specularIntensity = value) },
-      )
+      onStateChanged(state.editStyle { it.copy(specularIntensity = value) })
     }
     LabSlider("Ambient", values.ambientResponse, 0f..1f) { value ->
-      onStateChanged(
-        state.editStyle { it.copy(optics = fixed, ambientResponse = value) },
-      )
+      onStateChanged(state.editStyle { it.copy(ambientResponse = value) })
     }
     Text("Colour", style = MaterialTheme.typography.titleMedium)
     LabSlider("Contrast", values.contrast, -1f..1f) { value ->
-      onStateChanged(state.editStyle { it.copy(optics = fixed, contrast = value) })
+      onStateChanged(state.editStyle { it.copy(contrast = value) })
     }
     LabSlider("Chroma", values.chromaMultiplier, 0f..2f) { value ->
-      onStateChanged(
-        state.editStyle { it.copy(optics = fixed, chromaMultiplier = value) },
-      )
+      onStateChanged(state.editStyle { it.copy(chromaMultiplier = value) })
     }
     Text("Rendering", style = MaterialTheme.typography.titleMedium)
     LabSlider("Edge softness", values.edgeSoftness.value, 0f..24f) { value ->
-      onStateChanged(
-        state.editStyle { it.copy(optics = fixed, edgeSoftness = value.dp) },
-      )
+      onStateChanged(state.editStyle { it.copy(edgeSoftness = value.dp) })
     }
     LabSlider("Chromatic", values.chromaticAberrationStrength, 0f..0.4f) { value ->
-      onStateChanged(
-        state.editStyle { it.copy(optics = fixed, chromaticAberrationStrength = value) },
-      )
+      onStateChanged(state.editStyle { it.copy(chromaticAberrationStrength = value) })
     }
   }
 }

@@ -10,8 +10,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.glass.GlassDefaults
-import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import kotlin.math.PI
 import kotlin.math.cos
@@ -21,7 +19,7 @@ public enum class GlassPlaygroundSurfaceId {
   Lens,
   Pill,
   Card,
-  Prism,
+  Clear,
 }
 
 @Immutable
@@ -31,13 +29,13 @@ internal data class GlassPlaygroundFrame(
   val lensPosition: Offset,
   val pillPosition: Offset,
   val cardPosition: Offset,
-  val prismPosition: Offset,
+  val clearPosition: Offset,
 ) {
   fun position(id: GlassPlaygroundSurfaceId): Offset = when (id) {
     GlassPlaygroundSurfaceId.Lens -> lensPosition
     GlassPlaygroundSurfaceId.Pill -> pillPosition
     GlassPlaygroundSurfaceId.Card -> cardPosition
-    GlassPlaygroundSurfaceId.Prism -> prismPosition
+    GlassPlaygroundSurfaceId.Clear -> clearPosition
   }
 }
 
@@ -67,7 +65,7 @@ internal fun glassPlaygroundFrame(progress: Float): GlassPlaygroundFrame {
       x = orbitX(center = 0.5f, radius = 0.2f, phase = (PI / 2).toFloat()),
       y = 0.72f + 0.06f * wave((PI / 2).toFloat()),
     ),
-    prismPosition = Offset(
+    clearPosition = Offset(
       x = orbitX(center = 0.5f, radius = 0.3f, phase = (3 * PI / 2).toFloat()),
       y = 0.42f + 0.1f * wave((3 * PI / 2).toFloat()),
     ),
@@ -77,22 +75,14 @@ internal fun glassPlaygroundFrame(progress: Float): GlassPlaygroundFrame {
 internal fun glassPlaygroundStyle(id: GlassPlaygroundSurfaceId): GlassStyle = when (id) {
   GlassPlaygroundSurfaceId.Lens,
   GlassPlaygroundSurfaceId.Pill,
-  -> GlassDefaults.style.then { optics(glassPlaygroundOptics(id)) }
-  GlassPlaygroundSurfaceId.Card -> glassLabPresetStyle(GlassLabPresetId.Deep)
-  GlassPlaygroundSurfaceId.Prism -> glassLabPresetStyle(GlassLabPresetId.Prism)
-}
-
-internal fun glassPlaygroundOptics(id: GlassPlaygroundSurfaceId): GlassOptics = when (id) {
-  GlassPlaygroundSurfaceId.Lens,
-  GlassPlaygroundSurfaceId.Pill,
-  -> GlassOptics.Adaptive
-  GlassPlaygroundSurfaceId.Card -> (glassLabPresetValues(GlassLabPresetId.Deep)).optics
-  GlassPlaygroundSurfaceId.Prism -> (glassLabPresetValues(GlassLabPresetId.Prism)).optics
+  GlassPlaygroundSurfaceId.Card,
+  -> GlassStyle.regular
+  GlassPlaygroundSurfaceId.Clear -> GlassStyle.clear
 }
 
 internal fun glassPlaygroundShape(id: GlassPlaygroundSurfaceId): RoundedCornerShape = when (id) {
   GlassPlaygroundSurfaceId.Lens -> RoundedCornerShape(percent = 50)
   GlassPlaygroundSurfaceId.Pill -> RoundedCornerShape(percent = 50)
   GlassPlaygroundSurfaceId.Card -> RoundedCornerShape(32.dp)
-  GlassPlaygroundSurfaceId.Prism -> RoundedCornerShape(24.dp)
+  GlassPlaygroundSurfaceId.Clear -> RoundedCornerShape(24.dp)
 }
