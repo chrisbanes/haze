@@ -130,12 +130,20 @@ internal class HazeSourceNode(
   }
 
   private fun enableSnapshotApplyObserver() {
-    if (snapshotApplyObserver != null) return
+    if (snapshotApplyObserver != null || !isAttached) return
+
+    val nodeScope = coroutineScope
 
     // Descendant layer-property changes may not redraw this node, but their snapshot writes
     // still need to refresh effects hosted in another window.
     snapshotApplyObserver = Snapshot.registerApplyObserver { _, _ ->
-      coroutineScope.launch { schedulePreDraw(snapshotApplied = true) }
+      if (!isAttached) return@registerApplyObserver
+
+      nodeScope.launch {
+        if (isAttached) {
+          schedulePreDraw(snapshotApplied = true)
+        }
+      }
     }
   }
 
@@ -145,7 +153,7 @@ internal class HazeSourceNode(
   }
 
   private fun schedulePreDraw(snapshotApplied: Boolean = false) {
-    if (area.preDrawListeners.isEmpty()) return
+    if (!isAttached || area.preDrawListeners.isEmpty()) return
     if (snapshotApplied) {
       snapshotApplyPending = true
     } else {

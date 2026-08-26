@@ -70,6 +70,18 @@ kotlin {
       }
     }
 
+    named("androidHostTest") {
+      dependencies {
+        implementation(libs.androidx.compose.ui.test.junit4)
+        implementation(libs.compose.material3)
+        implementation(libs.robolectric)
+        implementation(libs.roborazzi.android)
+        implementation(libs.roborazzi.compose)
+        implementation(libs.roborazzi.junit)
+        implementation(projects.internal.screenshotTest)
+      }
+    }
+
     commonTest {
       dependencies {
         implementation(libs.assertk)
