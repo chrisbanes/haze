@@ -505,8 +505,8 @@ class GlassStyleTest {
   }
 
   @Test
-  fun defaults_constructThroughTheValidatedStyleSurface() {
-    val values = resolveGlassStyleValues(GlassStyle, GlassDefaults.style)
+  fun emptyStyles_resolveToGlassDefaults() {
+    val values = resolveGlassStyleValues(GlassStyle, GlassStyle)
 
     assertThat(values.specularIntensity).isEqualTo(GlassDefaults.specularIntensity)
     assertThat(values.ambientResponse).isEqualTo(GlassDefaults.ambientResponse)
@@ -540,7 +540,7 @@ class GlassStyleTest {
 
   @Test
   fun regular_matchesTheDefaultMaterialResponse() {
-    val defaults = resolveGlassStyleValues(GlassStyle, GlassDefaults.style)
+    val defaults = resolveGlassStyleValues(GlassStyle, GlassStyle)
     val regular = resolveGlassStyleValues(GlassStyle, GlassStyle.regular)
 
     assertThat(regular.optics).isEqualTo(defaults.optics)

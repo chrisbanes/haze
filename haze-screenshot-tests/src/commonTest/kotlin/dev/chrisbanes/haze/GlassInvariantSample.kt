@@ -47,7 +47,6 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isTrue
-import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -1726,7 +1725,7 @@ internal fun ScreenshotUiTest.assertGlassMonotonicRefractionVisibleInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val performanceMode = HazePerformanceMode.Quality
   val effect = GlassTestConfiguration().apply {
-    style = GlassDefaults.style
+    style = GlassStyle.regular
     this.shape = shape
     optics = GlassOptics.Fixed(refractionStrength = 0f)
   }

@@ -134,7 +134,7 @@ class GlassRendererLifecycleTest {
 @OptIn(InternalHazeApi::class)
 private class TrackingLifecycleScope(
   override val modifierSize: Size = Size(100f, 100f),
-  var localStyle: GlassStyle = GlassDefaults.style,
+  var localStyle: GlassStyle = GlassStyle,
 ) : HazeEffectLifecycleScope {
   override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext)
 

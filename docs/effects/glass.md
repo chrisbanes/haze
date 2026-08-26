@@ -104,7 +104,7 @@ building the Style. The generated API reference documents the accepted range for
 
 `GlassStyle` is immutable and safe to share. Build a base Style, use `then` for variations, and
 provide a replacement Style through recomposition when the appearance changes. Values omitted by
-the replacement fall back to `LocalGlassStyle` and then `GlassDefaults.style`.
+the replacement fall back to `LocalGlassStyle` and then the individual `GlassDefaults` values.
 
 A Style captures its inputs when it is constructed. Changing captured state does not update an
 existing Style; construct and provide a replacement instead.
@@ -143,11 +143,11 @@ val movingLighting = GlassStyle {
 }
 ```
 
-## Default style
+## Style defaults
 
-`GlassDefaults.style` has the same material response as `GlassStyle.regular`. Use
-`LocalGlassStyle` to set a default for a subtree, and pass an explicit Style when one element
-needs to differ.
+`GlassStyle.regular` is the default built-in material response. Individual omitted values fall back
+to `GlassDefaults`. Use `LocalGlassStyle` to set a default for a subtree, and pass an explicit Style
+when one element needs to differ.
 
 ```kotlin
 Box(

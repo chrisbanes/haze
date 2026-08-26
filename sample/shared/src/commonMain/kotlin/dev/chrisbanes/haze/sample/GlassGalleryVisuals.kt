@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.GlassTransformPivot
@@ -190,7 +189,7 @@ internal fun DemoChrome(
   val shape = RoundedCornerShape(24.dp)
   GlassSurface(
     hazeState = hazeState,
-    style = GlassDefaults.style.then {
+    style = GlassStyle.regular.then {
       tint(Color.Black.copy(alpha = 0.08f))
     },
     shape = shape,

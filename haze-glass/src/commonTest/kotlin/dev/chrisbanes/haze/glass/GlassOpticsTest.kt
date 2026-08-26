@@ -18,7 +18,7 @@ class GlassOpticsTest {
   @Test
   fun adaptive_isTheDefaultOptics() {
     assertThat(GlassDefaults.optics).isEqualTo(GlassOptics.Adaptive)
-    assertThat(resolveGlassStyleValues(GlassStyle, GlassDefaults.style).optics)
+    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).optics)
       .isEqualTo(GlassOptics.Adaptive)
   }
 

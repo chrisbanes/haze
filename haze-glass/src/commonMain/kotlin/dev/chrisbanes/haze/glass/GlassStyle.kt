@@ -26,8 +26,9 @@ import dev.chrisbanes.haze.Poko
 /**
  * A [ProvidableCompositionLocal] which provides inherited Glass appearance.
  *
- * A Glass node replays [GlassDefaults.style], this Style, and its explicit [GlassStyle] in that
- * order. Each node uses a fresh accumulator, so a Style may be shared safely by concurrent nodes.
+ * A Glass node starts with [GlassDefaults], then replays this Style and its explicit [GlassStyle]
+ * in that order. Each node uses a fresh accumulator, so a Style may be shared safely by concurrent
+ * nodes.
  */
 @ExperimentalHazeApi
 public val LocalGlassStyle: ProvidableCompositionLocal<GlassStyle> =
@@ -76,19 +77,19 @@ public sealed interface GlassStyle {
      * position, and interaction presentation.
      */
     public val regular: GlassStyle = GlassStyle {
-      optics(RegularGlassStyleValues.optics)
-      specularIntensity(RegularGlassStyleValues.specularIntensity)
-      ambientResponse(RegularGlassStyleValues.ambientResponse)
-      edgeSoftness(RegularGlassStyleValues.edgeSoftness)
-      chromaticAberrationStrength(RegularGlassStyleValues.chromaticAberrationStrength)
-      surfaceProfile(RegularGlassStyleValues.surfaceProfile)
-      chromaticAberrationMode(RegularGlassStyleValues.chromaticAberrationMode)
-      contrast(RegularGlassStyleValues.contrast)
-      whitePoint(RegularGlassStyleValues.whitePoint)
-      chromaMultiplier(RegularGlassStyleValues.chromaMultiplier)
-      contentNormalBlend(RegularGlassStyleValues.contentNormalBlend)
-      specularExponent(RegularGlassStyleValues.specularExponent)
-      fresnelExponent(RegularGlassStyleValues.fresnelExponent)
+      optics(GlassDefaults.optics)
+      specularIntensity(GlassDefaults.specularIntensity)
+      ambientResponse(GlassDefaults.ambientResponse)
+      edgeSoftness(GlassDefaults.edgeSoftness)
+      chromaticAberrationStrength(GlassDefaults.chromaticAberrationStrength)
+      surfaceProfile(GlassDefaults.surfaceProfile)
+      chromaticAberrationMode(GlassDefaults.chromaticAberrationMode)
+      contrast(GlassDefaults.contrast)
+      whitePoint(GlassDefaults.whitePoint)
+      chromaMultiplier(GlassDefaults.chromaMultiplier)
+      contentNormalBlend(GlassDefaults.contentNormalBlend)
+      specularExponent(GlassDefaults.specularExponent)
+      fresnelExponent(GlassDefaults.fresnelExponent)
     }
 
     /**
@@ -444,7 +445,6 @@ internal fun resolveGlassStyleValues(
   localStyle: GlassStyle,
   explicitStyle: GlassStyle,
 ): GlassStyleValues = GlassStyleValues().also { values ->
-  GlassDefaults.style.replay(values)
   localStyle.replay(values)
   explicitStyle.replay(values)
 }

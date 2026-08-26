@@ -11,7 +11,6 @@ package dev.chrisbanes.haze.glass {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getOptics();
     method @InaccessibleFromKotlin public androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.geometry.Offset> getPositionAnimationSpec();
     method @InaccessibleFromKotlin public androidx.compose.foundation.shape.RoundedCornerShape getShape();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassStyle getStyle();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SurfaceProfile getSurfaceProfile();
     property public static float alpha;
     property public static float ambientResponse;
@@ -29,7 +28,6 @@ package dev.chrisbanes.haze.glass {
     property public androidx.compose.foundation.shape.RoundedCornerShape shape;
     property public static float specularExponent;
     property public static float specularIntensity;
-    property public dev.chrisbanes.haze.glass.GlassStyle style;
     property public dev.chrisbanes.haze.glass.SurfaceProfile surfaceProfile;
     property public androidx.compose.ui.graphics.Color tint;
     property public static float whitePoint;

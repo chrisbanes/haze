@@ -20,10 +20,9 @@ import dev.chrisbanes.haze.hazeEffect
  * Draws a Glass material using an explicit Haze [input].
  *
  * [style] is an immutable sequence of appearance writes recorded when its builder executes. Haze
- * replays [GlassDefaults.style] → [LocalGlassStyle] → [style] into a fresh snapshot owned by this
- * modifier node without invoking any Style builder. The same Style may therefore be shared by
- * concurrent nodes. Each node independently owns and animates the recorded hover, focus, and press
- * responses.
+ * initializes a fresh snapshot from [GlassDefaults], then replays [LocalGlassStyle] → [style]
+ * without invoking any Style builder. The same Style may therefore be shared by concurrent nodes.
+ * Each node independently owns and animates the recorded hover, focus, and press responses.
  *
  * Values captured by a previously constructed Style do not update when they are mutated. To update
  * appearance, construct and supply a replacement Style through recomposition.

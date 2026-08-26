@@ -47,7 +47,6 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
-import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
@@ -325,7 +324,7 @@ internal fun profilingGlassStyle(
   scenario: GlassProfilingScenario,
   frame: GlassProfilingFrame,
   backgroundColor: Color,
-): GlassStyle = GlassDefaults.style.then {
+): GlassStyle = GlassStyle.regular.then {
   backgroundColor(backgroundColor)
   scenario.opticsOverride?.let(::optics)
   if (scenario.fullChroma) {

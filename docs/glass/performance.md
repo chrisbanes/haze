@@ -77,7 +77,7 @@ overrun**, in milliseconds; a negative overrun is margin below the 60 Hz frame b
 | Stable source | 6.6 / -7.1 | 8.2 / -1.7 | 8.9 / -4.0 | 7.2 / -6.5 |
 | Continuously changing source | 6.5 / -7.3 | 8.2 / -1.6 | 8.3 / -4.5 | 6.9 / -6.9 |
 
-The calibration keeps the rest of `GlassDefaults.style` unchanged. It compares the named built-in
+The calibration keeps the other `GlassDefaults` values unchanged. It compares the named built-in
 profiles under controlled input; it is not a guarantee for another layout, device, or visual
 configuration.
 

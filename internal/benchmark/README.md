@@ -28,7 +28,8 @@ frame overrun, and peak memory; Blur rows record frame timing and frame overrun.
 
 ## Controlled scenario baseline
 
-Controlled Glass calibration scenarios start from the unmodified `GlassDefaults.style`.
+Controlled Glass calibration scenarios start from `GlassStyle.regular` with unmodified presentation
+defaults.
 `stable_adaptive`, `stable_quality`, `stable_balanced`, and `stable_performance` therefore differ
 only in `HazePerformanceMode`; they use adaptive optics, the default shape, and all default
 lighting, color, and rendering values. `steady_full_3` and `steady_full_9` retain the historical
