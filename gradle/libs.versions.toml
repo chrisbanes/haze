@@ -68,7 +68,7 @@ androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-mani
 
 androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
 
-androidx-tracing = "androidx.tracing:tracing-ktx:2.0.0"
+androidx-tracing = "androidx.tracing:tracing-ktx:2.0.1"
 
 compose-material-icons = "org.jetbrains.compose.material:material-icons-core:1.7.3"
 compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
