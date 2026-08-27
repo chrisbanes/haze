@@ -34,6 +34,9 @@ android {
 
 kotlin {
   addDefaultHazeTargets()
+  js {
+    binaries.executable()
+  }
   explicitApi()
 
   sourceSets {
