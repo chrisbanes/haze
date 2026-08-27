@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+* Upgraded to Compose Multiplatform 1.12.0 in 1267. Thanks to [mhammadjaber00](https://github.com/mhammadjaber00)
+
+### Key dependencies
+
+  - Kotlin 2.3.20
+  - Compose Multiplatform 1.12.0
+
 ## 1.7.1 <small>2025-11-24</small> { id="1.7.1" }
 
 ### Changed
