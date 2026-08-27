@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 2.0.0-beta02 <small>2026-08-27</small> { id="2.0.0-beta02" }
+
 ### Added
 
 - Added `GlassStyle.regular` and `GlassStyle.clear` as built-in Glass styles. Regular keeps the
