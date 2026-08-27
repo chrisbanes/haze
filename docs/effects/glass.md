@@ -2,8 +2,7 @@
 
 A refraction-driven Glass effect that combines refraction, depth blur, tint, Fresnel/ambient lift, and specular highlights with optional rounded shapes and dispersion.
 
-!!! warning "Experimental"
-    This module is experimental and may change or be removed in future releases. APIs are gated behind `@ExperimentalHazeApi`.
+![type:video](../media/glass.mp4)
 
 ## Download
 
