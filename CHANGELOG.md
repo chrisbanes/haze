@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added `GlassStyle.regular` and `GlassStyle.clear` as built-in Glass styles. Regular keeps the
+  geometry-adaptive material response, while Clear prioritizes visibility of content behind the
+  material. The optional `haze-glass-material3` artifact adds `GlassStyle.material3()` for applying
+  Material 3 defaults to either built-in or custom styles
+  ([#1264](https://github.com/chrisbanes/haze/pull/1264)).
+
+### Changed
+
+- Updated Compose Multiplatform and Jetpack Compose to 1.12.0
+  ([#1252](https://github.com/chrisbanes/haze/pull/1252),
+  [#1253](https://github.com/chrisbanes/haze/pull/1253)).
+
+### Fixed
+
+- Prevented snapshot observers from accessing detached Haze source nodes during Android activity
+  teardown ([#1262](https://github.com/chrisbanes/haze/pull/1262)).
+
+### Removed
+
+- Removed `GlassDefaults.style`; use `GlassStyle.regular`, `GlassStyle.clear`, or compose a custom
+  style instead ([#1264](https://github.com/chrisbanes/haze/pull/1264)).
+
 ## 2.0.0-beta01 <small>2026-08-20</small> { id="2.0.0-beta01" }
 
 ### Added
