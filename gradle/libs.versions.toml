@@ -2,7 +2,7 @@
 agp = "9.3.2"
 androidx-activity = "1.13.0"
 androidx-benchmark = "1.5.0-rc01"
-androidx-camera = "1.6.1"
+androidx-camera = "1.6.2"
 androidx-collection = "1.6.0"
 androidx-lifecycle = "2.11.0"
 androidx-media3 = "1.11.0"
