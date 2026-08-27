@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>dev.chrisbanes.haze</groupId>
+  <artifactId>haze</artifactId>
+  <versioning>
+    <latest>2.0.1-SNAPSHOT</latest>
+    <versions>
+      <version>2.0.0-SNAPSHOT</version>
+      <version>2.0.1-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20260827072655</lastUpdated>
+  </versioning>
+</metadata>
