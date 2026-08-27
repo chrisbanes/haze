@@ -34,6 +34,10 @@ android {
 
 kotlin {
   addDefaultHazeTargets()
+  @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+  wasmJs {
+    binaries.executable()
+  }
   js {
     binaries.executable()
   }
