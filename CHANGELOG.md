@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 1.7.3 <small>2026-08-27</small> { id="1.7.3" }
+
 ### Changed
 
 * Upgraded to Compose Multiplatform 1.12.0 in 1267. Thanks to [mhammadjaber00](https://github.com/mhammadjaber00)
