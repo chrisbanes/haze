@@ -103,13 +103,9 @@ package dev.chrisbanes.haze.glass {
   }
 
   @kotlin.jvm.JvmInline public static final value class GlassOptics.SizeValue.Interpolated<T> implements dev.chrisbanes.haze.glass.GlassOptics.SizeValue<T> {
+    ctor @KotlinOnly public <T> GlassOptics.SizeValue.Interpolated(java.util.Collection<dev.chrisbanes.haze.glass.GlassOptics.SizePoint<T>> points);
     method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.glass.GlassOptics.SizePoint<T>> getPoints();
     property public java.util.List<dev.chrisbanes.haze.glass.GlassOptics.SizePoint<T>> points;
-    field public static final dev.chrisbanes.haze.glass.GlassOptics.SizeValue.Interpolated.Companion Companion;
-  }
-
-  public static final class GlassOptics.SizeValue.Interpolated.Companion {
-    method @KotlinOnly public operator <T> dev.chrisbanes.haze.glass.GlassOptics.SizeValue.Interpolated<T> invoke(java.util.List<dev.chrisbanes.haze.glass.GlassOptics.SizePoint<T>> points);
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public enum GlassReducedMotionPolicy {

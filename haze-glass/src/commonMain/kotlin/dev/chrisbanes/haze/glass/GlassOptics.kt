@@ -82,26 +82,23 @@ public data class GlassOptics(
       /** The ordered interpolation points. */
       public val points: List<SizePoint<T>>,
     ) : SizeValue<T> {
-      /** Factory methods for [Interpolated]. */
-      public companion object {
-        /** Creates an immutable interpolated value from at least two ordered points. */
-        public operator fun <T> invoke(points: List<SizePoint<T>>): Interpolated<T> {
-          val snapshot = points.toList()
-          require(snapshot.size >= 2) { "points must contain at least two values" }
-          snapshot.forEachIndexed { index, point ->
-            require(point.shortestDimension.value.isFinite()) {
-              "points[$index].shortestDimension must be finite"
-            }
-            require(point.shortestDimension > 0.dp) {
-              "points[$index].shortestDimension must be positive"
-            }
-            if (index > 0) {
-              require(point.shortestDimension > snapshot[index - 1].shortestDimension) {
-                "points shortest dimensions must be strictly increasing"
-              }
+      /** Creates an immutable interpolated value from at least two ordered [points]. */
+      public constructor(points: Collection<SizePoint<T>>) : this(points.toList())
+
+      init {
+        require(points.size >= 2) { "points must contain at least two values" }
+        points.forEachIndexed { index, point ->
+          require(point.shortestDimension.value.isFinite()) {
+            "points[$index].shortestDimension must be finite"
+          }
+          require(point.shortestDimension > 0.dp) {
+            "points[$index].shortestDimension must be positive"
+          }
+          if (index > 0) {
+            require(point.shortestDimension > points[index - 1].shortestDimension) {
+              "points shortest dimensions must be strictly increasing"
             }
           }
-          return Interpolated(snapshot)
         }
       }
     }

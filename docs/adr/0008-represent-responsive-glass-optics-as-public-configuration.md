@@ -23,7 +23,7 @@ least two valid points in strictly increasing dimension order. This revises ADR-
 boundary without changing its decision to expose Regular and Clear as built-in Glass styles.
 
 `SizeValue.Fixed<T>` and `SizeValue.Interpolated<T>` are single-field domain values and therefore
-use `@JvmInline value class`; the interpolated variant uses a private constructor and snapshotting
-factory to preserve list immutability. `SizePoint<T>` and `GlassOptics` remain data classes because
-they contain multiple independent values. Using the variants through `SizeValue<T>` may box them, so
-this choice states the domain model rather than promising an allocation optimization.
+use `@JvmInline value class`; the interpolated variant snapshots its public constructor input before
+the `init` block validates it. `SizePoint<T>` and `GlassOptics` remain data classes because they
+contain multiple independent values. Using the variants through `SizeValue<T>` may box them, so this
+choice states the domain model rather than promising an allocation optimization.
