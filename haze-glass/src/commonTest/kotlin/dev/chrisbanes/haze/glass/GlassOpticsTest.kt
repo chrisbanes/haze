@@ -9,8 +9,10 @@ import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
+import assertk.assertions.isTrue
 import kotlin.test.Test
 
 class GlassOpticsTest {
@@ -77,6 +79,15 @@ class GlassOpticsTest {
     assertThat(maximum.depth).isEqualTo(1f)
     assertThat(maximum.blurRadius).isEqualTo(Float.MAX_VALUE.dp)
     assertThat(maximum.progressive).isNull()
+  }
+
+  @Test
+  fun clearMarker_hasDistinctRuntimeBehaviorFromEqualCallerFixedOptics() {
+    val callerFixed = BuiltInClearGlassOptics.copy()
+
+    assertThat(BuiltInClearGlassOptics.hasSameRuntimeBehaviorAs(BuiltInClearGlassOptics)).isTrue()
+    assertThat(BuiltInClearGlassOptics.hasSameRuntimeBehaviorAs(callerFixed)).isFalse()
+    assertThat(callerFixed.hasSameRuntimeBehaviorAs(callerFixed.copy())).isTrue()
   }
 }
 

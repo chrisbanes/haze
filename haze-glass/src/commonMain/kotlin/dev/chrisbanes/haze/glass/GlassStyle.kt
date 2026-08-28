@@ -95,21 +95,13 @@ public sealed interface GlassStyle {
     /**
      * A built-in Glass style that prioritizes visibility of content behind the material.
      *
-     * Its fixed optics and distinct edge and lighting response remain recognizable when a renderer
-     * simplifies advanced optical effects. It writes the complete material response while preserving
-     * separately composed shape, background colour, tint, alpha, light position, and interaction
-     * presentation.
+     * Its blur and depth adapt to the material's shortest side while its authored refraction and
+     * distinct edge and lighting response remain recognizable when a renderer simplifies advanced
+     * optical effects. It writes the complete material response while preserving separately composed
+     * shape, background colour, tint, alpha, light position, and interaction presentation.
      */
     public val clear: GlassStyle = GlassStyle {
-      optics(
-        GlassOptics.Fixed(
-          refractionStrength = 0.85f,
-          refractionHeightFraction = 0.22f,
-          refractionDisplacement = 18.dp,
-          depth = 0.1f,
-          blurRadius = 2.dp,
-        ),
-      )
+      optics(BuiltInClearGlassOptics)
       specularIntensity(0.55f)
       ambientResponse(0.42f)
       edgeSoftness(1.dp)

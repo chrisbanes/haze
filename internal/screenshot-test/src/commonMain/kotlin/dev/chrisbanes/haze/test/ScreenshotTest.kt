@@ -17,6 +17,7 @@ expect fun ScreenshotTest.runScreenshotTest(
 
 interface ScreenshotUiTest {
   val supportsRuntimeBlur: Boolean
+  val supportsRuntimeShader: Boolean
   fun setContent(content: @Composable () -> Unit)
   fun captureRoot(
     nameSuffix: String? = null,

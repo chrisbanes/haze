@@ -68,9 +68,10 @@ reverses so incoming content can appear inverted near the glass boundary. This m
 for reusable components.
 
 `GlassStyle.clear` is the alternative built-in style for surfaces that should keep more of the
-background visible. It uses fixed authored optics and a distinct edge and lighting response, so it
-also remains recognizable on renderers that simplify advanced optical effects. These are Haze
-styles informed by the platform distinction; they do not promise pixel parity with another system.
+background visible. Its blur and depth increase smoothly with the surface's shortest side, while
+its authored refraction and distinct edge and lighting response remain recognizable on renderers
+that simplify advanced optical effects. These are Haze styles informed by the platform distinction;
+they do not promise pixel parity with another system.
 
 ```kotlin
 Modifier.hazeGlass(

@@ -163,6 +163,24 @@ They characterize Xcode 26.3 / iOS 26.3 simulator rendering of this dark-grid
 scene only, and are neither an Apple API contract nor a general claim about
 other content, devices, OS builds, or accessibility settings.
 
+### Haze built-in calibration — 2026-08-28
+
+The matching Haze JVM fixture uses the same surface sizes, grid spacing, and
+interior masks. After calibrating the built-in size responses, its measured
+gradient retention is:
+
+| Surface | iOS Regular | Haze Regular | iOS Clear | Haze Clear |
+| --- | ---: | ---: | ---: | ---: |
+| Capsule | 0.959 | 0.949 | 1.000 | 0.954 |
+| Card | 0.457 | 0.424 | 0.553 | 0.575 |
+| Panel | 0.287 | 0.279 | 0.343 | 0.335 |
+
+The Haze values are regression evidence for this renderer and fixture, not a
+cross-platform parity promise. The built-in responses interpolate smoothly
+between the calibrated 64 dp, 176 dp, and 220 dp shortest-side anchors. Their
+blur radii are 4 dp, 10 dp, and 15 dp for Regular, and 2 dp, 6 dp, and 8 dp for
+Clear. Public `GlassOptics.Fixed` values remain geometry-independent.
+
 ### What requires empirical rendering
 
 Public sources do not reveal the numeric mapping from content, size, state, or

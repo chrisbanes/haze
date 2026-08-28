@@ -17,7 +17,8 @@ public sealed interface GlassOptics {
   /**
    * Geometry-adaptive optics used by [GlassStyle.regular].
    *
-   * Its optical response adapts to the material's size, aspect ratio, and roundness.
+   * Its blur and depth adapt to the material's size, while its refraction response also adapts to
+   * aspect ratio and roundness.
    * Its adaptive blur scaling is applied after the [Fixed] blur-radius cap, so its effective
    * blur radius can exceed that cap.
    */
@@ -79,3 +80,16 @@ public sealed interface GlassOptics {
     }
   }
 }
+
+/** Library-owned marker value used only by [GlassStyle.clear]. */
+internal val BuiltInClearGlassOptics = GlassOptics.Fixed(
+  refractionStrength = 0.85f,
+  refractionHeightFraction = 0.22f,
+  refractionDisplacement = 18.dp,
+  depth = 0.1f,
+  blurRadius = 2.dp,
+)
+
+internal fun GlassOptics?.hasSameRuntimeBehaviorAs(other: GlassOptics?): Boolean =
+  this == other &&
+    (this === BuiltInClearGlassOptics) == (other === BuiltInClearGlassOptics)

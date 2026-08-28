@@ -59,6 +59,7 @@ actual fun ScreenshotTest.runScreenshotTest(
 private fun createScreenshotUiTest(rule: AndroidComposeTestRule<*, *>) =
   object : ScreenshotUiTest {
     override val supportsRuntimeBlur: Boolean = Build.VERSION.SDK_INT >= 31
+    override val supportsRuntimeShader: Boolean = Build.VERSION.SDK_INT >= 33
 
     override fun setContent(content: @Composable () -> Unit) {
       rule.setContent(content)

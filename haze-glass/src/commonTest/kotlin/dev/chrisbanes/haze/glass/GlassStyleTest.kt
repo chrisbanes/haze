@@ -532,7 +532,7 @@ class GlassStyleTest {
     val clear = resolveGlassStyleValues(GlassStyle, GlassStyle.clear)
 
     assertThat(regular.optics).isSameInstanceAs(GlassOptics.Adaptive)
-    assertThat(clear.optics).isInstanceOf<GlassOptics.Fixed>()
+    assertThat(clear.optics).isSameInstanceAs(BuiltInClearGlassOptics)
     assertThat(clear.optics).isNotEqualTo(regular.optics)
     assertThat(clear.edgeSoftness).isNotEqualTo(regular.edgeSoftness)
     assertThat(clear.specularIntensity).isNotEqualTo(regular.specularIntensity)
@@ -613,11 +613,16 @@ class GlassStyleTest {
 
   @Test
   fun builtInStyle_allowsLaterCustomMaterialWritesToWin() {
+    val fixedOptics = GlassOptics.Fixed(depth = 0.7f, blurRadius = 24.dp)
     val resolved = resolveGlassStyleValues(
       GlassStyle,
-      GlassStyle.clear.then { contrast(-0.3f) },
+      GlassStyle.clear.then {
+        optics(fixedOptics)
+        contrast(-0.3f)
+      },
     )
 
+    assertThat(resolved.optics).isSameInstanceAs(fixedOptics)
     assertThat(resolved.contrast).isEqualTo(-0.3f)
   }
 

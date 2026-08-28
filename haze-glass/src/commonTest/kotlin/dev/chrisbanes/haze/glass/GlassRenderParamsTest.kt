@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -23,6 +24,7 @@ import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.hasMessage
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
@@ -698,6 +700,78 @@ class GlassRenderParamsTest {
   }
 
   @Test
+  fun builtInStyles_lerpBlurAndDepthByShortestSide() {
+    fun resolve(optics: GlassOptics, shortestSide: Dp): ResolvedGlassOptics =
+      resolveGlassOptics(
+        optics = optics,
+        materialSizePx = Size(280f, shortestSide.value),
+        density = Density(1f),
+        cornerRadiiPx = CornerRadii.zero,
+      )
+
+    val clearSmall = resolve(BuiltInClearGlassOptics, 64.dp)
+    val clearMedium = resolve(BuiltInClearGlassOptics, 176.dp)
+    val clearLarge = resolve(BuiltInClearGlassOptics, 220.dp)
+    assertThat(clearSmall.depth).isEqualTo(0.1f)
+    assertThat(clearSmall.blurRadiusPx).isEqualTo(2f)
+    assertThat(clearMedium.depth).isEqualTo(0.32f)
+    assertThat(clearMedium.blurRadiusPx).isEqualTo(6f)
+    assertThat(clearLarge.depth).isEqualTo(0.52f)
+    assertThat(clearLarge.blurRadiusPx).isEqualTo(8f)
+
+    val regularSmall = resolve(GlassOptics.Adaptive, 64.dp)
+    val regularMedium = resolve(GlassOptics.Adaptive, 176.dp)
+    val regularLarge = resolve(GlassOptics.Adaptive, 220.dp)
+    assertThat(regularSmall.depth).isEqualTo(0f)
+    assertThat(regularSmall.blurRadiusPx).isCloseTo(4f, 0.000001f)
+    assertThat(regularMedium.depth).isEqualTo(0.4f)
+    assertThat(regularMedium.blurRadiusPx).isCloseTo(10f, 0.000001f)
+    assertThat(regularLarge.depth).isEqualTo(0.56f)
+    assertThat(regularLarge.blurRadiusPx).isCloseTo(15f, 0.000001f)
+  }
+
+  @Test
+  fun builtInStyles_areDensityAndRotationInvariant() {
+    listOf(GlassOptics.Adaptive, BuiltInClearGlassOptics).forEach { optics ->
+      val first = resolveGlassOptics(
+        optics = optics,
+        materialSizePx = Size(280f, 176f),
+        density = Density(1f),
+        cornerRadiiPx = CornerRadii.zero,
+      )
+      val second = resolveGlassOptics(
+        optics = optics,
+        materialSizePx = Size(352f, 560f),
+        density = Density(2f),
+        cornerRadiiPx = CornerRadii.zero,
+      )
+
+      assertThat(second.depth).isEqualTo(first.depth)
+      assertThat(second.blurRadiusPx / 2f).isCloseTo(first.blurRadiusPx, 0.000001f)
+    }
+  }
+
+  @Test
+  fun callerFixedOptics_equalToClearMarkerRemainGeometryIndependent() {
+    val callerFixed = BuiltInClearGlassOptics.copy()
+    val materialSize = Size(320f, 220f)
+    val density = Density(1f)
+    val builtIn = resolveGlassOptics(
+      BuiltInClearGlassOptics,
+      materialSize,
+      density,
+      CornerRadii.zero,
+    )
+    val caller = resolveGlassOptics(callerFixed, materialSize, density, CornerRadii.zero)
+
+    assertThat(callerFixed).isEqualTo(BuiltInClearGlassOptics)
+    assertThat(caller.depth).isEqualTo(callerFixed.depth)
+    assertThat(caller.blurRadiusPx).isEqualTo(callerFixed.blurRadius.value)
+    assertThat(builtIn.depth).isEqualTo(0.52f)
+    assertThat(builtIn.blurRadiusPx).isEqualTo(8f)
+  }
+
+  @Test
   fun adaptiveOptics_omitOptionalSharpRefractionDetail() {
     val resolved = resolveGlassOptics(
       optics = GlassOptics.Adaptive,
@@ -761,22 +835,22 @@ class GlassRenderParamsTest {
 
   @Test
   fun adaptiveOptics_clampToSupportedDomainAndAreContinuous() {
-    fun response(shortSideDp: Float) = calculateAdaptiveGeometryResponseForLogicalGeometry(
-      shortestSideDp = shortSideDp,
+    fun response(shortestSide: Dp) = calculateAdaptiveGeometryResponseForLogicalGeometry(
+      shortestSide = shortestSide,
       aspectRatio = 1.5f,
       symmetricRoundness = 0.5f,
     )
 
-    assertThat(response(1f)).isEqualTo(response(48f))
-    assertThat(response(1_000f)).isEqualTo(response(176f))
-    assertResponseDeltaBelow(response(175.99f), response(176.01f), 0.001f)
+    assertThat(response(1.dp)).isEqualTo(response(64.dp))
+    assertThat(response(1_000.dp)).isEqualTo(response(220.dp))
+    assertResponseDeltaBelow(response(219.99.dp), response(220.01.dp), 0.001f)
   }
 
   @Test
   fun adaptiveOptics_clampAspectAndRoundness() {
     fun response(aspect: Float, roundness: Float) =
       calculateAdaptiveGeometryResponseForLogicalGeometry(
-        shortestSideDp = 112f,
+        shortestSide = 112.dp,
         aspectRatio = aspect,
         symmetricRoundness = roundness,
       )
@@ -832,7 +906,7 @@ class GlassRenderParamsTest {
         CornerRadii(0f, 0f, 0f, Float.POSITIVE_INFINITY),
       ),
       calculateAdaptiveGeometryResponseForLogicalGeometry(
-        shortestSideDp = Float.POSITIVE_INFINITY,
+        shortestSide = Float.POSITIVE_INFINITY.dp,
         aspectRatio = 1.5f,
         symmetricRoundness = 0.5f,
       ),
@@ -846,16 +920,16 @@ class GlassRenderParamsTest {
   @Test
   fun adaptiveOptics_defaultStrengthOutputsAreFiniteAndBounded() {
     val responses = listOf(
-      calculateAdaptiveGeometryResponseForLogicalGeometry(48f, 1f, 0f),
-      calculateAdaptiveGeometryResponseForLogicalGeometry(112f, 1.5f, 0.5f),
-      calculateAdaptiveGeometryResponseForLogicalGeometry(176f, 3.5f, 1f),
+      calculateAdaptiveGeometryResponseForLogicalGeometry(64.dp, 1f, 0f),
+      calculateAdaptiveGeometryResponseForLogicalGeometry(142.dp, 1.5f, 0.5f),
+      calculateAdaptiveGeometryResponseForLogicalGeometry(220.dp, 3.5f, 1f),
     ).map { it.resolve(refractionStrength = 0.7f) }
 
     responses.forEach { response ->
       response.values().forEach { value ->
         assertThat(value.isFinite()).isEqualTo(true)
       }
-      assertThat(response.blurScale in 0.51f..1.07f).isEqualTo(true)
+      assertThat(response.blurScale in 0.285f..1.072f).isEqualTo(true)
       assertThat(response.displacementScale in 3.1f..3.38f).isEqualTo(true)
       assertThat(response.reachScale in 2.295f..2.505f).isEqualTo(true)
       assertThat(response.toneGain).isEqualTo(1f)
@@ -865,23 +939,23 @@ class GlassRenderParamsTest {
 
   @Test
   fun adaptiveOptics_useIndependentGeometryFeatures() {
-    val small = calculateAdaptiveGeometryResponseForLogicalGeometry(48f, 1f, 0f)
-    val large = calculateAdaptiveGeometryResponseForLogicalGeometry(176f, 1f, 0f)
-    val elongated = calculateAdaptiveGeometryResponseForLogicalGeometry(48f, 3.5f, 0f)
-    val rounded = calculateAdaptiveGeometryResponseForLogicalGeometry(48f, 1f, 1f)
+    val small = calculateAdaptiveGeometryResponseForLogicalGeometry(64.dp, 1f, 0f)
+    val large = calculateAdaptiveGeometryResponseForLogicalGeometry(220.dp, 1f, 0f)
+    val elongated = calculateAdaptiveGeometryResponseForLogicalGeometry(64.dp, 3.5f, 0f)
+    val rounded = calculateAdaptiveGeometryResponseForLogicalGeometry(64.dp, 1f, 1f)
 
-    assertThat(small).isEqualTo(AdaptiveGeometryResponse(0.3f, 4f, 3f * 0.95f, 1f, 0f))
-    assertThat(large).isEqualTo(AdaptiveGeometryResponse(1.1f, 4f, 3f * 0.95f, 1f, 0f))
-    assertThat(elongated).isEqualTo(
-      AdaptiveGeometryResponse(0.3f, 4f * 1.1f, 3f * 0.95f, 1f, 0f),
-    )
-    assertThat(rounded).isEqualTo(AdaptiveGeometryResponse(0.3f, 4f, 3f * 1.05f, 1f, 0f))
+    assertThat(small.resolve(0.7f).blurScale * 14f).isCloseTo(4f, 0.000001f)
+    assertThat(large.resolve(0.7f).blurScale * 14f).isCloseTo(15f, 0.000001f)
+    assertThat(elongated.blurScale).isEqualTo(small.blurScale)
+    assertThat(elongated.displacementScale).isEqualTo(4f * 1.1f)
+    assertThat(rounded.blurScale).isEqualTo(small.blurScale)
+    assertThat(rounded.reachScale).isEqualTo(3f * 1.05f)
   }
 
   @Test
   fun adaptiveOptics_areContinuousAcrossSupportedSizes() {
-    val responses = (48..240).map { shortestSideDp ->
-      calculateAdaptiveGeometryResponseForLogicalGeometry(shortestSideDp.toFloat(), 1.5f, 0.5f)
+    val responses = (64..240).map { shortestSideDp ->
+      calculateAdaptiveGeometryResponseForLogicalGeometry(shortestSideDp.dp, 1.5f, 0.5f)
     }
 
     responses.zipWithNext().forEach { (first, second) ->
@@ -1239,7 +1313,7 @@ class GlassRenderParamsTest {
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(0.dp)
     }
-    val rect = Rect(0f, 0f, 400f, 200f)
+    val rect = Rect(0f, 0f, 440f, 220f)
     val density = Density(1f)
     val padding = -effect.calculateLayerBounds(rect, density).left
     val resolved = resolveGlassOptics(
