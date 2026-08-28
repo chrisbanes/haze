@@ -27,8 +27,27 @@ public object GlassDefaults {
     stiffness = Spring.StiffnessMedium,
   )
 
-  /** Default geometry-aware Haze optical material. */
-  public val optics: GlassOptics = GlassOptics.Adaptive
+  /** Default size-aware Haze optical material. */
+  public val optics: GlassOptics = GlassOptics(
+    depth = GlassOptics.SizeValue.Interpolated(
+      listOf(
+        GlassOptics.SizePoint(64.dp, 0f),
+        GlassOptics.SizePoint(176.dp, 0.4f),
+        GlassOptics.SizePoint(220.dp, 0.56f),
+      ),
+    ),
+    blurRadius = GlassOptics.SizeValue.Interpolated(
+      listOf(
+        GlassOptics.SizePoint(64.dp, 4.dp),
+        GlassOptics.SizePoint(176.dp, 10.dp),
+        GlassOptics.SizePoint(220.dp, 15.dp),
+      ),
+    ),
+    refractionDisplacement = 48.dp,
+    refractionHeightFraction = 0.6f,
+    refractionFoldStrength = 0.65f,
+    refractionDetailIntensity = 0f,
+  )
 
   /** Default intensity of specular highlights, in the range `0f..1f`. */
   public const val specularIntensity: Float = 0.4f

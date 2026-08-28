@@ -221,10 +221,10 @@ class GlassScreenshotTest : ScreenshotTest() {
       GlassStyle {
         tint(Color.White.copy(alpha = 0.08f))
         optics(
-          GlassOptics.Fixed(
+          GlassOptics(
             refractionStrength = 0f,
-            depth = 1f,
-            blurRadius = 0.dp,
+            depth = GlassOptics.SizeValue.Fixed(1f),
+            blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
           ),
         )
         specularIntensity(0f)
@@ -371,10 +371,10 @@ class GlassScreenshotTest : ScreenshotTest() {
             GlassStyle {
               tint(Color.Transparent)
               optics(
-                GlassOptics.Fixed(
+                GlassOptics(
                   refractionStrength = 0.6f,
-                  depth = 0.5f,
-                  blurRadius = 0.dp,
+                  depth = GlassOptics.SizeValue.Fixed(0.5f),
+                  blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
                 ),
               )
               specularIntensity(0f)
@@ -547,9 +547,9 @@ class GlassScreenshotTest : ScreenshotTest() {
     val VibrantStyle = GlassStyle {
       tint(Color(0xFF3F8CFF).copy(alpha = 0.35f))
       optics(
-        GlassOptics.Fixed(
+        GlassOptics(
           refractionStrength = 0.55f,
-          depth = 0.4f,
+          depth = GlassOptics.SizeValue.Fixed(0.4f),
         ),
       )
       specularIntensity(0.75f)

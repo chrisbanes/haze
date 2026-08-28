@@ -6,7 +6,7 @@ package dev.chrisbanes.haze
 import dev.chrisbanes.haze.glass.GlassOptics
 
 internal fun GlassTestConfiguration.updateFixedOptics(
-  transform: GlassOptics.Fixed.() -> GlassOptics.Fixed,
+  transform: GlassOptics.() -> GlassOptics,
 ) {
-  optics = (optics as GlassOptics.Fixed).transform()
+  optics = optics.transform()
 }

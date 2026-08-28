@@ -23,11 +23,11 @@ class GlassInputScaleScreenshotTest : ScreenshotTest() {
   fun explicitTiers_preserveProgressiveRoundedRefractionAcrossTransition() = runScreenshotTest {
     val shape = RoundedCornerShape(32.dp)
     val effect = GlassTestConfiguration().apply {
-      optics = GlassOptics.Fixed(
+      optics = GlassOptics(
         refractionStrength = 1f,
         refractionDisplacement = 24.dp,
-        depth = 1f,
-        blurRadius = 24.dp,
+        depth = GlassOptics.SizeValue.Fixed(1f),
+        blurRadius = GlassOptics.SizeValue.Fixed(24.dp),
         progressive = HazeProgressive.verticalGradient(),
       )
       tint = Color.White.copy(alpha = 0.08f)

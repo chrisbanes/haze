@@ -357,8 +357,9 @@ private fun <T : Enum<T>> LabChipGroup(
 @Composable
 private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
   val values = state.styleValues
-  val fixed = (values.optics as? GlassOptics.Fixed)
-    ?: GlassOptics.Fixed(refractionFoldStrength = ADAPTIVE_REFRACTION_FOLD_STRENGTH)
+  val fixed = values.optics
+  val depth = (fixed.depth as? GlassOptics.SizeValue.Fixed)?.value ?: 1f
+  val blurRadius = (fixed.blurRadius as? GlassOptics.SizeValue.Fixed)?.value ?: 14.dp
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text("Optics", style = MaterialTheme.typography.titleMedium)
     LabSlider("Refraction", fixed.refractionStrength, 0f..1f) { value ->
@@ -369,11 +370,19 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
         state.editStyle { it.copy(optics = fixed.copy(refractionFoldStrength = value)) },
       )
     }
-    LabSlider("Depth", fixed.depth, 0f..1f) { value ->
-      onStateChanged(state.editStyle { it.copy(optics = fixed.copy(depth = value)) })
+    LabSlider("Depth", depth, 0f..1f) { value ->
+      onStateChanged(
+        state.editStyle {
+          it.copy(optics = fixed.copy(depth = GlassOptics.SizeValue.Fixed(value)))
+        },
+      )
     }
-    LabSlider("Blur", fixed.blurRadius.value, 0f..32f) { value ->
-      onStateChanged(state.editStyle { it.copy(optics = fixed.copy(blurRadius = value.dp)) })
+    LabSlider("Blur", blurRadius.value, 0f..32f) { value ->
+      onStateChanged(
+        state.editStyle {
+          it.copy(optics = fixed.copy(blurRadius = GlassOptics.SizeValue.Fixed(value.dp)))
+        },
+      )
     }
     Text("Lighting", style = MaterialTheme.typography.titleMedium)
     LabSlider("Specular", values.specularIntensity, 0f..1f) { value ->

@@ -160,7 +160,7 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
     val interactionSource = MutableInteractionSource()
     val effect = GlassTestConfiguration().apply {
       tint = Color.Transparent
-      optics = GlassOptics.Fixed(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
+      optics = GlassOptics(refractionStrength = 0f, depth = GlassOptics.SizeValue.Fixed(0f), blurRadius = GlassOptics.SizeValue.Fixed(0.dp))
       specularIntensity = 0f
       ambientResponse = 0f
       edgeSoftness = 0.dp
@@ -239,7 +239,7 @@ private fun FallbackBuiltInStyleSample(style: GlassStyle) {
 
 private fun fallbackEffect(specularIntensity: Float): GlassTestConfiguration = GlassTestConfiguration().apply {
   tint = Color.Transparent
-  optics = GlassOptics.Fixed(refractionStrength = 0f, depth = 0f, blurRadius = 0.dp)
+  optics = GlassOptics(refractionStrength = 0f, depth = GlassOptics.SizeValue.Fixed(0f), blurRadius = GlassOptics.SizeValue.Fixed(0.dp))
   this.specularIntensity = specularIntensity
   ambientResponse = 0f
   edgeSoftness = 0.dp

@@ -130,12 +130,12 @@ internal data class GlassLabStyleValues(
 internal fun glassLabStyleValues(id: GlassLabStyleId): GlassLabStyleValues = when (id) {
   GlassLabStyleId.Regular -> GlassLabStyleValues()
   GlassLabStyleId.Clear -> GlassLabStyleValues(
-    optics = GlassOptics.Fixed(
+    optics = GlassOptics(
       refractionStrength = 0.85f,
       refractionHeightFraction = 0.22f,
       refractionDisplacement = 18.dp,
-      depth = 0.1f,
-      blurRadius = 2.dp,
+      depth = GlassOptics.SizeValue.Fixed(0.1f),
+      blurRadius = GlassOptics.SizeValue.Fixed(2.dp),
     ),
     specularIntensity = 0.55f,
     ambientResponse = 0.42f,

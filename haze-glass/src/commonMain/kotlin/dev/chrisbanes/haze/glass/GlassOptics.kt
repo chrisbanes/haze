@@ -8,88 +8,130 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeProgressive
+import kotlin.jvm.JvmInline
 
-/** Selects how Glass optical values are produced. */
+/** The optical response used to render a Glass material. */
 @ExperimentalHazeApi
 @Immutable
-public sealed interface GlassOptics {
+public data class GlassOptics(
+  /** Refraction strength in the inclusive range `0f..1f`. */
+  val refractionStrength: Float = 0.7f,
+  /** Fraction of the material's shortest side used by the refraction profile. */
+  val refractionHeightFraction: Float = 0.25f,
+  /** Maximum distance that refraction displaces content. */
+  val refractionDisplacement: Dp = 15.dp,
+  /** Depth perception factor in the inclusive range `0f..1f`. */
+  val depth: SizeValue<Float> = SizeValue.Fixed(1f),
+  /** Maximum blur radius before the renderer quality cap is applied. */
+  val blurRadius: SizeValue<Dp> = SizeValue.Fixed(14.dp),
+  /** Optional progressive intensity applied to the blur. */
+  val progressive: HazeProgressive? = null,
+  /** Strength of the inverted edge-refraction fold, in the inclusive range `0f..1f`. */
+  val refractionFoldStrength: Float = 0f,
+  /** Intensity of refraction detail, in the inclusive range `0f..1f`. */
+  val refractionDetailIntensity: Float = 0.76f,
+) {
+  init {
+    requireFiniteInRange(
+      "refractionStrength",
+      refractionStrength,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
+    requireFiniteInRange(
+      "refractionFoldStrength",
+      refractionFoldStrength,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
+    requireFiniteInRange(
+      "refractionHeightFraction",
+      refractionHeightFraction,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
+    requireSpecifiedFiniteNonNegative("refractionDisplacement", refractionDisplacement)
+    requireFiniteInRange(
+      "refractionDetailIntensity",
+      refractionDetailIntensity,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
+    requireSizeValue(depth) { value ->
+      requireFiniteInRange("depth", value, 0f..1f, UNIT_INTERVAL_DOMAIN)
+    }
+    requireSizeValue(blurRadius) { value ->
+      requireSpecifiedFiniteNonNegative("blurRadius", value)
+    }
+  }
+
+  /** A value which is either constant or resolved from the material's shortest dimension. */
+  @ExperimentalHazeApi
+  @Immutable
+  public sealed interface SizeValue<T> {
+    /** A constant value. */
+    @JvmInline
+    public value class Fixed<T>(
+      /** The constant value. */
+      public val value: T,
+    ) : SizeValue<T>
+
+    /** A value smoothly interpolated from shortest-dimension points. */
+    @JvmInline
+    public value class Interpolated<T> private constructor(
+      /** The ordered interpolation points. */
+      public val points: List<SizePoint<T>>,
+    ) : SizeValue<T> {
+      /** Factory methods for [Interpolated]. */
+      public companion object {
+        /** Creates an immutable interpolated value from at least two ordered points. */
+        public operator fun <T> invoke(points: List<SizePoint<T>>): Interpolated<T> {
+          val snapshot = points.toList()
+          require(snapshot.size >= 2) { "points must contain at least two values" }
+          snapshot.forEachIndexed { index, point ->
+            require(point.shortestDimension.value.isFinite()) {
+              "points[$index].shortestDimension must be finite"
+            }
+            require(point.shortestDimension > 0.dp) {
+              "points[$index].shortestDimension must be positive"
+            }
+            if (index > 0) {
+              require(point.shortestDimension > snapshot[index - 1].shortestDimension) {
+                "points shortest dimensions must be strictly increasing"
+              }
+            }
+          }
+          return Interpolated(snapshot)
+        }
+      }
+    }
+  }
 
   /**
-   * Geometry-adaptive optics used by [GlassStyle.regular].
+   * Associates a value with a positive shortest dimension.
    *
-   * Its blur and depth adapt to the material's size, while its refraction response also adapts to
-   * aspect ratio and roundness.
-   * Its adaptive blur scaling is applied after the [Fixed] blur-radius cap, so its effective
-   * blur radius can exceed that cap.
+   * @param shortestDimension The positive shortest dimension at which [value] applies.
+   * @param value The value to resolve at [shortestDimension].
    */
-  public data object Adaptive : GlassOptics
-
-  /**
-   * A complete optical configuration with no geometry-dependent adjustment.
-   *
-   * Accepted values are resolved without geometry-dependent adjustment. [refractionDisplacement]
-   * and [blurRadius] use density-independent [Dp]. [refractionHeightFraction] is a unitless
-   * fraction of the material's shortest side. After density conversion, the effective [blurRadius]
-   * is capped at 38.5 physical pixels; this renderer quality bound does not limit accepted input
-   * values.
-   *
-   * Invalid numeric values throw [IllegalArgumentException] when this value is constructed.
-   * [progressive] is optional and retains the contract of its owning [HazeProgressive] type.
-   *
-   * @param refractionStrength Finite strength of the refraction response, in the inclusive range
-   * `0f..1f`.
-   * @param refractionDisplacement Specified, finite, non-negative maximum distance that refraction
-   * displaces content. There is no authored upper limit.
-   * @param refractionHeightFraction Fraction of the material's shortest side used by the
-   * refraction profile, as a finite value in the inclusive range `0f..1f`.
-   * @param depth Finite depth perception factor in the inclusive range `0f..1f`. Values greater
-   * than `0f` require drawing an additional blurred sample for the glass content, which has a
-   * rendering cost.
-   * @param blurRadius Specified, finite, non-negative maximum blur radius before the renderer's
-   * adaptive scale is applied. There is no authored upper limit.
-   * @param progressive Optional progressive intensity applied to the blur.
-   * @param refractionFoldStrength Finite strength of the inverted edge-refraction fold, in the
-   * inclusive range `0f..1f`. The default `0f` preserves a monotonic refraction mapping.
-   */
-  public data class Fixed(
-    val refractionStrength: Float = 0.7f,
-    val refractionHeightFraction: Float = 0.25f,
-    val refractionDisplacement: Dp = 15.dp,
-    val depth: Float = 1f,
-    val blurRadius: Dp = 14.dp,
-    val progressive: HazeProgressive? = null,
-    val refractionFoldStrength: Float = 0f,
-  ) : GlassOptics {
+  @ExperimentalHazeApi
+  @Immutable
+  public data class SizePoint<T>(
+    val shortestDimension: Dp,
+    val value: T,
+  ) {
     init {
-      requireFiniteInRange("refractionStrength", refractionStrength, 0f..1f, UNIT_INTERVAL_DOMAIN)
-      requireFiniteInRange(
-        "refractionFoldStrength",
-        refractionFoldStrength,
-        0f..1f,
-        UNIT_INTERVAL_DOMAIN,
-      )
-      requireFiniteInRange(
-        "refractionHeightFraction",
-        refractionHeightFraction,
-        0f..1f,
-        UNIT_INTERVAL_DOMAIN,
-      )
-      requireSpecifiedFiniteNonNegative("refractionDisplacement", refractionDisplacement)
-      requireFiniteInRange("depth", depth, 0f..1f, UNIT_INTERVAL_DOMAIN)
-      requireSpecifiedFiniteNonNegative("blurRadius", blurRadius)
+      require(shortestDimension.value.isFinite()) { "shortestDimension must be finite" }
+      require(shortestDimension > 0.dp) { "shortestDimension must be positive" }
     }
   }
 }
 
-/** Library-owned marker value used only by [GlassStyle.clear]. */
-internal val BuiltInClearGlassOptics = GlassOptics.Fixed(
-  refractionStrength = 0.85f,
-  refractionHeightFraction = 0.22f,
-  refractionDisplacement = 18.dp,
-  depth = 0.1f,
-  blurRadius = 2.dp,
-)
-
-internal fun GlassOptics?.hasSameRuntimeBehaviorAs(other: GlassOptics?): Boolean =
-  this == other &&
-    (this === BuiltInClearGlassOptics) == (other === BuiltInClearGlassOptics)
+private inline fun <T> requireSizeValue(
+  value: GlassOptics.SizeValue<T>,
+  validate: (T) -> Unit,
+) {
+  when (value) {
+    is GlassOptics.SizeValue.Fixed -> validate(value.value)
+    is GlassOptics.SizeValue.Interpolated -> value.points.forEach { validate(it.value) }
+  }
+}

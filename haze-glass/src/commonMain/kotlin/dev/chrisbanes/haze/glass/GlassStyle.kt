@@ -69,6 +69,27 @@ public sealed interface GlassStyle {
   /** The empty Glass Style, which performs no writes. */
   public companion object : GlassStyle {
 
+    internal val clearOptics: GlassOptics = GlassOptics(
+      refractionStrength = 0.85f,
+      refractionHeightFraction = 0.22f,
+      refractionDisplacement = 18.dp,
+      depth = GlassOptics.SizeValue.Interpolated(
+        listOf(
+          GlassOptics.SizePoint(64.dp, 0.1f),
+          GlassOptics.SizePoint(176.dp, 0.32f),
+          GlassOptics.SizePoint(220.dp, 0.52f),
+        ),
+      ),
+      blurRadius = GlassOptics.SizeValue.Interpolated(
+        listOf(
+          GlassOptics.SizePoint(64.dp, 2.dp),
+          GlassOptics.SizePoint(176.dp, 6.dp),
+          GlassOptics.SizePoint(220.dp, 8.dp),
+        ),
+      ),
+      refractionDetailIntensity = 0.76f,
+    )
+
     /**
      * The default built-in Glass style.
      *
@@ -101,7 +122,7 @@ public sealed interface GlassStyle {
      * shape, background colour, tint, alpha, light position, and interaction presentation.
      */
     public val clear: GlassStyle = GlassStyle {
-      optics(BuiltInClearGlassOptics)
+      optics(clearOptics)
       specularIntensity(0.55f)
       ambientResponse(0.42f)
       edgeSoftness(1.dp)
@@ -225,11 +246,7 @@ public class GlassStyleScope internal constructor(
     writes += { this.shape = shape }
   }
 
-  /**
-   * Sets a complete fixed optical model used to refract and blur captured content.
-   *
-   * This constructs [GlassOptics.Fixed] and enforces its same fail-fast domains.
-   */
+  /** Sets a complete fixed optical model used to refract and blur captured content. */
   public fun optics(
     refractionStrength: Float = 0.7f,
     refractionHeightFraction: Float = 0.25f,
@@ -238,16 +255,18 @@ public class GlassStyleScope internal constructor(
     blurRadius: Dp = 14.dp,
     progressive: HazeProgressive? = null,
     refractionFoldStrength: Float = 0f,
+    refractionDetailIntensity: Float = 0.76f,
   ) {
     optics(
-      GlassOptics.Fixed(
+      GlassOptics(
         refractionStrength = refractionStrength,
         refractionHeightFraction = refractionHeightFraction,
         refractionDisplacement = refractionDisplacement,
-        depth = depth,
-        blurRadius = blurRadius,
+        depth = GlassOptics.SizeValue.Fixed(depth),
+        blurRadius = GlassOptics.SizeValue.Fixed(blurRadius),
         progressive = progressive,
         refractionFoldStrength = refractionFoldStrength,
+        refractionDetailIntensity = refractionDetailIntensity,
       ),
     )
   }

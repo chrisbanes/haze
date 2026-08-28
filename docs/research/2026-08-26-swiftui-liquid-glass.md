@@ -179,7 +179,8 @@ The Haze values are regression evidence for this renderer and fixture, not a
 cross-platform parity promise. The built-in responses interpolate smoothly
 between the calibrated 64 dp, 176 dp, and 220 dp shortest-side anchors. Their
 blur radii are 4 dp, 10 dp, and 15 dp for Regular, and 2 dp, 6 dp, and 8 dp for
-Clear. Public `GlassOptics.Fixed` values remain geometry-independent.
+Clear. Public fixed `GlassOptics.SizeValue.Fixed` values remain geometry-independent; responsive
+values can use `GlassOptics.SizeValue.Interpolated` points.
 
 ### What requires empirical rendering
 

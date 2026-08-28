@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Replaced the experimental `GlassOptics.Adaptive` and `GlassOptics.Fixed` types with one public
+  `GlassOptics` configuration. Blur and depth can now use independent shortest-dimension points
+  through `GlassOptics.SizeValue.Interpolated`.
+
 ### Fixed
 
 - Corrected the built-in Regular and Clear Glass blur and depth responses so compact surfaces retain

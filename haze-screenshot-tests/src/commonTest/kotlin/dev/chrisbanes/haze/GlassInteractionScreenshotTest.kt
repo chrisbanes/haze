@@ -96,11 +96,11 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
   fun glassInteraction_localPatchPreservesPixelsOutsideInteractionRegion() = runScreenshotTest {
     val radiusFraction = 0.22f
     val effect = GlassTestConfiguration().apply {
-      optics = GlassOptics.Fixed(
+      optics = GlassOptics(
         refractionStrength = 0.7f,
         refractionDisplacement = 28.dp,
-        depth = 0.5f,
-        blurRadius = 14.dp,
+        depth = GlassOptics.SizeValue.Fixed(0.5f),
+        blurRadius = GlassOptics.SizeValue.Fixed(14.dp),
       )
       pressed {
         animate(toSpec = snap(), fromSpec = snap()) {

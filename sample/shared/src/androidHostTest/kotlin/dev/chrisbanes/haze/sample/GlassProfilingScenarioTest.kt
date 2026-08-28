@@ -173,13 +173,13 @@ class GlassProfilingScenarioTest {
   @Test
   fun ablationScenarios_useExplicitFixedOptics() {
     assertThat(GlassProfilingScenario.SteadyNoRefraction.opticsOverride).isEqualTo(
-      GlassOptics.Fixed(refractionStrength = 0f),
+      GlassOptics(refractionStrength = 0f),
     )
     assertThat(GlassProfilingScenario.SteadyNoBlur.opticsOverride).isEqualTo(
-      GlassOptics.Fixed(depth = 0f, blurRadius = 0.dp),
+      GlassOptics(depth = GlassOptics.SizeValue.Fixed(0f), blurRadius = GlassOptics.SizeValue.Fixed(0.dp)),
     )
     assertThat(GlassProfilingScenario.SteadyDepth50.opticsOverride).isEqualTo(
-      GlassOptics.Fixed(depth = 0.5f),
+      GlassOptics(depth = GlassOptics.SizeValue.Fixed(0.5f)),
     )
   }
 

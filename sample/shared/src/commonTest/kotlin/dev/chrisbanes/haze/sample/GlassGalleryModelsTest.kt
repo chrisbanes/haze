@@ -13,6 +13,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
 import kotlin.test.Test
@@ -21,7 +22,7 @@ class GlassGalleryModelsTest {
   @Test
   fun regularBuiltInStyle_usesAdaptiveOptics() {
     assertThat(GlassLabState().styleValues.optics)
-      .isEqualTo(GlassOptics.Adaptive)
+      .isEqualTo(GlassDefaults.optics)
   }
 
   @Test
@@ -29,12 +30,12 @@ class GlassGalleryModelsTest {
     val optics = GlassLabState(styleId = GlassLabStyleId.Clear).styleValues.optics
 
     assertThat(optics).isEqualTo(
-      GlassOptics.Fixed(
+      GlassOptics(
         refractionStrength = 0.85f,
         refractionHeightFraction = 0.22f,
         refractionDisplacement = 18.dp,
-        depth = 0.1f,
-        blurRadius = 2.dp,
+        depth = GlassOptics.SizeValue.Fixed(0.1f),
+        blurRadius = GlassOptics.SizeValue.Fixed(2.dp),
       ),
     )
   }
@@ -42,11 +43,11 @@ class GlassGalleryModelsTest {
   @Test
   fun editingBuiltInStyle_changesSelectionToCustomAndLiteralOptics() {
     val edited = GlassLabState().editStyle { values ->
-      values.copy(optics = GlassOptics.Fixed(refractionStrength = 0.6f))
+      values.copy(optics = GlassOptics(refractionStrength = 0.6f))
     }
 
     assertThat(edited.styleId).isEqualTo(GlassLabStyleId.Custom)
-    assertThat(edited.styleValues.optics).isInstanceOf<GlassOptics.Fixed>()
+    assertThat(edited.styleValues.optics).isInstanceOf<GlassOptics>()
   }
 
   @Test
@@ -56,7 +57,7 @@ class GlassGalleryModelsTest {
     }
 
     assertThat(edited.styleId).isEqualTo(GlassLabStyleId.Custom)
-    assertThat(edited.styleValues.optics).isEqualTo(GlassOptics.Adaptive)
+    assertThat(edited.styleValues.optics).isEqualTo(GlassDefaults.optics)
   }
 
   @Test
@@ -75,7 +76,7 @@ class GlassGalleryModelsTest {
       backdrop = GlassGalleryBackdropId.Grid,
       interaction = GlassLabInteractionMode.Off,
       advancedExpanded = true,
-      styleValues = GlassLabStyleValues(optics = GlassOptics.Fixed()),
+      styleValues = GlassLabStyleValues(optics = GlassOptics()),
     )
 
     assertThat(changed.reset()).isEqualTo(GlassLabState())

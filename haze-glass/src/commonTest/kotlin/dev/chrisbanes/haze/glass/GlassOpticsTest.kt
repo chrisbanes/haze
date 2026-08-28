@@ -9,85 +9,110 @@ import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.hasMessage
 import assertk.assertions.isEqualTo
-import assertk.assertions.isFalse
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
-import assertk.assertions.isTrue
 import kotlin.test.Test
 
 class GlassOpticsTest {
 
   @Test
-  fun adaptive_isTheDefaultOptics() {
-    assertThat(GlassDefaults.optics).isEqualTo(GlassOptics.Adaptive)
+  fun default_isSizeAwareOptics() {
+    assertThat(GlassDefaults.optics).isEqualTo(GlassDefaults.optics)
     assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).optics)
-      .isEqualTo(GlassOptics.Adaptive)
+      .isEqualTo(GlassDefaults.optics)
   }
 
   @Test
   fun fixed_rejectsInvalidSemanticValues() {
     assertInvalidFixedFraction("refractionStrength") {
-      GlassOptics.Fixed(refractionStrength = it)
+      GlassOptics(refractionStrength = it)
     }
     assertInvalidFixedFraction("refractionFoldStrength") {
-      GlassOptics.Fixed(refractionFoldStrength = it)
+      GlassOptics(refractionFoldStrength = it)
     }
     assertInvalidFixedFraction("refractionHeightFraction") {
-      GlassOptics.Fixed(refractionHeightFraction = it)
+      GlassOptics(refractionHeightFraction = it)
     }
     assertInvalidFixedFraction("depth") {
-      GlassOptics.Fixed(depth = it)
+      GlassOptics(depth = GlassOptics.SizeValue.Fixed(it))
     }
     assertInvalidFixedDistance("refractionDisplacement") {
-      GlassOptics.Fixed(refractionDisplacement = it)
+      GlassOptics(refractionDisplacement = it)
     }
     assertInvalidFixedDistance("blurRadius") {
-      GlassOptics.Fixed(blurRadius = it)
+      GlassOptics(blurRadius = GlassOptics.SizeValue.Fixed(it))
     }
   }
 
   @Test
   fun fixed_acceptsBoundariesAndLargeRendererIndependentValues() {
-    val minimum = GlassOptics.Fixed(
+    val minimum = GlassOptics(
       refractionStrength = 0f,
       refractionFoldStrength = 0f,
       refractionHeightFraction = 0f,
       refractionDisplacement = 0.dp,
-      depth = 0f,
-      blurRadius = 0.dp,
+      depth = GlassOptics.SizeValue.Fixed(0f),
+      blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
     )
-    val maximum = GlassOptics.Fixed(
+    val maximum = GlassOptics(
       refractionStrength = 1f,
       refractionFoldStrength = 1f,
       refractionHeightFraction = 1f,
       refractionDisplacement = Float.MAX_VALUE.dp,
-      depth = 1f,
-      blurRadius = Float.MAX_VALUE.dp,
+      depth = GlassOptics.SizeValue.Fixed(1f),
+      blurRadius = GlassOptics.SizeValue.Fixed(Float.MAX_VALUE.dp),
     )
 
     assertThat(minimum.refractionStrength).isEqualTo(0f)
     assertThat(minimum.refractionFoldStrength).isEqualTo(0f)
     assertThat(minimum.refractionHeightFraction).isEqualTo(0f)
     assertThat(minimum.refractionDisplacement).isEqualTo(0.dp)
-    assertThat(minimum.depth).isEqualTo(0f)
-    assertThat(minimum.blurRadius).isEqualTo(0.dp)
+    assertThat(minimum.depth).isEqualTo(GlassOptics.SizeValue.Fixed(0f))
+    assertThat(minimum.blurRadius).isEqualTo(GlassOptics.SizeValue.Fixed(0.dp))
     assertThat(minimum.progressive).isNull()
     assertThat(maximum.refractionStrength).isEqualTo(1f)
     assertThat(maximum.refractionFoldStrength).isEqualTo(1f)
     assertThat(maximum.refractionHeightFraction).isEqualTo(1f)
     assertThat(maximum.refractionDisplacement).isEqualTo(Float.MAX_VALUE.dp)
-    assertThat(maximum.depth).isEqualTo(1f)
-    assertThat(maximum.blurRadius).isEqualTo(Float.MAX_VALUE.dp)
+    assertThat(maximum.depth).isEqualTo(GlassOptics.SizeValue.Fixed(1f))
+    assertThat(maximum.blurRadius).isEqualTo(GlassOptics.SizeValue.Fixed(Float.MAX_VALUE.dp))
     assertThat(maximum.progressive).isNull()
   }
 
   @Test
-  fun clearMarker_hasDistinctRuntimeBehaviorFromEqualCallerFixedOptics() {
-    val callerFixed = BuiltInClearGlassOptics.copy()
+  fun equalOptics_haveEqualRuntimeBehavior() {
+    val callerCopy = GlassStyle.clearOptics.copy()
 
-    assertThat(BuiltInClearGlassOptics.hasSameRuntimeBehaviorAs(BuiltInClearGlassOptics)).isTrue()
-    assertThat(BuiltInClearGlassOptics.hasSameRuntimeBehaviorAs(callerFixed)).isFalse()
-    assertThat(callerFixed.hasSameRuntimeBehaviorAs(callerFixed.copy())).isTrue()
+    assertThat(GlassStyle.clearOptics).isEqualTo(callerCopy)
+  }
+
+  @Test
+  fun interpolated_requiresOrderedSnapshot() {
+    val points = mutableListOf(
+      GlassOptics.SizePoint(64.dp, 1f),
+      GlassOptics.SizePoint(176.dp, 2f),
+    )
+    val value = GlassOptics.SizeValue.Interpolated(points)
+    points[0] = GlassOptics.SizePoint(64.dp, 99f)
+
+    assertThat(value.points).isEqualTo(
+      listOf(
+        GlassOptics.SizePoint(64.dp, 1f),
+        GlassOptics.SizePoint(176.dp, 2f),
+      ),
+    )
+  }
+
+  @Test
+  fun interpolated_rejectsTooFewOrUnorderedPoints() {
+    assertFailure {
+      GlassOptics.SizeValue.Interpolated(listOf(GlassOptics.SizePoint(64.dp, 1f)))
+    }.isInstanceOf<IllegalArgumentException>()
+    assertFailure {
+      GlassOptics.SizeValue.Interpolated(
+        listOf(GlassOptics.SizePoint(176.dp, 1f), GlassOptics.SizePoint(64.dp, 2f)),
+      )
+    }.isInstanceOf<IllegalArgumentException>()
   }
 }
 

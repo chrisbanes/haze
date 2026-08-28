@@ -228,7 +228,7 @@ internal abstract class GlassRuntimeState {
   internal var optics: GlassOptics
     get() = _optics ?: inheritedStyleValues.optics
     set(value) {
-      if (!_optics.hasSameRuntimeBehaviorAs(value)) {
+      if (_optics != value) {
         HazeLogger.d(TAG) { "optics changed. Current: $_optics. New: $value" }
         _optics = value
         markDirty(GlassDirtyFields.Optics)
@@ -662,7 +662,7 @@ internal abstract class GlassRuntimeState {
     if (old.interactionPositionAnimationSpec != new.interactionPositionAnimationSpec) {
       markDirty(GlassDirtyFields.Interaction)
     }
-    if (!old.optics.hasSameRuntimeBehaviorAs(new.optics)) {
+    if (old.optics != new.optics) {
       markDirty(GlassDirtyFields.Optics)
     }
     if (old.specularIntensity != new.specularIntensity) {

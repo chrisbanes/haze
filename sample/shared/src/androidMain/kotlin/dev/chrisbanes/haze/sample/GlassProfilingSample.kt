@@ -345,9 +345,9 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.BlurUpdate,
     -> {
       optics(
-        (scenario.opticsOverride ?: GlassOptics.Fixed()).copy(
-          depth = frame.depth,
-          blurRadius = frame.blurRadius,
+        (scenario.opticsOverride ?: GlassOptics()).copy(
+          depth = GlassOptics.SizeValue.Fixed(frame.depth),
+          blurRadius = GlassOptics.SizeValue.Fixed(frame.blurRadius),
         ),
       )
     }

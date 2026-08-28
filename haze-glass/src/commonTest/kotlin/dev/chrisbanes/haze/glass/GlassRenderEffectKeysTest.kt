@@ -52,38 +52,6 @@ class GlassRenderEffectKeysTest {
   }
 
   @Test
-  fun blurKey_isUnchangedWhenOnlyOneSquareCornerBecomesRounded() {
-    val base = params()
-    fun calibratedParams(radii: CornerRadii): GlassRenderParams {
-      val response = calculateAdaptiveGeometryResponse(
-        materialSizePx = base.coordinates.materialSize,
-        density = androidx.compose.ui.unit.Density(1f),
-        cornerRadiiPx = radii,
-      )
-      val resolved = resolveAdaptiveGeometryOptics(
-        response = response,
-        refractionStrength = .7f,
-        shortestSidePx = base.coordinates.materialSize.minDimension,
-        blurRadiusPx = base.blurRadiusPx,
-        refractionScalePx = base.refractionScalePx,
-        refractionHeight = .5f,
-      )
-      return base.copy(
-        blurRadiusPx = resolved.blurRadiusPx,
-        blurSigmaPx = resolved.blurSigmaPx,
-        geometryToneGain = resolved.toneGain,
-        geometryNeutralLift = resolved.neutralLiftWeight,
-      )
-    }
-    val square = calibratedParams(CornerRadii.zero)
-    val oneRoundedCorner = calibratedParams(CornerRadii(100f, 0f, 0f, 0f))
-
-    assertThat(oneRoundedCorner.geometryToneGain).isEqualTo(square.geometryToneGain)
-    assertThat(oneRoundedCorner.geometryNeutralLift).isEqualTo(square.geometryNeutralLift)
-    assertThat(oneRoundedCorner.blurEffectKey()).isEqualTo(square.blurEffectKey())
-  }
-
-  @Test
   fun progressivePresence_selectsFullResolutionPlanAndChangesKey() {
     val uniform = params().copy(
       blurRadiusPx = 38.5f,
@@ -305,7 +273,7 @@ class GlassRenderEffectKeysTest {
 
   @Test
   fun defaultRefractionDetailVisibility_isFullySaturated() {
-    val regularBaseline = GlassOptics.Fixed()
+    val regularBaseline = GlassOptics()
     assertThat(
       calculateRefractionDetailVisibility(
         refractionStrength = regularBaseline.refractionStrength,

@@ -160,7 +160,7 @@ Keep one final `GlassStyle` for all platforms. Remove renderer-capability checks
 Style variants, and secondary fallback Styles. Haze selects the available implementation and
 gracefully simplifies unsupported optics.
 
-Invalid Glass values now fail when the Style or `GlassOptics.Fixed` value is created instead of
+Invalid Glass values now fail when the Style or `GlassOptics` value is created instead of
 being corrected later. Validate or clamp external values before building the Style. See the
 generated API reference for property-specific ranges.
 
@@ -181,11 +181,12 @@ generated API reference for property-specific ranges.
 | effect-owned hover, focus, press, light-radius, and light-position animation presentation | property writes inside `GlassStyle { … }` |
 | effect-owned interaction source, transform target/pivot, and reduced-motion policy | explicit `Modifier.hazeGlass` arguments owned by each node |
 | implicit source/content | explicit `HazeInput.Sources` or `HazeInput.Content` |
-| `GlassOptics.Absolute` | `GlassOptics.Fixed`; this is a hard rename with no alias or compatibility bridge |
+| `GlassOptics.Absolute` and `GlassOptics.Fixed` | `GlassOptics`; this is an intentional source break with no alias or compatibility bridge |
 | `lightPosition(Offset)` and `Offset.Unspecified` | `lightPosition(Alignment)`; omit the write or use `Alignment.Center` for the former automatic center |
 
-Use `optics(...)` for inline fixed values. Keep a `GlassOptics.Fixed` value when the configuration
-needs to be reused or selected programmatically.
+Use `optics(...)` for inline fixed values. Keep a `GlassOptics` value when the configuration needs
+to be reused or selected programmatically. Use `GlassOptics.SizeValue.Interpolated` for
+shortest-dimension-dependent blur or depth.
 
 Glass light position is now an intentional source break from pixel `Offset` to semantic
 `Alignment`, with no compatibility overload. Use `Alignment.Center` (or omit the write) for the
