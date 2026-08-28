@@ -62,8 +62,8 @@ CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
 
 ### Built-in styles
 
-`GlassStyle.regular` is the default built-in Glass style. Its material response adapts to the
-surface's size and shape and includes a restrained edge fold, where the local sampling direction
+`GlassStyle.regular` is the default built-in Glass style. Its blur and depth adapt to the
+surface's shortest dimension and include a restrained edge fold, where the local sampling direction
 reverses so incoming content can appear inverted near the glass boundary. This makes it a good fit
 for reusable components.
 
@@ -406,7 +406,7 @@ Box(
 ## Tips
 
 - `GlassStyle.regular` is the right starting point for material-like glass that should respond
-  naturally to its geometry. Use direct `optics(...)` for inline fixed authoring and
+  naturally to its shortest dimension. Use direct `optics(...)` for inline fixed authoring and
   `GlassOptics` when the complete value needs to be reused or selected programmatically.
 - Keep `chromaticAberrationStrength` modest; start at 0.1-0.25 to avoid rainbow artifacts.
 - Combine `edgeSoftness` with rounded shapes for smooth clipping; set `edgeSoftness = 0.dp` to rely purely on the shape.

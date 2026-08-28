@@ -17,7 +17,10 @@ class GlassOpticsTest {
 
   @Test
   fun default_isSizeAwareOptics() {
-    assertThat(GlassDefaults.optics).isEqualTo(GlassDefaults.optics)
+    assertThat(GlassDefaults.optics.blurRadius)
+      .isInstanceOf<GlassOptics.SizeValue.Interpolated<*>>()
+    assertThat(GlassDefaults.optics.depth)
+      .isInstanceOf<GlassOptics.SizeValue.Interpolated<*>>()
     assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).optics)
       .isEqualTo(GlassDefaults.optics)
   }
@@ -32,6 +35,9 @@ class GlassOpticsTest {
     }
     assertInvalidFixedFraction("refractionHeightFraction") {
       GlassOptics(refractionHeightFraction = it)
+    }
+    assertInvalidFixedFraction("refractionDetailIntensity") {
+      GlassOptics(refractionDetailIntensity = it)
     }
     assertInvalidFixedFraction("depth") {
       GlassOptics(depth = GlassOptics.SizeValue.Fixed(it))
@@ -113,6 +119,47 @@ class GlassOpticsTest {
         listOf(GlassOptics.SizePoint(176.dp, 1f), GlassOptics.SizePoint(64.dp, 2f)),
       )
     }.isInstanceOf<IllegalArgumentException>()
+    assertFailure {
+      GlassOptics.SizeValue.Interpolated(
+        listOf(GlassOptics.SizePoint(64.dp, 1f), GlassOptics.SizePoint(64.dp, 2f)),
+      )
+    }.isInstanceOf<IllegalArgumentException>()
+  }
+
+  @Test
+  fun sizePoint_rejectsInvalidDimensions() {
+    listOf(
+      Dp.Unspecified,
+      Float.NaN.dp,
+      Float.POSITIVE_INFINITY.dp,
+      Float.NEGATIVE_INFINITY.dp,
+      0.dp,
+      (-1).dp,
+    )
+      .forEach { dimension ->
+        assertFailure { GlassOptics.SizePoint(dimension, 1f) }
+          .isInstanceOf<IllegalArgumentException>()
+      }
+  }
+
+  @Test
+  fun interpolatedOptics_rejectInvalidContainedValues() {
+    val points = listOf(
+      GlassOptics.SizePoint(64.dp, 0f),
+      GlassOptics.SizePoint(176.dp, 1f),
+    )
+    assertFailure {
+      GlassOptics(
+        depth = GlassOptics.SizeValue.Interpolated(points.map { it.copy(value = Float.NaN) }),
+      )
+    }.hasMessage("depth must be finite and in 0f..1f")
+    assertFailure {
+      GlassOptics(
+        blurRadius = GlassOptics.SizeValue.Interpolated(
+          points.map { GlassOptics.SizePoint(it.shortestDimension, Float.NaN.dp) },
+        ),
+      )
+    }.hasMessage("blurRadius must be specified, finite, and non-negative")
   }
 }
 

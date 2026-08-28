@@ -93,7 +93,7 @@ public sealed interface GlassStyle {
     /**
      * The default built-in Glass style.
      *
-     * Its optical response adapts to each material's geometry. It writes the complete material
+     * Its blur and depth adapt to each material's shortest dimension. It writes the complete material
      * response while preserving separately composed shape, background colour, tint, alpha, light
      * position, and interaction presentation.
      */

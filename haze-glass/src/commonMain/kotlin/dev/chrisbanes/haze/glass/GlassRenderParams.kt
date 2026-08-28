@@ -83,7 +83,7 @@ private fun Float.finiteOrZero(): Float = if (isFinite()) this else 0f
 private fun Float.finiteOr(fallback: Float): Float = if (isFinite()) this else fallback
 
 internal fun effectiveSemanticBlurRadiusPx(radiusPx: Float): Float =
-  radiusPx.coerceIn(0f, SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX)
+  radiusPx.finiteOrZero().coerceIn(0f, SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX)
 
 internal fun calculateRefractionDetailWidthPx(
   refractionHeightPx: Float,

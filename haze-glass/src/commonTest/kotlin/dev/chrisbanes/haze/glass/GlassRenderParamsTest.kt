@@ -769,6 +769,7 @@ class GlassRenderParamsTest {
 
     assertThat(resolve(32.dp).depth).isEqualTo(0f)
     assertThat(resolve(64.dp).depth).isEqualTo(0f)
+    assertThat(resolve(92.dp).depth).isEqualTo(0.15625f)
     assertThat(resolve(120.dp).depth).isEqualTo(0.5f)
     assertThat(resolve(176.dp).depth).isEqualTo(1f)
     assertThat(resolve(240.dp).depth).isEqualTo(1f)
@@ -778,7 +779,60 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun callerFixedOptics_equalToClearMarkerRemainGeometryIndependent() {
+  fun interpolatedOptics_invalidGeometryUsesFirstPoints() {
+    val optics = GlassOptics(
+      depth = GlassOptics.SizeValue.Interpolated(
+        listOf(GlassOptics.SizePoint(64.dp, 0.2f), GlassOptics.SizePoint(176.dp, 0.8f)),
+      ),
+      blurRadius = GlassOptics.SizeValue.Interpolated(
+        listOf(GlassOptics.SizePoint(64.dp, 4.dp), GlassOptics.SizePoint(176.dp, 12.dp)),
+      ),
+    )
+    val invalidSizes = listOf(
+      Size.Zero,
+      Size(-1f, 100f),
+      Size(100f, -1f),
+      Size(100f, 0f),
+      Size(Float.NaN, 100f),
+      Size(Float.POSITIVE_INFINITY, 100f),
+    )
+    invalidSizes.forEach { size ->
+      val resolved = resolveGlassOptics(optics, size, Density(1f))
+      assertThat(resolved.depth).isEqualTo(0.2f)
+      assertThat(resolved.blurRadiusPx).isEqualTo(4f)
+    }
+    listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY).forEach { densityValue ->
+      val invalidDensity = resolveGlassOptics(
+        optics,
+        Size(200f, 100f),
+        Density(densityValue),
+      )
+      assertThat(invalidDensity.depth).isEqualTo(0.2f)
+      // The first authored point is 4.dp, which resolves to zero physical pixels
+      // when density is invalid.
+      assertThat(invalidDensity.blurRadiusPx).isEqualTo(0f)
+    }
+  }
+
+  @Test
+  fun builtInStyles_preserveAuthoredOpticalValues() {
+    val regular = GlassDefaults.optics
+    assertThat(regular.refractionStrength).isEqualTo(0.7f)
+    assertThat(regular.refractionDisplacement).isEqualTo(48.dp)
+    assertThat(regular.refractionHeightFraction).isEqualTo(0.6f)
+    assertThat(regular.refractionFoldStrength).isEqualTo(0.65f)
+    assertThat(regular.refractionDetailIntensity).isEqualTo(0f)
+
+    val clear = GlassStyle.clearOptics
+    assertThat(clear.refractionStrength).isEqualTo(0.85f)
+    assertThat(clear.refractionDisplacement).isEqualTo(18.dp)
+    assertThat(clear.refractionHeightFraction).isEqualTo(0.22f)
+    assertThat(clear.refractionFoldStrength).isEqualTo(0f)
+    assertThat(clear.refractionDetailIntensity).isEqualTo(0.76f)
+  }
+
+  @Test
+  fun equalCallerOptics_resolveLikeBuiltInClear() {
     val callerFixed = GlassStyle.clearOptics.copy()
     val materialSize = Size(320f, 220f)
     val density = Density(1f)
