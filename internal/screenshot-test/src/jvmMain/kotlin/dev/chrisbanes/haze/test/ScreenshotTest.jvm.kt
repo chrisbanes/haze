@@ -44,7 +44,6 @@ actual fun ScreenshotTest.runScreenshotTest(
 @OptIn(ExperimentalTestApi::class, ExperimentalRoborazziApi::class)
 private fun SkikoComposeUiTest.createScreenshotUiTest() = object : ScreenshotUiTest {
   override val supportsRuntimeBlur: Boolean = true
-  override val supportsRuntimeShader: Boolean = true
 
   override fun setContent(content: @Composable () -> Unit) {
     this@createScreenshotUiTest.setContent(content)

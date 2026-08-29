@@ -125,11 +125,11 @@ class GlassStyleTest {
   }
 
   @Test
-  fun completeOptics_preservesAdaptiveAndProgrammaticValues() {
-    val sharedFixed = GlassOptics(depth = SizeValue.Fixed(0.4f))
-    val programmaticallySelected: GlassOptics = listOf(GlassDefaults.optics, sharedFixed).last()
+  fun completeOptics_preservesResponsiveAndProgrammaticValues() {
+    val sharedOptics = GlassOptics(depth = SizeValue.Fixed(0.4f))
+    val programmaticallySelected: GlassOptics = listOf(GlassDefaults.optics, sharedOptics).last()
 
-    val adaptive = resolveGlassStyleValues(
+    val responsive = resolveGlassStyleValues(
       GlassStyle,
       GlassStyle { optics(GlassDefaults.optics) },
     )
@@ -138,8 +138,8 @@ class GlassStyleTest {
       GlassStyle { optics(programmaticallySelected) },
     )
 
-    assertThat(adaptive.optics).isSameInstanceAs(GlassDefaults.optics)
-    assertThat(selected.optics).isSameInstanceAs(sharedFixed)
+    assertThat(responsive.optics).isSameInstanceAs(GlassDefaults.optics)
+    assertThat(selected.optics).isSameInstanceAs(sharedOptics)
   }
 
   @Test
@@ -613,16 +613,16 @@ class GlassStyleTest {
 
   @Test
   fun builtInStyle_allowsLaterCustomMaterialWritesToWin() {
-    val fixedOptics = GlassOptics(depth = SizeValue.Fixed(0.7f), blurRadius = SizeValue.Fixed(24.dp))
+    val customOptics = GlassOptics(depth = SizeValue.Fixed(0.7f), blurRadius = SizeValue.Fixed(24.dp))
     val resolved = resolveGlassStyleValues(
       GlassStyle,
       GlassStyle.clear.then {
-        optics(fixedOptics)
+        optics(customOptics)
         contrast(-0.3f)
       },
     )
 
-    assertThat(resolved.optics).isSameInstanceAs(fixedOptics)
+    assertThat(resolved.optics).isSameInstanceAs(customOptics)
     assertThat(resolved.contrast).isEqualTo(-0.3f)
   }
 

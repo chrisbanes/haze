@@ -16,6 +16,7 @@ import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.SizePoint
 import dev.chrisbanes.haze.glass.SizeValue
 import dev.chrisbanes.haze.glass.SurfaceProfile
 
@@ -135,8 +136,16 @@ internal fun glassLabStyleValues(id: GlassLabStyleId): GlassLabStyleValues = whe
       refractionStrength = 0.85f,
       refractionHeightFraction = 0.22f,
       refractionDisplacement = 18.dp,
-      depth = SizeValue.Fixed(0.1f),
-      blurRadius = SizeValue.Fixed(2.dp),
+      depth = SizeValue.Responsive(
+        SizePoint(64.dp, 0.1f),
+        SizePoint(176.dp, 0.32f),
+        SizePoint(220.dp, 0.52f),
+      ),
+      blurRadius = SizeValue.Responsive(
+        SizePoint(64.dp, 2.dp),
+        SizePoint(176.dp, 6.dp),
+        SizePoint(220.dp, 8.dp),
+      ),
     ),
     specularIntensity = 0.55f,
     ambientResponse = 0.42f,

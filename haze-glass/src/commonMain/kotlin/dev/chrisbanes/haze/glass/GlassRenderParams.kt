@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -113,10 +114,7 @@ internal data class ResolvedGlassOptics(
   val refractionScalePx: Float,
   val depth: Float,
   val blurRadiusPx: Float,
-  val blurSigmaPx: Float,
   val progressive: HazeProgressive?,
-  val toneGain: Float,
-  val neutralLiftWeight: Float,
   val refractionDetailIntensity: Float,
 )
 
@@ -138,12 +136,9 @@ internal fun resolveGlassOptics(
     refractionScalePx = refractionScalePx
       .coerceIn(0f, MAX_REFRACTION_DISPLACEMENT_PX)
       .finiteOrZero(),
-    depth = resolveSizeValue(optics.depth, shortestSide, ::lerpFloatValue),
+    depth = resolveSizeValue(optics.depth, shortestSide, ::lerp),
     blurRadiusPx = resolvedBlurRadiusPx,
-    blurSigmaPx = if (resolvedBlurRadiusPx > 0f) SemanticBlurKernel.radiusToSigma(resolvedBlurRadiusPx) else 0f,
     progressive = optics.progressive,
-    toneGain = 1f,
-    neutralLiftWeight = 0f,
     refractionDetailIntensity = optics.refractionDetailIntensity,
   )
 }
@@ -183,9 +178,6 @@ private fun smoothstepFeature(value: Float, minimum: Float, maximum: Float): Flo
 private fun lerpDpValue(start: Dp, stop: Dp, fraction: Float): Dp =
   lerpDp(start, stop, fraction)
 
-private fun lerpFloatValue(start: Float, stop: Float, fraction: Float): Float =
-  start + (stop - start) * fraction
-
 private fun Size.shortestSideDpOrNull(density: Density): Dp? {
   val densityValue = density.density
   if (!densityValue.isFinite() || densityValue <= 0f || !isDrawable()) return null
@@ -216,8 +208,6 @@ internal data class GlassRenderParams(
   val contentNormalBlend: Float,
   val specularExponent: Float,
   val fresnelExponent: Float,
-  val geometryToneGain: Float,
-  val geometryNeutralLift: Float,
   val cornerRadii: CornerRadii,
   /** Light position resolved from authored Alignment into material-local pixels. */
   val lightPosition: Offset,
@@ -272,8 +262,6 @@ internal data class GlassOpticalEffectKey(
   val refractionScalePx: Float,
   val contentNormalBlend: Float,
   val fresnelExponent: Float,
-  val geometryToneGain: Float,
-  val geometryNeutralLift: Float,
   val cornerRadii: CornerRadii,
   val sampleStepPx: Float,
 )
@@ -295,8 +283,6 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   refractionScalePx = refractionScalePx,
   contentNormalBlend = contentNormalBlend,
   fresnelExponent = fresnelExponent,
-  geometryToneGain = geometryToneGain,
-  geometryNeutralLift = geometryNeutralLift,
   cornerRadii = cornerRadii,
   sampleStepPx = sampleStepPx,
 )
@@ -567,8 +553,6 @@ internal fun buildGlassRenderParams(
     contentNormalBlend = style.contentNormalBlend,
     specularExponent = style.specularExponent,
     fresnelExponent = style.fresnelExponent,
-    geometryToneGain = resolvedOptics.toneGain.finiteOr(1f),
-    geometryNeutralLift = resolvedOptics.neutralLiftWeight.finiteOr(0f),
     cornerRadii = style.cornerRadii * scaleFactor,
     lightPosition = style.lightPosition * scaleFactor,
     sampleStepPx = 2f * scaleFactor,
@@ -924,8 +908,6 @@ private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParam
     refractionScalePx == other.refractionScalePx &&
     contentNormalBlend == other.contentNormalBlend &&
     fresnelExponent == other.fresnelExponent &&
-    geometryToneGain == other.geometryToneGain &&
-    geometryNeutralLift == other.geometryNeutralLift &&
     cornerRadii == other.cornerRadii &&
     sampleStepPx == other.sampleStepPx
 

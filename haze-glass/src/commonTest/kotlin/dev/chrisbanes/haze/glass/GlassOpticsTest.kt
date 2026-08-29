@@ -86,13 +86,6 @@ class GlassOpticsTest {
   }
 
   @Test
-  fun equalOptics_haveEqualRuntimeBehavior() {
-    val callerCopy = GlassStyle.clearOptics.copy()
-
-    assertThat(GlassStyle.clearOptics).isEqualTo(callerCopy)
-  }
-
-  @Test
   fun responsive_snapshotsOrderedPoints() {
     val points = mutableListOf(
       SizePoint(64.dp, 1f),

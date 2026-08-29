@@ -70,7 +70,7 @@ class HazeGlassModifierTest : ContextTest() {
   @Test
   fun portableStyle_flowsUnchangedThroughFullAndAutomaticFallbackSelection() =
     runComposeUiTest {
-      val fixedOptics = GlassOptics(
+      val customOptics = GlassOptics(
         refractionStrength = 0.63f,
         refractionHeightFraction = 0.31f,
         refractionDisplacement = 9.dp,
@@ -79,7 +79,7 @@ class HazeGlassModifierTest : ContextTest() {
       )
       val tint = Color(0x6655AAFF)
       val sharedStyle = GlassStyle {
-        optics(fixedOptics)
+        optics(customOptics)
         tint(tint)
         specularIntensity(1f)
         ambientResponse(0f)
@@ -130,8 +130,8 @@ class HazeGlassModifierTest : ContextTest() {
       val fallback = fallbackFactory.effects.single().delegate
       assertThat(full.style).isSameInstanceAs(sharedStyle)
       assertThat(fallback.style).isSameInstanceAs(sharedStyle)
-      assertThat(full.optics).isSameInstanceAs(fixedOptics)
-      assertThat(fallback.optics).isSameInstanceAs(fixedOptics)
+      assertThat(full.optics).isSameInstanceAs(customOptics)
+      assertThat(fallback.optics).isSameInstanceAs(customOptics)
       assertThat(full.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
       assertThat(fallback.delegate).isInstanceOf<FallbackGlassDelegate>()
 

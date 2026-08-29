@@ -661,7 +661,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun fixedOptics_resolveSemanticValuesAcrossDensities() {
+  fun fixedSizeValues_resolveSemanticValuesAcrossDensities() {
     val progressive = dev.chrisbanes.haze.HazeProgressive.verticalGradient(
       startIntensity = 0f,
       endIntensity = 1f,
@@ -694,8 +694,6 @@ class GlassRenderParamsTest {
       assertThat(resolved.blurRadiusPx / density.density)
         .isEqualTo((optics.blurRadius as SizeValue.Fixed).value.value)
       assertThat(resolved.progressive).isEqualTo(progressive)
-      assertThat(resolved.toneGain).isEqualTo(1f)
-      assertThat(resolved.neutralLiftWeight).isEqualTo(0f)
       assertThat(resolved.refractionDetailIntensity).isGreaterThan(0f)
     }
   }
@@ -831,7 +829,7 @@ class GlassRenderParamsTest {
 
   @Test
   fun equalCallerOptics_resolveLikeBuiltInClear() {
-    val callerFixed = GlassStyle.clearOptics.copy()
+    val callerCopy = GlassStyle.clearOptics.copy()
     val materialSize = Size(320f, 220f)
     val density = Density(1f)
     val builtIn = resolveGlassOptics(
@@ -839,9 +837,9 @@ class GlassRenderParamsTest {
       materialSize,
       density,
     )
-    val caller = resolveGlassOptics(callerFixed, materialSize, density)
+    val caller = resolveGlassOptics(callerCopy, materialSize, density)
 
-    assertThat(callerFixed).isEqualTo(GlassStyle.clearOptics)
+    assertThat(callerCopy).isEqualTo(GlassStyle.clearOptics)
     assertThat(caller.depth).isEqualTo(0.52f)
     assertThat(caller.blurRadiusPx).isEqualTo(8f)
     assertThat(builtIn.depth).isEqualTo(0.52f)
@@ -849,7 +847,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun fixedOptics_blurRadiusUsesCurrentPhysicalPixelCapAcrossDensities() {
+  fun fixedBlurRadius_usesCurrentPhysicalPixelCapAcrossDensities() {
     val cases = listOf(
       Triple(20.dp, Density(1f), 20f),
       Triple(14.dp, Density(2.75f), 38.5f),
@@ -1167,7 +1165,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun calculateLayerBounds_usesAdaptiveGeometryBlurSupportForSquareEffect() {
+  fun calculateLayerBounds_largeSurfaceUsesResponsiveBlur() {
     val effect = GlassRuntimeEffect().apply {
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(0.dp)
@@ -1205,7 +1203,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun calculateLayerBounds_capsuleUsesResolvedGeometryBlurScale() {
+  fun calculateLayerBounds_shortSurfaceUsesResponsiveBlur() {
     val effect = GlassRuntimeEffect().apply {
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(40.dp)
@@ -1214,11 +1212,6 @@ class GlassRenderParamsTest {
     val density = Density(1f)
     val effectiveBlurRadius = effectiveSemanticBlurRadiusPx(14f)
     val expectedPadding = expectedLayerPadding(effect, rect, density)
-    val cornerRadii = effect.shape.toCornerRadiiPx(
-      rect.size,
-      density,
-      androidx.compose.ui.unit.LayoutDirection.Ltr,
-    )
     val resolved = resolveGlassOptics(
       optics = effect.optics,
       materialSizePx = rect.size,
@@ -1230,7 +1223,7 @@ class GlassRenderParamsTest {
   }
 
   @Test
-  fun calculateLayerBounds_cornerPermutationPreservesMinimumRadiusPadding() {
+  fun calculateLayerBounds_cornerPermutationDoesNotChangePadding() {
     val firstShape = RoundedCornerShape(
       topStart = 24.dp,
       topEnd = 32.dp,
@@ -1296,11 +1289,6 @@ class GlassRenderParamsTest {
     rect: Rect,
     density: Density,
   ): Float {
-    val cornerRadii = effect.shape.toCornerRadiiPx(
-      rect.size,
-      density,
-      androidx.compose.ui.unit.LayoutDirection.Ltr,
-    )
     val resolved = resolveGlassOptics(
       optics = effect.optics,
       materialSizePx = rect.size,
@@ -1351,8 +1339,6 @@ class GlassRenderParamsTest {
     contentNormalBlend = 0f,
     specularExponent = 1f,
     fresnelExponent = 1f,
-    geometryToneGain = 1f,
-    geometryNeutralLift = 0f,
     cornerRadii = CornerRadii.zero,
     lightPosition = Offset.Zero,
     sampleStepPx = 1f,

@@ -1,7 +1,7 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(ExperimentalHazeApi::class)
+@file:OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 
 package dev.chrisbanes.haze
 
@@ -62,7 +62,7 @@ class GlassBuiltInStyleScreenshotTest : ScreenshotTest() {
     val clear = captureRootPixels().snapshot()
     captureRoot("clear", unmatchedPixelThreshold = 0.01f)
 
-    if (supportsRuntimeShader) {
+    if (isRuntimeShaderRenderEffectSupported()) {
       val regularRetention = regions.mapValues { (_, bounds) ->
         regular.highFrequencyEnergy(bounds) / identity.highFrequencyEnergy(bounds)
       }

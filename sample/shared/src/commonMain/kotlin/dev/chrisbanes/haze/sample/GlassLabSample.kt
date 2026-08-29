@@ -68,8 +68,6 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-private const val ADAPTIVE_REFRACTION_FOLD_STRENGTH = 0.65f
-
 @Composable
 public fun GlassLabSample(navController: NavHostController) {
   var state by remember { mutableStateOf(GlassLabState()) }
@@ -357,30 +355,36 @@ private fun <T : Enum<T>> LabChipGroup(
 @Composable
 private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
   val values = state.styleValues
-  val fixed = values.optics
-  val depth = (fixed.depth as? SizeValue.Fixed)?.value ?: 1f
-  val blurRadius = (fixed.blurRadius as? SizeValue.Fixed)?.value ?: 14.dp
+  val optics = values.optics
+  val depth = fixedControlValue(optics.depth)
+  val blurRadius = fixedControlValue(optics.blurRadius)
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text("Optics", style = MaterialTheme.typography.titleMedium)
-    LabSlider("Refraction", fixed.refractionStrength, 0f..1f) { value ->
-      onStateChanged(state.editStyle { it.copy(optics = fixed.copy(refractionStrength = value)) })
+    if (optics.depth is SizeValue.Responsive || optics.blurRadius is SizeValue.Responsive) {
+      Text(
+        "Editing responsive Depth or Blur makes that value fixed.",
+        style = MaterialTheme.typography.bodySmall,
+      )
     }
-    LabSlider("Fold", fixed.refractionFoldStrength, 0f..1f) { value ->
+    LabSlider("Refraction", optics.refractionStrength, 0f..1f) { value ->
+      onStateChanged(state.editStyle { it.copy(optics = optics.copy(refractionStrength = value)) })
+    }
+    LabSlider("Fold", optics.refractionFoldStrength, 0f..1f) { value ->
       onStateChanged(
-        state.editStyle { it.copy(optics = fixed.copy(refractionFoldStrength = value)) },
+        state.editStyle { it.copy(optics = optics.copy(refractionFoldStrength = value)) },
       )
     }
     LabSlider("Depth", depth, 0f..1f) { value ->
       onStateChanged(
         state.editStyle {
-          it.copy(optics = fixed.copy(depth = SizeValue.Fixed(value)))
+          it.copy(optics = optics.copy(depth = SizeValue.Fixed(value)))
         },
       )
     }
     LabSlider("Blur", blurRadius.value, 0f..32f) { value ->
       onStateChanged(
         state.editStyle {
-          it.copy(optics = fixed.copy(blurRadius = SizeValue.Fixed(value.dp)))
+          it.copy(optics = optics.copy(blurRadius = SizeValue.Fixed(value.dp)))
         },
       )
     }
@@ -406,6 +410,11 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
       onStateChanged(state.editStyle { it.copy(chromaticAberrationStrength = value) })
     }
   }
+}
+
+private fun <T> fixedControlValue(value: SizeValue<T>): T = when (value) {
+  is SizeValue.Fixed -> value.value
+  is SizeValue.Responsive -> value.points.first().value
 }
 
 @Composable

@@ -9,7 +9,15 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeProgressive
 
-/** The optical response used to render a Glass material. */
+/**
+ * The optical response used to render a Glass material.
+ *
+ * [depth] and [blurRadius] resolve independently. [SizeValue.Fixed] applies one value at every
+ * material size. [SizeValue.Responsive] clamps to its first or last point outside the authored
+ * range and smoothly interpolates between adjacent points using the material's shortest dimension.
+ *
+ * Invalid numeric values throw [IllegalArgumentException] during construction.
+ */
 @ExperimentalHazeApi
 @Immutable
 public data class GlassOptics(

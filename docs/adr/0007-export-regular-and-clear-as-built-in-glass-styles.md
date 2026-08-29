@@ -3,8 +3,8 @@
 Haze will expose `GlassStyle.regular` and `GlassStyle.clear` as shared built-in styles rather than
 adding a public modifier variant parameter or extending the public `GlassOptics` API with semantic
 cases. The parallel sample-only preset catalogue will be removed rather than retained or exported.
-Regular remains the default geometry-adaptive material response. Clear uses geometry-aware blur and
-depth with an authored refraction response, and remains recognisably distinct when a renderer
+Regular remains the default size-responsive material. Clear uses size-responsive blur and depth
+with an authored refraction response, and remains recognisably distinct when a renderer
 simplifies advanced optics. Both styles own the complete optical, edge, lighting, chromatic, tone,
 and content-normal response while preserving independently composed shape, background colour, tint,
 alpha, light position, and interaction appearance. These are Haze styles informed by iOS's semantic

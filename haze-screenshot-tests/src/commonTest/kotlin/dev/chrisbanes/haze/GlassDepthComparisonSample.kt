@@ -57,18 +57,18 @@ internal fun ScreenshotUiTest.assertGlassDepthProgression() {
 
   val depth0 = captureRootPixels().snapshot()
 
-  visualEffect.updateFixedOptics { copy(depth = SizeValue.Fixed(0.5f)) }
+  visualEffect.updateOptics { copy(depth = SizeValue.Fixed(0.5f)) }
   waitForIdle()
   val depth50 = captureRootPixels().snapshot()
 
-  visualEffect.updateFixedOptics { copy(depth = SizeValue.Fixed(1f)) }
+  visualEffect.updateOptics { copy(depth = SizeValue.Fixed(1f)) }
   waitForIdle()
   val depth100 = captureRootPixels().snapshot()
 
   assertDepthProgression(depth0, depth50, depth100)
 
   listOf(0f to "0", 0.5f to "50", 1f to "100").forEach { (depth, snapshotName) ->
-    visualEffect.updateFixedOptics { copy(depth = SizeValue.Fixed(depth)) }
+    visualEffect.updateOptics { copy(depth = SizeValue.Fixed(depth)) }
     waitForIdle()
     captureRoot(snapshotName)
   }

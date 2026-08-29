@@ -9,25 +9,25 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
-import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.SizePoint
 import dev.chrisbanes.haze.glass.SizeValue
 import kotlin.test.Test
 
 class GlassGalleryModelsTest {
   @Test
-  fun regularBuiltInStyle_usesAdaptiveOptics() {
+  fun regularBuiltInStyle_usesResponsiveOptics() {
     assertThat(GlassLabState().styleValues.optics)
       .isEqualTo(GlassDefaults.optics)
   }
 
   @Test
-  fun clearBuiltInStyle_usesVisibleFixedOptics() {
+  fun clearBuiltInStyle_usesResponsiveOptics() {
     val optics = GlassLabState(styleId = GlassLabStyleId.Clear).styleValues.optics
 
     assertThat(optics).isEqualTo(
@@ -35,24 +35,31 @@ class GlassGalleryModelsTest {
         refractionStrength = 0.85f,
         refractionHeightFraction = 0.22f,
         refractionDisplacement = 18.dp,
-        depth = SizeValue.Fixed(0.1f),
-        blurRadius = SizeValue.Fixed(2.dp),
+        depth = SizeValue.Responsive(
+          SizePoint(64.dp, 0.1f),
+          SizePoint(176.dp, 0.32f),
+          SizePoint(220.dp, 0.52f),
+        ),
+        blurRadius = SizeValue.Responsive(
+          SizePoint(64.dp, 2.dp),
+          SizePoint(176.dp, 6.dp),
+          SizePoint(220.dp, 8.dp),
+        ),
       ),
     )
   }
 
   @Test
-  fun editingBuiltInStyle_changesSelectionToCustomAndLiteralOptics() {
+  fun editingBuiltInStyle_changesSelectionToCustom() {
     val edited = GlassLabState().editStyle { values ->
       values.copy(optics = GlassOptics(refractionStrength = 0.6f))
     }
 
     assertThat(edited.styleId).isEqualTo(GlassLabStyleId.Custom)
-    assertThat(edited.styleValues.optics).isInstanceOf<GlassOptics>()
   }
 
   @Test
-  fun editingRegularMaterialResponse_preservesAdaptiveOpticsUntilOpticsAreEdited() {
+  fun editingRegularMaterialResponse_preservesResponsiveOpticsUntilOpticsAreEdited() {
     val edited = GlassLabState().editStyle { values ->
       values.copy(specularIntensity = 0.8f)
     }

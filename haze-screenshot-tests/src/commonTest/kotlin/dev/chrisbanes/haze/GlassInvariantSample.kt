@@ -420,7 +420,7 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
             val probeX = bounds.center.x + bounds.width / 4
             val probeY = bounds.center.y
             val refractedLuminance = horizontal[probeX, probeY].luminance()
-            effect.updateFixedOptics { copy(refractionStrength = 0f) }
+            effect.updateOptics { copy(refractionStrength = 0f) }
             carrier = GlassContinuityCarrier.Horizontal
             waitForIdle()
             val unrefractedLuminance =
@@ -479,7 +479,7 @@ internal fun ScreenshotUiTest.assertGlassAsymmetricCornerNormalsContinuous() {
   val enabledSignal = enabled.verticalScanlineLuminance(probeX, centerYRange)
   val enabledDerivative = enabled.verticalScanlineDerivative(probeX, centerYRange)
 
-  effect.updateFixedOptics { copy(refractionStrength = 0f) }
+  effect.updateOptics { copy(refractionStrength = 0f) }
   waitForIdle()
   val disabled = captureInvariantPixels()
   val disabledSignal = disabled.verticalScanlineLuminance(probeX, centerYRange)
@@ -553,7 +553,7 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
         y = bounds.center.y,
         xRange = bounds.left until bounds.right,
       )
-      effect.updateFixedOptics { copy(refractionStrength = 0f) }
+      effect.updateOptics { copy(refractionStrength = 0f) }
       waitForIdle()
       val disabledSignal = captureInvariantPixels().scanlineLuminance(
         y = bounds.center.y,
@@ -585,7 +585,7 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
         assertThat(slopeConcentration, "edge $edgeIndex refraction slope concentration")
           .isLessThanOrEqualTo(3.5f)
       }
-      effect.updateFixedOptics { copy(refractionStrength = 1f) }
+      effect.updateOptics { copy(refractionStrength = 1f) }
     }
   }
 }
@@ -668,7 +668,7 @@ internal fun ScreenshotUiTest.assertGlassBlurInvariant() {
   }
 
   val sharp = captureInvariantSnapshot()
-  effect.updateFixedOptics { copy(blurRadius = SizeValue.Fixed(32.dp)) }
+  effect.updateOptics { copy(blurRadius = SizeValue.Fixed(32.dp)) }
   waitForIdle()
   val blurred = captureInvariantSnapshot()
 
@@ -718,7 +718,7 @@ internal fun ScreenshotUiTest.assertGlassBackgroundColorBlurInvariant() {
   }
 
   val sharp = captureInvariantSnapshot()
-  effect.updateFixedOptics { copy(blurRadius = SizeValue.Fixed(32.dp)) }
+  effect.updateOptics { copy(blurRadius = SizeValue.Fixed(32.dp)) }
   waitForIdle()
   val blurred = captureInvariantSnapshot()
 
@@ -794,7 +794,7 @@ internal fun ScreenshotUiTest.assertGlassRefractionDetailPreservesSharpSourceInv
   }
   val blurredInteriorEnergy = blurred.highFrequencyEnergy(geometry.interiorBounds)
 
-  effect.updateFixedOptics { copy(blurRadius = SizeValue.Fixed(0.dp)) }
+  effect.updateOptics { copy(blurRadius = SizeValue.Fixed(0.dp)) }
   waitForIdle()
   val sharpInteriorEnergy =
     captureInvariantSnapshot().highFrequencyEnergy(geometry.interiorBounds)
@@ -846,7 +846,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
   cases.forEach { case ->
     currentCase = case
     effect.shape = case.shape
-    effect.updateFixedOptics { copy(blurRadius = SizeValue.Fixed(0.dp)) }
+    effect.updateOptics { copy(blurRadius = SizeValue.Fixed(0.dp)) }
     waitForIdle()
     val sharp = captureInvariantSnapshot()
     val pxPerDp = sharp.width / 393f
@@ -862,7 +862,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
       bottom = top + materialHeight - inset,
     )
 
-    effect.updateFixedOptics { copy(blurRadius = SizeValue.Fixed(0.1.dp)) }
+    effect.updateOptics { copy(blurRadius = SizeValue.Fixed(0.1.dp)) }
     waitForIdle()
     val subpixelEnergy = captureInvariantSnapshot().highFrequencyEnergy(bounds)
     assertThat(kotlin.math.abs(subpixelEnergy - subpixelExpectedEnergy))
@@ -870,7 +870,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
 
     var previousEnergy = subpixelEnergy
     listOf(4.dp, 8.dp, 14.dp, 14.1.dp).forEach { radius ->
-      effect.updateFixedOptics { copy(blurRadius = SizeValue.Fixed(radius)) }
+      effect.updateOptics { copy(blurRadius = SizeValue.Fixed(radius)) }
       waitForIdle()
       val energy = captureInvariantSnapshot().highFrequencyEnergy(bounds)
       val (expected, tolerance) = when (radius) {
@@ -929,17 +929,17 @@ internal fun ScreenshotUiTest.assertGlassAdversarialDownsampleInvariant() {
     stripePeriodPx = period
     horizontalStripes = false
     checkerStripes = checker
-    effect.updateFixedOptics {
+    effect.updateOptics {
       copy(blurRadius = SizeValue.Fixed(((thresholdPx - epsilonPx) / pxPerDp).dp))
     }
     waitForIdle()
     val below = captureInvariantSnapshot()
-    effect.updateFixedOptics {
+    effect.updateOptics {
       copy(blurRadius = SizeValue.Fixed((thresholdPx / pxPerDp).dp))
     }
     waitForIdle()
     val at = captureInvariantSnapshot()
-    effect.updateFixedOptics {
+    effect.updateOptics {
       copy(blurRadius = SizeValue.Fixed(((thresholdPx + epsilonPx) / pxPerDp).dp))
     }
     waitForIdle()
@@ -1058,7 +1058,7 @@ internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
   }
 
   fun capture(progressive: HazeProgressive, scale: HazePerformanceMode): PixelSnapshot {
-    effect.updateFixedOptics { copy(progressive = progressive) }
+    effect.updateOptics { copy(progressive = progressive) }
     performanceMode = scale
     waitForIdle()
     return captureInvariantSnapshot()
@@ -1341,7 +1341,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
   matte = Color.Black
   waitForIdle()
   val sharpOverBlack = captureInvariantSnapshot()
-  effect.updateFixedOptics { copy(blurRadius = SizeValue.Fixed(16.dp)) }
+  effect.updateOptics { copy(blurRadius = SizeValue.Fixed(16.dp)) }
   waitForIdle()
   val smallOverBlack = captureInvariantSnapshot()
   matte = Color.White
@@ -1350,7 +1350,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
     overBlack = smallOverBlack,
     overWhite = captureInvariantSnapshot(),
   )
-  effect.updateFixedOptics { copy(refractionDisplacement = 96.dp) }
+  effect.updateOptics { copy(refractionDisplacement = 96.dp) }
   matte = Color.Black
   waitForIdle()
   val largeOverBlack = captureInvariantSnapshot()
@@ -1635,7 +1635,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
   }
 
   val smallPadding = captureTransparentSnapshot { matte = it }
-  effect.updateFixedOptics {
+  effect.updateOptics {
     copy(
       refractionStrength = 0.85f,
       refractionDisplacement = 53.25.dp,
