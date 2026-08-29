@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.glass.SizeValue
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -360,7 +360,7 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
   val blurRadius = fixedControlValue(optics.blurRadius)
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text("Optics", style = MaterialTheme.typography.titleMedium)
-    if (optics.depth is SizeValue.Responsive || optics.blurRadius is SizeValue.Responsive) {
+    if (optics.depth is OpticalSizeValue.Responsive || optics.blurRadius is OpticalSizeValue.Responsive) {
       Text(
         "Editing responsive Depth or Blur makes that value fixed.",
         style = MaterialTheme.typography.bodySmall,
@@ -377,14 +377,14 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
     LabSlider("Depth", depth, 0f..1f) { value ->
       onStateChanged(
         state.editStyle {
-          it.copy(optics = optics.copy(depth = SizeValue.Fixed(value)))
+          it.copy(optics = optics.copy(depth = OpticalSizeValue.Fixed(value)))
         },
       )
     }
     LabSlider("Blur", blurRadius.value, 0f..32f) { value ->
       onStateChanged(
         state.editStyle {
-          it.copy(optics = optics.copy(blurRadius = SizeValue.Fixed(value.dp)))
+          it.copy(optics = optics.copy(blurRadius = OpticalSizeValue.Fixed(value.dp)))
         },
       )
     }
@@ -412,9 +412,9 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
   }
 }
 
-private fun <T> fixedControlValue(value: SizeValue<T>): T = when (value) {
-  is SizeValue.Fixed -> value.value
-  is SizeValue.Responsive -> value.points.first().value
+private fun <T> fixedControlValue(value: OpticalSizeValue<T>): T = when (value) {
+  is OpticalSizeValue.Fixed -> value.value
+  is OpticalSizeValue.Responsive -> value.points.first().value
 }
 
 @Composable

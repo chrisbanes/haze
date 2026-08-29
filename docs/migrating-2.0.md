@@ -181,12 +181,18 @@ generated API reference for property-specific ranges.
 | effect-owned hover, focus, press, light-radius, and light-position animation presentation | property writes inside `GlassStyle { … }` |
 | effect-owned interaction source, transform target/pivot, and reduced-motion policy | explicit `Modifier.hazeGlass` arguments owned by each node |
 | implicit source/content | explicit `HazeInput.Sources` or `HazeInput.Content` |
-| `GlassOptics.Absolute` and `GlassOptics.Fixed` | `GlassOptics`; this is an intentional source break with no alias or compatibility bridge |
+| `GlassOptics.Absolute` and `GlassOptics.Fixed` | `GlassOptics` with fixed `OpticalSizeValue` values; this is an intentional source break with no alias or compatibility bridge |
+| `GlassOptics.Adaptive` used as a complete Style | `GlassStyle.regular` |
+| `GlassOptics.Adaptive` supplied through `optics(...)` | `optics(GlassDefaults.optics)` |
 | `lightPosition(Offset)` and `Offset.Unspecified` | `lightPosition(Alignment)`; omit the write or use `Alignment.Center` for the former automatic center |
 
 Use `optics(...)` for inline fixed values. Keep a `GlassOptics` value when the configuration needs
-to be reused or selected programmatically. Use `SizeValue.Responsive` for
+to be reused or selected programmatically. Use `OpticalSizeValue.Responsive` for
 shortest-dimension-dependent blur or depth.
+
+`GlassOptics()` creates fixed optics and is not a replacement for `GlassOptics.Adaptive`. Use
+`GlassStyle.regular` when selecting the complete built-in Style, or `GlassDefaults.optics` when only
+the optics value needs to be supplied or copied.
 
 Glass light position is now an intentional source break from pixel `Offset` to semantic
 `Alignment`, with no compatibility overload. Use `Alignment.Center` (or omit the write) for the

@@ -56,25 +56,25 @@ package dev.chrisbanes.haze.glass {
 
   @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassOptics {
     ctor public GlassOptics();
-    ctor @KotlinOnly public GlassOptics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.SizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.SizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity);
+    ctor @KotlinOnly public GlassOptics(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity);
     method public float component1();
     method public float component2();
     method @KotlinOnly public operator androidx.compose.ui.unit.Dp component3();
-    method public dev.chrisbanes.haze.glass.SizeValue<java.lang.Float> component4();
-    method public dev.chrisbanes.haze.glass.SizeValue<androidx.compose.ui.unit.Dp> component5();
+    method public dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> component4();
+    method public dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> component5();
     method public dev.chrisbanes.haze.HazeProgressive? component6();
     method public float component7();
     method public float component8();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.SizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.SizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity);
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SizeValue<androidx.compose.ui.unit.Dp> getBlurRadius();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.SizeValue<java.lang.Float> getDepth();
+    method @KotlinOnly public dev.chrisbanes.haze.glass.GlassOptics copy(optional float refractionStrength, optional float refractionHeightFraction, optional androidx.compose.ui.unit.Dp refractionDisplacement, optional dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth, optional dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius, optional dev.chrisbanes.haze.HazeProgressive? progressive, optional float refractionFoldStrength, optional float refractionDetailIntensity);
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> getBlurRadius();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> getDepth();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeProgressive? getProgressive();
     method @InaccessibleFromKotlin public float getRefractionDetailIntensity();
     method @InaccessibleFromKotlin public float getRefractionFoldStrength();
     method @InaccessibleFromKotlin public float getRefractionHeightFraction();
     method @InaccessibleFromKotlin public float getRefractionStrength();
-    property public dev.chrisbanes.haze.glass.SizeValue<androidx.compose.ui.unit.Dp> blurRadius;
-    property public dev.chrisbanes.haze.glass.SizeValue<java.lang.Float> depth;
+    property public dev.chrisbanes.haze.glass.OpticalSizeValue<androidx.compose.ui.unit.Dp> blurRadius;
+    property public dev.chrisbanes.haze.glass.OpticalSizeValue<java.lang.Float> depth;
     property public dev.chrisbanes.haze.HazeProgressive? progressive;
     property public float refractionDetailIntensity;
     property public androidx.compose.ui.unit.Dp refractionDisplacement;
@@ -152,30 +152,30 @@ package dev.chrisbanes.haze.glass {
     method @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.ui.Modifier hazeGlass(androidx.compose.ui.Modifier, dev.chrisbanes.haze.HazeInput input, optional dev.chrisbanes.haze.glass.GlassStyle style, optional dev.chrisbanes.haze.HazePerformanceMode performanceMode, optional boolean expandLayerBounds, optional androidx.compose.foundation.interaction.InteractionSource? interactionSource, optional dev.chrisbanes.haze.glass.GlassTransformTarget interactionTransformTarget, optional dev.chrisbanes.haze.glass.GlassTransformPivot interactionTransformPivot, optional dev.chrisbanes.haze.glass.GlassReducedMotionPolicy interactionReducedMotionPolicy);
   }
 
-  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class SizePoint<T> {
-    ctor @KotlinOnly public <T> SizePoint(androidx.compose.ui.unit.Dp shortestDimension, T value);
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class OpticalSizePoint<T> {
+    ctor @KotlinOnly public <T> OpticalSizePoint(androidx.compose.ui.unit.Dp shortestDimension, T value);
     method @KotlinOnly public operator androidx.compose.ui.unit.Dp component1();
     method public T component2();
-    method @KotlinOnly public dev.chrisbanes.haze.glass.SizePoint<T> copy(optional androidx.compose.ui.unit.Dp shortestDimension, optional T value);
+    method @KotlinOnly public dev.chrisbanes.haze.glass.OpticalSizePoint<T> copy(optional androidx.compose.ui.unit.Dp shortestDimension, optional T value);
     method @InaccessibleFromKotlin public T getValue();
     property public androidx.compose.ui.unit.Dp shortestDimension;
     property public T value;
   }
 
-  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public sealed exhaustive interface SizeValue<T> {
+  @dev.chrisbanes.haze.ExperimentalHazeApi public sealed exhaustive interface OpticalSizeValue<T> {
   }
 
-  @kotlin.jvm.JvmInline public static final value class SizeValue.Fixed<T> implements dev.chrisbanes.haze.glass.SizeValue<T> {
-    ctor @KotlinOnly public <T> SizeValue.Fixed(T value);
+  @kotlin.jvm.JvmInline public static final value class OpticalSizeValue.Fixed<T> implements dev.chrisbanes.haze.glass.OpticalSizeValue<T> {
+    ctor @KotlinOnly public <T> OpticalSizeValue.Fixed(T value);
     method @InaccessibleFromKotlin public T getValue();
     property public T value;
   }
 
-  @kotlin.jvm.JvmInline public static final value class SizeValue.Responsive<T> implements dev.chrisbanes.haze.glass.SizeValue<T> {
-    ctor @KotlinOnly public <T> SizeValue.Responsive(dev.chrisbanes.haze.glass.SizePoint<T>... points);
-    ctor @KotlinOnly public <T> SizeValue.Responsive(java.util.Collection<dev.chrisbanes.haze.glass.SizePoint<T>> points);
-    method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.glass.SizePoint<T>> getPoints();
-    property public java.util.List<dev.chrisbanes.haze.glass.SizePoint<T>> points;
+  @kotlin.jvm.JvmInline public static final value class OpticalSizeValue.Responsive<T> implements dev.chrisbanes.haze.glass.OpticalSizeValue<T> {
+    ctor @KotlinOnly public <T> OpticalSizeValue.Responsive(dev.chrisbanes.haze.glass.OpticalSizePoint<T>... points);
+    ctor @KotlinOnly public <T> OpticalSizeValue.Responsive(java.util.Collection<dev.chrisbanes.haze.glass.OpticalSizePoint<T>> points);
+    method @InaccessibleFromKotlin public java.util.List<dev.chrisbanes.haze.glass.OpticalSizePoint<T>> getPoints();
+    property public java.util.List<dev.chrisbanes.haze.glass.OpticalSizePoint<T>> points;
   }
 
   @dev.chrisbanes.haze.ExperimentalHazeApi public enum SurfaceProfile {
@@ -186,4 +186,3 @@ package dev.chrisbanes.haze.glass {
   }
 
 }
-

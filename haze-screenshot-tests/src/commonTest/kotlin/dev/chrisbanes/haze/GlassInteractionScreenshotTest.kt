@@ -32,7 +32,7 @@ import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassTransformPivot
 import dev.chrisbanes.haze.glass.GlassTransformTarget
-import dev.chrisbanes.haze.glass.SizeValue
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -100,8 +100,8 @@ class GlassInteractionScreenshotTest : ScreenshotTest() {
       optics = GlassOptics(
         refractionStrength = 0.7f,
         refractionDisplacement = 28.dp,
-        depth = SizeValue.Fixed(0.5f),
-        blurRadius = SizeValue.Fixed(14.dp),
+        depth = OpticalSizeValue.Fixed(0.5f),
+        blurRadius = OpticalSizeValue.Fixed(14.dp),
       )
       pressed {
         animate(toSpec = snap(), fromSpec = snap()) {

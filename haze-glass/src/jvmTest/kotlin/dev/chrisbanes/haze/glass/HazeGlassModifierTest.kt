@@ -74,8 +74,8 @@ class HazeGlassModifierTest : ContextTest() {
         refractionStrength = 0.63f,
         refractionHeightFraction = 0.31f,
         refractionDisplacement = 9.dp,
-        depth = SizeValue.Fixed(0.72f),
-        blurRadius = SizeValue.Fixed(7.dp),
+        depth = OpticalSizeValue.Fixed(0.72f),
+        blurRadius = OpticalSizeValue.Fixed(7.dp),
       )
       val tint = Color(0x6655AAFF)
       val sharedStyle = GlassStyle {
@@ -520,7 +520,7 @@ class HazeGlassModifierTest : ContextTest() {
     assertThat(completeRuntime.whitePoint).isEqualTo(0.2f)
     assertThat(completeRuntime.specularIntensity).isEqualTo(0.6f)
     assertThat(completeRuntime.optics).isSameInstanceAs(completeFinalOptics)
-    assertThat(directRuntime.optics).isEqualTo(GlassOptics(depth = SizeValue.Fixed(0.9f)))
+    assertThat(directRuntime.optics).isEqualTo(GlassOptics(depth = OpticalSizeValue.Fixed(0.9f)))
     assertThat(pressed?.lightingIntensity?.value).isEqualTo(0.9f)
     assertThat(pressed?.refractionMultiplier).isNull()
   }

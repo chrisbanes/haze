@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.SizeValue
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.ScreenshotUiTest
@@ -34,7 +34,7 @@ internal fun glassDepthProgressionVisualEffect(
 ): GlassTestConfiguration {
   return GlassTestConfiguration().apply {
     tint = Color.White.copy(alpha = 0.12f)
-    optics = GlassOptics(depth = SizeValue.Fixed(depth), blurRadius = SizeValue.Fixed(32.dp))
+    optics = GlassOptics(depth = OpticalSizeValue.Fixed(depth), blurRadius = OpticalSizeValue.Fixed(32.dp))
     specularIntensity = 0.4f
     ambientResponse = 0.5f
     edgeSoftness = 8.dp
@@ -57,18 +57,18 @@ internal fun ScreenshotUiTest.assertGlassDepthProgression() {
 
   val depth0 = captureRootPixels().snapshot()
 
-  visualEffect.updateOptics { copy(depth = SizeValue.Fixed(0.5f)) }
+  visualEffect.updateOptics { copy(depth = OpticalSizeValue.Fixed(0.5f)) }
   waitForIdle()
   val depth50 = captureRootPixels().snapshot()
 
-  visualEffect.updateOptics { copy(depth = SizeValue.Fixed(1f)) }
+  visualEffect.updateOptics { copy(depth = OpticalSizeValue.Fixed(1f)) }
   waitForIdle()
   val depth100 = captureRootPixels().snapshot()
 
   assertDepthProgression(depth0, depth50, depth100)
 
   listOf(0f to "0", 0.5f to "50", 1f to "100").forEach { (depth, snapshotName) ->
-    visualEffect.updateOptics { copy(depth = SizeValue.Fixed(depth)) }
+    visualEffect.updateOptics { copy(depth = OpticalSizeValue.Fixed(depth)) }
     waitForIdle()
     captureRoot(snapshotName)
   }

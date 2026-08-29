@@ -670,8 +670,8 @@ class GlassRenderParamsTest {
       refractionStrength = 0.4f,
       refractionHeightFraction = 0.25f,
       refractionDisplacement = 15.dp,
-      depth = SizeValue.Fixed(0.6f),
-      blurRadius = SizeValue.Fixed(10.dp),
+      depth = OpticalSizeValue.Fixed(0.6f),
+      blurRadius = OpticalSizeValue.Fixed(10.dp),
       progressive = progressive,
       refractionFoldStrength = 0.4f,
     )
@@ -690,9 +690,9 @@ class GlassRenderParamsTest {
       assertThat(resolved.refractionScalePx)
         .isEqualTo(with(density) { optics.refractionDisplacement.toPx() })
       assertThat(resolved.depth)
-        .isEqualTo((optics.depth as SizeValue.Fixed).value)
+        .isEqualTo((optics.depth as OpticalSizeValue.Fixed).value)
       assertThat(resolved.blurRadiusPx / density.density)
-        .isEqualTo((optics.blurRadius as SizeValue.Fixed).value.value)
+        .isEqualTo((optics.blurRadius as OpticalSizeValue.Fixed).value.value)
       assertThat(resolved.progressive).isEqualTo(progressive)
       assertThat(resolved.refractionDetailIntensity).isGreaterThan(0f)
     }
@@ -750,13 +750,13 @@ class GlassRenderParamsTest {
   @Test
   fun responsiveOptics_clampAndSmoothstepEachValueIndependently() {
     val optics = GlassOptics(
-      depth = SizeValue.Responsive(
-        SizePoint(64.dp, 0f),
-        SizePoint(176.dp, 1f),
+      depth = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 0f),
+        OpticalSizePoint(176.dp, 1f),
       ),
-      blurRadius = SizeValue.Responsive(
-        SizePoint(100.dp, 2.dp),
-        SizePoint(200.dp, 12.dp),
+      blurRadius = OpticalSizeValue.Responsive(
+        OpticalSizePoint(100.dp, 2.dp),
+        OpticalSizePoint(200.dp, 12.dp),
       ),
     )
     fun resolve(side: Dp) = resolveGlassOptics(optics, Size(side.value, side.value), Density(1f))
@@ -775,13 +775,13 @@ class GlassRenderParamsTest {
   @Test
   fun responsiveOptics_invalidGeometryUsesFirstPoints() {
     val optics = GlassOptics(
-      depth = SizeValue.Responsive(
-        SizePoint(64.dp, 0.2f),
-        SizePoint(176.dp, 0.8f),
+      depth = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 0.2f),
+        OpticalSizePoint(176.dp, 0.8f),
       ),
-      blurRadius = SizeValue.Responsive(
-        SizePoint(64.dp, 4.dp),
-        SizePoint(176.dp, 12.dp),
+      blurRadius = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 4.dp),
+        OpticalSizePoint(176.dp, 12.dp),
       ),
     )
     val invalidSizes = listOf(
@@ -857,7 +857,7 @@ class GlassRenderParamsTest {
 
     cases.forEach { (radius, density, expectedRadiusPx) ->
       val resolved = resolveGlassOptics(
-        optics = GlassOptics(blurRadius = SizeValue.Fixed(radius)),
+        optics = GlassOptics(blurRadius = OpticalSizeValue.Fixed(radius)),
         materialSizePx = Size(200f, 100f),
         density = density,
       )
@@ -869,7 +869,7 @@ class GlassRenderParamsTest {
   @Test
   fun fixedLayerPadding_usesLiteralValues() {
     val fixed = GlassOptics(
-      blurRadius = SizeValue.Fixed(32.dp),
+      blurRadius = OpticalSizeValue.Fixed(32.dp),
       refractionDisplacement = 15.dp,
     )
     val effect = GlassRuntimeEffect().apply {
@@ -913,7 +913,7 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_deriveBlurSigmaFromScaledRadius() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(blurRadius = SizeValue.Fixed(20.dp))
+      optics = GlassOptics(blurRadius = OpticalSizeValue.Fixed(20.dp))
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -946,7 +946,7 @@ class GlassRenderParamsTest {
       optics = GlassOptics(
         refractionHeightFraction = 0.25f,
         refractionDisplacement = 12.dp,
-        blurRadius = SizeValue.Fixed(10.dp),
+        blurRadius = OpticalSizeValue.Fixed(10.dp),
         refractionFoldStrength = 0.4f,
       )
     }
@@ -1006,7 +1006,7 @@ class GlassRenderParamsTest {
   @Test
   fun renderParams_zeroBlurHasZeroRadiusAndSigma() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(blurRadius = SizeValue.Fixed(0.dp))
+      optics = GlassOptics(blurRadius = OpticalSizeValue.Fixed(0.dp))
     }
     val style = resolveGlassStyle(
       effect = effect,
@@ -1187,7 +1187,7 @@ class GlassRenderParamsTest {
   fun calculateLayerBounds_zeroRefractionUsesEffectiveSemanticBlurRadiusExactly() {
     val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics(
-        blurRadius = SizeValue.Fixed(32.dp),
+        blurRadius = OpticalSizeValue.Fixed(32.dp),
         refractionStrength = 0f,
         refractionDisplacement = 0.dp,
       )
@@ -1258,7 +1258,7 @@ class GlassRenderParamsTest {
   fun calculateLayerBounds_invalidGeometryProducesFiniteInflatedBounds() {
     val effect = GlassRuntimeEffect().apply {
       optics = GlassOptics(
-        blurRadius = SizeValue.Fixed(32.dp),
+        blurRadius = OpticalSizeValue.Fixed(32.dp),
         refractionStrength = 1f,
         refractionDisplacement = 0.dp,
       )

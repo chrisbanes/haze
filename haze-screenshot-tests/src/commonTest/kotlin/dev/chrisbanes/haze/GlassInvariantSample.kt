@@ -51,7 +51,7 @@ import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
-import dev.chrisbanes.haze.glass.SizeValue
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -156,7 +156,7 @@ internal fun GlassChromaInvariantSample() {
   val effect = remember {
     GlassTestConfiguration().apply {
       tint = Color.Transparent
-      optics = GlassOptics(refractionStrength = 0f, depth = SizeValue.Fixed(0f), blurRadius = SizeValue.Fixed(0.dp))
+      optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp))
       specularIntensity = 0f
       ambientResponse = 0f
       edgeSoftness = 0.dp
@@ -340,8 +340,8 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
       refractionStrength = 1f,
       refractionHeightFraction = 0.75f,
       refractionDisplacement = 48.dp,
-      depth = SizeValue.Fixed(0f),
-      blurRadius = SizeValue.Fixed(0.dp),
+      depth = OpticalSizeValue.Fixed(0f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
     ),
   )
   var currentCase by mutableStateOf(cases.first())
@@ -414,8 +414,8 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
           )
           if (
             profile == SurfaceProfile.Circle &&
-            optics.depth is SizeValue.Fixed &&
-            optics.blurRadius is SizeValue.Fixed
+            optics.depth is OpticalSizeValue.Fixed &&
+            optics.blurRadius is OpticalSizeValue.Fixed
           ) {
             val probeX = bounds.center.x + bounds.width / 4
             val probeY = bounds.center.y
@@ -448,8 +448,8 @@ internal fun ScreenshotUiTest.assertGlassAsymmetricCornerNormalsContinuous() {
       refractionStrength = 1f,
       refractionHeightFraction = 0.5f,
       refractionDisplacement = 48.dp,
-      depth = SizeValue.Fixed(0f),
-      blurRadius = SizeValue.Fixed(0.dp),
+      depth = OpticalSizeValue.Fixed(0f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
     )
     specularIntensity = 0f
     ambientResponse = 0f
@@ -507,8 +507,8 @@ internal fun ScreenshotUiTest.assertGlassSquircleInteriorContinuous() {
       refractionStrength = 1f,
       refractionHeightFraction = 0.25f,
       refractionDisplacement = 48.dp,
-      depth = SizeValue.Fixed(0f),
-      blurRadius = SizeValue.Fixed(0.dp),
+      depth = OpticalSizeValue.Fixed(0f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
     )
     surfaceProfile = SurfaceProfile.Squircle
     specularIntensity = 0f
@@ -599,8 +599,8 @@ internal fun ScreenshotUiTest.assertGlassSquircleAmbientDoesNotGlowInside() {
       refractionStrength = 1f,
       refractionHeightFraction = 0.25f,
       refractionDisplacement = 48.dp,
-      depth = SizeValue.Fixed(0f),
-      blurRadius = SizeValue.Fixed(0.dp),
+      depth = OpticalSizeValue.Fixed(0f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
     )
     surfaceProfile = SurfaceProfile.Squircle
     specularIntensity = 0f
@@ -659,7 +659,7 @@ internal fun ScreenshotUiTest.assertGlassSquircleAmbientDoesNotGlowInside() {
 internal fun ScreenshotUiTest.assertGlassBlurInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    optics = GlassOptics(depth = SizeValue.Fixed(1f), blurRadius = SizeValue.Fixed(0.dp))
+    optics = GlassOptics(depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(0.dp))
   }
   setContent {
     ScreenshotTheme {
@@ -668,7 +668,7 @@ internal fun ScreenshotUiTest.assertGlassBlurInvariant() {
   }
 
   val sharp = captureInvariantSnapshot()
-  effect.updateOptics { copy(blurRadius = SizeValue.Fixed(32.dp)) }
+  effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(32.dp)) }
   waitForIdle()
   val blurred = captureInvariantSnapshot()
 
@@ -678,7 +678,7 @@ internal fun ScreenshotUiTest.assertGlassBlurInvariant() {
 internal fun ScreenshotUiTest.assertGlassBackgroundColorBlurInvariant() {
   val effect = GlassTestConfiguration().apply {
     style = GlassStyle { backgroundColor(Color.White) }
-    optics = GlassOptics(refractionStrength = 0f, depth = SizeValue.Fixed(1f), blurRadius = SizeValue.Fixed(0.dp))
+    optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(0.dp))
     tint = Color.Transparent
     specularIntensity = 0f
     ambientResponse = 0f
@@ -718,7 +718,7 @@ internal fun ScreenshotUiTest.assertGlassBackgroundColorBlurInvariant() {
   }
 
   val sharp = captureInvariantSnapshot()
-  effect.updateOptics { copy(blurRadius = SizeValue.Fixed(32.dp)) }
+  effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(32.dp)) }
   waitForIdle()
   val blurred = captureInvariantSnapshot()
 
@@ -733,8 +733,8 @@ internal fun ScreenshotUiTest.assertGlassRefractionDetailPreservesSharpSourceInv
     optics = GlassOptics(
       refractionStrength = 1f,
       refractionDisplacement = 6.dp,
-      depth = SizeValue.Fixed(1f),
-      blurRadius = SizeValue.Fixed(24.dp),
+      depth = OpticalSizeValue.Fixed(1f),
+      blurRadius = OpticalSizeValue.Fixed(24.dp),
     )
     tint = Color.Transparent
     specularIntensity = 0f
@@ -794,7 +794,7 @@ internal fun ScreenshotUiTest.assertGlassRefractionDetailPreservesSharpSourceInv
   }
   val blurredInteriorEnergy = blurred.highFrequencyEnergy(geometry.interiorBounds)
 
-  effect.updateOptics { copy(blurRadius = SizeValue.Fixed(0.dp)) }
+  effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(0.dp)) }
   waitForIdle()
   val sharpInteriorEnergy =
     captureInvariantSnapshot().highFrequencyEnergy(geometry.interiorBounds)
@@ -826,7 +826,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
   )
   var currentCase by mutableStateOf(cases.first())
   val effect = invariantEffect(currentCase.shape).apply {
-    optics = GlassOptics(refractionStrength = 0f, depth = SizeValue.Fixed(1f))
+    optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f))
     tint = Color.Transparent
     specularIntensity = 0f
     ambientResponse = 0f
@@ -846,7 +846,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
   cases.forEach { case ->
     currentCase = case
     effect.shape = case.shape
-    effect.updateOptics { copy(blurRadius = SizeValue.Fixed(0.dp)) }
+    effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(0.dp)) }
     waitForIdle()
     val sharp = captureInvariantSnapshot()
     val pxPerDp = sharp.width / 393f
@@ -862,7 +862,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
       bottom = top + materialHeight - inset,
     )
 
-    effect.updateOptics { copy(blurRadius = SizeValue.Fixed(0.1.dp)) }
+    effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(0.1.dp)) }
     waitForIdle()
     val subpixelEnergy = captureInvariantSnapshot().highFrequencyEnergy(bounds)
     assertThat(kotlin.math.abs(subpixelEnergy - subpixelExpectedEnergy))
@@ -870,7 +870,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
 
     var previousEnergy = subpixelEnergy
     listOf(4.dp, 8.dp, 14.dp, 14.1.dp).forEach { radius ->
-      effect.updateOptics { copy(blurRadius = SizeValue.Fixed(radius)) }
+      effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(radius)) }
       waitForIdle()
       val energy = captureInvariantSnapshot().highFrequencyEnergy(bounds)
       val (expected, tolerance) = when (radius) {
@@ -890,7 +890,7 @@ internal fun ScreenshotUiTest.assertGlassSemanticBlurHfInvariant(
 internal fun ScreenshotUiTest.assertGlassAdversarialDownsampleInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    optics = GlassOptics(refractionStrength = 0f, depth = SizeValue.Fixed(1f))
+    optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f))
     tint = Color.Transparent
     specularIntensity = 0f
     ambientResponse = 0f
@@ -930,17 +930,17 @@ internal fun ScreenshotUiTest.assertGlassAdversarialDownsampleInvariant() {
     horizontalStripes = false
     checkerStripes = checker
     effect.updateOptics {
-      copy(blurRadius = SizeValue.Fixed(((thresholdPx - epsilonPx) / pxPerDp).dp))
+      copy(blurRadius = OpticalSizeValue.Fixed(((thresholdPx - epsilonPx) / pxPerDp).dp))
     }
     waitForIdle()
     val below = captureInvariantSnapshot()
     effect.updateOptics {
-      copy(blurRadius = SizeValue.Fixed((thresholdPx / pxPerDp).dp))
+      copy(blurRadius = OpticalSizeValue.Fixed((thresholdPx / pxPerDp).dp))
     }
     waitForIdle()
     val at = captureInvariantSnapshot()
     effect.updateOptics {
-      copy(blurRadius = SizeValue.Fixed(((thresholdPx + epsilonPx) / pxPerDp).dp))
+      copy(blurRadius = OpticalSizeValue.Fixed(((thresholdPx + epsilonPx) / pxPerDp).dp))
     }
     waitForIdle()
     val above = captureInvariantSnapshot()
@@ -981,8 +981,8 @@ internal fun ScreenshotUiTest.assertGlassProgressiveBlurInvariant() {
           invariantEffect(RoundedCornerShape(0.dp)).apply {
             optics = GlassOptics(
               refractionStrength = 0f,
-              depth = SizeValue.Fixed(1f),
-              blurRadius = SizeValue.Fixed(blurRadius),
+              depth = OpticalSizeValue.Fixed(1f),
+              blurRadius = OpticalSizeValue.Fixed(blurRadius),
               progressive = progressive,
             )
             tint = Color.Transparent
@@ -1039,7 +1039,7 @@ internal fun ScreenshotUiTest.assertGlassProgressiveBlurInvariant() {
 internal fun ScreenshotUiTest.assertGlassProgressiveMaskScaleInvariant() {
   val shape = RoundedCornerShape(0.dp)
   val effect = invariantEffect(shape).apply {
-    optics = GlassOptics(refractionStrength = 0f, depth = SizeValue.Fixed(1f), blurRadius = SizeValue.Fixed(18.dp))
+    optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(1f), blurRadius = OpticalSizeValue.Fixed(18.dp))
     tint = Color.Transparent
     specularIntensity = 0f
     ambientResponse = 0f
@@ -1319,8 +1319,8 @@ internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
     optics = GlassOptics(
       refractionStrength = 1f,
       refractionDisplacement = 0.dp,
-      depth = SizeValue.Fixed(1f),
-      blurRadius = SizeValue.Fixed(0.dp),
+      depth = OpticalSizeValue.Fixed(1f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
     )
     tint = Color.Transparent
     specularIntensity = 0f
@@ -1341,7 +1341,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingPreservesSourceInvariant() {
   matte = Color.Black
   waitForIdle()
   val sharpOverBlack = captureInvariantSnapshot()
-  effect.updateOptics { copy(blurRadius = SizeValue.Fixed(16.dp)) }
+  effect.updateOptics { copy(blurRadius = OpticalSizeValue.Fixed(16.dp)) }
   waitForIdle()
   val smallOverBlack = captureInvariantSnapshot()
   matte = Color.White
@@ -1414,7 +1414,7 @@ internal fun ScreenshotUiTest.assertGlassTransparentOutputInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = GlassTestConfiguration().apply {
     tint = Color.Transparent
-    optics = GlassOptics(refractionStrength = 0f, depth = SizeValue.Fixed(0f), blurRadius = SizeValue.Fixed(0.dp))
+    optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp))
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
@@ -1454,8 +1454,8 @@ internal fun ScreenshotUiTest.assertGlassTranslucentSourceInvariant(
   val effect = GlassTestConfiguration().apply {
     tint = Color.Transparent
     optics = GlassOptics(
-      depth = SizeValue.Fixed(0f),
-      blurRadius = SizeValue.Fixed(0.dp),
+      depth = OpticalSizeValue.Fixed(0f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
     )
     chromaticAberrationStrength = 0f
     specularIntensity = 0f
@@ -1616,8 +1616,8 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
     optics = GlassOptics(
       refractionStrength = 0.2f,
       refractionDisplacement = 24.dp,
-      depth = SizeValue.Fixed(0.5f),
-      blurRadius = SizeValue.Fixed(0.dp),
+      depth = OpticalSizeValue.Fixed(0.5f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
     )
     chromaticAberrationStrength = 0f
     edgeSoftness = 0.dp
@@ -1639,7 +1639,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
     copy(
       refractionStrength = 0.85f,
       refractionDisplacement = 53.25.dp,
-      blurRadius = SizeValue.Fixed(35.2.dp),
+      blurRadius = OpticalSizeValue.Fixed(35.2.dp),
     )
   }
   effect.chromaticAberrationStrength = 0.3f
@@ -1680,7 +1680,7 @@ internal fun ScreenshotUiTest.assertGlassPaddingAndScaleInvariants() {
 internal fun ScreenshotUiTest.assertGlassFirstEnabledFrameInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    optics = GlassOptics(depth = SizeValue.Fixed(0.6f), blurRadius = SizeValue.Fixed(32.dp))
+    optics = GlassOptics(depth = OpticalSizeValue.Fixed(0.6f), blurRadius = OpticalSizeValue.Fixed(32.dp))
   }
   var enabled by mutableStateOf(false)
   setContent {
@@ -1706,7 +1706,7 @@ internal fun ScreenshotUiTest.assertGlassFirstEnabledFrameInvariant() {
 internal fun ScreenshotUiTest.assertGlassProfileBranchContinuous() {
   val shape = RoundedCornerShape(28.dp)
   val effect = invariantEffect(shape).apply {
-    optics = GlassOptics(refractionStrength = 0.85f, depth = SizeValue.Fixed(0.6f), blurRadius = SizeValue.Fixed(32.dp))
+    optics = GlassOptics(refractionStrength = 0.85f, depth = OpticalSizeValue.Fixed(0.6f), blurRadius = OpticalSizeValue.Fixed(32.dp))
     edgeSoftness = 0.dp
   }
   setContent {
@@ -1944,8 +1944,8 @@ internal fun ScreenshotUiTest.assertGlassRefractionFoldDoesNotFormSeparateEdgeBa
     refractionHeightFraction = 0.3f,
     refractionDisplacement = 18.dp,
     refractionFoldStrength = 0f,
-    depth = SizeValue.Fixed(0f),
-    blurRadius = SizeValue.Fixed(0.dp),
+    depth = OpticalSizeValue.Fixed(0f),
+    blurRadius = OpticalSizeValue.Fixed(0.dp),
   )
   val effect = GlassTestConfiguration().apply {
     tint = Color.Transparent
@@ -1995,8 +1995,8 @@ private fun foldInvariantOptics(strength: Float) = GlassOptics(
   refractionHeightFraction = 0.75f,
   refractionDisplacement = 48.dp,
   refractionFoldStrength = strength,
-  depth = SizeValue.Fixed(0f),
-  blurRadius = SizeValue.Fixed(0.dp),
+  depth = OpticalSizeValue.Fixed(0f),
+  blurRadius = OpticalSizeValue.Fixed(0.dp),
 )
 
 private fun PixelSnapshot.foldProbeSlopes(
@@ -2095,7 +2095,7 @@ internal fun ScreenshotUiTest.assertGlassZeroExponentLightingInvariant() {
   val shape = RoundedCornerShape(28.dp)
   val effect = GlassTestConfiguration().apply {
     tint = Color.White.copy(alpha = 0.12f)
-    optics = GlassOptics(refractionStrength = 0.5f, depth = SizeValue.Fixed(0.5f), blurRadius = SizeValue.Fixed(16.dp))
+    optics = GlassOptics(refractionStrength = 0.5f, depth = OpticalSizeValue.Fixed(0.5f), blurRadius = OpticalSizeValue.Fixed(16.dp))
     specularIntensity = 0.6f
     specularExponent = 0f
     fresnelExponent = 0f
@@ -2125,7 +2125,7 @@ private fun ScreenshotUiTest.assertGlassCornersMatchComposeClipInvariant(
 ) {
   val effect = GlassTestConfiguration().apply {
     tint = Color.White
-    optics = GlassOptics(refractionStrength = 0f, depth = SizeValue.Fixed(0f), blurRadius = SizeValue.Fixed(0.dp))
+    optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp))
     specularIntensity = 0f
     ambientResponse = 0f
     edgeSoftness = 0.dp
@@ -2240,7 +2240,7 @@ private fun centeredSurfaceBounds(
 
 private fun invariantEffect(shape: RoundedCornerShape) = GlassTestConfiguration().apply {
   tint = Color.White.copy(alpha = 0.12f)
-  optics = GlassOptics(depth = SizeValue.Fixed(0.5f), blurRadius = SizeValue.Fixed(16.dp))
+  optics = GlassOptics(depth = OpticalSizeValue.Fixed(0.5f), blurRadius = OpticalSizeValue.Fixed(16.dp))
   specularIntensity = 0.4f
   ambientResponse = 0.5f
   edgeSoftness = 8.dp

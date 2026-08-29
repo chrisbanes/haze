@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.GlassOptics
-import dev.chrisbanes.haze.glass.SizeValue
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -27,8 +27,8 @@ class GlassInputScaleScreenshotTest : ScreenshotTest() {
       optics = GlassOptics(
         refractionStrength = 1f,
         refractionDisplacement = 24.dp,
-        depth = SizeValue.Fixed(1f),
-        blurRadius = SizeValue.Fixed(24.dp),
+        depth = OpticalSizeValue.Fixed(1f),
+        blurRadius = OpticalSizeValue.Fixed(24.dp),
         progressive = HazeProgressive.verticalGradient(),
       )
       tint = Color.White.copy(alpha = 0.08f)

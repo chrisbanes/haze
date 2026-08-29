@@ -36,7 +36,7 @@ import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
-import dev.chrisbanes.haze.glass.SizeValue
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
@@ -224,8 +224,8 @@ class GlassScreenshotTest : ScreenshotTest() {
         optics(
           GlassOptics(
             refractionStrength = 0f,
-            depth = SizeValue.Fixed(1f),
-            blurRadius = SizeValue.Fixed(0.dp),
+            depth = OpticalSizeValue.Fixed(1f),
+            blurRadius = OpticalSizeValue.Fixed(0.dp),
           ),
         )
         specularIntensity(0f)
@@ -374,8 +374,8 @@ class GlassScreenshotTest : ScreenshotTest() {
               optics(
                 GlassOptics(
                   refractionStrength = 0.6f,
-                  depth = SizeValue.Fixed(0.5f),
-                  blurRadius = SizeValue.Fixed(0.dp),
+                  depth = OpticalSizeValue.Fixed(0.5f),
+                  blurRadius = OpticalSizeValue.Fixed(0.dp),
                 ),
               )
               specularIntensity(0f)
@@ -550,7 +550,7 @@ class GlassScreenshotTest : ScreenshotTest() {
       optics(
         GlassOptics(
           refractionStrength = 0.55f,
-          depth = SizeValue.Fixed(0.4f),
+          depth = OpticalSizeValue.Fixed(0.4f),
         ),
       )
       specularIntensity(0.75f)

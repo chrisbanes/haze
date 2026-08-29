@@ -144,12 +144,12 @@ internal fun resolveGlassOptics(
 }
 
 private fun <T> resolveSizeValue(
-  value: SizeValue<T>,
+  value: OpticalSizeValue<T>,
   shortestSide: Dp?,
   lerp: (T, T, Float) -> T,
 ): T = when (value) {
-  is SizeValue.Fixed -> value.value
-  is SizeValue.Responsive -> {
+  is OpticalSizeValue.Fixed -> value.value
+  is OpticalSizeValue.Responsive -> {
     val points = value.points
     val dimension = shortestSide?.value?.takeIf { it.isFinite() && it > 0f }
     if (dimension == null || dimension <= points.first().shortestDimension.value) {

@@ -89,6 +89,9 @@ Modifier.hazeGlass(
 - **optics**: Optical material configuration. `GlassStyle.regular` supplies the default
   size-aware optics. Call `optics(...)` for inline fixed configuration, or keep a `GlassOptics`
   value when it needs to be reused or selected programmatically.
+- **refractionDetailIntensity**: Secondary edge-refraction detail strength `0..1`. `0` disables the
+  detail pass. Caller-authored `GlassOptics` defaults to `0.76`; Regular uses `0`, and Clear uses
+  `0.76`. Non-zero values may retain additional rendering layers on full renderers.
 - **specularIntensity**: Highlight strength `0..1` (default 0.4).
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.46).
 - **edgeSoftness**: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.
@@ -186,15 +189,16 @@ GlassStyle {
 
 The scalar Style overload creates fixed values. For a responsive custom configuration, provide
 independent shortest-dimension points for blur and depth; values clamp at the endpoints and use a
-smoothstep interpolation between points:
+smoothstep interpolation between points. Each responsive value requires at least two points with
+positive, finite, strictly increasing dimensions:
 
 ```kotlin
 val responsiveOptics = GlassOptics(
-  blurRadius = SizeValue.Responsive(
-    SizePoint(176.dp, 8.dp),
-    SizePoint(300.dp, 12.dp),
+  blurRadius = OpticalSizeValue.Responsive(
+    OpticalSizePoint(176.dp, 8.dp),
+    OpticalSizePoint(300.dp, 12.dp),
   ),
-  depth = SizeValue.Fixed(0.4f),
+  depth = OpticalSizeValue.Fixed(0.4f),
 )
 val style = GlassStyle { optics(responsiveOptics) }
 ```
@@ -203,7 +207,7 @@ Keep a complete value when it is reused, stored, copied, or selected programmati
 
 ```kotlin
 val reusableOptics = GlassOptics(
-  blurRadius = SizeValue.Fixed(20.dp),
+  blurRadius = OpticalSizeValue.Fixed(20.dp),
 )
 val style = GlassStyle { optics(reusableOptics) }
 ```
@@ -212,6 +216,10 @@ val style = GlassStyle { optics(reusableOptics) }
 for `GlassOptics` is `0f`, which preserves the original monotonic refraction map. The fold is
 available with every `SurfaceProfile` and remains within the configured refraction displacement;
 it does not expand the capture area.
+
+`refractionDetailIntensity` controls a secondary edge-detail pass on full renderers. Set it to `0f`
+to disable the pass and its additional retained layers. Caller-authored `GlassOptics` defaults to
+`0.76f`; `GlassStyle.regular` uses `0f`, while `GlassStyle.clear` uses `0.76f`.
 
 `GlassOptics` controls the appearance; `HazePerformanceMode.Fixed` controls the normalized
 rendering trade-off.

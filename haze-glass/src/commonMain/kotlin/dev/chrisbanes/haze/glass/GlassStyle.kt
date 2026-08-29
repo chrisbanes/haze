@@ -73,15 +73,15 @@ public sealed interface GlassStyle {
       refractionStrength = 0.85f,
       refractionHeightFraction = 0.22f,
       refractionDisplacement = 18.dp,
-      depth = SizeValue.Responsive(
-        SizePoint(64.dp, 0.1f),
-        SizePoint(176.dp, 0.32f),
-        SizePoint(220.dp, 0.52f),
+      depth = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 0.1f),
+        OpticalSizePoint(176.dp, 0.32f),
+        OpticalSizePoint(220.dp, 0.52f),
       ),
-      blurRadius = SizeValue.Responsive(
-        SizePoint(64.dp, 2.dp),
-        SizePoint(176.dp, 6.dp),
-        SizePoint(220.dp, 8.dp),
+      blurRadius = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 2.dp),
+        OpticalSizePoint(176.dp, 6.dp),
+        OpticalSizePoint(220.dp, 8.dp),
       ),
       refractionDetailIntensity = 0.76f,
     )
@@ -258,8 +258,8 @@ public class GlassStyleScope internal constructor(
         refractionStrength = refractionStrength,
         refractionHeightFraction = refractionHeightFraction,
         refractionDisplacement = refractionDisplacement,
-        depth = SizeValue.Fixed(depth),
-        blurRadius = SizeValue.Fixed(blurRadius),
+        depth = OpticalSizeValue.Fixed(depth),
+        blurRadius = OpticalSizeValue.Fixed(blurRadius),
         progressive = progressive,
         refractionFoldStrength = refractionFoldStrength,
         refractionDetailIntensity = refractionDetailIntensity,

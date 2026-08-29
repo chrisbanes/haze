@@ -82,8 +82,8 @@ class GlassStyleTest {
         refractionStrength = 0.8f,
         refractionHeightFraction = 0.4f,
         refractionDisplacement = 24.dp,
-        depth = SizeValue.Fixed(0.6f),
-        blurRadius = SizeValue.Fixed(20.dp),
+        depth = OpticalSizeValue.Fixed(0.6f),
+        blurRadius = OpticalSizeValue.Fixed(20.dp),
         progressive = progressive,
         refractionFoldStrength = 0.65f,
       ),
@@ -114,19 +114,19 @@ class GlassStyleTest {
     )
     assertFixedAndDirectOpticsFailure(
       "depth must be finite and in 0f..1f",
-      fixed = { GlassOptics(depth = SizeValue.Fixed(Float.NEGATIVE_INFINITY)) },
+      fixed = { GlassOptics(depth = OpticalSizeValue.Fixed(Float.NEGATIVE_INFINITY)) },
       direct = { optics(depth = Float.NEGATIVE_INFINITY) },
     )
     assertFixedAndDirectOpticsFailure(
       "blurRadius must be specified, finite, and non-negative",
-      fixed = { GlassOptics(blurRadius = SizeValue.Fixed((-1).dp)) },
+      fixed = { GlassOptics(blurRadius = OpticalSizeValue.Fixed((-1).dp)) },
       direct = { optics(blurRadius = (-1).dp) },
     )
   }
 
   @Test
   fun completeOptics_preservesResponsiveAndProgrammaticValues() {
-    val sharedOptics = GlassOptics(depth = SizeValue.Fixed(0.4f))
+    val sharedOptics = GlassOptics(depth = OpticalSizeValue.Fixed(0.4f))
     val programmaticallySelected: GlassOptics = listOf(GlassDefaults.optics, sharedOptics).last()
 
     val responsive = resolveGlassStyleValues(
@@ -315,7 +315,7 @@ class GlassStyleTest {
     assertThat(baseExecutions).isEqualTo(1)
     assertThat(overrideExecutions).isEqualTo(1)
     assertThat(appendedExecutions).isEqualTo(1)
-    assertThat(first.optics).isEqualTo(GlassOptics(depth = SizeValue.Fixed(0.6f)))
+    assertThat(first.optics).isEqualTo(GlassOptics(depth = OpticalSizeValue.Fixed(0.6f)))
     assertThat(first.pressedInteraction?.lightingIntensity?.value).isEqualTo(0.7f)
     assertThat(first.pressedInteraction?.refractionMultiplier).isNull()
     assertThat(first.alpha).isEqualTo(0.5f)
@@ -569,7 +569,7 @@ class GlassStyleTest {
       alpha(0.45f)
       lightPosition(Alignment.TopEnd)
     }.then(inheritedInteraction).then {
-      optics(GlassOptics(depth = SizeValue.Fixed(0.9f), blurRadius = SizeValue.Fixed(30.dp)))
+      optics(GlassOptics(depth = OpticalSizeValue.Fixed(0.9f), blurRadius = OpticalSizeValue.Fixed(30.dp)))
       surfaceProfile(SurfaceProfile.Squircle)
       edgeSoftness(12.dp)
       specularIntensity(0.1f)
@@ -613,7 +613,7 @@ class GlassStyleTest {
 
   @Test
   fun builtInStyle_allowsLaterCustomMaterialWritesToWin() {
-    val customOptics = GlassOptics(depth = SizeValue.Fixed(0.7f), blurRadius = SizeValue.Fixed(24.dp))
+    val customOptics = GlassOptics(depth = OpticalSizeValue.Fixed(0.7f), blurRadius = OpticalSizeValue.Fixed(24.dp))
     val resolved = resolveGlassStyleValues(
       GlassStyle,
       GlassStyle.clear.then {

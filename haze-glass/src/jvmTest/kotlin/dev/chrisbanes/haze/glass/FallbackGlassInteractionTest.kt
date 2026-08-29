@@ -45,15 +45,15 @@ class FallbackGlassInteractionTest : ContextTest() {
       refractionStrength = 0.8f,
       refractionHeightFraction = 0.4f,
       refractionDisplacement = 18.dp,
-      depth = SizeValue.Fixed(0.7f),
-      blurRadius = SizeValue.Fixed(20.dp),
+      depth = OpticalSizeValue.Fixed(0.7f),
+      blurRadius = OpticalSizeValue.Fixed(20.dp),
     )
     val secondOptics = GlassOptics(
       refractionStrength = 0.2f,
       refractionHeightFraction = 0.8f,
       refractionDisplacement = 4.dp,
-      depth = SizeValue.Fixed(0.1f),
-      blurRadius = SizeValue.Fixed(2.dp),
+      depth = OpticalSizeValue.Fixed(0.1f),
+      blurRadius = OpticalSizeValue.Fixed(2.dp),
     )
     val style = mutableStateOf(fallbackPortableStyle(firstOptics, includeInteractionOptics = true))
     val interactionSource = MutableInteractionSource()

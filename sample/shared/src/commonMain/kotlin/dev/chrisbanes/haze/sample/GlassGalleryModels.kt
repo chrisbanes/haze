@@ -16,8 +16,8 @@ import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
-import dev.chrisbanes.haze.glass.SizePoint
-import dev.chrisbanes.haze.glass.SizeValue
+import dev.chrisbanes.haze.glass.OpticalSizePoint
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.SurfaceProfile
 
 internal val DefaultGlassHoverAnimationSpec: FiniteAnimationSpec<Float> = spring(
@@ -136,15 +136,15 @@ internal fun glassLabStyleValues(id: GlassLabStyleId): GlassLabStyleValues = whe
       refractionStrength = 0.85f,
       refractionHeightFraction = 0.22f,
       refractionDisplacement = 18.dp,
-      depth = SizeValue.Responsive(
-        SizePoint(64.dp, 0.1f),
-        SizePoint(176.dp, 0.32f),
-        SizePoint(220.dp, 0.52f),
+      depth = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 0.1f),
+        OpticalSizePoint(176.dp, 0.32f),
+        OpticalSizePoint(220.dp, 0.52f),
       ),
-      blurRadius = SizeValue.Responsive(
-        SizePoint(64.dp, 2.dp),
-        SizePoint(176.dp, 6.dp),
-        SizePoint(220.dp, 8.dp),
+      blurRadius = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 2.dp),
+        OpticalSizePoint(176.dp, 6.dp),
+        OpticalSizePoint(220.dp, 8.dp),
       ),
     ),
     specularIntensity = 0.55f,
