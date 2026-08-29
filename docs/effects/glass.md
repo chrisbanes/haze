@@ -190,13 +190,11 @@ smoothstep interpolation between points:
 
 ```kotlin
 val responsiveOptics = GlassOptics(
-  blurRadius = GlassOptics.SizeValue.Interpolated(
-    listOf(
-      GlassOptics.SizePoint(176.dp, 8.dp),
-      GlassOptics.SizePoint(300.dp, 12.dp),
-    ),
+  blurRadius = SizeValue.Responsive(
+    SizePoint(176.dp, 8.dp),
+    SizePoint(300.dp, 12.dp),
   ),
-  depth = GlassOptics.SizeValue.Fixed(0.4f),
+  depth = SizeValue.Fixed(0.4f),
 )
 val style = GlassStyle { optics(responsiveOptics) }
 ```
@@ -205,7 +203,7 @@ Keep a complete value when it is reused, stored, copied, or selected programmati
 
 ```kotlin
 val reusableOptics = GlassOptics(
-  blurRadius = GlassOptics.SizeValue.Fixed(20.dp),
+  blurRadius = SizeValue.Fixed(20.dp),
 )
 val style = GlassStyle { optics(reusableOptics) }
 ```

@@ -15,6 +15,7 @@ import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.SizeValue
 import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
@@ -188,7 +189,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
   fun creditCard_chromatic() = runScreenshotTest {
     val visualEffect = GlassTestConfiguration().apply {
       tint = DefaultTint
-      optics = GlassOptics(refractionStrength = 0.8f, depth = GlassOptics.SizeValue.Fixed(0.5f))
+      optics = GlassOptics(refractionStrength = 0.8f, depth = SizeValue.Fixed(0.5f))
       chromaticAberrationStrength = 0.22f
       ambientResponse = 0.7f
       edgeSoftness = 14.dp
@@ -211,7 +212,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
   fun creditCard_surfaceProfile() = runScreenshotTest {
     val visualEffect = GlassTestConfiguration().apply {
       tint = DefaultTint
-      optics = GlassOptics(refractionHeightFraction = 0.28f, depth = GlassOptics.SizeValue.Fixed(0.4f))
+      optics = GlassOptics(refractionHeightFraction = 0.28f, depth = SizeValue.Fixed(0.4f))
       specularIntensity = 0.5f
       shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
       surfaceProfile = SurfaceProfile.Squircle
@@ -241,7 +242,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
   fun creditCard_chromaticAberrationMode() = runScreenshotTest {
     val visualEffect = GlassTestConfiguration().apply {
       tint = DefaultTint
-      optics = GlassOptics(refractionStrength = 0.8f, depth = GlassOptics.SizeValue.Fixed(0.45f))
+      optics = GlassOptics(refractionStrength = 0.8f, depth = SizeValue.Fixed(0.45f))
       chromaticAberrationStrength = 0.3f
       edgeSoftness = 14.dp
       shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
@@ -272,7 +273,7 @@ class GlassContentScreenshotTest : ScreenshotTest() {
       optics(
         GlassOptics(
           refractionStrength = 0.5f,
-          depth = GlassOptics.SizeValue.Fixed(0.35f),
+          depth = SizeValue.Fixed(0.35f),
         ),
       )
       specularIntensity(0.75f)

@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.SizeValue
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -358,8 +358,8 @@ private fun <T : Enum<T>> LabChipGroup(
 private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
   val values = state.styleValues
   val fixed = values.optics
-  val depth = (fixed.depth as? GlassOptics.SizeValue.Fixed)?.value ?: 1f
-  val blurRadius = (fixed.blurRadius as? GlassOptics.SizeValue.Fixed)?.value ?: 14.dp
+  val depth = (fixed.depth as? SizeValue.Fixed)?.value ?: 1f
+  val blurRadius = (fixed.blurRadius as? SizeValue.Fixed)?.value ?: 14.dp
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text("Optics", style = MaterialTheme.typography.titleMedium)
     LabSlider("Refraction", fixed.refractionStrength, 0f..1f) { value ->
@@ -373,14 +373,14 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
     LabSlider("Depth", depth, 0f..1f) { value ->
       onStateChanged(
         state.editStyle {
-          it.copy(optics = fixed.copy(depth = GlassOptics.SizeValue.Fixed(value)))
+          it.copy(optics = fixed.copy(depth = SizeValue.Fixed(value)))
         },
       )
     }
     LabSlider("Blur", blurRadius.value, 0f..32f) { value ->
       onStateChanged(
         state.editStyle {
-          it.copy(optics = fixed.copy(blurRadius = GlassOptics.SizeValue.Fixed(value.dp)))
+          it.copy(optics = fixed.copy(blurRadius = SizeValue.Fixed(value.dp)))
         },
       )
     }

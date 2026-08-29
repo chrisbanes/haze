@@ -185,7 +185,7 @@ generated API reference for property-specific ranges.
 | `lightPosition(Offset)` and `Offset.Unspecified` | `lightPosition(Alignment)`; omit the write or use `Alignment.Center` for the former automatic center |
 
 Use `optics(...)` for inline fixed values. Keep a `GlassOptics` value when the configuration needs
-to be reused or selected programmatically. Use `GlassOptics.SizeValue.Interpolated` for
+to be reused or selected programmatically. Use `SizeValue.Responsive` for
 shortest-dimension-dependent blur or depth.
 
 Glass light position is now an intentional source break from pixel `Offset` to semantic

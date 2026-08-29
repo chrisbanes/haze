@@ -18,9 +18,9 @@ class GlassOpticsTest {
   @Test
   fun default_isSizeAwareOptics() {
     assertThat(GlassDefaults.optics.blurRadius)
-      .isInstanceOf<GlassOptics.SizeValue.Interpolated<*>>()
+      .isInstanceOf<SizeValue.Responsive<*>>()
     assertThat(GlassDefaults.optics.depth)
-      .isInstanceOf<GlassOptics.SizeValue.Interpolated<*>>()
+      .isInstanceOf<SizeValue.Responsive<*>>()
     assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).optics)
       .isEqualTo(GlassDefaults.optics)
   }
@@ -40,13 +40,13 @@ class GlassOpticsTest {
       GlassOptics(refractionDetailIntensity = it)
     }
     assertInvalidFixedFraction("depth") {
-      GlassOptics(depth = GlassOptics.SizeValue.Fixed(it))
+      GlassOptics(depth = SizeValue.Fixed(it))
     }
     assertInvalidFixedDistance("refractionDisplacement") {
       GlassOptics(refractionDisplacement = it)
     }
     assertInvalidFixedDistance("blurRadius") {
-      GlassOptics(blurRadius = GlassOptics.SizeValue.Fixed(it))
+      GlassOptics(blurRadius = SizeValue.Fixed(it))
     }
   }
 
@@ -57,31 +57,31 @@ class GlassOpticsTest {
       refractionFoldStrength = 0f,
       refractionHeightFraction = 0f,
       refractionDisplacement = 0.dp,
-      depth = GlassOptics.SizeValue.Fixed(0f),
-      blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+      depth = SizeValue.Fixed(0f),
+      blurRadius = SizeValue.Fixed(0.dp),
     )
     val maximum = GlassOptics(
       refractionStrength = 1f,
       refractionFoldStrength = 1f,
       refractionHeightFraction = 1f,
       refractionDisplacement = Float.MAX_VALUE.dp,
-      depth = GlassOptics.SizeValue.Fixed(1f),
-      blurRadius = GlassOptics.SizeValue.Fixed(Float.MAX_VALUE.dp),
+      depth = SizeValue.Fixed(1f),
+      blurRadius = SizeValue.Fixed(Float.MAX_VALUE.dp),
     )
 
     assertThat(minimum.refractionStrength).isEqualTo(0f)
     assertThat(minimum.refractionFoldStrength).isEqualTo(0f)
     assertThat(minimum.refractionHeightFraction).isEqualTo(0f)
     assertThat(minimum.refractionDisplacement).isEqualTo(0.dp)
-    assertThat(minimum.depth).isEqualTo(GlassOptics.SizeValue.Fixed(0f))
-    assertThat(minimum.blurRadius).isEqualTo(GlassOptics.SizeValue.Fixed(0.dp))
+    assertThat(minimum.depth).isEqualTo(SizeValue.Fixed(0f))
+    assertThat(minimum.blurRadius).isEqualTo(SizeValue.Fixed(0.dp))
     assertThat(minimum.progressive).isNull()
     assertThat(maximum.refractionStrength).isEqualTo(1f)
     assertThat(maximum.refractionFoldStrength).isEqualTo(1f)
     assertThat(maximum.refractionHeightFraction).isEqualTo(1f)
     assertThat(maximum.refractionDisplacement).isEqualTo(Float.MAX_VALUE.dp)
-    assertThat(maximum.depth).isEqualTo(GlassOptics.SizeValue.Fixed(1f))
-    assertThat(maximum.blurRadius).isEqualTo(GlassOptics.SizeValue.Fixed(Float.MAX_VALUE.dp))
+    assertThat(maximum.depth).isEqualTo(SizeValue.Fixed(1f))
+    assertThat(maximum.blurRadius).isEqualTo(SizeValue.Fixed(Float.MAX_VALUE.dp))
     assertThat(maximum.progressive).isNull()
   }
 
@@ -93,35 +93,37 @@ class GlassOpticsTest {
   }
 
   @Test
-  fun interpolated_requiresOrderedSnapshot() {
+  fun responsive_snapshotsOrderedPoints() {
     val points = mutableListOf(
-      GlassOptics.SizePoint(64.dp, 1f),
-      GlassOptics.SizePoint(176.dp, 2f),
+      SizePoint(64.dp, 1f),
+      SizePoint(176.dp, 2f),
     )
-    val value = GlassOptics.SizeValue.Interpolated(points)
-    points[0] = GlassOptics.SizePoint(64.dp, 99f)
+    val value = SizeValue.Responsive(points)
+    points[0] = SizePoint(64.dp, 99f)
 
     assertThat(value.points).isEqualTo(
       listOf(
-        GlassOptics.SizePoint(64.dp, 1f),
-        GlassOptics.SizePoint(176.dp, 2f),
+        SizePoint(64.dp, 1f),
+        SizePoint(176.dp, 2f),
       ),
     )
   }
 
   @Test
-  fun interpolated_rejectsTooFewOrUnorderedPoints() {
+  fun responsive_rejectsTooFewOrUnorderedPoints() {
     assertFailure {
-      GlassOptics.SizeValue.Interpolated(listOf(GlassOptics.SizePoint(64.dp, 1f)))
+      SizeValue.Responsive(SizePoint(64.dp, 1f))
     }.isInstanceOf<IllegalArgumentException>()
     assertFailure {
-      GlassOptics.SizeValue.Interpolated(
-        listOf(GlassOptics.SizePoint(176.dp, 1f), GlassOptics.SizePoint(64.dp, 2f)),
+      SizeValue.Responsive(
+        SizePoint(176.dp, 1f),
+        SizePoint(64.dp, 2f),
       )
     }.isInstanceOf<IllegalArgumentException>()
     assertFailure {
-      GlassOptics.SizeValue.Interpolated(
-        listOf(GlassOptics.SizePoint(64.dp, 1f), GlassOptics.SizePoint(64.dp, 2f)),
+      SizeValue.Responsive(
+        SizePoint(64.dp, 1f),
+        SizePoint(64.dp, 2f),
       )
     }.isInstanceOf<IllegalArgumentException>()
   }
@@ -137,26 +139,26 @@ class GlassOpticsTest {
       (-1).dp,
     )
       .forEach { dimension ->
-        assertFailure { GlassOptics.SizePoint(dimension, 1f) }
+        assertFailure { SizePoint(dimension, 1f) }
           .isInstanceOf<IllegalArgumentException>()
       }
   }
 
   @Test
-  fun interpolatedOptics_rejectInvalidContainedValues() {
+  fun responsiveOptics_rejectInvalidContainedValues() {
     val points = listOf(
-      GlassOptics.SizePoint(64.dp, 0f),
-      GlassOptics.SizePoint(176.dp, 1f),
+      SizePoint(64.dp, 0f),
+      SizePoint(176.dp, 1f),
     )
     assertFailure {
       GlassOptics(
-        depth = GlassOptics.SizeValue.Interpolated(points.map { it.copy(value = Float.NaN) }),
+        depth = SizeValue.Responsive(points.map { it.copy(value = Float.NaN) }),
       )
     }.hasMessage("depth must be finite and in 0f..1f")
     assertFailure {
       GlassOptics(
-        blurRadius = GlassOptics.SizeValue.Interpolated(
-          points.map { GlassOptics.SizePoint(it.shortestDimension, Float.NaN.dp) },
+        blurRadius = SizeValue.Responsive(
+          points.map { SizePoint(it.shortestDimension, Float.NaN.dp) },
         ),
       )
     }.hasMessage("blurRadius must be specified, finite, and non-negative")

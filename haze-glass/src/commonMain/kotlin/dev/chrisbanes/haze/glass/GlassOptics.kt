@@ -8,7 +8,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeProgressive
-import kotlin.jvm.JvmInline
 
 /** The optical response used to render a Glass material. */
 @ExperimentalHazeApi
@@ -64,71 +63,14 @@ public data class GlassOptics(
       requireSpecifiedFiniteNonNegative("blurRadius", value)
     }
   }
-
-  /** A value which is either constant or resolved from the material's shortest dimension. */
-  @ExperimentalHazeApi
-  @Immutable
-  public sealed interface SizeValue<T> {
-    /** A constant value. */
-    @JvmInline
-    public value class Fixed<T>(
-      /** The constant value. */
-      public val value: T,
-    ) : SizeValue<T>
-
-    /** A value smoothly interpolated from shortest-dimension points. */
-    @JvmInline
-    public value class Interpolated<T> private constructor(
-      /** The ordered interpolation points. */
-      public val points: List<SizePoint<T>>,
-    ) : SizeValue<T> {
-      /** Creates an immutable interpolated value from at least two ordered [points]. */
-      public constructor(points: Collection<SizePoint<T>>) : this(points.toList())
-
-      init {
-        require(points.size >= 2) { "points must contain at least two values" }
-        points.forEachIndexed { index, point ->
-          require(point.shortestDimension.value.isFinite()) {
-            "points[$index].shortestDimension must be finite"
-          }
-          require(point.shortestDimension > 0.dp) {
-            "points[$index].shortestDimension must be positive"
-          }
-          if (index > 0) {
-            require(point.shortestDimension > points[index - 1].shortestDimension) {
-              "points shortest dimensions must be strictly increasing"
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Associates a value with a positive shortest dimension.
-   *
-   * @param shortestDimension The positive shortest dimension at which [value] applies.
-   * @param value The value to resolve at [shortestDimension].
-   */
-  @ExperimentalHazeApi
-  @Immutable
-  public data class SizePoint<T>(
-    val shortestDimension: Dp,
-    val value: T,
-  ) {
-    init {
-      require(shortestDimension.value.isFinite()) { "shortestDimension must be finite" }
-      require(shortestDimension > 0.dp) { "shortestDimension must be positive" }
-    }
-  }
 }
 
 private inline fun <T> requireSizeValue(
-  value: GlassOptics.SizeValue<T>,
+  value: SizeValue<T>,
   validate: (T) -> Unit,
 ) {
   when (value) {
-    is GlassOptics.SizeValue.Fixed -> validate(value.value)
-    is GlassOptics.SizeValue.Interpolated -> value.points.forEach { validate(it.value) }
+    is SizeValue.Fixed -> validate(value.value)
+    is SizeValue.Responsive -> value.points.forEach { validate(it.value) }
   }
 }

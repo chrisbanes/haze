@@ -22,6 +22,7 @@ import assertk.assertThat
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.SizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotUiTest
 import kotlin.math.abs
@@ -45,8 +46,8 @@ internal fun ScreenshotUiTest.assertGlassRoundedEdgePixelsAreContinuous() {
     optics(
       GlassOptics(
         refractionStrength = 0f,
-        depth = GlassOptics.SizeValue.Fixed(0f),
-        blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+        depth = SizeValue.Fixed(0f),
+        blurRadius = SizeValue.Fixed(0.dp),
       ),
     )
     specularIntensity(0f)

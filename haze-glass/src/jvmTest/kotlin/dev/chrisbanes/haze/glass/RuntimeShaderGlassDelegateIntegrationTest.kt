@@ -211,7 +211,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
       optics = GlassOptics(
         refractionStrength = 1f,
         refractionDisplacement = 16_384.dp,
-        blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+        blurRadius = SizeValue.Fixed(0.dp),
       )
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(0.dp)
@@ -933,7 +933,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val detailEffect = checkNotNull(delegate.layers.refractionDetail?.renderEffect)
 
     effect.optics = effect.optics.copy(
-      blurRadius = GlassOptics.SizeValue.Fixed(36.dp),
+      blurRadius = SizeValue.Fixed(36.dp),
       refractionDisplacement = 18.dp,
     )
     waitForIdle()
@@ -966,7 +966,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     val verticalEffect = checkNotNull(delegate.layers.blurred?.renderEffect)
 
     effect.optics = effect.optics.copy(
-      blurRadius = GlassOptics.SizeValue.Fixed(34.dp),
+      blurRadius = SizeValue.Fixed(34.dp),
       progressive = HazeProgressive.verticalGradient(
         startIntensity = 0.1f,
         endIntensity = 0.9f,
@@ -984,7 +984,7 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     optics = GlassOptics(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
-      blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+      blurRadius = SizeValue.Fixed(0.dp),
     )
     specularIntensity = 0f
   }
@@ -1002,8 +1002,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     optics = GlassOptics(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
-      depth = GlassOptics.SizeValue.Fixed(0.5f),
-      blurRadius = GlassOptics.SizeValue.Fixed(14.dp),
+      depth = SizeValue.Fixed(0.5f),
+      blurRadius = SizeValue.Fixed(14.dp),
     )
     specularIntensity = 1f
     ambientResponse = 0.5f
@@ -1016,8 +1016,8 @@ class RuntimeShaderGlassDelegateIntegrationTest : ContextTest() {
     optics = GlassOptics(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
-      depth = GlassOptics.SizeValue.Fixed(0.5f),
-      blurRadius = GlassOptics.SizeValue.Fixed(38.5.dp),
+      depth = SizeValue.Fixed(0.5f),
+      blurRadius = SizeValue.Fixed(38.5.dp),
       progressive = progressive,
     )
     specularIntensity = 0f

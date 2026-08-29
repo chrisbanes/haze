@@ -16,6 +16,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.glass.GlassDefaults
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.SizeValue
 import kotlin.test.Test
 
 class GlassGalleryModelsTest {
@@ -34,8 +35,8 @@ class GlassGalleryModelsTest {
         refractionStrength = 0.85f,
         refractionHeightFraction = 0.22f,
         refractionDisplacement = 18.dp,
-        depth = GlassOptics.SizeValue.Fixed(0.1f),
-        blurRadius = GlassOptics.SizeValue.Fixed(2.dp),
+        depth = SizeValue.Fixed(0.1f),
+        blurRadius = SizeValue.Fixed(2.dp),
       ),
     )
   }

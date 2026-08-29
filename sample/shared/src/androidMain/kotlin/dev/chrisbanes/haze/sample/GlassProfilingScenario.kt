@@ -19,6 +19,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.SizeValue
 
 internal const val GLASS_PROFILING_DURATION_MILLIS: Int = 3_000
 internal const val GLASS_PROFILING_SETTLING_FRAMES: Int = 8
@@ -30,7 +31,7 @@ private val ProfilingProgressiveOptics = GlassOptics(
   ),
 )
 private val ProfilingNoRefractionOptics = GlassOptics(refractionStrength = 0f)
-private val ProfilingNoBlurOptics = GlassOptics(depth = GlassOptics.SizeValue.Fixed(0f), blurRadius = GlassOptics.SizeValue.Fixed(0.dp))
+private val ProfilingNoBlurOptics = GlassOptics(depth = SizeValue.Fixed(0f), blurRadius = SizeValue.Fixed(0.dp))
 
 internal enum class GlassProfilingScenario(
   val id: String,
@@ -151,7 +152,7 @@ internal enum class GlassProfilingScenario(
   SteadyDepth50(
     id = "steady_depth_50",
     steadyDraw = true,
-    opticsOverride = GlassOptics(depth = GlassOptics.SizeValue.Fixed(0.5f)),
+    opticsOverride = GlassOptics(depth = SizeValue.Fixed(0.5f)),
   ),
   SteadyPerformanceNine(
     id = "steady_performance_9",

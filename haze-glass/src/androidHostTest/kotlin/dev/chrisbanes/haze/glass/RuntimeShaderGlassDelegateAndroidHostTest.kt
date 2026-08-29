@@ -140,8 +140,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     assertFusedRenderer(
       interactiveEffect().apply {
         optics = (optics).copy(
-          depth = GlassOptics.SizeValue.Fixed(0.5f),
-          blurRadius = GlassOptics.SizeValue.Fixed(38.5.dp),
+          depth = SizeValue.Fixed(0.5f),
+          blurRadius = SizeValue.Fixed(38.5.dp),
         )
       },
     ) { delegate ->
@@ -171,8 +171,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     assertFusedRenderer(
       retainedBlurEffect().apply {
         optics = (optics).copy(
-          depth = GlassOptics.SizeValue.Fixed(0f),
-          blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+          depth = SizeValue.Fixed(0f),
+          blurRadius = SizeValue.Fixed(0.dp),
         )
       },
     ) { delegate ->
@@ -748,7 +748,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       val fusedShader = checkNotNull(delegate.fusedShader)
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
-      effect.optics = (effect.optics).copy(blurRadius = GlassOptics.SizeValue.Fixed(36.dp))
+      effect.optics = (effect.optics).copy(blurRadius = SizeValue.Fixed(36.dp))
       waitForIdle()
       drawFrame()
 
@@ -777,7 +777,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
 
       effect.optics = (effect.optics).copy(
-        blurRadius = GlassOptics.SizeValue.Fixed(34.dp),
+        blurRadius = SizeValue.Fixed(34.dp),
         progressive = HazeProgressive.verticalGradient(
           startIntensity = 0.1f,
           endIntensity = 0.9f,
@@ -797,8 +797,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     optics = GlassOptics(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
-      depth = GlassOptics.SizeValue.Fixed(0.5f),
-      blurRadius = GlassOptics.SizeValue.Fixed(14.dp),
+      depth = SizeValue.Fixed(0.5f),
+      blurRadius = SizeValue.Fixed(14.dp),
     )
     specularIntensity = 1f
     ambientResponse = 0.5f
@@ -809,7 +809,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     optics = GlassOptics(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
-      blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+      blurRadius = SizeValue.Fixed(0.dp),
     )
     specularIntensity = 0f
     pressed {
@@ -824,7 +824,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     optics = GlassOptics(
       refractionStrength = 0.5f,
       refractionDisplacement = 20.dp,
-      blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+      blurRadius = SizeValue.Fixed(0.dp),
     )
     specularIntensity = 0f
     pressed {
@@ -848,8 +848,8 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     optics = GlassOptics(
       refractionStrength = refractionStrength,
       refractionDisplacement = 20.dp,
-      depth = GlassOptics.SizeValue.Fixed(0.5f),
-      blurRadius = GlassOptics.SizeValue.Fixed(38.5.dp),
+      depth = SizeValue.Fixed(0.5f),
+      blurRadius = SizeValue.Fixed(38.5.dp),
       progressive = progressive,
     )
     specularIntensity = 0f

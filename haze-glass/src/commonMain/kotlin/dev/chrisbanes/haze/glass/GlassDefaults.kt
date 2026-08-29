@@ -29,19 +29,15 @@ public object GlassDefaults {
 
   /** Default size-aware Haze optical material. */
   public val optics: GlassOptics = GlassOptics(
-    depth = GlassOptics.SizeValue.Interpolated(
-      listOf(
-        GlassOptics.SizePoint(64.dp, 0f),
-        GlassOptics.SizePoint(176.dp, 0.4f),
-        GlassOptics.SizePoint(220.dp, 0.56f),
-      ),
+    depth = SizeValue.Responsive(
+      SizePoint(64.dp, 0f),
+      SizePoint(176.dp, 0.4f),
+      SizePoint(220.dp, 0.56f),
     ),
-    blurRadius = GlassOptics.SizeValue.Interpolated(
-      listOf(
-        GlassOptics.SizePoint(64.dp, 4.dp),
-        GlassOptics.SizePoint(176.dp, 10.dp),
-        GlassOptics.SizePoint(220.dp, 15.dp),
-      ),
+    blurRadius = SizeValue.Responsive(
+      SizePoint(64.dp, 4.dp),
+      SizePoint(176.dp, 10.dp),
+      SizePoint(220.dp, 15.dp),
     ),
     refractionDisplacement = 48.dp,
     refractionHeightFraction = 0.6f,

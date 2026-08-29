@@ -122,7 +122,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   @Test
   fun prepareDraw_consumesTheSelectedPreparedRenderParamsInstance() {
     val effect = GlassRuntimeEffect().apply {
-      optics = GlassOptics(depth = GlassOptics.SizeValue.Fixed(0f))
+      optics = GlassOptics(depth = SizeValue.Fixed(0f))
     }
     val delegate = RuntimeShaderGlassDelegate(effect)
     val context = RecordingVisualEffectContext(
@@ -145,7 +145,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       optics = GlassOptics(
         refractionStrength = 0f,
         refractionDisplacement = 0.dp,
-        blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+        blurRadius = SizeValue.Fixed(0.dp),
       )
     }
     val delegate = RuntimeShaderGlassDelegate(effect)
@@ -181,8 +181,8 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       optics = GlassOptics(
         refractionStrength = 0.5f,
         refractionDisplacement = 20.dp,
-        depth = GlassOptics.SizeValue.Fixed(0f),
-        blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+        depth = SizeValue.Fixed(0f),
+        blurRadius = SizeValue.Fixed(0.dp),
       )
       specularIntensity = 1f
     }
@@ -211,8 +211,8 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
     effect.optics = GlassOptics(
       refractionStrength = 0f,
       refractionDisplacement = 0.dp,
-      depth = GlassOptics.SizeValue.Fixed(0.5f),
-      blurRadius = GlassOptics.SizeValue.Fixed(24.dp),
+      depth = SizeValue.Fixed(0.5f),
+      blurRadius = SizeValue.Fixed(24.dp),
     )
     effect.specularIntensity = 0f
     delegate.prepareDrawForTest(context, effect)
@@ -274,8 +274,8 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       optics = GlassOptics(
         refractionStrength = 0.5f,
         refractionDisplacement = 20.dp,
-        depth = GlassOptics.SizeValue.Fixed(0f),
-        blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+        depth = SizeValue.Fixed(0f),
+        blurRadius = SizeValue.Fixed(0.dp),
       )
       specularIntensity = 0f
       runtimeEffectFactory = failingFactory
@@ -342,7 +342,7 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
       optics = GlassOptics(
         refractionStrength = 1f,
         refractionDisplacement = 16_384.dp,
-        blurRadius = GlassOptics.SizeValue.Fixed(0.dp),
+        blurRadius = SizeValue.Fixed(0.dp),
       )
       edgeSoftness = 0.dp
       shape = RoundedCornerShape(0.dp)
