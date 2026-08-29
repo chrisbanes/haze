@@ -139,7 +139,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun interactiveOptics_usesFusedBaseRendererBeforeInteractionStarts() =
     assertFusedRenderer(
       interactiveEffect().apply {
-        optics = (optics).copy(
+        optics = optics.copy(
           depth = SizeValue.Fixed(0.5f),
           blurRadius = SizeValue.Fixed(38.5.dp),
         )
@@ -170,7 +170,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
   fun singleNoBlur_usesFusedBaseRenderer() =
     assertFusedRenderer(
       retainedBlurEffect().apply {
-        optics = (optics).copy(
+        optics = optics.copy(
           depth = SizeValue.Fixed(0f),
           blurRadius = SizeValue.Fixed(0.dp),
         )
@@ -404,7 +404,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
     runAndroidComposeUiTest<ComponentActivity> {
       val callerBrush = Brush.linearGradient(listOf(Color.Transparent, Color.Black))
       val effect = animatedStageEffect().apply {
-        optics = (optics).copy(
+        optics = optics.copy(
           progressive = HazeProgressive.Brush(callerBrush),
         )
       }
@@ -547,7 +547,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       waitForIdle()
       drawFrame()
       effect.ambientResponse = 0.6f
-      effect.optics = (effect.optics).copy(refractionDisplacement = 18.dp)
+      effect.optics = effect.optics.copy(refractionDisplacement = 18.dp)
       waitForIdle()
       drawFrame()
 
@@ -723,7 +723,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val fusedShader = checkNotNull(delegate.fusedShader)
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
 
-      effect.optics = (effect.optics).copy(
+      effect.optics = effect.optics.copy(
         refractionDisplacement = 18.dp,
       )
       waitForIdle()
@@ -748,7 +748,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
 
       val fusedShader = checkNotNull(delegate.fusedShader)
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
-      effect.optics = (effect.optics).copy(blurRadius = SizeValue.Fixed(36.dp))
+      effect.optics = effect.optics.copy(blurRadius = SizeValue.Fixed(36.dp))
       waitForIdle()
       drawFrame()
 
@@ -776,7 +776,7 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       val fusedShader = checkNotNull(delegate.fusedShader)
       val fusedEffect = checkNotNull(delegate.layers.optical?.renderEffect)
 
-      effect.optics = (effect.optics).copy(
+      effect.optics = effect.optics.copy(
         blurRadius = SizeValue.Fixed(34.dp),
         progressive = HazeProgressive.verticalGradient(
           startIntensity = 0.1f,
