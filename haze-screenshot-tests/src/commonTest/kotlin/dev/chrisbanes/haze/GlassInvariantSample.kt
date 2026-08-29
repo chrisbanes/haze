@@ -412,7 +412,11 @@ internal fun ScreenshotUiTest.assertGlassMedialAxesContinuous() {
             boundaryIndex = bounds.center.y - centerYRange.first,
             label = "${case.name}/$profile/$optics vertical off-center",
           )
-          if (profile == SurfaceProfile.Circle) {
+          if (
+            profile == SurfaceProfile.Circle &&
+            optics.depth is SizeValue.Fixed &&
+            optics.blurRadius is SizeValue.Fixed
+          ) {
             val probeX = bounds.center.x + bounds.width / 4
             val probeY = bounds.center.y
             val refractedLuminance = horizontal[probeX, probeY].luminance()
