@@ -1569,7 +1569,7 @@ Use <code>then</code> to build variations from a shared base Style.</p>
 <p>Keep one final <code>GlassStyle</code> for all platforms. Remove renderer-capability checks, platform-specific
 Style variants, and secondary fallback Styles. Haze selects the available implementation and
 gracefully simplifies unsupported optics.</p>
-<p>Invalid Glass values now fail when the Style or <code>GlassOptics.Fixed</code> value is created instead of
+<p>Invalid Glass values now fail when the Style or <code>GlassOptics</code> value is created instead of
 being corrected later. Validate or clamp external values before building the Style. See the
 generated API reference for property-specific ranges.</p>
 <table>
@@ -1641,8 +1641,16 @@ generated API reference for property-specific ranges.</p>
 <td>explicit <code>HazeInput.Sources</code> or <code>HazeInput.Content</code></td>
 </tr>
 <tr>
-<td><code>GlassOptics.Absolute</code></td>
-<td><code>GlassOptics.Fixed</code>; this is a hard rename with no alias or compatibility bridge</td>
+<td><code>GlassOptics.Absolute</code> and <code>GlassOptics.Fixed</code></td>
+<td><code>GlassOptics</code> with fixed <code>OpticalSizeValue</code> values; this is an intentional source break with no alias or compatibility bridge</td>
+</tr>
+<tr>
+<td><code>GlassOptics.Adaptive</code> used as a complete Style</td>
+<td><code>GlassStyle.regular</code></td>
+</tr>
+<tr>
+<td><code>GlassOptics.Adaptive</code> supplied through <code>optics(...)</code></td>
+<td><code>optics(GlassDefaults.optics)</code></td>
 </tr>
 <tr>
 <td><code>lightPosition(Offset)</code> and <code>Offset.Unspecified</code></td>
@@ -1650,8 +1658,12 @@ generated API reference for property-specific ranges.</p>
 </tr>
 </tbody>
 </table>
-<p>Use <code>optics(...)</code> for inline fixed values. Keep a <code>GlassOptics.Fixed</code> value when the configuration
-needs to be reused or selected programmatically.</p>
+<p>Use <code>optics(...)</code> for inline fixed values. Keep a <code>GlassOptics</code> value when the configuration needs
+to be reused or selected programmatically. Use <code>OpticalSizeValue.Responsive</code> for
+shortest-dimension-dependent blur or depth.</p>
+<p><code>GlassOptics()</code> creates fixed optics and is not a replacement for <code>GlassOptics.Adaptive</code>. Use
+<code>GlassStyle.regular</code> when selecting the complete built-in Style, or <code>GlassDefaults.optics</code> when only
+the optics value needs to be supplied or copied.</p>
 <p>Glass light position is now an intentional source break from pixel <code>Offset</code> to semantic
 <code>Alignment</code>, with no compatibility overload. Use <code>Alignment.Center</code> (or omit the write) for the
 former <code>Offset.Unspecified</code> behavior, logical start/end alignments for directional intent, and

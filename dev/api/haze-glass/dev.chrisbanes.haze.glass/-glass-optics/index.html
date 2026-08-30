@@ -93,39 +93,148 @@
   <div class="breadcrumbs"><a href="../../index.html">haze-glass</a><span class="delimiter">/</span><a href="../index.html">dev.chrisbanes.haze.glass</a><span class="delimiter">/</span><span class="current">GlassOptics</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Glass</span><wbr><span><span>Optics</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Immutable.html"><span class="token annotation builtin">Immutable</span></a></div></div><span class="token keyword">sealed </span><span class="token keyword">interface </span><a href="index.html">GlassOptics</a></div><p class="paragraph">Selects how Glass optical values are produced.</p><h4 class="tableheader">Inheritors</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-adaptive/index.html">Adaptive</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-fixed/index.html">Fixed</a></div></span></div><div></div></div></div></div></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Immutable.html"><span class="token annotation builtin">Immutable</span></a></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">GlassOptics</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>refractionStrength<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.7f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>refractionHeightFraction<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.25f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>refractionDisplacement<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator"> = </span>15.dp<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>depth<span class="token operator">: </span><a href="../-optical-size-value/index.html">OpticalSizeValue</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator">&gt;</span><span class="token operator"> = </span>OpticalSizeValue.Fixed(1f)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>blurRadius<span class="token operator">: </span><a href="../-optical-size-value/index.html">OpticalSizeValue</a><span class="token operator">&lt;</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator">&gt;</span><span class="token operator"> = </span>OpticalSizeValue.Fixed(14.dp)<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>progressive<span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-haze-progressive/index.html">HazeProgressive</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>refractionFoldStrength<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>refractionDetailIntensity<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.76f</span></span></span><span class="token punctuation">)</span></div><p class="paragraph">The optical response used to render a Glass material.</p><p class="paragraph"><a href="../../../haze-glass/dev.chrisbanes.haze.glass/-glass-optics/--root--.html">depth</a> and <a href="../../../haze-glass/dev.chrisbanes.haze.glass/-glass-optics/--root--.html">blurRadius</a> resolve independently. <a href="../-optical-size-value/-fixed/index.html">OpticalSizeValue.Fixed</a> applies one value at every material size. <a href="../-optical-size-value/-responsive/index.html">OpticalSizeValue.Responsive</a> clamps to its first or last point outside the authored range and smoothly interpolates between adjacent points using the material's shortest dimension.</p><p class="paragraph">Responsive values require at least two points with positive, finite, strictly increasing dimensions. Invalid numeric values throw <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-illegal-argument-exception/index.html">IllegalArgumentException</a> during construction.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
     <div class="tabs-section-body">
-      <div data-togglable="TYPE">
-        <h2 class="tableheader">Types</h2>
-        <div class="table"><a data-name="1033263457%2FClasslikes%2F1575282654" anchor-label="Adaptive" id="1033263457%2FClasslikes%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
-          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="1301611591%2FConstructors%2F1575282654" anchor-label="GlassOptics" id="1301611591%2FConstructors%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
-                  <div><a href="-adaptive/index.html"><span><span>Adaptive</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1033263457%2FClasslikes%2F1575282654"></span>
+                  <div><a href="-glass-optics.html"><span>Glass</span><wbr><span><span>Optics</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1301611591%2FConstructors%2F1575282654"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-adaptive/index.html">Adaptive</a> : <a href="index.html">GlassOptics</a></div><div class="brief "><p class="paragraph">Geometry-adaptive optics used by <a href="../-glass-style/-companion/regular.html">GlassStyle.regular</a>.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">refractionStrength<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.7f</span><span class="token punctuation">, </span></span><span class="parameter ">refractionHeightFraction<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.25f</span><span class="token punctuation">, </span></span><span class="parameter ">refractionDisplacement<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator"> = </span>15.dp<span class="token punctuation">, </span></span><span class="parameter ">depth<span class="token operator">: </span><a href="../-optical-size-value/index.html">OpticalSizeValue</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator">&gt;</span><span class="token operator"> = </span>OpticalSizeValue.Fixed(1f)<span class="token punctuation">, </span></span><span class="parameter ">blurRadius<span class="token operator">: </span><a href="../-optical-size-value/index.html">OpticalSizeValue</a><span class="token operator">&lt;</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator">&gt;</span><span class="token operator"> = </span>OpticalSizeValue.Fixed(14.dp)<span class="token punctuation">, </span></span><span class="parameter ">progressive<span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-haze-progressive/index.html">HazeProgressive</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">refractionFoldStrength<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span><span class="token punctuation">, </span></span><span class="parameter ">refractionDetailIntensity<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.76f</span></span></span><span class="token punctuation">)</span></div></div></div>
                 </div>
               </div>
             </div>
           </div>
-<a data-name="-217232873%2FClasslikes%2F1575282654" anchor-label="Fixed" id="-217232873%2FClasslikes%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-855903767%2FProperties%2F1575282654" anchor-label="blurRadius" id="-855903767%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
           <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
-                  <div><a href="-fixed/index.html"><span><span>Fixed</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-217232873%2FClasslikes%2F1575282654"></span>
+                  <div><a href="blur-radius.html"><span>blur</span><wbr><span><span>Radius</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-855903767%2FProperties%2F1575282654"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-fixed/index.html">Fixed</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>refractionStrength<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.7f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>refractionHeightFraction<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.25f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>refractionDisplacement<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator"> = </span>15.dp<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>depth<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>blurRadius<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator"> = </span>14.dp<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>progressive<span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-haze-progressive/index.html">HazeProgressive</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>refractionFoldStrength<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">0.0f</span></span></span><span class="token punctuation">)</span> : <a href="index.html">GlassOptics</a></div><div class="brief "><p class="paragraph">A complete optical configuration with no geometry-dependent adjustment.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="blur-radius.html">blurRadius</a><span class="token operator">: </span><a href="../-optical-size-value/index.html">OpticalSizeValue</a><span class="token operator">&lt;</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Maximum blur radius whose values must be specified, finite, and non-negative.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2088962219%2FProperties%2F1575282654" anchor-label="depth" id="-2088962219%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="depth.html"><span><span>depth</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2088962219%2FProperties%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="depth.html">depth</a><span class="token operator">: </span><a href="../-optical-size-value/index.html">OpticalSizeValue</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Depth perception factor whose values must be finite and in <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1720696653%2FProperties%2F1575282654" anchor-label="progressive" id="1720696653%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="progressive.html"><span><span>progressive</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1720696653%2FProperties%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="progressive.html">progressive</a><span class="token operator">: </span><a href="../../../haze/dev.chrisbanes.haze/-haze-progressive/index.html">HazeProgressive</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Optional progressive intensity, retaining the contract of <a href="../../../haze/dev.chrisbanes.haze/-haze-progressive/index.html">HazeProgressive</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="248927467%2FProperties%2F1575282654" anchor-label="refractionDetailIntensity" id="248927467%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="refraction-detail-intensity.html"><span>refraction</span><wbr><span>Detail</span><wbr><span><span>Intensity</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="248927467%2FProperties%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="refraction-detail-intensity.html">refractionDetailIntensity</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Finite intensity of secondary edge-refraction detail, in the inclusive range <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-160438858%2FProperties%2F1575282654" anchor-label="refractionDisplacement" id="-160438858%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="refraction-displacement.html"><span>refraction</span><wbr><span><span>Displacement</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-160438858%2FProperties%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="refraction-displacement.html">refractionDisplacement</a><span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/compose/ui/unit/Dp.html">Dp</a></div><div class="brief "><p class="paragraph">Specified, finite, non-negative maximum distance that refraction displaces content.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2120220981%2FProperties%2F1575282654" anchor-label="refractionFoldStrength" id="-2120220981%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="refraction-fold-strength.html"><span>refraction</span><wbr><span>Fold</span><wbr><span><span>Strength</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2120220981%2FProperties%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="refraction-fold-strength.html">refractionFoldStrength</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Finite strength of the inverted edge-refraction fold, in the inclusive range <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-729922620%2FProperties%2F1575282654" anchor-label="refractionHeightFraction" id="-729922620%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="refraction-height-fraction.html"><span>refraction</span><wbr><span>Height</span><wbr><span><span>Fraction</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-729922620%2FProperties%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="refraction-height-fraction.html">refractionHeightFraction</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Finite fraction of the material's shortest side used by the refraction profile, in <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1057611468%2FProperties%2F1575282654" anchor-label="refractionStrength" id="1057611468%2FProperties%2F1575282654" data-filterable-set=":haze-glass/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":haze-glass/commonMain" data-filterable-set=":haze-glass/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="refraction-strength.html"><span>refraction</span><wbr><span><span>Strength</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1057611468%2FProperties%2F1575282654"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":haze-glass/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="refraction-strength.html">refractionStrength</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a></div><div class="brief "><p class="paragraph">Finite refraction strength in the inclusive range <code class="lang-kotlin">0f..1f</code>.</p></div></div></div>
                 </div>
               </div>
             </div>

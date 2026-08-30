@@ -1489,14 +1489,15 @@ override either value. It also works as a subtree default:</p>
 <span class="p">}</span>
 </code></pre></div>
 <h3 id="built-in-styles">Built-in styles<a class="headerlink" href="#built-in-styles" title="Permanent link">¶</a></h3>
-<p><code>GlassStyle.regular</code> is the default built-in Glass style. Its material response adapts to the
-surface's size and shape and includes a restrained edge fold, where the local sampling direction
+<p><code>GlassStyle.regular</code> is the default built-in Glass style. Its blur and depth adapt to the
+surface's shortest dimension and include a restrained edge fold, where the local sampling direction
 reverses so incoming content can appear inverted near the glass boundary. This makes it a good fit
 for reusable components.</p>
 <p><code>GlassStyle.clear</code> is the alternative built-in style for surfaces that should keep more of the
-background visible. It uses fixed authored optics and a distinct edge and lighting response, so it
-also remains recognizable on renderers that simplify advanced optical effects. These are Haze
-styles informed by the platform distinction; they do not promise pixel parity with another system.</p>
+background visible. Its blur and depth increase smoothly with the surface's shortest side, while
+its authored refraction and distinct edge and lighting response remain recognizable on renderers
+that simplify advanced optical effects. These are Haze styles informed by the platform distinction;
+they do not promise pixel parity with another system.</p>
 <div class="highlight"><pre><span></span><code><span class="n">Modifier</span><span class="p">.</span><span class="na">hazeGlass</span><span class="p">(</span>
 <span class="w">  </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HazeInput</span><span class="p">.</span><span class="na">Sources</span><span class="p">(</span><span class="n">hazeState</span><span class="p">),</span>
 <span class="w">  </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">clear</span><span class="p">.</span><span class="na">material3</span><span class="p">(</span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.12f</span><span class="p">)),</span>
@@ -1508,10 +1509,12 @@ styles informed by the platform distinction; they do not promise pixel parity wi
   (defaults to transparent). Use an opaque color when transparent captured content must fully
   obscure the original sharp source.</li>
 <li><strong>tint</strong>: Glass tint (defaults to transparent).</li>
-<li><strong>optics</strong>: Optical material configuration. <code>GlassStyle.regular</code> supplies the default adaptive
-  optics. Call <code>optics(...)</code> only when authoring a custom Style with an inline fixed
-  configuration, or keep a <code>GlassOptics.Fixed</code> value when it needs to be reused or selected
-  programmatically.</li>
+<li><strong>optics</strong>: Optical material configuration. <code>GlassStyle.regular</code> supplies the default
+  size-aware optics. Call <code>optics(...)</code> for inline fixed configuration, or keep a <code>GlassOptics</code>
+  value when it needs to be reused or selected programmatically.</li>
+<li><strong>refractionDetailIntensity</strong>: Secondary edge-refraction detail strength <code>0..1</code>. <code>0</code> disables the
+  detail pass. Caller-authored <code>GlassOptics</code> defaults to <code>0.76</code>; Regular uses <code>0</code>, and Clear uses
+  <code>0.76</code>. Non-zero values may retain additional rendering layers on full renderers.</li>
 <li><strong>specularIntensity</strong>: Highlight strength <code>0..1</code> (default 0.4).</li>
 <li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.46).</li>
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.</li>
@@ -1523,7 +1526,7 @@ styles informed by the platform distinction; they do not promise pixel parity wi
 <li><strong>chromaticAberrationMode</strong>: Quality mode for chromatic aberration. <code>Simple</code> (default, fast) or <code>Full</code> (spectral, more expensive).</li>
 <li><strong>alpha</strong>: Overall opacity multiplier <code>0..1</code> (default 1).</li>
 </ul>
-<p>Glass validates configuration when a Style or <code>GlassOptics.Fixed</code> value is created instead of
+<p>Glass validates configuration when a Style or <code>GlassOptics</code> value is created instead of
 silently correcting it later. Validate or clamp values from user input and remote data before
 building the Style. The generated API reference documents the accepted range for each property.</p>
 <h2 id="glassstyle">GlassStyle<a class="headerlink" href="#glassstyle" title="Permanent link">¶</a></h2>
@@ -1568,9 +1571,9 @@ when one element needs to differ.</p>
 <span class="p">)</span>
 </code></pre></div>
 <h3 id="choosing-optics">Choosing optics<a class="headerlink" href="#choosing-optics" title="Permanent link">¶</a></h3>
-<p>Use <code>GlassStyle.regular</code> for the built-in Haze material, which adapts its optical response to the
-material's size, aspect ratio, and roundness. Use <code>GlassOptics</code> only when authoring a custom Style
-with direct optical control:</p>
+<p>Use <code>GlassStyle.regular</code> for the built-in Haze material, which adapts blur and depth to the
+material's shortest dimension. Use <code>GlassOptics</code> when authoring a custom Style with direct optical
+control:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">regular</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="p">.</span><span class="na">regular</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
@@ -1584,17 +1587,33 @@ with direct optical control:</p>
 <span class="w">  </span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>Fixed optics use the values you provide at every surface size. This is useful for art-directed
-components, but <code>GlassStyle.regular</code> is usually the better default for reusable layouts.</p>
+<p>The scalar Style overload creates fixed values. For a responsive custom configuration, provide
+independent shortest-dimension points for blur and depth; values clamp at the endpoints and use a
+smoothstep interpolation between points. Each responsive value requires at least two points with
+positive, finite, strictly increasing dimensions:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">responsiveOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">(</span>
+<span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Responsive</span><span class="p">(</span>
+<span class="w">    </span><span class="n">OpticalSizePoint</span><span class="p">(</span><span class="m">176.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="m">8.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">    </span><span class="n">OpticalSizePoint</span><span class="p">(</span><span class="m">300.</span><span class="n">dp</span><span class="p">,</span><span class="w"> </span><span class="m">12.</span><span class="n">dp</span><span class="p">),</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="w">  </span><span class="n">depth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">0.4f</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">responsiveOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
 <p>Keep a complete value when it is reused, stored, copied, or selected programmatically:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">reusableOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">20.</span><span class="n">dp</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">reusableOptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassOptics</span><span class="p">(</span>
+<span class="w">  </span><span class="n">blurRadius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpticalSizeValue</span><span class="p">.</span><span class="na">Fixed</span><span class="p">(</span><span class="m">20.</span><span class="n">dp</span><span class="p">),</span>
+<span class="p">)</span>
 <span class="kd">val</span><span class="w"> </span><span class="nv">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">optics</span><span class="p">(</span><span class="n">reusableOptics</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
 <p><code>refractionFoldStrength</code> controls the inverted edge-refraction fold from <code>0f</code> to <code>1f</code>. The default
-for <code>GlassOptics.Fixed</code> is <code>0f</code>, which preserves the original monotonic refraction map. The fold is
+for <code>GlassOptics</code> is <code>0f</code>, which preserves the original monotonic refraction map. The fold is
 available with every <code>SurfaceProfile</code> and remains within the configured refraction displacement;
 it does not expand the capture area.</p>
-<p><code>GlassOptics.Fixed</code> controls the appearance; <code>HazePerformanceMode.Fixed</code> controls the normalized
+<p><code>refractionDetailIntensity</code> controls a secondary edge-detail pass on full renderers. Set it to <code>0f</code>
+to disable the pass and its additional retained layers. Caller-authored <code>GlassOptics</code> defaults to
+<code>0.76f</code>; <code>GlassStyle.regular</code> uses <code>0f</code>, while <code>GlassStyle.clear</code> uses <code>0.76f</code>.</p>
+<p><code>GlassOptics</code> controls the appearance; <code>HazePerformanceMode.Fixed</code> controls the normalized
 rendering trade-off.
 The <code>shape</code> supplied to Glass defines its material boundary. Add an outer <code>Modifier.clip()</code> with
 the same shape only when child content also needs clipping.</p>
@@ -1667,7 +1686,7 @@ applications do not need capability checks or a second fallback Style.</p>
 <td>Preserved</td>
 </tr>
 <tr>
-<td>Fixed or Adaptive refraction, blur, and progressive optics</td>
+<td>Fixed or responsive refraction, blur, and progressive optics</td>
 <td>Preserved</td>
 <td>Omitted</td>
 </tr>
@@ -1788,8 +1807,8 @@ lighting and optics while suppressing transforms, and <code>Full</code> forces m
 <h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">¶</a></h2>
 <ul>
 <li><code>GlassStyle.regular</code> is the right starting point for material-like glass that should respond
-  naturally to its geometry. Use direct <code>optics(...)</code> for inline fixed authoring and
-  <code>GlassOptics.Fixed</code> when the complete value needs to be reused or selected programmatically.</li>
+  naturally to its shortest dimension. Use direct <code>optics(...)</code> for inline fixed authoring and
+  <code>GlassOptics</code> when the complete value needs to be reused or selected programmatically.</li>
 <li>Keep <code>chromaticAberrationStrength</code> modest; start at 0.1-0.25 to avoid rainbow artifacts.</li>
 <li>Combine <code>edgeSoftness</code> with rounded shapes for smooth clipping; set <code>edgeSoftness = 0.dp</code> to rely purely on the shape.</li>
 <li>Use <code>SurfaceProfile.Concave</code> for an inward-curving bezel or <code>SurfaceProfile.Lip</code> for a raised rim effect.</li>
