@@ -43,7 +43,9 @@ public sealed interface OpticalSizeValue<T> {
      * @throws IllegalArgumentException if fewer than two points are provided or their dimensions
      * are not strictly increasing.
      */
-    public constructor(vararg points: OpticalSizePoint<T>) : this(points.toList())
+    public constructor(vararg points: OpticalSizePoint<T>) : this(
+      buildList(points.size) { addAll(points) },
+    )
 
     /**
      * Creates a responsive value from a collection of ordered [points].
@@ -51,7 +53,9 @@ public sealed interface OpticalSizeValue<T> {
      * @throws IllegalArgumentException if fewer than two points are provided or their dimensions
      * are not strictly increasing.
      */
-    public constructor(points: Collection<OpticalSizePoint<T>>) : this(points.toList())
+    public constructor(points: Collection<OpticalSizePoint<T>>) : this(
+      buildList(points.size) { addAll(points) },
+    )
 
     init {
       require(points.size >= 2) { "points must contain at least two values" }

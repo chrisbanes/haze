@@ -41,6 +41,8 @@ import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.glass.OpticalSizePoint
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import kotlinx.coroutines.CoroutineScope
@@ -473,6 +475,48 @@ class GlassLabSampleTest : ContextTest() {
       hasProgressBarRangeInfo(ProgressBarRangeInfo(0.65f, 0f..1f, 0)) and
         hasAnySibling(hasText("Fold")),
     ).performScrollTo().assertIsDisplayed()
+  }
+
+  @Test
+  fun responsivePointControls_preserveResponsiveOptics() = runComposeUiTest {
+    var state by mutableStateOf(GlassLabState(advancedExpanded = true))
+    setContent {
+      LabControls(
+        state = state,
+        recordingMode = false,
+        onStateChanged = { state = it },
+        modifier = Modifier.fillMaxSize(),
+      )
+    }
+
+    onNode(
+      hasProgressBarRangeInfo(ProgressBarRangeInfo(0f, 0f..1f, 0)) and
+        hasAnySibling(hasText("Depth @ 64dp")),
+    )
+      .performScrollTo()
+      .performSemanticsAction(SemanticsActions.SetProgress) { action -> action(0.2f) }
+
+    onNode(
+      hasProgressBarRangeInfo(ProgressBarRangeInfo(10f, 0f..32f, 0)) and
+        hasAnySibling(hasText("Blur @ 176dp")),
+    )
+      .performScrollTo()
+      .performSemanticsAction(SemanticsActions.SetProgress) { action -> action(12f) }
+
+    assertThat(state.styleValues.optics.depth).isEqualTo(
+      OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 0.2f),
+        OpticalSizePoint(176.dp, 0.4f),
+        OpticalSizePoint(220.dp, 0.56f),
+      ),
+    )
+    assertThat(state.styleValues.optics.blurRadius).isEqualTo(
+      OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 4.dp),
+        OpticalSizePoint(176.dp, 12.dp),
+        OpticalSizePoint(220.dp, 15.dp),
+      ),
+    )
   }
 
   @Test
