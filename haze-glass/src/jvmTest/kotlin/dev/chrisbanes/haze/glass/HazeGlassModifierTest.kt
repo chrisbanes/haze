@@ -70,16 +70,16 @@ class HazeGlassModifierTest : ContextTest() {
   @Test
   fun portableStyle_flowsUnchangedThroughFullAndAutomaticFallbackSelection() =
     runComposeUiTest {
-      val fixedOptics = GlassOptics.Fixed(
+      val customOptics = GlassOptics(
         refractionStrength = 0.63f,
         refractionHeightFraction = 0.31f,
         refractionDisplacement = 9.dp,
-        depth = 0.72f,
-        blurRadius = 7.dp,
+        depth = OpticalSizeValue.Fixed(0.72f),
+        blurRadius = OpticalSizeValue.Fixed(7.dp),
       )
       val tint = Color(0x6655AAFF)
       val sharedStyle = GlassStyle {
-        optics(fixedOptics)
+        optics(customOptics)
         tint(tint)
         specularIntensity(1f)
         ambientResponse(0f)
@@ -130,8 +130,8 @@ class HazeGlassModifierTest : ContextTest() {
       val fallback = fallbackFactory.effects.single().delegate
       assertThat(full.style).isSameInstanceAs(sharedStyle)
       assertThat(fallback.style).isSameInstanceAs(sharedStyle)
-      assertThat(full.optics).isSameInstanceAs(fixedOptics)
-      assertThat(fallback.optics).isSameInstanceAs(fixedOptics)
+      assertThat(full.optics).isSameInstanceAs(customOptics)
+      assertThat(fallback.optics).isSameInstanceAs(customOptics)
       assertThat(full.delegate).isInstanceOf<RuntimeShaderGlassDelegate>()
       assertThat(fallback.delegate).isInstanceOf<FallbackGlassDelegate>()
 
@@ -477,7 +477,7 @@ class HazeGlassModifierTest : ContextTest() {
     val explicitStyle = GlassStyle {
       alpha(0.6f)
       specularIntensity(0.6f)
-      optics(GlassOptics.Adaptive)
+      optics(GlassDefaults.optics)
       pressed {
         lightingIntensity(0.5f)
         refractionMultiplier(1.5f)
@@ -487,7 +487,7 @@ class HazeGlassModifierTest : ContextTest() {
       optics(depth = 0.7f)
       pressed { lightingIntensity(0.9f) }
     }
-    val completeFinalOptics = GlassOptics.Fixed(refractionStrength = 0.4f)
+    val completeFinalOptics = GlassOptics(refractionStrength = 0.4f)
     val completeFinalStyle = explicitStyle.then { optics(completeFinalOptics) }
     val directFinalStyle = completeFinalStyle.then { optics(depth = 0.9f) }
     val factory = RecordingGlassFactory()
@@ -520,7 +520,7 @@ class HazeGlassModifierTest : ContextTest() {
     assertThat(completeRuntime.whitePoint).isEqualTo(0.2f)
     assertThat(completeRuntime.specularIntensity).isEqualTo(0.6f)
     assertThat(completeRuntime.optics).isSameInstanceAs(completeFinalOptics)
-    assertThat(directRuntime.optics).isEqualTo(GlassOptics.Fixed(depth = 0.9f))
+    assertThat(directRuntime.optics).isEqualTo(GlassOptics(depth = OpticalSizeValue.Fixed(0.9f)))
     assertThat(pressed?.lightingIntensity?.value).isEqualTo(0.9f)
     assertThat(pressed?.refractionMultiplier).isNull()
   }

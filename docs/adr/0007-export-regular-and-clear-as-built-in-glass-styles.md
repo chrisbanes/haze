@@ -1,15 +1,16 @@
 # ADR-0007: Export Regular and Clear as built-in Glass styles
 
 Haze will expose `GlassStyle.regular` and `GlassStyle.clear` as shared built-in styles rather than
-adding a modifier variant parameter or extending `GlassOptics` with semantic cases. The parallel
-sample-only preset catalogue will be removed rather than retained or exported. Regular remains the
-default geometry-adaptive material response; Clear uses fixed authored optics and remains
-recognisably distinct when a renderer simplifies advanced optics. Both styles own the complete
-optical, edge, lighting, chromatic, tone, and content-normal response while preserving independently
-composed shape, background colour, tint, alpha, light position, and interaction appearance. These
-are Haze styles informed by iOS's semantic distinction and measured direction, not promises of pixel
-parity or Apple-internal constants. Identity remains outside this decision because disabling
-attachment and rendering is modifier/runtime behaviour rather than a Glass appearance.
+adding a public modifier variant parameter or extending the public `GlassOptics` API with semantic
+cases. The parallel sample-only preset catalogue will be removed rather than retained or exported.
+Regular remains the default size-responsive material. Clear uses size-responsive blur and depth
+with an authored refraction response, and remains recognisably distinct when a renderer
+simplifies advanced optics. Both styles own the complete optical, edge, lighting, chromatic, tone,
+and content-normal response while preserving independently composed shape, background colour, tint,
+alpha, light position, and interaction appearance. These are Haze styles informed by iOS's semantic
+distinction and measured direction, not promises of pixel parity or Apple-internal constants.
+Identity remains outside this decision because disabling attachment and rendering is
+modifier/runtime behaviour rather than a Glass appearance.
 
 ## Consequences
 
@@ -19,3 +20,7 @@ resets every built-in-style-owned channel but does not erase theme or caller pre
 use Regular and Clear directly; sample-only Adaptive, Clear, Frosted, Deep, and Prism presets are
 removed. A sample that teaches custom authoring declares that customization locally instead of
 adding another reusable preset catalogue.
+
+ADR-0008 revises the representation of their optics: Regular and Clear remain built-in Glass styles,
+but their responsive optical behavior is expressible through the same public configuration available
+to callers.

@@ -2232,8 +2232,6 @@ internal fun RuntimeShaderUniformProvider.setOpticalUniforms(
   setFloatUniform("refractionScale", key.refractionScalePx)
   setFloatUniform("contentNormalBlend", key.contentNormalBlend)
   setFloatUniform("fresnelExponent", key.fresnelExponent)
-  setFloatUniform("geometryToneGain", key.geometryToneGain)
-  setFloatUniform("geometryNeutralLift", key.geometryNeutralLift)
   setFloatUniform(
     "tintColor",
     key.tint.red,

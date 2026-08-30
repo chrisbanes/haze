@@ -11,15 +11,18 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.util.lerp
 import dev.chrisbanes.haze.HazeProgressive
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val MAX_REFRACTION_DISPLACEMENT_PX = 16_384f
-private const val ADAPTIVE_REFRACTION_FOLD_STRENGTH = 0.65f
 
 internal data class GlassCoordinates(
   val sampleSize: Size,
@@ -81,7 +84,7 @@ private fun Float.finiteOrZero(): Float = if (isFinite()) this else 0f
 private fun Float.finiteOr(fallback: Float): Float = if (isFinite()) this else fallback
 
 internal fun effectiveSemanticBlurRadiusPx(radiusPx: Float): Float =
-  radiusPx.coerceIn(0f, SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX)
+  radiusPx.finiteOrZero().coerceIn(0f, SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX)
 
 internal fun calculateRefractionDetailWidthPx(
   refractionHeightPx: Float,
@@ -104,156 +107,6 @@ internal fun calculateRefractionDetailVisibility(
     (displacementFraction * (displacementFraction * 6f - 15f) + 10f)
 }
 
-internal data class AdaptiveGeometryResponse(
-  val blurScale: Float,
-  val displacementScale: Float,
-  val reachScale: Float,
-  val toneGain: Float,
-  val neutralLiftWeight: Float,
-) {
-  fun resolve(refractionStrength: Float): AdaptiveGeometryResponse {
-    val strength = refractionStrength.coerceIn(0f, 1f)
-    return AdaptiveGeometryResponse(
-      blurScale = lerp(1f, blurScale, strength),
-      displacementScale = lerp(1f, displacementScale, strength),
-      reachScale = lerp(1f, reachScale, strength),
-      toneGain = lerp(1f, toneGain, strength),
-      neutralLiftWeight = neutralLiftWeight * strength,
-    )
-  }
-
-  companion object {
-    val Identity: AdaptiveGeometryResponse = AdaptiveGeometryResponse(
-      blurScale = 1f,
-      displacementScale = 1f,
-      reachScale = 1f,
-      toneGain = 1f,
-      neutralLiftWeight = 0f,
-    )
-  }
-}
-
-internal fun calculateAdaptiveGeometryResponse(
-  materialSizePx: Size,
-  density: Density,
-  cornerRadiiPx: CornerRadii,
-): AdaptiveGeometryResponse {
-  val densityValue = density.density
-  if (!densityValue.isFinite() || densityValue <= 0f) return AdaptiveGeometryResponse.Identity
-  if (
-    !materialSizePx.width.isFinite() ||
-    !materialSizePx.height.isFinite() ||
-    materialSizePx.width <= 0f ||
-    materialSizePx.height <= 0f
-  ) {
-    return AdaptiveGeometryResponse.Identity
-  }
-
-  if (
-    !cornerRadiiPx.topLeft.isFinite() ||
-    !cornerRadiiPx.topRight.isFinite() ||
-    !cornerRadiiPx.bottomRight.isFinite() ||
-    !cornerRadiiPx.bottomLeft.isFinite()
-  ) {
-    return AdaptiveGeometryResponse.Identity
-  }
-  val minimumRadiusPx = minOf(
-    cornerRadiiPx.topLeft,
-    cornerRadiiPx.topRight,
-    cornerRadiiPx.bottomRight,
-    cornerRadiiPx.bottomLeft,
-  )
-
-  val shortestSidePx = materialSizePx.minDimension
-  return calculateAdaptiveGeometryResponseForLogicalGeometry(
-    shortestSideDp = shortestSidePx / densityValue,
-    aspectRatio = materialSizePx.maxDimension / shortestSidePx,
-    symmetricRoundness = minimumRadiusPx / (shortestSidePx * 0.5f),
-  )
-}
-
-internal fun calculateAdaptiveGeometryResponseForLogicalGeometry(
-  shortestSideDp: Float,
-  aspectRatio: Float,
-  symmetricRoundness: Float,
-): AdaptiveGeometryResponse {
-  if (
-    !shortestSideDp.isFinite() ||
-    !aspectRatio.isFinite() ||
-    !symmetricRoundness.isFinite() ||
-    shortestSideDp <= 0f ||
-    aspectRatio <= 0f
-  ) {
-    return AdaptiveGeometryResponse.Identity
-  }
-
-  val size = smoothstepFeature(shortestSideDp, 48f, 176f)
-  val aspect = smoothstepFeature(aspectRatio, 1f, 3.5f)
-  val roundness = smoothstepFeature(symmetricRoundness, 0f, 1f)
-  return AdaptiveGeometryResponse(
-    blurScale = lerp(0.3f, 1.1f, size),
-    displacementScale = 4f * lerp(1f, 1.1f, aspect),
-    reachScale = 3f * lerp(0.95f, 1.05f, roundness),
-    toneGain = 1f,
-    neutralLiftWeight = 0f,
-  )
-}
-
-private fun smoothstepFeature(value: Float, minimum: Float, maximum: Float): Float {
-  val normalized = ((value - minimum) / (maximum - minimum)).coerceIn(0f, 1f)
-  return normalized * normalized * (3f - 2f * normalized)
-}
-
-private fun lerp(start: Float, stop: Float, fraction: Float): Float =
-  start + (stop - start) * fraction
-
-internal data class ResolvedAdaptiveGeometryOptics(
-  val blurRadiusPx: Float,
-  val blurSigmaPx: Float,
-  val refractionScalePx: Float,
-  val refractionHeightPx: Float,
-  val toneGain: Float,
-  val neutralLiftWeight: Float,
-)
-
-internal fun resolveAdaptiveGeometryOptics(
-  response: AdaptiveGeometryResponse,
-  refractionStrength: Float,
-  shortestSidePx: Float,
-  blurRadiusPx: Float,
-  refractionScalePx: Float,
-  refractionHeight: Float,
-): ResolvedAdaptiveGeometryOptics {
-  val resolved = response.resolve(refractionStrength)
-  val resolvedBlurRadiusPx = if (blurRadiusPx > 0f) {
-    blurRadiusPx * resolved.blurScale
-  } else {
-    0f
-  }
-  val resolvedRefractionScalePx = if (refractionScalePx > 0f) {
-    refractionScalePx * resolved.displacementScale
-  } else {
-    0f
-  }
-  val validShortestSidePx = shortestSidePx.takeIf { it.isFinite() && it > 0f } ?: 0f
-  val baselineReachPx = validShortestSidePx * refractionHeight.coerceIn(0f, 1f)
-  return ResolvedAdaptiveGeometryOptics(
-    blurRadiusPx = resolvedBlurRadiusPx,
-    blurSigmaPx = if (resolvedBlurRadiusPx > 0f) {
-      SemanticBlurKernel.radiusToSigma(resolvedBlurRadiusPx)
-    } else {
-      0f
-    },
-    refractionScalePx = resolvedRefractionScalePx,
-    refractionHeightPx = (baselineReachPx * resolved.reachScale)
-      .coerceIn(0f, validShortestSidePx),
-    toneGain = resolved.toneGain,
-    neutralLiftWeight = resolved.neutralLiftWeight,
-  )
-}
-
-private val AdaptiveOpticsBaseline = GlassOptics.Fixed()
-
 internal data class ResolvedGlassOptics(
   val refractionStrength: Float,
   val refractionFoldStrength: Float,
@@ -261,10 +114,7 @@ internal data class ResolvedGlassOptics(
   val refractionScalePx: Float,
   val depth: Float,
   val blurRadiusPx: Float,
-  val blurSigmaPx: Float,
   val progressive: HazeProgressive?,
-  val toneGain: Float,
-  val neutralLiftWeight: Float,
   val refractionDetailIntensity: Float,
 )
 
@@ -272,49 +122,66 @@ internal fun resolveGlassOptics(
   optics: GlassOptics,
   materialSizePx: Size,
   density: Density,
-  cornerRadiiPx: CornerRadii,
 ): ResolvedGlassOptics {
-  val fixed = when (optics) {
-    GlassOptics.Adaptive -> AdaptiveOpticsBaseline
-    is GlassOptics.Fixed -> optics
-  }
-  val response = when (optics) {
-    GlassOptics.Adaptive -> calculateAdaptiveGeometryResponse(
-      materialSizePx = materialSizePx,
-      density = density,
-      cornerRadiiPx = cornerRadiiPx,
-    )
-    is GlassOptics.Fixed -> AdaptiveGeometryResponse.Identity
-  }
-  val resolved = resolveAdaptiveGeometryOptics(
-    response = response,
-    refractionStrength = fixed.refractionStrength,
-    shortestSidePx = materialSizePx.minDimension,
-    blurRadiusPx = effectiveSemanticBlurRadiusPx(with(density) { fixed.blurRadius.toPx() }),
-    refractionScalePx = with(density) { fixed.refractionDisplacement.toPx() },
-    refractionHeight = fixed.refractionHeightFraction,
-  )
+  val shortestSide = materialSizePx.shortestSideDpOrNull(density)
+  val authoredBlurRadius = resolveSizeValue(optics.blurRadius, shortestSide, ::lerpDpValue)
+  val resolvedBlurRadiusPx = effectiveSemanticBlurRadiusPx(with(density) { authoredBlurRadius.toPx() })
+  val refractionScalePx = with(density) { optics.refractionDisplacement.toPx() }
+  val validShortestSidePx = materialSizePx.minDimension.takeIf { it.isFinite() && it > 0f } ?: 0f
   return ResolvedGlassOptics(
-    refractionStrength = fixed.refractionStrength,
-    refractionFoldStrength = when (optics) {
-      GlassOptics.Adaptive -> ADAPTIVE_REFRACTION_FOLD_STRENGTH
-      is GlassOptics.Fixed -> fixed.refractionFoldStrength
-    },
-    refractionHeightPx = resolved.refractionHeightPx,
-    refractionScalePx = resolved.refractionScalePx
+    refractionStrength = optics.refractionStrength,
+    refractionFoldStrength = optics.refractionFoldStrength,
+    refractionHeightPx = (validShortestSidePx * optics.refractionHeightFraction)
+      .coerceIn(0f, validShortestSidePx),
+    refractionScalePx = refractionScalePx
       .coerceIn(0f, MAX_REFRACTION_DISPLACEMENT_PX)
       .finiteOrZero(),
-    depth = fixed.depth,
-    blurRadiusPx = resolved.blurRadiusPx,
-    blurSigmaPx = resolved.blurSigmaPx,
-    progressive = fixed.progressive,
-    toneGain = resolved.toneGain,
-    neutralLiftWeight = resolved.neutralLiftWeight,
-    refractionDetailIntensity = when (optics) {
-      GlassOptics.Adaptive -> 0f
-      is GlassOptics.Fixed -> GLASS_REFRACTION_DETAIL_INTENSITY
-    },
+    depth = resolveSizeValue(optics.depth, shortestSide, ::lerp),
+    blurRadiusPx = resolvedBlurRadiusPx,
+    progressive = optics.progressive,
+    refractionDetailIntensity = optics.refractionDetailIntensity,
   )
+}
+
+private fun <T> resolveSizeValue(
+  value: OpticalSizeValue<T>,
+  shortestSide: Dp?,
+  lerp: (T, T, Float) -> T,
+): T = when (value) {
+  is OpticalSizeValue.Fixed -> value.value
+  is OpticalSizeValue.Responsive -> {
+    val points = value.points
+    val dimension = shortestSide?.value?.takeIf { it.isFinite() && it > 0f }
+    if (dimension == null || dimension <= points.first().shortestDimension.value) {
+      points.first().value
+    } else if (dimension >= points.last().shortestDimension.value) {
+      points.last().value
+    } else {
+      val upperIndex = points.indexOfFirst { it.shortestDimension.value >= dimension }
+      val lower = points[upperIndex - 1]
+      val upper = points[upperIndex]
+      val fraction = smoothstepFeature(
+        dimension,
+        lower.shortestDimension.value,
+        upper.shortestDimension.value,
+      )
+      lerp(lower.value, upper.value, fraction)
+    }
+  }
+}
+
+private fun smoothstepFeature(value: Float, minimum: Float, maximum: Float): Float {
+  val normalized = ((value - minimum) / (maximum - minimum)).coerceIn(0f, 1f)
+  return normalized * normalized * (3f - 2f * normalized)
+}
+
+private fun lerpDpValue(start: Dp, stop: Dp, fraction: Float): Dp =
+  lerpDp(start, stop, fraction)
+
+private fun Size.shortestSideDpOrNull(density: Density): Dp? {
+  val densityValue = density.density
+  if (!densityValue.isFinite() || densityValue <= 0f || !isDrawable()) return null
+  return (minDimension / densityValue).dp
 }
 
 internal data class GlassRenderParams(
@@ -341,8 +208,6 @@ internal data class GlassRenderParams(
   val contentNormalBlend: Float,
   val specularExponent: Float,
   val fresnelExponent: Float,
-  val geometryToneGain: Float,
-  val geometryNeutralLift: Float,
   val cornerRadii: CornerRadii,
   /** Light position resolved from authored Alignment into material-local pixels. */
   val lightPosition: Offset,
@@ -397,8 +262,6 @@ internal data class GlassOpticalEffectKey(
   val refractionScalePx: Float,
   val contentNormalBlend: Float,
   val fresnelExponent: Float,
-  val geometryToneGain: Float,
-  val geometryNeutralLift: Float,
   val cornerRadii: CornerRadii,
   val sampleStepPx: Float,
 )
@@ -420,8 +283,6 @@ internal fun GlassRenderParams.opticalEffectKey() = GlassOpticalEffectKey(
   refractionScalePx = refractionScalePx,
   contentNormalBlend = contentNormalBlend,
   fresnelExponent = fresnelExponent,
-  geometryToneGain = geometryToneGain,
-  geometryNeutralLift = geometryNeutralLift,
   cornerRadii = cornerRadii,
   sampleStepPx = sampleStepPx,
 )
@@ -604,7 +465,7 @@ internal fun resolveGlassStyle(
     layoutDirection = layoutDirection,
   )
   return ResolvedGlassStyle(
-    resolvedOptics = resolveGlassOptics(effect.optics, materialSizePx, density, cornerRadii),
+    resolvedOptics = resolveGlassOptics(effect.optics, materialSizePx, density),
     specularIntensity = effect.specularIntensity,
     ambientResponse = effect.ambientResponse,
     backgroundColor = effect.backgroundColor,
@@ -692,8 +553,6 @@ internal fun buildGlassRenderParams(
     contentNormalBlend = style.contentNormalBlend,
     specularExponent = style.specularExponent,
     fresnelExponent = style.fresnelExponent,
-    geometryToneGain = resolvedOptics.toneGain.finiteOr(1f),
-    geometryNeutralLift = resolvedOptics.neutralLiftWeight.finiteOr(0f),
     cornerRadii = style.cornerRadii * scaleFactor,
     lightPosition = style.lightPosition * scaleFactor,
     sampleStepPx = 2f * scaleFactor,
@@ -1049,8 +908,6 @@ private fun GlassRenderParams.hasSameOpticalEffectInputs(other: GlassRenderParam
     refractionScalePx == other.refractionScalePx &&
     contentNormalBlend == other.contentNormalBlend &&
     fresnelExponent == other.fresnelExponent &&
-    geometryToneGain == other.geometryToneGain &&
-    geometryNeutralLift == other.geometryNeutralLift &&
     cornerRadii == other.cornerRadii &&
     sampleStepPx == other.sampleStepPx
 

@@ -50,6 +50,7 @@ import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -345,9 +346,9 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.BlurUpdate,
     -> {
       optics(
-        (scenario.opticsOverride ?: GlassOptics.Fixed()).copy(
-          depth = frame.depth,
-          blurRadius = frame.blurRadius,
+        (scenario.opticsOverride ?: GlassOptics()).copy(
+          depth = OpticalSizeValue.Fixed(frame.depth),
+          blurRadius = OpticalSizeValue.Fixed(frame.blurRadius),
         ),
       )
     }

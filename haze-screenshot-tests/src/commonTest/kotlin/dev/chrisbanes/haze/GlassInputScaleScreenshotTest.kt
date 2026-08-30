@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.test.ScreenshotTest
 import dev.chrisbanes.haze.test.ScreenshotTheme
 import dev.chrisbanes.haze.test.runScreenshotTest
@@ -23,11 +24,11 @@ class GlassInputScaleScreenshotTest : ScreenshotTest() {
   fun explicitTiers_preserveProgressiveRoundedRefractionAcrossTransition() = runScreenshotTest {
     val shape = RoundedCornerShape(32.dp)
     val effect = GlassTestConfiguration().apply {
-      optics = GlassOptics.Fixed(
+      optics = GlassOptics(
         refractionStrength = 1f,
         refractionDisplacement = 24.dp,
-        depth = 1f,
-        blurRadius = 24.dp,
+        depth = OpticalSizeValue.Fixed(1f),
+        blurRadius = OpticalSizeValue.Fixed(24.dp),
         progressive = HazeProgressive.verticalGradient(),
       )
       tint = Color.White.copy(alpha = 0.08f)

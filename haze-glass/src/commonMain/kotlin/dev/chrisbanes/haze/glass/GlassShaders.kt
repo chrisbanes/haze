@@ -31,8 +31,6 @@ internal object GlassShaders {
     uniform float refractionScale;
     uniform float contentNormalBlend;
     uniform float fresnelExponent;
-    uniform float geometryToneGain;
-    uniform float geometryNeutralLift;
     ${if (sharpDetail) {
     """
     uniform float detailWidth;
@@ -150,11 +148,7 @@ internal object GlassShaders {
         refractedStraightColor,
         ${if (interactionOptics) "localizedWhitePoint" else "whitePoint"}
       );
-      gradedColor = mix(
-        clamp(gradedColor * geometryToneGain, 0.0, 1.0),
-        vec3(1.0),
-        clamp(geometryNeutralLift, 0.0, 1.0)
-      );
+      gradedColor = clamp(gradedColor, 0.0, 1.0);
       vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);
       vec4 opticalColor = premultiply(tintedColor * ambient, refractedCenter.a);
       if (shapeMask < 1.0) {
@@ -304,8 +298,6 @@ internal object GlassShaders {
     uniform float refractionScale;
     uniform float contentNormalBlend;
     uniform float fresnelExponent;
-    uniform float geometryToneGain;
-    uniform float geometryNeutralLift;
     ${if (interactive) interactionUniforms(includeRefraction = true, includeWhitePoint = true, includeLighting = false) else ""}
 
     vec2 materialCoord(vec2 coord) { return coord - materialOrigin; }
@@ -402,11 +394,7 @@ internal object GlassShaders {
         opticalColor,
         ${if (interactive) "localizedWhitePoint" else "whitePoint"}
       );
-      gradedColor = mix(
-        clamp(gradedColor * geometryToneGain, 0.0, 1.0),
-        vec3(1.0),
-        clamp(geometryNeutralLift, 0.0, 1.0)
-      );
+      gradedColor = clamp(gradedColor, 0.0, 1.0);
       vec3 tintedColor = mix(gradedColor, tintColor.rgb, tintColor.a);
       vec3 finalStraightColor = tintedColor * ambient;
       vec4 processedColor = premultiply(finalStraightColor, refractedCenterSample.a);

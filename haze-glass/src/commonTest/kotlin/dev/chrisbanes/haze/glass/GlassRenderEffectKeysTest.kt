@@ -52,38 +52,6 @@ class GlassRenderEffectKeysTest {
   }
 
   @Test
-  fun blurKey_isUnchangedWhenOnlyOneSquareCornerBecomesRounded() {
-    val base = params()
-    fun calibratedParams(radii: CornerRadii): GlassRenderParams {
-      val response = calculateAdaptiveGeometryResponse(
-        materialSizePx = base.coordinates.materialSize,
-        density = androidx.compose.ui.unit.Density(1f),
-        cornerRadiiPx = radii,
-      )
-      val resolved = resolveAdaptiveGeometryOptics(
-        response = response,
-        refractionStrength = .7f,
-        shortestSidePx = base.coordinates.materialSize.minDimension,
-        blurRadiusPx = base.blurRadiusPx,
-        refractionScalePx = base.refractionScalePx,
-        refractionHeight = .5f,
-      )
-      return base.copy(
-        blurRadiusPx = resolved.blurRadiusPx,
-        blurSigmaPx = resolved.blurSigmaPx,
-        geometryToneGain = resolved.toneGain,
-        geometryNeutralLift = resolved.neutralLiftWeight,
-      )
-    }
-    val square = calibratedParams(CornerRadii.zero)
-    val oneRoundedCorner = calibratedParams(CornerRadii(100f, 0f, 0f, 0f))
-
-    assertThat(oneRoundedCorner.geometryToneGain).isEqualTo(square.geometryToneGain)
-    assertThat(oneRoundedCorner.geometryNeutralLift).isEqualTo(square.geometryNeutralLift)
-    assertThat(oneRoundedCorner.blurEffectKey()).isEqualTo(square.blurEffectKey())
-  }
-
-  @Test
   fun progressivePresence_selectsFullResolutionPlanAndChangesKey() {
     val uniform = params().copy(
       blurRadiusPx = 38.5f,
@@ -186,8 +154,6 @@ class GlassRenderEffectKeysTest {
         chromaMultiplier = 0.5f,
         contentNormalBlend = 0.7f,
         fresnelExponent = 8f,
-        geometryToneGain = 1.1f,
-        geometryNeutralLift = 0.1f,
         specularIntensity = 1f,
         specularExponent = 32f,
         lightPosition = Offset(100f, 80f),
@@ -305,7 +271,7 @@ class GlassRenderEffectKeysTest {
 
   @Test
   fun defaultRefractionDetailVisibility_isFullySaturated() {
-    val regularBaseline = GlassOptics.Fixed()
+    val regularBaseline = GlassOptics()
     assertThat(
       calculateRefractionDetailVisibility(
         refractionStrength = regularBaseline.refractionStrength,
@@ -339,8 +305,6 @@ class GlassRenderEffectKeysTest {
     contentNormalBlend = 0f,
     specularExponent = 16f,
     fresnelExponent = 2f,
-    geometryToneGain = 1f,
-    geometryNeutralLift = 0f,
     cornerRadii = CornerRadii.zero,
     lightPosition = Offset.Zero,
     sampleStepPx = 2f,

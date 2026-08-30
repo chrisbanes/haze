@@ -9,73 +9,90 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeProgressive
 
-/** Selects how Glass optical values are produced. */
+/**
+ * The optical response used to render a Glass material.
+ *
+ * [depth] and [blurRadius] resolve independently. [OpticalSizeValue.Fixed] applies one value at every
+ * material size. [OpticalSizeValue.Responsive] clamps to its first or last point outside the authored
+ * range and smoothly interpolates between adjacent points using the material's shortest dimension.
+ *
+ * Responsive values require at least two points with positive, finite, strictly increasing
+ * dimensions. Invalid numeric values throw [IllegalArgumentException] during construction.
+ */
 @ExperimentalHazeApi
 @Immutable
-public sealed interface GlassOptics {
-
+public data class GlassOptics(
+  /** Finite refraction strength in the inclusive range `0f..1f`. */
+  val refractionStrength: Float = 0.7f,
+  /** Finite fraction of the material's shortest side used by the refraction profile, in `0f..1f`. */
+  val refractionHeightFraction: Float = 0.25f,
+  /** Specified, finite, non-negative maximum distance that refraction displaces content. */
+  val refractionDisplacement: Dp = 15.dp,
   /**
-   * Geometry-adaptive optics used by [GlassStyle.regular].
+   * Depth perception factor whose values must be finite and in `0f..1f`.
    *
-   * Its optical response adapts to the material's size, aspect ratio, and roundness.
-   * Its adaptive blur scaling is applied after the [Fixed] blur-radius cap, so its effective
-   * blur radius can exceed that cap.
+   * Values greater than `0f` require an additional blurred content sample on full renderers.
    */
-  public data object Adaptive : GlassOptics
-
+  val depth: OpticalSizeValue<Float> = OpticalSizeValue.Fixed(1f),
   /**
-   * A complete optical configuration with no geometry-dependent adjustment.
+   * Maximum blur radius whose values must be specified, finite, and non-negative.
    *
-   * Accepted values are resolved without geometry-dependent adjustment. [refractionDisplacement]
-   * and [blurRadius] use density-independent [Dp]. [refractionHeightFraction] is a unitless
-   * fraction of the material's shortest side. After density conversion, the effective [blurRadius]
-   * is capped at 38.5 physical pixels; this renderer quality bound does not limit accepted input
-   * values.
-   *
-   * Invalid numeric values throw [IllegalArgumentException] when this value is constructed.
-   * [progressive] is optional and retains the contract of its owning [HazeProgressive] type.
-   *
-   * @param refractionStrength Finite strength of the refraction response, in the inclusive range
-   * `0f..1f`.
-   * @param refractionDisplacement Specified, finite, non-negative maximum distance that refraction
-   * displaces content. There is no authored upper limit.
-   * @param refractionHeightFraction Fraction of the material's shortest side used by the
-   * refraction profile, as a finite value in the inclusive range `0f..1f`.
-   * @param depth Finite depth perception factor in the inclusive range `0f..1f`. Values greater
-   * than `0f` require drawing an additional blurred sample for the glass content, which has a
-   * rendering cost.
-   * @param blurRadius Specified, finite, non-negative maximum blur radius before the renderer's
-   * adaptive scale is applied. There is no authored upper limit.
-   * @param progressive Optional progressive intensity applied to the blur.
-   * @param refractionFoldStrength Finite strength of the inverted edge-refraction fold, in the
-   * inclusive range `0f..1f`. The default `0f` preserves a monotonic refraction mapping.
+   * There is no authored upper limit. The renderer quality cap is applied after resolution.
    */
-  public data class Fixed(
-    val refractionStrength: Float = 0.7f,
-    val refractionHeightFraction: Float = 0.25f,
-    val refractionDisplacement: Dp = 15.dp,
-    val depth: Float = 1f,
-    val blurRadius: Dp = 14.dp,
-    val progressive: HazeProgressive? = null,
-    val refractionFoldStrength: Float = 0f,
-  ) : GlassOptics {
-    init {
-      requireFiniteInRange("refractionStrength", refractionStrength, 0f..1f, UNIT_INTERVAL_DOMAIN)
-      requireFiniteInRange(
-        "refractionFoldStrength",
-        refractionFoldStrength,
-        0f..1f,
-        UNIT_INTERVAL_DOMAIN,
-      )
-      requireFiniteInRange(
-        "refractionHeightFraction",
-        refractionHeightFraction,
-        0f..1f,
-        UNIT_INTERVAL_DOMAIN,
-      )
-      requireSpecifiedFiniteNonNegative("refractionDisplacement", refractionDisplacement)
-      requireFiniteInRange("depth", depth, 0f..1f, UNIT_INTERVAL_DOMAIN)
-      requireSpecifiedFiniteNonNegative("blurRadius", blurRadius)
+  val blurRadius: OpticalSizeValue<Dp> = OpticalSizeValue.Fixed(14.dp),
+  /** Optional progressive intensity, retaining the contract of [HazeProgressive]. */
+  val progressive: HazeProgressive? = null,
+  /** Finite strength of the inverted edge-refraction fold, in the inclusive range `0f..1f`. */
+  val refractionFoldStrength: Float = 0f,
+  /**
+   * Finite intensity of secondary edge-refraction detail, in the inclusive range `0f..1f`.
+   *
+   * `0f` disables the detail pass. Non-zero values may retain additional rendering layers on full
+   * renderers.
+   */
+  val refractionDetailIntensity: Float = 0.76f,
+) {
+  init {
+    requireFiniteInRange(
+      "refractionStrength",
+      refractionStrength,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
+    requireFiniteInRange(
+      "refractionFoldStrength",
+      refractionFoldStrength,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
+    requireFiniteInRange(
+      "refractionHeightFraction",
+      refractionHeightFraction,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
+    requireSpecifiedFiniteNonNegative("refractionDisplacement", refractionDisplacement)
+    requireFiniteInRange(
+      "refractionDetailIntensity",
+      refractionDetailIntensity,
+      0f..1f,
+      UNIT_INTERVAL_DOMAIN,
+    )
+    requireSizeValue(depth) { value ->
+      requireFiniteInRange("depth", value, 0f..1f, UNIT_INTERVAL_DOMAIN)
     }
+    requireSizeValue(blurRadius) { value ->
+      requireSpecifiedFiniteNonNegative("blurRadius", value)
+    }
+  }
+}
+
+private inline fun <T> requireSizeValue(
+  value: OpticalSizeValue<T>,
+  validate: (T) -> Unit,
+) {
+  when (value) {
+    is OpticalSizeValue.Fixed -> validate(value.value)
+    is OpticalSizeValue.Responsive -> value.points.forEach { validate(it.value) }
   }
 }

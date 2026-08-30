@@ -31,16 +31,16 @@ frame overrun, and peak memory; Blur rows record frame timing and frame overrun.
 Controlled Glass calibration scenarios start from `GlassStyle.regular` with unmodified presentation
 defaults.
 `stable_adaptive`, `stable_quality`, `stable_balanced`, and `stable_performance` therefore differ
-only in `HazePerformanceMode`; they use adaptive optics, the default shape, and all default
+only in `HazePerformanceMode`; they use the regular size-responsive optics, default shape, and all default
 lighting, color, and rendering values. `steady_full_3` and `steady_full_9` retain the historical
-adaptive controls at three and nine effects.
+controls at three and nine effects.
 
-Scenarios named after an optical change install an explicit `GlassOptics.Fixed` override for
-that change. For example, `steadyNoBlur` disables depth and blur, while `steadyDepth50` fixes depth
-at `0.5`. `steadyProgressive` and `steadyProgressive9` use the default fixed optical values
-with a vertical progressive mask because adaptive optics does not expose a progressive property.
-`steadyFullChroma` and `steadyFullChroma9` retain adaptive optics and set Full chromatic aberration
-with a non-zero `0.3` strength. Other style groups remain at their defaults.
+Scenarios named after an optical change install an explicit `GlassOptics` override for that change.
+For example, `steadyNoBlur` disables depth and blur, while `steadyDepth50` fixes depth at `0.5`.
+`steadyProgressive` and `steadyProgressive9` use the default fixed size values with a vertical
+progressive mask. `steadyFullChroma` and `steadyFullChroma9` retain the regular responsive optics and
+set Full chromatic aberration with a non-zero `0.3` strength. Other style groups remain at their
+defaults.
 
 The progressive, Full chroma, interaction-update, and source-update scenarios each have one- and
 nine-effect variants. `source_update_adaptive`, `source_update_quality`,

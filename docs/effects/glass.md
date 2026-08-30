@@ -62,15 +62,16 @@ CompositionLocalProvider(LocalGlassStyle provides GlassStyle.Material3()) {
 
 ### Built-in styles
 
-`GlassStyle.regular` is the default built-in Glass style. Its material response adapts to the
-surface's size and shape and includes a restrained edge fold, where the local sampling direction
+`GlassStyle.regular` is the default built-in Glass style. Its blur and depth adapt to the
+surface's shortest dimension and include a restrained edge fold, where the local sampling direction
 reverses so incoming content can appear inverted near the glass boundary. This makes it a good fit
 for reusable components.
 
 `GlassStyle.clear` is the alternative built-in style for surfaces that should keep more of the
-background visible. It uses fixed authored optics and a distinct edge and lighting response, so it
-also remains recognizable on renderers that simplify advanced optical effects. These are Haze
-styles informed by the platform distinction; they do not promise pixel parity with another system.
+background visible. Its blur and depth increase smoothly with the surface's shortest side, while
+its authored refraction and distinct edge and lighting response remain recognizable on renderers
+that simplify advanced optical effects. These are Haze styles informed by the platform distinction;
+they do not promise pixel parity with another system.
 
 ```kotlin
 Modifier.hazeGlass(
@@ -85,10 +86,12 @@ Modifier.hazeGlass(
   (defaults to transparent). Use an opaque color when transparent captured content must fully
   obscure the original sharp source.
 - **tint**: Glass tint (defaults to transparent).
-- **optics**: Optical material configuration. `GlassStyle.regular` supplies the default adaptive
-  optics. Call `optics(...)` only when authoring a custom Style with an inline fixed
-  configuration, or keep a `GlassOptics.Fixed` value when it needs to be reused or selected
-  programmatically.
+- **optics**: Optical material configuration. `GlassStyle.regular` supplies the default
+  size-aware optics. Call `optics(...)` for inline fixed configuration, or keep a `GlassOptics`
+  value when it needs to be reused or selected programmatically.
+- **refractionDetailIntensity**: Secondary edge-refraction detail strength `0..1`. `0` disables the
+  detail pass. Caller-authored `GlassOptics` defaults to `0.76`; Regular uses `0`, and Clear uses
+  `0.76`. Non-zero values may retain additional rendering layers on full renderers.
 - **specularIntensity**: Highlight strength `0..1` (default 0.4).
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.46).
 - **edgeSoftness**: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.
@@ -100,7 +103,7 @@ Modifier.hazeGlass(
 - **chromaticAberrationMode**: Quality mode for chromatic aberration. `Simple` (default, fast) or `Full` (spectral, more expensive).
 - **alpha**: Overall opacity multiplier `0..1` (default 1).
 
-Glass validates configuration when a Style or `GlassOptics.Fixed` value is created instead of
+Glass validates configuration when a Style or `GlassOptics` value is created instead of
 silently correcting it later. Validate or clamp values from user input and remote data before
 building the Style. The generated API reference documents the accepted range for each property.
 
@@ -163,9 +166,9 @@ Box(
 
 ### Choosing optics
 
-Use `GlassStyle.regular` for the built-in Haze material, which adapts its optical response to the
-material's size, aspect ratio, and roundness. Use `GlassOptics` only when authoring a custom Style
-with direct optical control:
+Use `GlassStyle.regular` for the built-in Haze material, which adapts blur and depth to the
+material's shortest dimension. Use `GlassOptics` when authoring a custom Style with direct optical
+control:
 
 ```kotlin
 val regular = GlassStyle.regular
@@ -184,22 +187,41 @@ GlassStyle {
 }
 ```
 
-Fixed optics use the values you provide at every surface size. This is useful for art-directed
-components, but `GlassStyle.regular` is usually the better default for reusable layouts.
+The scalar Style overload creates fixed values. For a responsive custom configuration, provide
+independent shortest-dimension points for blur and depth; values clamp at the endpoints and use a
+smoothstep interpolation between points. Each responsive value requires at least two points with
+positive, finite, strictly increasing dimensions:
+
+```kotlin
+val responsiveOptics = GlassOptics(
+  blurRadius = OpticalSizeValue.Responsive(
+    OpticalSizePoint(176.dp, 8.dp),
+    OpticalSizePoint(300.dp, 12.dp),
+  ),
+  depth = OpticalSizeValue.Fixed(0.4f),
+)
+val style = GlassStyle { optics(responsiveOptics) }
+```
 
 Keep a complete value when it is reused, stored, copied, or selected programmatically:
 
 ```kotlin
-val reusableOptics = GlassOptics.Fixed(blurRadius = 20.dp)
+val reusableOptics = GlassOptics(
+  blurRadius = OpticalSizeValue.Fixed(20.dp),
+)
 val style = GlassStyle { optics(reusableOptics) }
 ```
 
 `refractionFoldStrength` controls the inverted edge-refraction fold from `0f` to `1f`. The default
-for `GlassOptics.Fixed` is `0f`, which preserves the original monotonic refraction map. The fold is
+for `GlassOptics` is `0f`, which preserves the original monotonic refraction map. The fold is
 available with every `SurfaceProfile` and remains within the configured refraction displacement;
 it does not expand the capture area.
 
-`GlassOptics.Fixed` controls the appearance; `HazePerformanceMode.Fixed` controls the normalized
+`refractionDetailIntensity` controls a secondary edge-detail pass on full renderers. Set it to `0f`
+to disable the pass and its additional retained layers. Caller-authored `GlassOptics` defaults to
+`0.76f`; `GlassStyle.regular` uses `0f`, while `GlassStyle.clear` uses `0.76f`.
+
+`GlassOptics` controls the appearance; `HazePerformanceMode.Fixed` controls the normalized
 rendering trade-off.
 The `shape` supplied to Glass defines its material boundary. Add an outer `Modifier.clip()` with
 the same shape only when child content also needs clipping.
@@ -262,7 +284,7 @@ Fallback rendering keeps the material recognizable but may simplify advanced opt
 | Ambient edge response and edge softness | Preserved | Approximated as a soft rim |
 | Specular intensity and resolved light `Alignment` | Preserved | Approximated as an aligned radial highlight |
 | Interaction lighting and transforms | Preserved | Preserved |
-| Fixed or Adaptive refraction, blur, and progressive optics | Preserved | Omitted |
+| Fixed or responsive refraction, blur, and progressive optics | Preserved | Omitted |
 | Chromatic aberration, surface profile, and advanced color adjustments | Preserved | Omitted |
 | Interaction refraction and white-point deltas | Preserved | Omitted |
 
@@ -390,8 +412,8 @@ Box(
 ## Tips
 
 - `GlassStyle.regular` is the right starting point for material-like glass that should respond
-  naturally to its geometry. Use direct `optics(...)` for inline fixed authoring and
-  `GlassOptics.Fixed` when the complete value needs to be reused or selected programmatically.
+  naturally to its shortest dimension. Use direct `optics(...)` for inline fixed authoring and
+  `GlassOptics` when the complete value needs to be reused or selected programmatically.
 - Keep `chromaticAberrationStrength` modest; start at 0.1-0.25 to avoid rainbow artifacts.
 - Combine `edgeSoftness` with rounded shapes for smooth clipping; set `edgeSoftness = 0.dp` to rely purely on the shape.
 - Use `SurfaceProfile.Concave` for an inward-curving bezel or `SurfaceProfile.Lip` for a raised rim effect.

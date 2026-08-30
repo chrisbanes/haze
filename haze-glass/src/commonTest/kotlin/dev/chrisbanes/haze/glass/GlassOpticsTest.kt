@@ -16,67 +16,145 @@ import kotlin.test.Test
 class GlassOpticsTest {
 
   @Test
-  fun adaptive_isTheDefaultOptics() {
-    assertThat(GlassDefaults.optics).isEqualTo(GlassOptics.Adaptive)
+  fun default_isSizeAwareOptics() {
+    assertThat(GlassDefaults.optics.blurRadius)
+      .isInstanceOf<OpticalSizeValue.Responsive<*>>()
+    assertThat(GlassDefaults.optics.depth)
+      .isInstanceOf<OpticalSizeValue.Responsive<*>>()
     assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle).optics)
-      .isEqualTo(GlassOptics.Adaptive)
+      .isEqualTo(GlassDefaults.optics)
   }
 
   @Test
   fun fixed_rejectsInvalidSemanticValues() {
     assertInvalidFixedFraction("refractionStrength") {
-      GlassOptics.Fixed(refractionStrength = it)
+      GlassOptics(refractionStrength = it)
     }
     assertInvalidFixedFraction("refractionFoldStrength") {
-      GlassOptics.Fixed(refractionFoldStrength = it)
+      GlassOptics(refractionFoldStrength = it)
     }
     assertInvalidFixedFraction("refractionHeightFraction") {
-      GlassOptics.Fixed(refractionHeightFraction = it)
+      GlassOptics(refractionHeightFraction = it)
+    }
+    assertInvalidFixedFraction("refractionDetailIntensity") {
+      GlassOptics(refractionDetailIntensity = it)
     }
     assertInvalidFixedFraction("depth") {
-      GlassOptics.Fixed(depth = it)
+      GlassOptics(depth = OpticalSizeValue.Fixed(it))
     }
     assertInvalidFixedDistance("refractionDisplacement") {
-      GlassOptics.Fixed(refractionDisplacement = it)
+      GlassOptics(refractionDisplacement = it)
     }
     assertInvalidFixedDistance("blurRadius") {
-      GlassOptics.Fixed(blurRadius = it)
+      GlassOptics(blurRadius = OpticalSizeValue.Fixed(it))
     }
   }
 
   @Test
   fun fixed_acceptsBoundariesAndLargeRendererIndependentValues() {
-    val minimum = GlassOptics.Fixed(
+    val minimum = GlassOptics(
       refractionStrength = 0f,
       refractionFoldStrength = 0f,
       refractionHeightFraction = 0f,
       refractionDisplacement = 0.dp,
-      depth = 0f,
-      blurRadius = 0.dp,
+      depth = OpticalSizeValue.Fixed(0f),
+      blurRadius = OpticalSizeValue.Fixed(0.dp),
     )
-    val maximum = GlassOptics.Fixed(
+    val maximum = GlassOptics(
       refractionStrength = 1f,
       refractionFoldStrength = 1f,
       refractionHeightFraction = 1f,
       refractionDisplacement = Float.MAX_VALUE.dp,
-      depth = 1f,
-      blurRadius = Float.MAX_VALUE.dp,
+      depth = OpticalSizeValue.Fixed(1f),
+      blurRadius = OpticalSizeValue.Fixed(Float.MAX_VALUE.dp),
     )
 
     assertThat(minimum.refractionStrength).isEqualTo(0f)
     assertThat(minimum.refractionFoldStrength).isEqualTo(0f)
     assertThat(minimum.refractionHeightFraction).isEqualTo(0f)
     assertThat(minimum.refractionDisplacement).isEqualTo(0.dp)
-    assertThat(minimum.depth).isEqualTo(0f)
-    assertThat(minimum.blurRadius).isEqualTo(0.dp)
+    assertThat(minimum.depth).isEqualTo(OpticalSizeValue.Fixed(0f))
+    assertThat(minimum.blurRadius).isEqualTo(OpticalSizeValue.Fixed(0.dp))
     assertThat(minimum.progressive).isNull()
     assertThat(maximum.refractionStrength).isEqualTo(1f)
     assertThat(maximum.refractionFoldStrength).isEqualTo(1f)
     assertThat(maximum.refractionHeightFraction).isEqualTo(1f)
     assertThat(maximum.refractionDisplacement).isEqualTo(Float.MAX_VALUE.dp)
-    assertThat(maximum.depth).isEqualTo(1f)
-    assertThat(maximum.blurRadius).isEqualTo(Float.MAX_VALUE.dp)
+    assertThat(maximum.depth).isEqualTo(OpticalSizeValue.Fixed(1f))
+    assertThat(maximum.blurRadius).isEqualTo(OpticalSizeValue.Fixed(Float.MAX_VALUE.dp))
     assertThat(maximum.progressive).isNull()
+  }
+
+  @Test
+  fun responsive_snapshotsOrderedPoints() {
+    val points = mutableListOf(
+      OpticalSizePoint(64.dp, 1f),
+      OpticalSizePoint(176.dp, 2f),
+    )
+    val value = OpticalSizeValue.Responsive(points)
+    points[0] = OpticalSizePoint(64.dp, 99f)
+
+    assertThat(value.points).isEqualTo(
+      listOf(
+        OpticalSizePoint(64.dp, 1f),
+        OpticalSizePoint(176.dp, 2f),
+      ),
+    )
+  }
+
+  @Test
+  fun responsive_rejectsTooFewOrUnorderedPoints() {
+    assertFailure {
+      OpticalSizeValue.Responsive(OpticalSizePoint(64.dp, 1f))
+    }.isInstanceOf<IllegalArgumentException>()
+    assertFailure {
+      OpticalSizeValue.Responsive(
+        OpticalSizePoint(176.dp, 1f),
+        OpticalSizePoint(64.dp, 2f),
+      )
+    }.isInstanceOf<IllegalArgumentException>()
+    assertFailure {
+      OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 1f),
+        OpticalSizePoint(64.dp, 2f),
+      )
+    }.isInstanceOf<IllegalArgumentException>()
+  }
+
+  @Test
+  fun sizePoint_rejectsInvalidDimensions() {
+    listOf(
+      Dp.Unspecified,
+      Float.NaN.dp,
+      Float.POSITIVE_INFINITY.dp,
+      Float.NEGATIVE_INFINITY.dp,
+      0.dp,
+      (-1).dp,
+    )
+      .forEach { dimension ->
+        assertFailure { OpticalSizePoint(dimension, 1f) }
+          .isInstanceOf<IllegalArgumentException>()
+      }
+  }
+
+  @Test
+  fun responsiveOptics_rejectInvalidContainedValues() {
+    val points = listOf(
+      OpticalSizePoint(64.dp, 0f),
+      OpticalSizePoint(176.dp, 1f),
+    )
+    assertFailure {
+      GlassOptics(
+        depth = OpticalSizeValue.Responsive(points.map { it.copy(value = Float.NaN) }),
+      )
+    }.hasMessage("depth must be finite and in 0f..1f")
+    assertFailure {
+      GlassOptics(
+        blurRadius = OpticalSizeValue.Responsive(
+          points.map { OpticalSizePoint(it.shortestDimension, Float.NaN.dp) },
+        ),
+      )
+    }.hasMessage("blurRadius must be specified, finite, and non-negative")
   }
 }
 

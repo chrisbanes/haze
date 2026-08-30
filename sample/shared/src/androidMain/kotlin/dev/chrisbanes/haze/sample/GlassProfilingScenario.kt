@@ -19,18 +19,19 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 
 internal const val GLASS_PROFILING_DURATION_MILLIS: Int = 3_000
 internal const val GLASS_PROFILING_SETTLING_FRAMES: Int = 8
 
-private val ProfilingProgressiveOptics = GlassOptics.Fixed(
+private val ProfilingProgressiveOptics = GlassOptics(
   progressive = HazeProgressive.verticalGradient(
     startIntensity = 0f,
     endIntensity = 1f,
   ),
 )
-private val ProfilingNoRefractionOptics = GlassOptics.Fixed(refractionStrength = 0f)
-private val ProfilingNoBlurOptics = GlassOptics.Fixed(depth = 0f, blurRadius = 0.dp)
+private val ProfilingNoRefractionOptics = GlassOptics(refractionStrength = 0f)
+private val ProfilingNoBlurOptics = GlassOptics(depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp))
 
 internal enum class GlassProfilingScenario(
   val id: String,
@@ -41,7 +42,7 @@ internal enum class GlassProfilingScenario(
   val steadyDraw: Boolean = false,
   val rimEnabled: Boolean = true,
   val performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
-  val opticsOverride: GlassOptics.Fixed? = null,
+  val opticsOverride: GlassOptics? = null,
   val fullChroma: Boolean = false,
 ) {
   EffectAttach(
@@ -151,7 +152,7 @@ internal enum class GlassProfilingScenario(
   SteadyDepth50(
     id = "steady_depth_50",
     steadyDraw = true,
-    opticsOverride = GlassOptics.Fixed(depth = 0.5f),
+    opticsOverride = GlassOptics(depth = OpticalSizeValue.Fixed(0.5f)),
   ),
   SteadyPerformanceNine(
     id = "steady_performance_9",
@@ -168,8 +169,8 @@ internal enum class GlassProfilingScenario(
   InteractionUpdate("interaction_update"),
   InteractionUpdate9("interaction_update_9", effectCount = 9),
   OpticalUpdate("optical_update"),
-  DepthUpdate("depth_update", opticsOverride = GlassOptics.Fixed()),
-  BlurUpdate("blur_update", opticsOverride = GlassOptics.Fixed()),
+  DepthUpdate("depth_update", opticsOverride = GlassOptics()),
+  BlurUpdate("blur_update", opticsOverride = GlassOptics()),
   SourceUpdateAdaptive(
     id = "source_update_adaptive",
     performanceMode = HazePerformanceMode.Adaptive,

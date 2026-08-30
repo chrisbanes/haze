@@ -16,6 +16,7 @@ import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import kotlin.test.Test
 
 class GlassProfilingScenarioTest {
@@ -173,13 +174,13 @@ class GlassProfilingScenarioTest {
   @Test
   fun ablationScenarios_useExplicitFixedOptics() {
     assertThat(GlassProfilingScenario.SteadyNoRefraction.opticsOverride).isEqualTo(
-      GlassOptics.Fixed(refractionStrength = 0f),
+      GlassOptics(refractionStrength = 0f),
     )
     assertThat(GlassProfilingScenario.SteadyNoBlur.opticsOverride).isEqualTo(
-      GlassOptics.Fixed(depth = 0f, blurRadius = 0.dp),
+      GlassOptics(depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp)),
     )
     assertThat(GlassProfilingScenario.SteadyDepth50.opticsOverride).isEqualTo(
-      GlassOptics.Fixed(depth = 0.5f),
+      GlassOptics(depth = OpticalSizeValue.Fixed(0.5f)),
     )
   }
 

@@ -69,10 +69,27 @@ public sealed interface GlassStyle {
   /** The empty Glass Style, which performs no writes. */
   public companion object : GlassStyle {
 
+    internal val clearOptics: GlassOptics = GlassOptics(
+      refractionStrength = 0.85f,
+      refractionHeightFraction = 0.22f,
+      refractionDisplacement = 18.dp,
+      depth = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 0.1f),
+        OpticalSizePoint(176.dp, 0.32f),
+        OpticalSizePoint(220.dp, 0.52f),
+      ),
+      blurRadius = OpticalSizeValue.Responsive(
+        OpticalSizePoint(64.dp, 2.dp),
+        OpticalSizePoint(176.dp, 6.dp),
+        OpticalSizePoint(220.dp, 8.dp),
+      ),
+      refractionDetailIntensity = 0.76f,
+    )
+
     /**
      * The default built-in Glass style.
      *
-     * Its optical response adapts to each material's geometry. It writes the complete material
+     * Its blur and depth adapt to each material's shortest dimension. It writes the complete material
      * response while preserving separately composed shape, background colour, tint, alpha, light
      * position, and interaction presentation.
      */
@@ -95,21 +112,13 @@ public sealed interface GlassStyle {
     /**
      * A built-in Glass style that prioritizes visibility of content behind the material.
      *
-     * Its fixed optics and distinct edge and lighting response remain recognizable when a renderer
-     * simplifies advanced optical effects. It writes the complete material response while preserving
-     * separately composed shape, background colour, tint, alpha, light position, and interaction
-     * presentation.
+     * Its blur and depth adapt to the material's shortest side while its authored refraction and
+     * distinct edge and lighting response remain recognizable when a renderer simplifies advanced
+     * optical effects. It writes the complete material response while preserving separately composed
+     * shape, background colour, tint, alpha, light position, and interaction presentation.
      */
     public val clear: GlassStyle = GlassStyle {
-      optics(
-        GlassOptics.Fixed(
-          refractionStrength = 0.85f,
-          refractionHeightFraction = 0.22f,
-          refractionDisplacement = 18.dp,
-          depth = 0.1f,
-          blurRadius = 2.dp,
-        ),
-      )
+      optics(clearOptics)
       specularIntensity(0.55f)
       ambientResponse(0.42f)
       edgeSoftness(1.dp)
@@ -233,11 +242,7 @@ public class GlassStyleScope internal constructor(
     writes += { this.shape = shape }
   }
 
-  /**
-   * Sets a complete fixed optical model used to refract and blur captured content.
-   *
-   * This constructs [GlassOptics.Fixed] and enforces its same fail-fast domains.
-   */
+  /** Sets a complete fixed optical model used to refract and blur captured content. */
   public fun optics(
     refractionStrength: Float = 0.7f,
     refractionHeightFraction: Float = 0.25f,
@@ -246,16 +251,18 @@ public class GlassStyleScope internal constructor(
     blurRadius: Dp = 14.dp,
     progressive: HazeProgressive? = null,
     refractionFoldStrength: Float = 0f,
+    refractionDetailIntensity: Float = 0.76f,
   ) {
     optics(
-      GlassOptics.Fixed(
+      GlassOptics(
         refractionStrength = refractionStrength,
         refractionHeightFraction = refractionHeightFraction,
         refractionDisplacement = refractionDisplacement,
-        depth = depth,
-        blurRadius = blurRadius,
+        depth = OpticalSizeValue.Fixed(depth),
+        blurRadius = OpticalSizeValue.Fixed(blurRadius),
         progressive = progressive,
         refractionFoldStrength = refractionFoldStrength,
+        refractionDetailIntensity = refractionDetailIntensity,
       ),
     )
   }

@@ -62,13 +62,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.glass.GlassOptics
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.rememberHazeState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-
-private const val ADAPTIVE_REFRACTION_FOLD_STRENGTH = 0.65f
 
 @Composable
 public fun GlassLabSample(navController: NavHostController) {
@@ -357,23 +355,74 @@ private fun <T : Enum<T>> LabChipGroup(
 @Composable
 private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabState) -> Unit) {
   val values = state.styleValues
-  val fixed = (values.optics as? GlassOptics.Fixed)
-    ?: GlassOptics.Fixed(refractionFoldStrength = ADAPTIVE_REFRACTION_FOLD_STRENGTH)
+  val optics = values.optics
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text("Optics", style = MaterialTheme.typography.titleMedium)
-    LabSlider("Refraction", fixed.refractionStrength, 0f..1f) { value ->
-      onStateChanged(state.editStyle { it.copy(optics = fixed.copy(refractionStrength = value)) })
-    }
-    LabSlider("Fold", fixed.refractionFoldStrength, 0f..1f) { value ->
-      onStateChanged(
-        state.editStyle { it.copy(optics = fixed.copy(refractionFoldStrength = value)) },
+    if (optics.depth is OpticalSizeValue.Responsive || optics.blurRadius is OpticalSizeValue.Responsive) {
+      Text(
+        "Responsive values are edited at their shortest-side points.",
+        style = MaterialTheme.typography.bodySmall,
       )
     }
-    LabSlider("Depth", fixed.depth, 0f..1f) { value ->
-      onStateChanged(state.editStyle { it.copy(optics = fixed.copy(depth = value)) })
+    LabSlider("Refraction", optics.refractionStrength, 0f..1f) { value ->
+      onStateChanged(state.editStyle { it.copy(optics = optics.copy(refractionStrength = value)) })
     }
-    LabSlider("Blur", fixed.blurRadius.value, 0f..32f) { value ->
-      onStateChanged(state.editStyle { it.copy(optics = fixed.copy(blurRadius = value.dp)) })
+    LabSlider("Fold", optics.refractionFoldStrength, 0f..1f) { value ->
+      onStateChanged(
+        state.editStyle { it.copy(optics = optics.copy(refractionFoldStrength = value)) },
+      )
+    }
+    when (val depth = optics.depth) {
+      is OpticalSizeValue.Fixed -> LabSlider("Depth", depth.value, 0f..1f) { value ->
+        onStateChanged(
+          state.editStyle {
+            it.copy(optics = optics.copy(depth = OpticalSizeValue.Fixed(value)))
+          },
+        )
+      }
+      is OpticalSizeValue.Responsive -> depth.points.forEachIndexed { index, point ->
+        LabSlider("Depth @ ${point.shortestDimension.pointLabel}", point.value, 0f..1f) { value ->
+          onStateChanged(
+            state.editStyle {
+              it.copy(
+                optics = optics.copy(
+                  depth = OpticalSizeValue.Responsive(
+                    depth.points.mapIndexed { pointIndex, current ->
+                      if (pointIndex == index) current.copy(value = value) else current
+                    },
+                  ),
+                ),
+              )
+            },
+          )
+        }
+      }
+    }
+    when (val blurRadius = optics.blurRadius) {
+      is OpticalSizeValue.Fixed -> LabSlider("Blur", blurRadius.value.value, 0f..32f) { value ->
+        onStateChanged(
+          state.editStyle {
+            it.copy(optics = optics.copy(blurRadius = OpticalSizeValue.Fixed(value.dp)))
+          },
+        )
+      }
+      is OpticalSizeValue.Responsive -> blurRadius.points.forEachIndexed { index, point ->
+        LabSlider("Blur @ ${point.shortestDimension.pointLabel}", point.value.value, 0f..32f) { value ->
+          onStateChanged(
+            state.editStyle {
+              it.copy(
+                optics = optics.copy(
+                  blurRadius = OpticalSizeValue.Responsive(
+                    blurRadius.points.mapIndexed { pointIndex, current ->
+                      if (pointIndex == index) current.copy(value = value.dp) else current
+                    },
+                  ),
+                ),
+              )
+            },
+          )
+        }
+      }
     }
     Text("Lighting", style = MaterialTheme.typography.titleMedium)
     LabSlider("Specular", values.specularIntensity, 0f..1f) { value ->
@@ -398,6 +447,9 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
     }
   }
 }
+
+private val androidx.compose.ui.unit.Dp.pointLabel: String
+  get() = if (value == value.toInt().toFloat()) "${value.toInt()}dp" else "${value}dp"
 
 @Composable
 private fun LabSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onValueChange: (Float) -> Unit) {

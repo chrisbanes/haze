@@ -36,6 +36,7 @@ import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
@@ -221,10 +222,10 @@ class GlassScreenshotTest : ScreenshotTest() {
       GlassStyle {
         tint(Color.White.copy(alpha = 0.08f))
         optics(
-          GlassOptics.Fixed(
+          GlassOptics(
             refractionStrength = 0f,
-            depth = 1f,
-            blurRadius = 0.dp,
+            depth = OpticalSizeValue.Fixed(1f),
+            blurRadius = OpticalSizeValue.Fixed(0.dp),
           ),
         )
         specularIntensity(0f)
@@ -371,10 +372,10 @@ class GlassScreenshotTest : ScreenshotTest() {
             GlassStyle {
               tint(Color.Transparent)
               optics(
-                GlassOptics.Fixed(
+                GlassOptics(
                   refractionStrength = 0.6f,
-                  depth = 0.5f,
-                  blurRadius = 0.dp,
+                  depth = OpticalSizeValue.Fixed(0.5f),
+                  blurRadius = OpticalSizeValue.Fixed(0.dp),
                 ),
               )
               specularIntensity(0f)
@@ -547,9 +548,9 @@ class GlassScreenshotTest : ScreenshotTest() {
     val VibrantStyle = GlassStyle {
       tint(Color(0xFF3F8CFF).copy(alpha = 0.35f))
       optics(
-        GlassOptics.Fixed(
+        GlassOptics(
           refractionStrength = 0.55f,
-          depth = 0.4f,
+          depth = OpticalSizeValue.Fixed(0.4f),
         ),
       )
       specularIntensity(0.75f)

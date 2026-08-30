@@ -41,19 +41,19 @@ class FallbackGlassInteractionTest : ContextTest() {
 
   @Test
   fun automaticFallback_preservesAppearanceAndLightingWhileOmittingOptics() = runComposeUiTest {
-    val firstOptics = GlassOptics.Fixed(
+    val firstOptics = GlassOptics(
       refractionStrength = 0.8f,
       refractionHeightFraction = 0.4f,
       refractionDisplacement = 18.dp,
-      depth = 0.7f,
-      blurRadius = 20.dp,
+      depth = OpticalSizeValue.Fixed(0.7f),
+      blurRadius = OpticalSizeValue.Fixed(20.dp),
     )
-    val secondOptics = GlassOptics.Fixed(
+    val secondOptics = GlassOptics(
       refractionStrength = 0.2f,
       refractionHeightFraction = 0.8f,
       refractionDisplacement = 4.dp,
-      depth = 0.1f,
-      blurRadius = 2.dp,
+      depth = OpticalSizeValue.Fixed(0.1f),
+      blurRadius = OpticalSizeValue.Fixed(2.dp),
     )
     val style = mutableStateOf(fallbackPortableStyle(firstOptics, includeInteractionOptics = true))
     val interactionSource = MutableInteractionSource()
@@ -128,7 +128,7 @@ class FallbackGlassInteractionTest : ContextTest() {
 }
 
 private fun fallbackPortableStyle(
-  optics: GlassOptics.Fixed,
+  optics: GlassOptics,
   includeInteractionOptics: Boolean,
 ): GlassStyle = GlassStyle {
   optics(optics)

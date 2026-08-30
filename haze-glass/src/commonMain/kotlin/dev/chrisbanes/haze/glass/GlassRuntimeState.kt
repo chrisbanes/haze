@@ -228,7 +228,7 @@ internal abstract class GlassRuntimeState {
   internal var optics: GlassOptics
     get() = _optics ?: inheritedStyleValues.optics
     set(value) {
-      if (value != _optics) {
+      if (_optics != value) {
         HazeLogger.d(TAG) { "optics changed. Current: $_optics. New: $value" }
         _optics = value
         markDirty(GlassDirtyFields.Optics)
