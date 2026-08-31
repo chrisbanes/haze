@@ -92,7 +92,9 @@ Modifier.hazeGlass(
 - **refractionDetailIntensity**: Secondary edge-refraction detail strength `0..1`. `0` disables the
   detail pass. Caller-authored `GlassOptics` defaults to `0.76`; Regular uses `0`, and Clear uses
   `0.76`. Non-zero values may retain additional rendering layers on full renderers.
-- **specularIntensity**: Highlight strength `0..1` (default 0.4).
+- **specularIntensity**: Highlight strength `0..1` (default 0.48).
+- **edgeShadow**: Shape-following dark rim composited beneath the specular highlight (defaults to
+  black at 14% opacity). Its alpha controls strength; set `Color.Transparent` to disable it.
 - **ambientResponse**: Fresnel/edge lift `0..1` (default 0.46).
 - **edgeSoftness**: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.
 - **shape** (`RoundedCornerShape`): Rounded-rect boundary for refraction and masking (default 16.dp corners).
@@ -115,6 +117,30 @@ the replacement fall back to `LocalGlassStyle` and then the individual `GlassDef
 
 A Style captures its inputs when it is constructed. Changing captured state does not update an
 existing Style; construct and provide a replacement instead.
+
+### Accessibility preferences
+
+Haze leaves platform accessibility-service integration to the host application, then accepts its
+semantic result through `LocalGlassAccessibilitySettings`. This keeps the common API portable and
+does not attempt to reproduce another platform's system controls. Provide settings at the subtree
+where Glass is used:
+
+```kotlin
+CompositionLocalProvider(
+  LocalGlassAccessibilitySettings provides GlassAccessibilitySettings(
+    reduceTransparency = reduceTransparency,
+    increaseContrast = increaseContrast,
+    showBorders = showBorders,
+  ),
+) {
+  // Glass here reduces background diffusion or strengthens its separating edge when requested.
+}
+```
+
+The default settings preserve the authored Style exactly. These preferences are applied at render
+resolution, so they do not mutate or replace the Style supplied by your app. Reduced Transparency
+reduces the authored blur contribution. Increased Contrast and Show Borders enforce a visible edge,
+even when the authored Style has zero edge softness.
 
 ```kotlin
 val baseStyle = GlassStyle {

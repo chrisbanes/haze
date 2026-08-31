@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -28,9 +29,11 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
+import dev.chrisbanes.haze.glass.GlassAccessibilitySettings
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.LocalGlassAccessibilitySettings
 import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
@@ -144,6 +147,32 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
     captureRoot("clear")
 
     assertThat(regular.changedPixelRatio(clear)).isGreaterThan(0.001f)
+  }
+
+  @Test
+  fun fallback_showBordersDrawsEdgeForHardEdgeStyle() = runScreenshotTest {
+    var settings by mutableStateOf(GlassAccessibilitySettings())
+    val style = GlassStyle {
+      tint(Color.Transparent)
+      edgeShadow(Color.Transparent)
+      edgeSoftness(0.dp)
+      specularIntensity(0f)
+    }
+    setContent {
+      ScreenshotTheme {
+        CompositionLocalProvider(LocalGlassAccessibilitySettings provides settings) {
+          FallbackBuiltInStyleSample(style)
+        }
+      }
+    }
+
+    val hidden = captureRootPixels().snapshot()
+    settings = GlassAccessibilitySettings(showBorders = true)
+    waitForIdle()
+    val visible = captureRootPixels().snapshot()
+    captureRoot("visible")
+
+    assertThat(visible.changedPixelRatio(hidden)).isGreaterThan(0.001f)
   }
 
   @Test

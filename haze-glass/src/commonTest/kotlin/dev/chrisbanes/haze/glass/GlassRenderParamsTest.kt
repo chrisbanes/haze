@@ -36,6 +36,60 @@ import kotlin.test.Test
 class GlassRenderParamsTest {
 
   @Test
+  fun accessibilitySettings_reduceBlurAndStrengthenMaterialSeparation() {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        optics(GlassOptics(blurRadius = OpticalSizeValue.Fixed(10.dp)))
+        specularIntensity(0f)
+        edgeShadow(androidx.compose.ui.graphics.Color.Transparent)
+        edgeSoftness(0.dp)
+        contrast(0f)
+      }
+      accessibilitySettings = GlassAccessibilitySettings(
+        reduceTransparency = true,
+        increaseContrast = true,
+        showBorders = true,
+      )
+    }
+
+    val resolved = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(100f, 100f),
+      density = Density(1f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    assertThat(resolved.resolvedOptics.blurRadiusPx).isEqualTo(6.5f)
+    assertThat(resolved.contrast).isEqualTo(0.16f)
+    assertThat(resolved.specularIntensity).isEqualTo(0.58f)
+    assertThat(resolved.edgeSoftnessPx).isEqualTo(2f)
+    assertThat(resolved.edgeShadow.alpha).isCloseTo(0.32f, 0.002f)
+  }
+
+  @Test
+  fun showBorders_enforcesVisibleEdgeForAuthoredHardEdgeStyle() {
+    val effect = GlassRuntimeEffect().apply {
+      style = GlassStyle {
+        edgeShadow(androidx.compose.ui.graphics.Color.Transparent)
+        edgeSoftness(0.dp)
+        specularIntensity(0f)
+      }
+      accessibilitySettings = GlassAccessibilitySettings(showBorders = true)
+    }
+
+    val resolved = resolveGlassStyle(
+      effect = effect,
+      materialSizePx = Size(100f, 100f),
+      density = Density(2f),
+      layoutDirection = LayoutDirection.Ltr,
+    )
+
+    assertThat(resolved.edgeSoftnessPx).isEqualTo(4f)
+    assertThat(resolved.specularIntensity).isEqualTo(0.58f)
+    assertThat(resolved.edgeShadow.alpha).isCloseTo(0.32f, 0.002f)
+  }
+
+  @Test
   fun lightAlignment_defaultCenterPreservesFractionalPixelsForOddSize() {
     val materialSize = Size(101f, 81f)
     val effect = GlassRuntimeEffect()
@@ -1320,6 +1374,7 @@ class GlassRenderParamsTest {
     refractionStrength = refractionStrength,
     refractionFoldStrength = 0f,
     specularIntensity = 1f,
+    edgeShadow = GlassDefaults.edgeShadow,
     depth = depth,
     ambientResponse = 1f,
     backgroundColor = GlassDefaults.backgroundColor,

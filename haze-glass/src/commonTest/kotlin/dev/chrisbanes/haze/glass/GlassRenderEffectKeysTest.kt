@@ -105,6 +105,9 @@ class GlassRenderEffectKeysTest {
       base.copy(refractionFoldStrength = 0.5f).opticalEffectKey(),
     )
     assertThat(base.rimEffectKey()).isNotEqualTo(base.copy(specularIntensity = 1f).rimEffectKey())
+    assertThat(base.rimEffectKey()).isNotEqualTo(
+      base.copy(edgeShadow = Color.Black.copy(alpha = 0.32f)).rimEffectKey(),
+    )
   }
 
   @Test
@@ -286,6 +289,7 @@ class GlassRenderEffectKeysTest {
     refractionStrength = 0.5f,
     refractionFoldStrength = 0f,
     specularIntensity = 0.5f,
+    edgeShadow = GlassDefaults.edgeShadow,
     depth = 1f,
     ambientResponse = 0.5f,
     backgroundColor = Color.Transparent,

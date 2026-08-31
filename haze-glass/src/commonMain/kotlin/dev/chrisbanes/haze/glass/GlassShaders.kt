@@ -559,6 +559,7 @@ internal object GlassShaders {
     uniform float sampleStep;
     uniform vec4 cornerRadii;
     uniform float specularIntensity;
+    uniform vec4 edgeShadow;
     uniform float specularExponent;
     uniform float edgeSoftness;
     uniform float2 lightPosition;
@@ -597,8 +598,11 @@ internal object GlassShaders {
       vec3 lightDirection = normalize(vec3(lightDirection2D, 1.0));
       float specularBase = max(dot(normal, lightDirection), 0.0);
       float specular = specularExponent == 0.0 ? 1.0 : pow(specularBase, specularExponent);
-      float alpha = specular * specularIntensity * edge;
-      return alpha > 0.0 ? vec4(vec3(alpha), alpha) : vec4(0.0);
+      float specularAlpha = specular * specularIntensity * edge;
+      float shadowAlpha = edgeShadow.a * edge;
+      float alpha = specularAlpha + shadowAlpha * (1.0 - specularAlpha);
+      vec3 color = vec3(specularAlpha) + edgeShadow.rgb * shadowAlpha * (1.0 - specularAlpha);
+      return alpha > 0.0 ? vec4(color, alpha) : vec4(0.0);
     }
   """
 

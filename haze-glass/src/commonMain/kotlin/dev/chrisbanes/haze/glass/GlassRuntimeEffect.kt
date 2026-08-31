@@ -89,6 +89,7 @@ private class GlassAdaptiveUpdateKey(
 private fun ResolvedGlassStyle.hasSameRenderParams(other: ResolvedGlassStyle): Boolean =
   resolvedOptics == other.resolvedOptics &&
     specularIntensity == other.specularIntensity &&
+    edgeShadow == other.edgeShadow &&
     ambientResponse == other.ambientResponse &&
     backgroundColor == other.backgroundColor &&
     tint == other.tint &&
@@ -116,7 +117,8 @@ private fun ResolvedGlassStyle.hasSameBudgetParams(other: ResolvedGlassStyle): B
     resolvedOptics.refractionDetailIntensity == other.resolvedOptics.refractionDetailIntensity &&
     chromaticAberrationStrength == other.chromaticAberrationStrength &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
-    (specularIntensity > 0f) == (other.specularIntensity > 0f)
+    (specularIntensity > 0f || edgeShadow.alpha > 0f) ==
+    (other.specularIntensity > 0f || other.edgeShadow.alpha > 0f)
 
 private val IdleInteractionState = GlassInteractionRenderState(Offset.Zero)
 private val IdleInteractionSignals = GlassInteractionSignals()
@@ -361,6 +363,7 @@ internal class GlassRuntimeEffect() :
     applyConfiguration(style)
     dirtyTrackerVersion
     compositionLocalStyle = context.currentValueOf(LocalGlassStyle)
+    accessibilitySettings = context.currentValueOf(LocalGlassAccessibilitySettings)
     updateStyleInteractionSlots()
     syncInteractionController(context)
 
@@ -764,7 +767,7 @@ internal class GlassRuntimeEffect() :
           sampleStepPx = 2f * scaleFactor,
           detailIntensity = optics.refractionDetailIntensity,
         ),
-        rimActive = style.specularIntensity > 0f,
+        rimActive = style.specularIntensity > 0f || style.edgeShadow.alpha > 0f,
         interactionPatchSize = interactionPatchSize,
         interactionOpticsActive = interactionTopology.hasOptics,
         interactionLightingActive = interactionTopology.hasLighting,

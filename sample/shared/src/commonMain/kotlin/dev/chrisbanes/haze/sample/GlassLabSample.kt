@@ -428,6 +428,9 @@ private fun LabAdvancedControls(state: GlassLabState, onStateChanged: (GlassLabS
     LabSlider("Specular", values.specularIntensity, 0f..1f) { value ->
       onStateChanged(state.editStyle { it.copy(specularIntensity = value) })
     }
+    LabSlider("Dark edge", values.edgeShadow.alpha, 0f..0.5f) { value ->
+      onStateChanged(state.editStyle { it.copy(edgeShadow = it.edgeShadow.copy(alpha = value)) })
+    }
     LabSlider("Ambient", values.ambientResponse, 0f..1f) { value ->
       onStateChanged(state.editStyle { it.copy(ambientResponse = value) })
     }

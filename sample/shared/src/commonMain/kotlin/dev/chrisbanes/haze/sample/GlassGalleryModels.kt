@@ -101,6 +101,7 @@ internal data class GlassLabStyleValues(
   val tint: Color = GlassDefaults.tint,
   val optics: GlassOptics = GlassDefaults.optics,
   val specularIntensity: Float = GlassDefaults.specularIntensity,
+  val edgeShadow: Color = GlassDefaults.edgeShadow,
   val ambientResponse: Float = GlassDefaults.ambientResponse,
   val alpha: Float = GlassDefaults.alpha,
   val contrast: Float = GlassDefaults.contrast,
@@ -116,6 +117,7 @@ internal data class GlassLabStyleValues(
     tint(tint)
     optics(optics)
     specularIntensity(specularIntensity)
+    edgeShadow(edgeShadow)
     ambientResponse(ambientResponse)
     alpha(alpha)
     contrast(contrast)
@@ -148,6 +150,7 @@ internal fun glassLabStyleValues(id: GlassLabStyleId): GlassLabStyleValues = whe
       ),
     ),
     specularIntensity = 0.55f,
+    edgeShadow = Color.Black.copy(alpha = 0.1f),
     ambientResponse = 0.42f,
     contrast = 0.08f,
     whitePoint = 0.02f,

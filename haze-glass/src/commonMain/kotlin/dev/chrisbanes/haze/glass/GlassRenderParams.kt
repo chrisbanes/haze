@@ -189,6 +189,7 @@ internal data class GlassRenderParams(
   val refractionStrength: Float,
   val refractionFoldStrength: Float,
   val specularIntensity: Float,
+  val edgeShadow: Color,
   val depth: Float,
   val ambientResponse: Float,
   val backgroundColor: Color,
@@ -343,6 +344,7 @@ private const val GLASS_REFRACTION_DETAIL_INTENSITY = 0.76f
 internal data class GlassRimEffectKey(
   val coordinates: GlassCoordinates,
   val specularIntensity: Float,
+  val edgeShadow: Color,
   val specularExponent: Float,
   val edgeSoftnessPx: Float,
   val cornerRadii: CornerRadii,
@@ -353,6 +355,7 @@ internal data class GlassRimEffectKey(
 internal fun GlassRenderParams.rimEffectKey() = GlassRimEffectKey(
   coordinates = coordinates,
   specularIntensity = specularIntensity,
+  edgeShadow = edgeShadow,
   specularExponent = specularExponent,
   edgeSoftnessPx = edgeSoftnessPx,
   cornerRadii = cornerRadii,
@@ -422,6 +425,7 @@ internal fun GlassRenderParams.interactionUniforms(
 internal data class ResolvedGlassStyle(
   val resolvedOptics: ResolvedGlassOptics,
   val specularIntensity: Float,
+  val edgeShadow: Color,
   val ambientResponse: Float,
   val backgroundColor: Color,
   val tint: Color,
@@ -467,6 +471,7 @@ internal fun resolveGlassStyle(
   return ResolvedGlassStyle(
     resolvedOptics = resolveGlassOptics(effect.optics, materialSizePx, density),
     specularIntensity = effect.specularIntensity,
+    edgeShadow = effect.edgeShadow,
     ambientResponse = effect.ambientResponse,
     backgroundColor = effect.backgroundColor,
     tint = effect.tint,
@@ -485,6 +490,42 @@ internal fun resolveGlassStyle(
     specularExponent = effect.specularExponent,
     fresnelExponent = effect.fresnelExponent,
     cornerRadii = cornerRadii,
+  ).withAccessibility(
+    settings = effect.accessibilitySettings,
+    minimumBorderSoftnessPx = defaultEdgeSoftnessPx,
+  )
+}
+
+private fun ResolvedGlassStyle.withAccessibility(
+  settings: GlassAccessibilitySettings,
+  minimumBorderSoftnessPx: Float,
+): ResolvedGlassStyle {
+  if (
+    !settings.reduceTransparency &&
+    !settings.increaseContrast &&
+    !settings.showBorders
+  ) {
+    return this
+  }
+  val blurMultiplier = if (settings.reduceTransparency) 0.65f else 1f
+  val blurRadiusPx = (resolvedOptics.blurRadiusPx * blurMultiplier)
+    .coerceAtMost(SemanticBlurKernel.MAX_SUPPORTED_RADIUS_PX)
+  val optics = resolvedOptics.copy(
+    blurRadiusPx = blurRadiusPx,
+  )
+  val strengthenEdge = settings.increaseContrast || settings.showBorders
+  return copy(
+    resolvedOptics = optics,
+    contrast = if (settings.increaseContrast) maxOf(contrast, 0.16f) else contrast,
+    specularIntensity = if (strengthenEdge) maxOf(specularIntensity, 0.58f) else specularIntensity,
+    edgeSoftnessPx = if (strengthenEdge) {
+      maxOf(edgeSoftnessPx, minimumBorderSoftnessPx)
+    } else {
+      edgeSoftnessPx
+    },
+    edgeShadow = edgeShadow.copy(
+      alpha = if (strengthenEdge) maxOf(edgeShadow.alpha, 0.32f) else edgeShadow.alpha,
+    ),
   )
 }
 
@@ -534,6 +575,7 @@ internal fun buildGlassRenderParams(
     refractionStrength = resolvedOptics.refractionStrength.finiteOr(0f).coerceIn(0f, 1f),
     refractionFoldStrength = resolvedOptics.refractionFoldStrength.finiteOr(0f).coerceIn(0f, 1f),
     specularIntensity = style.specularIntensity,
+    edgeShadow = style.edgeShadow,
     depth = resolvedOptics.depth.finiteOr(0f).coerceIn(0f, 1f),
     ambientResponse = style.ambientResponse,
     backgroundColor = style.backgroundColor,
@@ -584,7 +626,7 @@ internal fun buildGlassRetainedLayerPlan(
     blurRequiresPrefilter = blurPlan?.requiresPrefilter == true,
     depthMixActive = blurActive && params.depth < 1f,
     refractionDetailActive = params.isRefractionDetailActive(),
-    rimActive = params.specularIntensity > 0f,
+    rimActive = params.specularIntensity > 0f || params.edgeShadow.alpha > 0f,
     interactionPatchSize = interactionPatchSize,
     interactionOpticsActive = interactionLayersActive && interactionTopology.hasOptics,
     interactionLightingActive = interactionLayersActive && interactionTopology.hasLighting,
@@ -832,7 +874,9 @@ internal fun buildGlassPreparedRender(
   val rimKey = if (previous != null && previous.params.hasSameRimEffectInputs(params)) {
     previous.rimKey
   } else {
-    params.rimEffectKey().takeIf { params.specularIntensity > 0f }
+    params.rimEffectKey().takeIf {
+      params.specularIntensity > 0f || params.edgeShadow.alpha > 0f
+    }
   }
   val plan = if (
     previous != null && previous.hasSameRetainedLayerPlanInputs(
@@ -928,6 +972,7 @@ private fun GlassRenderParams.hasSameRefractionDetailEffectInputs(
 private fun GlassRenderParams.hasSameRimEffectInputs(other: GlassRenderParams): Boolean =
   coordinates == other.coordinates &&
     specularIntensity == other.specularIntensity &&
+    edgeShadow == other.edgeShadow &&
     specularExponent == other.specularExponent &&
     edgeSoftnessPx == other.edgeSoftnessPx &&
     cornerRadii == other.cornerRadii &&

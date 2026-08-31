@@ -96,6 +96,7 @@ public sealed interface GlassStyle {
     public val regular: GlassStyle = GlassStyle {
       optics(GlassDefaults.optics)
       specularIntensity(GlassDefaults.specularIntensity)
+      edgeShadow(GlassDefaults.edgeShadow)
       ambientResponse(GlassDefaults.ambientResponse)
       edgeSoftness(GlassDefaults.edgeSoftness)
       chromaticAberrationStrength(GlassDefaults.chromaticAberrationStrength)
@@ -120,6 +121,7 @@ public sealed interface GlassStyle {
     public val clear: GlassStyle = GlassStyle {
       optics(clearOptics)
       specularIntensity(0.55f)
+      edgeShadow(Color.Black.copy(alpha = 0.1f))
       ambientResponse(0.42f)
       edgeSoftness(1.dp)
       chromaticAberrationStrength(0.04f)
@@ -282,6 +284,17 @@ public class GlassStyleScope internal constructor(
     writes += { specularIntensity = validated }
   }
 
+  /**
+   * Sets the shape-following edge shadow rendered with the specular rim.
+   *
+   * The color alpha controls its strength. [Color.Transparent] disables the dark edge; its width
+   * follows [edgeSoftness], keeping material geometry in one place.
+   */
+  public fun edgeShadow(color: Color) {
+    require(color.isSpecified) { "edgeShadow must be specified" }
+    writes += { edgeShadow = color }
+  }
+
   /** Sets finite ambient-light response in the inclusive range `0f..1f`. */
   public fun ambientResponse(response: Float) {
     val validated = requireFiniteInRange("ambientResponse", response, 0f..1f, UNIT_INTERVAL_DOMAIN)
@@ -425,6 +438,7 @@ internal class GlassStyleValues(
   var shape: RoundedCornerShape = GlassDefaults.shape,
   var optics: GlassOptics = GlassDefaults.optics,
   var specularIntensity: Float = GlassDefaults.specularIntensity,
+  var edgeShadow: Color = GlassDefaults.edgeShadow,
   var ambientResponse: Float = GlassDefaults.ambientResponse,
   var backgroundColor: Color = GlassDefaults.backgroundColor,
   var tint: Color = GlassDefaults.tint,

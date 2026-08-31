@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -106,6 +107,13 @@ internal class FallbackGlassDelegate(
         previous?.style?.edgeSoftnessPx == style.edgeSoftnessPx -> previous.edgeStroke
         else -> Stroke(width = style.edgeSoftnessPx * 2f)
       }
+      val edgeShadowAlpha = style.edgeShadow.alpha * style.alpha
+      val edgeShadowBrush = when {
+        style.edgeSoftnessPx <= 0f || edgeShadowAlpha <= 0f -> null
+        previous?.edgeShadowAlpha == edgeShadowAlpha &&
+          previous.style.edgeShadow == style.edgeShadow -> previous.edgeShadowBrush
+        else -> SolidColor(style.edgeShadow.copy(alpha = edgeShadowAlpha))
+      }
 
       val interactionAlpha = 0.32f * interaction.lightingIntensity * style.alpha
       val interactionBrush = when {
@@ -135,6 +143,8 @@ internal class FallbackGlassDelegate(
         edgeDirectAlpha = edgeDirectAlpha,
         edgeDirectBrush = edgeDirectBrush,
         edgeStroke = edgeStroke,
+        edgeShadowAlpha = edgeShadowAlpha,
+        edgeShadowBrush = edgeShadowBrush,
         interaction = interaction,
         interactionAlpha = interactionAlpha,
         interactionBrush = interactionBrush,
@@ -233,6 +243,14 @@ internal class FallbackGlassDelegate(
         shapePath = shapePath,
       )
 
+      prepared.edgeShadowBrush?.let { edgeShadowBrush ->
+        drawFallbackEdge(
+          brush = edgeShadowBrush,
+          stroke = checkNotNull(prepared.edgeStroke),
+          shapePath = shapePath,
+        )
+      }
+
       // Draw the fallback rim approximation above child content, matching the runtime path.
       prepared.highlightBrush?.let { highlightBrush ->
         if (shapePath != null) {
@@ -326,6 +344,8 @@ private data class FallbackGlassPreparedDraw(
   val edgeDirectAlpha: Float,
   val edgeDirectBrush: Brush?,
   val edgeStroke: Stroke?,
+  val edgeShadowAlpha: Float,
+  val edgeShadowBrush: Brush?,
   val interaction: GlassInteractionUniforms,
   val interactionAlpha: Float,
   val interactionBrush: Brush?,
