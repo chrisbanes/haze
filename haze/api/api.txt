@@ -4,6 +4,15 @@ package dev.chrisbanes.haze {
   @kotlin.RequiresOptIn(message="Experimental Haze API", level=kotlin.RequiresOptIn.Level.WARNING) public @interface ExperimentalHazeApi {
   }
 
+  @dev.chrisbanes.haze.InternalHazeApi public final class HazeEffectBackdrop {
+    ctor public HazeEffectBackdrop(PlatformRenderEffect effect, optional float alpha, optional dev.chrisbanes.haze.HazeEffectContentTransform materialTransform);
+    method @InaccessibleFromKotlin public float getAlpha();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeEffectContentTransform getMaterialTransform();
+    method public PlatformRenderEffect platformEffect();
+    property public float alpha;
+    property public dev.chrisbanes.haze.HazeEffectContentTransform materialTransform;
+  }
+
   @dev.chrisbanes.haze.InternalHazeApi public final class HazeEffectContentTransform {
     ctor @KotlinOnly public HazeEffectContentTransform(float scaleX, float scaleY, androidx.compose.ui.geometry.Offset pivot);
     method @InaccessibleFromKotlin public float getScaleX();
@@ -68,6 +77,10 @@ package dev.chrisbanes.haze {
     method public default void onTrimMemory(dev.chrisbanes.haze.TrimMemoryLevel level);
   }
 
+  @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererBackdrop<Style> {
+    method public dev.chrisbanes.haze.HazeEffectBackdrop? backdropEffect(dev.chrisbanes.haze.HazeEffectRuntimeDrawScope, Style style);
+  }
+
   @dev.chrisbanes.haze.InternalHazeApi public interface HazeEffectRendererDrawHooks<Style> {
     method public default void drawForeground(dev.chrisbanes.haze.HazeEffectRuntimeDrawScope, Style style);
     method public default void prepareDraw(dev.chrisbanes.haze.HazeEffectRuntimeDrawScope, Style style);
@@ -115,6 +128,14 @@ package dev.chrisbanes.haze {
   }
 
   public sealed exhaustive interface HazeInput {
+  }
+
+  @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static final class HazeInput.Backdrop implements dev.chrisbanes.haze.HazeInput {
+    ctor public HazeInput.Backdrop(dev.chrisbanes.haze.HazeInput.Sources fallback);
+    method public dev.chrisbanes.haze.HazeInput.Sources component1();
+    method public dev.chrisbanes.haze.HazeInput.Backdrop copy(optional dev.chrisbanes.haze.HazeInput.Sources fallback);
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeInput.Sources getFallback();
+    property public dev.chrisbanes.haze.HazeInput.Sources fallback;
   }
 
   public static final class HazeInput.Content implements dev.chrisbanes.haze.HazeInput {

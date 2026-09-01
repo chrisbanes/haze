@@ -25,6 +25,21 @@ public sealed interface HazeInput {
   ) : HazeInput
 
   /**
+   * Pixels already drawn behind the effect in the current hardware-accelerated window.
+   *
+   * The native backdrop path is currently available only on supported Android releases and for
+   * built-in effects that expose a compatible platform effect. [fallback] is used everywhere else
+   * and after any native setup or draw failure.
+   *
+   * @property fallback Source-backed input used when the native backdrop is unavailable or fails.
+   */
+  @ExperimentalHazeApi
+  @Stable
+  public data class Backdrop(
+    public val fallback: Sources,
+  ) : HazeInput
+
+  /**
    * The content of the composable carrying the effect modifier.
    */
   public data object Content : HazeInput

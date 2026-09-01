@@ -148,6 +148,22 @@ internal class HazeArea {
 
   internal val preDrawListeners = mutableStateSetOf<OnPreDrawListener>()
 
+  private val captureConsumers = mutableStateSetOf<Any>()
+
+  internal val hasCaptureDemand: Boolean
+    get() = captureConsumers.isNotEmpty()
+
+  internal val captureConsumerCount: Int
+    get() = captureConsumers.size
+
+  internal fun addCaptureConsumer(consumer: Any) {
+    captureConsumers += consumer
+  }
+
+  internal fun removeCaptureConsumer(consumer: Any) {
+    captureConsumers -= consumer
+  }
+
   /**
    * Internal content [GraphicsLayer] used when capturing source content for effects.
    *

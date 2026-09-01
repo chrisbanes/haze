@@ -48,9 +48,8 @@ import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 
-internal class HazeEffectNode(
-  state: HazeState? = null,
-) : DelegatingNode(),
+internal class HazeEffectNode :
+  DelegatingNode(),
   CompositionLocalConsumerModifierNode,
   ModifierLocalModifierNode,
   GlobalPositionAwareModifierNode,
@@ -66,7 +65,7 @@ internal class HazeEffectNode(
 
   internal var dirtyTracker = Bitmask(DirtyFields.Areas)
 
-  internal var state: HazeState? = state
+  internal var state: HazeState? = null
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "state changed. Current: $field. New: $value" }
@@ -81,28 +80,43 @@ internal class HazeEffectNode(
     set(value) {
       if (value != field) {
         HazeLogger.d(TAG) { "explicitInput changed. Current: $field. New: $value" }
-        val previous = field
-        val changesRetainedContent = previous !is HazeInput.Sources ||
-          value !is HazeInput.Sources ||
-          previous.state !== value.state
-        if (changesRetainedContent) {
-          clearRetainedOutput()
-        }
-        sourceSelectionSnapshotObserver?.clear(sourceSelectionObservationScope)
-        if ((value as? HazeInput.Sources)?.selection?.hasRefinements() != true) {
-          stopSourceSelectionSnapshotObserver()
-        }
-        dirtyTracker += DirtyFields.Areas
+        val previousInput = field
+        val previousSources = resolvedSourcesInput()
         field = value
-        reconcileSourceDemand()
-        when {
-          value is HazeInput.Sources -> {
-            retainOutputWhenSourceUnavailable = value.retention.keepsLastFrame()
-          }
-          previous is HazeInput.Sources -> retainOutputWhenSourceUnavailable = true
+        if (previousInput is HazeInput.Backdrop && value !is HazeInput.Backdrop) {
+          releaseBackdropRenderer()
         }
+        refreshResolvedSourcesInput(previousSources)
       }
     }
+
+  private val backdropBackendState = HazeBackdropBackendState()
+  private var backdropRenderer: HazeBackdropRenderer? = null
+  private val captureConsumer = Any()
+  private var captureDemandAreas: List<HazeArea> = emptyList()
+
+  private fun resolvedSourcesInput(): HazeInput.Sources? = when (val input = explicitInput) {
+    is HazeInput.Sources -> input
+    is HazeInput.Backdrop -> input.fallback.takeIf { backdropBackendState.usesFallback }
+    HazeInput.Content,
+    null,
+    -> null
+  }
+
+  private fun refreshResolvedSourcesInput(previous: HazeInput.Sources?) {
+    val current = resolvedSourcesInput()
+    if (previous == null || current == null || previous.state !== current.state) {
+      clearRetainedOutput()
+    }
+    sourceSelectionSnapshotObserver?.clear(sourceSelectionObservationScope)
+    if (current?.selection?.hasRefinements() != true) {
+      stopSourceSelectionSnapshotObserver()
+    }
+    retainOutputWhenSourceUnavailable = current?.retention?.keepsLastFrame() ?: true
+    state = current?.state
+    dirtyTracker += DirtyFields.Areas
+    syncCaptureDemand()
+  }
 
   private var needsPreDrawInvalidation = false
   private var needsDirtyFieldsInvalidation = false
@@ -244,10 +258,22 @@ internal class HazeEffectNode(
           area.preDrawListeners += areaPreDrawListener
         }
         field = value
+        syncCaptureDemand()
       }
     }
 
   internal val areas: List<HazeArea> get() = _areas
+
+  private fun syncCaptureDemand() {
+    val desiredAreas = if (resolvedSourcesInput() != null) _areas else emptyList()
+    for (area in captureDemandAreas) {
+      if (area !in desiredAreas) area.removeCaptureConsumer(captureConsumer)
+    }
+    for (area in desiredAreas) {
+      if (area !in captureDemandAreas) area.addCaptureConsumer(captureConsumer)
+    }
+    captureDemandAreas = desiredAreas
+  }
 
   private val contentDrawArea by lazy { HazeArea() }
 
@@ -428,14 +454,20 @@ internal class HazeEffectNode(
     coordinateTransformValues = null
     screenToEffectTransform = null
     lastInputSnapshot = null
+    releaseBackdropRenderer()
+    if (explicitInput is HazeInput.Backdrop) {
+      val previousSources = resolvedSourcesInput()
+      backdropBackendState.reset()
+      refreshResolvedSourcesInput(previousSources)
+    } else {
+      backdropBackendState.reset()
+    }
     disposeTypedRenderer()
     typedEffectRenderer = null
   }
 
   private fun reconcileSourceDemand() {
-    val demandState = state
-      ?.takeIf { explicitInput is HazeInput.Sources }
-      ?.takeIf { (explicitInput as HazeInput.Sources).state === it }
+    val demandState = resolvedSourcesInput()?.state
     if (!isAttached) return
     if (sourceDemandState !== demandState) {
       sourceDemandState?.removeSourceDemand(sourceDemandKey)
@@ -546,64 +578,11 @@ internal class HazeEffectNode(
 
       if (this@HazeEffectNode.size.isSpecified && this@HazeEffectNode.layerSize.isSpecified) {
         val shouldPrepareDraw = shouldPrepareEffectDraw()
-        if (state != null) {
-          val hasDrawableSourceLayers = hasDrawableSourceLayers()
-          if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers) {
-            clearRetainedOutput()
-          }
-
-          val shouldDrawEffect = shouldPrepareDraw && if (retainOutputWhenSourceUnavailable) {
-            areas.isNotEmpty() || shouldDrawRetainedOutput()
-          } else {
-            hasDrawableSourceLayers
-          }
-          if (shouldDrawEffect) {
-            prepareEffectDraw()
-          }
-          withVisualEffectTransform {
-            if (shouldDrawEffect) {
-              drawEffect()
-              if (typedEffectRenderer != null && hasDrawableSourceLayers) {
-                hasRenderedTypedSourceOutput = true
-              }
-            }
-            drawContentSafely()
-            if (shouldDrawEffect) {
-              drawEffectForeground()
-            }
-          }
-        } else if (shouldPrepareDraw) {
-          // Else we're doing content (foreground) blurring, so we need to use our
-          // contentDrawArea
-          val contentLayer = contentDrawArea.contentLayer
-            ?.takeUnless { it.isReleased }
-            ?: requireGraphicsContext().createGraphicsLayer().also {
-              contentDrawArea.contentLayer = it
-              HazeLogger.d(TAG) { "Updated contentLayer in content HazeArea" }
-            }
-          // Record the this node's content into the layer
-          contentLayer.record(size.toIntSize()) {
-            this@draw.drawContentSafely()
-          }
-          val effectOnlyDraw = needsVisualEffectInvalidation &&
-            !needsPreDrawInvalidation &&
-            !needsDirtyFieldsInvalidation &&
-            !needsContentInvalidation
-          if (!effectOnlyDraw) {
-            contentDrawArea.contentVersion++
-          }
-          prepareEffectDraw()
-          withVisualEffectTransform {
-            if (shouldDrawContentBehindEffect()) {
-              drawLayer(contentLayer)
-            }
-            drawEffect()
-            drawEffectForeground()
-          }
-        } else {
-          withVisualEffectTransform {
-            drawContentSafely()
-          }
+        when {
+          state != null -> drawSourceBackedEffect(shouldPrepareDraw)
+          explicitInput is HazeInput.Backdrop -> drawBackdropEffect(shouldPrepareDraw)
+          explicitInput === HazeInput.Content && shouldPrepareDraw -> drawContentEffect()
+          else -> withVisualEffectTransform { drawContentSafely() }
         }
       } else {
         HazeLogger.d(TAG) { "-> State not valid, so no need to draw effect." }
@@ -614,6 +593,160 @@ internal class HazeEffectNode(
       onPostDraw()
       HazeLogger.d(TAG) { "-> end draw()" }
     }
+  }
+
+  private fun ContentDrawScope.drawSourceBackedEffect(shouldPrepareDraw: Boolean) {
+    val hasDrawableSourceLayers = hasDrawableSourceLayers()
+    if (!retainOutputWhenSourceUnavailable && !hasDrawableSourceLayers) {
+      clearRetainedOutput()
+    }
+
+    val shouldDrawEffect = shouldPrepareDraw && if (retainOutputWhenSourceUnavailable) {
+      areas.isNotEmpty() || shouldDrawRetainedOutput()
+    } else {
+      hasDrawableSourceLayers
+    }
+    if (shouldDrawEffect) {
+      prepareEffectDraw()
+    }
+    withVisualEffectTransform {
+      if (shouldDrawEffect) {
+        drawEffect()
+        if (typedEffectRenderer != null && hasDrawableSourceLayers) {
+          hasRenderedTypedSourceOutput = true
+        }
+      }
+      drawContentSafely()
+      if (shouldDrawEffect) {
+        drawEffectForeground()
+      }
+    }
+  }
+
+  private fun ContentDrawScope.drawContentEffect() {
+    val contentLayer = contentDrawArea.contentLayer
+      ?.takeUnless { it.isReleased }
+      ?: requireGraphicsContext().createGraphicsLayer().also {
+        contentDrawArea.contentLayer = it
+        HazeLogger.d(TAG) { "Updated contentLayer in content HazeArea" }
+      }
+    contentLayer.record(size.toIntSize()) {
+      this@drawContentEffect.drawContentSafely()
+    }
+    val effectOnlyDraw = needsVisualEffectInvalidation &&
+      !needsPreDrawInvalidation &&
+      !needsDirtyFieldsInvalidation &&
+      !needsContentInvalidation
+    if (!effectOnlyDraw) {
+      contentDrawArea.contentVersion++
+    }
+    prepareEffectDraw()
+    withVisualEffectTransform {
+      if (shouldDrawContentBehindEffect()) {
+        drawLayer(contentLayer)
+      }
+      drawEffect()
+      drawEffectForeground()
+    }
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun ContentDrawScope.drawBackdropEffect(shouldPrepareDraw: Boolean) {
+    if (!shouldPrepareDraw) {
+      withVisualEffectTransform { drawContentSafely() }
+      return
+    }
+
+    prepareEffectDraw()
+    val backdrop = preparedBackdropEffect()
+    if (backdrop == null) {
+      activateBackdropFallback(failed = false)
+      withVisualEffectTransform { drawContentSafely() }
+      return
+    }
+
+    val renderer = backdropRenderer ?: createHazeBackdropRenderer().also {
+      backdropRenderer = it
+    }
+    val supported = try {
+      renderer.isSupported(drawContext.canvas)
+    } catch (exception: Exception) {
+      HazeLogger.d(TAG, exception) { "Backdrop renderer support check failed" }
+      activateBackdropFallback(failed = true)
+      false
+    }
+    if (!supported) {
+      if (!backdropBackendState.usesFallback) {
+        activateBackdropFallback(failed = false)
+      }
+      withVisualEffectTransform { drawContentSafely() }
+      return
+    }
+
+    backdropBackendState.resolve(nativeAvailable = true)
+    var backdropDrawn = false
+    withVisualEffectTransform {
+      try {
+        withBackdropMaterialTransform(backdrop.materialTransform) {
+          val bounds = Rect(
+            offset = Offset.Zero - layerOffset,
+            size = layerSize,
+          )
+          val clip = Rect(Offset.Zero, size).takeIf { shouldClipEffectToNodeBounds() }
+          backdropDrawn = renderer.configure(
+            bounds = bounds,
+            clip = clip,
+            effect = backdrop.platformEffect(),
+            alpha = backdrop.alpha,
+          ) && renderer.draw(drawContext.canvas)
+        }
+      } catch (exception: Exception) {
+        HazeLogger.d(TAG, exception) { "Backdrop renderer draw failed" }
+      }
+      if (!backdropDrawn) {
+        activateBackdropFallback(failed = true)
+      }
+      drawContentSafely()
+      if (backdropDrawn) {
+        drawEffectForeground()
+      }
+    }
+  }
+
+  @OptIn(InternalHazeApi::class)
+  private fun ContentDrawScope.preparedBackdropEffect(): HazeEffectBackdrop? {
+    val renderer = typedEffectRenderer ?: return null
+    val capability = renderer as? HazeEffectRendererBackdrop<Any?> ?: return null
+    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
+    return with(capability) { scope.backdropEffect(typedEffectStyle) }
+  }
+
+  private fun activateBackdropFallback(failed: Boolean) {
+    val previousSources = resolvedSourcesInput()
+    if (failed) {
+      backdropBackendState.fail()
+    } else {
+      backdropBackendState.resolve(nativeAvailable = false)
+    }
+    HazeLogger.d(TAG) {
+      "Backdrop selected ${backdropBackendState.selection}; using source fallback"
+    }
+    releaseBackdropRenderer()
+    refreshResolvedSourcesInput(previousSources)
+    coroutineScope.launch {
+      yield()
+      if (isAttached && backdropBackendState.usesFallback) {
+        dirtyTracker += DirtyFields.Areas
+        dirtyTracker += DirtyFields.VisualEffectLayerBounds
+        update()
+      }
+    }
+  }
+
+  private fun releaseBackdropRenderer() {
+    runCatching { backdropRenderer?.release() }
+      .onFailure { HazeLogger.d(TAG, it) { "Failed to release backdrop renderer" } }
+    backdropRenderer = null
   }
 
   @OptIn(InternalHazeApi::class)
@@ -687,7 +820,7 @@ internal class HazeEffectNode(
         }
 
         val unfilteredAreas = stateAreas.orEmpty()
-        val selection = checkNotNull(explicitInput as? HazeInput.Sources).selection
+        val selection = checkNotNull(resolvedSourcesInput()).selection
         val ancestorSourceNode = if (selection.baseSelection() == HazeSourceSelection.Behind) {
           var result: HazeSourceNode? = null
           traverseAncestors(HazeTraversableNodeKeys.Source) { node ->
@@ -746,7 +879,7 @@ internal class HazeEffectNode(
         updateAreaZIndexes(currentStateAreas)
         updateAreaKeys(currentStateAreas)
       }
-    } else {
+    } else if (explicitInput === HazeInput.Content) {
       areaZIndexes.clear()
       areaKeys.clear()
       // Foreground (content) blur: always update contentDrawArea since its size,
@@ -756,6 +889,10 @@ internal class HazeEffectNode(
       contentDrawArea.coordinates.screenPosition = position
       contentDrawArea.windowId = windowId
       _areas = listOf(contentDrawArea)
+    } else {
+      areaZIndexes.clear()
+      areaKeys.clear()
+      _areas = emptyList()
     }
 
     // Auto-promote position strategy when cross-window is detected
@@ -830,7 +967,21 @@ internal class HazeEffectNode(
         // Keep the previous layer bounds for source transition gaps. Recomputing
         // bounds with no areas collapses to the node size and clears the retained layer.
       } else if (
-        state == null &&
+        explicitInput is HazeInput.Backdrop &&
+        size.isSpecified
+      ) {
+        val rect = size.toRect()
+        val expanded = rect.letIf(shouldExpandLayer()) {
+          calculateEffectLayerBounds(it, requireDensity())
+        }
+        val clippedLayerBounds = expanded.intersect(rootBoundsInEffect())
+        _layerSize = Size(
+          width = clippedLayerBounds.width.coerceAtLeast(0f),
+          height = clippedLayerBounds.height.coerceAtLeast(0f),
+        )
+        _layerOffset = rect.topLeft - clippedLayerBounds.topLeft
+      } else if (
+        explicitInput === HazeInput.Content &&
         size.isSpecified &&
         !shouldClipEffectToNodeBounds() &&
         shouldExpandLayer()
@@ -1125,6 +1276,22 @@ internal class HazeEffectNode(
     }
   }
 
+  private inline fun ContentDrawScope.withBackdropMaterialTransform(
+    transform: HazeEffectContentTransform,
+    block: ContentDrawScope.() -> Unit,
+  ) {
+    if (transform == HazeEffectContentTransform.Identity) {
+      block()
+    } else {
+      scale(
+        scaleX = transform.scaleX,
+        scaleY = transform.scaleY,
+        pivot = transform.pivot,
+        block = { block(this@withBackdropMaterialTransform) },
+      )
+    }
+  }
+
   private fun shouldDrawRetainedOutput(): Boolean {
     return retainOutputWhenSourceUnavailable &&
       hasRenderedTypedSourceOutput &&
@@ -1141,6 +1308,10 @@ internal class HazeEffectNode(
         area.contentLayer?.isReleased == false
     }
   }
+
+  internal fun hasDrawableInput(): Boolean =
+    (explicitInput is HazeInput.Backdrop && !backdropBackendState.usesFallback) ||
+      hasDrawableSourceLayers()
 
   internal fun inputSnapshot(): HazeEffectInputSnapshot? {
     lastInputSnapshot

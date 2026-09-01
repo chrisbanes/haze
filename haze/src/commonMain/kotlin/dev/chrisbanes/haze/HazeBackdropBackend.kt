@@ -1,0 +1,45 @@
+// Copyright 2026, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze
+
+internal enum class HazeBackdropBackendSelection {
+  Undecided,
+  Native,
+  FallbackUnavailable,
+  FallbackFailed,
+}
+
+internal class HazeBackdropBackendState {
+  var selection: HazeBackdropBackendSelection = HazeBackdropBackendSelection.Undecided
+    private set
+
+  val usesNative: Boolean
+    get() = selection == HazeBackdropBackendSelection.Native
+
+  val usesFallback: Boolean
+    get() = selection == HazeBackdropBackendSelection.FallbackUnavailable ||
+      selection == HazeBackdropBackendSelection.FallbackFailed
+
+  fun resolve(nativeAvailable: Boolean): HazeBackdropBackendSelection {
+    if (!usesFallback) {
+      selection = if (nativeAvailable) {
+        HazeBackdropBackendSelection.Native
+      } else {
+        HazeBackdropBackendSelection.FallbackUnavailable
+      }
+    }
+    return selection
+  }
+
+  fun fail(): HazeBackdropBackendSelection {
+    if (!usesFallback) {
+      selection = HazeBackdropBackendSelection.FallbackFailed
+    }
+    return selection
+  }
+
+  fun reset() {
+    selection = HazeBackdropBackendSelection.Undecided
+  }
+}

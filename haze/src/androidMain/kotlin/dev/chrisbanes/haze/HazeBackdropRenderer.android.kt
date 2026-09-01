@@ -29,6 +29,7 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
   private var setPosition: Method? = null
   private var setClipToBounds: Method? = null
   private var setClipRect: Method? = null
+  private var setAlpha: Method? = null
   private var setBackdropRenderEffect: Method? = null
   private var beginRecording: Method? = null
   private var endRecording: Method? = null
@@ -44,6 +45,7 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
     bounds: Rect,
     clip: Rect?,
     effect: PlatformRenderEffect,
+    alpha: Float,
   ): Boolean {
     val node = renderNode ?: return false
     val left = floor(bounds.left).toInt()
@@ -67,6 +69,7 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
         ),
       )
     }
+    setAlpha?.invoke(node, alpha)
     setBackdropRenderEffect?.invoke(node, effect)
 
     // A transparent SRC_OVER draw leaves the node visually empty but keeps its backdrop filter
@@ -97,6 +100,7 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
     setPosition = null
     setClipToBounds = null
     setClipRect = null
+    setAlpha = null
     setBackdropRenderEffect = null
     beginRecording = null
     endRecording = null
@@ -123,6 +127,7 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
       )
       setClipToBounds = nodeClass.getMethod("setClipToBounds", Boolean::class.javaPrimitiveType)
       setClipRect = nodeClass.getMethod("setClipRect", AndroidRect::class.java)
+      setAlpha = nodeClass.getMethod("setAlpha", Float::class.javaPrimitiveType)
       setBackdropRenderEffect = nodeClass.getMethod("setBackdropRenderEffect", renderEffectClass)
       beginRecording = nodeClass.getMethod(
         "beginRecording",

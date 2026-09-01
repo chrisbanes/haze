@@ -1,7 +1,7 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(InternalHazeApi::class)
+@file:OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 
 package dev.chrisbanes.haze
 
@@ -354,6 +354,65 @@ class AndroidBackdropRendererInstrumentationTest {
     bitmap.assertVerticalEdgeSoftened(centerX, centerY, density, "public View backdrop")
   }
 
+  @Test
+  fun hazeInputBackdrop_usesNativeWithoutCapturingFallbackSource() {
+    assumeTrue(
+      "HazeInput.Backdrop requires Android 37.2 or the matching preview",
+      isHazeBackdropSdkSupported(fullSdkInt(), Build.VERSION.PREVIEW_SDK_INT),
+    )
+
+    val state = HazeState()
+    val drawReady = CountDownLatch(1)
+    activityScenario.onActivity { activity ->
+      activity.setContent {
+        Box(Modifier.fillMaxSize().background(Color.White)) {
+          Box(
+            Modifier
+              .align(Alignment.Center)
+              .size(width = 200.dp, height = 100.dp)
+              .hazeSource(state)
+              .background(Color.Black),
+          ) {
+            Box(
+              Modifier
+                .align(Alignment.CenterEnd)
+                .size(width = 100.dp, height = 100.dp)
+                .background(Color.White),
+            )
+          }
+          Box(
+            Modifier
+              .align(Alignment.Center)
+              .size(width = 200.dp, height = 100.dp)
+              .hazeEffect(
+                factory = BackdropBlurEffectFactory(drawReady),
+                input = HazeInput.Backdrop(HazeInput.Sources(state)),
+                style = 14.dp,
+              ),
+          )
+        }
+      }
+    }
+    assertThat(drawReady.await(5, TimeUnit.SECONDS), "Native Haze backdrop presented a draw").isTrue()
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+    val bitmap = activity.copyWindow()
+    val density = Density(activity.resources.displayMetrics.density)
+    bitmap.assertVerticalEdgeSoftened(
+      centerX = bitmap.width / 2,
+      centerY = bitmap.height / 2,
+      density = density,
+      rendererName = "HazeInput.Backdrop",
+    )
+
+    activityScenario.onActivity {
+      val area = state.areas.single()
+      assertThat(area.captureConsumerCount, "native backdrop capture consumers").isEqualTo(0)
+      assertThat(area.contentVersion, "native backdrop source records").isEqualTo(0L)
+      assertThat(area.contentLayer, "native backdrop source layer").isEqualTo(null)
+    }
+  }
+
   private fun ComponentActivity.copyWindow(): Bitmap {
     val targetWindow = this.window
     val bitmap = Bitmap.createBitmap(
@@ -510,4 +569,45 @@ private class BackdropProbeView(
     canvas.drawColor(AndroidColor.argb(0x99, 0xF0, 0xF0, 0xF0))
     drawReady.countDown()
   }
+}
+
+private class BackdropBlurEffectFactory(
+  private val drawReady: CountDownLatch,
+) : HazeEffectFactory<androidx.compose.ui.unit.Dp> {
+  override fun createRenderer(): HazeEffectRenderer<androidx.compose.ui.unit.Dp> =
+    BackdropBlurEffectRenderer(drawReady)
+}
+
+private class BackdropBlurEffectRenderer(
+  private val drawReady: CountDownLatch,
+) :
+  HazeEffectRenderer<androidx.compose.ui.unit.Dp>,
+  HazeEffectRendererBackdrop<androidx.compose.ui.unit.Dp>,
+  HazeEffectRendererDrawHooks<androidx.compose.ui.unit.Dp> {
+
+  override fun HazeEffectDrawScope.draw(style: androidx.compose.ui.unit.Dp) {
+    drawInput()
+  }
+
+  override fun HazeEffectLayoutScope.calculateLayerBounds(
+    style: androidx.compose.ui.unit.Dp,
+  ): androidx.compose.ui.geometry.Rect = modifierBounds.inflate(style.toPx())
+
+  override fun HazeEffectRuntimeDrawScope.backdropEffect(
+    style: androidx.compose.ui.unit.Dp,
+  ): HazeEffectBackdrop? {
+    val radius = style.toPx()
+    val effect = createBlurRenderEffect(
+      radiusX = radius,
+      radiusY = radius,
+      tileMode = TileMode.Clamp,
+    ) ?: return null
+    return HazeEffectBackdrop(effect)
+  }
+
+  override fun HazeEffectRuntimeDrawScope.drawForeground(style: androidx.compose.ui.unit.Dp) {
+    drawReady.countDown()
+  }
+
+  override fun shouldClipToNodeBounds(): Boolean = true
 }

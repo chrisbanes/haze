@@ -20,6 +20,7 @@ internal interface HazeBackdropRenderer {
     bounds: Rect,
     clip: Rect?,
     effect: PlatformRenderEffect,
+    alpha: Float = 1f,
   ): Boolean
 
   fun draw(canvas: Canvas): Boolean

@@ -17,6 +17,7 @@ private object UnavailableHazeBackdropRenderer : HazeBackdropRenderer {
     bounds: Rect,
     clip: Rect?,
     effect: PlatformRenderEffect,
+    alpha: Float,
   ): Boolean = false
 
   override fun draw(canvas: Canvas): Boolean = false

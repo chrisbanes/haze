@@ -31,6 +31,18 @@ class HazeInputTest {
     assertThat(input.retention).isEqualTo(HazeSourceRetention.ClearWhenUnavailable)
   }
 
+  @OptIn(ExperimentalHazeApi::class)
+  @Test
+  fun backdrop_requiresExplicitSourcesFallback() {
+    val fallback = HazeInput.Sources(
+      state = HazeState(),
+      selection = HazeSourceSelection.All,
+      retention = HazeSourceRetention.ClearWhenUnavailable,
+    )
+
+    assertThat(HazeInput.Backdrop(fallback).fallback).isEqualTo(fallback)
+  }
+
   @Test
   fun sourceMetadata_exposesOnlyStableValues() {
     val metadata = HazeSourceMetadata(key = "source", zIndex = 2f)
