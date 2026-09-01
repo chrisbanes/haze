@@ -12,13 +12,18 @@ import android.view.PixelCopy
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -33,6 +38,7 @@ import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 import org.junit.After
 import org.junit.Assume.assumeTrue
@@ -174,6 +180,139 @@ class GlassBackdropInstrumentationTest {
     )
   }
 
+  @Test
+  fun backdropInput_nineSiblingsRenderIndependently() {
+    assumeTrue(
+      "HazeInput.Backdrop requires Android 37.2 or the matching preview",
+      isBackdropSdkSupported(),
+    )
+    val emptyFallbackState = HazeState()
+    val drawReady = CountDownLatch(9)
+
+    activityScenario.onActivity { activity ->
+      activity.setContent {
+        Box(Modifier.fillMaxSize().background(Color.Gray)) {
+          Column(Modifier.align(Alignment.Center)) {
+            repeat(3) {
+              Row {
+                repeat(3) {
+                  Box(Modifier.size(width = 72.dp, height = 48.dp)) {
+                    Row {
+                      Box(Modifier.size(width = 36.dp, height = 48.dp).background(Color.Black))
+                      Box(Modifier.size(width = 36.dp, height = 48.dp).background(Color.White))
+                    }
+                    Box(
+                      Modifier
+                        .fillMaxSize()
+                        .hazeGlass(
+                          input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                          style = pureBlurGlassStyle(10.dp),
+                        )
+                        .drawWithContent {
+                          drawContent()
+                          drawReady.countDown()
+                        },
+                    )
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    assertThat(drawReady.await(5, TimeUnit.SECONDS), "Nine Glass nodes presented")
+      .isEqualTo(true)
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+    val bitmap = activity.copyWindow()
+    val density = Density(activity.resources.displayMetrics.density)
+    val gridLeft = bitmap.width / 2 - 108.dp.roundToPx(density)
+    val gridTop = bitmap.height / 2 - 72.dp.roundToPx(density)
+    repeat(3) { row ->
+      repeat(3) { column ->
+        val centerX = gridLeft + (column * 72 + 36).dp.roundToPx(density)
+        val centerY = gridTop + (row * 48 + 24).dp.roundToPx(density)
+        bitmap.assertEdgeSoftened(
+          centerX = centerX,
+          centerY = centerY,
+          density = density,
+          label = "Glass[$row,$column]",
+          interiorDistance = 14.dp,
+          edgeDistance = 2.dp,
+        )
+      }
+    }
+  }
+
+  @Test
+  fun backdropInput_pressedMaterialAndContentTransformScalesChildContent() {
+    assumeTrue(
+      "HazeInput.Backdrop requires Android 37.2 or the matching preview",
+      isBackdropSdkSupported(),
+    )
+    val emptyFallbackState = HazeState()
+    val interactionSource = MutableInteractionSource()
+    val pressedDrawRequested = AtomicBoolean(false)
+    val initialDraw = CountDownLatch(1)
+    val pressedDraw = CountDownLatch(1)
+
+    activityScenario.onActivity { activity ->
+      activity.setContent {
+        Box(Modifier.fillMaxSize().background(Color.Blue)) {
+          Box(
+            Modifier
+              .align(Alignment.Center)
+              .size(width = 200.dp, height = 100.dp)
+              .hazeGlass(
+                input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                style = GlassStyle.regular.then {
+                  pressed {
+                    lightingIntensity(1f)
+                    refractionMultiplier(1.5f)
+                    whitePointDelta(0.3f)
+                    scale(0.6f)
+                  }
+                },
+                interactionSource = interactionSource,
+                interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
+                interactionTransformPivot = GlassTransformPivot.Center,
+                interactionReducedMotionPolicy = GlassReducedMotionPolicy.Full,
+              )
+              .drawWithContent {
+                drawContent()
+                if (pressedDrawRequested.get()) pressedDraw.countDown() else initialDraw.countDown()
+              },
+          ) {
+            Box(Modifier.fillMaxSize().background(Color.Red))
+          }
+        }
+      }
+    }
+    assertThat(initialDraw.await(5, TimeUnit.SECONDS), "Unpressed Glass presented")
+      .isEqualTo(true)
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+    val density = Density(activity.resources.displayMetrics.density)
+    val sampleX = activity.window.decorView.width / 2 + 80.dp.roundToPx(density)
+    val sampleY = activity.window.decorView.height / 2
+    assertThat(activity.copyWindow().red(sampleX, sampleY), "Unpressed child fills its bounds")
+      .isGreaterThan(0.8f)
+
+    pressedDrawRequested.set(true)
+    assertThat(
+      interactionSource.tryEmit(PressInteraction.Press(Offset.Unspecified)),
+      "Press interaction was accepted",
+    ).isEqualTo(true)
+    assertThat(pressedDraw.await(5, TimeUnit.SECONDS), "Pressed Glass presented")
+      .isEqualTo(true)
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+    assertThat(
+      activity.copyWindow().red(sampleX, sampleY),
+      "Pressed material-and-content transform exposes the backdrop at the original edge",
+    ).isLessThan(0.5f)
+  }
+
   private fun ComponentActivity.copyWindow(): Bitmap {
     val bitmap = Bitmap.createBitmap(
       window.decorView.width,
@@ -235,15 +374,31 @@ private fun Bitmap.red(x: Int, y: Int): Float {
 }
 
 private fun Bitmap.assertCenterEdgeSoftened(density: Density) {
-  val centerX = width / 2
-  val centerY = height / 2
-  val blackInterior = red(centerX - 60.dp.roundToPx(density), centerY)
-  val blackNearEdge = red(centerX - 3.dp.roundToPx(density), centerY)
-  val whiteNearEdge = red(centerX + 3.dp.roundToPx(density), centerY)
-  val whiteInterior = red(centerX + 60.dp.roundToPx(density), centerY)
-  assertThat(blackNearEdge - blackInterior, "Glass softens the black side")
+  assertEdgeSoftened(
+    centerX = width / 2,
+    centerY = height / 2,
+    density = density,
+    label = "Glass",
+    interiorDistance = 60.dp,
+    edgeDistance = 3.dp,
+  )
+}
+
+private fun Bitmap.assertEdgeSoftened(
+  centerX: Int,
+  centerY: Int,
+  density: Density,
+  label: String,
+  interiorDistance: androidx.compose.ui.unit.Dp,
+  edgeDistance: androidx.compose.ui.unit.Dp,
+) {
+  val blackInterior = red(centerX - interiorDistance.roundToPx(density), centerY)
+  val blackNearEdge = red(centerX - edgeDistance.roundToPx(density), centerY)
+  val whiteNearEdge = red(centerX + edgeDistance.roundToPx(density), centerY)
+  val whiteInterior = red(centerX + interiorDistance.roundToPx(density), centerY)
+  assertThat(blackNearEdge - blackInterior, "$label softens the black side")
     .isGreaterThan(0.05f)
-  assertThat(whiteInterior - whiteNearEdge, "Glass softens the white side")
+  assertThat(whiteInterior - whiteNearEdge, "$label softens the white side")
     .isGreaterThan(0.05f)
 }
 
