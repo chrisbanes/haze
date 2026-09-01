@@ -58,6 +58,8 @@ androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", versi
 androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "androidx-media3" }
 androidx-profileinstaller = "androidx.profileinstaller:profileinstaller:1.4.1"
 androidx-test-ext-junit = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-test-ext-junit" }
+androidx-test-core = "androidx.test:core:1.7.0"
+androidx-test-runner = "androidx.test:runner:1.7.0"
 androidx-test-uiautomator = "androidx.test.uiautomator:uiautomator:2.4.0"
 
 androidx-compose-runtime-tracing = { module = "androidx.compose.runtime:runtime-tracing", version.ref = "jetpack-compose" }

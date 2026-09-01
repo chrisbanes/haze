@@ -71,6 +71,16 @@ kotlin {
       }
     }
 
+    named("androidDeviceTest") {
+      dependencies {
+        implementation(libs.androidx.activity.compose)
+        implementation(libs.assertk)
+        implementation(libs.androidx.compose.ui.test.manifest)
+        implementation(libs.androidx.test.core)
+        implementation(libs.androidx.test.runner)
+      }
+    }
+
     jvmTest {
       dependencies {
         implementation(compose.desktop.currentOs)

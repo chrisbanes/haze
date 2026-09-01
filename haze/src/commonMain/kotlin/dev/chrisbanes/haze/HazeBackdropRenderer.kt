@@ -1,0 +1,36 @@
+// Copyright 2026, Christopher Banes and the Haze project contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package dev.chrisbanes.haze
+
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Canvas
+
+/**
+ * Internal platform boundary for a renderer which samples the already-drawn window backdrop.
+ *
+ * This is intentionally not part of the public Haze input or renderer API. The Android
+ * implementation is experimental until the compositor behavior is proven on API 37.2.
+ */
+@InternalHazeApi
+internal interface HazeBackdropRenderer {
+  fun isSupported(canvas: Canvas): Boolean
+
+  fun configure(
+    bounds: Rect,
+    clip: Rect?,
+    effect: PlatformRenderEffect,
+  ): Boolean
+
+  fun draw(canvas: Canvas): Boolean
+
+  fun release()
+}
+
+@InternalHazeApi
+internal expect fun createHazeBackdropRenderer(): HazeBackdropRenderer
+
+// Build.VERSION_CODES_FULL.CINNAMON_BUN_2 is unavailable in the locally installed 37.0 SDK.
+// Android full SDK versions encode 37.2 as 3_700_002 (the micro release occupies the low digits).
+@InternalHazeApi
+internal const val HAZE_BACKDROP_MIN_FULL_SDK = 3_700_002
