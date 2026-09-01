@@ -36,7 +36,7 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
 
   override fun isSupported(canvas: Canvas): Boolean {
     if (!canvas.nativeCanvas.isHardwareAccelerated) return false
-    if (fullSdkInt() < HAZE_BACKDROP_MIN_FULL_SDK) return false
+    if (!isHazeBackdropSdkSupported(fullSdkInt(), Build.VERSION.PREVIEW_SDK_INT)) return false
     return resolveReflection()
   }
 

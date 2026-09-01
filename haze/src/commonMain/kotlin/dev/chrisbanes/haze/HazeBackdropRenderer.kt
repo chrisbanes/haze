@@ -34,3 +34,21 @@ internal expect fun createHazeBackdropRenderer(): HazeBackdropRenderer
 // Android full SDK versions encode 37.2 as 3_700_002 (the micro release occupies the low digits).
 @InternalHazeApi
 internal const val HAZE_BACKDROP_MIN_FULL_SDK = 3_700_002
+
+// The available 37.2 beta 3 image is based on 37.1 and identifies its exact preview revision
+// separately. Android requires prerelease API checks to match PREVIEW_SDK_INT exactly.
+@InternalHazeApi
+internal const val HAZE_BACKDROP_PREVIEW_BASE_FULL_SDK = 3_700_001
+
+@InternalHazeApi
+internal const val HAZE_BACKDROP_37_2_BETA_3_PREVIEW_SDK = 3_723
+
+@InternalHazeApi
+internal fun isHazeBackdropSdkSupported(
+  fullSdkInt: Int,
+  previewSdkInt: Int,
+): Boolean = fullSdkInt >= HAZE_BACKDROP_MIN_FULL_SDK ||
+  (
+    fullSdkInt == HAZE_BACKDROP_PREVIEW_BASE_FULL_SDK &&
+      previewSdkInt == HAZE_BACKDROP_37_2_BETA_3_PREVIEW_SDK
+    )

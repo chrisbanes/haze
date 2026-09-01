@@ -61,7 +61,10 @@ class AndroidBackdropRendererInstrumentationTest {
 
   @Test
   fun backdropRenderer_samplesOrderingTransformsExpandedBoundsAndClip() {
-    assumeTrue("Backdrop RenderNode requires Android 37.2", fullSdkInt() >= HAZE_BACKDROP_MIN_FULL_SDK)
+    assumeTrue(
+      "Backdrop RenderNode requires Android 37.2 or the matching preview",
+      isHazeBackdropSdkSupported(fullSdkInt(), Build.VERSION.PREVIEW_SDK_INT),
+    )
 
     val drawReady = CountDownLatch(PROTOTYPE_NODE_COUNT)
     activityScenario.onActivity { activity ->
