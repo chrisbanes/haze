@@ -19,12 +19,14 @@ class BlurProfilingScenarioTest {
       listOf(
         "stable_adaptive",
         "stable_quality",
+        "backdrop_stable_quality",
         "stable_balanced",
         "stable_performance",
         "progressive_quality",
         "progressive_balanced",
         "source_update_adaptive",
         "source_update_quality",
+        "backdrop_source_update_quality",
         "source_update_balanced",
         "source_update_performance",
       ),
@@ -38,6 +40,7 @@ class BlurProfilingScenarioTest {
         false to listOf(
           HazePerformanceMode.Adaptive,
           HazePerformanceMode.Quality,
+          HazePerformanceMode.Quality,
           HazePerformanceMode.Balanced,
           HazePerformanceMode.Performance,
           HazePerformanceMode.Quality,
@@ -46,11 +49,24 @@ class BlurProfilingScenarioTest {
         true to listOf(
           HazePerformanceMode.Adaptive,
           HazePerformanceMode.Quality,
+          HazePerformanceMode.Quality,
           HazePerformanceMode.Balanced,
           HazePerformanceMode.Performance,
         ),
       ),
     )
+  }
+
+  @Test
+  fun qualityPairs_changeOnlyTheirInputBackend() {
+    assertThat(BlurProfilingScenario.StableQuality.usesBackdrop).isEqualTo(false)
+    assertThat(BlurProfilingScenario.BackdropStableQuality.usesBackdrop).isEqualTo(true)
+    assertThat(BlurProfilingScenario.StableQuality.updatesSource)
+      .isEqualTo(BlurProfilingScenario.BackdropStableQuality.updatesSource)
+    assertThat(BlurProfilingScenario.SourceUpdateQuality.usesBackdrop).isEqualTo(false)
+    assertThat(BlurProfilingScenario.BackdropSourceUpdateQuality.usesBackdrop).isEqualTo(true)
+    assertThat(BlurProfilingScenario.SourceUpdateQuality.updatesSource)
+      .isEqualTo(BlurProfilingScenario.BackdropSourceUpdateQuality.updatesSource)
   }
 
   @Test

@@ -108,7 +108,7 @@ private fun BlurProfilingScene(
   } else {
     null
   }
-  val profilingDrawProgress = if (scenario.updatesSource) {
+  val profilingDrawProgress = if (scenario.updatesSource && !scenario.usesBackdrop) {
     null
   } else {
     { state.progress }
@@ -121,7 +121,9 @@ private fun BlurProfilingScene(
       mode = scenario.mode,
       performanceMode = scenario.performanceMode,
       sourceOffset = sourceOffset,
+      sourceDrawProgress = if (scenario.updatesSource) ({ state.progress }) else null,
       profilingDrawProgress = profilingDrawProgress,
+      useBackdrop = scenario.usesBackdrop,
     )
     Column(
       modifier = Modifier

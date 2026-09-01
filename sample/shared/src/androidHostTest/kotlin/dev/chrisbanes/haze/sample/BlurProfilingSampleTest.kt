@@ -55,4 +55,23 @@ class BlurProfilingSampleTest : ContextTest() {
     onNodeWithTag("blur_profiling_start").performClick()
     onNodeWithTag("blur_profiling_phase_complete").assertIsDisplayed()
   }
+
+  @Test
+  fun backdropSourceUpdateScenario_exposesTheSettledStartProtocol() = runComposeUiTest {
+    setContent {
+      BlurProfilingSampleContent(
+        state = remember { BlurProfilingState() },
+        navController = rememberNavController(),
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("blur_profiling_select_backdrop_source_update_quality")
+      .performScrollTo()
+      .performClick()
+    onNodeWithTag("blur_profiling_selected_backdrop_source_update_quality").assertIsDisplayed()
+    onNodeWithTag("blur_profiling_phase_ready").assertIsDisplayed()
+    onNodeWithTag("blur_profiling_start").performClick()
+    onNodeWithTag("blur_profiling_phase_complete").assertIsDisplayed()
+  }
 }

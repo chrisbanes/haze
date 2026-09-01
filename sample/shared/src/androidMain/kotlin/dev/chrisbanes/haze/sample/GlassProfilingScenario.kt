@@ -44,6 +44,7 @@ internal enum class GlassProfilingScenario(
   val performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   val opticsOverride: GlassOptics? = null,
   val fullChroma: Boolean = false,
+  val usesBackdrop: Boolean = false,
 ) {
   EffectAttach(
     id = "effect_attach",
@@ -73,6 +74,12 @@ internal enum class GlassProfilingScenario(
     id = "stable_quality",
     steadyDraw = true,
     performanceMode = HazePerformanceMode.Quality,
+  ),
+  BackdropStableQuality(
+    id = "backdrop_stable_quality",
+    steadyDraw = true,
+    performanceMode = HazePerformanceMode.Quality,
+    usesBackdrop = true,
   ),
   StableBalanced(
     id = "stable_balanced",
@@ -179,6 +186,11 @@ internal enum class GlassProfilingScenario(
     id = "source_update_quality",
     performanceMode = HazePerformanceMode.Quality,
   ),
+  BackdropSourceUpdateQuality(
+    id = "backdrop_source_update_quality",
+    performanceMode = HazePerformanceMode.Quality,
+    usesBackdrop = true,
+  ),
   SourceUpdateBalanced(
     id = "source_update_balanced",
     performanceMode = HazePerformanceMode.Balanced,
@@ -188,6 +200,11 @@ internal enum class GlassProfilingScenario(
     performanceMode = HazePerformanceMode.Performance,
   ),
   SourceUpdate9("source_update_9", effectCount = 9),
+  BackdropSourceUpdate9(
+    id = "backdrop_source_update_9",
+    effectCount = 9,
+    usesBackdrop = true,
+  ),
   SourceUpdateNoGlass("source_update_no_glass", glassEnabled = false),
 }
 
@@ -221,6 +238,7 @@ internal fun glassProfilingFrame(
     GlassProfilingScenario.EffectReattach,
     GlassProfilingScenario.StableAdaptive,
     GlassProfilingScenario.StableQuality,
+    GlassProfilingScenario.BackdropStableQuality,
     GlassProfilingScenario.StableBalanced,
     GlassProfilingScenario.StablePerformance,
     GlassProfilingScenario.SteadyFull3,
@@ -255,9 +273,11 @@ internal fun glassProfilingFrame(
     )
     GlassProfilingScenario.SourceUpdateAdaptive,
     GlassProfilingScenario.SourceUpdateQuality,
+    GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,
     GlassProfilingScenario.SourceUpdatePerformance,
     GlassProfilingScenario.SourceUpdate9,
+    GlassProfilingScenario.BackdropSourceUpdate9,
     GlassProfilingScenario.SourceUpdateNoGlass,
     -> base.copy(sourceOffset = lerp(-0.08f, 0.08f, progress))
   }
@@ -269,9 +289,11 @@ internal inline fun glassProfilingSourceProgress(
 ): Float = when (scenario) {
   GlassProfilingScenario.SourceUpdateAdaptive,
   GlassProfilingScenario.SourceUpdateQuality,
+  GlassProfilingScenario.BackdropSourceUpdateQuality,
   GlassProfilingScenario.SourceUpdateBalanced,
   GlassProfilingScenario.SourceUpdatePerformance,
   GlassProfilingScenario.SourceUpdate9,
+  GlassProfilingScenario.BackdropSourceUpdate9,
   GlassProfilingScenario.SourceUpdateNoGlass,
   -> progress()
   else -> 0f

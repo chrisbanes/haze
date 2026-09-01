@@ -219,6 +219,7 @@ private fun GlassProfilingScene(
     if (scenario.glassEnabled && attachGlass) {
       GlassProfilingEffectGrid(
         hazeState = hazeState,
+        usesBackdrop = scenario.usesBackdrop,
         styles = styles,
         performanceMode = scenario.performanceMode,
         interactionSource = interactionSource,
@@ -285,6 +286,7 @@ private fun GlassProfilingScene(
 @Composable
 private fun GlassProfilingEffectGrid(
   hazeState: dev.chrisbanes.haze.HazeState,
+  usesBackdrop: Boolean,
   styles: List<GlassStyle>,
   performanceMode: HazePerformanceMode,
   interactionSource: MutableInteractionSource,
@@ -307,7 +309,11 @@ private fun GlassProfilingEffectGrid(
                 drawContent()
               }
               .hazeGlass(
-                input = HazeInput.Sources(hazeState),
+                input = if (usesBackdrop) {
+                  HazeInput.Backdrop(HazeInput.Sources(hazeState))
+                } else {
+                  HazeInput.Sources(hazeState)
+                },
                 style = styles[effectIndex],
                 performanceMode = performanceMode,
                 interactionSource = interactionSource,
@@ -358,6 +364,7 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.EffectReattach,
     GlassProfilingScenario.StableAdaptive,
     GlassProfilingScenario.StableQuality,
+    GlassProfilingScenario.BackdropStableQuality,
     GlassProfilingScenario.StableBalanced,
     GlassProfilingScenario.StablePerformance,
     GlassProfilingScenario.SteadyFull3,
@@ -380,9 +387,11 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.InteractionUpdate9,
     GlassProfilingScenario.SourceUpdateAdaptive,
     GlassProfilingScenario.SourceUpdateQuality,
+    GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,
     GlassProfilingScenario.SourceUpdatePerformance,
     GlassProfilingScenario.SourceUpdate9,
+    GlassProfilingScenario.BackdropSourceUpdate9,
     GlassProfilingScenario.SourceUpdateNoGlass,
     -> Unit
   }

@@ -43,6 +43,25 @@ class GlassProfilingSampleTest : ContextTest() {
   }
 
   @Test
+  fun backdropSourceUpdate9_exposesNineIndependentGlassEffects() = runComposeUiTest {
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_backdrop_source_update_9")
+      .performScrollTo()
+      .performClick()
+    onNodeWithTag("glass_profiling_selected_backdrop_source_update_9").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    repeat(9) { index ->
+      onNodeWithTag("glass_profiling_surface_$index").assertIsDisplayed()
+    }
+  }
+
+  @Test
   fun effectAttach_settlesWithoutGlassBeforeExposingStart() = runComposeUiTest {
     mainClock.autoAdvance = false
     setContent {

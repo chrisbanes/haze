@@ -33,7 +33,20 @@ class BenchmarkTest {
   fun blurStableAdaptive() = measureBlurProfilingScenario("stable_adaptive")
 
   @Test
-  fun blurStableQuality() = measureBlurProfilingScenario("stable_quality")
+  fun blurStableQuality() = measureBlurProfilingScenario(
+    scenarioId = "stable_quality",
+    includeBackdropComparisonMetrics = true,
+  )
+
+  @Test
+  fun blurBackdropStableQuality() {
+    requireBackdropBenchmarkDevice()
+    measureBlurProfilingScenario(
+      scenarioId = "backdrop_stable_quality",
+      includeBackdropComparisonMetrics = true,
+      requireBackdropDraw = true,
+    )
+  }
 
   @Test
   fun blurStableBalanced() = measureBlurProfilingScenario("stable_balanced")
@@ -69,7 +82,20 @@ class BenchmarkTest {
   }
 
   @Test
-  fun blurSourceUpdateQuality() = measureBlurProfilingScenario("source_update_quality")
+  fun blurSourceUpdateQuality() = measureBlurProfilingScenario(
+    scenarioId = "source_update_quality",
+    includeBackdropComparisonMetrics = true,
+  )
+
+  @Test
+  fun blurBackdropSourceUpdateQuality() {
+    requireBackdropBenchmarkDevice()
+    measureBlurProfilingScenario(
+      scenarioId = "backdrop_source_update_quality",
+      includeBackdropComparisonMetrics = true,
+      requireBackdropDraw = true,
+    )
+  }
 
   @Test
   fun blurSourceUpdateBalanced() = measureBlurProfilingScenario("source_update_balanced")
@@ -85,10 +111,18 @@ class BenchmarkTest {
     )
   }
 
-  private fun measureBlurProfilingScenario(scenarioId: String) {
+  private fun measureBlurProfilingScenario(
+    scenarioId: String,
+    includeBackdropComparisonMetrics: Boolean = false,
+    requireBackdropDraw: Boolean = false,
+  ) {
     benchmarkRule.measureRepeated(
       packageName = APP_PACKAGE,
-      metrics = listOf(FrameTimingMetric()),
+      metrics = if (includeBackdropComparisonMetrics) {
+        backdropComparisonMetrics(requireBackdropDraw)
+      } else {
+        listOf(FrameTimingMetric())
+      },
       startupMode = StartupMode.WARM,
       iterations = DEFAULT_ITERATIONS,
       setupBlock = {

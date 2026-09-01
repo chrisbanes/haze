@@ -41,8 +41,11 @@ Modifier.hazeEffect(
 ```
 
 `HazeInput.Sources` selects content captured by `hazeSource`; `HazeInput.Content` selects the
-modifier's own content. Source selection, retained-output privacy, sampling, and layer expansion
-remain core policies rather than effect-specific mutable configuration.
+modifier's own content. Experimental `HazeInput.Backdrop` lets supported built-in effects request
+the combined earlier pixels in the current Android window while carrying a mandatory Sources
+fallback. It is not a source-selection mode and cannot cross a window boundary. Source selection,
+retained-output privacy, sampling, and layer expansion remain core policies rather than
+effect-specific mutable configuration.
 
 ## Semantic renderer scopes
 
@@ -72,6 +75,13 @@ Reads are observed in the phase where they occur:
 - renderer replacement and disposal;
 - draw and bounds invalidation.
 
+For Backdrop input, core also owns the attachment-scoped native/fallback decision, full Android
+minor-SDK and hardware-canvas gate, backdrop geometry and clipping, draw ordering, and dormant
+fallback capture demand. Blur and Glass own their platform root-effect graphs; no backend or
+platform effect is public. A native failure becomes sticky source fallback after at most one
+transition frame. [ADR-0009](adr/0009-use-opt-in-android-window-backdrops.md) records this exception
+to the ordinary source-capture path.
+
 Those details are intentionally absent from the public typed renderer scopes.
 
 ## Built-in Blur
@@ -97,6 +107,11 @@ input requires replacing the Style through recomposition.
 
 The old public effect, renderer, cache, grouped sentinel values, and `glassEffect` DSL are removed.
 No renderer or lifecycle object can be shared between Glass nodes.
+
+On supported Backdrop input, Glass reuses the Android fused effect graph with compositor input and
+keeps only independent rim and interaction-lighting foreground layers. It does not replace the
+source-backed renderer established by
+[ADR-0003](adr/0003-use-one-android-fused-glass-renderer.md).
 
 ## Modules
 

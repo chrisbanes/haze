@@ -699,12 +699,14 @@ internal class HazeEffectNode :
             size = layerSize,
           )
           val clip = Rect(Offset.Zero, size).takeIf { shouldClipEffectToNodeBounds() }
-          backdropDrawn = renderer.configure(
-            bounds = bounds,
-            clip = clip,
-            effect = backdrop.platformEffect(),
-            alpha = backdrop.alpha,
-          ) && renderer.draw(drawContext.canvas)
+          backdropDrawn = trace("HazeBackdrop.draw") {
+            renderer.configure(
+              bounds = bounds,
+              clip = clip,
+              effect = backdrop.platformEffect(),
+              alpha = backdrop.alpha,
+            ) && renderer.draw(drawContext.canvas)
+          }
         }
       } catch (exception: Exception) {
         HazeLogger.d(TAG, exception) { "Backdrop renderer draw failed" }

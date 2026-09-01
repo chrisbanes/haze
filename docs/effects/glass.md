@@ -283,6 +283,35 @@ Modifier.hazeGlass(
 )
 ```
 
+### Android window-backdrop Glass
+
+Experimental `HazeInput.Backdrop` lets Glass use the combined pixels already drawn earlier in a
+hardware-accelerated Android 37.2 window:
+
+```kotlin
+Modifier.hazeGlass(
+  input = HazeInput.Backdrop(
+    fallback = HazeInput.Sources(hazeState),
+  ),
+  style = GlassStyle.regular,
+)
+```
+
+The native path reuses Glass's fused blur, depth, refraction, detail, chromatic, tint, and tone
+graph at compositor resolution. Rim and interaction lighting remain independent foreground draws,
+and authored alpha, shape, and material transforms keep their normal ordering. It does not retain
+a source or fused-output layer while healthy.
+
+Backdrop input samples the current window's combined earlier pixels. It cannot select a Haze
+source, include content drawn later, or cross a dialog, popup, or window boundary. Unsupported
+platforms, an unavailable native graph, or a native failure select the mandatory Sources fallback
+for the rest of that attachment; the transition may take one frame.
+
+Use Sources directly when source selection, cross-window alignment, or retained-output behavior is
+part of the requirement. [ADR-0009](../adr/0009-use-opt-in-android-window-backdrops.md) defines the
+opt-in backend, while [ADR-0003](../adr/0003-use-one-android-fused-glass-renderer.md) remains
+authoritative for source-backed Android Glass.
+
 You can select a literal optical configuration when the built-in material does not fit the design:
 
 ```kotlin

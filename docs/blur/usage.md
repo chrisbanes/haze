@@ -53,6 +53,30 @@ Image(
 )
 ```
 
+## Android window-backdrop Blur
+
+On a hardware-accelerated Android 37.2 window, experimental `HazeInput.Backdrop` can blur the
+combined pixels already drawn behind the modifier without recording a Haze source for that healthy
+native consumer:
+
+```kotlin
+Modifier.hazeBlur(
+  input = HazeInput.Backdrop(
+    fallback = HazeInput.Sources(hazeState),
+  ),
+  style = HazeMaterials.thin(),
+)
+```
+
+This is same-window, previous-pixel ordering—not selected-source capture. It cannot see later draw
+operations or pixels from another dialog, popup, or window. Native sampling stays at compositor
+resolution; `HazePerformanceMode` does not downsample that input. On older Android releases, other
+platforms, a software canvas, or after native setup/draw failure, the modifier uses the mandatory
+Sources fallback. That decision is sticky until detachment and the transition may take one frame.
+
+Use `HazeInput.Sources` when its selection, cross-window, or retention semantics are required. See
+[ADR-0009](../adr/0009-use-opt-in-android-window-backdrops.md) for the complete boundary.
+
 ## Enabling Blur
 
 Blur is enabled by default only where Haze considers the platform implementation reliable. To

@@ -36,6 +36,8 @@ Typed effects always declare what they consume:
 
 - `HazeInput.Sources(hazeState)` consumes captured source content.
 - `HazeInput.Content` consumes the modifier's own content.
+- `HazeInput.Backdrop(fallback)` opts built-in Blur or Glass into supported Android window-backdrop
+  rendering, with a mandatory `HazeInput.Sources` fallback.
 
 Source-backed input also declares retention:
 
@@ -48,6 +50,31 @@ HazeInput.Sources(
 
 `KeepLastFrame` smooths temporary source gaps. `ClearWhenUnavailable` clears retained output as
 soon as no selected source is drawable.
+
+### Android window backdrops
+
+`HazeInput.Backdrop` is experimental and currently uses the native path only on a
+hardware-accelerated Android 37.2 window. It filters the combined pixels already drawn earlier in
+the same window surface. It cannot select individual Haze sources, include content drawn later,
+or cross a dialog, popup, or window boundary.
+
+```kotlin
+Modifier.hazeBlur(
+  input = HazeInput.Backdrop(
+    fallback = HazeInput.Sources(hazeState),
+  ),
+)
+```
+
+Native backdrop sampling uses compositor resolution rather than the effect's source-capture scale.
+If the platform, canvas, built-in effect, or native draw is unavailable, that modifier switches to
+its source fallback for the rest of the attachment. The switch may take one frame; a known-bad
+native path is not retried every frame. Healthy native-only consumers do not cause their dormant
+fallback sources to record.
+
+Use `HazeInput.Sources` directly when source selection, cross-window alignment, retention policy,
+or stable support on older platforms is required. See
+[ADR-0009](adr/0009-use-opt-in-android-window-backdrops.md) for the backend decision.
 
 ## Typed Blur
 

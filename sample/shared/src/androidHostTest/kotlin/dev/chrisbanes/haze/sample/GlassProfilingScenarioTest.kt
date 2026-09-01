@@ -74,6 +74,7 @@ class GlassProfilingScenarioTest {
         "effect_reattach",
         "stable_adaptive",
         "stable_quality",
+        "backdrop_stable_quality",
         "stable_balanced",
         "stable_performance",
         "steady_full_3",
@@ -99,15 +100,46 @@ class GlassProfilingScenarioTest {
         "blur_update",
         "source_update_adaptive",
         "source_update_quality",
+        "backdrop_source_update_quality",
         "source_update_balanced",
         "source_update_performance",
         "source_update_9",
+        "backdrop_source_update_9",
         "source_update_no_glass",
       ),
     )
     assertThat(
       GlassProfilingScenario.entries.map(GlassProfilingScenario::id).toSet().size,
     ).isEqualTo(GlassProfilingScenario.entries.size)
+  }
+
+  @Test
+  fun backdropPairs_matchSourceWorkloadsExceptForInputBackend() {
+    listOf(
+      GlassProfilingScenario.StableQuality to
+        GlassProfilingScenario.BackdropStableQuality,
+      GlassProfilingScenario.SourceUpdateQuality to
+        GlassProfilingScenario.BackdropSourceUpdateQuality,
+      GlassProfilingScenario.SourceUpdate9 to
+        GlassProfilingScenario.BackdropSourceUpdate9,
+    ).forEach { (source, backdrop) ->
+      assertThat(source.usesBackdrop, name = source.id).isFalse()
+      assertThat(backdrop.usesBackdrop, name = backdrop.id).isTrue()
+      assertThat(backdrop.performanceMode, name = backdrop.id).isEqualTo(source.performanceMode)
+      assertThat(backdrop.effectCount, name = backdrop.id).isEqualTo(source.effectCount)
+      assertThat(
+        changedFields(
+          glassProfilingFrame(source, 0.25f),
+          glassProfilingFrame(source, 0.75f),
+        ),
+        name = source.id,
+      ).isEqualTo(
+        changedFields(
+          glassProfilingFrame(backdrop, 0.25f),
+          glassProfilingFrame(backdrop, 0.75f),
+        ),
+      )
+    }
   }
 
   @Test
@@ -133,9 +165,11 @@ class GlassProfilingScenarioTest {
         GlassProfilingScenario.BlurUpdate -> setOf("blurRadius")
         GlassProfilingScenario.SourceUpdateAdaptive,
         GlassProfilingScenario.SourceUpdateQuality,
+        GlassProfilingScenario.BackdropSourceUpdateQuality,
         GlassProfilingScenario.SourceUpdateBalanced,
         GlassProfilingScenario.SourceUpdatePerformance,
         GlassProfilingScenario.SourceUpdate9,
+        GlassProfilingScenario.BackdropSourceUpdate9,
         GlassProfilingScenario.SourceUpdateNoGlass,
         -> setOf("sourceOffset")
         else -> emptySet()
@@ -212,9 +246,11 @@ class GlassProfilingScenarioTest {
       }
       val updatesSource = scenario == GlassProfilingScenario.SourceUpdateAdaptive ||
         scenario == GlassProfilingScenario.SourceUpdateQuality ||
+        scenario == GlassProfilingScenario.BackdropSourceUpdateQuality ||
         scenario == GlassProfilingScenario.SourceUpdateBalanced ||
         scenario == GlassProfilingScenario.SourceUpdatePerformance ||
         scenario == GlassProfilingScenario.SourceUpdate9 ||
+        scenario == GlassProfilingScenario.BackdropSourceUpdate9 ||
         scenario == GlassProfilingScenario.SourceUpdateNoGlass
 
       assertThat(readCount, name = scenario.id).isEqualTo(if (updatesSource) 1 else 0)

@@ -38,7 +38,13 @@ class GlassProfilingBenchmark {
   fun stableAdaptive() = measureCalibrationScenario("stable_adaptive")
 
   @Test
-  fun stableQuality() = measureCalibrationScenario("stable_quality")
+  fun stableQuality() = measureBackdropComparisonScenario("stable_quality")
+
+  @Test
+  fun backdropStableQuality() {
+    requireBackdropBenchmarkDevice()
+    measureBackdropComparisonScenario("backdrop_stable_quality", requireBackdropDraw = true)
+  }
 
   @Test
   fun stableBalanced() = measureCalibrationScenario("stable_balanced")
@@ -50,7 +56,16 @@ class GlassProfilingBenchmark {
   fun sourceUpdateAdaptive() = measureCalibrationScenario("source_update_adaptive")
 
   @Test
-  fun sourceUpdateQuality() = measureCalibrationScenario("source_update_quality")
+  fun sourceUpdateQuality() = measureBackdropComparisonScenario("source_update_quality")
+
+  @Test
+  fun backdropSourceUpdateQuality() {
+    requireBackdropBenchmarkDevice()
+    measureBackdropComparisonScenario(
+      "backdrop_source_update_quality",
+      requireBackdropDraw = true,
+    )
+  }
 
   @Test
   fun sourceUpdateBalanced() = measureCalibrationScenario("source_update_balanced")
@@ -128,7 +143,13 @@ class GlassProfilingBenchmark {
   fun blurUpdate() = measureScenario("blur_update")
 
   @Test
-  fun sourceUpdate9() = measureScenario("source_update_9", includeMemory = true)
+  fun sourceUpdate9() = measureBackdropComparisonScenario("source_update_9")
+
+  @Test
+  fun backdropSourceUpdate9() {
+    requireBackdropBenchmarkDevice()
+    measureBackdropComparisonScenario("backdrop_source_update_9", requireBackdropDraw = true)
+  }
 
   @Test
   fun sourceUpdateNoGlass() = measureScenario(
@@ -148,11 +169,25 @@ class GlassProfilingBenchmark {
     measureScenario(scenarioId = scenarioId, includeMemory = true)
   }
 
+  private fun measureBackdropComparisonScenario(
+    scenarioId: String,
+    requireBackdropDraw: Boolean = false,
+  ) {
+    measureScenario(
+      scenarioId = scenarioId,
+      includeMemory = true,
+      includeBackdropComparisonMetrics = true,
+      requireBackdropDraw = requireBackdropDraw,
+    )
+  }
+
   private fun measureScenario(
     scenarioId: String,
     includeMemory: Boolean = false,
     requireRuntimeMarker: Boolean = true,
     includePreparationMetrics: Boolean = false,
+    includeBackdropComparisonMetrics: Boolean = false,
+    requireBackdropDraw: Boolean = false,
   ) {
     benchmarkRule.measureRepeated(
       packageName = GLASS_TARGET_PACKAGE,
@@ -160,6 +195,8 @@ class GlassProfilingBenchmark {
         includeMemory = includeMemory,
         requireRuntimeMarker = requireRuntimeMarker,
         includePreparationMetrics = includePreparationMetrics,
+        includeBackdropComparisonMetrics = includeBackdropComparisonMetrics,
+        requireBackdropDraw = requireBackdropDraw,
       ),
       compilationMode = CompilationMode.Full(),
       startupMode = StartupMode.WARM,

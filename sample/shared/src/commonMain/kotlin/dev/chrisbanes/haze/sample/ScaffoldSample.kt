@@ -97,9 +97,16 @@ fun ScaffoldSample(
   mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
   performanceMode: HazePerformanceMode = HazePerformanceMode.Default,
   sourceOffset: (() -> Float)? = null,
+  sourceDrawProgress: (() -> Float)? = null,
   profilingDrawProgress: (() -> Float)? = null,
+  useBackdrop: Boolean = false,
 ) {
   val hazeState = rememberHazeState()
+  val hazeInput = if (useBackdrop) {
+    HazeInput.Backdrop(HazeInput.Sources(hazeState))
+  } else {
+    HazeInput.Sources(hazeState)
+  }
   val gridState = rememberLazyGridState()
   val showNavigationBar by remember(gridState) {
     derivedStateOf { gridState.firstVisibleItemIndex == 0 }
@@ -164,7 +171,7 @@ fun ScaffoldSample(
               drawContent()
             }
             .hazeBlur(
-              input = HazeInput.Sources(hazeState),
+              input = hazeInput,
               performanceMode = performanceMode,
               style = currentBlurStyle.then {
                 when (mode) {
@@ -218,7 +225,7 @@ fun ScaffoldSample(
                 drawContent()
               }
               .hazeBlur(
-                input = HazeInput.Sources(hazeState),
+                input = hazeInput,
                 performanceMode = performanceMode,
                 style = currentBlurStyle.then {
                   if (mode == ScaffoldSampleMode.StyleChurn) {
@@ -258,6 +265,10 @@ fun ScaffoldSample(
         .fillMaxSize()
         .testTag("lazy_grid")
         .hazeSource(state = hazeState)
+        .drawWithContent {
+          sourceDrawProgress?.invoke()
+          drawContent()
+        }
         .graphicsLayer { translationY = sourceOffset?.invoke() ?: 0f },
     ) {
       items(50) { index ->

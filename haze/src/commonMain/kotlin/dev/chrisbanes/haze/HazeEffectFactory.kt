@@ -180,7 +180,9 @@ public interface HazeEffectRendererBackdrop<Style> {
 @InternalHazeApi
 public class HazeEffectBackdrop(
   private val effect: PlatformRenderEffect,
+  /** Alpha applied while drawing the filtered backdrop. */
   public val alpha: Float = 1f,
+  /** Transform from effect-local coordinates into the authored material coordinate space. */
   public val materialTransform: HazeEffectContentTransform = HazeEffectContentTransform.Identity,
 ) {
   init {
