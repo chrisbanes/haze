@@ -41,6 +41,7 @@ internal fun IntSize.fitsGlassLayerBudget(): Boolean =
 
 internal data class GlassRetainedLayerPlan(
   val layers: List<GlassRetainedLayer>,
+  val allowsEmpty: Boolean = false,
 ) {
   fun retainedPixelCountOrNull(): Long? {
     var total = 0L
@@ -56,7 +57,7 @@ internal data class GlassRetainedLayerPlan(
   }
 
   fun fitsGlassRenderBudget(): Boolean =
-    layers.isNotEmpty() &&
+    (allowsEmpty || layers.isNotEmpty()) &&
       layers.all { it.size.fitsGlassLayerBudget() } &&
       (retainedPixelCountOrNull()?.let { it <= MAX_GLASS_RETAINED_PIXELS } == true)
 }
@@ -214,4 +215,4 @@ private fun GlassRetainedLayerPlan.fallbackDecision(): GlassRenderBudgetDecision
   )
 
 private fun GlassRetainedLayerPlan.isInvalidGeometry(): Boolean =
-  layers.isEmpty() || retainedPixelCountOrNull() == null
+  !allowsEmpty && layers.isEmpty() || retainedPixelCountOrNull() == null

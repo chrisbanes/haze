@@ -631,6 +631,51 @@ class RuntimeShaderGlassDelegateTrimMemoryTest {
   }
 
   @Test
+  fun prepareBackdrop_releasesSourceAndOutputLayers() {
+    val layers = GlassLayers()
+    val graphicsContext = TestGraphicsContext()
+    layers.populate(graphicsContext)
+
+    layers.prepareBackdrop(
+      rim = true,
+      interactionLighting = true,
+      graphicsContext = graphicsContext,
+    )
+
+    assertThat(layers.hasSource).isFalse()
+    assertThat(layers.hasBlurPrefiltered).isFalse()
+    assertThat(layers.hasBlurHorizontal).isFalse()
+    assertThat(layers.hasBlurred).isFalse()
+    assertThat(layers.hasDepthMixed).isFalse()
+    assertThat(layers.hasOptical).isFalse()
+    assertThat(layers.hasRefractionDetail).isFalse()
+    assertThat(layers.hasRefractionDetailCoverage).isFalse()
+    assertThat(layers.hasRefractionComposite).isFalse()
+    assertThat(layers.hasInteractionOptical).isFalse()
+    assertThat(layers.hasInteractionRefractionDetail).isFalse()
+    assertThat(layers.hasInteractionRefractionDetailCoverage).isFalse()
+    assertThat(layers.hasInteractionRefractionComposite).isFalse()
+    assertThat(layers.groupAlpha.isAvailable).isFalse()
+    assertThat(layers.hasInteractionLighting).isTrue()
+    assertThat(layers.hasRim).isTrue()
+  }
+
+  @Test
+  fun prepareBackdrop_withoutForegroundEffects_releasesEveryLayer() {
+    val layers = GlassLayers()
+    val graphicsContext = TestGraphicsContext()
+    layers.populate(graphicsContext)
+
+    layers.prepareBackdrop(
+      rim = false,
+      interactionLighting = false,
+      graphicsContext = graphicsContext,
+    )
+
+    assertThat(layers.isEmpty).isTrue()
+  }
+
+  @Test
   fun prepareDraw_invalidSizeReleasesResourcesBeforeGeometryCalibration() {
     listOf(
       RecordingVisualEffectContext(size = Size(0f, 100f), layerSize = Size(100f, 100f)),

@@ -18,6 +18,37 @@ import kotlin.test.Test
 class GlassRenderBudgetTest {
 
   @Test
+  fun backdropWithoutForegroundLayers_hasAValidZeroRetentionPlan() {
+    val plan = buildGlassBackdropLayerPlan(
+      sampleSize = IntSize(5000, 5000),
+      rimActive = false,
+      interactionPatchSize = IntSize.Zero,
+      interactionLightingActive = false,
+    )
+
+    assertThat(plan.layers).isEqualTo(emptyList())
+    assertThat(plan.fitsGlassRenderBudget()).isTrue()
+  }
+
+  @Test
+  fun backdropPlan_countsOnlyLocalForegroundLayers() {
+    val sampleSize = IntSize(1000, 600)
+    val patchSize = IntSize(240, 240)
+
+    val plan = buildGlassBackdropLayerPlan(
+      sampleSize = sampleSize,
+      rimActive = true,
+      interactionPatchSize = patchSize,
+      interactionLightingActive = true,
+    )
+
+    assertThat(plan.layers).containsExactly(
+      GlassRetainedLayer(GlassRetainedLayerKind.Rim, sampleSize),
+      GlassRetainedLayer(GlassRetainedLayerKind.InteractionLighting, patchSize),
+    )
+  }
+
+  @Test
   fun configuredInteractionBudget_usesLocalPatchSize() {
     val patchSize = IntSize(240, 240)
     val plan = buildGlassBudgetLayerPlan(

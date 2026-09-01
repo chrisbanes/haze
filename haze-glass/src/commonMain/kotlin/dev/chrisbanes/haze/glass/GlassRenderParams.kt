@@ -688,6 +688,25 @@ internal fun buildGlassBudgetLayerPlan(
   )
 }
 
+internal fun buildGlassBackdropLayerPlan(
+  sampleSize: IntSize,
+  rimActive: Boolean,
+  interactionPatchSize: IntSize,
+  interactionLightingActive: Boolean,
+): GlassRetainedLayerPlan = GlassRetainedLayerPlan(
+  layers = buildList {
+    if (rimActive) add(GlassRetainedLayer(GlassRetainedLayerKind.Rim, sampleSize))
+    if (
+      interactionLightingActive &&
+      interactionPatchSize.width > 0 &&
+      interactionPatchSize.height > 0
+    ) {
+      add(GlassRetainedLayer(GlassRetainedLayerKind.InteractionLighting, interactionPatchSize))
+    }
+  },
+  allowsEmpty = true,
+)
+
 private fun buildGlassRetainedLayerPlan(
   sampleSize: IntSize,
   blurWorkingSize: IntSize?,

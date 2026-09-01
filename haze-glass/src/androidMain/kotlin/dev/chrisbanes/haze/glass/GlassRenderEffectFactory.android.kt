@@ -16,6 +16,7 @@ import dev.chrisbanes.haze.PlatformRenderEffect
 
 @RequiresApi(Build.VERSION_CODES.S)
 internal actual fun createGlassDepthInputRenderEffect(
+  sharp: PlatformRenderEffect?,
   blur: PlatformRenderEffect?,
   depth: Float,
 ): PlatformRenderEffect? {
@@ -39,7 +40,7 @@ internal actual fun createGlassDepthInputRenderEffect(
     }
 
     RenderEffect.createBlendModeEffect(
-      scaledInput(1f - depth),
+      scaledInput(1f - depth, sharp),
       scaledInput(depth, blur),
       BlendMode.PLUS,
     )

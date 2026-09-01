@@ -8,15 +8,19 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.LayoutDirection
 import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
+import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeSampling
@@ -67,6 +71,69 @@ class GlassRuntimeEffectAndroidCapabilityTest {
 
   @Test
   @Config(sdk = [35])
+  fun backdropPreparation_requestsFullResolution() {
+    val effect = GlassRuntimeEffect()
+    val context = AndroidCapabilityContext()
+
+    val decision = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = isRuntimeShaderGlassSupported(),
+      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+    )
+
+    assertThat(decision)
+      .isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.FULL_RESOLUTION_SCALE)
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun oversizedBackdropForeground_fallsBackInsteadOfDownscaling() {
+    val effect = GlassRuntimeEffect()
+    val context = AndroidCapabilityContext(contextSize = Size(5000f, 5000f))
+
+    val decision = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = isRuntimeShaderGlassSupported(),
+      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+      backdrop = true,
+    )
+
+    assertThat(decision).isEqualTo(
+      GlassRenderBudgetDecision.Fallback(GlassRenderBudgetFallbackReason.ExceedsLimits),
+    )
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun largeBackdropWithoutForegroundLayers_keepsFullResolution() {
+    val effect = GlassRuntimeEffect(
+      GlassNodeConfiguration(
+        style = GlassStyle {
+          specularIntensity(0f)
+          edgeShadow(Color.Transparent)
+        },
+        interactionSource = null,
+      ),
+    )
+    val context = AndroidCapabilityContext(contextSize = Size(5000f, 5000f))
+
+    val decision = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = isRuntimeShaderGlassSupported(),
+      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+      backdrop = true,
+    )
+
+    assertThat(decision)
+      .isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.FULL_RESOLUTION_SCALE)
+  }
+
+  @Test
+  @Config(sdk = [35])
   fun runtimeEffectFactoryChange_replacesRuntimeDelegate() {
     val effect = GlassRuntimeEffect()
     val context = AndroidCapabilityContext()
@@ -85,13 +152,15 @@ class GlassRuntimeEffectAndroidCapabilityTest {
 }
 
 @OptIn(InternalComposeUiApi::class, InternalHazeApi::class)
-private class AndroidCapabilityContext :
+private class AndroidCapabilityContext(
+  private val contextSize: Size = Size(100f, 100f),
+) :
   HazeEffectRuntimeDrawScope,
   DrawScope by CanvasDrawScope() {
-  override val modifierSize: Size = Size(100f, 100f)
+  override val modifierSize: Size = contextSize
   override val modifierBounds: Rect = Rect(Offset.Zero, modifierSize)
   override val sampling: HazeSampling = HazeSampling.FullResolution
-  override val layerSize: Size = Size(100f, 100f)
+  override val layerSize: Size = contextSize
   override val layerOffset: Offset = Offset.Zero
   override val hasDrawableInput: Boolean = true
   override val inputSnapshot: HazeEffectInputSnapshot = AndroidCapabilityInputSnapshot

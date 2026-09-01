@@ -17,9 +17,25 @@ plugins {
 kotlin {
   android {
     namespace = "dev.chrisbanes.haze.glass"
+    androidResources.enable = true
 
     withHostTest {
       isIncludeAndroidResources = true
+    }
+
+    withDeviceTest {
+      instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+      @Suppress("UnstableApiUsage")
+      managedDevices {
+        localDevices {
+          create("pixel6Api34") {
+            device = "Pixel 6"
+            sdkVersion = 34
+            systemImageSource = "aosp_atd"
+          }
+        }
+      }
     }
   }
 
@@ -43,6 +59,16 @@ kotlin {
         implementation(libs.assertk)
         implementation(libs.compose.ui.test)
         implementation(projects.internal.contextTest)
+      }
+    }
+
+    named("androidDeviceTest") {
+      dependencies {
+        implementation(libs.assertk)
+        implementation(libs.androidx.activity.compose)
+        implementation(libs.androidx.compose.ui.test.junit4)
+        implementation(libs.androidx.compose.ui.test.manifest)
+        implementation(libs.androidx.test.runner)
       }
     }
 
