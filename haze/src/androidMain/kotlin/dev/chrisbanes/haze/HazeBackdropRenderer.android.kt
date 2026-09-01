@@ -69,16 +69,15 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
     }
     setBackdropRenderEffect?.invoke(node, effect)
 
-    // A transparent display list makes the RenderNode drawable while leaving its backdrop
-    // untouched. The actual filtering is performed by the compositor's backdrop effect.
+    // A transparent SRC_OVER draw leaves the node visually empty but keeps its backdrop filter
+    // composited. Recording a CLEAR operation instead suppresses the backdrop on Android 37.2.
     val recordingCanvas = beginRecording?.invoke(node, width, height)
     if (recordingCanvas == null) return false
     val drawColor = recordingCanvas.javaClass.getMethod(
       "drawColor",
       Int::class.javaPrimitiveType,
-      android.graphics.PorterDuff.Mode::class.java,
     )
-    drawColor.invoke(recordingCanvas, android.graphics.Color.TRANSPARENT, android.graphics.PorterDuff.Mode.CLEAR)
+    drawColor.invoke(recordingCanvas, android.graphics.Color.TRANSPARENT)
     endRecording?.invoke(node)
     return true
   }

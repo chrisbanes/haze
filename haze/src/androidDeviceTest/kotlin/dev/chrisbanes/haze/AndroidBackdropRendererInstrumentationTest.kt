@@ -5,12 +5,20 @@
 
 package dev.chrisbanes.haze
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Color as AndroidColor
+import android.graphics.Paint
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
 import android.view.PixelCopy
+import android.view.View
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -249,6 +257,103 @@ class AndroidBackdropRendererInstrumentationTest {
     assertThat(clippedLeak.red, "caller clipping prevents expanded leakage").isLessThan(0.05f)
   }
 
+  @Test
+  fun renderNodeBackdropEffect_blursEarlierSibling() {
+    assumeTrue(
+      "Backdrop RenderNode requires Android 37.2 or the matching preview",
+      isHazeBackdropSdkSupported(fullSdkInt(), Build.VERSION.PREVIEW_SDK_INT),
+    )
+
+    val drawReady = CountDownLatch(1)
+    activityScenario.onActivity { activity ->
+      activity.setContent {
+        Box(Modifier.fillMaxSize().background(Color.White)) {
+          Box(
+            Modifier
+              .align(Alignment.Center)
+              .size(width = 200.dp, height = 100.dp)
+              .background(Color.Black),
+          )
+          Box(
+            Modifier
+              .align(Alignment.Center)
+              .offset(x = 50.dp)
+              .size(width = 100.dp, height = 100.dp)
+              .background(Color.White),
+          )
+          Box(
+            Modifier
+              .align(Alignment.Center)
+              .size(width = 200.dp, height = 100.dp)
+              .prototypeBackdrop(
+                radius = 14.dp,
+                clip = PrototypeClip.Content,
+                drawReady = drawReady,
+              ),
+          )
+        }
+      }
+    }
+    assertThat(drawReady.await(5, TimeUnit.SECONDS), "Backdrop node presented its first draw").isTrue()
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+    val bitmap = activity.copyWindow()
+    val density = Density(activity.resources.displayMetrics.density)
+    val centerX = bitmap.width / 2
+    val centerY = bitmap.height / 2
+    bitmap.assertVerticalEdgeSoftened(centerX, centerY, density, "direct RenderNode backdrop")
+  }
+
+  @Test
+  fun viewBackdropEffect_blursEarlierSibling() {
+    assumeTrue(
+      "View backdrop effect requires Android 37.2 or the matching preview",
+      isHazeBackdropSdkSupported(fullSdkInt(), Build.VERSION.PREVIEW_SDK_INT),
+    )
+
+    val drawReady = CountDownLatch(1)
+    lateinit var backdropView: View
+    activityScenario.onActivity { activity ->
+      val density = Density(activity.resources.displayMetrics.density)
+      val width = 200.dp.roundToPx(density)
+      val height = 100.dp.roundToPx(density)
+      val radius = 14.dp.roundToPx(density).toFloat()
+      val centered = FrameLayout.LayoutParams(width, height, Gravity.CENTER)
+      val root = FrameLayout(activity).apply {
+        setBackgroundColor(AndroidColor.WHITE)
+      }
+      val source = BackdropSourceView(activity)
+      val backdrop = BackdropProbeView(activity, drawReady)
+
+      root.addView(source, centered)
+      root.addView(backdrop, FrameLayout.LayoutParams(centered))
+      View::class.java
+        .getMethod("setBackdropRenderEffect", RenderEffect::class.java)
+        .invoke(
+          backdrop,
+          RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP),
+        )
+      activity.setContentView(root)
+      backdropView = backdrop
+    }
+    assertThat(drawReady.await(5, TimeUnit.SECONDS), "Backdrop View presented its first draw").isTrue()
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+    val location = IntArray(2)
+    var backdropWidth = 0
+    var backdropHeight = 0
+    activityScenario.onActivity {
+      backdropView.getLocationInWindow(location)
+      backdropWidth = backdropView.width
+      backdropHeight = backdropView.height
+    }
+    val bitmap = activity.copyWindow()
+    val density = Density(activity.resources.displayMetrics.density)
+    val centerX = location[0] + backdropWidth / 2
+    val centerY = location[1] + backdropHeight / 2
+    bitmap.assertVerticalEdgeSoftened(centerX, centerY, density, "public View backdrop")
+  }
+
   private fun ComponentActivity.copyWindow(): Bitmap {
     val targetWindow = this.window
     val bitmap = Bitmap.createBitmap(
@@ -265,16 +370,6 @@ class AndroidBackdropRendererInstrumentationTest {
     assertThat(latch.await(5, TimeUnit.SECONDS), "Window PixelCopy completed").isTrue()
     assertThat(result, "Window PixelCopy result").isEqualTo(PixelCopy.SUCCESS)
     return bitmap
-  }
-
-  private fun Bitmap.pixel(x: Int, y: Int): Color {
-    val pixel = getPixel(x.coerceIn(0, width - 1), y.coerceIn(0, height - 1))
-    return Color(
-      red = AndroidColor.red(pixel) / 255f,
-      green = AndroidColor.green(pixel) / 255f,
-      blue = AndroidColor.blue(pixel) / 255f,
-      alpha = AndroidColor.alpha(pixel) / 255f,
-    )
   }
 
   private companion object {
@@ -363,3 +458,56 @@ private class PrototypeBackdropNode(
 
 private fun androidx.compose.ui.unit.Dp.roundToPx(density: Density): Int =
   kotlin.math.round(value * density.density).toInt()
+
+private fun Bitmap.pixel(x: Int, y: Int): Color {
+  val pixel = getPixel(x.coerceIn(0, width - 1), y.coerceIn(0, height - 1))
+  return Color(
+    red = AndroidColor.red(pixel) / 255f,
+    green = AndroidColor.green(pixel) / 255f,
+    blue = AndroidColor.blue(pixel) / 255f,
+    alpha = AndroidColor.alpha(pixel) / 255f,
+  )
+}
+
+private fun Bitmap.assertVerticalEdgeSoftened(
+  centerX: Int,
+  centerY: Int,
+  density: Density,
+  rendererName: String,
+) {
+  val blackInterior = pixel(centerX - 60.dp.roundToPx(density), centerY)
+  val blackNearEdge = pixel(centerX - 3.dp.roundToPx(density), centerY)
+  val whiteNearEdge = pixel(centerX + 3.dp.roundToPx(density), centerY)
+  val whiteInterior = pixel(centerX + 60.dp.roundToPx(density), centerY)
+
+  assertThat(
+    blackNearEdge.red - blackInterior.red,
+    "$rendererName softens the black side of the earlier edge",
+  ).isGreaterThan(0.05f)
+  assertThat(
+    whiteInterior.red - whiteNearEdge.red,
+    "$rendererName softens the white side of the earlier edge",
+  ).isGreaterThan(0.05f)
+}
+
+private class BackdropSourceView(context: Context) : View(context) {
+  private val paint = Paint()
+
+  override fun onDraw(canvas: AndroidCanvas) {
+    val edge = width / 2f
+    paint.color = AndroidColor.BLACK
+    canvas.drawRect(0f, 0f, edge, height.toFloat(), paint)
+    paint.color = AndroidColor.WHITE
+    canvas.drawRect(edge, 0f, width.toFloat(), height.toFloat(), paint)
+  }
+}
+
+private class BackdropProbeView(
+  context: Context,
+  private val drawReady: CountDownLatch,
+) : View(context) {
+  override fun onDraw(canvas: AndroidCanvas) {
+    canvas.drawColor(AndroidColor.argb(0x99, 0xF0, 0xF0, 0xF0))
+    drawReady.countDown()
+  }
+}
