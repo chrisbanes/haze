@@ -15,7 +15,8 @@ internal object GlassDirtyFields {
   const val BackgroundColor: Int = AmbientResponse shl 1
   const val Tint: Int = BackgroundColor shl 1
   const val EdgeSoftness: Int = Tint shl 1
-  const val LightPosition: Int = EdgeSoftness shl 1
+  const val EdgeShadow: Int = EdgeSoftness shl 1
+  const val LightPosition: Int = EdgeShadow shl 1
   const val ChromaticAberration: Int = LightPosition shl 1
   const val Shape: Int = ChromaticAberration shl 1
   const val SurfaceProfile: Int = Shape shl 1
@@ -32,6 +33,7 @@ internal object GlassDirtyFields {
   const val Interaction: Int = InteractionLayerBounds shl 1
   const val RuntimeEffectFactory: Int = Interaction shl 1
   const val PerformanceMode: Int = RuntimeEffectFactory shl 1
+  const val Accessibility: Int = PerformanceMode shl 1
 
   const val InvalidateFlags: Int =
     Optics or
@@ -40,6 +42,7 @@ internal object GlassDirtyFields {
       BackgroundColor or
       Tint or
       EdgeSoftness or
+      EdgeShadow or
       LightPosition or
       ChromaticAberration or
       Shape or
@@ -55,10 +58,11 @@ internal object GlassDirtyFields {
       Style or
       Interaction or
       RuntimeEffectFactory or
-      PerformanceMode
+      PerformanceMode or
+      Accessibility
 
   const val LayerBoundsFlags: Int =
-    Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds
+    Optics or ChromaticAberration or EdgeSoftness or Shape or InteractionLayerBounds or Accessibility
 
   const val All: Int = InvalidateFlags or LayerBoundsFlags
 
@@ -73,6 +77,7 @@ internal object GlassDirtyFields {
       if (BackgroundColor in dirtyTracker) add("BackgroundColor")
       if (Tint in dirtyTracker) add("Tint")
       if (EdgeSoftness in dirtyTracker) add("EdgeSoftness")
+      if (EdgeShadow in dirtyTracker) add("EdgeShadow")
       if (LightPosition in dirtyTracker) add("LightPosition")
       if (ChromaticAberration in dirtyTracker) add("ChromaticAberration")
       if (Shape in dirtyTracker) add("Shape")
@@ -90,6 +95,7 @@ internal object GlassDirtyFields {
       if (Interaction in dirtyTracker) add("Interaction")
       if (RuntimeEffectFactory in dirtyTracker) add("RuntimeEffectFactory")
       if (PerformanceMode in dirtyTracker) add("PerformanceMode")
+      if (Accessibility in dirtyTracker) add("Accessibility")
     }
     return params.joinToString(separator = ", ", prefix = "[", postfix = "]")
   }

@@ -46,7 +46,10 @@ public object GlassDefaults {
   )
 
   /** Default intensity of specular highlights, in the range `0f..1f`. */
-  public const val specularIntensity: Float = 0.4f
+  public const val specularIntensity: Float = 0.48f
+
+  /** Default dark edge composited with the directional specular highlight. */
+  public val edgeShadow: Color = Color.Black.copy(alpha = 0.14f)
 
   /** Default strength of the ambient lighting response and Fresnel accent, in `0f..1f`. */
   public const val ambientResponse: Float = 0.46f

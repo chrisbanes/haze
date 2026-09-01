@@ -135,6 +135,7 @@ class GlassRendererLifecycleTest {
 private class TrackingLifecycleScope(
   override val modifierSize: Size = Size(100f, 100f),
   var localStyle: GlassStyle = GlassStyle,
+  var accessibilitySettings: GlassAccessibilitySettings = GlassAccessibilitySettings(),
 ) : HazeEffectLifecycleScope {
   override val coroutineScope: CoroutineScope = CoroutineScope(EmptyCoroutineContext)
 
@@ -147,6 +148,7 @@ private class TrackingLifecycleScope(
   @Suppress("UNCHECKED_CAST")
   override fun <T> currentValueOf(local: CompositionLocal<T>): T = when (local) {
     LocalGlassStyle -> localStyle
+    LocalGlassAccessibilitySettings -> accessibilitySettings
     LocalLayoutDirection -> LayoutDirection.Ltr
     else -> error("Unused composition local")
   } as T

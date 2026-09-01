@@ -34,8 +34,10 @@ import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
+import dev.chrisbanes.haze.glass.GlassAccessibilitySettings
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.LocalGlassAccessibilitySettings
 import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.SurfaceProfile
 import dev.chrisbanes.haze.glass.hazeGlass
@@ -160,6 +162,63 @@ class GlassScreenshotTest : ScreenshotTest() {
     style = style.then { edgeSoftness(18.dp) }
     waitForIdle()
     captureRoot("soft", unmatchedPixelThreshold = 0.01f)
+  }
+
+  @Test
+  fun creditCard_darkEdge() = runScreenshotTest {
+    var style by mutableStateOf(
+      GlassStyle {
+        tint(DefaultTint)
+        specularIntensity(0f)
+        edgeShadow(Color.Black.copy(alpha = 0.28f))
+        edgeSoftness(12.dp)
+      },
+    )
+
+    setContent {
+      ScreenshotTheme {
+        CreditCardGlassSample(style = style)
+      }
+    }
+
+    captureRoot("enabled")
+
+    style = style.then { edgeShadow(Color.Transparent) }
+    waitForIdle()
+    captureRoot("disabled")
+  }
+
+  @Test
+  fun creditCard_accessibilitySettings() = runScreenshotTest {
+    var settings by mutableStateOf(GlassAccessibilitySettings())
+    val style = GlassStyle {
+      tint(DefaultTint)
+      edgeShadow(Color.Transparent)
+      edgeSoftness(0.dp)
+      specularIntensity(0f)
+    }
+
+    setContent {
+      ScreenshotTheme {
+        CompositionLocalProvider(LocalGlassAccessibilitySettings provides settings) {
+          CreditCardGlassSample(style = style)
+        }
+      }
+    }
+
+    captureRoot("default")
+
+    settings = GlassAccessibilitySettings(reduceTransparency = true)
+    waitForIdle()
+    captureRoot("reduce_transparency")
+
+    settings = GlassAccessibilitySettings(increaseContrast = true)
+    waitForIdle()
+    captureRoot("increase_contrast")
+
+    settings = GlassAccessibilitySettings(showBorders = true)
+    waitForIdle()
+    captureRoot("show_borders")
   }
 
   @Test

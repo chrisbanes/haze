@@ -6,6 +6,26 @@ package dev.chrisbanes.haze.glass {
     enum_constant public static final dev.chrisbanes.haze.glass.ChromaticAberrationMode Simple;
   }
 
+  public final class GlassAccessibilityKt {
+    method @InaccessibleFromKotlin public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassAccessibilitySettings> getLocalGlassAccessibilitySettings();
+    property @dev.chrisbanes.haze.ExperimentalHazeApi public static androidx.compose.runtime.ProvidableCompositionLocal<dev.chrisbanes.haze.glass.GlassAccessibilitySettings> LocalGlassAccessibilitySettings;
+  }
+
+  @androidx.compose.runtime.Immutable @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassAccessibilitySettings {
+    ctor public GlassAccessibilitySettings();
+    ctor public GlassAccessibilitySettings(optional boolean reduceTransparency, optional boolean increaseContrast, optional boolean showBorders);
+    method public boolean component1();
+    method public boolean component2();
+    method public boolean component3();
+    method public dev.chrisbanes.haze.glass.GlassAccessibilitySettings copy(optional boolean reduceTransparency, optional boolean increaseContrast, optional boolean showBorders);
+    method @InaccessibleFromKotlin public boolean getIncreaseContrast();
+    method @InaccessibleFromKotlin public boolean getReduceTransparency();
+    method @InaccessibleFromKotlin public boolean getShowBorders();
+    property public boolean increaseContrast;
+    property public boolean reduceTransparency;
+    property public boolean showBorders;
+  }
+
   @dev.chrisbanes.haze.ExperimentalHazeApi public final class GlassDefaults {
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.ChromaticAberrationMode getChromaticAberrationMode();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.glass.GlassOptics getOptics();
@@ -20,6 +40,7 @@ package dev.chrisbanes.haze.glass {
     property public static float chromaticAberrationStrength;
     property public static float contentNormalBlend;
     property public static float contrast;
+    property public androidx.compose.ui.graphics.Color edgeShadow;
     property public androidx.compose.ui.unit.Dp edgeSoftness;
     property public static float fresnelExponent;
     property public static float interactionLightRadiusFraction;
@@ -41,7 +62,7 @@ package dev.chrisbanes.haze.glass {
     field public static final float fresnelExponent = 3.0f;
     field public static final float interactionLightRadiusFraction = 0.7f;
     field public static final float specularExponent = 24.0f;
-    field public static final float specularIntensity = 0.4f;
+    field public static final float specularIntensity = 0.48f;
     field public static final float whitePoint = 0.0f;
   }
 
@@ -120,6 +141,7 @@ package dev.chrisbanes.haze.glass {
     method public void chromaticAberrationStrength(float strength);
     method public void contentNormalBlend(float blend);
     method public void contrast(float contrast);
+    method @KotlinOnly public void edgeShadow(androidx.compose.ui.graphics.Color color);
     method @KotlinOnly public void edgeSoftness(androidx.compose.ui.unit.Dp softness);
     method public void focused(kotlin.jvm.functions.Function1<? super dev.chrisbanes.haze.glass.GlassInteractionScope,kotlin.Unit> response);
     method public void fresnelExponent(float exponent);

@@ -651,6 +651,7 @@ class GlassShadersTest {
     assertThat(shader).doesNotContain("content.eval")
     assertThat(shader).contains("uniform float2 materialOrigin;")
     assertThat(shader).contains("specularIntensity")
+    assertThat(shader).contains("uniform vec4 edgeShadow;")
   }
 
   @Test

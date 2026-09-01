@@ -257,6 +257,17 @@ internal abstract class GlassRuntimeState {
       }
     }
 
+  internal var _edgeShadow: Color = Color.Unspecified
+  internal var edgeShadow: Color
+    get() = _edgeShadow.takeOrElse { inheritedStyleValues.edgeShadow }
+    set(value) {
+      if (_edgeShadow != value) {
+        HazeLogger.d(TAG) { "edgeShadow changed. Current: $_edgeShadow. New: $value" }
+        _edgeShadow = value
+        markDirty(GlassDirtyFields.EdgeShadow)
+      }
+    }
+
   /**
    * Strength of ambient lighting response and Fresnel accent.
    *
@@ -640,6 +651,15 @@ internal abstract class GlassRuntimeState {
       updateInheritedStyleValues()
     }
 
+  internal var accessibilitySettings: GlassAccessibilitySettings = GlassAccessibilitySettings()
+    set(value) {
+      if (field != value) {
+        HazeLogger.d(TAG) { "Glass accessibility changed. Current: $field. New: $value" }
+        field = value
+        markDirty(GlassDirtyFields.Accessibility)
+      }
+    }
+
   private var inheritedStyleValues: GlassStyleValues =
     resolveGlassStyleValues(compositionLocalStyle, style)
 
@@ -667,6 +687,9 @@ internal abstract class GlassRuntimeState {
     }
     if (old.specularIntensity != new.specularIntensity) {
       markDirty(GlassDirtyFields.SpecularIntensity)
+    }
+    if (old.edgeShadow != new.edgeShadow) {
+      markDirty(GlassDirtyFields.EdgeShadow)
     }
     if (old.ambientResponse != new.ambientResponse) {
       markDirty(GlassDirtyFields.AmbientResponse)

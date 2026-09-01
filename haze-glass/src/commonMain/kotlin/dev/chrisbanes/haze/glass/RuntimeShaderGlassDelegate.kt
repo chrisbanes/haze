@@ -1746,7 +1746,9 @@ internal class RuntimeShaderGlassDelegate(
 
   private fun updateRimEffect(nextRimKey: GlassRimEffectKey?) {
     if (nextRimKey != rimKey) {
-      rimEffect = nextRimKey?.takeIf { it.specularIntensity > 0f }?.let { key ->
+      rimEffect = nextRimKey?.takeIf {
+        it.specularIntensity > 0f || it.edgeShadow.alpha > 0f
+      }?.let { key ->
         val shader = rimShader ?: traceCreateRenderEffect {
           createRetainedGlassRimRenderEffect()
         }.also { rimShader = it }
@@ -2271,6 +2273,13 @@ internal fun RuntimeShaderUniformProvider.setRimUniforms(
 ) {
   setCommonUniforms(key.coordinates, key.sampleStepPx, key.edgeSoftnessPx, key.cornerRadii)
   setFloatUniform("specularIntensity", key.specularIntensity)
+  setFloatUniform(
+    "edgeShadow",
+    key.edgeShadow.red,
+    key.edgeShadow.green,
+    key.edgeShadow.blue,
+    key.edgeShadow.alpha,
+  )
   setFloatUniform("specularExponent", key.specularExponent)
   setFloatUniform(
     "lightPosition",

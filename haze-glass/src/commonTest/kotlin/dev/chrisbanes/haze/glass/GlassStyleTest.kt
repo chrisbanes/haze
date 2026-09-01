@@ -505,10 +505,23 @@ class GlassStyleTest {
   }
 
   @Test
+  fun edgeShadow_recordsSpecifiedColorAndRejectsUnspecified() {
+    val shadow = Color.Black.copy(alpha = 0.25f)
+
+    assertThat(resolveGlassStyleValues(GlassStyle, GlassStyle { edgeShadow(shadow) }).edgeShadow)
+      .isEqualTo(shadow)
+    assertFailure { GlassStyle { edgeShadow(Color.Unspecified) } }.apply {
+      isInstanceOf<IllegalArgumentException>()
+      hasMessage("edgeShadow must be specified")
+    }
+  }
+
+  @Test
   fun emptyStyles_resolveToGlassDefaults() {
     val values = resolveGlassStyleValues(GlassStyle, GlassStyle)
 
     assertThat(values.specularIntensity).isEqualTo(GlassDefaults.specularIntensity)
+    assertThat(values.edgeShadow).isEqualTo(GlassDefaults.edgeShadow)
     assertThat(values.ambientResponse).isEqualTo(GlassDefaults.ambientResponse)
     assertThat(values.backgroundColor).isEqualTo(GlassDefaults.backgroundColor)
     assertThat(values.tint).isEqualTo(GlassDefaults.tint)
@@ -536,6 +549,7 @@ class GlassStyleTest {
     assertThat(clear.optics).isNotEqualTo(regular.optics)
     assertThat(clear.edgeSoftness).isNotEqualTo(regular.edgeSoftness)
     assertThat(clear.specularIntensity).isNotEqualTo(regular.specularIntensity)
+    assertThat(clear.edgeShadow).isNotEqualTo(regular.edgeShadow)
   }
 
   @Test
@@ -547,6 +561,7 @@ class GlassStyleTest {
     assertThat(regular.surfaceProfile).isEqualTo(defaults.surfaceProfile)
     assertThat(regular.edgeSoftness).isEqualTo(defaults.edgeSoftness)
     assertThat(regular.specularIntensity).isEqualTo(defaults.specularIntensity)
+    assertThat(regular.edgeShadow).isEqualTo(defaults.edgeShadow)
     assertThat(regular.specularExponent).isEqualTo(defaults.specularExponent)
     assertThat(regular.fresnelExponent).isEqualTo(defaults.fresnelExponent)
     assertThat(regular.ambientResponse).isEqualTo(defaults.ambientResponse)
@@ -573,6 +588,7 @@ class GlassStyleTest {
       surfaceProfile(SurfaceProfile.Squircle)
       edgeSoftness(12.dp)
       specularIntensity(0.1f)
+      edgeShadow(Color.Transparent)
       specularExponent(8f)
       fresnelExponent(1f)
       ambientResponse(0.1f)
@@ -592,6 +608,7 @@ class GlassStyleTest {
       assertThat(resolved.surfaceProfile).isEqualTo(expected.surfaceProfile)
       assertThat(resolved.edgeSoftness).isEqualTo(expected.edgeSoftness)
       assertThat(resolved.specularIntensity).isEqualTo(expected.specularIntensity)
+      assertThat(resolved.edgeShadow).isEqualTo(expected.edgeShadow)
       assertThat(resolved.specularExponent).isEqualTo(expected.specularExponent)
       assertThat(resolved.fresnelExponent).isEqualTo(expected.fresnelExponent)
       assertThat(resolved.ambientResponse).isEqualTo(expected.ambientResponse)

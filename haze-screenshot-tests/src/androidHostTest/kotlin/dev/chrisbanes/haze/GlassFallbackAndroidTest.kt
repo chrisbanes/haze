@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -28,9 +29,11 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThanOrEqualTo
+import dev.chrisbanes.haze.glass.GlassAccessibilitySettings
 import dev.chrisbanes.haze.glass.GlassOptics
 import dev.chrisbanes.haze.glass.GlassReducedMotionPolicy
 import dev.chrisbanes.haze.glass.GlassStyle
+import dev.chrisbanes.haze.glass.LocalGlassAccessibilitySettings
 import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.hazeGlass
 import dev.chrisbanes.haze.test.ScreenshotTest
@@ -147,6 +150,58 @@ class GlassFallbackAndroidTest : ScreenshotTest() {
   }
 
   @Test
+  fun fallback_showBordersDrawsEdgeForHardEdgeStyle() = runScreenshotTest {
+    var settings by mutableStateOf(GlassAccessibilitySettings())
+    val style = GlassStyle {
+      tint(Color.Transparent)
+      edgeShadow(Color.Transparent)
+      edgeSoftness(0.dp)
+      specularIntensity(0f)
+    }
+    setContent {
+      ScreenshotTheme {
+        CompositionLocalProvider(LocalGlassAccessibilitySettings provides settings) {
+          FallbackBuiltInStyleSample(style)
+        }
+      }
+    }
+
+    val hidden = captureRootPixels().snapshot()
+    settings = GlassAccessibilitySettings(showBorders = true)
+    waitForIdle()
+    val visible = captureRootPixels().snapshot()
+    captureRoot("visible")
+
+    assertThat(visible.changedPixelRatio(hidden)).isGreaterThan(0.001f)
+  }
+
+  @Test
+  fun fallback_hardEdgeShadowRemainsVisible() = runScreenshotTest {
+    var edgeShadowColor by mutableStateOf(Color.Transparent)
+    setContent {
+      ScreenshotTheme {
+        FallbackBuiltInStyleSample(
+          GlassStyle {
+            tint(Color.Transparent)
+            edgeShadow(edgeShadowColor)
+            edgeSoftness(0.dp)
+            specularIntensity(0f)
+            ambientResponse(0f)
+          },
+        )
+      }
+    }
+
+    val hidden = captureRootPixels().snapshot()
+    edgeShadowColor = Color.Black.copy(alpha = 0.32f)
+    waitForIdle()
+    val visible = captureRootPixels().snapshot()
+    captureRoot("visible")
+
+    assertThat(visible.changedPixelRatio(hidden)).isGreaterThan(0.001f)
+  }
+
+  @Test
   fun fallback_roundedPressedLightingDrawsOverOpaqueContent_api28() {
     assertRoundedPressedLightingDrawsOverOpaqueContent()
   }
@@ -239,6 +294,7 @@ private fun FallbackBuiltInStyleSample(style: GlassStyle) {
 }
 
 private fun fallbackEffect(specularIntensity: Float): GlassTestConfiguration = GlassTestConfiguration().apply {
+  style = GlassStyle { edgeShadow(Color.Transparent) }
   tint = Color.Transparent
   optics = GlassOptics(refractionStrength = 0f, depth = OpticalSizeValue.Fixed(0f), blurRadius = OpticalSizeValue.Fixed(0.dp))
   this.specularIntensity = specularIntensity
