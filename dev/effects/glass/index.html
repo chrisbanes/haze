@@ -723,6 +723,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#accessibility-preferences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessibility preferences
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#light-alignment" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1318,6 +1329,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#accessibility-preferences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessibility preferences
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#light-alignment" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1515,7 +1537,9 @@ they do not promise pixel parity with another system.</p>
 <li><strong>refractionDetailIntensity</strong>: Secondary edge-refraction detail strength <code>0..1</code>. <code>0</code> disables the
   detail pass. Caller-authored <code>GlassOptics</code> defaults to <code>0.76</code>; Regular uses <code>0</code>, and Clear uses
   <code>0.76</code>. Non-zero values may retain additional rendering layers on full renderers.</li>
-<li><strong>specularIntensity</strong>: Highlight strength <code>0..1</code> (default 0.4).</li>
+<li><strong>specularIntensity</strong>: Highlight strength <code>0..1</code> (default 0.48).</li>
+<li><strong>edgeShadow</strong>: Shape-following dark rim composited beneath the specular highlight (defaults to
+  black at 14% opacity). Its alpha controls strength; set <code>Color.Transparent</code> to disable it.</li>
 <li><strong>ambientResponse</strong>: Fresnel/edge lift <code>0..1</code> (default 0.46).</li>
 <li><strong>edgeSoftness</strong>: Soft fade at the edges (default 2.dp). Set to 0.dp for hard edges.</li>
 <li><strong>shape</strong> (<code>RoundedCornerShape</code>): Rounded-rect boundary for refraction and masking (default 16.dp corners).</li>
@@ -1535,6 +1559,25 @@ provide a replacement Style through recomposition when the appearance changes. V
 the replacement fall back to <code>LocalGlassStyle</code> and then the individual <code>GlassDefaults</code> values.</p>
 <p>A Style captures its inputs when it is constructed. Changing captured state does not update an
 existing Style; construct and provide a replacement instead.</p>
+<h3 id="accessibility-preferences">Accessibility preferences<a class="headerlink" href="#accessibility-preferences" title="Permanent link">¶</a></h3>
+<p>Haze leaves platform accessibility-service integration to the host application, then accepts its
+semantic result through <code>LocalGlassAccessibilitySettings</code>. This keeps the common API portable and
+does not attempt to reproduce another platform's system controls. Provide settings at the subtree
+where Glass is used:</p>
+<div class="highlight"><pre><span></span><code><span class="n">CompositionLocalProvider</span><span class="p">(</span>
+<span class="w">  </span><span class="n">LocalGlassAccessibilitySettings</span><span class="w"> </span><span class="n">provides</span><span class="w"> </span><span class="n">GlassAccessibilitySettings</span><span class="p">(</span>
+<span class="w">    </span><span class="n">reduceTransparency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reduceTransparency</span><span class="p">,</span>
+<span class="w">    </span><span class="n">increaseContrast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">increaseContrast</span><span class="p">,</span>
+<span class="w">    </span><span class="n">showBorders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">showBorders</span><span class="p">,</span>
+<span class="w">  </span><span class="p">),</span>
+<span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Glass here reduces background diffusion or strengthens its separating edge when requested.</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The default settings preserve the authored Style exactly. These preferences are applied at render
+resolution, so they do not mutate or replace the Style supplied by your app. Reduced Transparency
+reduces the authored blur contribution. Increased Contrast and Show Borders enforce a visible edge,
+even when the authored Style has zero edge softness.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">baseStyle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GlassStyle</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">backgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">)</span>
 <span class="w">  </span><span class="n">tint</span><span class="p">(</span><span class="n">Color</span><span class="p">.</span><span class="na">White</span><span class="p">.</span><span class="na">copy</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.16f</span><span class="p">))</span>
