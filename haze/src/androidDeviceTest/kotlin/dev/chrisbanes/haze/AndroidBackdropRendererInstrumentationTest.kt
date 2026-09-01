@@ -327,12 +327,9 @@ class AndroidBackdropRendererInstrumentationTest {
 
       root.addView(source, centered)
       root.addView(backdrop, FrameLayout.LayoutParams(centered))
-      View::class.java
-        .getMethod("setBackdropRenderEffect", RenderEffect::class.java)
-        .invoke(
-          backdrop,
-          RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP),
-        )
+      backdrop.setBackdropRenderEffect(
+        RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP),
+      )
       activity.setContentView(root)
       backdropView = backdrop
     }
@@ -436,9 +433,7 @@ class AndroidBackdropRendererInstrumentationTest {
 
     fun fullSdkInt(): Int {
       if (Build.VERSION.SDK_INT < 36) return Build.VERSION.SDK_INT * 100_000
-      return runCatching {
-        Build.VERSION::class.java.getField("SDK_INT_FULL").getInt(null)
-      }.getOrElse { Build.VERSION.SDK_INT * 100_000 }
+      return Build.VERSION.SDK_INT_FULL
     }
   }
 }

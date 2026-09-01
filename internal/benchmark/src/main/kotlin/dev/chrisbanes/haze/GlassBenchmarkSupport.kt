@@ -47,12 +47,13 @@ private fun isBackdropSdkSupported(): Boolean {
   val fullSdkInt = if (Build.VERSION.SDK_INT < 36) {
     Build.VERSION.SDK_INT * 100_000
   } else {
-    runCatching {
-      Build.VERSION::class.java.getField("SDK_INT_FULL").getInt(null)
-    }.getOrElse { Build.VERSION.SDK_INT * 100_000 }
+    Build.VERSION.SDK_INT_FULL
   }
-  return fullSdkInt >= 3_700_002 ||
-    (fullSdkInt == 3_700_001 && Build.VERSION.PREVIEW_SDK_INT == 3_723)
+  return fullSdkInt >= Build.VERSION_CODES_FULL.CINNAMON_BUN_2 ||
+    (
+      fullSdkInt == Build.VERSION_CODES_FULL.CINNAMON_BUN_1 &&
+        Build.VERSION.PREVIEW_SDK_INT == 3_723
+      )
 }
 
 @OptIn(ExperimentalMetricApi::class)

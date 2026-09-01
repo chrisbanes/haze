@@ -31,8 +31,7 @@ internal interface HazeBackdropRenderer {
 @InternalHazeApi
 internal expect fun createHazeBackdropRenderer(): HazeBackdropRenderer
 
-// Build.VERSION_CODES_FULL.CINNAMON_BUN_2 is unavailable in the locally installed 37.0 SDK.
-// Android full SDK versions encode 37.2 as 3_700_002 (the micro release occupies the low digits).
+// Platform-neutral equivalent of Build.VERSION_CODES_FULL.CINNAMON_BUN_2 for common tests.
 @InternalHazeApi
 internal const val HAZE_BACKDROP_MIN_FULL_SDK = 3_700_002
 

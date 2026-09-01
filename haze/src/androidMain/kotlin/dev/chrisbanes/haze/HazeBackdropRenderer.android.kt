@@ -6,39 +6,31 @@
 package dev.chrisbanes.haze
 
 import android.graphics.Rect as AndroidRect
+import android.graphics.RenderNode
 import android.os.Build
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.nativeCanvas
-import java.lang.reflect.Method
 import kotlin.math.ceil
 import kotlin.math.floor
 
-/**
- * Android's backdrop RenderNode API is introduced in the second 37.x platform release. The
- * library currently compiles against a 37.0 SDK, so resolving and invoking that method through
- * reflection keeps older devices safe while retaining the exact public platform API at runtime.
- */
 @InternalHazeApi
 internal actual fun createHazeBackdropRenderer(): HazeBackdropRenderer =
-  AndroidHazeBackdropRenderer()
+  if (isAndroidBackdropSdkSupported()) {
+    AndroidHazeBackdropRenderer()
+  } else {
+    UnavailableHazeBackdropRenderer
+  }
 
 private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
-  private var renderNode: Any? = null
-  private var drawRenderNode: Method? = null
-  private var setPosition: Method? = null
-  private var setClipToBounds: Method? = null
-  private var setClipRect: Method? = null
-  private var setAlpha: Method? = null
-  private var setBackdropRenderEffect: Method? = null
-  private var beginRecording: Method? = null
-  private var endRecording: Method? = null
-  private var discardDisplayList: Method? = null
+  private var renderNode: RenderNode? = null
 
   override fun isSupported(canvas: Canvas): Boolean {
     if (!canvas.nativeCanvas.isHardwareAccelerated) return false
-    if (!isHazeBackdropSdkSupported(fullSdkInt(), Build.VERSION.PREVIEW_SDK_INT)) return false
-    return resolveReflection()
+    if (renderNode == null) {
+      renderNode = RenderNode("HazeBackdrop")
+    }
+    return true
   }
 
   override fun configure(
@@ -56,11 +48,10 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
     val height = bottom - top
     if (width <= 0 || height <= 0) return false
 
-    setPosition?.invoke(node, left, top, right, bottom)
-    setClipToBounds?.invoke(node, clip != null)
+    node.setPosition(left, top, right, bottom)
+    node.setClipToBounds(clip != null)
     if (clip != null) {
-      setClipRect?.invoke(
-        node,
+      node.setClipRect(
         AndroidRect(
           floor(clip.left - left).toInt(),
           floor(clip.top - top).toInt(),
@@ -69,86 +60,49 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
         ),
       )
     }
-    setAlpha?.invoke(node, alpha)
-    setBackdropRenderEffect?.invoke(node, effect)
+    node.setAlpha(alpha)
+    node.setBackdropRenderEffect(effect)
 
     // A transparent SRC_OVER draw leaves the node visually empty but keeps its backdrop filter
     // composited. Recording a CLEAR operation instead suppresses the backdrop on Android 37.2.
-    val recordingCanvas = beginRecording?.invoke(node, width, height)
-    if (recordingCanvas == null) return false
-    val drawColor = recordingCanvas.javaClass.getMethod(
-      "drawColor",
-      Int::class.javaPrimitiveType,
-    )
-    drawColor.invoke(recordingCanvas, android.graphics.Color.TRANSPARENT)
-    endRecording?.invoke(node)
+    val recordingCanvas = node.beginRecording(width, height)
+    recordingCanvas.drawColor(android.graphics.Color.TRANSPARENT)
+    node.endRecording()
     return true
   }
 
   override fun draw(canvas: Canvas): Boolean {
     val node = renderNode ?: return false
-    val drawMethod = drawRenderNode ?: return false
     if (!canvas.nativeCanvas.isHardwareAccelerated) return false
-    drawMethod.invoke(canvas.nativeCanvas, node)
+    canvas.nativeCanvas.drawRenderNode(node)
     return true
   }
 
   override fun release() {
-    renderNode?.let { discardDisplayList?.invoke(it) }
+    renderNode?.discardDisplayList()
     renderNode = null
-    drawRenderNode = null
-    setPosition = null
-    setClipToBounds = null
-    setClipRect = null
-    setAlpha = null
-    setBackdropRenderEffect = null
-    beginRecording = null
-    endRecording = null
-    discardDisplayList = null
   }
+}
 
-  private fun resolveReflection(): Boolean {
-    if (renderNode != null) return true
+private object UnavailableHazeBackdropRenderer : HazeBackdropRenderer {
+  override fun isSupported(canvas: Canvas): Boolean = false
 
-    return try {
-      val nodeClass = Class.forName("android.graphics.RenderNode")
-      val node = nodeClass.getConstructor(String::class.java).newInstance("HazeBackdropPrototype")
-      val nativeCanvasClass = Class.forName("android.graphics.Canvas")
-      val renderEffectClass = Class.forName("android.graphics.RenderEffect")
+  override fun configure(
+    bounds: Rect,
+    clip: Rect?,
+    effect: PlatformRenderEffect,
+    alpha: Float,
+  ): Boolean = false
 
-      renderNode = node
-      drawRenderNode = nativeCanvasClass.getMethod("drawRenderNode", nodeClass)
-      setPosition = nodeClass.getMethod(
-        "setPosition",
-        Int::class.javaPrimitiveType,
-        Int::class.javaPrimitiveType,
-        Int::class.javaPrimitiveType,
-        Int::class.javaPrimitiveType,
-      )
-      setClipToBounds = nodeClass.getMethod("setClipToBounds", Boolean::class.javaPrimitiveType)
-      setClipRect = nodeClass.getMethod("setClipRect", AndroidRect::class.java)
-      setAlpha = nodeClass.getMethod("setAlpha", Float::class.javaPrimitiveType)
-      setBackdropRenderEffect = nodeClass.getMethod("setBackdropRenderEffect", renderEffectClass)
-      beginRecording = nodeClass.getMethod(
-        "beginRecording",
-        Int::class.javaPrimitiveType,
-        Int::class.javaPrimitiveType,
-      )
-      endRecording = nodeClass.getMethod("endRecording")
-      discardDisplayList = nodeClass.getMethod("discardDisplayList")
-      true
-    } catch (_: ReflectiveOperationException) {
-      release()
-      false
-    }
-  }
+  override fun draw(canvas: Canvas): Boolean = false
 
-  private companion object {
-    fun fullSdkInt(): Int {
-      if (Build.VERSION.SDK_INT < 36) return Build.VERSION.SDK_INT * 100_000
-      return runCatching {
-        Build.VERSION::class.java.getField("SDK_INT_FULL").getInt(null)
-      }.getOrElse { Build.VERSION.SDK_INT * 100_000 }
-    }
-  }
+  override fun release() = Unit
+}
+
+private fun isAndroidBackdropSdkSupported(): Boolean {
+  if (Build.VERSION.SDK_INT < 36) return false
+  return isHazeBackdropSdkSupported(
+    fullSdkInt = Build.VERSION.SDK_INT_FULL,
+    previewSdkInt = Build.VERSION.PREVIEW_SDK_INT,
+  )
 }
