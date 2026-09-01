@@ -11,9 +11,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -22,7 +22,6 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
 import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.asBrush
-import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.blendForeground
 import dev.chrisbanes.haze.createBlendColorFilter
 import dev.chrisbanes.haze.createBlendRenderEffect
@@ -32,6 +31,7 @@ import dev.chrisbanes.haze.createOffsetRenderEffect
 import dev.chrisbanes.haze.createProgressiveBlurRenderEffect
 import dev.chrisbanes.haze.createShaderRenderEffect
 import dev.chrisbanes.haze.isRuntimeShaderRenderEffectSupported
+import dev.chrisbanes.haze.then
 import dev.chrisbanes.haze.toPlatformColorFilter
 
 @RequiresApi(31)
@@ -39,7 +39,7 @@ internal fun createRenderEffect(
   context: PlatformContext,
   density: Density,
   params: RenderEffectParams,
-): RenderEffect {
+): PlatformRenderEffect {
   val blurRadius = params.blurRadius * params.scale
   require(blurRadius >= 0.dp) { "blurRadius needs to be equal or greater than 0.dp" }
   val size = ceil(params.contentSize * params.scale)
@@ -48,22 +48,41 @@ internal fun createRenderEffect(
   val blurRadiusPx = params.resolveBlurRadiusPx(density)
   val progressiveShader = params.progressive?.asBrush()?.toShader(size)
 
+  val input: PlatformRenderEffect? = if (
+    params.backgroundColor.isSpecified && params.backgroundColor.alpha > 0f
+  ) {
+    Brush.linearGradient(listOf(params.backgroundColor, params.backgroundColor))
+      .toShader(size)
+      ?.let(::createShaderRenderEffect)
+      ?.let { background ->
+        createBlendRenderEffect(
+          blendMode = BlendMode.SrcOver,
+          background = background,
+          foreground = createOffsetRenderEffect(0f, 0f),
+        )
+      }
+  } else {
+    null
+  }
+
   val blur = if (progressiveShader != null && isRuntimeShaderRenderEffectSupported()) {
     // If we've been provided with a progressive/gradient blur shader, we need to use
     // our custom blur via a runtime shader (requires runtime shader support)
-    createProgressiveBlurRenderEffect(
+    val progressive = createProgressiveBlurRenderEffect(
       blurRadiusPx = blurRadiusPx,
       size = size,
       offset = offset,
       mask = progressiveShader,
     )
+    input?.then(progressive) ?: progressive
   } else {
     // Platform-specific blur creation
     createBlurRenderEffect(
       radiusX = blurRadiusPx,
       radiusY = blurRadiusPx,
       tileMode = params.blurTileMode,
-    ) ?: createOffsetRenderEffect(0f, 0f)
+      input = input,
+    ) ?: input ?: createOffsetRenderEffect(0f, 0f)
   }
 
   val combinedNoiseTintEffect = params.combinedNoiseTintColor()?.let { tintColor ->
@@ -107,7 +126,7 @@ internal fun createRenderEffect(
     masked
   }
 
-  return result.asComposeRenderEffect()
+  return result
 }
 
 internal fun Float.hasVisibleNoise(): Boolean = this > 0f

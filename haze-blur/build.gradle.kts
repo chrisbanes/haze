@@ -63,8 +63,10 @@ kotlin {
       dependencies {
         implementation(libs.assertk)
         implementation(libs.androidx.activity)
+        implementation(libs.androidx.activity.compose)
         implementation(libs.androidx.compose.ui.test.junit4)
         implementation(libs.androidx.compose.ui.test.manifest)
+        implementation(libs.androidx.test.runner)
         implementation(libs.compose.foundation)
         implementation(projects.internal.contextTest) {
           exclude(group = "org.robolectric", module = "robolectric")

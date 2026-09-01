@@ -657,9 +657,8 @@ internal class HazeEffectNode :
       return
     }
 
-    prepareEffectDraw()
-    val backdrop = preparedBackdropEffect()
-    if (backdrop == null) {
+    val capability = typedEffectRenderer as? HazeEffectRendererBackdrop<Any?>
+    if (capability == null) {
       activateBackdropFallback(failed = false)
       withVisualEffectTransform { drawContentSafely() }
       return
@@ -679,6 +678,13 @@ internal class HazeEffectNode :
       if (!backdropBackendState.usesFallback) {
         activateBackdropFallback(failed = false)
       }
+      withVisualEffectTransform { drawContentSafely() }
+      return
+    }
+
+    val backdrop = preparedBackdropEffect(capability)
+    if (backdrop == null) {
+      activateBackdropFallback(failed = false)
       withVisualEffectTransform { drawContentSafely() }
       return
     }
@@ -714,9 +720,9 @@ internal class HazeEffectNode :
   }
 
   @OptIn(InternalHazeApi::class)
-  private fun ContentDrawScope.preparedBackdropEffect(): HazeEffectBackdrop? {
-    val renderer = typedEffectRenderer ?: return null
-    val capability = renderer as? HazeEffectRendererBackdrop<Any?> ?: return null
+  private fun ContentDrawScope.preparedBackdropEffect(
+    capability: HazeEffectRendererBackdrop<Any?>,
+  ): HazeEffectBackdrop? {
     val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
     return with(capability) { scope.backdropEffect(typedEffectStyle) }
   }

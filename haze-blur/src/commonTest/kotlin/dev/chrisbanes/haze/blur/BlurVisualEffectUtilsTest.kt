@@ -111,6 +111,16 @@ class BlurVisualEffectUtilsTest {
   }
 
   @Test
+  fun renderEffectCacheKey_tracksBackdropBackgroundColor() {
+    val density = Density(2f)
+
+    assertThat(renderEffectParams(backgroundColor = Color.Red).renderEffectCacheKey(density))
+      .isNotEqualTo(
+        renderEffectParams(backgroundColor = Color.Blue).renderEffectCacheKey(density),
+      )
+  }
+
+  @Test
   fun renderEffectCacheKey_canonicalizesDisabledNoise() {
     val density = Density(2f)
     val key = renderEffectParams(noiseFactor = 0f).renderEffectCacheKey(density)
@@ -136,6 +146,7 @@ class BlurVisualEffectUtilsTest {
     noiseFactor: Float = 0.15f,
     contentSize: Size = Size(640f, 480f),
     contentOffset: Offset = Offset(8f, 4f),
+    backgroundColor: Color = Color.Transparent,
     mask: Brush? = null,
     progressive: HazeProgressive? = null,
   ) = RenderEffectParams(
@@ -145,6 +156,7 @@ class BlurVisualEffectUtilsTest {
     contentSize = contentSize,
     contentOffset = contentOffset,
     colorEffects = colorEffects,
+    backgroundColor = backgroundColor,
     mask = mask,
     progressive = progressive,
     blurTileMode = TileMode.Clamp,

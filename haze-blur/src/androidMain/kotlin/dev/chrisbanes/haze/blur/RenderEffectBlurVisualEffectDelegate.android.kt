@@ -18,6 +18,7 @@ import dev.chrisbanes.haze.HazeLogger
 import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.asBrush
+import dev.chrisbanes.haze.asComposeRenderEffect
 import dev.chrisbanes.haze.withGraphicsLayer
 
 @OptIn(InternalHazeApi::class)
@@ -33,11 +34,13 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
 ) {
   if (USE_RUNTIME_SHADER && Build.VERSION.SDK_INT >= 33) {
     with(drawScope) {
-      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
-        context = context,
-        inputScale = inputScale,
-        progressive = progressive,
-      )
+      contentLayer.renderEffect = blurVisualEffect
+        .getOrCreateRenderEffect(
+          context = context,
+          inputScale = inputScale,
+          progressive = progressive,
+        )
+        .asComposeRenderEffect()
       contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
@@ -58,12 +61,14 @@ internal actual fun RenderEffectBlurVisualEffectDelegate.drawProgressiveEffect(
   } else {
     // Otherwise draw the masked blur over its input, preserving unblurred regions.
     with(drawScope) {
-      contentLayer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
-        context = context,
-        inputScale = inputScale,
-        mask = progressive.asBrush(),
-        retainInputWhenMasked = progressive is RootHazeProgressive.LinearGradient,
-      )
+      contentLayer.renderEffect = blurVisualEffect
+        .getOrCreateRenderEffect(
+          context = context,
+          inputScale = inputScale,
+          mask = progressive.asBrush(),
+          retainInputWhenMasked = progressive is RootHazeProgressive.LinearGradient,
+        )
+        .asComposeRenderEffect()
       contentLayer.alpha = blurVisualEffect.alpha
 
       // Finally draw the layer
@@ -93,15 +98,17 @@ private fun RenderEffectBlurVisualEffectDelegate.drawLinearGradientProgressiveEf
         "drawLinearGradientProgressiveEffectUsingLayers. mask=$mask, intensity=$intensity"
       }
 
-      layer.renderEffect = blurVisualEffect.getOrCreateRenderEffect(
-        context = context,
-        inputScale = inputScale,
-        blurRadius = blurRadius * intensity,
-        noiseFactor = noiseFactor,
-        colorEffects = colorEffects.orEmpty(),
-        colorEffectsAlphaModulate = intensity,
-        mask = mask,
-      )
+      layer.renderEffect = blurVisualEffect
+        .getOrCreateRenderEffect(
+          context = context,
+          inputScale = inputScale,
+          blurRadius = blurRadius * intensity,
+          noiseFactor = noiseFactor,
+          colorEffects = colorEffects.orEmpty(),
+          colorEffectsAlphaModulate = intensity,
+          mask = mask,
+        )
+        .asComposeRenderEffect()
       layer.alpha = blurVisualEffect.alpha
 
       // Since we included a border around the content, we need to translate so that
