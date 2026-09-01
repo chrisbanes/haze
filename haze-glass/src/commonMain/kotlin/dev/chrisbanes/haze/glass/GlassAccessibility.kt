@@ -17,8 +17,11 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 @ExperimentalHazeApi
 @Immutable
 public data class GlassAccessibilitySettings(
+  /** Reduces the resolved blur radius used by Glass materials. */
   val reduceTransparency: Boolean = false,
+  /** Enforces minimum tone contrast and edge separation. */
   val increaseContrast: Boolean = false,
+  /** Enforces a visible edge without changing tone contrast. */
   val showBorders: Boolean = false,
 )
 

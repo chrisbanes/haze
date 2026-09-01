@@ -102,14 +102,20 @@ internal class FallbackGlassDelegate(
         )
       }
 
-      val edgeStroke = when {
-        style.edgeSoftnessPx <= 0f -> null
-        previous?.style?.edgeSoftnessPx == style.edgeSoftnessPx -> previous.edgeStroke
-        else -> Stroke(width = style.edgeSoftnessPx * 2f)
-      }
       val edgeShadowAlpha = style.edgeShadow.alpha * style.alpha
+      val edgeStrokeSoftnessPx = when {
+        style.edgeSoftnessPx > 0f -> style.edgeSoftnessPx
+        edgeShadowAlpha > 0f -> FALLBACK_HARD_EDGE_SOFTNESS_PX
+        else -> 0f
+      }
+      val edgeStroke = when {
+        edgeStrokeSoftnessPx <= 0f -> null
+        previous?.edgeStroke != null &&
+          previous.style.edgeSoftnessPx == style.edgeSoftnessPx -> previous.edgeStroke
+        else -> Stroke(width = edgeStrokeSoftnessPx * 2f)
+      }
       val edgeShadowBrush = when {
-        style.edgeSoftnessPx <= 0f || edgeShadowAlpha <= 0f -> null
+        edgeShadowAlpha <= 0f -> null
         previous?.edgeShadowAlpha == edgeShadowAlpha &&
           previous.style.edgeShadow == style.edgeShadow -> previous.edgeShadowBrush
         else -> SolidColor(style.edgeShadow.copy(alpha = edgeShadowAlpha))
@@ -331,6 +337,8 @@ private fun DrawScope.drawFallbackEdge(
 }
 
 internal fun fallbackEdgeAlpha(ambientResponse: Float): Float = 0.18f * ambientResponse
+
+private const val FALLBACK_HARD_EDGE_SOFTNESS_PX = 2f
 
 private data class FallbackGlassPreparedDraw(
   val size: Size,

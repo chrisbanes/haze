@@ -322,6 +322,7 @@ class FallbackGlassDelegateTest {
     assertThat(stable.highlightBrush).isSameInstanceAs(first.highlightBrush)
     assertThat(stable.edgeBrush).isSameInstanceAs(first.edgeBrush)
     assertThat(stable.edgeStroke).isSameInstanceAs(first.edgeStroke)
+    assertThat(stable.edgeShadowBrush).isSameInstanceAs(first.edgeShadowBrush)
 
     effect.lightPosition = exactLightAlignment(Offset(24f, 36f))
     delegate.prepare(context)
@@ -332,6 +333,7 @@ class FallbackGlassDelegateTest {
     assertThat(movedLight.shapePath).isSameInstanceAs(stable.shapePath)
     assertThat(movedLight.edgeBrush).isSameInstanceAs(stable.edgeBrush)
     assertThat(movedLight.edgeStroke).isSameInstanceAs(stable.edgeStroke)
+    assertThat(movedLight.edgeShadowBrush).isSameInstanceAs(stable.edgeShadowBrush)
 
     effect.ambientResponse = 0.5f
     delegate.prepare(context)
@@ -340,6 +342,7 @@ class FallbackGlassDelegateTest {
     assertThat(changedEdge.highlightBrush).isSameInstanceAs(movedLight.highlightBrush)
     assertThat(changedEdge.edgeBrush).isNotSameInstanceAs(movedLight.edgeBrush)
     assertThat(changedEdge.edgeStroke).isSameInstanceAs(movedLight.edgeStroke)
+    assertThat(changedEdge.edgeShadowBrush).isSameInstanceAs(movedLight.edgeShadowBrush)
     assertThat(changedEdge.shapePath).isSameInstanceAs(movedLight.shapePath)
 
     effect.edgeSoftness = 0.dp
@@ -348,7 +351,8 @@ class FallbackGlassDelegateTest {
 
     assertThat(noEdge.edgeBrush).isNull()
     assertThat(noEdge.edgeDirectBrush).isNull()
-    assertThat(noEdge.edgeStroke).isNull()
+    assertThat(noEdge.edgeStroke).isNotNull()
+    assertThat(noEdge.edgeShadowBrush).isNotNull()
 
     effect.edgeSoftness = 8.dp
     delegate.prepare(context)
@@ -400,6 +404,7 @@ class FallbackGlassDelegateTest {
       edgeBrush = field("edgeBrush"),
       edgeDirectBrush = field("edgeDirectBrush"),
       edgeStroke = field("edgeStroke"),
+      edgeShadowBrush = field("edgeShadowBrush"),
     )
   }
 
@@ -436,6 +441,7 @@ private data class PreparedResourcesForTest(
   val edgeBrush: Any?,
   val edgeDirectBrush: Any?,
   val edgeStroke: Any?,
+  val edgeShadowBrush: Any?,
 )
 
 private const val FALLBACK_TAG = "fallback"
