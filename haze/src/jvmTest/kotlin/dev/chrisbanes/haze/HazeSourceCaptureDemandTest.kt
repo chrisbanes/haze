@@ -32,7 +32,7 @@ class HazeSourceCaptureDemandTest {
     val state = HazeState()
 
     setContent {
-      source(state)
+      Source(state)
     }
     waitForIdle()
 
@@ -50,8 +50,8 @@ class HazeSourceCaptureDemandTest {
 
     setContent {
       Box(Modifier.size(100.dp)) {
-        source(state)
-        effect(state, factory)
+        Source(state)
+        Effect(state, factory)
       }
     }
     waitForIdle()
@@ -70,9 +70,9 @@ class HazeSourceCaptureDemandTest {
 
     setContent {
       Box(Modifier.size(100.dp)) {
-        source(state)
-        if (showFirst.value) effect(state, DemandRecordingFactory())
-        if (showSecond.value) effect(state, DemandRecordingFactory())
+        Source(state)
+        if (showFirst.value) Effect(state, DemandRecordingFactory())
+        if (showSecond.value) Effect(state, DemandRecordingFactory())
       }
     }
     waitForIdle()
@@ -98,9 +98,9 @@ class HazeSourceCaptureDemandTest {
 
     setContent {
       Box(Modifier.size(100.dp)) {
-        source(firstState)
-        source(secondState)
-        effect(effectState.value, DemandRecordingFactory())
+        Source(firstState)
+        Source(secondState)
+        Effect(effectState.value, DemandRecordingFactory())
       }
     }
     waitForIdle()
@@ -124,8 +124,8 @@ class HazeSourceCaptureDemandTest {
 
     setContent {
       Box(Modifier.size(100.dp)) {
-        source(sourceState.value)
-        effect(activeState, DemandRecordingFactory())
+        Source(sourceState.value)
+        Effect(activeState, DemandRecordingFactory())
       }
     }
     waitForIdle()
@@ -144,7 +144,7 @@ class HazeSourceCaptureDemandTest {
   }
 
   @Composable
-  private fun source(state: HazeState) {
+  private fun Source(state: HazeState) {
     Box(
       Modifier
         .fillMaxSize()
@@ -155,7 +155,7 @@ class HazeSourceCaptureDemandTest {
   }
 
   @Composable
-  private fun effect(state: HazeState, factory: DemandRecordingFactory) {
+  private fun Effect(state: HazeState, factory: DemandRecordingFactory) {
     Box(
       Modifier
         .fillMaxSize()
