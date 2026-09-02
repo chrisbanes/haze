@@ -39,6 +39,19 @@ public class HazeState {
   private val _areas = mutableStateListOf<HazeArea>()
   internal val areas: List<HazeArea> get() = _areas
 
+  private val sourceDemand = mutableStateSetOf<Any>()
+
+  internal val hasSourceDemand: Boolean
+    get() = sourceDemand.isNotEmpty()
+
+  internal fun addSourceDemand(key: Any) {
+    sourceDemand += key
+  }
+
+  internal fun removeSourceDemand(key: Any) {
+    sourceDemand -= key
+  }
+
   internal fun addArea(area: HazeArea) {
     _areas += area
   }

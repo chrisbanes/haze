@@ -73,6 +73,7 @@ internal class HazeEffectNode(
         clearRetainedOutput()
         dirtyTracker += DirtyFields.Areas
         field = value
+        reconcileSourceDemand()
       }
     }
 
@@ -93,6 +94,7 @@ internal class HazeEffectNode(
         }
         dirtyTracker += DirtyFields.Areas
         field = value
+        reconcileSourceDemand()
         when {
           value is HazeInput.Sources -> {
             retainOutputWhenSourceUnavailable = value.retention.keepsLastFrame()
@@ -107,6 +109,8 @@ internal class HazeEffectNode(
   private var needsVisualEffectInvalidation = false
   private var needsNextFrameVisualEffectInvalidation = false
   private var needsContentInvalidation = false
+  private val sourceDemandKey = Any()
+  private var sourceDemandState: HazeState? = null
   private var hasRenderedTypedSourceOutput = false
   private var lastInputSnapshot: HazeEffectInputSnapshotImpl? = null
   private var inputCaptureGeneration = 0L
@@ -398,9 +402,11 @@ internal class HazeEffectNode(
     updateTypedRenderer()
     rebindTrimMemoryCallback()
     update()
+    reconcileSourceDemand()
   }
 
   override fun onDetach() {
+    unregisterSourceDemand()
     stopSourceSelectionSnapshotObserver()
     trimMemoryCallbackDisposable?.dispose()
     trimMemoryCallbackDisposable = null
@@ -424,6 +430,23 @@ internal class HazeEffectNode(
     lastInputSnapshot = null
     disposeTypedRenderer()
     typedEffectRenderer = null
+  }
+
+  private fun reconcileSourceDemand() {
+    val demandState = state
+      ?.takeIf { explicitInput is HazeInput.Sources }
+      ?.takeIf { (explicitInput as HazeInput.Sources).state === it }
+    if (!isAttached) return
+    if (sourceDemandState !== demandState) {
+      sourceDemandState?.removeSourceDemand(sourceDemandKey)
+      demandState?.addSourceDemand(sourceDemandKey)
+      sourceDemandState = demandState
+    }
+  }
+
+  private fun unregisterSourceDemand() {
+    sourceDemandState?.removeSourceDemand(sourceDemandKey)
+    sourceDemandState = null
   }
 
   private fun HazeArea.releaseLayer() {
