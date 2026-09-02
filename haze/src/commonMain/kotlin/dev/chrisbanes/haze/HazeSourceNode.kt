@@ -21,6 +21,7 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.unit.toSize
@@ -77,6 +78,10 @@ internal class HazeSourceNode(
         // Finally re-attach ourselves to the new state
         value.addArea(area)
       }
+      if (isAttached) {
+        onObservedReadsChanged()
+        invalidateDraw()
+      }
     }
 
   internal var key: Any?
@@ -90,6 +95,7 @@ internal class HazeSourceNode(
   }
 
   private var lastCoordinates: LayoutCoordinates? = null
+  private var hasCaptureDemand = false
 
   private var preDrawJob: Job? = null
   private var regularPreDrawPending = false
@@ -110,13 +116,22 @@ internal class HazeSourceNode(
   }
 
   override fun onObservedReadsChanged() {
+    var observedCaptureDemand = false
     observeReads {
+      observedCaptureDemand = state.hasSourceDemand
       // Observe pre-draw listeners only. Position is now updated directly in onPositioned.
       if (area.preDrawListeners.isEmpty()) {
         disablePreDrawListener()
       } else {
         enablePreDrawListener()
       }
+    }
+    if (hasCaptureDemand != observedCaptureDemand) {
+      hasCaptureDemand = observedCaptureDemand
+      if (!hasCaptureDemand) {
+        area.releaseLayer()
+      }
+      invalidateDraw()
     }
   }
 
@@ -239,15 +254,24 @@ internal class HazeSourceNode(
   }
 
   override fun ContentDrawScope.draw() {
+    var isContentDrawing = false
     try {
       HazeLogger.d(TAG) { "start draw()" }
-      area.contentDrawing = true
 
       if (!isAttached) {
         // This shouldn't happen, but it does...
         // https://github.com/chrisbanes/haze/issues/665
         return
       }
+
+      if (!hasCaptureDemand) {
+        area.releaseLayer()
+        drawContentSafely()
+        return
+      }
+
+      isContentDrawing = true
+      area.contentDrawing = true
 
       if (size.minDimension.roundToInt() >= 1) {
         val graphicsContext = currentValueOf(LocalGraphicsContext)
@@ -278,7 +302,9 @@ internal class HazeSourceNode(
         drawContentSafely()
       }
     } finally {
-      area.contentDrawing = false
+      if (isContentDrawing) {
+        area.contentDrawing = false
+      }
       HazeLogger.d(TAG) { "end draw()" }
 
       Snapshot.withoutReadObservation {
