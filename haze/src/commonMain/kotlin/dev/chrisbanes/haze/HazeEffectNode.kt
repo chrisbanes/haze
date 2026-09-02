@@ -109,6 +109,7 @@ internal class HazeEffectNode(
   private var needsVisualEffectInvalidation = false
   private var needsNextFrameVisualEffectInvalidation = false
   private var needsContentInvalidation = false
+  private val sourceDemandKey = Any()
   private var sourceDemandState: HazeState? = null
   private var hasRenderedTypedSourceOutput = false
   private var lastInputSnapshot: HazeEffectInputSnapshotImpl? = null
@@ -437,14 +438,14 @@ internal class HazeEffectNode(
       ?.takeIf { (explicitInput as HazeInput.Sources).state === it }
     if (!isAttached) return
     if (sourceDemandState !== demandState) {
-      sourceDemandState?.removeSourceDemand(this)
-      demandState?.addSourceDemand(this)
+      sourceDemandState?.removeSourceDemand(sourceDemandKey)
+      demandState?.addSourceDemand(sourceDemandKey)
       sourceDemandState = demandState
     }
   }
 
   private fun unregisterSourceDemand() {
-    sourceDemandState?.removeSourceDemand(this)
+    sourceDemandState?.removeSourceDemand(sourceDemandKey)
     sourceDemandState = null
   }
 

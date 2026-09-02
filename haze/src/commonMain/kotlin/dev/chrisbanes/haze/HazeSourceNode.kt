@@ -128,10 +128,11 @@ internal class HazeSourceNode(
     }
     if (hasCaptureDemand != observedCaptureDemand) {
       hasCaptureDemand = observedCaptureDemand
-      if (!hasCaptureDemand) {
+      if (hasCaptureDemand) {
+        invalidateDraw()
+      } else {
         area.releaseLayer()
       }
-      invalidateDraw()
     }
   }
 

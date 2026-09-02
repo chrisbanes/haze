@@ -86,6 +86,8 @@ class HazeSourceCaptureDemandTest {
     showSecond.value = false
     waitForIdle()
     assertThat(area.contentLayer).isNull()
+    assertThat(onNodeWithTag(SOURCE_TAG).captureToImage().toPixelMap()[50, 50])
+      .isEqualTo(Color.Red)
   }
 
   @Test
