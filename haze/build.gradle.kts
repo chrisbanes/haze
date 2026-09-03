@@ -38,9 +38,9 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
+        api(libs.compose.animation.core)
         api(libs.compose.ui)
         implementation(projects.hazeUtils)
-        implementation(libs.compose.foundation)
         implementation(libs.androidx.collection)
         implementation(libs.androidx.lifecycle.runtime.compose)
       }
@@ -57,6 +57,7 @@ kotlin {
         implementation(kotlin("test"))
         implementation(libs.assertk)
 
+        implementation(libs.compose.foundation)
         implementation(libs.compose.ui.test)
 
         implementation(projects.internal.contextTest)
