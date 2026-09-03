@@ -65,6 +65,7 @@ kotlin {
         implementation(libs.androidx.activity)
         implementation(libs.androidx.compose.ui.test.junit4)
         implementation(libs.androidx.compose.ui.test.manifest)
+        implementation(libs.compose.foundation)
         implementation(projects.internal.contextTest) {
           exclude(group = "org.robolectric", module = "robolectric")
         }
@@ -75,6 +76,7 @@ kotlin {
       dependencies {
         implementation(libs.androidx.activity)
         implementation(libs.androidx.compose.ui.test.junit4)
+        implementation(libs.compose.foundation)
         implementation(libs.compose.material3)
       }
     }

@@ -66,6 +66,7 @@ kotlin {
 
     named("androidHostTest") {
       dependencies {
+        implementation(libs.compose.foundation)
         implementation(projects.internal.screenshotTest)
       }
     }
