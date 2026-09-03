@@ -31,9 +31,9 @@ kotlin {
       dependencies {
         api(projects.haze)
         api(libs.compose.animation.core)
+        api(libs.compose.foundation)
         implementation(projects.hazeUtils)
         implementation(libs.compose.ui)
-        implementation(libs.compose.foundation)
       }
     }
 

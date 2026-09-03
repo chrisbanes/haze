@@ -47,7 +47,7 @@ kotlin {
       dependencies {
         api(projects.haze)
         api(libs.compose.ui)
-        implementation(libs.compose.foundation)
+        implementation(libs.compose.animation.core)
         implementation(libs.androidx.collection)
         implementation(projects.hazeUtils)
       }
@@ -55,15 +55,17 @@ kotlin {
 
     androidMain {
       dependencies {
-        implementation(libs.androidx.activity)
+        implementation(libs.androidx.core)
       }
     }
 
     named("androidDeviceTest") {
       dependencies {
         implementation(libs.assertk)
+        implementation(libs.androidx.activity)
         implementation(libs.androidx.compose.ui.test.junit4)
         implementation(libs.androidx.compose.ui.test.manifest)
+        implementation(libs.compose.foundation)
         implementation(projects.internal.contextTest) {
           exclude(group = "org.robolectric", module = "robolectric")
         }
@@ -72,7 +74,9 @@ kotlin {
 
     named("androidHostTest") {
       dependencies {
+        implementation(libs.androidx.activity)
         implementation(libs.androidx.compose.ui.test.junit4)
+        implementation(libs.compose.foundation)
         implementation(libs.compose.material3)
       }
     }
@@ -82,6 +86,7 @@ kotlin {
         implementation(libs.assertk)
         implementation(kotlin("test"))
 
+        implementation(libs.compose.foundation)
         implementation(libs.compose.ui.test)
 
         implementation(projects.internal.contextTest)
