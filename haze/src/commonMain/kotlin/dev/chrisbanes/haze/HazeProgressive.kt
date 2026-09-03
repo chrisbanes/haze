@@ -42,7 +42,12 @@ public sealed interface HazeProgressive {
     public val startIntensity: Float = 0f,
     public val end: Offset = Offset.Infinite,
     public val endIntensity: Float = 1f,
-  ) : HazeProgressive
+  ) : HazeProgressive {
+    init {
+      requireIntensity("startIntensity", startIntensity)
+      requireIntensity("endIntensity", endIntensity)
+    }
+  }
 
   /**
    * A radial gradient effect.
@@ -71,6 +76,11 @@ public sealed interface HazeProgressive {
     public val radius: Float = Float.POSITIVE_INFINITY,
     public val radiusIntensity: Float = 0f,
   ) : HazeProgressive {
+    init {
+      requireIntensity("centerIntensity", centerIntensity)
+      requireIntensity("radiusIntensity", radiusIntensity)
+    }
+
     /** Compares this gradient's parameters for value equality. */
     override fun equals(other: Any?): Boolean {
       if (this === other) return true
@@ -187,8 +197,9 @@ public fun HazeProgressive.asBrush(numStops: Int = 20): Brush = when (this) {
   is HazeProgressive.Brush -> brush
 }
 
-private fun HazeProgressive.LinearGradient.asBrush(numStops: Int = 20): Brush =
-  Brush.linearGradient(
+private fun HazeProgressive.LinearGradient.asBrush(numStops: Int = 20): Brush {
+  requireValidNumStops(numStops)
+  return Brush.linearGradient(
     colors = List(numStops) { i ->
       val x = i * 1f / (numStops - 1)
       Color.Magenta.copy(alpha = lerp(startIntensity, endIntensity, easing.transform(x)))
@@ -196,9 +207,11 @@ private fun HazeProgressive.LinearGradient.asBrush(numStops: Int = 20): Brush =
     start = start,
     end = end,
   )
+}
 
-private fun HazeProgressive.RadialGradient.asBrush(numStops: Int = 20): Brush =
-  Brush.radialGradient(
+private fun HazeProgressive.RadialGradient.asBrush(numStops: Int = 20): Brush {
+  requireValidNumStops(numStops)
+  return Brush.radialGradient(
     colors = List(numStops) { i ->
       val x = i * 1f / (numStops - 1)
       Color.Magenta.copy(alpha = lerp(centerIntensity, radiusIntensity, easing.transform(x)))
@@ -206,3 +219,14 @@ private fun HazeProgressive.RadialGradient.asBrush(numStops: Int = 20): Brush =
     center = center,
     radius = radius,
   )
+}
+
+private fun requireIntensity(property: String, value: Float) {
+  require(value.isFinite() && value in 0f..1f) {
+    "$property must be finite and in 0f..1f"
+  }
+}
+
+private fun requireValidNumStops(numStops: Int) {
+  require(numStops >= 2) { "numStops must be at least 2" }
+}

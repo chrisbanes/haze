@@ -217,9 +217,6 @@ internal fun DrawScope.drawProgressiveWithMultipleLayers(
   stepHeight: Dp = 64.dp,
   block: (mask: Brush, intensity: Float) -> Unit,
 ) {
-  require(progressive.startIntensity in 0f..1f)
-  require(progressive.endIntensity in 0f..1f)
-
   // Here we're going to calculate an appropriate amount of steps for the length.
   // We use a calculation of 60dp per step, which is a good balance between
   // quality vs performance
