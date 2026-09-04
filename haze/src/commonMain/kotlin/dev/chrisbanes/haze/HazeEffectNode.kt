@@ -714,7 +714,7 @@ internal class HazeEffectNode :
             renderer.configure(
               bounds = bounds,
               clip = clip,
-              effect = backdrop.platformEffect(),
+              effect = backdrop.getPlatformEffect(),
               alpha = backdrop.alpha,
             ) && renderer.draw(drawContext.canvas)
           }

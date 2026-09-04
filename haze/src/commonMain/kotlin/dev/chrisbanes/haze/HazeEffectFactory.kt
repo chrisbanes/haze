@@ -179,7 +179,7 @@ public interface HazeEffectRendererBackdrop<Style> {
 /** Prepared built-in effect for the current-window backdrop path. */
 @InternalHazeApi
 public class HazeEffectBackdrop(
-  private val effect: PlatformRenderEffect,
+  private val platformEffect: PlatformRenderEffect,
   /** Alpha applied while drawing the filtered backdrop. */
   public val alpha: Float = 1f,
   /** Transform from effect-local coordinates into the authored material coordinate space. */
@@ -191,8 +191,13 @@ public class HazeEffectBackdrop(
     }
   }
 
-  /** Returns the platform root effect consumed by the internal backdrop backend. */
-  public fun platformEffect(): PlatformRenderEffect = effect
+  /**
+   * Returns the platform root effect consumed by the internal backdrop backend.
+   *
+   * This remains a getter-shaped function so Metalava records the stable JVM getter signature
+   * without exposing [PlatformRenderEffect] as a public Kotlin property.
+   */
+  public fun getPlatformEffect(): PlatformRenderEffect = platformEffect
 }
 
 /** Built-in-only retained-output capability. */
