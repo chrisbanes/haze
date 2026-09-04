@@ -18,6 +18,14 @@ internal class HazeBackdropBackendState {
     get() = selection == HazeBackdropBackendSelection.FallbackUnavailable ||
       selection == HazeBackdropBackendSelection.FallbackFailed
 
+  fun attach(platformBackdropEnabled: Boolean) {
+    selection = if (platformBackdropEnabled) {
+      HazeBackdropBackendSelection.Undecided
+    } else {
+      HazeBackdropBackendSelection.FallbackUnavailable
+    }
+  }
+
   fun resolve(nativeAvailable: Boolean) {
     if (!usesFallback) {
       selection = if (nativeAvailable) {

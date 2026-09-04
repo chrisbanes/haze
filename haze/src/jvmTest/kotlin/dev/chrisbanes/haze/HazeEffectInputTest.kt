@@ -68,7 +68,7 @@ class HazeEffectInputTest {
   }
 
   @Test
-  fun unavailableBackdrop_demandsFallbackSourceCapture() = runComposeUiTest {
+  fun disabledBackdrop_demandsFallbackSourceCaptureImmediately() = runComposeUiTest {
     val state = HazeState()
 
     setContent {
@@ -79,7 +79,7 @@ class HazeEffectInputTest {
             .fillMaxSize()
             .hazeEffect(
               factory = PassthroughFactory,
-              input = HazeInput.Backdrop(HazeInput.Sources(state)),
+              input = HazeInput.Backdrop(state),
               style = Unit,
             ),
         )
@@ -97,7 +97,7 @@ class HazeEffectInputTest {
   fun unavailableBackdrop_releasesFallbackCaptureAfterInputChanges() = runComposeUiTest {
     val state = HazeState()
     val input = mutableStateOf<HazeInput>(
-      HazeInput.Backdrop(HazeInput.Sources(state)),
+      HazeInput.Backdrop(state),
     )
 
     setContent {
@@ -125,6 +125,42 @@ class HazeEffectInputTest {
 
     assertThat(area.captureConsumerCount).isEqualTo(0)
     assertThat(area.contentLayer).isNull()
+  }
+
+  @Test
+  fun disabledBackdrop_appliesFallbackRetentionPolicy() = runComposeUiTest {
+    val state = HazeState()
+    val showSource = mutableStateOf(true)
+    val factory = RecordingRendererFactory(::RetainedOutputRenderer)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        if (showSource.value) {
+          source(state, "source", 0f, Color.Red)
+        }
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeEffect(
+              factory = factory,
+              input = HazeInput.Backdrop(
+                state = state,
+                fallbackSelection = HazeSourceSelection.All,
+                fallbackRetention = HazeSourceRetention.ClearWhenUnavailable,
+              ),
+              style = Unit,
+            ),
+        )
+      }
+    }
+    waitForIdle()
+
+    val renderer = factory.renderers.single()
+    val clearsBeforeRemoval = renderer.clearCalls
+    showSource.value = false
+    waitForIdle()
+
+    assertThat(renderer.clearCalls).isGreaterThan(clearsBeforeRemoval)
   }
 
   @Test

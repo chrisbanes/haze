@@ -179,8 +179,7 @@ public interface HazeEffectRendererBackdrop<Style> {
 /** Prepared built-in effect for the current-window backdrop path. */
 @InternalHazeApi
 public class HazeEffectBackdrop(
-  /** Platform root effect consumed by the internal backdrop backend. */
-  public val platformEffect: PlatformRenderEffect,
+  private val effect: PlatformRenderEffect,
   /** Alpha applied while drawing the filtered backdrop. */
   public val alpha: Float = 1f,
   /** Transform from effect-local coordinates into the authored material coordinate space. */
@@ -191,6 +190,9 @@ public class HazeEffectBackdrop(
       "alpha must be finite and in the range 0f..1f"
     }
   }
+
+  /** Returns the platform root effect consumed by the internal backdrop backend. */
+  public fun platformEffect(): PlatformRenderEffect = effect
 }
 
 /** Built-in-only retained-output capability. */

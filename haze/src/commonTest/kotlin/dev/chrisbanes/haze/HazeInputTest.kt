@@ -31,16 +31,26 @@ class HazeInputTest {
     assertThat(input.retention).isEqualTo(HazeSourceRetention.ClearWhenUnavailable)
   }
 
-  @OptIn(ExperimentalHazeApi::class)
   @Test
-  fun backdrop_requiresExplicitSourcesFallback() {
-    val fallback = HazeInput.Sources(
+  fun backdrop_defaultsToBehindAndKeepLastFrame() {
+    val state = HazeState()
+    val input = HazeInput.Backdrop(state)
+
+    assertThat(input.state).isEqualTo(state)
+    assertThat(input.fallbackSelection).isEqualTo(HazeSourceSelection.Behind)
+    assertThat(input.fallbackRetention).isEqualTo(HazeSourceRetention.KeepLastFrame)
+  }
+
+  @Test
+  fun backdrop_acceptsAllAndClearWhenUnavailableFallback() {
+    val input = HazeInput.Backdrop(
       state = HazeState(),
-      selection = HazeSourceSelection.All,
-      retention = HazeSourceRetention.ClearWhenUnavailable,
+      fallbackSelection = HazeSourceSelection.All,
+      fallbackRetention = HazeSourceRetention.ClearWhenUnavailable,
     )
 
-    assertThat(HazeInput.Backdrop(fallback).fallback).isEqualTo(fallback)
+    assertThat(input.fallbackSelection).isEqualTo(HazeSourceSelection.All)
+    assertThat(input.fallbackRetention).isEqualTo(HazeSourceRetention.ClearWhenUnavailable)
   }
 
   @Test

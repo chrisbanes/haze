@@ -12,6 +12,26 @@ import kotlin.test.Test
 class HazeBackdropBackendStateTest {
 
   @Test
+  fun disabledAttachment_selectsFallbackImmediately() {
+    val state = HazeBackdropBackendState()
+
+    state.attach(platformBackdropEnabled = false)
+
+    assertThat(state.selection).isEqualTo(HazeBackdropBackendSelection.FallbackUnavailable)
+    assertThat(state.usesFallback).isTrue()
+  }
+
+  @Test
+  fun enabledAttachment_remainsUndecidedUntilCapabilityResolution() {
+    val state = HazeBackdropBackendState()
+
+    state.attach(platformBackdropEnabled = true)
+
+    assertThat(state.selection).isEqualTo(HazeBackdropBackendSelection.Undecided)
+    assertThat(state.usesFallback).isFalse()
+  }
+
+  @Test
   fun nativeSelection_remainsNativeWhileAvailable() {
     val state = HazeBackdropBackendState()
 
@@ -65,5 +85,16 @@ class HazeBackdropBackendStateTest {
 
     assertThat(state.selection).isEqualTo(HazeBackdropBackendSelection.Undecided)
     assertThat(state.usesFallback).isFalse()
+  }
+
+  @Test
+  fun reset_allowsNewAttachmentDecision() {
+    val state = HazeBackdropBackendState()
+    state.attach(platformBackdropEnabled = false)
+
+    state.reset()
+    state.attach(platformBackdropEnabled = true)
+
+    assertThat(state.selection).isEqualTo(HazeBackdropBackendSelection.Undecided)
   }
 }

@@ -25,18 +25,26 @@ public sealed interface HazeInput {
   ) : HazeInput
 
   /**
-   * Pixels already drawn behind the effect in the current hardware-accelerated window.
+   * Pixels already drawn behind the effect in the current window.
    *
-   * The native backdrop path is currently available only on supported Android releases and for
-   * built-in effects that expose a compatible platform effect. [fallback] is used everywhere else
-   * and after any native setup or draw failure.
+   * The native backdrop path is available only when enabled by
+   * [HazeFeatureFlags.isPlatformBackdropEnabled], on supported Android releases, and for
+   * built-in effects that expose a compatible platform effect. The fallback options are used
+   * everywhere else and after any native setup or draw failure. Native backdrop rendering samples
+   * earlier pixels in the same window; it does not select individual [HazeSource] instances or
+   * sample content from another window.
    *
-   * @property fallback Source-backed input used when the native backdrop is unavailable or fails.
+   * @property state Shared state used by the source fallback.
+   * @property fallbackSelection Selection used only when the native backdrop is unavailable or
+   * fails.
+   * @property fallbackRetention Retention policy used only when the native backdrop is unavailable
+   * or fails.
    */
-  @ExperimentalHazeApi
   @Stable
   public data class Backdrop(
-    public val fallback: Sources,
+    public val state: HazeState,
+    public val fallbackSelection: HazeSourceSelection = HazeSourceSelection.Behind,
+    public val fallbackRetention: HazeSourceRetention = HazeSourceRetention.KeepLastFrame,
   ) : HazeInput
 
   /**

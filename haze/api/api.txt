@@ -5,13 +5,12 @@ package dev.chrisbanes.haze {
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public final class HazeEffectBackdrop {
-    ctor public HazeEffectBackdrop(PlatformRenderEffect platformEffect, optional float alpha, optional dev.chrisbanes.haze.HazeEffectContentTransform materialTransform);
+    ctor public HazeEffectBackdrop(PlatformRenderEffect effect, optional float alpha, optional dev.chrisbanes.haze.HazeEffectContentTransform materialTransform);
     method @InaccessibleFromKotlin public float getAlpha();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeEffectContentTransform getMaterialTransform();
-    method @InaccessibleFromKotlin public PlatformRenderEffect getPlatformEffect();
+    method public PlatformRenderEffect platformEffect();
     property public float alpha;
     property public dev.chrisbanes.haze.HazeEffectContentTransform materialTransform;
-    property public PlatformRenderEffect platformEffect;
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public final class HazeEffectContentTransform {
@@ -128,15 +127,27 @@ package dev.chrisbanes.haze {
     property public abstract androidx.compose.ui.geometry.Size modifierSize;
   }
 
+  @dev.chrisbanes.haze.ExperimentalHazeApi public final class HazeFeatureFlags {
+    property public boolean isPlatformBackdropEnabled;
+    field public static final dev.chrisbanes.haze.HazeFeatureFlags INSTANCE;
+    field public static boolean isPlatformBackdropEnabled;
+  }
+
   public sealed exhaustive interface HazeInput {
   }
 
-  @androidx.compose.runtime.Stable @dev.chrisbanes.haze.ExperimentalHazeApi public static final class HazeInput.Backdrop implements dev.chrisbanes.haze.HazeInput {
-    ctor public HazeInput.Backdrop(dev.chrisbanes.haze.HazeInput.Sources fallback);
-    method public dev.chrisbanes.haze.HazeInput.Sources component1();
-    method public dev.chrisbanes.haze.HazeInput.Backdrop copy(optional dev.chrisbanes.haze.HazeInput.Sources fallback);
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeInput.Sources getFallback();
-    property public dev.chrisbanes.haze.HazeInput.Sources fallback;
+  @androidx.compose.runtime.Stable public static final class HazeInput.Backdrop implements dev.chrisbanes.haze.HazeInput {
+    ctor public HazeInput.Backdrop(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeSourceSelection fallbackSelection, optional dev.chrisbanes.haze.HazeSourceRetention fallbackRetention);
+    method public dev.chrisbanes.haze.HazeState component1();
+    method public dev.chrisbanes.haze.HazeSourceSelection component2();
+    method public dev.chrisbanes.haze.HazeSourceRetention component3();
+    method public dev.chrisbanes.haze.HazeInput.Backdrop copy(optional dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeSourceSelection fallbackSelection, optional dev.chrisbanes.haze.HazeSourceRetention fallbackRetention);
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeSourceRetention getFallbackRetention();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeSourceSelection getFallbackSelection();
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeState getState();
+    property public dev.chrisbanes.haze.HazeSourceRetention fallbackRetention;
+    property public dev.chrisbanes.haze.HazeSourceSelection fallbackSelection;
+    property public dev.chrisbanes.haze.HazeState state;
   }
 
   public static final class HazeInput.Content implements dev.chrisbanes.haze.HazeInput {
@@ -325,3 +336,4 @@ package dev.chrisbanes.haze {
   }
 
 }
+

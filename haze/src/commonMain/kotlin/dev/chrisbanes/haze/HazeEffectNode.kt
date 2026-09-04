@@ -97,7 +97,15 @@ internal class HazeEffectNode :
 
   private fun resolvedSourcesInput(): HazeInput.Sources? = when (val input = explicitInput) {
     is HazeInput.Sources -> input
-    is HazeInput.Backdrop -> input.fallback.takeIf { backdropBackendState.usesFallback }
+    is HazeInput.Backdrop -> if (backdropBackendState.usesFallback) {
+      HazeInput.Sources(
+        state = input.state,
+        selection = input.fallbackSelection,
+        retention = input.fallbackRetention,
+      )
+    } else {
+      null
+    }
     HazeInput.Content,
     null,
     -> null
@@ -419,6 +427,9 @@ internal class HazeEffectNode :
   private var trimMemoryCallbackDisposable: DisposableHandle? = null
 
   override fun onAttach() {
+    val previousSources = resolvedSourcesInput()
+    backdropBackendState.attach(HazeFeatureFlags.isPlatformBackdropEnabled)
+    refreshResolvedSourcesInput(previousSources)
     val typedRenderer = typedEffectRenderer ?: createTypedRenderer?.invoke()?.also {
       typedEffectRenderer = it
     }
@@ -455,13 +466,7 @@ internal class HazeEffectNode :
     screenToEffectTransform = null
     lastInputSnapshot = null
     releaseBackdropRenderer()
-    if (explicitInput is HazeInput.Backdrop) {
-      val previousSources = resolvedSourcesInput()
-      backdropBackendState.reset()
-      refreshResolvedSourcesInput(previousSources)
-    } else {
-      backdropBackendState.reset()
-    }
+    backdropBackendState.reset()
     disposeTypedRenderer()
     typedEffectRenderer = null
   }
@@ -709,7 +714,7 @@ internal class HazeEffectNode :
             renderer.configure(
               bounds = bounds,
               clip = clip,
-              effect = backdrop.platformEffect,
+              effect = backdrop.platformEffect(),
               alpha = backdrop.alpha,
             ) && renderer.draw(drawContext.canvas)
           }
