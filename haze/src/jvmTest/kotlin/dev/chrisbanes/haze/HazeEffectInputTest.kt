@@ -70,6 +70,46 @@ class HazeEffectInputTest {
   }
 
   @Test
+  fun sourcesWhere_behindUsesNearestMatchingAncestorAcrossNestedStates() = runComposeUiTest {
+    val unrelatedState = HazeState()
+    val innerState = HazeState()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(innerState, "inner", 1f, Color.Green) {
+          source(innerState, "lower", 0f, Color.Yellow)
+          source(unrelatedState, "unrelated", 2f, Color.Blue) {
+            effect(innerState, HazeSourceSelection.Behind)
+          }
+        }
+      }
+    }
+
+    assertThat(effectCenterColor()).isEqualTo(Color.Yellow)
+  }
+
+  @Test
+  fun sourcesWhere_behindUsesNearestOfMultipleMatchingAncestors() = runComposeUiTest {
+    val state = HazeState()
+    val unrelatedState = HazeState()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "outer", 3f, Color.Red) {
+          source(state, "inner", 1f, Color.Green) {
+            source(state, "lower", 0f, Color.Yellow)
+            source(unrelatedState, "unrelated", 2f, Color.Blue) {
+              effect(state, HazeSourceSelection.Behind)
+            }
+          }
+        }
+      }
+    }
+
+    assertThat(effectCenterColor()).isEqualTo(Color.Yellow)
+  }
+
+  @Test
   fun sourcesWhere_reactsToPredicateStateChanges() = runComposeUiTest {
     val state = HazeState()
     val selectedKey = mutableStateOf("first")
@@ -326,12 +366,14 @@ private fun androidx.compose.foundation.layout.BoxScope.source(
   key: String,
   zIndex: Float,
   color: Color,
+  content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {},
 ) {
   Box(
     Modifier
       .fillMaxSize()
       .hazeSource(state, zIndex = zIndex, key = key)
       .background(color),
+    content = content,
   )
 }
 

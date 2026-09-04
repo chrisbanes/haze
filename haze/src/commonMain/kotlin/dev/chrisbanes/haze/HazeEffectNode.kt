@@ -33,10 +33,10 @@ import androidx.compose.ui.node.LayoutAwareModifierNode
 import androidx.compose.ui.node.ObserverModifierNode
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.TraversableNode
-import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.node.requireDensity
 import androidx.compose.ui.node.requireGraphicsContext
+import androidx.compose.ui.node.traverseAncestors
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
@@ -686,12 +686,24 @@ internal class HazeEffectNode(
           area.preDrawListeners -= areaPreDrawListener
         }
 
-        val ancestorSourceNode =
-          (findNearestAncestor(HazeTraversableNodeKeys.Source) as? HazeSourceNode)
-            ?.takeIf { it.state == this.state }
-
         val unfilteredAreas = stateAreas.orEmpty()
         val selection = checkNotNull(explicitInput as? HazeInput.Sources).selection
+        val ancestorSourceNode = if (selection.baseSelection() == HazeSourceSelection.Behind) {
+          var result: HazeSourceNode? = null
+          traverseAncestors(HazeTraversableNodeKeys.Source) { node ->
+            val sourceNode = node as? HazeSourceNode
+            if (sourceNode?.state === state) {
+              result = sourceNode
+              false
+            } else {
+              true
+            }
+          }
+          result
+        } else {
+          null
+        }
+
         HazeLogger.d(TAG) { "Background Areas observing: $unfilteredAreas" }
         val relatedSources = unfilteredAreas.mapNotNull { area ->
           val metadata = HazeSourceMetadata(key = area.key, zIndex = area.zIndex)
