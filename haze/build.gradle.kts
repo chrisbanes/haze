@@ -89,6 +89,7 @@ kotlin {
         implementation(libs.androidx.compose.ui.test.manifest)
         implementation(libs.androidx.test.core)
         implementation(libs.androidx.test.runner)
+        implementation(libs.compose.foundation)
       }
     }
 
