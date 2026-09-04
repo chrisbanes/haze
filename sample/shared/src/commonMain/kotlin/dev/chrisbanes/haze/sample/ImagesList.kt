@@ -97,14 +97,14 @@ fun ImagesList(navController: NavHostController, effect: SampleEffect) {
                         Modifier
                           .clip(shape)
                           .hazeBlur(
-                            input = HazeInput.Sources(hazeState),
+                            input = HazeInput.Backdrop(hazeState),
                             style = HazeMaterials.thin(),
                           )
 
                       SampleEffect.Glass ->
                         Modifier
                           .hazeGlass(
-                            input = HazeInput.Sources(hazeState),
+                            input = HazeInput.Backdrop(hazeState),
                             style = GlassStyle.regular.then {
                               backgroundColor(glassBackgroundColor)
                               tint(glassTint)

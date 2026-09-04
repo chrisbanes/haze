@@ -83,13 +83,13 @@ fun ListWithStickyHeaders(navController: NavHostController, effect: SampleEffect
               .then(
                 when (effect) {
                   SampleEffect.Blur -> Modifier.hazeBlur(
-                    input = HazeInput.Sources(hazeState),
+                    input = HazeInput.Backdrop(hazeState),
                     style = blurStyle,
                     performanceMode = HazePerformanceMode.Adaptive,
                   )
 
                   SampleEffect.Glass -> Modifier.hazeGlass(
-                    input = HazeInput.Sources(hazeState),
+                    input = HazeInput.Backdrop(hazeState),
                     style = GlassStyle.regular.then {
                       backgroundColor(glassBackgroundColor)
                       tint(glassTint)

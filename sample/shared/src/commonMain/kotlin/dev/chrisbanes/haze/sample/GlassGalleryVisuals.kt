@@ -159,7 +159,7 @@ internal fun GlassSurface(
       // Let Glass own the material silhouette. An outer Compose clip creates a second,
       // independently-rasterized rounded boundary and exposes isolated carrier pixels on Skiko.
       .hazeGlass(
-        input = HazeInput.Sources(hazeState),
+        input = HazeInput.Backdrop(hazeState),
         style = style.material3().then {
           this.shape(shape)
         }.then(interactionStyle),

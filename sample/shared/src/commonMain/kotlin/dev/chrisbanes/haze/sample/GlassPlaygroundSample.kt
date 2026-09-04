@@ -452,7 +452,7 @@ private fun PlaygroundSurface(
       .hazeSource(hazeState, zIndex = zIndex)
       .zIndex(zIndex)
       .hazeGlass(
-        input = HazeInput.Sources(hazeState),
+        input = HazeInput.Backdrop(hazeState),
         style = style,
         interactionSource = interactionSource,
         interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
