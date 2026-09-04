@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
@@ -114,6 +116,16 @@ private fun GlassProfilingScene(
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val previousPlatformBackdropEnabled = remember {
+    HazeFeatureFlags.isPlatformBackdropEnabled
+  }
+  HazeFeatureFlags.isPlatformBackdropEnabled = scenario.usesBackdrop
+  DisposableEffect(Unit) {
+    onDispose {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousPlatformBackdropEnabled
+    }
+  }
+
   val hazeState = rememberHazeState()
   val interactionSource = remember { MutableInteractionSource() }
   val density = LocalDensity.current
@@ -310,7 +322,7 @@ private fun GlassProfilingEffectGrid(
               }
               .hazeGlass(
                 input = if (usesBackdrop) {
-                  HazeInput.Backdrop(HazeInput.Sources(hazeState))
+                  HazeInput.Backdrop(hazeState)
                 } else {
                   HazeInput.Sources(hazeState)
                 },

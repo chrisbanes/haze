@@ -1,6 +1,8 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
+@file:OptIn(ExperimentalHazeApi::class)
+
 package dev.chrisbanes.haze.sample
 
 import androidx.compose.animation.core.Animatable
@@ -17,13 +19,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeFeatureFlags
 
 @Composable
 internal fun BlurProfilingSampleContent(
@@ -82,6 +88,16 @@ private fun BlurProfilingScene(
   navController: NavHostController,
   modifier: Modifier = Modifier,
 ) {
+  val previousPlatformBackdropEnabled = remember {
+    HazeFeatureFlags.isPlatformBackdropEnabled
+  }
+  HazeFeatureFlags.isPlatformBackdropEnabled = scenario.usesBackdrop
+  DisposableEffect(Unit) {
+    onDispose {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousPlatformBackdropEnabled
+    }
+  }
+
   LaunchedEffect(state.phase, scenario) {
     if (state.phase == BlurProfilingPhase.Settling) {
       repeat(BLUR_PROFILING_SETTLING_FRAMES) {

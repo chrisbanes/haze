@@ -22,9 +22,12 @@ import androidx.test.filters.SdkSuppress
 import assertk.assertThat
 import assertk.assertions.isGreaterThan
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -32,8 +35,21 @@ import org.junit.Test
 @OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class)
 class GlassBackdropFallbackInstrumentationTest {
 
+  private var previousPlatformBackdropEnabled = false
+
   @get:Rule
   val composeTestRule = createAndroidComposeRule<ComponentActivity>()
+
+  @Before
+  fun setUp() {
+    previousPlatformBackdropEnabled = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = false
+  }
+
+  @After
+  fun tearDown() {
+    HazeFeatureFlags.isPlatformBackdropEnabled = previousPlatformBackdropEnabled
+  }
 
   @Test
   fun unsupportedPlatform_usesSourcesFallback() {
@@ -61,7 +77,7 @@ class GlassBackdropFallbackInstrumentationTest {
             .size(width = 200.dp, height = 100.dp)
             .testTag(EFFECT_TAG)
             .hazeGlass(
-              input = HazeInput.Backdrop(HazeInput.Sources(fallbackState)),
+              input = HazeInput.Backdrop(fallbackState),
               style = GlassStyle.regular.then {
                 optics(
                   GlassOptics(

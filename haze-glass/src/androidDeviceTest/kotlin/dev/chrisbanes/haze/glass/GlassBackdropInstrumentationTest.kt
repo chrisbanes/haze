@@ -34,6 +34,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import java.util.concurrent.CountDownLatch
@@ -50,16 +51,23 @@ class GlassBackdropInstrumentationTest {
 
   private lateinit var activityScenario: ActivityScenario<ComponentActivity>
   private lateinit var activity: ComponentActivity
+  private var previousPlatformBackdropEnabled = false
 
   @Before
   fun setUp() {
+    previousPlatformBackdropEnabled = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
     activityScenario = ActivityScenario.launch(ComponentActivity::class.java)
     activityScenario.onActivity { activity = it }
   }
 
   @After
   fun tearDown() {
-    activityScenario.close()
+    try {
+      activityScenario.close()
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousPlatformBackdropEnabled
+    }
   }
 
   @Test
@@ -92,7 +100,7 @@ class GlassBackdropInstrumentationTest {
               .align(Alignment.Center)
               .size(width = 200.dp, height = 100.dp)
               .hazeGlass(
-                input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                input = HazeInput.Backdrop(emptyFallbackState),
                 style = pureBlurGlassStyle(14.dp),
               )
               .drawWithContent {
@@ -153,7 +161,7 @@ class GlassBackdropInstrumentationTest {
               .align(Alignment.Center)
               .size(width = 200.dp, height = 100.dp)
               .hazeGlass(
-                input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                input = HazeInput.Backdrop(emptyFallbackState),
                 style = pureBlurGlassStyle(blurRadius.value),
               )
               .drawWithContent {
@@ -205,7 +213,7 @@ class GlassBackdropInstrumentationTest {
                       Modifier
                         .fillMaxSize()
                         .hazeGlass(
-                          input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                          input = HazeInput.Backdrop(emptyFallbackState),
                           style = pureBlurGlassStyle(10.dp),
                         )
                         .drawWithContent {
@@ -265,7 +273,7 @@ class GlassBackdropInstrumentationTest {
               .align(Alignment.Center)
               .size(width = 200.dp, height = 100.dp)
               .hazeGlass(
-                input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                input = HazeInput.Backdrop(emptyFallbackState),
                 style = GlassStyle.regular.then {
                   pressed {
                     lightingIntensity(1f)

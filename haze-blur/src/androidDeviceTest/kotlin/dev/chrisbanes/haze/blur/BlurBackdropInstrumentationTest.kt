@@ -29,6 +29,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isLessThan
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
@@ -44,16 +45,23 @@ class BlurBackdropInstrumentationTest {
 
   private lateinit var activityScenario: ActivityScenario<ComponentActivity>
   private lateinit var activity: ComponentActivity
+  private var previousPlatformBackdropEnabled = false
 
   @Before
   fun setUp() {
+    previousPlatformBackdropEnabled = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
     activityScenario = ActivityScenario.launch(ComponentActivity::class.java)
     activityScenario.onActivity { activity = it }
   }
 
   @After
   fun tearDown() {
-    activityScenario.close()
+    try {
+      activityScenario.close()
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousPlatformBackdropEnabled
+    }
   }
 
   @Test
@@ -86,7 +94,7 @@ class BlurBackdropInstrumentationTest {
               .align(Alignment.Center)
               .size(width = 200.dp, height = 100.dp)
               .hazeBlur(
-                input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                input = HazeInput.Backdrop(emptyFallbackState),
                 style = HazeBlurStyle {
                   blurRadius(14.dp)
                   noiseFactor(0f)
@@ -142,7 +150,7 @@ class BlurBackdropInstrumentationTest {
               .align(Alignment.Center)
               .size(width = 200.dp, height = 100.dp)
               .hazeBlur(
-                input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                input = HazeInput.Backdrop(emptyFallbackState),
                 style = HazeBlurStyle {
                   blurRadius(radius.value)
                   noiseFactor(0f)
@@ -203,7 +211,7 @@ class BlurBackdropInstrumentationTest {
               .align(Alignment.Center)
               .size(width = 200.dp, height = 100.dp)
               .hazeBlur(
-                input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                input = HazeInput.Backdrop(emptyFallbackState),
                 style = HazeBlurStyle {
                   blurRadius(14.dp)
                   noiseFactor(0f)
@@ -263,7 +271,7 @@ class BlurBackdropInstrumentationTest {
               .align(Alignment.Center)
               .size(100.dp)
               .hazeBlur(
-                input = HazeInput.Backdrop(HazeInput.Sources(emptyFallbackState)),
+                input = HazeInput.Backdrop(emptyFallbackState),
                 style = HazeBlurStyle {
                   blurRadius(0.dp)
                   noiseFactor(0f)

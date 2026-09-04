@@ -55,16 +55,23 @@ class AndroidBackdropRendererInstrumentationTest {
 
   private lateinit var activityScenario: ActivityScenario<ComponentActivity>
   private lateinit var activity: ComponentActivity
+  private var previousPlatformBackdropEnabled = false
 
   @Before
   fun setUp() {
+    previousPlatformBackdropEnabled = HazeFeatureFlags.isPlatformBackdropEnabled
+    HazeFeatureFlags.isPlatformBackdropEnabled = true
     activityScenario = ActivityScenario.launch(ComponentActivity::class.java)
     activityScenario.onActivity { activity = it }
   }
 
   @After
   fun tearDown() {
-    activityScenario.close()
+    try {
+      activityScenario.close()
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousPlatformBackdropEnabled
+    }
   }
 
   @Test
@@ -383,7 +390,7 @@ class AndroidBackdropRendererInstrumentationTest {
               .size(width = 200.dp, height = 100.dp)
               .hazeEffect(
                 factory = BackdropBlurEffectFactory(drawReady),
-                input = HazeInput.Backdrop(HazeInput.Sources(state)),
+                input = HazeInput.Backdrop(state),
                 style = 14.dp,
               ),
           )

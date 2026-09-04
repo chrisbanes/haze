@@ -103,7 +103,7 @@ fun ScaffoldSample(
 ) {
   val hazeState = rememberHazeState()
   val hazeInput = if (useBackdrop) {
-    HazeInput.Backdrop(HazeInput.Sources(hazeState))
+    HazeInput.Backdrop(hazeState)
   } else {
     HazeInput.Sources(hazeState)
   }
