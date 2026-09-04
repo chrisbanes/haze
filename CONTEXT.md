@@ -41,3 +41,16 @@ _Avoid_: Size step, size threshold
 An optical parameter value that is either fixed for every Glass surface size or smoothly
 interpolated across two or more ordered optical size points.
 _Avoid_: Size response, blur profile, adaptive optics
+
+**Backdrop input**:
+The `HazeInput.Backdrop` intent to consume all pixels drawn earlier in the same window. A native
+renderer may consume those current-window pixels when it is eligible; source capture is the
+portable fallback. Backdrop input cannot select individual Haze sources, include later drawing, or
+cross a dialog, popup, or other window boundary.
+_Avoid_: Backdrop source, native backdrop guarantee
+
+**Sources input**:
+The `HazeInput.Sources` input that consumes pixels captured by associated `hazeSource` modifiers.
+It preserves explicit source selection and retained-output policies, including the semantics needed
+for cross-window alignment or exact source ownership.
+_Avoid_: Source backdrop, implicit backdrop

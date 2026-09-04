@@ -44,7 +44,7 @@ val clear = GlassStyle.clear.material3(tint = Color.White.copy(alpha = 0.16f))
 
 ```kotlin
 Modifier.hazeGlass(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = GlassStyle.Material3(tint = Color.White.copy(alpha = 0.16f)) {
     optics(refractionStrength = 0.8f)
   },
@@ -75,7 +75,7 @@ they do not promise pixel parity with another system.
 
 ```kotlin
 Modifier.hazeGlass(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = GlassStyle.clear.material3(tint = Color.White.copy(alpha = 0.12f)),
 )
 ```
@@ -186,7 +186,7 @@ when one element needs to differ.
 Box(
   Modifier
     .size(180.dp)
-    .hazeGlass(input = HazeInput.Sources(hazeState))
+    .hazeGlass(input = HazeInput.Backdrop(hazeState)),
 )
 ```
 
@@ -285,14 +285,15 @@ Modifier.hazeGlass(
 
 ### Android window-backdrop Glass
 
-Experimental `HazeInput.Backdrop` lets Glass use the combined pixels already drawn earlier in a
-hardware-accelerated Android 37.2 window:
+`HazeInput.Backdrop` is the normal Glass input when the surface should consume the combined pixels
+already drawn earlier in the current window. Its native path is experimental and eligible only
+after setting the process-wide flag before the effect node attaches:
 
 ```kotlin
+HazeFeatureFlags.isPlatformBackdropEnabled = true
+
 Modifier.hazeGlass(
-  input = HazeInput.Backdrop(
-    fallback = HazeInput.Sources(hazeState),
-  ),
+  input = HazeInput.Backdrop(hazeState),
   style = GlassStyle.regular,
 )
 ```
@@ -303,14 +304,26 @@ and authored alpha, shape, and material transforms keep their normal ordering. I
 a source or fused-output layer while healthy.
 
 Backdrop input samples the current window's combined earlier pixels. It cannot select a Haze
-source, include content drawn later, or cross a dialog, popup, or window boundary. Unsupported
-platforms, an unavailable native graph, or a native failure select the mandatory Sources fallback
-for the rest of that attachment; the transition may take one frame.
+source, include content drawn later, or cross a dialog, popup, or window boundary. The
+`fallbackSelection` and `fallbackRetention` options on `HazeInput.Backdrop` configure only its
+source fallback; they do not filter native window pixels. The current flag default is `false`, and
+`true` means eligible rather than guaranteed: the built-in effect, full Android 37.2 gate, window,
+canvas, native graph setup, and draw must all succeed. Unsupported platforms or a native failure
+select the source fallback for the rest of that attachment; the transition may take one frame.
+Changing the flag affects later attachments only, and healthy native rendering does not retain or
+record source layers.
 
-Use Sources directly when source selection, cross-window alignment, or retained-output behavior is
-part of the requirement. [ADR-0009](../adr/0009-use-opt-in-android-window-backdrops.md) defines the
-opt-in backend, while [ADR-0003](../adr/0003-use-one-android-fused-glass-renderer.md) remains
-authoritative for source-backed Android Glass.
+Set `HazeLogger.enabled = true` to inspect selection and fallback messages. Native work is marked
+by the `HazeBackdrop.draw` trace section. This is diagnostic information, not a performance claim;
+physical Android 37.2 acceptance remains a separate release gate. A later release may enable the
+flag by default, retain a temporary `false` escape hatch, and then remove the experimental flag.
+
+Use Sources directly when exact source selection, cross-window alignment, or retained-output
+behavior must govern the actual input rather than only the fallback.
+[ADR-0010](../adr/0010-adopt-backdrop-as-the-adaptive-haze-input.md)
+defines the input and rollout, while
+[ADR-0003](../adr/0003-use-one-android-fused-glass-renderer.md) remains authoritative for
+source-backed Android Glass.
 
 You can select a literal optical configuration when the built-in material does not fit the design:
 
@@ -359,7 +372,7 @@ not add click handling, focusability, semantics, or keyboard/D-pad activation.
 
 ```kotlin
 Modifier.hazeGlass(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = GlassStyle {
     pressed {
       lightingIntensity(1f)
@@ -397,7 +410,7 @@ Modifier
   .clickable(interactionSource = interactionSource, indication = null) { onClick() }
   .focusable(interactionSource = interactionSource)
   .hazeGlass(
-    input = HazeInput.Sources(hazeState),
+    input = HazeInput.Backdrop(hazeState),
     style = interactionStyle,
     interactionSource = interactionSource,
     interactionTransformTarget = GlassTransformTarget.MaterialAndContent,
@@ -445,7 +458,7 @@ Box(
   Modifier
     .size(180.dp)
     .hazeGlass(
-      input = HazeInput.Sources(hazeState),
+      input = HazeInput.Backdrop(hazeState),
       style = GlassStyle {
         tint(Color.White.copy(alpha = 0.16f))
         optics(

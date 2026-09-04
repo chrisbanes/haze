@@ -54,7 +54,7 @@ Box {
 
     TopAppBar(
         modifier = Modifier.hazeBlur(
-            input = HazeInput.Sources(hazeState),
+            input = HazeInput.Backdrop(hazeState),
             style = style,
         ),
     )

@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded_by: 0010-adopt-backdrop-as-the-adaptive-haze-input
 ---
 
 # Use opt-in Android window backdrops

@@ -25,18 +25,23 @@ public sealed interface HazeInput {
   ) : HazeInput
 
   /**
-   * Pixels already drawn behind the effect in the current window.
+   * The intent to consume pixels already drawn behind the effect in the current window.
    *
-   * The native backdrop path is available only when enabled by
-   * [HazeFeatureFlags.isPlatformBackdropEnabled], on supported Android releases, and for
-   * built-in effects that expose a compatible platform effect. The fallback options are used
-   * everywhere else and after any native setup or draw failure. Native backdrop rendering samples
-   * earlier pixels in the same window; it does not select individual [HazeSource] instances or
-   * sample content from another window.
+   * This is the normal portable input for built-in effects. When
+   * [HazeFeatureFlags.isPlatformBackdropEnabled] is enabled before attachment, the native path is
+   * eligible on supported Android releases and for built-in effects that expose a compatible
+   * platform effect. Eligibility is not a guarantee: the fallback options are used everywhere
+   * else and after any native setup or draw failure. Native backdrop rendering samples earlier
+   * pixels in the same window; it does not select individual source instances, include later
+   * drawing, or sample content from another window.
+   *
+   * The experimental flag defaults to `false` and is read when the modifier node attaches.
+   * Changing it affects later attachments only. A native-to-source fallback transition can take
+   * one frame and remains selected until detachment after a known native failure.
    *
    * @property state Shared state used by the source fallback.
    * @property fallbackSelection Selection used only when the native backdrop is unavailable or
-   * fails.
+   * fails; it does not filter native window pixels.
    * @property fallbackRetention Retention policy used only when the native backdrop is unavailable
    * or fails.
    */

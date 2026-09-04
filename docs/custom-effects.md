@@ -56,6 +56,9 @@ factory is replaced or the node detaches.
 ## Draw source-backed input
 
 Use an explicit `HazeInput.Sources` when the effect consumes content captured by `hazeSource`:
+This is deliberate for custom effects: `Backdrop` is the built-in Blur and Glass input contract,
+and a generic factory does not receive the platform window-backdrop capability. `Sources` keeps
+the captured-source selection and retention semantics visible at the call site.
 
 ```kotlin
 val hazeState = rememberHazeState()

@@ -18,7 +18,7 @@ For a minimal Style that follows the current Compose Material 3 theme, use the s
 
 ```kotlin
 Modifier.hazeBlur(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = HazeMaterials.thin(),
 )
 ```
@@ -29,7 +29,7 @@ Modifier.hazeBlur(
 
 ```kotlin
 Modifier.hazeBlur(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = CupertinoMaterials.regular(),
 )
 ```
@@ -40,7 +40,7 @@ Modifier.hazeBlur(
 
 ```kotlin
 Modifier.hazeBlur(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = FluentMaterials.acrylicDefault(),
 )
 ```

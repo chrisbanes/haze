@@ -17,6 +17,9 @@ public object HazeFeatureFlags {
    * flag only makes native rendering eligible. Platform, window, canvas, effect, setup, and draw
    * checks can still select the configured source fallback, which remains the portable behavior.
    * The default is `false` while the platform implementation is experimental.
+   *
+   * Once physical Android 37.2 acceptance is complete, a later release may flip the default while
+   * retaining a temporary `false` escape hatch for regressions, then remove this experimental flag.
    */
   @JvmField
   public var isPlatformBackdropEnabled: Boolean = false

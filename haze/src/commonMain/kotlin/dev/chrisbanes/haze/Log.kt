@@ -5,11 +5,13 @@ package dev.chrisbanes.haze
 
 import androidx.compose.runtime.snapshots.Snapshot
 
-/** Debug logging controls for diagnosing Haze rendering behavior. */
+/** Debug logging controls for diagnosing Haze rendering behavior, including Backdrop selection. */
 public object HazeLogger {
   /**
    * Whether to print debug log statements to the relevant system logger. Do not build release
-   * artifacts with this enabled. It's purely for debugging purposes.
+   * artifacts with this enabled. When enabled, Backdrop selection and source-fallback messages are
+   * included. Native backdrop work is marked separately by the `HazeBackdrop.draw` trace section.
+   * This is purely for debugging purposes.
    */
   public var enabled: Boolean = false
 

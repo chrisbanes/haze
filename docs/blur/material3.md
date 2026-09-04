@@ -16,7 +16,7 @@ a one-off Style can override that background without adding an implicit color ef
 
 ```kotlin
 Modifier.hazeBlur(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = HazeBlurStyle.Material3 {
     blurRadius(12.dp)
   },
