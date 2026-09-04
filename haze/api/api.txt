@@ -5,12 +5,13 @@ package dev.chrisbanes.haze {
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public final class HazeEffectBackdrop {
-    ctor public HazeEffectBackdrop(PlatformRenderEffect effect, optional float alpha, optional dev.chrisbanes.haze.HazeEffectContentTransform materialTransform);
+    ctor public HazeEffectBackdrop(PlatformRenderEffect platformEffect, optional float alpha, optional dev.chrisbanes.haze.HazeEffectContentTransform materialTransform);
     method @InaccessibleFromKotlin public float getAlpha();
     method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeEffectContentTransform getMaterialTransform();
-    method public PlatformRenderEffect platformEffect();
+    method @InaccessibleFromKotlin public PlatformRenderEffect getPlatformEffect();
     property public float alpha;
     property public dev.chrisbanes.haze.HazeEffectContentTransform materialTransform;
+    property public PlatformRenderEffect platformEffect;
   }
 
   @dev.chrisbanes.haze.InternalHazeApi public final class HazeEffectContentTransform {

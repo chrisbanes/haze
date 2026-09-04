@@ -15,11 +15,10 @@ class HazeBackdropBackendStateTest {
   fun nativeSelection_remainsNativeWhileAvailable() {
     val state = HazeBackdropBackendState()
 
-    assertThat(state.resolve(nativeAvailable = true))
-      .isEqualTo(HazeBackdropBackendSelection.Native)
-    assertThat(state.resolve(nativeAvailable = true))
-      .isEqualTo(HazeBackdropBackendSelection.Native)
-    assertThat(state.usesNative).isTrue()
+    state.resolve(nativeAvailable = true)
+    state.resolve(nativeAvailable = true)
+
+    assertThat(state.selection).isEqualTo(HazeBackdropBackendSelection.Native)
     assertThat(state.usesFallback).isFalse()
   }
 
@@ -28,8 +27,9 @@ class HazeBackdropBackendStateTest {
     val state = HazeBackdropBackendState()
     state.resolve(nativeAvailable = true)
 
-    assertThat(state.resolve(nativeAvailable = false))
-      .isEqualTo(HazeBackdropBackendSelection.FallbackUnavailable)
+    state.resolve(nativeAvailable = false)
+
+    assertThat(state.selection).isEqualTo(HazeBackdropBackendSelection.FallbackUnavailable)
     assertThat(state.usesFallback).isTrue()
   }
 
@@ -37,10 +37,10 @@ class HazeBackdropBackendStateTest {
   fun unavailableSelection_remainsStickyWhenNativeBecomesAvailable() {
     val state = HazeBackdropBackendState()
 
-    assertThat(state.resolve(nativeAvailable = false))
-      .isEqualTo(HazeBackdropBackendSelection.FallbackUnavailable)
-    assertThat(state.resolve(nativeAvailable = true))
-      .isEqualTo(HazeBackdropBackendSelection.FallbackUnavailable)
+    state.resolve(nativeAvailable = false)
+    state.resolve(nativeAvailable = true)
+
+    assertThat(state.selection).isEqualTo(HazeBackdropBackendSelection.FallbackUnavailable)
     assertThat(state.usesFallback).isTrue()
   }
 
@@ -49,9 +49,10 @@ class HazeBackdropBackendStateTest {
     val state = HazeBackdropBackendState()
     state.resolve(nativeAvailable = true)
 
-    assertThat(state.fail()).isEqualTo(HazeBackdropBackendSelection.FallbackFailed)
-    assertThat(state.resolve(nativeAvailable = true))
-      .isEqualTo(HazeBackdropBackendSelection.FallbackFailed)
+    state.fail()
+    state.resolve(nativeAvailable = true)
+
+    assertThat(state.selection).isEqualTo(HazeBackdropBackendSelection.FallbackFailed)
     assertThat(state.usesFallback).isTrue()
   }
 
@@ -63,7 +64,6 @@ class HazeBackdropBackendStateTest {
     state.reset()
 
     assertThat(state.selection).isEqualTo(HazeBackdropBackendSelection.Undecided)
-    assertThat(state.usesNative).isFalse()
     assertThat(state.usesFallback).isFalse()
   }
 }

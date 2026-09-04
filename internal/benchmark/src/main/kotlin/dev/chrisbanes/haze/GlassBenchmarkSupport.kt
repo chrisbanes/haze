@@ -59,9 +59,15 @@ private fun isBackdropSdkSupported(): Boolean {
 @OptIn(ExperimentalMetricApi::class)
 internal fun backdropComparisonMetrics(
   requireBackdropDraw: Boolean,
-): List<Metric> = listOf(
+): List<Metric> = listOf<Metric>(
   FrameTimingMetric(),
   MemoryUsageMetric(MemoryUsageMetric.Mode.Max),
+) + backdropTraceMetrics(requireBackdropDraw)
+
+@OptIn(ExperimentalMetricApi::class)
+private fun backdropTraceMetrics(
+  requireBackdropDraw: Boolean,
+): List<Metric> = listOf(
   TraceSectionMetric(
     sectionName = HAZE_BACKDROP_DRAW_SECTION,
     mode = TraceSectionMetric.Mode.Count,
@@ -96,20 +102,7 @@ internal fun glassMetrics(
     add(MemoryUsageMetric(MemoryUsageMetric.Mode.Max))
   }
   if (includeBackdropComparisonMetrics) {
-    add(
-      TraceSectionMetric(
-        sectionName = HAZE_BACKDROP_DRAW_SECTION,
-        mode = TraceSectionMetric.Mode.Count,
-        label = if (requireBackdropDraw) "requiredHazeBackdropDraw" else "hazeBackdropDraw",
-      ),
-    )
-    add(
-      TraceSectionMetric(
-        sectionName = HAZE_SOURCE_RECORD_SECTION,
-        mode = TraceSectionMetric.Mode.Count,
-        label = "hazeSourceRecord",
-      ),
-    )
+    addAll(backdropTraceMetrics(requireBackdropDraw))
   }
   if (includePreparationMetrics) {
     add(

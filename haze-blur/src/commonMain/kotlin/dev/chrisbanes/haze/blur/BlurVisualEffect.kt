@@ -148,7 +148,7 @@ internal class BlurVisualEffect :
       if (delegate !is RenderEffectBlurVisualEffectDelegate) return null
 
       HazeEffectBackdrop(
-        effect = getOrCreateRenderEffect(
+        platformEffect = getOrCreateRenderEffect(
           context = this,
           inputScale = BlurInputScalePolicy.NONE_SCALE,
           backgroundColor = backgroundColor,

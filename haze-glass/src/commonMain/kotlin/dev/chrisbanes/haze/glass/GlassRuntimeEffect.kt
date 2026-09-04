@@ -456,7 +456,7 @@ internal class GlassRuntimeEffect() :
         with(runtimeDelegate) { prepareBackdrop(context) }
       } ?: return null
       HazeEffectBackdrop(
-        effect = platformEffect,
+        platformEffect = platformEffect,
         alpha = checkNotNull(preparedRender).alpha,
         materialTransform = currentMaterialTransform(context.modifierSize),
       )

@@ -15,11 +15,11 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 @InternalHazeApi
-internal actual fun createHazeBackdropRenderer(): HazeBackdropRenderer =
+internal actual fun createHazeBackdropRenderer(): HazeBackdropRenderer? =
   if (isAndroidBackdropSdkSupported()) {
     AndroidHazeBackdropRenderer()
   } else {
-    UnavailableHazeBackdropRenderer
+    null
   }
 
 private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
@@ -82,21 +82,6 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
     renderNode?.discardDisplayList()
     renderNode = null
   }
-}
-
-private object UnavailableHazeBackdropRenderer : HazeBackdropRenderer {
-  override fun isSupported(canvas: Canvas): Boolean = false
-
-  override fun configure(
-    bounds: Rect,
-    clip: Rect?,
-    effect: PlatformRenderEffect,
-    alpha: Float,
-  ): Boolean = false
-
-  override fun draw(canvas: Canvas): Boolean = false
-
-  override fun release() = Unit
 }
 
 private fun isAndroidBackdropSdkSupported(): Boolean {

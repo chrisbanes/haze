@@ -467,7 +467,7 @@ private class PrototypeBackdropNode(
   clip: PrototypeClip?,
   drawReady: CountDownLatch,
 ) : Modifier.Node(), DrawModifierNode {
-  private val renderer = createHazeBackdropRenderer()
+  private val renderer = checkNotNull(createHazeBackdropRenderer())
   var radius = radius
   var clip = clip
   var drawReady = drawReady

@@ -664,8 +664,13 @@ internal class HazeEffectNode :
       return
     }
 
-    val renderer = backdropRenderer ?: createHazeBackdropRenderer().also {
+    val renderer = backdropRenderer ?: createHazeBackdropRenderer()?.also {
       backdropRenderer = it
+    }
+    if (renderer == null) {
+      activateBackdropFallback(failed = false)
+      withVisualEffectTransform { drawContentSafely() }
+      return
     }
     val supported = try {
       renderer.isSupported(drawContext.canvas)
@@ -682,7 +687,8 @@ internal class HazeEffectNode :
       return
     }
 
-    val backdrop = preparedBackdropEffect(capability)
+    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
+    val backdrop = with(capability) { scope.backdropEffect(typedEffectStyle) }
     if (backdrop == null) {
       activateBackdropFallback(failed = false)
       withVisualEffectTransform { drawContentSafely() }
@@ -693,7 +699,7 @@ internal class HazeEffectNode :
     var backdropDrawn = false
     withVisualEffectTransform {
       try {
-        withBackdropMaterialTransform(backdrop.materialTransform) {
+        withVisualEffectTransform(transform = backdrop.materialTransform) {
           val bounds = Rect(
             offset = Offset.Zero - layerOffset,
             size = layerSize,
@@ -703,7 +709,7 @@ internal class HazeEffectNode :
             renderer.configure(
               bounds = bounds,
               clip = clip,
-              effect = backdrop.platformEffect(),
+              effect = backdrop.platformEffect,
               alpha = backdrop.alpha,
             ) && renderer.draw(drawContext.canvas)
           }
@@ -719,14 +725,6 @@ internal class HazeEffectNode :
         drawEffectForeground()
       }
     }
-  }
-
-  @OptIn(InternalHazeApi::class)
-  private fun ContentDrawScope.preparedBackdropEffect(
-    capability: HazeEffectRendererBackdrop<Any?>,
-  ): HazeEffectBackdrop? {
-    val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
-    return with(capability) { scope.backdropEffect(typedEffectStyle) }
   }
 
   private fun activateBackdropFallback(failed: Boolean) {
@@ -1267,11 +1265,12 @@ internal class HazeEffectNode :
   }
 
   private inline fun ContentDrawScope.withVisualEffectTransform(
+    transform: HazeEffectContentTransform =
+      (typedEffectRenderer as? HazeEffectRendererInteraction)
+        ?.currentContentTransform()
+        ?: HazeEffectContentTransform.Identity,
     block: ContentDrawScope.() -> Unit,
   ) {
-    val transform = (typedEffectRenderer as? HazeEffectRendererInteraction)
-      ?.currentContentTransform()
-      ?: HazeEffectContentTransform.Identity
     if (transform == HazeEffectContentTransform.Identity) {
       block()
     } else {
@@ -1280,22 +1279,6 @@ internal class HazeEffectNode :
         scaleY = transform.scaleY,
         pivot = transform.pivot,
         block = { block(this@withVisualEffectTransform) },
-      )
-    }
-  }
-
-  private inline fun ContentDrawScope.withBackdropMaterialTransform(
-    transform: HazeEffectContentTransform,
-    block: ContentDrawScope.() -> Unit,
-  ) {
-    if (transform == HazeEffectContentTransform.Identity) {
-      block()
-    } else {
-      scale(
-        scaleX = transform.scaleX,
-        scaleY = transform.scaleY,
-        pivot = transform.pivot,
-        block = { block(this@withBackdropMaterialTransform) },
       )
     }
   }

@@ -29,7 +29,7 @@ internal interface HazeBackdropRenderer {
 }
 
 @InternalHazeApi
-internal expect fun createHazeBackdropRenderer(): HazeBackdropRenderer
+internal expect fun createHazeBackdropRenderer(): HazeBackdropRenderer?
 
 // Platform-neutral equivalent of Build.VERSION_CODES_FULL.CINNAMON_BUN_2 for common tests.
 @InternalHazeApi

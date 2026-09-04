@@ -14,14 +14,11 @@ internal class HazeBackdropBackendState {
   var selection: HazeBackdropBackendSelection = HazeBackdropBackendSelection.Undecided
     private set
 
-  val usesNative: Boolean
-    get() = selection == HazeBackdropBackendSelection.Native
-
   val usesFallback: Boolean
     get() = selection == HazeBackdropBackendSelection.FallbackUnavailable ||
       selection == HazeBackdropBackendSelection.FallbackFailed
 
-  fun resolve(nativeAvailable: Boolean): HazeBackdropBackendSelection {
+  fun resolve(nativeAvailable: Boolean) {
     if (!usesFallback) {
       selection = if (nativeAvailable) {
         HazeBackdropBackendSelection.Native
@@ -29,14 +26,12 @@ internal class HazeBackdropBackendState {
         HazeBackdropBackendSelection.FallbackUnavailable
       }
     }
-    return selection
   }
 
-  fun fail(): HazeBackdropBackendSelection {
+  fun fail() {
     if (!usesFallback) {
       selection = HazeBackdropBackendSelection.FallbackFailed
     }
-    return selection
   }
 
   fun reset() {
