@@ -102,7 +102,10 @@ poko {
 }
 
 baselineProfile {
-  filter { include("dev.chrisbanes.haze.*") }
+  filter {
+    include("dev.chrisbanes.haze.**")
+    exclude("dev.chrisbanes.haze.sample.**")
+  }
 }
 
 dependencies {

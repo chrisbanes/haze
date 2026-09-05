@@ -29,14 +29,33 @@ class BaselineProfileGenerator {
 
     device.pressBack()
     device.waitForIdle()
+    device.pressBack()
+    device.waitForIdle()
 
     device.navigateToScaffold()
     device.repeatedScrolls("lazy_grid")
 
     device.pressBack()
     device.waitForIdle()
+    device.pressBack()
+    device.waitForIdle()
 
     device.navigateToCreditCard()
     device.repeatedDrags("credit_card_2")
+
+    device.pressBack()
+    device.waitForIdle()
+    device.pressBack()
+    device.waitForIdle()
+
+    device.navigateToGlassProduct()
+    device.advanceGlassProduct()
+
+    device.pressBack()
+    device.waitForIdle()
+    device.pressBack()
+    device.waitForIdle()
+
+    device.navigateToGlassPlayground()
   }
 }
