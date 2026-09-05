@@ -183,14 +183,14 @@ internal fun UiDevice.repeatedScrolls(
   startDirection: Direction = Direction.DOWN,
   repetitions: Int = 4,
 ) {
-  val node = waitForObject(By.res(tag))
-  // Set gesture margins to avoid triggering gesture navigation
-  // with input events from automation.
-  val horiz = (displayWidth / 6f).roundToInt()
-  val vert = (displayHeight / 8f).roundToInt()
-  node.setGestureMargins(horiz, vert, horiz, vert)
   // Scroll up + down several times
   repeat(repetitions) { index ->
+    val node = waitForObject(By.res(tag))
+    // Set gesture margins to avoid triggering gesture navigation
+    // with input events from automation.
+    val horiz = (displayWidth / 6f).roundToInt()
+    val vert = (displayHeight / 8f).roundToInt()
+    node.setGestureMargins(horiz, vert, horiz, vert)
     val direction = when {
       index % 2 == 0 -> startDirection
       else -> startDirection.opposite()
