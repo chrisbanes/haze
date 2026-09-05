@@ -129,6 +129,8 @@ internal class RuntimeShaderGlassDelegate(
   private var recordedInteractionCompositeDetailRecordCount: Int = -1
   private var recordedInteractionLightingLayer: GraphicsLayer? = null
   private var recordedInteractionLightingSize: IntSize? = null
+  private var recordedRimLayer: GraphicsLayer? = null
+  private var recordedRimKey: GlassRimEffectKey? = null
   internal val layers = GlassLayers()
   private var graphicsContext: GraphicsContext? = null
   private var preparedRender: GlassPreparedRender? = null
@@ -207,6 +209,7 @@ internal class RuntimeShaderGlassDelegate(
       graphicsContext = currentGraphicsContext
       if (layers.scaledSize != scaledSize) {
         layers.release(currentGraphicsContext)
+        clearRimLayerMetadata()
         layers.scaledSize = scaledSize
         clearInteractionLayerMetadata()
         clearRetainedMetadata()
@@ -255,6 +258,7 @@ internal class RuntimeShaderGlassDelegate(
       }
       if (!rimRequired) {
         layers.releaseRim(currentGraphicsContext)
+        clearRimLayerMetadata()
       }
       releaseObsoleteInteractionLayers(
         opticsRequired = interactionOpticsRequired,
@@ -341,6 +345,7 @@ internal class RuntimeShaderGlassDelegate(
     if (layers.scaledSize != scaledSize) {
       layers.release(currentGraphicsContext)
       layers.scaledSize = scaledSize
+      clearRimLayerMetadata()
       clearInteractionLayerMetadata()
       clearRetainedMetadata()
     }
@@ -349,6 +354,9 @@ internal class RuntimeShaderGlassDelegate(
       interactionLighting = currentPreparedRender.interactionTopology.hasLighting,
       graphicsContext = currentGraphicsContext,
     )
+    if (currentRenderEffects.rim == null) {
+      clearRimLayerMetadata()
+    }
     clearRetainedMetadata()
     prepareInteractionRenderEffects(
       render = currentPreparedRender,
@@ -958,6 +966,11 @@ internal class RuntimeShaderGlassDelegate(
     interactionLightingEffectLayer = null
   }
 
+  private fun clearRimLayerMetadata() {
+    recordedRimLayer = null
+    recordedRimKey = null
+  }
+
   override fun detach() {
     releaseRetainedResources(releaseShaderHandles = false)
   }
@@ -1017,6 +1030,7 @@ internal class RuntimeShaderGlassDelegate(
     preparedInteractionPatch = null
     preparedSourceAvailable = false
     preparedStageAvailability = null
+    clearRimLayerMetadata()
     clearRetainedMetadata()
   }
 
@@ -1258,12 +1272,20 @@ internal class RuntimeShaderGlassDelegate(
   ): Unit? {
     val rimEffect = effects.rim ?: return Unit
     val layer = layers.rim?.takeUnless { it.isReleased } ?: return null
+    val key = params.rimEffectKey()
     layer.alpha = 1f
     layer.renderEffect = rimEffect.asComposeRenderEffect()
-    layer.record(params.coordinates.sampleSize.roundToIntSize()) {
-      drawRect(Color.Black)
+    if (
+      layer !== recordedRimLayer ||
+      key != recordedRimKey
+    ) {
+      layer.record(params.coordinates.sampleSize.roundToIntSize()) {
+        drawRect(Color.Black)
+      }
+      recordedRimLayer = layer
+      recordedRimKey = key
+      rimRecordCount++
     }
-    rimRecordCount++
     return Unit
   }
 

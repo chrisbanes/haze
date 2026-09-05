@@ -152,6 +152,7 @@ internal class BlurVisualEffect :
           context = this,
           inputScale = BlurInputScalePolicy.NONE_SCALE,
           backgroundColor = backgroundColor,
+          progressive = progressive,
         ),
         alpha = alpha,
       )

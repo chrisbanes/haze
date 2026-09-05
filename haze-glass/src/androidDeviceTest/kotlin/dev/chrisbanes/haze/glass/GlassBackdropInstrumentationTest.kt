@@ -19,12 +19,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
@@ -37,6 +40,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -251,6 +255,118 @@ class GlassBackdropInstrumentationTest {
         )
       }
     }
+  }
+
+  @Test
+  fun backdropInput_offscreenAncestorsPreserveInput() {
+    assumeTrue(
+      "HazeInput.Backdrop requires Android 37.2 or the matching preview",
+      isBackdropSdkSupported(),
+    )
+    AncestorMode.entries.forEach { mode ->
+      val native = renderOffscreenScene(mode, nativeEnabled = true)
+      val fallback = renderOffscreenScene(mode, nativeEnabled = false)
+      val density = Density(activity.resources.displayMetrics.density)
+      native.assertCenterEdgeSoftened(density)
+      fallback.assertCenterEdgeSoftened(density)
+      val sampleX = native.width / 2 + 3.dp.roundToPx(density)
+      val sampleY = native.height / 2
+      assertThat(
+        kotlin.math.abs(native.red(sampleX, sampleY) - fallback.red(sampleX, sampleY)),
+        "${mode.name} native/fallback edge agreement",
+      ).isLessThan(0.12f)
+      native.recycle()
+      fallback.recycle()
+    }
+  }
+
+  private fun renderOffscreenScene(
+    mode: AncestorMode,
+    nativeEnabled: Boolean,
+  ): Bitmap {
+    HazeFeatureFlags.isPlatformBackdropEnabled = nativeEnabled
+    val captureState = HazeState()
+    val ancestorState = HazeState()
+    val drawReady = CountDownLatch(1)
+    activityScenario.onActivity { activity ->
+      activity.setContent {
+        key(mode to nativeEnabled) {
+          Box(Modifier.fillMaxSize().background(Color.White)) {
+            Box(
+              Modifier
+                .align(Alignment.Center)
+                .size(width = 200.dp, height = 100.dp)
+                .hazeSource(captureState)
+                .background(Color.Black),
+            ) {
+              Box(
+                Modifier
+                  .align(Alignment.CenterEnd)
+                  .size(width = 100.dp, height = 100.dp)
+                  .background(Color.White),
+              )
+            }
+            Box(
+              Modifier
+                .align(Alignment.Center)
+                .size(width = 200.dp, height = 100.dp)
+                .then(
+                  if (mode == AncestorMode.EnclosingCapture) {
+                    Modifier.hazeSource(ancestorState)
+                  } else {
+                    Modifier
+                  },
+                ),
+            ) {
+              Box(
+                Modifier
+                  .fillMaxSize()
+                  .then(
+                    when (mode) {
+                      AncestorMode.Normal -> Modifier
+                      AncestorMode.Alpha -> Modifier.graphicsLayer { alpha = 0.5f }
+                      AncestorMode.Offscreen -> Modifier.graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                      }
+                      AncestorMode.EnclosingCapture -> Modifier
+                    },
+                  )
+                  .hazeGlass(
+                    input = HazeInput.Backdrop(captureState),
+                    style = pureBlurGlassStyle(14.dp),
+                  )
+                  .drawWithContent {
+                    drawContent()
+                    drawReady.countDown()
+                  },
+              )
+            }
+            if (mode == AncestorMode.EnclosingCapture) {
+              Box(
+                Modifier
+                  .size(1.dp)
+                  .background(Color.Transparent)
+                  .hazeGlass(
+                    input = HazeInput.Sources(ancestorState),
+                    style = pureBlurGlassStyle(0.dp),
+                  ),
+              )
+            }
+          }
+        }
+      }
+    }
+    assertThat(drawReady.await(5, TimeUnit.SECONDS), "${mode.name} scene presented")
+      .isEqualTo(true)
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+    return activity.copyWindow()
+  }
+
+  private enum class AncestorMode {
+    Normal,
+    Alpha,
+    Offscreen,
+    EnclosingCapture,
   }
 
   @Test

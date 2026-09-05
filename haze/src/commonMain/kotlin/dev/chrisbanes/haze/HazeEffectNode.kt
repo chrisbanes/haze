@@ -48,7 +48,9 @@ import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 
-internal class HazeEffectNode :
+internal class HazeEffectNode(
+  private val createBackdropRenderer: () -> HazeBackdropRenderer? = ::createHazeBackdropRenderer,
+) :
   DelegatingNode(),
   CompositionLocalConsumerModifierNode,
   ModifierLocalModifierNode,
@@ -669,11 +671,19 @@ internal class HazeEffectNode :
       return
     }
 
-    val renderer = backdropRenderer ?: createHazeBackdropRenderer()?.also {
-      backdropRenderer = it
+    val renderer = backdropRenderer ?: try {
+      createBackdropRenderer()?.also {
+        backdropRenderer = it
+      }
+    } catch (exception: Exception) {
+      HazeLogger.d(TAG, exception) { "Backdrop renderer creation failed" }
+      activateBackdropFallback(failed = true)
+      null
     }
     if (renderer == null) {
-      activateBackdropFallback(failed = false)
+      if (!backdropBackendState.usesFallback) {
+        activateBackdropFallback(failed = false)
+      }
       withVisualEffectTransform { drawContentSafely() }
       return
     }
@@ -693,7 +703,14 @@ internal class HazeEffectNode :
     }
 
     val scope = HazeEffectDrawScopeImpl(this, this@HazeEffectNode, typedEffectSampling)
-    val backdrop = with(capability) { scope.backdropEffect(typedEffectStyle) }
+    val backdrop = try {
+      with(capability) { scope.backdropEffect(typedEffectStyle) }
+    } catch (exception: Exception) {
+      HazeLogger.d(TAG, exception) { "Backdrop effect preparation failed" }
+      activateBackdropFallback(failed = true)
+      withVisualEffectTransform { drawContentSafely() }
+      return
+    }
     if (backdrop == null) {
       activateBackdropFallback(failed = false)
       withVisualEffectTransform { drawContentSafely() }

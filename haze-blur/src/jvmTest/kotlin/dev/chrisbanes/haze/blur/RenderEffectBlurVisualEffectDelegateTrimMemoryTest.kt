@@ -1,7 +1,10 @@
 // Copyright 2026, Christopher Banes and the Haze project contributors
 // SPDX-License-Identifier: Apache-2.0
 
-@file:OptIn(dev.chrisbanes.haze.InternalHazeApi::class)
+@file:OptIn(
+  androidx.compose.ui.InternalComposeUiApi::class,
+  dev.chrisbanes.haze.InternalHazeApi::class,
+)
 
 package dev.chrisbanes.haze.blur
 
@@ -15,19 +18,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SkiaGraphicsContext
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazePerformanceMode
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformContext
@@ -249,6 +259,70 @@ class RenderEffectBlurVisualEffectDelegateTrimMemoryTest {
 
     assertThat(context.inputCaptureCount).isEqualTo(2)
   }
+
+  @Test
+  fun backdropEffect_forwardsProgressiveStyleToTheRootRenderEffect() {
+    val effect = BlurVisualEffect()
+    val context = RecordingDrawContext(recordedSize = Size(100f, 100f))
+
+    fun render(style: HazeBlurStyle): Pair<Float, Float> {
+      val configuration = BlurConfiguration(style, HazePerformanceMode.Quality)
+      effect.update(BlurLifecycleScope, configuration, HazeSampling.FullResolution)
+      context.render { with(effect) { with(context) { prepareDraw(configuration) } } }
+      var backdrop: dev.chrisbanes.haze.HazeEffectBackdrop? = null
+      context.render {
+        backdrop = with(effect) { with(context) { backdropEffect(configuration) } }
+      }
+
+      val graphicsContext = SkiaGraphicsContext()
+      val inputLayer = graphicsContext.createGraphicsLayer()
+      inputLayer.record(
+        density = Density(1f),
+        layoutDirection = LayoutDirection.Ltr,
+        size = IntSize(100, 100),
+      ) {
+        drawRect(Color.Black, size = Size(50f, 100f))
+        drawRect(Color.White, topLeft = Offset(50f, 0f), size = Size(50f, 100f))
+      }
+      inputLayer.renderEffect = checkNotNull(backdrop).getPlatformEffect().asComposeRenderEffect()
+      val output = ImageBitmap(100, 100)
+      CanvasDrawScope().draw(
+        density = Density(1f),
+        layoutDirection = LayoutDirection.Ltr,
+        canvas = Canvas(output),
+        size = Size(100f, 100f),
+      ) {
+        drawLayer(inputLayer)
+      }
+      graphicsContext.releaseGraphicsLayer(inputLayer)
+
+      val pixels = output.toPixelMap()
+      fun edgeSoftening(y: Int): Float = (51..60).map { pixels[it, y].red }.average().toFloat()
+      return edgeSoftening(20) to edgeSoftening(80)
+    }
+
+    val forward = render(
+      HazeBlurStyle {
+        blurRadius(14.dp)
+        noiseFactor(0f)
+        colorEffects(emptyList())
+        progressive(HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f))
+      },
+    )
+    val reversed = render(
+      HazeBlurStyle {
+        blurRadius(14.dp)
+        noiseFactor(0f)
+        colorEffects(emptyList())
+        progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
+      },
+    )
+
+    assertThat(forward.second - forward.first)
+      .isGreaterThan(0.03f)
+    assertThat(reversed.first - reversed.second)
+      .isGreaterThan(0.03f)
+  }
 }
 
 private fun Any.setPrivateField(name: String, value: Any?) {
@@ -306,13 +380,14 @@ private data object BlurLifecycleScope : HazeEffectLifecycleScope {
 @OptIn(InternalComposeUiApi::class, InternalHazeApi::class)
 private class RecordingDrawContext(
   private val drawScope: CanvasDrawScope = CanvasDrawScope(),
+  private val recordedSize: Size = Size(10f, 10f),
 ) : HazeEffectRuntimeDrawScope, DrawScope by drawScope {
   private val graphicsContext = RecordingGraphicsContext()
 
   var inputCaptureCount = 0
     private set
 
-  override val modifierSize: Size = Size(10f, 10f)
+  override val modifierSize: Size = recordedSize
   override val modifierBounds: Rect = Rect(Offset.Zero, modifierSize)
   override var sampling: HazeSampling = HazeSampling.FullResolution
   override var layerSize: Size = modifierSize
@@ -327,7 +402,7 @@ private class RecordingDrawContext(
     drawScope.draw(
       density = Density(1f),
       layoutDirection = LayoutDirection.Ltr,
-      canvas = Canvas(ImageBitmap(10, 10)),
+      canvas = Canvas(ImageBitmap(recordedSize.width.toInt(), recordedSize.height.toInt())),
       size = modifierSize,
       block = block,
     )

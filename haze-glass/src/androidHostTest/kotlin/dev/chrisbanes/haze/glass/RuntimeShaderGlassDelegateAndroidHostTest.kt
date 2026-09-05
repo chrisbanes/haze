@@ -20,16 +20,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.AndroidComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runAndroidComposeUiTest
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -37,6 +44,7 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThan
 import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
@@ -44,13 +52,22 @@ import assertk.assertions.isNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectFactory
+import dev.chrisbanes.haze.HazeEffectLayoutScope
+import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
+import dev.chrisbanes.haze.HazeEffectRendererLifecycle
+import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.RuntimeShaderRenderEffectException
+import dev.chrisbanes.haze.TrimMemoryLevel
+import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.test.ContextTest
@@ -526,6 +543,129 @@ class RuntimeShaderGlassDelegateAndroidHostTest : ContextTest() {
       assertThat(delegate.rimShader).isSameInstanceAs(rimShader)
       assertThat(delegate.rimEffect).isNotSameInstanceAs(rimEffect)
       assertThat(delegate.layers.rim?.renderEffect).isNotSameInstanceAs(rimLayerEffect)
+    }
+
+  @Test
+  fun repeatedBackdropPreparation_reusesUnchangedRimRecording() =
+    runAndroidComposeUiTest<ComponentActivity> {
+      val effect = animatedStageEffect()
+      val factory = TestGlassRuntimeFactory(effect)
+      var contentSize by mutableStateOf(120.dp)
+      val configuration = GlassNodeConfiguration(
+        style = effect.style,
+        performanceMode = HazePerformanceMode.Quality,
+        interactionSource = effect.interactionSource,
+        interactionTransformTarget = effect.interactionTransformTarget,
+        interactionTransformPivot = effect.interactionTransformPivot,
+        interactionReducedMotionPolicy = effect.interactionReducedMotionPolicy,
+      )
+      setContent {
+        Box(
+          Modifier
+            .size(contentSize)
+            .testTag("direct-glass")
+            .hazeEffect(
+              factory = factory,
+              input = HazeInput.Content,
+              style = configuration,
+              expandLayerBounds = true,
+            ),
+        ) {
+          Box(
+            Modifier
+              .fillMaxSize()
+              .background(Brush.verticalGradient(listOf(Color.Red, Color.Blue))),
+          )
+        }
+      }
+      waitForIdle()
+
+      val renderer = factory.renderer
+
+      fun capturePixels(): FloatArray {
+        val pixels = onNodeWithTag("direct-glass")
+          .captureToImage()
+          .toPixelMap()
+        val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+        assertThat(delegate.layers.source).isNull()
+        assertThat(delegate.layers.optical).isNull()
+        return FloatArray(pixels.width * pixels.height) { index ->
+          pixels[index % pixels.width, index / pixels.width].red
+        }
+      }
+
+      val initialPixels = capturePixels()
+      val delegate = checkNotNull(effect.delegate as? RuntimeShaderGlassDelegate)
+      val firstCount = delegate.rimRecordCount
+      val firstRimLayer = checkNotNull(delegate.layers.rim)
+      assertThat(firstCount).isGreaterThan(0)
+
+      renderer.invalidateDraw()
+      waitForIdle()
+      val repeatedPixels = capturePixels()
+      assertThat(delegate.rimRecordCount).isEqualTo(firstCount)
+      assertThat(delegate.layers.rim).isSameInstanceAs(firstRimLayer)
+      assertThat(repeatedPixels.size).isEqualTo(initialPixels.size)
+
+      effect.ambientResponse = 0.6f
+      renderer.invalidateDraw()
+      waitForIdle()
+      capturePixels()
+      assertThat(delegate.rimRecordCount).isEqualTo(firstCount)
+      assertThat(delegate.layers.rim).isSameInstanceAs(firstRimLayer)
+
+      effect.alpha = 0.75f
+      renderer.invalidateDraw()
+      waitForIdle()
+      capturePixels()
+      assertThat(delegate.rimRecordCount).isEqualTo(firstCount)
+      assertThat(delegate.layers.rim).isSameInstanceAs(firstRimLayer)
+
+      contentSize = 100.dp
+      waitForIdle()
+      val resizedPixels = capturePixels()
+      val resizedCount = delegate.rimRecordCount
+      val resizedRimLayer = checkNotNull(delegate.layers.rim)
+      assertThat(resizedCount).isEqualTo(firstCount + 1)
+      assertThat(resizedRimLayer).isNotSameInstanceAs(firstRimLayer)
+
+      val countBeforeLight = delegate.rimRecordCount
+      val pixelsBeforeLight = resizedPixels
+      effect.lightPosition = exactLightAlignment(Offset(10f, 20f))
+      renderer.invalidateDraw()
+      waitForIdle()
+      val pixelsAfterLight = capturePixels()
+      assertThat(delegate.rimRecordCount).isEqualTo(countBeforeLight + 1)
+      assertThat(delegate.layers.rim).isSameInstanceAs(resizedRimLayer)
+      val maximumPixelDelta = pixelsBeforeLight.indices.maxOf { index ->
+        kotlin.math.abs(pixelsBeforeLight[index] - pixelsAfterLight[index])
+      }
+      assertThat(maximumPixelDelta).isGreaterThan(0.01f)
+
+      val countBeforeDisable = delegate.rimRecordCount
+      effect.specularIntensity = 0f
+      effect.edgeShadow = Color.Transparent
+      renderer.invalidateDraw()
+      waitForIdle()
+      capturePixels()
+      assertThat(delegate.layers.rim).isNull()
+
+      effect.specularIntensity = 1f
+      effect.edgeShadow = Color.Black.copy(alpha = 0.2f)
+      renderer.invalidateDraw()
+      waitForIdle()
+      capturePixels()
+      val recreatedCount = delegate.rimRecordCount
+      val recreatedRimLayer = checkNotNull(delegate.layers.rim)
+      assertThat(recreatedCount).isEqualTo(countBeforeDisable + 1)
+      assertThat(recreatedRimLayer).isNotSameInstanceAs(resizedRimLayer)
+
+      effect.onTrimMemory(TrimMemoryLevel.MODERATE)
+      renderer.invalidateDraw()
+      waitForIdle()
+      capturePixels()
+      assertThat(delegate.rimRecordCount).isEqualTo(recreatedCount + 1)
+      assertThat(delegate.layers.rim).isNotSameInstanceAs(recreatedRimLayer)
     }
 
   @Test
@@ -1065,4 +1205,72 @@ private class FixedGlassRuntimeFactory(
   private val effect: GlassRuntimeEffect,
 ) : HazeEffectFactory<GlassNodeConfiguration> {
   override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> = effect
+}
+
+@OptIn(InternalHazeApi::class)
+private class TestGlassRuntimeFactory(
+  private val effect: GlassRuntimeEffect,
+) : HazeEffectFactory<GlassNodeConfiguration> {
+  lateinit var renderer: TestGlassRuntimeRenderer
+
+  override fun createRenderer(): HazeEffectRenderer<GlassNodeConfiguration> =
+    TestGlassRuntimeRenderer(effect).also { renderer = it }
+}
+
+@OptIn(InternalHazeApi::class)
+private class TestGlassRuntimeRenderer(
+  private val effect: GlassRuntimeEffect,
+) :
+  HazeEffectRenderer<GlassNodeConfiguration>,
+  HazeEffectRendererLifecycle<GlassNodeConfiguration>,
+  HazeEffectRendererDrawHooks<GlassNodeConfiguration> {
+  private var lifecycleScope: HazeEffectLifecycleScope? = null
+
+  override fun attach(scope: HazeEffectLifecycleScope) {
+    lifecycleScope = scope
+    effect.attach(scope)
+  }
+
+  override fun update(
+    scope: HazeEffectLifecycleScope,
+    style: GlassNodeConfiguration,
+    sampling: HazeSampling,
+  ) {
+    effect.update(scope, style, sampling)
+  }
+
+  override fun detach() {
+    lifecycleScope = null
+    effect.detach()
+  }
+
+  override fun HazeEffectDrawScope.draw(style: GlassNodeConfiguration) {
+    drawInput()
+  }
+
+  override fun HazeEffectLayoutScope.calculateLayerBounds(
+    style: GlassNodeConfiguration,
+  ): Rect = with(effect) { calculateLayerBounds(style) }
+
+  override fun HazeEffectRuntimeDrawScope.prepareDraw(style: GlassNodeConfiguration) {
+    checkNotNull(with(effect) { backdropEffect(style) })
+  }
+
+  override fun HazeEffectRuntimeDrawScope.drawForeground(style: GlassNodeConfiguration) {
+    with(effect) { drawForeground(style) }
+  }
+
+  override fun shouldDrawContentBehind(): Boolean = effect.shouldDrawContentBehind()
+
+  override fun shouldClipToNodeBounds(): Boolean = effect.shouldClipToNodeBounds()
+
+  override fun shouldPreferClipToInputBounds(): Boolean = effect.shouldPreferClipToInputBounds()
+
+  override fun onTrimMemory(level: TrimMemoryLevel) {
+    effect.onTrimMemory(level)
+  }
+
+  fun invalidateDraw() {
+    lifecycleScope?.invalidateDraw()
+  }
 }

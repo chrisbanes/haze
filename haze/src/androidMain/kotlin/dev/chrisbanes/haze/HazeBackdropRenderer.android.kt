@@ -50,16 +50,16 @@ private class AndroidHazeBackdropRenderer : HazeBackdropRenderer {
 
     node.setPosition(left, top, right, bottom)
     node.setClipToBounds(clip != null)
-    if (clip != null) {
-      node.setClipRect(
+    node.setClipRect(
+      clip?.let {
         AndroidRect(
-          floor(clip.left - left).toInt(),
-          floor(clip.top - top).toInt(),
-          ceil(clip.right - left).toInt(),
-          ceil(clip.bottom - top).toInt(),
-        ),
-      )
-    }
+          floor(it.left - left).toInt(),
+          floor(it.top - top).toInt(),
+          ceil(it.right - left).toInt(),
+          ceil(it.bottom - top).toInt(),
+        )
+      },
+    )
     node.setAlpha(alpha)
     node.setBackdropRenderEffect(effect)
 
