@@ -65,8 +65,8 @@ internal class RenderScriptContext(
 
   fun applyBlur(blurRadius: Float) {
     lock.withLock {
-      require(blurRadius in 1f..25f) {
-        "blurRadius needs to be >= 1 and <= 25"
+      require(blurRadius.isFinite() && blurRadius > 0f && blurRadius <= 25f) {
+        "blurRadius needs to be finite, > 0, and <= 25"
       }
       if (isDestroyed) return@withLock
 
