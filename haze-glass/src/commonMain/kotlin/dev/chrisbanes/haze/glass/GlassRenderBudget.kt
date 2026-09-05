@@ -4,6 +4,7 @@
 package dev.chrisbanes.haze.glass
 
 import androidx.compose.ui.unit.IntSize
+import dev.chrisbanes.haze.Poko
 
 internal const val MAX_GLASS_LAYER_DIMENSION_PX: Int = 4096
 internal const val MAX_GLASS_RETAINED_PIXELS: Long = 16_777_216L
@@ -39,7 +40,8 @@ internal fun IntSize.fitsGlassLayerBudget(): Boolean =
     height in 1..MAX_GLASS_LAYER_DIMENSION_PX &&
     width.toLong() * height.toLong() <= MAX_GLASS_RETAINED_PIXELS
 
-internal data class GlassRetainedLayerPlan(
+@Poko
+internal class GlassRetainedLayerPlan(
   val layers: List<GlassRetainedLayer>,
   val allowsEmpty: Boolean = false,
 ) {
