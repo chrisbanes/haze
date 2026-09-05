@@ -144,9 +144,11 @@ class HazeEffectInputTest {
             .hazeEffect(
               factory = factory,
               input = HazeInput.Backdrop(
-                state = state,
-                fallbackSelection = HazeSourceSelection.All,
-                fallbackRetention = HazeSourceRetention.ClearWhenUnavailable,
+                HazeInput.Sources(
+                  state = state,
+                  selection = HazeSourceSelection.All,
+                  retention = HazeSourceRetention.ClearWhenUnavailable,
+                ),
               ),
               style = Unit,
             ),

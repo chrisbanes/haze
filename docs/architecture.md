@@ -41,8 +41,8 @@ Modifier.hazeEffect(
 ```
 
 `HazeInput.Backdrop(state)` is the normal built-in input for the intent to consume all pixels drawn
-earlier in the current window. Its `fallbackSelection` and `fallbackRetention` options configure
-only the source-capture fallback. `HazeInput.Sources` selects content captured by `hazeSource`,
+earlier in the current window. Its `fallback` source input configures only the source-capture
+fallback. `HazeInput.Sources` selects content captured by `hazeSource`,
 while `HazeInput.Content` selects the modifier's own content. Backdrop input is not a
 source-selection mode: it cannot select individual sources, include later drawing, or cross a
 window boundary. Source selection, retained-output privacy, sampling, and layer expansion remain

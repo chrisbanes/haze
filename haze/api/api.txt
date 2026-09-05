@@ -137,17 +137,12 @@ package dev.chrisbanes.haze {
   }
 
   @androidx.compose.runtime.Stable public static final class HazeInput.Backdrop implements dev.chrisbanes.haze.HazeInput {
-    ctor public HazeInput.Backdrop(dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeSourceSelection fallbackSelection, optional dev.chrisbanes.haze.HazeSourceRetention fallbackRetention);
-    method public dev.chrisbanes.haze.HazeState component1();
-    method public dev.chrisbanes.haze.HazeSourceSelection component2();
-    method public dev.chrisbanes.haze.HazeSourceRetention component3();
-    method public dev.chrisbanes.haze.HazeInput.Backdrop copy(optional dev.chrisbanes.haze.HazeState state, optional dev.chrisbanes.haze.HazeSourceSelection fallbackSelection, optional dev.chrisbanes.haze.HazeSourceRetention fallbackRetention);
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeSourceRetention getFallbackRetention();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeSourceSelection getFallbackSelection();
-    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeState getState();
-    property public dev.chrisbanes.haze.HazeSourceRetention fallbackRetention;
-    property public dev.chrisbanes.haze.HazeSourceSelection fallbackSelection;
-    property public dev.chrisbanes.haze.HazeState state;
+    ctor public HazeInput.Backdrop(dev.chrisbanes.haze.HazeInput.Sources fallback);
+    ctor public HazeInput.Backdrop(dev.chrisbanes.haze.HazeState state);
+    method public dev.chrisbanes.haze.HazeInput.Sources component1();
+    method public dev.chrisbanes.haze.HazeInput.Backdrop copy(optional dev.chrisbanes.haze.HazeInput.Sources fallback);
+    method @InaccessibleFromKotlin public dev.chrisbanes.haze.HazeInput.Sources getFallback();
+    property public dev.chrisbanes.haze.HazeInput.Sources fallback;
   }
 
   public static final class HazeInput.Content implements dev.chrisbanes.haze.HazeInput {

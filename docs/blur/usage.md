@@ -11,8 +11,8 @@ own Content input. All modes use the typed `hazeBlur` modifier and the same repl
 | Exact source ownership or selection | `HazeInput.Sources(hazeState)` | Pixels captured by selected `hazeSource` modifiers. |
 | Blur the modifier's own content | `HazeInput.Content` | Content drawn by the modifier's composable. |
 
-Use `Backdrop` for the usual built-in Blur case. Its `fallbackSelection` and `fallbackRetention`
-options apply only if source capture is needed; they do not filter the native window backdrop.
+Use `Backdrop` for the usual built-in Blur case. Its `fallback` source input applies only if
+source capture is needed; it does not filter the native window backdrop.
 
 ## Source-backed Blur
 

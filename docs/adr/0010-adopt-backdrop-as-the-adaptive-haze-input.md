@@ -17,9 +17,9 @@ Modifier.hazeBlur(
 
 The native path samples the combined earlier pixels in the same window surface. It cannot select
 individual Haze sources, include later drawing, or cross a dialog, popup, or other window boundary.
-When the native path is unavailable, Haze uses `Backdrop`'s source fallback. The fallback's
-`fallbackSelection` and `fallbackRetention` options apply only to that source-capture path; they
-do not filter native window pixels.
+When the native path is unavailable, Haze uses `Backdrop`'s `fallback` source input. Its
+selection and retention policies apply only to that source-capture path; they do not filter native
+window pixels.
 
 ## Eligibility and fallback
 

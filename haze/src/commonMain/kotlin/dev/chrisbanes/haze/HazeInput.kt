@@ -39,18 +39,16 @@ public sealed interface HazeInput {
    * Changing it affects later attachments only. A native-to-source fallback transition can take
    * one frame and remains selected until detachment after a known native failure.
    *
-   * @property state Shared state used by the source fallback.
-   * @property fallbackSelection Selection used only when the native backdrop is unavailable or
-   * fails; it does not filter native window pixels.
-   * @property fallbackRetention Retention policy used only when the native backdrop is unavailable
-   * or fails.
+   * @property fallback Source input used only when the native backdrop is unavailable or fails; it
+   * does not filter native window pixels.
    */
   @Stable
   public data class Backdrop(
-    public val state: HazeState,
-    public val fallbackSelection: HazeSourceSelection = HazeSourceSelection.Behind,
-    public val fallbackRetention: HazeSourceRetention = HazeSourceRetention.KeepLastFrame,
-  ) : HazeInput
+    public val fallback: HazeInput.Sources,
+  ) : HazeInput {
+    /** Creates a backdrop input with the default source fallback for [state]. */
+    public constructor(state: HazeState) : this(Sources(state))
+  }
 
   /**
    * The content of the composable carrying the effect modifier.

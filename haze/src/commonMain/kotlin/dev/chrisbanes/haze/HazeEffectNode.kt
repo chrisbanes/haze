@@ -100,11 +100,7 @@ internal class HazeEffectNode(
   private fun resolvedSourcesInput(): HazeInput.Sources? = when (val input = explicitInput) {
     is HazeInput.Sources -> input
     is HazeInput.Backdrop -> if (backdropBackendState.usesFallback) {
-      HazeInput.Sources(
-        state = input.state,
-        selection = input.fallbackSelection,
-        retention = input.fallbackRetention,
-      )
+      input.fallback
     } else {
       null
     }

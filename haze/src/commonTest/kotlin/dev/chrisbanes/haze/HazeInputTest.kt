@@ -6,6 +6,8 @@ package dev.chrisbanes.haze
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isNotEqualTo
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import kotlin.test.Test
 
@@ -36,21 +38,25 @@ class HazeInputTest {
     val state = HazeState()
     val input = HazeInput.Backdrop(state)
 
-    assertThat(input.state).isEqualTo(state)
-    assertThat(input.fallbackSelection).isEqualTo(HazeSourceSelection.Behind)
-    assertThat(input.fallbackRetention).isEqualTo(HazeSourceRetention.KeepLastFrame)
+    assertThat(input).isEqualTo(HazeInput.Backdrop(HazeInput.Sources(state)))
+    assertThat(input.fallback.state).isEqualTo(state)
+    assertThat(input.fallback.selection).isEqualTo(HazeSourceSelection.Behind)
+    assertThat(input.fallback.retention).isEqualTo(HazeSourceRetention.KeepLastFrame)
   }
 
   @Test
-  fun backdrop_acceptsAllAndClearWhenUnavailableFallback() {
-    val input = HazeInput.Backdrop(
-      state = HazeState(),
-      fallbackSelection = HazeSourceSelection.All,
-      fallbackRetention = HazeSourceRetention.ClearWhenUnavailable,
+  fun backdrop_preservesCustomFallbackSourcesIdentityAndValueSemantics() {
+    val state = HazeState()
+    val fallback = HazeInput.Sources(
+      state = state,
+      selection = HazeSourceSelection.All,
+      retention = HazeSourceRetention.ClearWhenUnavailable,
     )
+    val input = HazeInput.Backdrop(fallback)
 
-    assertThat(input.fallbackSelection).isEqualTo(HazeSourceSelection.All)
-    assertThat(input.fallbackRetention).isEqualTo(HazeSourceRetention.ClearWhenUnavailable)
+    assertThat(input.fallback).isSameInstanceAs(fallback)
+    assertThat(input.copy()).isEqualTo(input)
+    assertThat(input.copy(fallback = HazeInput.Sources(state))).isNotEqualTo(input)
   }
 
   @Test

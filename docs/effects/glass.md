@@ -304,9 +304,9 @@ and authored alpha, shape, and material transforms keep their normal ordering. I
 a source or fused-output layer while healthy.
 
 Backdrop input samples the current window's combined earlier pixels. It cannot select a Haze
-source, include content drawn later, or cross a dialog, popup, or window boundary. The
-`fallbackSelection` and `fallbackRetention` options on `HazeInput.Backdrop` configure only its
-source fallback; they do not filter native window pixels. The current flag default is `false`, and
+source, include content drawn later, or cross a dialog, popup, or window boundary. The `fallback`
+source input on `HazeInput.Backdrop` configures only its source fallback; it does not filter native
+window pixels. The current flag default is `false`, and
 `true` means eligible rather than guaranteed: the built-in effect, full Android 37.2 gate, window,
 canvas, native graph setup, and draw must all succeed. Unsupported platforms or a native failure
 select the source fallback for the rest of that attachment; the transition may take one frame.

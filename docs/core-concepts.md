@@ -40,15 +40,17 @@ Typed effects always declare what they consume:
 | Exact captured Haze sources | `HazeInput.Sources(hazeState)` | Explicit source selection and retained-output policies. |
 | The modifier's own content | `HazeInput.Content` | Foreground or own-content effect input. |
 
-Use `HazeInput.Backdrop(hazeState)` for ordinary built-in Blur and Glass surfaces. Its
-`fallbackSelection` and `fallbackRetention` options configure only the source fallback; they do
-not select or filter native window pixels:
+Use `HazeInput.Backdrop(hazeState)` for ordinary built-in Blur and Glass surfaces. Its `fallback`
+source input configures only the source fallback; it does not select or filter native window
+pixels:
 
 ```kotlin
 Modifier.hazeGlass(
   input = HazeInput.Backdrop(
-    state = hazeState,
-    fallbackRetention = HazeSourceRetention.ClearWhenUnavailable,
+    HazeInput.Sources(
+      state = hazeState,
+      retention = HazeSourceRetention.ClearWhenUnavailable,
+    ),
   ),
 )
 ```

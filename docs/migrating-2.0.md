@@ -131,10 +131,20 @@ specific retained-output policy that governs the actual input:
 | Exact captured-source semantics | `HazeInput.Sources(hazeState)` |
 | Modifier's own content | `HazeInput.Content` |
 
-Early beta builds accepted a branch-only `Backdrop` wrapper with a nested `fallback` Sources
-input. That constructor is removed; replace it with `HazeInput.Backdrop(state)`. If you need to
-customize the portable fallback, use `fallbackSelection` and `fallbackRetention` on `Backdrop`.
-Those options do not filter native window pixels.
+Use `HazeInput.Backdrop(state)` for the default source fallback. If you need to customize the
+portable fallback, pass a `HazeInput.Sources` value to `Backdrop`:
+
+```kotlin
+HazeInput.Backdrop(
+  HazeInput.Sources(
+    state = state,
+    selection = HazeSourceSelection.All,
+    retention = HazeSourceRetention.ClearWhenUnavailable,
+  ),
+)
+```
+
+The fallback source input does not filter native window pixels.
 
 These values are modifier structure, not Style:
 
