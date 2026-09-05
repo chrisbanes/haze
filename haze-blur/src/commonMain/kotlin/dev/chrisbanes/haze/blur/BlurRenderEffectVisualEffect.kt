@@ -25,8 +25,6 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 import kotlin.math.ceil
-import kotlin.math.max
-import kotlin.math.min
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
 internal class RenderEffectBlurVisualEffectDelegate(
@@ -238,14 +236,11 @@ internal fun DrawScope.drawProgressiveWithMultipleLayers(
       progressive.easing.transform(fraction),
     )
 
-    val min = min(progressive.startIntensity, progressive.endIntensity)
-    val max = max(progressive.startIntensity, progressive.endIntensity)
-
     val mask = Brush.linearGradient(
-      lerp(min, max, (i - 2f) / steps) to Color.Transparent,
-      lerp(min, max, (i - 1f) / steps) to Color.Black,
-      lerp(min, max, (i + 0f) / steps) to Color.Black,
-      lerp(min, max, (i + 1f) / steps) to Color.Transparent,
+      (i - 2f) / steps to Color.Transparent,
+      (i - 1f) / steps to Color.Black,
+      (i + 0f) / steps to Color.Black,
+      (i + 1f) / steps to Color.Transparent,
       start = progressive.start,
       end = progressive.end,
     )
