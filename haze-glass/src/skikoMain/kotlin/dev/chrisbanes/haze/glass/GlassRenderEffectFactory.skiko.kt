@@ -9,6 +9,7 @@ import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.PlatformRenderEffect
 
 internal actual fun createGlassDepthInputRenderEffect(
+  sharp: PlatformRenderEffect?,
   blur: PlatformRenderEffect?,
   depth: Float,
 ): PlatformRenderEffect? = null

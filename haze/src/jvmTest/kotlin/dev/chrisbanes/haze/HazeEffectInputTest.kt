@@ -25,11 +25,199 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import kotlin.test.Test
 
-@OptIn(ExperimentalTestApi::class, InternalHazeApi::class)
+@OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class, InternalHazeApi::class)
 class HazeEffectInputTest {
+
+  @Test
+  fun sourceWithoutConsumers_drawsDirectWithoutRecording() = runComposeUiTest {
+    val state = HazeState()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "source", 0f, Color.Red)
+      }
+    }
+    waitForIdle()
+
+    val area = state.areas.single()
+    assertThat(area.contentVersion).isEqualTo(0L)
+    assertThat(area.contentLayer).isNull()
+  }
+
+  @Test
+  fun sourcesInput_demandsSourceCapture() = runComposeUiTest {
+    val state = HazeState()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "source", 0f, Color.Red)
+        effect(state, HazeSourceSelection.All)
+      }
+    }
+    waitForIdle()
+
+    val area = state.areas.single()
+    assertThat(area.captureConsumerCount).isEqualTo(1)
+    assertThat(area.contentVersion).isGreaterThan(0L)
+    assertThat(area.contentLayer).isNotNull()
+  }
+
+  @Test
+  fun disabledBackdrop_demandsFallbackSourceCaptureImmediately() = runComposeUiTest {
+    val state = HazeState()
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "source", 0f, Color.Red)
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeEffect(
+              factory = PassthroughFactory,
+              input = HazeInput.Backdrop(state),
+              style = Unit,
+            ),
+        )
+      }
+    }
+    waitForIdle()
+
+    val area = state.areas.single()
+    assertThat(area.captureConsumerCount).isEqualTo(1)
+    assertThat(area.contentVersion).isGreaterThan(0L)
+    assertThat(area.contentLayer).isNotNull()
+  }
+
+  @Test
+  fun unavailableBackdrop_releasesFallbackCaptureAfterInputChanges() = runComposeUiTest {
+    val state = HazeState()
+    val input = mutableStateOf<HazeInput>(
+      HazeInput.Backdrop(state),
+    )
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "source", 0f, Color.Red)
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeEffect(
+              factory = PassthroughFactory,
+              input = input.value,
+              style = Unit,
+            ),
+        )
+      }
+    }
+    waitForIdle()
+
+    val area = state.areas.single()
+    assertThat(area.captureConsumerCount).isEqualTo(1)
+    assertThat(area.contentLayer).isNotNull()
+
+    input.value = HazeInput.Content
+    waitForIdle()
+
+    assertThat(area.captureConsumerCount).isEqualTo(0)
+    assertThat(area.contentLayer).isNull()
+  }
+
+  @Test
+  fun disabledBackdrop_appliesFallbackRetentionPolicy() = runComposeUiTest {
+    val state = HazeState()
+    val showSource = mutableStateOf(true)
+    val factory = RecordingRendererFactory(::RetainedOutputRenderer)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        if (showSource.value) {
+          source(state, "source", 0f, Color.Red)
+        }
+        Box(
+          Modifier
+            .fillMaxSize()
+            .hazeEffect(
+              factory = factory,
+              input = HazeInput.Backdrop(
+                HazeInput.Sources(
+                  state = state,
+                  selection = HazeSourceSelection.All,
+                  retention = HazeSourceRetention.ClearWhenUnavailable,
+                ),
+              ),
+              style = Unit,
+            ),
+        )
+      }
+    }
+    waitForIdle()
+
+    val renderer = factory.renderers.single()
+    val clearsBeforeRemoval = renderer.clearCalls
+    showSource.value = false
+    waitForIdle()
+
+    assertThat(renderer.clearCalls).isGreaterThan(clearsBeforeRemoval)
+  }
+
+  @Test
+  fun sourcesSelection_releasesCaptureForDeselectedArea() = runComposeUiTest {
+    val state = HazeState()
+    val selection = mutableStateOf<HazeSourceSelection>(HazeSourceSelection.All)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "source", 0f, Color.Red)
+        effect(state, selection.value)
+      }
+    }
+    waitForIdle()
+
+    val area = state.areas.single()
+    assertThat(area.captureConsumerCount).isEqualTo(1)
+    assertThat(area.contentLayer).isNotNull()
+
+    selection.value = HazeSourceSelection.All.where { false }
+    waitForIdle()
+
+    assertThat(area.captureConsumerCount).isEqualTo(0)
+    assertThat(area.contentLayer).isNull()
+  }
+
+  @Test
+  fun sourceCapture_remainsUntilLastConsumerLeaves() = runComposeUiTest {
+    val state = HazeState()
+    val showFirst = mutableStateOf(true)
+    val showSecond = mutableStateOf(true)
+
+    setContent {
+      Box(Modifier.size(100.dp)) {
+        source(state, "source", 0f, Color.Red)
+        if (showFirst.value) effect(state, HazeSourceSelection.All)
+        if (showSecond.value) effect(state, HazeSourceSelection.All)
+      }
+    }
+    waitForIdle()
+
+    val area = state.areas.single()
+    assertThat(area.captureConsumerCount).isEqualTo(2)
+    assertThat(area.contentLayer).isNotNull()
+
+    showFirst.value = false
+    waitForIdle()
+    assertThat(area.captureConsumerCount).isEqualTo(1)
+    assertThat(area.contentLayer).isNotNull()
+
+    showSecond.value = false
+    waitForIdle()
+    assertThat(area.captureConsumerCount).isEqualTo(0)
+    assertThat(area.contentLayer).isNull()
+  }
 
   @Test
   fun content_capturesTheModifierOwnContent() = runComposeUiTest {

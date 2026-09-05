@@ -13,7 +13,7 @@ Scaffold(
     TopAppBar(
       colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
       modifier = Modifier.hazeBlur(
-        input = HazeInput.Sources(hazeState),
+        input = HazeInput.Backdrop(hazeState),
         style = style,
       ),
     )
@@ -22,7 +22,7 @@ Scaffold(
     NavigationBar(
       containerColor = Color.Transparent,
       modifier = Modifier.hazeBlur(
-        input = HazeInput.Sources(hazeState),
+        input = HazeInput.Backdrop(hazeState),
         style = style,
       ),
     ) {
@@ -56,7 +56,7 @@ LazyColumn {
   stickyHeader {
     Header(
       modifier = Modifier.hazeBlur(
-        input = HazeInput.Sources(hazeState),
+        input = HazeInput.Backdrop(hazeState),
         style = style,
         performanceMode = HazePerformanceMode.Adaptive,
       ),
@@ -96,10 +96,10 @@ val quiet = base.then {
 }
 
 TopAppBar(
-  modifier = Modifier.hazeBlur(HazeInput.Sources(hazeState), quiet),
+  modifier = Modifier.hazeBlur(HazeInput.Backdrop(hazeState), quiet),
 )
 BottomAppBar(
-  modifier = Modifier.hazeBlur(HazeInput.Sources(hazeState), quiet),
+  modifier = Modifier.hazeBlur(HazeInput.Backdrop(hazeState), quiet),
 )
 ```
 

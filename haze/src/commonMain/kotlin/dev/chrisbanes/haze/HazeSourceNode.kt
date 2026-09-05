@@ -265,7 +265,7 @@ internal class HazeSourceNode(
         return
       }
 
-      if (!hasCaptureDemand) {
+      if (!hasCaptureDemand || !area.hasCaptureDemand) {
         area.releaseLayer()
         drawContentSafely()
         return
@@ -285,9 +285,11 @@ internal class HazeSourceNode(
           }
 
         // First we draw the composable content into a graphics layer
-        contentLayer.record {
-          this@draw.drawContentSafely()
-          HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
+        trace("HazeSource.record") {
+          contentLayer.record {
+            this@draw.drawContentSafely()
+            HazeLogger.d(TAG) { "Drawn content into layer: $contentLayer" }
+          }
         }
         area.contentVersion++
 
@@ -295,9 +297,9 @@ internal class HazeSourceNode(
         drawLayer(contentLayer)
         HazeLogger.d(TAG) { "Drawn layer to canvas: $contentLayer" }
       } else {
-        HazeLogger.d(TAG) { "Not using graphics layer, so drawing content direct to canvas" }
-        // A previously recorded layer must not remain available to effects after this source
-        // becomes too small to capture. Effects may retain their own output separately.
+        HazeLogger.d(TAG) { "No capture demand, so drawing content direct to canvas" }
+        // A previously recorded layer must not remain available after capture demand disappears or
+        // this source becomes too small. Effects may retain their own output separately.
         area.releaseLayer()
         // If we're not using graphics layers, just call drawContent and return early
         drawContentSafely()

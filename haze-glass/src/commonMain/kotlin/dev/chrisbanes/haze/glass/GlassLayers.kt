@@ -225,6 +225,26 @@ internal class GlassLayers {
     release(GlassRetainedLayerKind.InteractionComposite, graphicsContext)
   }
 
+  fun prepareBackdrop(
+    rim: Boolean,
+    interactionLighting: Boolean,
+    graphicsContext: GraphicsContext,
+  ) {
+    groupAlpha.release(graphicsContext)
+    release(GlassRetainedLayerKind.Source, graphicsContext)
+    releaseBlurred(graphicsContext)
+    releaseDepthMixed(graphicsContext)
+    release(GlassRetainedLayerKind.Optical, graphicsContext)
+    releaseRefractionDetail(graphicsContext)
+    prepareInteraction(
+      optics = false,
+      detail = false,
+      lighting = interactionLighting,
+      graphicsContext = graphicsContext,
+    )
+    if (rim) ensureRim(graphicsContext) else releaseRim(graphicsContext)
+  }
+
   fun release(graphicsContext: GraphicsContext?) {
     groupAlpha.release(graphicsContext)
     RetainedGlassReleaseOrder.forEach { kind ->

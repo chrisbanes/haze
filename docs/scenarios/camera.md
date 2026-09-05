@@ -3,6 +3,10 @@
 Haze can apply Blur and Glass to a live camera preview when the preview pixels are drawn into the
 same Compose graphics layer that contains `hazeSource`.
 
+This example intentionally uses `HazeInput.Sources`: camera and video integrations need explicit
+captured-source semantics, and a platform surface can sit outside the current window's earlier
+Compose pixels. `HazeInput.Backdrop` cannot cross that surface or window boundary.
+
 ```kotlin
 val hazeState = rememberHazeState()
 

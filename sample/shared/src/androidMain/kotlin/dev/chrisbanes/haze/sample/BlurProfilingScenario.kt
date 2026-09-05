@@ -22,9 +22,16 @@ internal enum class BlurProfilingScenario(
   val performanceMode: HazePerformanceMode,
   val updatesSource: Boolean,
   val mode: ScaffoldSampleMode = ScaffoldSampleMode.Default,
+  val usesBackdrop: Boolean = false,
 ) {
   StableAdaptive("stable_adaptive", HazePerformanceMode.Adaptive, updatesSource = false),
   StableQuality("stable_quality", HazePerformanceMode.Quality, updatesSource = false),
+  BackdropStableQuality(
+    "backdrop_stable_quality",
+    HazePerformanceMode.Quality,
+    updatesSource = false,
+    usesBackdrop = true,
+  ),
   StableBalanced("stable_balanced", HazePerformanceMode.Balanced, updatesSource = false),
   StablePerformance("stable_performance", HazePerformanceMode.Performance, updatesSource = false),
   ProgressiveQuality(
@@ -41,6 +48,12 @@ internal enum class BlurProfilingScenario(
   ),
   SourceUpdateAdaptive("source_update_adaptive", HazePerformanceMode.Adaptive, updatesSource = true),
   SourceUpdateQuality("source_update_quality", HazePerformanceMode.Quality, updatesSource = true),
+  BackdropSourceUpdateQuality(
+    "backdrop_source_update_quality",
+    HazePerformanceMode.Quality,
+    updatesSource = true,
+    usesBackdrop = true,
+  ),
   SourceUpdateBalanced("source_update_balanced", HazePerformanceMode.Balanced, updatesSource = true),
   SourceUpdatePerformance("source_update_performance", HazePerformanceMode.Performance, updatesSource = true),
 }

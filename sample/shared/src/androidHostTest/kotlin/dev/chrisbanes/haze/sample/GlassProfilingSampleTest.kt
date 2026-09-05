@@ -12,11 +12,16 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isTrue
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.test.ContextTest
 import kotlin.test.Test
 import org.robolectric.annotation.Config
 
-@OptIn(ExperimentalTestApi::class)
+@OptIn(ExperimentalTestApi::class, ExperimentalHazeApi::class)
 @Config(qualifiers = "w393dp-h698dp-440dpi")
 class GlassProfilingSampleTest : ContextTest() {
   @Test
@@ -40,6 +45,25 @@ class GlassProfilingSampleTest : ContextTest() {
     onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
     onNodeWithTag("glass_profiling_start").performClick()
     onNodeWithTag("glass_profiling_phase_complete").assertIsDisplayed()
+  }
+
+  @Test
+  fun backdropSourceUpdate9_exposesNineIndependentGlassEffects() = runComposeUiTest {
+    setContent {
+      GlassProfilingSampleContent(
+        state = remember { GlassProfilingState() },
+        onBack = {},
+      )
+    }
+
+    onNodeWithTag("glass_profiling_select_backdrop_source_update_9")
+      .performScrollTo()
+      .performClick()
+    onNodeWithTag("glass_profiling_selected_backdrop_source_update_9").assertIsDisplayed()
+    onNodeWithTag("glass_profiling_phase_ready").assertIsDisplayed()
+    repeat(9) { index ->
+      onNodeWithTag("glass_profiling_surface_$index").assertIsDisplayed()
+    }
   }
 
   @Test
@@ -92,6 +116,50 @@ class GlassProfilingSampleTest : ContextTest() {
     onNodeWithTag("glass_profiling_surface").assertIsDisplayed()
     repeat(9) { index ->
       onNodeWithTag("glass_profiling_surface_$index").assertIsDisplayed()
+    }
+  }
+
+  @Test
+  fun sourceProfilingScenario_disablesPlatformBackdropEligibility() {
+    val previous = HazeFeatureFlags.isPlatformBackdropEnabled
+    try {
+      runComposeUiTest {
+        val sourceState = GlassProfilingState().apply {
+          select(GlassProfilingScenario.SourceUpdateQuality)
+        }
+        setContent {
+          GlassProfilingSampleContent(
+            state = sourceState,
+            onBack = {},
+          )
+        }
+        assertThat(HazeFeatureFlags.isPlatformBackdropEnabled).isFalse()
+      }
+      assertThat(HazeFeatureFlags.isPlatformBackdropEnabled).isEqualTo(previous)
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previous
+    }
+  }
+
+  @Test
+  fun backdropProfilingScenario_enablesPlatformBackdropEligibility() {
+    val previous = HazeFeatureFlags.isPlatformBackdropEnabled
+    try {
+      runComposeUiTest {
+        val state = GlassProfilingState().apply {
+          select(GlassProfilingScenario.BackdropSourceUpdateQuality)
+        }
+        setContent {
+          GlassProfilingSampleContent(
+            state = state,
+            onBack = {},
+          )
+        }
+        assertThat(HazeFeatureFlags.isPlatformBackdropEnabled).isTrue()
+      }
+      assertThat(HazeFeatureFlags.isPlatformBackdropEnabled).isEqualTo(previous)
+    } finally {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previous
     }
   }
 }

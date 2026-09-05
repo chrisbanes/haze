@@ -1,7 +1,18 @@
 # Blur usage
 
-Blur works with either source-backed content or the modifier's own content. Both modes use the
-typed `hazeBlur` modifier and the same replayable Style.
+Blur works with a current-window Backdrop input, exact captured Sources input, or the modifier's
+own Content input. All modes use the typed `hazeBlur` modifier and the same replayable Style.
+
+## Choosing the input
+
+| Requirement | Input | What it consumes |
+| --- | --- | --- |
+| Normal built-in Blur behind content | `HazeInput.Backdrop(hazeState)` | All earlier pixels in the same window, with source capture as fallback. |
+| Exact source ownership or selection | `HazeInput.Sources(hazeState)` | Pixels captured by selected `hazeSource` modifiers. |
+| Blur the modifier's own content | `HazeInput.Content` | Content drawn by the modifier's composable. |
+
+Use `Backdrop` for the usual built-in Blur case. Its `fallback` source input applies only if
+source capture is needed; it does not filter the native window backdrop.
 
 ## Source-backed Blur
 
@@ -53,6 +64,39 @@ Image(
 )
 ```
 
+## Android window-backdrop Blur
+
+`HazeInput.Backdrop` is portable, while its native path is an experimental eligibility path. Set
+the process-wide flag before attaching the effect nodes that should observe it:
+
+```kotlin
+HazeFeatureFlags.isPlatformBackdropEnabled = true
+
+Modifier.hazeBlur(
+  input = HazeInput.Backdrop(hazeState),
+  style = HazeMaterials.thin(),
+)
+```
+
+The current default is `false`. `true` makes native rendering eligible, not guaranteed: built-in
+effect support, the full Android 37.2 gate, the window and canvas, native setup, and the draw must
+all succeed. This is same-window, previous-pixel ordering—not selected-source capture. It cannot
+see later draw operations or pixels from another dialog, popup, or window. Native sampling stays
+at compositor resolution; `HazePerformanceMode` does not downsample that input. On older Android
+releases, other platforms, a software canvas, or after native setup/draw failure, the modifier uses
+the configured source fallback. That decision is sticky until detachment and the transition may
+take one frame. Changing the flag affects later attachments only, and healthy native consumers do
+not record fallback source layers.
+
+Set `HazeLogger.enabled = true` for selection and fallback messages. The native draw is marked by
+the `HazeBackdrop.draw` trace section. These diagnostics do not establish a performance result;
+physical Android 37.2 acceptance is still pending. A later release may flip the default, retain a
+temporary `false` escape hatch, and then remove the experimental flag.
+
+Use `HazeInput.Sources` when its exact selection, cross-window, or retention semantics must govern
+the actual input. See
+[ADR-0010](../adr/0010-adopt-backdrop-as-the-adaptive-haze-input.md) for the complete boundary.
+
 ## Enabling Blur
 
 Blur is enabled by default only where Haze considers the platform implementation reliable. To
@@ -60,7 +104,7 @@ override that decision, write `blurEnabled` in a Style:
 
 ```kotlin
 Modifier.hazeBlur(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = HazeBlurStyle {
     blurEnabled(true)
   },

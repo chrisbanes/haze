@@ -112,7 +112,7 @@ After:
 
 ```kotlin
 Modifier.hazeBlur(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = HazeMaterials.thin(),
 )
 ```
@@ -120,6 +120,31 @@ Modifier.hazeBlur(
 Customize a preset with `then`, not `copy`.
 
 ## Migrate input and rendering policy
+
+For ordinary built-in Blur and Glass, use the current-window Backdrop input. Keep
+`HazeInput.Sources` when the effect needs exact source selection, cross-window alignment, or a
+specific retained-output policy that governs the actual input:
+
+| Requirement | Input |
+| --- | --- |
+| Normal built-in surface behind content | `HazeInput.Backdrop(hazeState)` |
+| Exact captured-source semantics | `HazeInput.Sources(hazeState)` |
+| Modifier's own content | `HazeInput.Content` |
+
+Use `HazeInput.Backdrop(state)` for the default source fallback. If you need to customize the
+portable fallback, pass a `HazeInput.Sources` value to `Backdrop`:
+
+```kotlin
+HazeInput.Backdrop(
+  HazeInput.Sources(
+    state = state,
+    selection = HazeSourceSelection.All,
+    retention = HazeSourceRetention.ClearWhenUnavailable,
+  ),
+)
+```
+
+The fallback source input does not filter native window pixels.
 
 These values are modifier structure, not Style:
 
@@ -134,6 +159,16 @@ Modifier.hazeBlur(
   expandLayerBounds = false,
 )
 ```
+
+The native Backdrop path is experimental and disabled by default. Set
+`HazeFeatureFlags.isPlatformBackdropEnabled = true` before the relevant effect nodes attach. The
+flag makes native rendering eligible rather than guaranteed, and changing it affects later
+attachments only. Unsupported platforms, incompatible effects, software canvases, native setup,
+or draw failures use sticky source fallback until detachment. Enable `HazeLogger.enabled` for
+selection/fallback messages and inspect the `HazeBackdrop.draw` trace section when diagnosing a
+native draw. No performance result is implied; physical Android 37.2 acceptance remains pending.
+Later releases may enable the default, retain a temporary `false` escape hatch, and then remove
+the flag.
 
 `HazePerformanceMode.Default` points to `Adaptive` for built-in Blur and Glass. Use `Adaptive` to pin that policy,
 `Quality`, `Balanced`, or `Performance` for its named profiles, or `Fixed(qualityFraction)` for an
@@ -180,7 +215,7 @@ generated API reference for property-specific ranges.
 | `GlassStyleConfiguration`, `GlassRenderer`, `GlassRendererCache`, and lifecycle or retention hooks | removed with no public replacement |
 | effect-owned hover, focus, press, light-radius, and light-position animation presentation | property writes inside `GlassStyle { … }` |
 | effect-owned interaction source, transform target/pivot, and reduced-motion policy | explicit `Modifier.hazeGlass` arguments owned by each node |
-| implicit source/content | explicit `HazeInput.Sources` or `HazeInput.Content` |
+| implicit source/content | explicit `HazeInput.Backdrop`, `HazeInput.Sources`, or `HazeInput.Content` |
 | `GlassOptics.Absolute` and `GlassOptics.Fixed` | `GlassOptics` with fixed `OpticalSizeValue` values; this is an intentional source break with no alias or compatibility bridge |
 | `GlassOptics.Adaptive` used as a complete Style | `GlassStyle.regular` |
 | `GlassOptics.Adaptive` supplied through `optics(...)` | `optics(GlassDefaults.optics)` |
@@ -217,7 +252,7 @@ val glassStyle = GlassStyle {
 }
 
 Modifier.hazeGlass(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = glassStyle,
   performanceMode = HazePerformanceMode.Adaptive,
   expandLayerBounds = true,
@@ -307,7 +342,8 @@ and `then`.
    `dev.chrisbanes.haze.blur.materials`.
 3. Replace `Modifier.haze(...)` with `Modifier.hazeSource(...)`.
 4. Replace Blur-configuring `hazeEffect` blocks with `hazeBlur`, choosing
-   `HazeInput.Sources(state)` or `HazeInput.Content`.
+   `HazeInput.Backdrop(state)` for ordinary built-in surfaces, `HazeInput.Sources(state)` for
+   exact captured-source semantics, or `HazeInput.Content` for own-content Blur.
 5. Move Blur properties into `HazeBlurStyle { ... }`, changing property assignments into Style
    functions. Use `then` instead of `copy` when customizing a preset.
 6. Move built-in Blur input-scale choices to `HazePerformanceMode`: map the previous default to

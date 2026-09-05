@@ -107,9 +107,7 @@ private class TypedHazeEffectNodeElement<Style>(
   val lifecycle: Lifecycle,
 ) : ModifierNodeElement<HazeEffectNode>() {
 
-  override fun create(): HazeEffectNode = HazeEffectNode(
-    state = (input as? HazeInput.Sources)?.state,
-  ).also { node ->
+  override fun create(): HazeEffectNode = HazeEffectNode().also { node ->
     node.explicitInput = input
     node.explicitExpandLayerBounds = expandLayerBounds
     node.updateTypedEffect(factory, style, sampling)
@@ -119,7 +117,6 @@ private class TypedHazeEffectNodeElement<Style>(
   override fun update(node: HazeEffectNode) {
     node.explicitInput = input
     node.explicitExpandLayerBounds = expandLayerBounds
-    node.state = (input as? HazeInput.Sources)?.state
     node.updateTypedEffect(factory, style, sampling)
     node.updateLifecycle(lifecycle)
     node.update()

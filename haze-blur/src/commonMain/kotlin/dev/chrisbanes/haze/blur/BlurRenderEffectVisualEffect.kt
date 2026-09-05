@@ -24,6 +24,7 @@ import dev.chrisbanes.haze.HazeProgressive as RootHazeProgressive
 import dev.chrisbanes.haze.InternalHazeApi
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
+import dev.chrisbanes.haze.asComposeRenderEffect
 import kotlin.math.ceil
 
 @OptIn(ExperimentalHazeApi::class, InternalHazeApi::class)
@@ -179,7 +180,9 @@ internal class RenderEffectBlurVisualEffectDelegate(
     // This ensures that changes coming from either the effect itself OR the hosting node
     // (e.g., size, layer offset, input scale, etc.) will be reflected without relying on
     // the effect's local dirty flags only.
-    renderEffect = blurVisualEffect.getOrCreateRenderEffect(context, inputScale = scaleFactor)
+    renderEffect = blurVisualEffect
+      .getOrCreateRenderEffect(context, inputScale = scaleFactor)
+      .asComposeRenderEffect()
   }
 
   @Poko

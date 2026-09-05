@@ -169,6 +169,37 @@ public interface HazeEffectRendererDrawHooks<Style> {
   public fun shouldPreferClipToInputBounds(): Boolean = false
 }
 
+/** Built-in-only capability for rendering from the current-window backdrop. */
+@InternalHazeApi
+public interface HazeEffectRendererBackdrop<Style> {
+  /** Returns the prepared platform effect used to filter the current-window backdrop. */
+  public fun HazeEffectRuntimeDrawScope.backdropEffect(style: Style): HazeEffectBackdrop?
+}
+
+/** Prepared built-in effect for the current-window backdrop path. */
+@InternalHazeApi
+public class HazeEffectBackdrop(
+  private val platformEffect: PlatformRenderEffect,
+  /** Alpha applied while drawing the filtered backdrop. */
+  public val alpha: Float = 1f,
+  /** Transform from effect-local coordinates into the authored material coordinate space. */
+  public val materialTransform: HazeEffectContentTransform = HazeEffectContentTransform.Identity,
+) {
+  init {
+    require(alpha.isFinite() && alpha in 0f..1f) {
+      "alpha must be finite and in the range 0f..1f"
+    }
+  }
+
+  /**
+   * Returns the platform root effect consumed by the internal backdrop backend.
+   *
+   * This remains a getter-shaped function so Metalava records the stable JVM getter signature
+   * without exposing [PlatformRenderEffect] as a public Kotlin property.
+   */
+  public fun getPlatformEffect(): PlatformRenderEffect = platformEffect
+}
+
 /** Built-in-only retained-output capability. */
 @InternalHazeApi
 public interface HazeEffectRendererRetainedOutput {
@@ -324,7 +355,7 @@ internal class HazeEffectDrawScopeImpl(
     get() = node.layerOffset
 
   override val hasDrawableInput: Boolean
-    get() = node.hasDrawableSourceLayers()
+    get() = node.hasDrawableInput()
 
   override val inputSnapshot: HazeEffectInputSnapshot?
     get() = node.inputSnapshot()

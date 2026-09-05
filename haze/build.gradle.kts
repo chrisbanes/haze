@@ -14,6 +14,17 @@ plugins {
   id("dev.drewhamilton.poko")
 }
 
+// Metalava writes an extra blank line at EOF for this module's API signature. Keep the checked-in
+// signature stable so regeneration does not create a whitespace-only diff.
+tasks.named("metalavaGenerateSignature").configure {
+  val apiFile = File(project.projectDir, "api/api.txt")
+  doLast {
+    val contents = apiFile.readText()
+    val normalized = contents.trimEnd() + "\n"
+    if (contents != normalized) apiFile.writeText(normalized)
+  }
+}
+
 kotlin {
   android {
     namespace = "dev.chrisbanes.haze"
@@ -68,6 +79,17 @@ kotlin {
       dependencies {
         implementation(libs.compose.foundation)
         implementation(projects.internal.screenshotTest)
+      }
+    }
+
+    named("androidDeviceTest") {
+      dependencies {
+        implementation(libs.androidx.activity.compose)
+        implementation(libs.assertk)
+        implementation(libs.androidx.compose.ui.test.manifest)
+        implementation(libs.androidx.test.core)
+        implementation(libs.androidx.test.runner)
+        implementation(libs.compose.foundation)
       }
     }
 

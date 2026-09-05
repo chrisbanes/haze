@@ -28,7 +28,7 @@ Box(
 ) {
   Box(
     Modifier.hazeBlur(
-      input = HazeInput.Sources(hazeState),
+      input = HazeInput.Backdrop(hazeState),
       style = HazeBlurStyle { blurRadius(blurRadius) },
     ),
   )
@@ -50,6 +50,17 @@ For most platforms we can use on [RenderEffects][rendereffect] to implement the 
 ## What versions of Android does Haze work on?
 
 See the [Platforms](platforms.md) page for a detailed run down of what is supported on various platforms.
+
+## When should I use Backdrop instead of Sources?
+
+Use `HazeInput.Backdrop(hazeState)` for ordinary built-in Blur when the intent is to consume all
+pixels drawn earlier in the same window. It has source capture as a portable fallback. Use
+`HazeInput.Sources(hazeState)` when you need exact source selection, cross-window alignment, or a
+retained-output policy that governs the actual input. Backdrop's fallback options do not filter
+native window pixels.
+The native path is currently experimental, disabled by default, and only eligible after the flag is
+set before attachment; eligibility is not a guarantee. See the [Blur usage](usage.md) guide for
+fallback and diagnostic details.
 
  [rendereffect]: https://developer.android.com/reference/android/graphics/RenderEffect
  [layer-outsets]: https://developer.android.com/reference/kotlin/androidx/compose/ui/graphics/LayerOutsets

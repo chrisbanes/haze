@@ -266,7 +266,7 @@ private fun GlassMaterialsCard(
       Modifier
         .fillMaxSize()
         .hazeGlass(
-          input = HazeInput.Sources(hazeState),
+          input = HazeInput.Backdrop(hazeState),
           style = GlassStyle.regular.then {
             backgroundColor(glassBackgroundColor)
             this.tint(tint)
@@ -443,7 +443,7 @@ private fun MaterialsCard(
       Modifier
         .fillMaxSize()
         .hazeBlur(
-          input = HazeInput.Sources(state),
+          input = HazeInput.Backdrop(state),
           style = style,
         )
         .padding(16.dp),

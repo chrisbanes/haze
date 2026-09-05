@@ -88,6 +88,69 @@ startup, frame time, or any other performance improvement.
 
 Record the device model, API level, and selected refresh rate with saved results.
 
+## Android 37.2 source/backdrop comparisons
+
+Backdrop comparisons require a physical, hardware-accelerated Android 37.2 device. Record the full
+SDK level (including the minor release), build SHA and variant, display refresh rate, fixed-
+performance state, starting battery level, and thermal status with every JSON/Perfetto result.
+
+The paired Quality workloads are:
+
+| Effect | Source | Backdrop |
+| --- | --- | --- |
+| Blur stable | `blurStableQuality` | `blurBackdropStableQuality` |
+| Blur updating | `blurSourceUpdateQuality` | `blurBackdropSourceUpdateQuality` |
+| Glass stable | `stableQuality` | `backdropStableQuality` |
+| Glass updating | `sourceUpdateQuality` | `backdropSourceUpdateQuality` |
+| Nine Glass nodes updating | `sourceUpdate9` | `backdropSourceUpdate9` |
+
+Each row records `FrameTimingMetric`, max `MemoryUsageMetric`, `HazeBackdrop.draw` count, and
+`HazeSource.record` count. A healthy backdrop result has native backdrop draws and zero source
+records; its source control has source records and no required backdrop draw.
+
+Run a dry run first on the same physical 37.2 device:
+
+```shell
+./gradlew --no-scan :sample:shared:testAndroidHostTest \
+  :internal:benchmark:connectedBenchmarkReleaseAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true \
+  -Pandroid.testInstrumentationRunnerArguments.class=dev.chrisbanes.haze.BenchmarkTest#blurStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropStableQuality,dev.chrisbanes.haze.BenchmarkTest#blurSourceUpdateQuality,dev.chrisbanes.haze.BenchmarkTest#blurBackdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#stableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropStableQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdateQuality,dev.chrisbanes.haze.GlassProfilingBenchmark#sourceUpdate9,dev.chrisbanes.haze.GlassProfilingBenchmark#backdropSourceUpdate9
+```
+
+Measure three source/backdrop pairs, then repeat three pairs in backdrop/source order. Return the
+device to the same thermal envelope before each pair. Keep all JSON and Perfetto outputs; compare
+CPU P90, actual-frame P90, frame overrun, and peak memory against the order-reversed control
+envelope rather than one run.
+
+```shell
+adb shell cmd power set-fixed-performance-mode-enabled true
+# Run one source/backdrop pair with the focused class argument above, then reverse its order.
+adb shell cmd power set-fixed-performance-mode-enabled false
+```
+
+Always run the final cleanup command, including after a failed or interrupted benchmark. Verify
+fixed-performance mode is off before returning the device to normal use.
+
+## Emulator correctness evidence (2026-09-05)
+
+The committed native-backdrop fixes were exercised on the supported preview emulator before any
+performance claim. The run used the `Medium_Phone` AVD with the
+`android-37.2-beta3/google_apis_playstore_ps16k/arm64-v8a` revision 3 image, SDK 37, full SDK
+37.1, preview 3723, fingerprint
+`google/sdk_gphone16k_arm64/emu64a16k:DEV/CP41.260731.005.B1/16056512:user/dev-keys`, emulator
+37.1.11.0 build 15917651, and the Apple M1 Max `skiagl` host renderer. The tested commit was
+`56c866937a872cc9b73e063b34b12d3c4d74ade5`.
+
+The core suite passed 4 tests, Blur passed 6, and Glass passed 5; all had zero failures, errors,
+or skips. The suites covered native fallback state, progressive Blur, clip transitions, paired
+offscreen pixel scenes, and Glass window/offscreen pixel scenes. The saved XML reports are
+`haze/build/outputs/androidTest-results/connected/androidMain/TEST-Medium_Phone(AVD) - 17.xml`,
+with equivalent paths under `haze-blur/` and `haze-glass/`.
+
+This emulator result establishes preview correctness only. It does not provide physical-device
+37.2 compositor evidence, per-offscreen capture-counter evidence, or the order-reversed
+fixed-performance measurements required by the physical performance gate above.
+
 ## Calibration matrix
 
 The controlled Blur and Glass calibration suites measure every built-in

@@ -14,16 +14,17 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import dev.chrisbanes.haze.Bitmask
+import dev.chrisbanes.haze.HazeEffectBackdrop
 import dev.chrisbanes.haze.HazeEffectDrawScope
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectLayoutScope
 import dev.chrisbanes.haze.HazeEffectLifecycleScope
 import dev.chrisbanes.haze.HazeEffectRenderer
+import dev.chrisbanes.haze.HazeEffectRendererBackdrop
 import dev.chrisbanes.haze.HazeEffectRendererDrawHooks
 import dev.chrisbanes.haze.HazeEffectRendererLifecycle
 import dev.chrisbanes.haze.HazeEffectRendererRetainedOutput
@@ -33,6 +34,7 @@ import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeSampling
 import dev.chrisbanes.haze.InternalHazeApi
+import dev.chrisbanes.haze.PlatformRenderEffect
 import dev.chrisbanes.haze.Poko
 import dev.chrisbanes.haze.TrimMemoryLevel
 
@@ -50,6 +52,7 @@ private class BlurAdaptiveUpdateKey(
 @OptIn(InternalHazeApi::class)
 internal class BlurVisualEffect :
   HazeEffectRenderer<BlurConfiguration>,
+  HazeEffectRendererBackdrop<BlurConfiguration>,
   HazeEffectRendererLifecycle<BlurConfiguration>,
   HazeEffectRendererDrawHooks<BlurConfiguration>,
   HazeEffectRendererRetainedOutput {
@@ -59,7 +62,8 @@ internal class BlurVisualEffect :
   private var needsDelegateSelection: Boolean = true
   private var needsLayerBoundsInvalidation: Boolean = false
   private val inputScalePolicy = BlurInputScalePolicy()
-  internal val renderEffectCache = LruCache<RenderEffectCacheKey, RenderEffect>(maxSize = 50)
+  internal val renderEffectCache =
+    LruCache<RenderEffectCacheKey, PlatformRenderEffect>(maxSize = 50)
 
   internal var dirtyTracker: Bitmask by mutableStateOf(Bitmask())
     private set
@@ -133,6 +137,27 @@ internal class BlurVisualEffect :
     }
     with(this as DrawScope) {
       selectDelegateForDraw(this@prepareDraw)
+    }
+  }
+
+  override fun HazeEffectRuntimeDrawScope.backdropEffect(
+    style: BlurConfiguration,
+  ): HazeEffectBackdrop? {
+    return try {
+      with(this as DrawScope) { selectDelegateForDraw(this@backdropEffect) }
+      if (delegate !is RenderEffectBlurVisualEffectDelegate) return null
+
+      HazeEffectBackdrop(
+        platformEffect = getOrCreateRenderEffect(
+          context = this,
+          inputScale = BlurInputScalePolicy.NONE_SCALE,
+          backgroundColor = backgroundColor,
+          progressive = progressive,
+        ),
+        alpha = alpha,
+      )
+    } finally {
+      resetDirtyTracker()
     }
   }
 

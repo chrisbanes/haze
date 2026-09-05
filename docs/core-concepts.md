@@ -34,8 +34,26 @@ val selection = HazeSourceSelection.Behind
 
 Typed effects always declare what they consume:
 
-- `HazeInput.Sources(hazeState)` consumes captured source content.
-- `HazeInput.Content` consumes the modifier's own content.
+| Intent | Input | Semantics |
+| --- | --- | --- |
+| Pixels already behind a built-in effect | `HazeInput.Backdrop(hazeState)` | Current-window, earlier-pixel intent with source capture as the portable fallback. |
+| Exact captured Haze sources | `HazeInput.Sources(hazeState)` | Explicit source selection and retained-output policies. |
+| The modifier's own content | `HazeInput.Content` | Foreground or own-content effect input. |
+
+Use `HazeInput.Backdrop(hazeState)` for ordinary built-in Blur and Glass surfaces. Its `fallback`
+source input configures only the source fallback; it does not select or filter native window
+pixels:
+
+```kotlin
+Modifier.hazeGlass(
+  input = HazeInput.Backdrop(
+    HazeInput.Sources(
+      state = hazeState,
+      retention = HazeSourceRetention.ClearWhenUnavailable,
+    ),
+  ),
+)
+```
 
 Source-backed input also declares retention:
 
@@ -49,13 +67,48 @@ HazeInput.Sources(
 `KeepLastFrame` smooths temporary source gaps. `ClearWhenUnavailable` clears retained output as
 soon as no selected source is drawable.
 
+### Android window backdrops
+
+`HazeInput.Backdrop` is a stable, portable input contract. Its native path is currently eligible
+only when the experimental process flag is enabled, the built-in effect supports it, and the
+modifier is attached to a hardware-accelerated Android 37.2 window. The native renderer filters
+the combined pixels already drawn earlier in the same window surface. It cannot select individual
+Haze sources, include content drawn later, or cross a dialog, popup, or window boundary.
+
+```kotlin
+// Set this before the effect node is attached.
+HazeFeatureFlags.isPlatformBackdropEnabled = true
+
+Modifier.hazeBlur(
+  input = HazeInput.Backdrop(hazeState),
+)
+```
+
+The flag defaults to `false`, and `true` means eligible rather than guaranteed. Native backdrop
+sampling uses compositor resolution rather than the effect's source-capture scale. If the platform,
+window, canvas, built-in effect, native setup, or native draw is unavailable, that modifier switches
+to its configured source fallback for the rest of the attachment. The switch may take one frame;
+a known-bad native path is not retried every frame. Healthy native-only consumers do not cause
+their dormant fallback sources to record. Changing the flag affects later attachments only.
+
+For diagnostics, set `HazeLogger.enabled = true` to see backdrop selection and fallback messages.
+Native work is marked by the `HazeBackdrop.draw` trace section. No performance claim is implied by
+native eligibility; physical Android 37.2 acceptance remains a separate release gate. Later
+releases may enable the flag by default, retain a temporary `false` escape hatch, and then remove
+the experimental flag.
+
+Use `HazeInput.Sources` directly when exact source selection, cross-window alignment, or a
+retention policy that must govern the actual input rather than only the fallback is required. See
+[ADR-0010](adr/0010-adopt-backdrop-as-the-adaptive-haze-input.md) for the input and rollout
+decision.
+
 ## Typed Blur
 
 Blur has an ordinary typed modifier:
 
 ```kotlin
 Modifier.hazeBlur(
-  input = HazeInput.Sources(hazeState),
+  input = HazeInput.Backdrop(hazeState),
   style = HazeMaterials.thin(),
   performanceMode = HazePerformanceMode.Adaptive,
   expandLayerBounds = true,
@@ -138,7 +191,9 @@ captured.
 
 ## Background and foreground effects
 
-Source-backed effects render captured content from elsewhere in the hierarchy:
+For the normal built-in case, use Backdrop input to consume earlier pixels in the current window.
+Use Sources when the example needs exact captured-source semantics, as in this source-ordering
+example:
 
 ```kotlin
 Box {
@@ -190,7 +245,7 @@ fun HazeExample() {
 fun Foreground() {
   Text(
     modifier = Modifier.hazeBlur(
-      input = HazeInput.Sources(LocalHazeState.current),
+      input = HazeInput.Backdrop(LocalHazeState.current),
     ),
   )
 }
@@ -198,8 +253,9 @@ fun Foreground() {
 
 ## Overlapping effects
 
-One composable can both consume lower sources and become a source for a higher effect. Give each
-source an explicit `zIndex`:
+One composable can both consume lower sources and become a source for a higher effect. This example
+deliberately uses Sources because the exact source ordering matters. Give each source an explicit
+`zIndex`:
 
 ```kotlin
 Box {

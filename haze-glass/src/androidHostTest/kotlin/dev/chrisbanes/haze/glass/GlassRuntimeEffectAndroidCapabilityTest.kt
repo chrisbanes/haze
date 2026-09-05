@@ -3,20 +3,29 @@
 
 package dev.chrisbanes.haze.glass
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import assertk.assertThat
+import assertk.assertions.containsExactly
+import assertk.assertions.isEqualTo
+import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isNotEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
+import assertk.assertions.prop
 import dev.chrisbanes.haze.HazeEffectInputSnapshot
 import dev.chrisbanes.haze.HazeEffectRuntimeDrawScope
 import dev.chrisbanes.haze.HazeSampling
@@ -67,6 +76,135 @@ class GlassRuntimeEffectAndroidCapabilityTest {
 
   @Test
   @Config(sdk = [35])
+  fun backdropPreparation_requestsFullResolution() {
+    val effect = GlassRuntimeEffect()
+    val context = AndroidCapabilityContext()
+
+    val decision = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = isRuntimeShaderGlassSupported(),
+      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+    )
+
+    assertThat(decision)
+      .isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.FULL_RESOLUTION_SCALE)
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun oversizedBackdropForeground_fallsBackInsteadOfDownscaling() {
+    val effect = GlassRuntimeEffect()
+    val context = AndroidCapabilityContext(contextSize = Size(5000f, 5000f))
+
+    val decision = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = isRuntimeShaderGlassSupported(),
+      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+      backdrop = true,
+    )
+
+    assertThat(decision).isEqualTo(
+      GlassRenderBudgetDecision.Fallback(GlassRenderBudgetFallbackReason.ExceedsLimits),
+    )
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun largeBackdropWithoutForegroundLayers_keepsFullResolution() {
+    val effect = GlassRuntimeEffect(
+      GlassNodeConfiguration(
+        style = GlassStyle {
+          specularIntensity(0f)
+          edgeShadow(Color.Transparent)
+        },
+        interactionSource = null,
+      ),
+    )
+    val context = AndroidCapabilityContext(contextSize = Size(5000f, 5000f))
+
+    val decision = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = isRuntimeShaderGlassSupported(),
+      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+      backdrop = true,
+    )
+
+    assertThat(decision)
+      .isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+      .prop(GlassRenderBudgetDecision.Runtime::scaleFactor)
+      .isEqualTo(GlassInputScalePolicy.FULL_RESOLUTION_SCALE)
+  }
+
+  @Test
+  @Config(sdk = [35])
+  fun backdropPreparation_preservesFullGraphWithoutCaptureLayers() {
+    val tint = Color.Red.copy(alpha = 0.2f)
+    val background = Color.Blue.copy(alpha = 0.1f)
+    val effect = GlassRuntimeEffect(
+      GlassNodeConfiguration(
+        style = GlassStyle.regular.then {
+          optics(
+            GlassOptics(
+              refractionStrength = 0.8f,
+              refractionHeightFraction = 0.25f,
+              refractionDisplacement = 18.dp,
+              depth = OpticalSizeValue.Fixed(0.5f),
+              blurRadius = OpticalSizeValue.Fixed(16.dp),
+              refractionDetailIntensity = 0.8f,
+            ),
+          )
+          shape(RoundedCornerShape(24.dp))
+          specularIntensity(0.8f)
+          edgeShadow(Color.Black.copy(alpha = 0.2f))
+          edgeSoftness(12.dp)
+          backgroundColor(background)
+          tint(tint)
+          alpha(0.4f)
+          chromaticAberrationStrength(0.35f)
+          chromaticAberrationMode(ChromaticAberrationMode.Full)
+          contrast(0.2f)
+          whitePoint(0.1f)
+          chromaMultiplier(1.2f)
+        },
+        interactionSource = null,
+      ),
+    )
+    val context = AndroidCapabilityContext(contextSize = Size(240f, 160f))
+
+    val decision = effect.prepareRenderBudget(
+      context,
+      runtimeShaderSupported = isRuntimeShaderGlassSupported(),
+      requestedScaleOverride = GlassInputScalePolicy.FULL_RESOLUTION_SCALE,
+      backdrop = true,
+    )
+
+    assertThat(decision).isInstanceOf<GlassRenderBudgetDecision.Runtime>()
+    val prepared = checkNotNull(effect.preparedRender)
+    assertThat(prepared.plan.layers.map { it.kind })
+      .containsExactly(GlassRetainedLayerKind.Rim)
+    assertThat(prepared.groupCompositeSize).isNull()
+    assertThat(prepared.alpha).isEqualTo(0.4f)
+    assertThat(prepared.blurKey).isNotNull()
+    assertThat(prepared.refractionDetailKey).isNotNull()
+    assertThat(prepared.rimKey).isNotNull()
+    assertThat(prepared.params.depth).isEqualTo(0.5f)
+    assertThat(prepared.params.blurRadiusPx).isGreaterThan(0f)
+    assertThat(prepared.params.refractionStrength).isEqualTo(0.8f)
+    assertThat(prepared.params.backgroundColor).isEqualTo(background)
+    assertThat(prepared.params.tint).isEqualTo(tint)
+    assertThat(prepared.params.chromaticAberrationStrength).isEqualTo(0.35f)
+    assertThat(prepared.params.chromaticAberrationMode)
+      .isEqualTo(ChromaticAberrationMode.Full.ordinal.toFloat())
+    assertThat(prepared.params.contrast).isEqualTo(0.2f)
+    assertThat(prepared.params.whitePoint).isEqualTo(0.1f)
+    assertThat(prepared.params.chromaMultiplier).isEqualTo(1.2f)
+    assertThat(prepared.params.cornerRadii).isNotEqualTo(CornerRadii.zero)
+  }
+
+  @Test
+  @Config(sdk = [35])
   fun runtimeEffectFactoryChange_replacesRuntimeDelegate() {
     val effect = GlassRuntimeEffect()
     val context = AndroidCapabilityContext()
@@ -85,13 +223,15 @@ class GlassRuntimeEffectAndroidCapabilityTest {
 }
 
 @OptIn(InternalComposeUiApi::class, InternalHazeApi::class)
-private class AndroidCapabilityContext :
+private class AndroidCapabilityContext(
+  private val contextSize: Size = Size(100f, 100f),
+) :
   HazeEffectRuntimeDrawScope,
   DrawScope by CanvasDrawScope() {
-  override val modifierSize: Size = Size(100f, 100f)
+  override val modifierSize: Size = contextSize
   override val modifierBounds: Rect = Rect(Offset.Zero, modifierSize)
   override val sampling: HazeSampling = HazeSampling.FullResolution
-  override val layerSize: Size = Size(100f, 100f)
+  override val layerSize: Size = contextSize
   override val layerOffset: Offset = Offset.Zero
   override val hasDrawableInput: Boolean = true
   override val inputSnapshot: HazeEffectInputSnapshot = AndroidCapabilityInputSnapshot

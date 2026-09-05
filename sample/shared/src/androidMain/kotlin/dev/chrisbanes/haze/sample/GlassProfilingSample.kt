@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeFeatureFlags
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.glass.ChromaticAberrationMode
@@ -114,6 +116,16 @@ private fun GlassProfilingScene(
   onBack: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val previousPlatformBackdropEnabled = remember {
+    HazeFeatureFlags.isPlatformBackdropEnabled
+  }
+  HazeFeatureFlags.isPlatformBackdropEnabled = scenario.usesBackdrop
+  DisposableEffect(Unit) {
+    onDispose {
+      HazeFeatureFlags.isPlatformBackdropEnabled = previousPlatformBackdropEnabled
+    }
+  }
+
   val hazeState = rememberHazeState()
   val interactionSource = remember { MutableInteractionSource() }
   val density = LocalDensity.current
@@ -219,6 +231,7 @@ private fun GlassProfilingScene(
     if (scenario.glassEnabled && attachGlass) {
       GlassProfilingEffectGrid(
         hazeState = hazeState,
+        usesBackdrop = scenario.usesBackdrop,
         styles = styles,
         performanceMode = scenario.performanceMode,
         interactionSource = interactionSource,
@@ -285,6 +298,7 @@ private fun GlassProfilingScene(
 @Composable
 private fun GlassProfilingEffectGrid(
   hazeState: dev.chrisbanes.haze.HazeState,
+  usesBackdrop: Boolean,
   styles: List<GlassStyle>,
   performanceMode: HazePerformanceMode,
   interactionSource: MutableInteractionSource,
@@ -307,7 +321,11 @@ private fun GlassProfilingEffectGrid(
                 drawContent()
               }
               .hazeGlass(
-                input = HazeInput.Sources(hazeState),
+                input = if (usesBackdrop) {
+                  HazeInput.Backdrop(hazeState)
+                } else {
+                  HazeInput.Sources(hazeState)
+                },
                 style = styles[effectIndex],
                 performanceMode = performanceMode,
                 interactionSource = interactionSource,
@@ -358,6 +376,7 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.EffectReattach,
     GlassProfilingScenario.StableAdaptive,
     GlassProfilingScenario.StableQuality,
+    GlassProfilingScenario.BackdropStableQuality,
     GlassProfilingScenario.StableBalanced,
     GlassProfilingScenario.StablePerformance,
     GlassProfilingScenario.SteadyFull3,
@@ -380,9 +399,11 @@ internal fun profilingGlassStyle(
     GlassProfilingScenario.InteractionUpdate9,
     GlassProfilingScenario.SourceUpdateAdaptive,
     GlassProfilingScenario.SourceUpdateQuality,
+    GlassProfilingScenario.BackdropSourceUpdateQuality,
     GlassProfilingScenario.SourceUpdateBalanced,
     GlassProfilingScenario.SourceUpdatePerformance,
     GlassProfilingScenario.SourceUpdate9,
+    GlassProfilingScenario.BackdropSourceUpdate9,
     GlassProfilingScenario.SourceUpdateNoGlass,
     -> Unit
   }

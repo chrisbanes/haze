@@ -32,7 +32,8 @@ import dev.chrisbanes.haze.hazeEffect
  * mechanics rather than Style presentation. Recomposition replaces each value completely,
  * including a `null` interaction source.
  *
- * @param input Source-backed content or this modifier's own content.
+ * @param input Source-backed content, this modifier's own content, or an experimental Android
+ * window backdrop with a required source fallback.
  * @param style Explicit appearance applied after defaults and [LocalGlassStyle].
  * @param performanceMode Effect-owned rendering-fidelity policy for this Glass runtime. The
  * default adaptive policy selects one of Glass's validated performance profiles from retained work
